@@ -250,7 +250,7 @@
           "MyFollows"
         ],
         "summary": "List the records you follow.",
-        "description": "Returns one page of the records you follow — projects, programs and planning interval objectives together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` (`ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for records that have finished, whatever the outcome: completed, canceled, or a missed objective) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default) or `Followed`, and `direction` is `Descending` (default, most recent first) or `Ascending`; a record with no activity counts as the least recently changed, so it comes last when descending and first when ascending. `page` starts at 1; `pageSize` is at most 100. Following notifies nobody yet: it records interest. Requires the following feature flag; returns 404 when it is off.",
+        "description": "Returns one page of the records you follow — projects, programs and planning interval objectives together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` (`ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for records that have finished, whatever the outcome: completed, canceled, or a missed objective) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default) or `Followed`, and `direction` is `Descending` (default, most recent first) or `Ascending`; a record with no activity counts as the least recently changed, so it comes last when descending and first when ascending. `page` starts at 1; `pageSize` is at most 100. Following a record tells you about its changes through your notifications. Requires the following feature flag; returns 404 when it is off.",
         "operationId": "MyFollows_GetFollows",
         "parameters": [
           {
@@ -557,7 +557,7 @@
           "MyFollows"
         ],
         "summary": "Follow a record.",
-        "description": "Follows the record for you. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Following a record you already follow changes nothing and still succeeds. You can follow only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Following grants no access and notifies nobody yet. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
+        "description": "Follows the record for you. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Following a record you already follow changes nothing and still succeeds. You can follow only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Following grants no access; it tells you about the record's changes through your notifications. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
         "operationId": "MyFollows_Follow",
         "parameters": [
           {
@@ -689,6 +689,264 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/me/notifications": {
+      "get": {
+        "tags": [
+          "MyNotifications"
+        ],
+        "summary": "List your notifications.",
+        "description": "Returns one page of your notifications, one entry per record, newest change first. Each entry has the `record` (`ownerType`, `id`, `key`, `name`, `statusName`; an objective also carries `parentKey` and `parentName`, its planning interval), the newest change — `event` (`Created`, `StatusChanged`, `LifecycleChanged`, `HealthReported`, `TimelineChanged`, `RolesChanged`, `Reparented`, `ScoreRecorded`), `eventId`, `occurredOn`, `actorKind` and `actor` (null when no employee is linked to whoever made it) — the `reasons` you were told (`Following`, `Participant`, and later `Requester`, `Assigned`, `Mentioned`), `unreadCount`, `count`, `isUnread` and `latestNotificationId`. You are never told about your own changes, or about imports. A record you can no longer read is left out of the page and the total. `unreadOnly` keeps only entries with something unread. `page` starts at 1; `pageSize` is at most 100. Requires the following feature flag; returns 404 when it is off.",
+        "operationId": "MyNotifications_GetNotifications",
+        "parameters": [
+          {
+            "name": "unreadOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 1
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 2
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 25
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfNotificationDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/me/notifications/unread-count": {
+      "get": {
+        "tags": [
+          "MyNotifications"
+        ],
+        "summary": "Count the records you have unread notifications about.",
+        "description": "Returns `count`, the number of records with unread notifications you can still read, and `isCapped`, true when there are more than 99 — `count` is then 99, shown as \"99+\". Requires the following feature flag; returns 404 when it is off.",
+        "operationId": "MyNotifications_GetUnreadCount",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadNotificationCountDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/me/notifications/{id}/read": {
+      "post": {
+        "tags": [
+          "MyNotifications"
+        ],
+        "summary": "Mark one notification read.",
+        "description": "Marks the notification with this `id` — an entry's `latestNotificationId` — read. Marking one already read changes nothing. Returns 404 when you have no notification with that id. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
+        "operationId": "MyNotifications_MarkRead",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/me/notifications/{ownerType}/{ownerId}/read": {
+      "post": {
+        "tags": [
+          "MyNotifications"
+        ],
+        "summary": "Mark your notifications about one record read.",
+        "description": "Marks every notification you have about the record read — the whole entry the list shows for it. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Succeeds whether or not anything was unread. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
+        "operationId": "MyNotifications_MarkRecordRead",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/me/notifications/read": {
+      "post": {
+        "tags": [
+          "MyNotifications"
+        ],
+        "summary": "Mark all your notifications read.",
+        "description": "Marks every notification you have read. Succeeds whether or not anything was unread. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
+        "operationId": "MyNotifications_MarkAllRead",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -55750,6 +56008,163 @@
         ],
         "type": "string"
       },
+      "NotificationDto": {
+        "required": [
+          "record",
+          "latestNotificationId",
+          "event",
+          "eventId",
+          "occurredOn",
+          "actorKind",
+          "reasons",
+          "unreadCount",
+          "count",
+          "isUnread"
+        ],
+        "type": "object",
+        "properties": {
+          "record": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NotifiedRecordDto"
+              }
+            ],
+            "description": "The record the notifications are about."
+          },
+          "latestNotificationId": {
+            "type": "integer",
+            "description": "The newest notification in the entry; mark it read on its own with this id.",
+            "format": "int64"
+          },
+          "event": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NotificationEvent"
+              }
+            ],
+            "description": "What the newest change was."
+          },
+          "eventId": {
+            "type": "string",
+            "description": "The domain event behind the newest change: the id of its entry in the record's activity.",
+            "format": "uuid"
+          },
+          "occurredOn": {
+            "type": "string",
+            "description": "When the newest change happened.",
+            "format": "date-time"
+          },
+          "actorKind": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EventActorKind"
+              }
+            ],
+            "description": "How the newest change was made: a person directly, or the platform reacting for one."
+          },
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ],
+            "description": "Who made the newest change, or null when no employee is linked to the account that did.",
+            "nullable": true
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationReason"
+            },
+            "description": "Every reason the caller was told about this record, across the whole entry."
+          },
+          "unreadCount": {
+            "type": "integer",
+            "description": "How many of the entry's notifications the caller has not read.",
+            "format": "int32"
+          },
+          "count": {
+            "type": "integer",
+            "description": "How many notifications the entry collapses.",
+            "format": "int32"
+          },
+          "isUnread": {
+            "type": "boolean",
+            "description": "Whether anything in the entry is unread."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One entry in the caller's notification list: everything they were told about one record, collapsed, with\nthe newest change in front."
+      },
+      "NotificationEvent": {
+        "enum": [
+          "Created",
+          "StatusChanged",
+          "LifecycleChanged",
+          "HealthReported",
+          "TimelineChanged",
+          "RolesChanged",
+          "Reparented",
+          "ScoreRecorded"
+        ],
+        "type": "string"
+      },
+      "NotificationReason": {
+        "enum": [
+          "Following",
+          "Requester",
+          "Participant",
+          "Assigned",
+          "Mentioned"
+        ],
+        "type": "string",
+        "x-enumFlags": true
+      },
+      "NotifiedRecordDto": {
+        "required": [
+          "ownerType",
+          "id",
+          "key",
+          "name",
+          "statusName"
+        ],
+        "type": "object",
+        "properties": {
+          "ownerType": {
+            "type": "string",
+            "description": "The record's owner type, such as `ppm.project`."
+          },
+          "id": {
+            "type": "string",
+            "description": "The record's id.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string",
+            "description": "The record's human-readable key, as its own pages address it."
+          },
+          "name": {
+            "type": "string",
+            "description": "The record's name or title."
+          },
+          "parentKey": {
+            "type": "string",
+            "description": "The key of the record this one is addressed under, such as a planning interval objective's planning\ninterval. Null when the owner type does not nest.",
+            "nullable": true
+          },
+          "parentName": {
+            "type": "string",
+            "description": "The name of the parent record. Null when there is none.",
+            "nullable": true
+          },
+          "statusName": {
+            "type": "string",
+            "description": "The record's status as its own pages name it."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The record a notification is about, as its owner type describes it now."
+      },
       "OAuthAuthorizationDecisionResponse": {
         "required": [
           "redirectUrl"
@@ -56329,6 +56744,50 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/FollowedRecordDto"
+            }
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPreviousPage": {
+            "type": "boolean"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One page of results, with the paging position and the total across all pages."
+      },
+      "PagedResponseOfNotificationDto": {
+        "required": [
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages",
+          "hasPreviousPage",
+          "hasNextPage"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationDto"
             }
           },
           "pageNumber": {
@@ -69170,6 +69629,26 @@
         ],
         "type": "string"
       },
+      "UnreadNotificationCountDto": {
+        "required": [
+          "count",
+          "isCapped"
+        ],
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "The count, never more than int UnreadNotificationCountDto.Cap.",
+            "format": "int32"
+          },
+          "isCapped": {
+            "type": "boolean",
+            "description": "Whether the real count is higher than int UnreadNotificationCountDto.Count, shown as \"99+\"."
+          }
+        },
+        "additionalProperties": false,
+        "description": "How many records the caller has unread notifications about, capped for display."
+      },
       "UpdateAzureDevOpsConnectionRequest": {
         "allOf": [
           {
@@ -74619,6 +75098,9 @@
     },
     {
       "name": "MyFollows"
+    },
+    {
+      "name": "MyNotifications"
     },
     {
       "name": "Search"

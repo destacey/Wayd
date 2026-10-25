@@ -36,9 +36,10 @@ public sealed class FakeRecordReadRule(string ownerType) : IRecordReadRule
         string? parentKey = null,
         string? parentName = null,
         HealthStatus? health = null,
-        LifecycleCategory lifecycle = LifecycleCategory.Active)
+        LifecycleCategory lifecycle = LifecycleCategory.Active,
+        Guid? id = null)
     {
-        var record = new FakeRecord(Guid.NewGuid(), key, name, parentKey, parentName, health, lifecycle);
+        var record = new FakeRecord(id ?? Guid.NewGuid(), key, name, parentKey, parentName, health, lifecycle);
         _records.Add(record);
         return record;
     }

@@ -1187,6 +1187,348 @@ export class MyFollowsClient {
     }
 }
 
+export class MyNotificationsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * List your notifications.
+     * @param unreadOnly (optional) 
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     * @return OK
+     */
+    getNotifications(unreadOnly?: boolean | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfNotificationDto> {
+        let url_ = this.baseUrl + "/api/me/notifications?";
+        if (unreadOnly === null)
+            throw new globalThis.Error("The parameter 'unreadOnly' cannot be null.");
+        else if (unreadOnly !== undefined)
+            url_ += "unreadOnly=" + encodeURIComponent("" + unreadOnly) + "&";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetNotifications(_response);
+        });
+    }
+
+    protected processGetNotifications(response: AxiosResponse): Promise<PagedResponseOfNotificationDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PagedResponseOfNotificationDto>(result200);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PagedResponseOfNotificationDto>(null as any);
+    }
+
+    /**
+     * Count the records you have unread notifications about.
+     * @return OK
+     */
+    getUnreadCount( cancelToken?: CancelToken): Promise<UnreadNotificationCountDto> {
+        let url_ = this.baseUrl + "/api/me/notifications/unread-count";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetUnreadCount(_response);
+        });
+    }
+
+    protected processGetUnreadCount(response: AxiosResponse): Promise<UnreadNotificationCountDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<UnreadNotificationCountDto>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<UnreadNotificationCountDto>(null as any);
+    }
+
+    /**
+     * Mark one notification read.
+     * @return No Content
+     */
+    markRead(id: number, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/me/notifications/{id}/read";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkRead(_response);
+        });
+    }
+
+    protected processMarkRead(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Mark your notifications about one record read.
+     * @return No Content
+     */
+    markRecordRead(ownerType: string, ownerId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/me/notifications/{ownerType}/{ownerId}/read";
+        if (ownerType === undefined || ownerType === null)
+            throw new globalThis.Error("The parameter 'ownerType' must be defined.");
+        url_ = url_.replace("{ownerType}", encodeURIComponent("" + ownerType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkRecordRead(_response);
+        });
+    }
+
+    protected processMarkRecordRead(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Mark all your notifications read.
+     * @return No Content
+     */
+    markAllRead( cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/me/notifications/read";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkAllRead(_response);
+        });
+    }
+
+    protected processMarkAllRead(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
 export class SearchClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -55448,6 +55790,70 @@ export enum NeedByBasisFamily {
     ChosenByUs = "ChosenByUs",
 }
 
+/** One entry in the caller's notification list: everything they were told about one record, collapsed, with the newest change in front. */
+export interface NotificationDto {
+    /** The record the notifications are about. */
+    record: NotifiedRecordDto;
+    /** The newest notification in the entry; mark it read on its own with this id. */
+    latestNotificationId: number;
+    /** What the newest change was. */
+    event: NotificationEvent;
+    /** The domain event behind the newest change: the id of its entry in the record's activity. */
+    eventId: string;
+    /** When the newest change happened. */
+    occurredOn: Date;
+    /** How the newest change was made: a person directly, or the platform reacting for one. */
+    actorKind: EventActorKind;
+    /** Who made the newest change, or null when no employee is linked to the account that did. */
+    actor?: EmployeeNavigationDto | undefined;
+    /** Every reason the caller was told about this record, across the whole entry. */
+    reasons: NotificationReason[];
+    /** How many of the entry's notifications the caller has not read. */
+    unreadCount: number;
+    /** How many notifications the entry collapses. */
+    count: number;
+    /** Whether anything in the entry is unread. */
+    isUnread: boolean;
+}
+
+export enum NotificationEvent {
+    Created = "Created",
+    StatusChanged = "StatusChanged",
+    LifecycleChanged = "LifecycleChanged",
+    HealthReported = "HealthReported",
+    TimelineChanged = "TimelineChanged",
+    RolesChanged = "RolesChanged",
+    Reparented = "Reparented",
+    ScoreRecorded = "ScoreRecorded",
+}
+
+export enum NotificationReason {
+    Following = "Following",
+    Requester = "Requester",
+    Participant = "Participant",
+    Assigned = "Assigned",
+    Mentioned = "Mentioned",
+}
+
+/** The record a notification is about, as its owner type describes it now. */
+export interface NotifiedRecordDto {
+    /** The record's owner type, such as `ppm.project`. */
+    ownerType: string;
+    /** The record's id. */
+    id: string;
+    /** The record's human-readable key, as its own pages address it. */
+    key: string;
+    /** The record's name or title. */
+    name: string;
+    /** The key of the record this one is addressed under, such as a planning interval objective's planning
+interval. Null when the owner type does not nest. */
+    parentKey?: string | undefined;
+    /** The name of the parent record. Null when there is none. */
+    parentName?: string | undefined;
+    /** The record's status as its own pages name it. */
+    statusName: string;
+}
+
 /** Where to send the browser after the user approves or denies a connection request. */
 export interface OAuthAuthorizationDecisionResponse {
     /** The application's redirect URI, carrying the authorization code or the refusal, `state` and `iss`. */
@@ -55640,6 +56046,17 @@ export interface PagedResponseOfActivityLogDto {
 /** One page of results, with the paging position and the total across all pages. */
 export interface PagedResponseOfFollowedRecordDto {
     items: FollowedRecordDto[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
+/** One page of results, with the paging position and the total across all pages. */
+export interface PagedResponseOfNotificationDto {
+    items: NotificationDto[];
     pageNumber: number;
     pageSize: number;
     totalCount: number;
@@ -59683,6 +60100,14 @@ export interface UnavailableMetricDto {
 export enum UnestimatedHandling {
     Exclude = "Exclude",
     TeamAverage = "TeamAverage",
+}
+
+/** How many records the caller has unread notifications about, capped for display. */
+export interface UnreadNotificationCountDto {
+    /** The count, never more than int UnreadNotificationCountDto.Cap. */
+    count: number;
+    /** Whether the real count is higher than int UnreadNotificationCountDto.Count, shown as "99+". */
+    isCapped: boolean;
 }
 
 export interface UpdateConnectionRequest {

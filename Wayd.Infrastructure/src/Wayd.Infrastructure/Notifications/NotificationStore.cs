@@ -65,4 +65,30 @@ internal sealed class NotificationStore(WaydDbContext dbContext) : INotification
             }
         }
     }
+
+    /// <inheritdoc/>
+    public async Task<bool> MarkRead(Guid recipientEmployeeId, long notificationId, Instant readOn, CancellationToken cancellationToken)
+    {
+        await _dbContext.Notifications
+            .Where(n => n.Id == notificationId && n.RecipientEmployeeId == recipientEmployeeId && n.ReadOn == null)
+            .ExecuteUpdateAsync(u => u.SetProperty(n => n.ReadOn, readOn), cancellationToken);
+
+        return await _dbContext.Notifications
+            .AnyAsync(n => n.Id == notificationId && n.RecipientEmployeeId == recipientEmployeeId, cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    public Task<int> MarkRecordRead(Guid recipientEmployeeId, string ownerType, Guid ownerId, Instant readOn, CancellationToken cancellationToken) =>
+        _dbContext.Notifications
+            .Where(n => n.RecipientEmployeeId == recipientEmployeeId
+                && n.OwnerType == ownerType
+                && n.OwnerId == ownerId
+                && n.ReadOn == null)
+            .ExecuteUpdateAsync(u => u.SetProperty(n => n.ReadOn, readOn), cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<int> MarkAllRead(Guid recipientEmployeeId, Instant readOn, CancellationToken cancellationToken) =>
+        _dbContext.Notifications
+            .Where(n => n.RecipientEmployeeId == recipientEmployeeId && n.ReadOn == null)
+            .ExecuteUpdateAsync(u => u.SetProperty(n => n.ReadOn, readOn), cancellationToken);
 }

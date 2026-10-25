@@ -167,6 +167,106 @@ public sealed class NotificationStoreIntegrationTests(SqlServerDbContextFixture 
         await act.Should().ThrowAsync<ArgumentException>();
     }
 
+    [Fact]
+    public async Task MarkRead_ShouldMarkOnlyThatPersonsNotification_AndKeepTheFirstReadInstant()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var avery = await NotificationTestData.SeedEmployee(fixture);
+        var blake = await NotificationTestData.SeedEmployee(fixture);
+        var eventId = Guid.CreateVersion7();
+        await using (var seed = fixture.CreateContext())
+        {
+            await new NotificationStore(seed).Add([New(eventId, Guid.CreateVersion7(), avery.Id), New(eventId, Guid.CreateVersion7(), blake.Id)], cancellationToken);
+        }
+
+        long averys;
+        await using (var lookup = fixture.CreateContext())
+        {
+            averys = await lookup.Notifications.Where(n => n.EventId == eventId && n.RecipientEmployeeId == avery.Id).Select(n => n.Id).SingleAsync(cancellationToken);
+        }
+
+        await using var context = fixture.CreateContext();
+        var store = new NotificationStore(context);
+
+        // Act
+        var first = await store.MarkRead(avery.Id, averys, Timestamp, cancellationToken);
+        var again = await store.MarkRead(avery.Id, averys, Timestamp.Plus(Duration.FromHours(1)), cancellationToken);
+        var notTheirs = await store.MarkRead(blake.Id, averys, Timestamp, cancellationToken);
+
+        // Assert
+        first.Should().BeTrue();
+        again.Should().BeTrue();
+        notTheirs.Should().BeFalse();
+        await using var reader = fixture.CreateContext();
+        var readOn = await reader.Notifications.Where(n => n.EventId == eventId).ToDictionaryAsync(n => n.RecipientEmployeeId, n => n.ReadOn, cancellationToken);
+        readOn[avery.Id].Should().Be(Timestamp);
+        readOn[blake.Id].Should().BeNull();
+    }
+
+    [Fact]
+    public async Task MarkRecordRead_ShouldMarkOnlyThatPersonsNotificationsAboutThatRecord()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var avery = await NotificationTestData.SeedEmployee(fixture);
+        var blake = await NotificationTestData.SeedEmployee(fixture);
+        var gadget = Guid.CreateVersion7();
+        var other = Guid.CreateVersion7();
+        await using (var seed = fixture.CreateContext())
+        {
+            var seeder = new NotificationStore(seed);
+            await seeder.Add([New(Guid.CreateVersion7(), gadget, avery.Id)], cancellationToken);
+            await seeder.Add([New(Guid.CreateVersion7(), gadget, avery.Id)], cancellationToken);
+            await seeder.Add([New(Guid.CreateVersion7(), other, avery.Id)], cancellationToken);
+            await seeder.Add([New(Guid.CreateVersion7(), gadget, blake.Id)], cancellationToken);
+        }
+
+        await using var context = fixture.CreateContext();
+
+        // Act
+        var marked = await new NotificationStore(context).MarkRecordRead(avery.Id, GadgetType, gadget, Timestamp, cancellationToken);
+
+        // Assert
+        marked.Should().Be(2);
+        await using var reader = fixture.CreateContext();
+        var unread = await reader.Notifications
+            .Where(n => (n.OwnerId == gadget || n.OwnerId == other) && n.ReadOn == null)
+            .Select(n => new { n.OwnerId, n.RecipientEmployeeId })
+            .ToListAsync(cancellationToken);
+        unread.Should().BeEquivalentTo([
+            new { OwnerId = other, RecipientEmployeeId = avery.Id },
+            new { OwnerId = gadget, RecipientEmployeeId = blake.Id },
+        ]);
+    }
+
+    [Fact]
+    public async Task MarkAllRead_ShouldMarkEveryUnreadNotificationOfThatPersonOnly()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var avery = await NotificationTestData.SeedEmployee(fixture);
+        var blake = await NotificationTestData.SeedEmployee(fixture);
+        await using (var seed = fixture.CreateContext())
+        {
+            var seeder = new NotificationStore(seed);
+            await seeder.Add([New(Guid.CreateVersion7(), Guid.CreateVersion7(), avery.Id)], cancellationToken);
+            await seeder.Add([New(Guid.CreateVersion7(), Guid.CreateVersion7(), avery.Id)], cancellationToken);
+            await seeder.Add([New(Guid.CreateVersion7(), Guid.CreateVersion7(), blake.Id)], cancellationToken);
+        }
+
+        await using var context = fixture.CreateContext();
+
+        // Act
+        var marked = await new NotificationStore(context).MarkAllRead(avery.Id, Timestamp, cancellationToken);
+
+        // Assert
+        marked.Should().Be(2);
+        await using var reader = fixture.CreateContext();
+        (await reader.Notifications.CountAsync(n => n.RecipientEmployeeId == avery.Id && n.ReadOn == null, cancellationToken)).Should().Be(0);
+        (await reader.Notifications.CountAsync(n => n.RecipientEmployeeId == blake.Id && n.ReadOn == null, cancellationToken)).Should().Be(1);
+    }
+
     private static Notification New(
         Guid eventId,
         Guid ownerId,

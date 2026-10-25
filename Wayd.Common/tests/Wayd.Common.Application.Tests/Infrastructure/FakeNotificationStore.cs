@@ -27,4 +27,33 @@ public sealed class FakeNotificationStore(FakeWaydDbContext dbContext) : INotifi
 
         return Task.FromResult(added.Count);
     }
+
+    public Task<bool> MarkRead(Guid recipientEmployeeId, long notificationId, Instant readOn, CancellationToken cancellationToken)
+    {
+        var mine = _dbContext.Notifications.Where(n => n.Id == notificationId && n.RecipientEmployeeId == recipientEmployeeId).ToList();
+        MarkUnread(mine, readOn);
+        return Task.FromResult(mine.Count > 0);
+    }
+
+    public Task<int> MarkRecordRead(Guid recipientEmployeeId, string ownerType, Guid ownerId, Instant readOn, CancellationToken cancellationToken) =>
+        Task.FromResult(MarkUnread(
+            _dbContext.Notifications.Where(n => n.RecipientEmployeeId == recipientEmployeeId && n.OwnerType == ownerType && n.OwnerId == ownerId).ToList(),
+            readOn));
+
+    public Task<int> MarkAllRead(Guid recipientEmployeeId, Instant readOn, CancellationToken cancellationToken) =>
+        Task.FromResult(MarkUnread(
+            _dbContext.Notifications.Where(n => n.RecipientEmployeeId == recipientEmployeeId).ToList(),
+            readOn));
+
+    /// <summary>Sets <c>ReadOn</c> on the unread ones, as the real store's set-based update does.</summary>
+    private static int MarkUnread(List<Notification> notifications, Instant readOn)
+    {
+        var unread = notifications.Where(n => n.ReadOn is null).ToList();
+        foreach (var notification in unread)
+        {
+            notification.SetPrivate(n => n.ReadOn, readOn);
+        }
+
+        return unread.Count;
+    }
 }

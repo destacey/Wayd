@@ -62,7 +62,7 @@ describe('MyIntakeRequestsPage', () => {
     })
   })
 
-  it('asks the server for the caller's own requests', () => {
+  it("asks the server for the caller's own requests", () => {
     // Arrange / Act
     render(<MyIntakeRequestsPage />)
 

@@ -31,6 +31,7 @@ public sealed class GetIntakeRequestQueryHandlerTests
         result!.Substance.Should().NotBeNull();
         result.CanEdit.Should().BeFalse();
         result.CanReview.Should().BeFalse();
+        result.CanAddParticipants.Should().BeFalse();
     }
 
     [Fact]
@@ -49,6 +50,56 @@ public sealed class GetIntakeRequestQueryHandlerTests
         result.CanReview.Should().BeFalse();
     }
 
+    [Theory]
+    [InlineData(IntakeDeskVisibility.Open, false, true)]
+    [InlineData(IntakeDeskVisibility.Private, true, true)]
+    [InlineData(IntakeDeskVisibility.Private, false, false)]
+    public async Task Handle_ForTheRequester_OffersAddParticipantsWhereTheDeskAllowsIt(
+        IntakeDeskVisibility visibility, bool requesterMayAddParticipants, bool expected)
+    {
+        // Arrange
+        var requester = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(visibility, requesterMayAddParticipants: requesterMayAddParticipants), requester);
+        _scenario.SignedInAs(requester);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.CanAddParticipants.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task Handle_ForAParticipant_DoesNotOfferAddParticipants()
+    {
+        // Arrange
+        var participant = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), _scenario.Employee(), participant.Id);
+        _scenario.SignedInAs(participant);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.CanAddParticipants.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ForAReviewerOnAPrivateDeskThatDisallowsRequesters_OffersAddParticipants()
+    {
+        // Arrange
+        var reviewer = _scenario.Employee();
+        var desk = _scenario.Desk(IntakeDeskVisibility.Private, requesterMayAddParticipants: false, reviewerIds: reviewer.Id);
+        var request = _scenario.Request(desk, _scenario.Employee());
+        _scenario.SignedInAs(reviewer, IntakeScenario.Review);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.CanAddParticipants.Should().BeTrue();
+    }
+
     [Fact]
     public async Task Handle_ForARequestTheReaderCannotSee_ReturnsNull()
     {
@@ -64,7 +115,7 @@ public sealed class GetIntakeRequestQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ForTheLinkedRequesterWithAReadOnlyToken_OffersNoEdit()
+    public async Task Handle_ForTheLinkedRequesterWithAReadOnlyToken_OffersNoChange()
     {
         // Arrange — the requester may edit by who they are, which a token's scope does not narrow on its own
         var requester = _scenario.Employee();
@@ -76,6 +127,7 @@ public sealed class GetIntakeRequestQueryHandlerTests
 
         // Assert
         result!.CanEdit.Should().BeFalse();
+        result.CanAddParticipants.Should().BeFalse();
     }
 
     [Fact]

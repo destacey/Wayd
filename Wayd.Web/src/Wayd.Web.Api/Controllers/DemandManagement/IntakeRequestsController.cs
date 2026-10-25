@@ -30,11 +30,11 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.IntakeRequests)]
     [EndpointSummary("Get the intake requests you can see, as summaries.")]
-    [EndpointDescription("Requests on a private desk are absent for anyone outside it rather than listed as redacted rows.")]
+    [EndpointDescription("Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<IntakeRequestSummaryDto>>> GetIntakeRequests([FromQuery] Guid? deskId, CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<IntakeRequestSummaryDto>>> GetIntakeRequests([FromQuery] Guid? deskId, [FromQuery] bool mine = false, CancellationToken cancellationToken = default)
     {
-        var requests = await _dispatcher.Send(new GetIntakeRequestsQuery(deskId), cancellationToken);
+        var requests = await _dispatcher.Send(new GetIntakeRequestsQuery(deskId, mine), cancellationToken);
         return Ok(requests);
     }
 
@@ -142,6 +142,16 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     {
         var bases = await _dispatcher.Send(new GetNeedByBasesQuery(), cancellationToken);
         return Ok(bases);
+    }
+
+    [HttpGet("need-by-basis-families")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.IntakeRequests)]
+    [EndpointSummary("Get the need-by basis families, with their codes and names.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<NeedByBasisFamilyDto>>> GetNeedByBasisFamilies(CancellationToken cancellationToken)
+    {
+        var families = await _dispatcher.Send(new GetNeedByBasisFamiliesQuery(), cancellationToken);
+        return Ok(families);
     }
 
     private ActionResult NoContentOrError(Result result) =>

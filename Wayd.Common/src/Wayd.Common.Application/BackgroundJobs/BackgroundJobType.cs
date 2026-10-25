@@ -44,4 +44,7 @@ public enum BackgroundJobType
 
     [Display(Name = "Import Retention Sweep", Description = "Delete the stored copy of every imported row belonging to a run that finished more than 30 days ago. Run history and per-row outcomes are kept.", Order = 2003, GroupName = "Maintenance Jobs")]
     ImportRetentionSweep = 2002,
+
+    [Display(Name = "Notification Retention Sweep", Description = "Delete notifications about changes more than 90 days old, read or not. The activity log keeps what happened.", Order = 2004, GroupName = "Maintenance Jobs")]
+    NotificationRetentionSweep = 2003,
 }

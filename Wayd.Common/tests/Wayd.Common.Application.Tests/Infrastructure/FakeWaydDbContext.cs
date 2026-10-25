@@ -7,6 +7,7 @@ using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Following;
 using Wayd.Common.Domain.Identity;
+using Wayd.Common.Domain.Notifications;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Tests.Shared.Infrastructure;
@@ -37,6 +38,7 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
 
     // Following, for handlers that reach INotificationsDbContext.
     private readonly List<Follow> _follows = [];
+    private readonly List<Notification> _notifications = [];
 
     // DbSet properties
     public DbSet<Employee> Employees => _employees.AsDbSet();
@@ -54,6 +56,7 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     public DbSet<StatusTransition> StatusTransitions => _statusTransitions.AsDbSet();
 
     public DbSet<Follow> Follows => _follows.AsDbSet();
+    public DbSet<Notification> Notifications => _notifications.AsDbSet();
 
     // ChangeTracker - we can't create a real one, so we return null and the handler uses defensive coding (_dbContext.ChangeTracker?.Clear())
     public ChangeTracker ChangeTracker => null!;
@@ -104,6 +107,8 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     public void AddWaydUser(User user) => _waydUsers.Add(user);
 
     public void AddEmployee(Employee employee) => _employees.Add(employee);
+    public void AddFollow(Follow follow) => _follows.Add(follow);
+    public void AddNotification(Notification notification) => _notifications.Add(notification);
 
     #endregion Helper Methods for Test Setup
 

@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Following;
+using Wayd.Common.Domain.Notifications;
+using Wayd.Infrastructure.Persistence.Converters;
 
 namespace Wayd.Infrastructure.Persistence.Configuration;
 
@@ -38,5 +41,75 @@ public class FollowConfiguration : IEntityTypeConfiguration<Follow>
             .WithMany()
             .HasForeignKey(f => f.EmployeeId)
             .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+/// <summary>
+/// Maps <see cref="Notification"/> to <c>Notifications.Notifications</c>: one row per person per event.
+/// </summary>
+public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
+{
+    /// <inheritdoc/>
+    public void Configure(EntityTypeBuilder<Notification> builder)
+    {
+        builder.ToTable("Notifications", SchemaNames.Notifications);
+
+        // An increasing integer rather than a GUID, so inserts append to the clustered index.
+        builder.HasKey(n => n.Id);
+        builder.Property(n => n.Id).UseIdentityColumn();
+
+        // One person, one notification per event: a redelivered event collides here instead of
+        // writing a second row.
+        builder.HasIndex(n => new { n.EventId, n.RecipientEmployeeId }).IsUnique();
+
+        // The list: one person's notifications grouped by record, with everything the grouping counts.
+        builder.HasIndex(n => new { n.RecipientEmployeeId, n.OwnerType, n.OwnerId, n.OccurredOn })
+            .IncludeProperties(n => new { n.ReadOn, n.Reasons });
+
+        // The unread count and "mark all read", which only ever touch unread rows.
+        builder.HasIndex(n => new { n.RecipientEmployeeId, n.OwnerType, n.OwnerId })
+            .HasFilter("[ReadOn] IS NULL")
+            .HasDatabaseName("IX_Notifications_Unread");
+
+        // The retention sweep.
+        builder.HasIndex(n => n.OccurredOn);
+
+        builder.Property(n => n.OwnerType).IsRequired()
+            .HasColumnType("varchar")
+            .HasMaxLength(FollowOwnerDescriptor.KeyMaxLength);
+
+        // No foreign key, as for follows: the target lives in a different table per owner type.
+        builder.Property(n => n.OwnerId).IsRequired();
+
+        builder.Property(n => n.EventId).IsRequired();
+
+        builder.Property(n => n.Event)
+            .IsRequired()
+            .HasConversion<EnumConverter<NotificationEvent>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
+        builder.Property(n => n.ActorKind)
+            .IsRequired()
+            .HasConversion<EnumConverter<EventActorKind>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
+        builder.Property(n => n.OccurredOn).IsRequired();
+        builder.Property(n => n.Reasons).IsRequired();
+        builder.Property(n => n.ReadOn);
+
+        builder.HasOne<Employee>()
+            .WithMany()
+            .HasForeignKey(n => n.RecipientEmployeeId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // No action: SQL Server refuses a second cascading path from Employees, and employees are only
+        // ever soft-deleted, so the constraint never has a row to act on.
+        builder.HasOne<Employee>()
+            .WithMany()
+            .HasForeignKey(n => n.ActorEmployeeId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

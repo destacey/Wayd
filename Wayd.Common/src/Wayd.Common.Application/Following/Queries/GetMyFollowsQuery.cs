@@ -124,7 +124,7 @@ public sealed class GetMyFollowsQueryHandler(
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
-        var summaries = await Describe(page, owners.Value, cancellationToken);
+        var summaries = await FollowReadRules.Describe(page.Select(r => (r.OwnerType, r.OwnerId)), owners.Value, cancellationToken);
 
         // A record deleted between the page query and Describe is dropped rather than shown unnamed.
         var items = page
@@ -133,31 +133,5 @@ public sealed class GetMyFollowsQueryHandler(
             .ToList();
 
         return new PagedResponse<FollowedRecordDto>(items, totalCount, request.PageNumber, request.PageSize);
-    }
-
-    private static async Task<Dictionary<(string OwnerType, Guid Id), RecordSummary>> Describe(
-        List<FollowedRow> page,
-        List<(FollowOwnerDescriptor Descriptor, IRecordReadRule ReadRule)> owners,
-        CancellationToken cancellationToken)
-    {
-        var summaries = new Dictionary<(string, Guid), RecordSummary>();
-
-        foreach (var group in page.GroupBy(r => r.OwnerType, StringComparer.OrdinalIgnoreCase))
-        {
-            var readRule = owners
-                .First(o => string.Equals(o.Descriptor.Key, group.Key, StringComparison.OrdinalIgnoreCase))
-                .ReadRule;
-            var described = await readRule.Describe([.. group.Select(r => r.OwnerId)], cancellationToken);
-
-            foreach (var row in group)
-            {
-                if (described.TryGetValue(row.OwnerId, out var summary))
-                {
-                    summaries[(row.OwnerType, row.OwnerId)] = summary;
-                }
-            }
-        }
-
-        return summaries;
     }
 }

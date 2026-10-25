@@ -102,6 +102,12 @@ public sealed record RecordSummary
     /// <summary>The name of that parent record. Null when there is no parent.</summary>
     public string? ParentName { get; init; }
 
+    /// <summary>
+    /// The id of that parent record, for reaching the record through its parent's endpoints — an objective's
+    /// health checks live under its planning interval. Null when there is no parent.
+    /// </summary>
+    public Guid? ParentId { get; init; }
+
     /// <summary>The record's status as its own pages name it, such as "Active" or "In Progress".</summary>
     public required string StatusName { get; init; }
 
@@ -110,6 +116,9 @@ public sealed record RecordSummary
 
     /// <summary>The record's current health, or null when it has none — expired, never checked, or an owner type without health.</summary>
     public HealthStatus? Health { get; init; }
+
+    /// <summary>The id of the health check <see cref="Health"/> comes from, or null when there is none.</summary>
+    public Guid? HealthCheckId { get; init; }
 
     /// <summary>How far the record has got, 0 to 100, for an owner type that tracks it. Null otherwise.</summary>
     public double? Progress { get; init; }

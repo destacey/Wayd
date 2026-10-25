@@ -76,6 +76,38 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
     }
 
     [Fact]
+    public async Task GetIntakeRequests_Mine_ReturnsWhatTheCallerRequestedOrSubmittedAndNothingTheyOnlyParticipateIn()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        Guid onBehalf;
+        await using (var seeding = _fixture.CreateContext())
+        {
+            var desk = await seeding.IntakeDesks.SingleAsync(d => d.Id == scenario.SummaryOnly.Id, ct);
+            var channel = await seeding.IntakeChannels.SingleAsync(c => c.Id == scenario.OnOpen.ChannelId, ct);
+            var request = IntakeRequest.Create(UniqueName("Ask"), "Entered for someone else", null, scenario.Reviewer.Id,
+                scenario.Participant.Id, desk, channel, null, null, EventActor.System, Now).Value;
+            seeding.IntakeRequests.Add(request);
+            await seeding.SaveChangesAsync(ct);
+            onBehalf = request.Id;
+        }
+
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var asSubmitter = await new GetIntakeRequestsQueryHandler(context, Principal(scenario.Participant.Id))
+            .Handle(new GetIntakeRequestsQuery(Mine: true), ct);
+        var asRequester = await new GetIntakeRequestsQueryHandler(context, Principal(scenario.Requester.Id))
+            .Handle(new GetIntakeRequestsQuery(Mine: true), ct);
+
+        // Assert — the participant is on OnOpen but neither requested nor submitted it
+        asSubmitter.Select(r => r.Id).Should().Equal(onBehalf);
+        asRequester.Select(r => r.Id).Should().BeEquivalentTo(
+            [scenario.OnOpen.Id, scenario.OnSummaryOnly.Id, scenario.OnPrivate.Id]);
+    }
+
+    [Fact]
     public async Task GetIntakeRequest_ProjectsTheSummary()
     {
         // Arrange
@@ -101,6 +133,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         summary.NeedBy.CommittedBy!.Id.Should().Be(scenario.Reviewer.Id);
         result.CanEdit.Should().BeFalse();
         result.CanReview.Should().BeFalse();
+        result.CanAddParticipants.Should().BeFalse();
     }
 
     [Fact]
@@ -142,6 +175,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         // Assert
         result!.Substance.Should().NotBeNull();
         result.CanEdit.Should().BeTrue();
+        result.CanAddParticipants.Should().BeTrue();
     }
 
     [Fact]

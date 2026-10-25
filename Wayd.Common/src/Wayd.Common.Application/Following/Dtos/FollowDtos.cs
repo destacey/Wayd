@@ -1,5 +1,6 @@
 using Mapster;
 using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Records;
 using Wayd.Common.Domain.Enums;
 
@@ -43,6 +44,12 @@ public sealed record FollowedRecordDto
     /// <summary>The name of the parent record. Null when there is none.</summary>
     public string? ParentName { get; init; }
 
+    /// <summary>
+    /// The id of the parent record, for the endpoints the record is reached through — an objective's health
+    /// checks live under its planning interval. Null when there is none.
+    /// </summary>
+    public Guid? ParentId { get; init; }
+
     /// <summary>The record's status as its own pages name it.</summary>
     public required string StatusName { get; init; }
 
@@ -51,6 +58,12 @@ public sealed record FollowedRecordDto
 
     /// <summary>The record's current health, or null when it has none.</summary>
     public HealthStatus? Health { get; init; }
+
+    /// <summary>
+    /// The health check <see cref="Health"/> comes from, with its id for reading the rest of it — who reported
+    /// it, when, and the note. Null when the record has no current health.
+    /// </summary>
+    public FollowedHealthCheckDto? HealthCheck { get; init; }
 
     /// <summary>When the caller started following the record.</summary>
     public required Instant FollowedOn { get; init; }
@@ -76,7 +89,26 @@ public sealed record FollowedRecordDto
             Id = id,
             FollowedOn = followedOn,
             LastChangedOn = lastChangedOn,
+            HealthCheck = FollowedHealthCheckDto.From(summary),
         };
+}
+
+/// <summary>
+/// A followed record's current health check, in the shape the record's own lists use for it.
+/// </summary>
+public sealed record FollowedHealthCheckDto
+{
+    /// <summary>The health check's id.</summary>
+    public required Guid Id { get; init; }
+
+    /// <summary>The health status, by code and display name.</summary>
+    public required SimpleNavigationDto Status { get; init; }
+
+    /// <summary>The record's current health check, or null when it has none.</summary>
+    public static FollowedHealthCheckDto? From(RecordSummary summary) =>
+        summary is { HealthCheckId: { } id, Health: { } health }
+            ? new FollowedHealthCheckDto { Id = id, Status = SimpleNavigationDto.FromEnum(health) }
+            : null;
 }
 
 /// <summary>

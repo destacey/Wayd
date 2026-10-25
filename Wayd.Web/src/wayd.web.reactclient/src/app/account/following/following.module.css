@@ -182,6 +182,19 @@
   min-width: 0;
 }
 
+/* The health flag and status stay on one line beside the name, however narrow the row. */
+.rowTrail {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--ant-margin-xs);
+  white-space: nowrap;
+}
+
+.rowTrail :global(.ant-tag) {
+  margin-inline-end: 0;
+}
+
 .rowName {
   display: block;
   overflow: hidden;

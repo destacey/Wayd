@@ -522,6 +522,8 @@ Each field and each event belongs to one tier (`IntakeRequestReadTier`), and the
 
 Who reads what (`IntakeRequestReader`, expressions that run in SQL): on an Open desk everyone with View reads summary and substance; on SummaryOnly everyone reads the summary and the substance goes to the request's own people (requester, submitter, participants) and to anyone who reviews on any desk; on Private only the desk's reviewers and the request's own people know the request exists — it is absent from lists, counts and history for everyone else, and a direct read answers 404. A private desk withholds even the summary from reviewers of other desks. History is filtered by event tier in the query (`IActivityLogReader.ReadEventTypes`), so pages and totals cover only what the reader may see; a reader without the substance also gets every entry without its actor (employee, client and the payload's `actor`), because the submitter is substance. Request numbers are install-wide, so a gap discloses that hidden requests exist (accepted).
 
+The details DTO answers what the reader may do — `canEdit`, `canReview` and `canAddParticipants` — by the same rules the commands apply; a client shows actions from these flags and never re-derives them. The list takes `mine=true` for requests the caller requested or submitted, filtered on the server because the submitter is substance and not in the summary. `GET /api/demand-management/employee-options` lists active employees by name for anyone with View on intake requests, since most requesters cannot list employees through Organization. The need-by basis families are a lookup too (`GET intake-requests/need-by-basis-families`, code and name), so a client groups and labels bases without hard-coding "Fixed for us" and "We chose it".
+
 ### Intake Desks
 
 A review responsibility, not a team or department. Properties: Name (unique), requester-facing Description, Visibility (`Open`/`SummaryOnly`/`Private`), Is Requester Selectable, Is Open, Requester May Add Participants (private desks), Reviewers (an explicit employee list, never derived from teams). Nothing is seeded; an administrator creates desks (`POST intake-desks`, Administer). Changing desks and re-routing requests arrive with #1118.
@@ -576,13 +578,31 @@ Every status change, with from/to, actor, timestamp and sequence. Written by Bas
 
 ## Following
 
-A follow (`Follow`, in `Wayd.Common`, table `Notifications.Follows`) is one employee's choice to keep one record in their Following list: owner type, owner id, employee, followed instant, keyed on all three of the first so following twice is a no-op. Behind the `following` feature flag. In-app notifications (#1126) will use follows; until then following notifies nobody.
+A follow (`Follow`, in `Wayd.Common`, table `Notifications.Follows`) is one employee's choice to keep one record in their Following list: owner type, owner id, employee, followed instant, keyed on all three of the first so following twice is a no-op. Behind the `following` feature flag. A record's followers are told about its changes through in-app notifications (see Notifications).
 
 Owner types are registered strings, as for status workflows: each module declares a `FollowOwnerDescriptor` (`ppm.project`, `ppm.program`, `planning.planning-interval-objective`) and an `IRecordReadRule` that says which records the caller may read (with an unhealthy flag and a closed flag per record, for filtering in SQL) and what each looks like now (key, name, status, lifecycle category, health, progress, the people who lead it — a project's or program's owners and managers, an objective's team — and dates). Adding a followable record is a registration, not a schema change.
 
 The Following list is paged in SQL across every owner type at once (`UNION ALL`), sorted by last change (default) or by follow date, newest first by default or oldest first (`direction`), where "last changed" is the newest activity-log entry the record's own Activity section lists — its own entries under its aggregate type, and entries naming it as related — and a record with none counts as the least recently changed. The activity log is read by id and aggregate type together, since records in different modules can share an id. It narrows by owner type, by a "needs a look" view — `Unhealthy` (current health check unhealthy), `ChangedRecently` (activity in the last seven days), `Closed` (lifecycle Completed or Canceled; a missed objective counts as Completed) — and by a search on name or exact key. Counts per type and per view come from the same query, after readability.
 
 **Following grants nothing.** A record can be followed only by someone who can read it through its own read rule, and a follower who loses access sees it leave their list and its count; a follow is never an input to authorization. It is also not participation: a participant is given a record and access with it, a follower chose one they could already see. Follow and unfollow are idempotent and act only for the caller — there is no adding a follower. API: `/api/me/follows` (`Me_Follow`, `Me_Unfollow`, `Me_GetFollowStatus`, `Me_GetFollows`, `Me_GetFollowCounts`, `Me_GetFollowedRecord`).
+
+## Notifications
+
+A notification (`Notification`, in `Wayd.Common`, table `Notifications.Notifications`) tells one employee about one change to one followable record. It stores facts, not sentences: recipient, owner type, owner id, the domain event's id (its activity log entry holds the full change), what happened (`NotificationEvent`: Created, StatusChanged, LifecycleChanged, HealthReported, TimelineChanged, RolesChanged, Reparented, ScoreRecorded), the actor's kind and employee, the instant, the reasons, and when it was read. Wording is produced at read time from the record as it is now. Behind the `following` feature flag; in-app only — no email, Teams or push, and no muting yet.
+
+Reasons (`NotificationReason`, a closed set stored as flags and crossing the API as a list of names): `Following` (the person follows the record), `Participant` (they hold a role on it), and `Requester`, `Assigned`, `Mentioned`, which are defined but not produced yet. Someone who qualifies twice gets one notification carrying both reasons.
+
+Notifications come only from domain events the modules already raise, consumed by durable Wolverine handlers in the owning module. What notifies:
+
+- **Project** — created (to its current role holders), status changed (not the status a new project starts in), lifecycle replaced, health check added, timeline changed, roles changed, moved to another program or portfolio, scored. Participants: every role holder (sponsor, owner, manager, member), read when the event is handled.
+- **Program** — created, status changed, timeline changed, roles changed. Participants: every role holder (sponsor, owner, manager).
+- **PI objective** — created, status changed, health check added, timeline changed. Participants: the direct members of the team that owns it (not its team of teams).
+
+Edits to details, keys and themes, baselines, health-check corrections, objective progress and order, and deletion do not notify. The actor is never told about their own change. Changes made by an import, a sync or the platform itself notify nobody. Deleted and inactive employees are never notified.
+
+**A notification never reveals a record its reader cannot see.** It is written without checking access and shown only while the recipient can read the record through that record's own read rule; one about a record that was deleted or whose access was lost is never listed or counted. Being notified grants nothing.
+
+The list shows one entry per record — the newest change, who made it, every reason, how many changes it collapses and how many are unread — newest first, paged. The unread count counts records, not changes, and is capped at 99. A reader marks one notification, one record's notifications, or all read; nothing is ever deleted by its reader. A nightly job deletes notifications more than 90 days old. API: `/api/me/notifications` (`Me_GetNotifications`, `Me_GetUnreadNotificationCount`, `Me_MarkNotificationRead`, `Me_MarkRecordNotificationsRead`, `Me_MarkAllNotificationsRead`).
 
 ---
 

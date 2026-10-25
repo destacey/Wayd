@@ -108,6 +108,13 @@ export enum QueryTags {
   SprintBurn = 'Planning.Sprint.Burn',
   SprintPlanningIntervals = 'Planning.Sprint.PlanningIntervals',
 
+  // DEMAND MANAGEMENT
+  IntakeRequest = 'DemandManagement.IntakeRequest',
+  IntakeDesk = 'DemandManagement.IntakeDesk',
+  IntakeChannel = 'DemandManagement.IntakeChannel',
+  IntakeLookup = 'DemandManagement.Lookup',
+  IntakeEmployeeOption = 'DemandManagement.EmployeeOption',
+
   // PRODUCT MANAGEMENT
   Product = 'ProductManagement.Product',
   ProductType = 'ProductManagement.ProductType',

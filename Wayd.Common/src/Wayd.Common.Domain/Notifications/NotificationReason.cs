@@ -1,0 +1,53 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace Wayd.Common.Domain.Notifications;
+
+/// <summary>
+/// Why a person was told about a change: the relationship to the record that put them in its audience.
+/// </summary>
+/// <remarks>
+/// A set rather than a choice: someone who follows a project and also manages it is told once, for both
+/// reasons, and seeing both is what lets them understand why muting one does not silence the record.
+/// Flags are how the set is stored; every boundary outside the domain carries it as a collection of names.
+/// <para>
+/// Every member is part of the published contract, including those nothing produces yet, because muting by
+/// reason stores them. <strong>Never renumber a member</strong>: the values are persisted on every
+/// notification.
+/// </para>
+/// <para>
+/// No <c>None</c>. A notification exists because of at least one reason, so zero is never a valid value.
+/// </para>
+/// </remarks>
+[Flags]
+public enum NotificationReason
+{
+    [Display(Name = "Following", Description = "You follow the record.", Order = 1)]
+    Following = 1,
+
+    [Display(Name = "Requester", Description = "You asked for the record.", Order = 2)]
+    Requester = 2,
+
+    [Display(Name = "Participant", Description = "You hold a role on the record, or belong to the team that owns it.", Order = 3)]
+    Participant = 4,
+
+    [Display(Name = "Assigned", Description = "The record is assigned to you.", Order = 4)]
+    Assigned = 8,
+
+    [Display(Name = "Mentioned", Description = "You were mentioned on the record.", Order = 5)]
+    Mentioned = 16,
+}
+
+/// <summary>Checks on a <see cref="NotificationReason"/> set.</summary>
+public static class NotificationReasons
+{
+    /// <summary>Every defined reason combined.</summary>
+    public const NotificationReason All =
+        NotificationReason.Following
+        | NotificationReason.Requester
+        | NotificationReason.Participant
+        | NotificationReason.Assigned
+        | NotificationReason.Mentioned;
+
+    /// <summary>Whether the set holds at least one reason and nothing that is not a defined reason.</summary>
+    public static bool IsValid(NotificationReason reasons) => reasons != 0 && (reasons & ~All) == 0;
+}

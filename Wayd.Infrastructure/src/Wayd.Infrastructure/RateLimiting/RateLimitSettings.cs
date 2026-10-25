@@ -71,12 +71,25 @@ public sealed class RateLimitSettings
     /// </summary>
     public TokenBucketLimit PerUser { get; set; } = new() { TokenLimit = 200, TokensPerPeriod = 5, PeriodSeconds = 1 };
 
+    /// <summary>
+    /// What <see cref="PerUser"/> becomes for a user holding <c>Permissions.RateLimits.Elevated</c>, such as an admin or
+    /// a service account. Kept a multiple of the standard bucket rather than unlimited, so a runaway script with the
+    /// permission is still capped; the host refuses to start if it is smaller than the standard bucket.
+    /// </summary>
+    public TokenBucketLimit PerUserElevated { get; set; } = new() { TokenLimit = 1000, TokensPerPeriod = 25, PeriodSeconds = 1 };
+
+    /// <summary>
+    /// How long a user's tier is remembered before their permissions are read again, in seconds. A grant or revoke of
+    /// the elevated permission therefore takes up to this long to apply. Zero reads the permissions on every request.
+    /// </summary>
+    public int TierCacheSeconds { get; set; } = 300;
+
     /// <summary>CSV import submissions per signed-in user in flight at once.</summary>
     public ConcurrencyLimit Imports { get; set; } = new() { PermitLimit = 2 };
 
     /// <summary>Every limit, so startup validation cannot miss one.</summary>
     internal IEnumerable<IRateLimit> All() =>
-        [OAuthAuthorize, OAuthToken, AuthSignIn, AuthRefresh, AuthProviders, AuthSetup, PerUser, Imports];
+        [OAuthAuthorize, OAuthToken, AuthSignIn, AuthRefresh, AuthProviders, AuthSetup, PerUser, PerUserElevated, Imports];
 }
 
 /// <summary>A limit in <see cref="RateLimitSettings"/>, which the host refuses to start with unless it is valid.</summary>
@@ -116,6 +129,11 @@ public sealed class TokenBucketLimit : IRateLimit
 
     /// <inheritdoc />
     public bool IsValid() => TokenLimit > 0 && TokensPerPeriod > 0 && PeriodSeconds > 0;
+
+    /// <summary>Whether this bucket is at least as large as <paramref name="other"/> and refills at least as fast.</summary>
+    public bool IsAtLeast(TokenBucketLimit other) =>
+        TokenLimit >= other.TokenLimit
+        && (long)TokensPerPeriod * other.PeriodSeconds >= (long)other.TokensPerPeriod * PeriodSeconds;
 }
 
 /// <summary>A number of requests allowed in flight at once.</summary>

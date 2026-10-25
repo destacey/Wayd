@@ -38,7 +38,15 @@ internal static class ConfigureServices
             .Validate(
                 s => s.All().All(l => l.IsValid()),
                 $"Every limit in '{RateLimitSettings.SectionName}' needs every number above zero.")
+            .Validate(
+                s => s.PerUserElevated.IsAtLeast(s.PerUser),
+                $"'{RateLimitSettings.SectionName}:{nameof(RateLimitSettings.PerUserElevated)}' must be at least as large as '{nameof(RateLimitSettings.PerUser)}' and refill at least as fast.")
+            .Validate(
+                s => s.TierCacheSeconds >= 0,
+                $"'{RateLimitSettings.SectionName}:{nameof(RateLimitSettings.TierCacheSeconds)}' cannot be negative.")
             .ValidateOnStart();
+
+        services.AddScoped<RateLimitTierResolver>();
 
         return services.AddRateLimiter(options =>
         {
@@ -61,7 +69,29 @@ internal static class ConfigureServices
     /// Applies the limits. It must run after authorization, because that is where a request's user becomes known:
     /// the API has no default authentication scheme, so each authorization policy authenticates with its own.
     /// </summary>
-    internal static IApplicationBuilder UseRateLimiting(this IApplicationBuilder app) => app.UseRateLimiter();
+    /// <remarks>
+    /// Each signed-in request first has its user's tier resolved, because the limiter's partition function is
+    /// synchronous and so cannot read permissions itself. A hosted MCP tool call's inner request passes through here
+    /// too, so it is held to its user's tier.
+    /// </remarks>
+    internal static IApplicationBuilder UseRateLimiting(this IApplicationBuilder app) =>
+        app.Use(ResolveTier).UseRateLimiter();
+
+    /// <summary>
+    /// Stores the user's tier for <see cref="PerUser"/>. An anonymous request, or one to an endpoint the limits do not
+    /// apply to, such as <c>/mcp</c> itself, is passed on without reading anything.
+    /// </summary>
+    internal static async Task ResolveTier(HttpContext context, RequestDelegate next)
+    {
+        if (RateLimitTierResolver.UserIdOf(context.User) is not null
+            && context.GetEndpoint()?.Metadata.GetMetadata<DisableRateLimitingAttribute>() is null)
+        {
+            var resolver = context.RequestServices.GetRequiredService<RateLimitTierResolver>();
+            context.Items[RateLimitTierResolver.ItemKey] = await resolver.Resolve(context.User, context.RequestAborted);
+        }
+
+        await next(context);
+    }
 
     /// <summary>
     /// Gives every endpoint marked <see cref="CsvImportAttribute"/> the <see cref="RateLimitPolicies.Imports"/> policy,
@@ -137,16 +167,23 @@ internal static class ConfigureServices
 
     /// <summary>
     /// A token bucket per signed-in user, whatever credential they called with, so minting more tokens buys no more
-    /// room. An anonymous request is not limited here; the anonymous endpoints carry per-address policies instead.
+    /// room, sized by the user's tier. An anonymous request is not limited here; the anonymous endpoints carry
+    /// per-address policies instead.
     /// </summary>
-    /// <remarks>The limit is part of the key for the reason given on <see cref="PerClientAddress"/>.</remarks>
+    /// <remarks>
+    /// The limit is part of the key for the reason given on <see cref="PerClientAddress"/>, so a user whose tier changes
+    /// moves to a bucket of the new size, starting full. The tier is named in the key too, so the two tiers never share
+    /// a bucket even when configured alike. A request whose tier was not resolved is standard.
+    /// </remarks>
     private static RateLimitPartition<string> PerUser(HttpContext context)
     {
         if (UserIdOf(context.User) is not { } userId)
             return RateLimitPartition.GetNoLimiter(string.Empty);
 
-        var limit = Settings(context).PerUser;
-        return RateLimitPartition.GetTokenBucketLimiter($"{userId}|{limit.TokenLimit}|{limit.TokensPerPeriod}|{limit.PeriodSeconds}", _ => new TokenBucketRateLimiterOptions
+        var tier = RateLimitTierResolver.TierOf(context);
+        var settings = Settings(context);
+        var limit = tier == RateLimitTier.Elevated ? settings.PerUserElevated : settings.PerUser;
+        return RateLimitPartition.GetTokenBucketLimiter($"{userId}|{tier}|{limit.TokenLimit}|{limit.TokensPerPeriod}|{limit.PeriodSeconds}", _ => new TokenBucketRateLimiterOptions
         {
             TokenLimit = limit.TokenLimit,
             TokensPerPeriod = limit.TokensPerPeriod,
@@ -198,7 +235,6 @@ internal static class ConfigureServices
     private static RateLimitSettings Settings(HttpContext context) =>
         context.RequestServices.GetRequiredService<IOptionsMonitor<RateLimitSettings>>().CurrentValue;
 
-    /// <summary>The signed-in user's id, or null for a request no authorization policy has authenticated.</summary>
-    private static string? UserIdOf(ClaimsPrincipal user) =>
-        user.Identity?.IsAuthenticated == true && user.GetUserId() is { Length: > 0 } id ? id : null;
+    /// <inheritdoc cref="RateLimitTierResolver.UserIdOf"/>
+    private static string? UserIdOf(ClaimsPrincipal user) => RateLimitTierResolver.UserIdOf(user);
 }

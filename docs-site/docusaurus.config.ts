@@ -5,7 +5,7 @@ import type * as Preset from "@docusaurus/preset-classic";
 const config: Config = {
   title: "Wayd",
   tagline:
-    "Work management for planning, managing, and delivering across teams",
+    "Wayd is an intelligent delivery management platform designed to give leaders and teams end-to-end visibility into software delivery.",
   favicon: "img/favicon.ico",
 
   future: {
@@ -87,12 +87,17 @@ const config: Config = {
   ],
 
   themeConfig: {
+    image: "img/wayd-social-card.jpg",
     colorMode: {
       defaultMode: "light",
       respectPrefersColorScheme: true,
     },
     navbar: {
       title: "Wayd",
+      logo: {
+        alt: "Wayd",
+        src: "img/wayd-icon.png",
+      },
       items: [
         {
           type: "docSidebar",

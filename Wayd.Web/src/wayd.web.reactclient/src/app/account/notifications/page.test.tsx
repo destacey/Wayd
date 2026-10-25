@@ -21,9 +21,6 @@ const mockUseList = jest.fn()
 const mockUseCount = jest.fn()
 const mockMarkAllRead = jest.fn()
 jest.mock('@/src/store/features/common/notifications-api', () => ({
-  notificationEntries: jest.requireActual(
-    '@/src/store/features/common/notifications-api',
-  ).notificationEntries,
   useGetMyNotificationsInfiniteQuery: (...args: unknown[]) =>
     mockUseList(...args),
   useGetUnreadNotificationCountQuery: (...args: unknown[]) =>
@@ -105,28 +102,6 @@ describe('NotificationsPage', () => {
 
     // Assert
     expect(mockMarkAllRead).toHaveBeenCalledTimes(1)
-  })
-
-  it('shows a record once when it reaches two pages', () => {
-    // Arrange
-    mockUseList.mockReturnValue(
-      list([
-        [notification('1', 'Apollo'), notification('2', 'Gemini')],
-        [notification('2', 'Gemini'), notification('3', 'Mercury')],
-      ]),
-    )
-
-    // Act
-    render(<NotificationsPage />)
-
-    // Assert
-    expect(
-      screen.getAllByRole('listitem').map((item) => item.textContent),
-    ).toEqual([
-      expect.stringContaining('Apollo'),
-      expect.stringContaining('Gemini'),
-      expect.stringContaining('Mercury'),
-    ])
   })
 
   it('offers no mark all read when nothing is unread', () => {

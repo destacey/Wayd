@@ -11,7 +11,6 @@ import useAuth from '@/src/components/contexts/auth'
 import { requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import {
-  notificationEntries,
   useGetMyNotificationsInfiniteQuery,
   useGetUnreadNotificationCountQuery,
   useMarkAllNotificationsReadMutation,
@@ -40,7 +39,7 @@ const NotificationsContent = () => {
   })
   const [markAllRead, markAll] = useMarkAllNotificationsReadMutation()
 
-  const notifications = notificationEntries(list.data?.pages)
+  const notifications = list.data?.pages.flatMap((page) => page.items) ?? []
 
   return (
     <>

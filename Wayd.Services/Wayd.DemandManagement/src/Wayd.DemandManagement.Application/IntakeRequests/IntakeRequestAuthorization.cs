@@ -33,7 +33,9 @@ public static class IntakeRequestAuthorization
     public const string NotFoundError = "Intake request not found.";
 
     /// <summary>
-    /// The current user as a reader of intake requests.
+    /// The current user as a reader of intake requests. Review and Administer are read whatever the request's token
+    /// scope, because they widen what the reader sees; a capability hint built from the reader also checks
+    /// <see cref="ICurrentPrincipal.IsReadOnly"/>.
     /// </summary>
     public static async Task<IntakeRequestReader> ResolveIntakeRequestReader(
         this ICurrentPrincipal currentPrincipal,
@@ -41,8 +43,8 @@ public static class IntakeRequestAuthorization
         CancellationToken cancellationToken)
     {
         var employeeId = await currentPrincipal.GetEmployeeId(cancellationToken);
-        var holdsReview = await currentPrincipal.HasPermission(ReviewPermission, cancellationToken);
-        var holdsAdminister = await currentPrincipal.HasPermission(AdministerPermission, cancellationToken);
+        var holdsReview = await currentPrincipal.HoldsPermission(ReviewPermission, cancellationToken);
+        var holdsAdminister = await currentPrincipal.HoldsPermission(AdministerPermission, cancellationToken);
 
         Guid[] reviewerDeskIds = holdsReview && !holdsAdminister && employeeId is { } id
             ? await dbContext.IntakeDesks

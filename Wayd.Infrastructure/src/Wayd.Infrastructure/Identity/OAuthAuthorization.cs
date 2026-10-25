@@ -34,6 +34,12 @@ public class OAuthAuthorization
     /// <summary>The resource (RFC 8707) the issued token is bound to.</summary>
     public string Resource { get; set; } = null!;
 
+    /// <summary>
+    /// The scope the client asked for until the user decides, then the scope the user granted, which can only be
+    /// narrower. Null on a request made before tokens had scopes, which grants <see cref="TokenScopes.Default"/>.
+    /// </summary>
+    public TokenScope? Scope { get; set; }
+
     /// <summary>The client's <c>state</c>, returned to it unchanged.</summary>
     public string State { get; set; } = null!;
 

@@ -1,5 +1,6 @@
 ﻿using Wayd.Common.Application.Identity.PersonalAccessTokens.Commands;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Authorization;
 
 namespace Wayd.Web.Api.Models.UserManagement.PersonalAccessTokens;
 
@@ -15,8 +16,14 @@ public sealed record CreatePersonalAccessTokenRequest
     /// </summary>
     public Instant ExpiresAt { get; set; }
 
+    /// <summary>
+    /// How much of your access the token may use: `Read` for viewing, searching and exporting only, or `Write` for
+    /// everything you may do. Defaults to `Write`. A scope never grants a permission you do not have.
+    /// </summary>
+    public TokenScope? Scope { get; set; }
+
     public CreatePersonalAccessTokenCommand ToCreatePersonalAccessTokenCommand()
-        => new(Name, ExpiresAt);
+        => new(Name, ExpiresAt, Scope ?? TokenScopes.Default);
 }
 
 public sealed class CreatePersonalAccessTokenRequestValidator : CustomValidator<CreatePersonalAccessTokenRequest>
@@ -34,6 +41,9 @@ public sealed class CreatePersonalAccessTokenRequestValidator : CustomValidator<
         RuleFor(p => p.Name)
             .NotEmpty()
             .MaximumLength(100);
+
+        RuleFor(x => x.Scope)
+            .IsInEnum();
 
         RuleFor(x => x.ExpiresAt)
             .Must(BeValidExpirationDate)

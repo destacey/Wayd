@@ -39,7 +39,9 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
     {
         // Permitted on employees only, so the two definitions are distinguishable.
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         _principal.Setup(p => p.HasPermission(_employeePermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HoldsPermission(_employeePermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
     }
 
     public void Dispose()
@@ -84,6 +86,7 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
     {
         // Arrange — an empty page, not a failure: the page renders, it just has nothing on it
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         AddRun(_employees, _now);
 
         // Act
@@ -232,7 +235,9 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
     {
         // Arrange — someone who watches the queue without submitting files
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         _principal.Setup(p => p.HasPermission(_viewAllPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HoldsPermission(_viewAllPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         AddRun(_employees, _now);
         AddRun(_teams, _now);
 
@@ -248,7 +253,9 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
     {
         // Arrange — oversight is read-only: acting on a run changes the records it created
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         _principal.Setup(p => p.HasPermission(_viewAllPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HoldsPermission(_viewAllPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         AddRun(_teams, _now);
 
         // Act
@@ -272,12 +279,32 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_WithAReadOnlyToken_ListsTheRunsTheUserCouldSubmit_WithoutOfferingToManageThem()
+    {
+        // Arrange — the user holds the submit permission; a read-only token narrows its use but not what it reads
+        _principal.Setup(p => p.HasPermission(_employeePermission, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        var run = AddRun(_employees, _now);
+        AddRun(_teams, _now);
+
+        // Act
+        var result = await Get();
+
+        // Assert
+        var listed = result.Value.Processes.Should().ContainSingle().Subject;
+        listed.Id.Should().Be(run.Id);
+        listed.CanManage.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Handle_ForAnOversightHolderWhoAlsoSubmits_SeparatesTheTwo()
     {
         // Arrange — both tiers at once, which is the case that would hide a mix-up of the two
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         _principal.Setup(p => p.HasPermission(_viewAllPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HoldsPermission(_viewAllPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _principal.Setup(p => p.HasPermission(_employeePermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HoldsPermission(_employeePermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         var mine = AddRun(_employees, _now);
         var theirs = AddRun(_teams, _now - Duration.FromHours(1));
 

@@ -22,6 +22,7 @@ public sealed class ApplyImportPreflightCommandHandlerTests : IDisposable
     public ApplyImportPreflightCommandHandlerTests()
     {
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _dispatcher
             .Setup(d => d.Send(It.IsAny<SubmitImportCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(CSharpFunctionalExtensions.Result.Success(_newRunId));
@@ -158,8 +159,14 @@ public sealed class ApplyImportPreflightCommandHandlerTests : IDisposable
     {
         // Arrange — applying creates records, which oversight does not grant
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         _principal
             .Setup(p => p.HasPermission(
+                ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Imports),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _principal
+            .Setup(p => p.HoldsPermission(
                 ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Imports),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);

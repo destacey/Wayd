@@ -39,11 +39,11 @@ public class GetEmployeeTimeAwayQueryHandlerTests : IDisposable
         _dbContext.AddEmployeeCapacity(_capacity);
     }
 
-    private GetEmployeeTimeAwayQueryHandler CreateHandler(Guid? callerEmployeeId, bool timeAwayAdministrator = false)
+    private GetEmployeeTimeAwayQueryHandler CreateHandler(Guid? callerEmployeeId, bool timeAwayAdministrator = false, bool readOnly = false)
     {
         var settings = new Mock<ISettings<SchedulingSettings>>();
         settings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings { WorkingDayHours = 7.5m });
-        return new(_dbContext, TestPrincipal.LinkedTo(callerEmployeeId, timeAwayAdministrator), settings.Object);
+        return new(_dbContext, TestPrincipal.LinkedTo(callerEmployeeId, timeAwayAdministrator, readOnly), settings.Object);
     }
 
     [Fact]
@@ -147,6 +147,22 @@ public class GetEmployeeTimeAwayQueryHandlerTests : IDisposable
 
         // Assert
         timeAway!.CanManage.Should().BeTrue();
+        timeAway.Entries.Select(e => e.Reason).Should().Equal(TimeAwayReason.Training, TimeAwayReason.PaidTimeOff);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Handle_WithAReadOnlyToken_ReturnsTheReasonsTheCallerCouldSee_WithoutOfferingToManage(bool administrator)
+    {
+        // Arrange — the employee themselves by who they are, an administrator by permission
+        var handler = CreateHandler(administrator ? _teammate.Id : _employee.Id, timeAwayAdministrator: administrator, readOnly: true);
+
+        // Act
+        var timeAway = await handler.Handle(new GetEmployeeTimeAwayQuery(_employee.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        timeAway!.CanManage.Should().BeFalse();
         timeAway.Entries.Select(e => e.Reason).Should().Equal(TimeAwayReason.Training, TimeAwayReason.PaidTimeOff);
     }
 

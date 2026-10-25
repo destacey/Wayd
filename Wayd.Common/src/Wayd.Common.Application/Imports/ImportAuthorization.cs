@@ -37,13 +37,29 @@ internal static class ImportAuthorization
     /// A run whose type no longer has a definition matches nothing here and so never appears — there is no
     /// permission left to check it against, and guessing one would be the wrong way to be helpful.
     /// </remarks>
+    /// <remarks>
+    /// Read whatever the request's token scope: a read-only token still sees the runs its user could submit.
+    /// </remarks>
     public static async Task<List<IImportDefinition>> Viewable(
         IImportDefinitionRegistry registry,
         ICurrentPrincipal currentPrincipal,
-        CancellationToken cancellationToken) =>
-        await CanViewAll(currentPrincipal, cancellationToken)
-            ? [.. registry.All]
-            : await Submittable(registry, currentPrincipal, cancellationToken);
+        CancellationToken cancellationToken)
+    {
+        if (await CanViewAll(currentPrincipal, cancellationToken))
+            return [.. registry.All];
+
+        List<IImportDefinition> viewable = [];
+
+        // Sequentially, not in parallel: the permission lookup reads through the DbContext, which is not
+        // thread-safe.
+        foreach (var definition in registry.All)
+        {
+            if (await HoldsSubmit(definition, currentPrincipal, cancellationToken))
+                viewable.Add(definition);
+        }
+
+        return viewable;
+    }
 
     /// <summary>The definitions the caller may submit — and therefore may act on the runs of.</summary>
     public static async Task<List<IImportDefinition>> Submittable(
@@ -72,6 +88,15 @@ internal static class ImportAuthorization
             ApplicationPermission.NameFor(definition.PermissionAction, definition.PermissionResource),
             cancellationToken);
 
+    /// <summary>Whether the user holds the permission to submit <paramref name="definition"/>, whatever the request's token scope; for reading only.</summary>
+    private static Task<bool> HoldsSubmit(
+        IImportDefinition definition,
+        ICurrentPrincipal currentPrincipal,
+        CancellationToken cancellationToken) =>
+        currentPrincipal.HoldsPermission(
+            ApplicationPermission.NameFor(definition.PermissionAction, definition.PermissionResource),
+            cancellationToken);
+
     /// <summary>Resolves the definition governing a run for reading, which either tier allows.</summary>
     public static async Task<Result<IImportDefinition>> ResolveForRead(
         IImportDefinitionRegistry registry,
@@ -86,7 +111,7 @@ internal static class ImportAuthorization
         if (await CanViewAll(currentPrincipal, cancellationToken))
             return definition;
 
-        return await CanSubmit(definition.Value, currentPrincipal, cancellationToken)
+        return await HoldsSubmit(definition.Value, currentPrincipal, cancellationToken)
             ? definition
             : Denied(definition.Value);
     }

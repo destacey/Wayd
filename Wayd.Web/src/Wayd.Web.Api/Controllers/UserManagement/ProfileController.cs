@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Infrastructure.Auth;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.UserManagement.Profiles;
 
@@ -56,6 +57,7 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
 
     [HttpGet("permissions")]
     [EndpointSummary("Get permissions of currently logged in user.")]
+    [EndpointDescription("The permissions this request can use: the user's, narrowed by the scope of the token it was made with.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UserPermissionsResponse>> GetPermissions(CancellationToken cancellationToken)
@@ -63,7 +65,9 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
         if (User.GetUserId() is not { } userId || string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        var permissions = await _userService.GetPermissionsAsync(userId, cancellationToken);
+        var permissions = (await _userService.GetPermissionsAsync(userId, cancellationToken))
+            .Where(p => TokenScopeAccess.Permits(User, p))
+            .ToList();
         var employeeId = _currentUser.GetEmployeeId();
 
         return Ok(new UserPermissionsResponse(permissions, employeeId));

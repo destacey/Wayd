@@ -5629,19 +5629,24 @@ export class OAuthAuthorizationRequestsClient {
     /**
      * Approve a pending OAuth connection request.
      * @param handle The handle the authorization endpoint passed to the consent page as `request`.
+     * @param request (optional) The access to grant, which may narrow what the application asked for.
      * @return OK
      */
-    approve(handle: string, cancelToken?: CancelToken): Promise<OAuthAuthorizationDecisionResponse> {
+    approve(handle: string, request?: ApproveOAuthAuthorizationRequest | undefined, cancelToken?: CancelToken): Promise<OAuthAuthorizationDecisionResponse> {
         let url_ = this.baseUrl + "/api/oauth/authorization-requests/{handle}/approve";
         if (handle === undefined || handle === null)
             throw new globalThis.Error("The parameter 'handle' must be defined.");
         url_ = url_.replace("{handle}", encodeURIComponent("" + handle));
         url_ = url_.replace(/[?&]$/, "");
 
+        const content_ = JSON.stringify(request);
+
         let options_: AxiosRequestConfig = {
+            data: content_,
             method: "POST",
             url: url_,
             headers: {
+                "Content-Type": "application/json",
                 "Accept": "application/json"
             },
             cancelToken
@@ -52554,6 +52559,13 @@ export interface ApplicationPermission {
     name: string;
 }
 
+/** The user's approval of a connection request. */
+export interface ApproveOAuthAuthorizationRequest {
+    /** The access to grant the application. Omitted, it gets what it asked for; a scope wider than it asked for is
+narrowed to its request. */
+    scope?: TokenScope | undefined;
+}
+
 /** Assembles several component releases into one shipment. */
 export interface AssembleReleasePackageRequest {
     /** The package's own version, distinct from any component's. Free text, never parsed. */
@@ -53281,6 +53293,9 @@ export interface CreatePersonalAccessTokenRequest {
     name: string;
     /** The expiration date for the token. Must be in the future and within 2 years from now. */
     expiresAt: Date;
+    /** How much of your access the token may use: `Read` for viewing, searching and exporting only, or `Write` for
+everything you may do. Defaults to `Write`. A scope never grants a permission you do not have. */
+    scope?: TokenScope | undefined;
 }
 
 /** The newly created personal access token, including its plaintext value. This is the only time the plaintext token is returned; store it now, as it cannot be retrieved later. */
@@ -53289,6 +53304,7 @@ export interface CreatePersonalAccessTokenResult {
     name: string;
     token: string;
     expiresAt: Date;
+    scope: TokenScope;
 }
 
 export interface CreatePlanningIntervalObjectiveHealthCheckRequest {
@@ -56025,6 +56041,9 @@ export interface OAuthAuthorizationRequestResponse {
     redirectHostDiffers: boolean;
     /** Whether the redirect URI is on this computer's loopback interface, as a desktop app's is. */
     redirectIsLoopback: boolean;
+    /** The access the application asked for: `Read` to view, search and export, or `Write` for everything the user may
+do. The user may grant it or narrow it, never widen it. */
+    scope: TokenScope;
     /** When the request stops waiting for a decision. */
     expiresAt: Date;
 }
@@ -56235,7 +56254,8 @@ export interface PersonalAccessTokenDto {
     isActive: boolean;
     isExpired: boolean;
     isRevoked: boolean;
-    scopes?: string | undefined;
+    /** How much of its owner's access the token may use. */
+    scope: TokenScope;
 }
 
 export interface PlanningHealthCheckDto {
@@ -60226,6 +60246,11 @@ export interface TokenResponse {
     refreshToken: string;
     tokenExpiresAt: Date;
     mustChangePassword: boolean;
+}
+
+export enum TokenScope {
+    Read = "Read",
+    Write = "Write",
 }
 
 export enum TransitionConditionKind {

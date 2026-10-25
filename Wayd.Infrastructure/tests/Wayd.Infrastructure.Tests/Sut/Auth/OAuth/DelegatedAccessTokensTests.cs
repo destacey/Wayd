@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using NodaTime;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Infrastructure.Auth.OAuth;
 
 namespace Wayd.Infrastructure.Tests.Sut.Auth.OAuth;
@@ -35,7 +36,7 @@ public sealed class DelegatedAccessTokensTests
         // Arrange
 
         // Act
-        var token = new JsonWebToken(DelegatedAccessTokens.Issue(_config, Issuer, "user-1", ClientId, _now));
+        var token = new JsonWebToken(DelegatedAccessTokens.Issue(_config, Issuer, "user-1", ClientId, TokenScope.Write, _now));
 
         // Assert
         token.Subject.Should().Be("user-1");
@@ -51,7 +52,7 @@ public sealed class DelegatedAccessTokensTests
         // Arrange
 
         // Act
-        var token = new JsonWebToken(DelegatedAccessTokens.Issue(_config, Issuer, "user-1", ClientId, _now));
+        var token = new JsonWebToken(DelegatedAccessTokens.Issue(_config, Issuer, "user-1", ClientId, TokenScope.Write, _now));
 
         // Assert
         token.Typ.Should().Be(OAuthAccessTokens.TokenType);
@@ -65,7 +66,7 @@ public sealed class DelegatedAccessTokensTests
         // Arrange
 
         // Act
-        var token = new JsonWebToken(DelegatedAccessTokens.Issue(_config, Issuer, "user-1", ClientId, _now));
+        var token = new JsonWebToken(DelegatedAccessTokens.Issue(_config, Issuer, "user-1", ClientId, TokenScope.Write, _now));
 
         // Assert
         token.IssuedAt.Should().Be(_now.ToDateTimeUtc());
@@ -77,7 +78,7 @@ public sealed class DelegatedAccessTokensTests
     public void ActingClientId_ReadsTheClientFromAnIssuedToken()
     {
         // Arrange
-        var token = new JsonWebToken(DelegatedAccessTokens.Issue(_config, Issuer, "user-1", ClientId, _now));
+        var token = new JsonWebToken(DelegatedAccessTokens.Issue(_config, Issuer, "user-1", ClientId, TokenScope.Write, _now));
 
         // Act
         var clientId = DelegatedAccessTokens.ActingClientId(token);
@@ -122,7 +123,7 @@ public sealed class DelegatedAccessTokensTests
     public async Task Issue_IsSignedWithTheWebAppsKey()
     {
         // Arrange
-        var issued = DelegatedAccessTokens.Issue(_config, Issuer, "user-1", ClientId, _now);
+        var issued = DelegatedAccessTokens.Issue(_config, Issuer, "user-1", ClientId, TokenScope.Write, _now);
 
         // Act
         var result = await new JsonWebTokenHandler().ValidateTokenAsync(issued, new TokenValidationParameters

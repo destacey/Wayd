@@ -29,6 +29,9 @@ public static class OAuthAccessTokens
     /// <summary>The claim naming the refresh-token session a token was issued from, so revoking the session ends it.</summary>
     public const string SessionIdClaim = "sid";
 
+    /// <summary>The claim type inbound claim mapping gives a JWT's <c>scope</c>, which the scheme replaces with <see cref="TokenScopes.ClaimType"/>.</summary>
+    private const string MappedScopeClaim = "http://schemas.microsoft.com/identity/claims/scope";
+
     /// <summary>
     /// Whether <paramref name="authorizationHeader"/> carries a bearer token typed as an OAuth access token. It reads
     /// the header without validating anything, so use it only to choose which scheme validates the token.
@@ -117,7 +120,28 @@ public static class OAuthAccessTokens
             .AsNoTracking()
             .AnyAsync(t => t.Id == sessionId && t.UserId == token.Subject && t.RevokedAt == null && t.ExpiresAt > now, context.HttpContext.RequestAborted);
         if (!live)
+        {
             context.Fail("The token's session has ended.");
+            return;
+        }
+
+        CarryScope(context, token);
+    }
+
+    /// <summary>
+    /// Puts the token's <c>scope</c> on the identity under <see cref="TokenScopes.ClaimType"/>, whatever inbound claim
+    /// mapping renamed it to, so <see cref="TokenScopeAccess"/> reads it there and a tool call delegates it.
+    /// </summary>
+    internal static void CarryScope(TokenValidatedContext context, JsonWebToken token)
+    {
+        if (context.Principal?.Identity is not ClaimsIdentity identity)
+            return;
+
+        foreach (var claim in identity.Claims.Where(c => c.Type is TokenScopes.ClaimType or MappedScopeClaim).ToList())
+            identity.RemoveClaim(claim);
+
+        if (token.TryGetPayloadValue<string>(TokenScopes.ClaimType, out var scope) && !string.IsNullOrWhiteSpace(scope))
+            identity.AddClaim(new Claim(TokenScopes.ClaimType, scope));
     }
 
     /// <summary>The web app's token settings, whose secret signs these tokens too.</summary>

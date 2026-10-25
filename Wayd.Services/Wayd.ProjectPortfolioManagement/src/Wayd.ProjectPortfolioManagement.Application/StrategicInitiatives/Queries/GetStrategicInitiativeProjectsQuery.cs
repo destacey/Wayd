@@ -33,10 +33,8 @@ public sealed class GetStrategicInitiativeProjectsQueryHandler(IProjectPortfolio
         }
 
         var now = _dateTimeProvider.Now;
-        var isPpmAdministrator = await _currentPrincipal.HasPermission(
-            PpmAuthorizationExtensions.PpmAdministratorPermission, cancellationToken);
-        var config = ProjectListDto.CreateTypeAdapterConfig(
-            now, await _currentPrincipal.GetEmployeeId(cancellationToken), isPpmAdministrator);
+        var (employeeId, isPpmAdministrator) = await _currentPrincipal.ResolveManagementHint(cancellationToken);
+        var config = ProjectListDto.CreateTypeAdapterConfig(now, employeeId, isPpmAdministrator);
 
         return await query
             .SelectMany(i => i.StrategicInitiativeProjects.Select(ip => ip.Project))

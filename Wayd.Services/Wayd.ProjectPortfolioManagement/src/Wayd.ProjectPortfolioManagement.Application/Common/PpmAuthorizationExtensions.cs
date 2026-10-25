@@ -18,6 +18,17 @@ public static class PpmAuthorizationExtensions
         ApplicationPermission.NameFor(ApplicationAction.Administer, ApplicationResource.ProjectPortfolioManagement);
 
     /// <summary>
+    /// The caller as the <c>canManage*</c> read hints see them: their employee, and whether they hold the PPM
+    /// administrator permission. Neither when the request's token is read-only
+    /// (<see cref="ICurrentPrincipal.IsReadOnly"/>), so every hint answers false: delivery leadership comes from the
+    /// caller's roles rather than a permission, which a token's scope does not narrow.
+    /// </summary>
+    public static async Task<(Guid? EmployeeId, bool IsPpmAdministrator)> ResolveManagementHint(this ICurrentPrincipal currentPrincipal, CancellationToken cancellationToken) =>
+        currentPrincipal.IsReadOnly
+            ? (null, false)
+            : (await currentPrincipal.GetEmployeeId(cancellationToken), await currentPrincipal.HasPermission(PpmAdministratorPermission, cancellationToken));
+
+    /// <summary>
     /// Resolves the current principal into a <see cref="PpmActor"/>. Commands using this must be marked
     /// <c>IRequireLinkedEmployee</c> — a managed PPM action is always attributable to an employee, and
     /// membership cannot be evaluated without one.

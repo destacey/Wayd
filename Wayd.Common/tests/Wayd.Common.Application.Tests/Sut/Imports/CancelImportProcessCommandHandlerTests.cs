@@ -22,6 +22,7 @@ public sealed class CancelImportProcessCommandHandlerTests : IDisposable
     public CancelImportProcessCommandHandlerTests()
     {
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
     }
 
     public void Dispose() => _db.Dispose();
@@ -104,6 +105,7 @@ public sealed class CancelImportProcessCommandHandlerTests : IDisposable
     {
         // Arrange — there is no blanket imports permission; the run's own definition names the gate
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         var process = QueueRun();
 
         // Act
@@ -131,8 +133,14 @@ public sealed class CancelImportProcessCommandHandlerTests : IDisposable
         // Arrange — oversight of every import type is read-only: stopping a run changes the records it
         // creates, which is what submitting the file gates
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         _principal
             .Setup(p => p.HasPermission(
+                ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Imports),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _principal
+            .Setup(p => p.HoldsPermission(
                 ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Imports),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);

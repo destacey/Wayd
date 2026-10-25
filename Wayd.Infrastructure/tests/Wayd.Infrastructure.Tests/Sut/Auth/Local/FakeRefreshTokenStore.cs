@@ -1,3 +1,4 @@
+using Wayd.Common.Domain.Authorization;
 using Wayd.Infrastructure.Auth.Local;
 using Wayd.Infrastructure.Identity;
 
@@ -52,7 +53,7 @@ internal sealed class FakeRefreshTokenStore : IRefreshTokenStore
     }
 
     /// <summary>Not modelled: <see cref="TokenService"/> never opens or refreshes an OAuth client's session.</summary>
-    public Task<ClientSession> IssueForClient(Guid sessionId, string userId, string clientId, string clientName, SessionContext context, CancellationToken cancellationToken) =>
+    public Task<ClientSession> IssueForClient(Guid sessionId, string userId, string clientId, string clientName, TokenScope scope, SessionContext context, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
 
     /// <summary>Not modelled: <see cref="TokenService"/> never opens or refreshes an OAuth client's session.</summary>

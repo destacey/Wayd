@@ -74,9 +74,12 @@ Signing out revokes a device's ability to stay signed in. That device can keep w
 2. Open the **PATs** tab
 3. Click **Create New Token**
 4. Enter a **Token Name** (to help you remember what it's used for)
-5. Set an **Expiration Date** — required, one year from now by default, and at most two years from now
-6. Click **Create**
-7. **Copy the token immediately** with **Copy Token** — it will not be shown again
+5. Choose its **Access**:
+   - **Full access** — anything your account can do. The default.
+   - **Read-only access** — view, search and export what your account can see, but change nothing. Use it for reports, dashboards, and an assistant that only needs to read.
+6. Set an **Expiration Date** — required, one year from now by default, and at most two years from now
+7. Click **Create**
+8. **Copy the token immediately** with **Copy Token** — it will not be shown again
 
 You can have up to 10 active tokens at once.
 
@@ -91,12 +94,12 @@ See the [API Reference](../reference/api.mdx#personal-access-tokens-pats) for fu
 
 ### Managing Tokens
 
-- The **PATs** tab lists your tokens with their **Status** (Active, Revoked, or Expired), when they expire, and when they were last used
+- The **PATs** tab lists your tokens with their **Status** (Active, Revoked, or Expired), their **Access**, when they expire, and when they were last used
 - **Edit** an active token to change its name or expiration date
 - **Revoke** a token when it's no longer needed — this immediately invalidates it
 - **Delete** a token to remove it from the list permanently; expired and revoked tokens can be deleted to clean up
 
-PATs inherit your permissions — they can do anything you can do in the API. Treat them like passwords and don't share them.
+A full-access PAT inherits your permissions — it can do anything you can do in the API. A read-only PAT keeps only the ones that read, and is refused anything that changes data. Neither has a permission you lack. A token's access is set when you create it; to change it, create a new token. Treat them like passwords and don't share them.
 
 ## Claims
 

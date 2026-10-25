@@ -1,3 +1,4 @@
+using Wayd.Common.Domain.Authorization;
 using Moq;
 using NodaTime;
 using NodaTime.Extensions;
@@ -21,11 +22,16 @@ namespace Wayd.DemandManagement.Application.Tests.Infrastructure;
 public sealed class IntakeScenario
 {
     private readonly HashSet<string> _permissions = [];
+    private bool _readOnly;
 
     public IntakeScenario()
     {
         Principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string permission, CancellationToken _) =>
+                _permissions.Contains(permission) && (!_readOnly || TokenScope.Read.Permits(permission)));
+        Principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string permission, CancellationToken _) => _permissions.Contains(permission));
+        Principal.Setup(p => p.IsReadOnly).Returns(() => _readOnly);
         User.Setup(u => u.GetUserId()).Returns("user-1");
     }
 
@@ -40,6 +46,13 @@ public sealed class IntakeScenario
         Principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(employee.Id);
         _permissions.Clear();
         _permissions.UnionWith(permissions);
+        return this;
+    }
+
+    /// <summary>Has the caller use a read-only token, which narrows what they may do but not what they see.</summary>
+    public IntakeScenario WithReadOnlyToken()
+    {
+        _readOnly = true;
         return this;
     }
 

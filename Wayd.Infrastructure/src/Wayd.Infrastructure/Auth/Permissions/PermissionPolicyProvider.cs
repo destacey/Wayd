@@ -34,6 +34,7 @@ internal class PermissionPolicyProvider : IAuthorizationPolicyProvider
             policy = new AuthorizationPolicyBuilder()
                 .AddAuthenticationSchemes(AuthConstants.DelegatedAccessTokenScheme)
                 .RequireAuthenticatedUser()
+                .AddRequirements(TokenScopeRequirement.Instance)
                 .Build();
         }
         else if (hasApiKeyHeader)
@@ -43,6 +44,7 @@ internal class PermissionPolicyProvider : IAuthorizationPolicyProvider
             policy = new AuthorizationPolicyBuilder()
                 .AddAuthenticationSchemes(AuthConstants.PersonalAccessTokenScheme)
                 .RequireAuthenticatedUser()
+                .AddRequirements(TokenScopeRequirement.Instance)
                 .Build();
         }
         else
@@ -53,6 +55,7 @@ internal class PermissionPolicyProvider : IAuthorizationPolicyProvider
             policy = new AuthorizationPolicyBuilder()
                 .AddAuthenticationSchemes(Local.ConfigureServices.LocalJwtScheme)
                 .RequireAuthenticatedUser()
+                .AddRequirements(TokenScopeRequirement.Instance)
                 .Build();
         }
 
@@ -65,7 +68,7 @@ internal class PermissionPolicyProvider : IAuthorizationPolicyProvider
         if (policyName.StartsWith(ApplicationClaims.Permission, StringComparison.OrdinalIgnoreCase))
         {
             var policy = new AuthorizationPolicyBuilder();
-            policy.AddRequirements(new PermissionRequirement(policyName));
+            policy.AddRequirements(new PermissionRequirement(policyName), TokenScopeRequirement.Instance);
             return Task.FromResult<AuthorizationPolicy?>(policy.Build());
         }
 
@@ -73,7 +76,7 @@ internal class PermissionPolicyProvider : IAuthorizationPolicyProvider
         {
             var permissions = policyName["MustHaveAnyPermission:".Length..].Split(',');
             var policy = new AuthorizationPolicyBuilder();
-            policy.AddRequirements(new AnyPermissionRequirement(permissions));
+            policy.AddRequirements(new AnyPermissionRequirement(permissions), TokenScopeRequirement.Instance);
             return Task.FromResult<AuthorizationPolicy?>(policy.Build());
         }
 

@@ -247,7 +247,9 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         var principal = new Mock<ICurrentPrincipal>();
         principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
         principal.Setup(p => p.HasPermission(IntakeRequestAuthorization.ReviewPermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsReview);
+        principal.Setup(p => p.HoldsPermission(IntakeRequestAuthorization.ReviewPermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsReview);
         principal.Setup(p => p.HasPermission(IntakeRequestAuthorization.UpdatePermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsUpdate);
+        principal.Setup(p => p.HoldsPermission(IntakeRequestAuthorization.UpdatePermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsUpdate);
         return principal.Object;
     }
 

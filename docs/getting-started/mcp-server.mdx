@@ -86,9 +86,10 @@ When Wayd opens:
 
 1. Sign in, if you are not already. You come back to the request afterwards.
 2. Read the **connection request**. It names the site the application belongs to — that is what identifies it — and the name the application gives itself, which is only its own claim. It also says where you will be sent afterwards, and warns you if that is a different site from the application's.
-3. Choose **Approve** to let the application use Wayd as you, or **Deny** to refuse. Either way you are sent back to the application.
+3. Choose the application's **access**. An application that asks for full access can be given it, or limited to **Read-only access**; one that asks only to read cannot be given more.
+4. Choose **Approve** to let the application use Wayd as you, or **Deny** to refuse. Either way you are sent back to the application.
 
-An approved application can do anything your account can, with all of your permissions. It appears as a [connected application](./your-profile.mdx#connected-applications) on the **Sessions** tab of your profile, where you can disconnect it at any time. A request you leave unanswered expires after ten minutes; start again from the application.
+With **Full access**, an approved application can do anything your account can, with all of your permissions. With **Read-only access** it can view, search and export what your account can see, and change nothing: Wayd offers it only the read-only tools, and refuses any change it attempts. Neither gives it a permission your account lacks. It appears as a [connected application](./your-profile.mdx#connected-applications) on the **Sessions** tab of your profile, where you can disconnect it at any time. A request you leave unanswered expires after ten minutes; start again from the application.
 
 A change an application makes through Wayd's tools is recorded as yours, and the [Activity](../user-guide/activity-log.mdx) of the record it changed names the application it was made through.
 
@@ -177,7 +178,7 @@ The query parameter wins when both are sent. An unknown toolset name is refused 
 
 Hosted assistants that sign in cannot send headers, so give them the selection on the URL. With a personal access token, add its `headers` block as usual.
 
-Read-only mode limits which tools are offered, not what your account may do. For a guarantee, also connect as an account that has view permissions only.
+Read-only mode limits which tools are offered, not what your account may do. For a guarantee, connect with read-only access: approve the assistant with **Read-only access** when you [sign in](#connecting-with-sign-in), or use a [read-only personal access token](./your-profile.mdx#creating-a-token). Wayd then refuses any change, whatever the assistant tries, and offers only the read-only tools without being asked.
 
 The skills tool, `Skills_Get`, the skill prompts and the `Me_*` tools are offered on every connection, whatever toolsets you chose; read-only mode keeps all of them except the ones that change something: `Me_Follow`, `Me_Unfollow` and the three that mark notifications read.
 
@@ -626,7 +627,7 @@ Deleting a portfolio, program, project, or strategic initiative isn't available 
 
 ## Security
 
-Whichever way you connect, the assistant acts as you, with your permissions — it can only access what you can access.
+Whichever way you connect, the assistant acts as you, with your permissions — it can only access what you can access. Read-only access narrows that further: the assistant can read what you can, and change nothing.
 
 - **Signed in:** nothing is stored in your configuration. Disconnect an assistant from the **Sessions** tab of your [profile](./your-profile.mdx#connected-applications) and it loses access at once.
 - **Personal access token:** store it securely, never commit it to version control, and prefer environment variables or a client's password prompt over hardcoding it in config files. Revoke it from your [profile page](./your-profile.mdx#personal-access-tokens) if it is exposed.

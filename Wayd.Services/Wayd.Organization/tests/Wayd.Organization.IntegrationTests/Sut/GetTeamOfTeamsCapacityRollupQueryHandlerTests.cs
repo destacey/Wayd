@@ -294,6 +294,7 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandlerTests(SqlServerDbCon
     {
         var principal = new Mock<ICurrentPrincipal>();
         principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var clock = new Mock<IDateTimeProvider>();
         clock.SetupGet(d => d.Now).Returns(SqlServerDbContextFixture.FixedNow);

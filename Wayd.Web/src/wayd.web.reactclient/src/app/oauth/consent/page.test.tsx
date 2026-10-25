@@ -41,6 +41,7 @@ const pendingRequest = (overrides: Record<string, unknown> = {}) => ({
   redirectHost: 'tools.acme.example',
   redirectHostDiffers: false,
   redirectIsLoopback: false,
+  scope: 'Write',
   expiresAt: new Date('2026-10-20T15:10:00Z'),
   ...overrides,
 })
@@ -152,8 +153,33 @@ describe('ConsentPage', () => {
       expect(
         screen.getByText(/as you, through Wayd's MCP endpoint/),
       ).toBeInTheDocument()
-      expect(screen.getByText(/all of your permissions/)).toBeInTheDocument()
       expect(screen.getByText(/Account → Sessions/)).toBeInTheDocument()
+    })
+
+    it('offers full or read-only access, starting at what the application asked for', async () => {
+      // Act
+      await renderReady()
+
+      // Assert
+      expect(
+        screen.getByText(/through Wayd's MCP endpoint, with:/),
+      ).toBeInTheDocument()
+      expect(screen.getByRole('radio', { name: /Full access/ })).toBeChecked()
+      expect(
+        screen.getByRole('radio', { name: /Read-only access/ }),
+      ).not.toBeChecked()
+    })
+
+    it('offers no choice when the application asked for read-only access', async () => {
+      // Act
+      await renderReady({ scope: 'Read' })
+
+      // Assert
+      expect(screen.queryByRole('radio')).not.toBeInTheDocument()
+      expect(
+        screen.getByText(/as you, through Wayd's MCP endpoint/),
+      ).toBeInTheDocument()
+      expect(screen.getByText(/but not change anything/)).toBeInTheDocument()
     })
   })
 
@@ -224,15 +250,17 @@ describe('ConsentPage', () => {
         'Approve',
         mockApprove,
         'https://tools.acme.example/callback?code=c1&state=s1',
+        [HANDLE, { scope: 'Write' }],
       ],
       [
         'Deny',
         mockDeny,
         'https://tools.acme.example/callback?error=access_denied&state=s1',
+        [HANDLE],
       ],
     ])(
       '%s calls the API and navigates to the redirect URL it answers',
-      async (button, call, redirectUrl) => {
+      async (button, call, redirectUrl, args) => {
         // Arrange
         call.mockResolvedValue({ redirectUrl })
         await renderReady()
@@ -242,10 +270,27 @@ describe('ConsentPage', () => {
 
         // Assert
         screen.getByText(/Returning you to the application/)
-        expect(call).toHaveBeenCalledWith(HANDLE)
+        expect(call).toHaveBeenCalledWith(...args)
         expect(mockNavigate).toHaveBeenCalledWith(redirectUrl)
       },
     )
+
+    it('approves with read-only access when the user narrows it', async () => {
+      // Arrange
+      mockApprove.mockResolvedValue({
+        redirectUrl: 'https://tools.acme.example/callback?code=c1&state=s1',
+      })
+      await renderReady()
+      await act(async () => {
+        fireEvent.click(screen.getByRole('radio', { name: /Read-only access/ }))
+      })
+
+      // Act
+      await click('Approve')
+
+      // Assert
+      expect(mockApprove).toHaveBeenCalledWith(HANDLE, { scope: 'Read' })
+    })
 
     it('sends one call when Approve is clicked twice before the page re-renders', async () => {
       // Arrange

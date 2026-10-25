@@ -113,4 +113,38 @@ public sealed class GetIntakeRequestQueryHandlerTests
         // Assert
         result.Should().BeNull();
     }
+
+    [Fact]
+    public async Task Handle_ForTheLinkedRequesterWithAReadOnlyToken_OffersNoChange()
+    {
+        // Arrange — the requester may edit by who they are, which a token's scope does not narrow on its own
+        var requester = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.SummaryOnly), requester);
+        _scenario.SignedInAs(requester).WithReadOnlyToken();
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.CanEdit.Should().BeFalse();
+        result.CanAddParticipants.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ForADeskReviewerWithAReadOnlyToken_ShowsThePrivateRequest_WithoutOfferingReview()
+    {
+        // Arrange — Review widens what its holder sees, so a read-only token keeps that and loses only the review
+        var reviewer = _scenario.Employee();
+        var desk = _scenario.Desk(IntakeDeskVisibility.Private, reviewerIds: reviewer.Id);
+        var request = _scenario.Request(desk, _scenario.Employee());
+        _scenario.SignedInAs(reviewer, IntakeScenario.Review).WithReadOnlyToken();
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Substance.Should().NotBeNull();
+        result.CanReview.Should().BeFalse();
+    }
 }

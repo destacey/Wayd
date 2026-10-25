@@ -11561,12 +11561,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Approve a pending OAuth connection request.
         /// </summary>
         /// <remarks>
-        /// Issues a single-use authorization code bound to the signed-in user and answers the URL to send the browser to. Answers 404 as the get does.
+        /// Issues a single-use authorization code bound to the signed-in user, limited to the scope granted, and answers the URL to send the browser to. Answers 404 as the get does.
         /// </remarks>
         /// <param name="handle">The handle the authorization endpoint passed to the consent page as `request`.</param>
+        /// <param name="request">The access to grant, which may narrow what the application asked for.</param>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<OAuthAuthorizationDecisionResponse> ApproveAsync(string handle, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<OAuthAuthorizationDecisionResponse> ApproveAsync(string handle, ApproveOAuthAuthorizationRequest? request = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -11737,12 +11738,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Approve a pending OAuth connection request.
         /// </summary>
         /// <remarks>
-        /// Issues a single-use authorization code bound to the signed-in user and answers the URL to send the browser to. Answers 404 as the get does.
+        /// Issues a single-use authorization code bound to the signed-in user, limited to the scope granted, and answers the URL to send the browser to. Answers 404 as the get does.
         /// </remarks>
         /// <param name="handle">The handle the authorization endpoint passed to the consent page as `request`.</param>
+        /// <param name="request">The access to grant, which may narrow what the application asked for.</param>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<OAuthAuthorizationDecisionResponse> ApproveAsync(string handle, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<OAuthAuthorizationDecisionResponse> ApproveAsync(string handle, ApproveOAuthAuthorizationRequest? request = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (handle == null)
                 throw new System.ArgumentNullException("handle");
@@ -11753,7 +11755,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
             {
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
-                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
@@ -14379,6 +14384,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get permissions of currently logged in user.
         /// </summary>
+        /// <remarks>
+        /// The permissions this request can use: the user's, narrowed by the scope of the token it was made with.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<UserPermissionsResponse> GetPermissionsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -14741,6 +14749,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get permissions of currently logged in user.
         /// </summary>
+        /// <remarks>
+        /// The permissions this request can use: the user's, narrowed by the scope of the token it was made with.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<UserPermissionsResponse> GetPermissionsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -97055,6 +97066,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// The user's approval of a connection request.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ApproveOAuthAuthorizationRequest
+    {
+
+        /// <summary>
+        /// The access to grant the application. Omitted, it gets what it asked for; a scope wider than it asked for is
+        /// <br/>narrowed to its request.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scope")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TokenScope>))]
+        public TokenScope? Scope { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Assembles several component releases into one shipment.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -99202,6 +99230,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset ExpiresAt { get; set; } = default!;
 
+        /// <summary>
+        /// How much of your access the token may use: `Read` for viewing, searching and exporting only, or `Write` for
+        /// <br/>everything you may do. Defaults to `Write`. A scope never grants a permission you do not have.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scope")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TokenScope>))]
+        public TokenScope? Scope { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -99227,6 +99263,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("expiresAt")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset ExpiresAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("scope")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TokenScope>))]
+        public TokenScope Scope { get; set; } = default!;
 
     }
 
@@ -107322,6 +107363,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool RedirectIsLoopback { get; set; } = default!;
 
         /// <summary>
+        /// The access the application asked for: `Read` to view, search and export, or `Write` for everything the user may
+        /// <br/>do. The user may grant it or narrow it, never widen it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scope")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TokenScope>))]
+        public TokenScope Scope { get; set; } = default!;
+
+        /// <summary>
         /// When the request stops waiting for a decision.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("expiresAt")]
@@ -107940,8 +107990,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("isRevoked")]
         public bool IsRevoked { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("scopes")]
-        public string? Scopes { get; set; } = default!;
+        /// <summary>
+        /// How much of its owner's access the token may use.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scope")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TokenScope>))]
+        public TokenScope Scope { get; set; } = default!;
 
     }
 
@@ -119796,6 +119851,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("mustChangePassword")]
         public bool MustChangePassword { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TokenScope
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Read")]
+        Read = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Write")]
+        Write = 1,
 
     }
 

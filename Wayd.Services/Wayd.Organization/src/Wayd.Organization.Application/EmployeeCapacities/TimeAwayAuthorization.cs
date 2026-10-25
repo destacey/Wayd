@@ -8,7 +8,9 @@ namespace Wayd.Organization.Application.EmployeeCapacities;
 /// </summary>
 /// <remarks>
 /// The first two come from who the caller is, and need no permission. The time away read answers the same
-/// question for the UI and decides with it whether to show the reason, so it and the commands both ask here.
+/// question for the UI and decides with it whether to show the reason, so it and the commands both ask here. The
+/// Administer permission is read whatever the request's token scope, since it also decides who sees the reason; a
+/// read-only token is told it cannot manage (<see cref="ICurrentPrincipal.IsReadOnly"/>).
 /// </remarks>
 public static class TimeAwayAuthorization
 {
@@ -27,10 +29,10 @@ public static class TimeAwayAuthorization
         IReadOnlyCollection<Guid> employeeIds,
         CancellationToken cancellationToken)
     {
-        if (employeeIds.Count == 0)
+        if (employeeIds.Count == 0 || currentPrincipal.IsReadOnly)
             return new HashSet<Guid>();
 
-        if (await currentPrincipal.HasPermission(AdministratorPermission, cancellationToken))
+        if (await currentPrincipal.HoldsPermission(AdministratorPermission, cancellationToken))
             return employeeIds.ToHashSet();
 
         if (await currentPrincipal.GetEmployeeId(cancellationToken) is not { } callerId)
@@ -53,14 +55,18 @@ public static class TimeAwayAuthorization
         return manageable;
     }
 
-    /// <summary>Whether the caller may record time away for <paramref name="employeeId"/> and see its reason.</summary>
+    /// <summary>
+    /// Whether the caller may record time away for <paramref name="employeeId"/> and see its reason. A read-only token
+    /// may see the reason but record nothing, so a hint built from this also checks
+    /// <see cref="ICurrentPrincipal.IsReadOnly"/>.
+    /// </summary>
     public static async Task<bool> CanManageTimeAway(
         this ICurrentPrincipal currentPrincipal,
         IOrganizationDbContext organizationDbContext,
         Guid employeeId,
         CancellationToken cancellationToken)
     {
-        if (await currentPrincipal.HasPermission(AdministratorPermission, cancellationToken))
+        if (await currentPrincipal.HoldsPermission(AdministratorPermission, cancellationToken))
             return true;
 
         var callerId = await currentPrincipal.GetEmployeeId(cancellationToken);

@@ -1,12 +1,13 @@
 'use client'
 
-import { Form, Input, Modal, DatePicker, Alert } from 'antd'
+import { Form, Input, Modal, DatePicker, Alert, Radio } from 'antd'
 import { useMessage } from '@/src/components/contexts/messaging'
 import dayjs, { Dayjs } from 'dayjs'
 import { ExclamationCircleOutlined } from '@ant-design/icons'
 import { useCreatePersonalAccessTokenMutation } from '@/src/store/features/user-management/personal-access-tokens-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { useModalForm } from '@/src/hooks'
+import { TokenScope } from '@/src/services/wayd-api'
 
 const { Item } = Form
 
@@ -18,6 +19,7 @@ export interface CreatePersonalAccessTokenFormProps {
 interface CreateTokenFormValues {
   name: string
   expiresAt: Dayjs
+  scope: TokenScope
 }
 
 const CreatePersonalAccessTokenForm = ({
@@ -35,6 +37,7 @@ const CreatePersonalAccessTokenForm = ({
           const response = await createToken({
             name: values.name,
             expiresAt: values.expiresAt.toDate(),
+            scope: values.scope,
           })
 
           if (response.error) {
@@ -89,7 +92,10 @@ const CreatePersonalAccessTokenForm = ({
         size="small"
         layout="vertical"
         name="create-personal-access-token-form"
-        initialValues={{ expiresAt: dayjs().add(1, 'year') }}
+        initialValues={{
+          expiresAt: dayjs().add(1, 'year'),
+          scope: TokenScope.Write,
+        }}
       >
         <Item
           label="Token Name"
@@ -100,6 +106,28 @@ const CreatePersonalAccessTokenForm = ({
           ]}
         >
           <Input placeholder="e.g., CI/CD Pipeline, Personal Script" />
+        </Item>
+
+        <Item
+          name="scope"
+          label="Access"
+          help="A token never has a permission your account lacks."
+          rules={[{ required: true, message: 'Choose what the token can do' }]}
+        >
+          <Radio.Group
+            vertical
+            options={[
+              {
+                value: TokenScope.Write,
+                label: 'Full access: anything your account can do',
+              },
+              {
+                value: TokenScope.Read,
+                label:
+                  'Read-only access: view, search and export, but not change anything',
+              },
+            ]}
+          />
         </Item>
 
         <Item

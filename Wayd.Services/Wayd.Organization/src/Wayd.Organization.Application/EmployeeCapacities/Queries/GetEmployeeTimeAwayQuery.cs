@@ -64,7 +64,7 @@ public sealed class GetEmployeeTimeAwayQueryHandler(
 
         return new EmployeeTimeAwayDto
         {
-            CanManage = canManage,
+            CanManage = canManage && !_currentPrincipal.IsReadOnly,
             WorkingDayHours = ownWorkingDayHours ?? systemWorkingDayHours,
             OwnWorkingDayHours = ownWorkingDayHours,
             SystemWorkingDayHours = systemWorkingDayHours,

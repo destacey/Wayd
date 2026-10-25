@@ -30,6 +30,12 @@ public sealed record OAuthAuthorizationRequestResponse
     /// <summary>Whether the redirect URI is on this computer's loopback interface, as a desktop app's is.</summary>
     public required bool RedirectIsLoopback { get; init; }
 
+    /// <summary>
+    /// The access the application asked for: `Read` to view, search and export, or `Write` for everything the user may
+    /// do. The user may grant it or narrow it, never widen it.
+    /// </summary>
+    public required TokenScope Scope { get; init; }
+
     /// <summary>When the request stops waiting for a decision.</summary>
     public required Instant ExpiresAt { get; init; }
 
@@ -43,8 +49,28 @@ public sealed record OAuthAuthorizationRequestResponse
         RedirectHost = pending.RedirectHost,
         RedirectHostDiffers = pending.RedirectHostDiffers,
         RedirectIsLoopback = pending.RedirectIsLoopback,
+        Scope = pending.Scope,
         ExpiresAt = pending.ExpiresAt,
     };
+}
+
+/// <summary>The user's approval of a connection request.</summary>
+public sealed record ApproveOAuthAuthorizationRequest
+{
+    /// <summary>
+    /// The access to grant the application. Omitted, it gets what it asked for; a scope wider than it asked for is
+    /// narrowed to its request.
+    /// </summary>
+    public TokenScope? Scope { get; init; }
+}
+
+/// <summary>Refuses a scope that is not one of <see cref="TokenScope"/>'s values, which the enum converter would otherwise accept as a number.</summary>
+public sealed class ApproveOAuthAuthorizationRequestValidator : CustomValidator<ApproveOAuthAuthorizationRequest>
+{
+    public ApproveOAuthAuthorizationRequestValidator()
+    {
+        RuleFor(r => r.Scope).IsInEnum();
+    }
 }
 
 /// <summary>Where to send the browser after the user approves or denies a connection request.</summary>

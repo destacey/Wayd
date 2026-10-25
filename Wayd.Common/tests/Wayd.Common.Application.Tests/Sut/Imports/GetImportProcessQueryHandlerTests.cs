@@ -23,6 +23,7 @@ public sealed class GetImportProcessQueryHandlerTests : IDisposable
     public GetImportProcessQueryHandlerTests()
     {
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
     }
 
     public void Dispose() => _db.Dispose();
@@ -80,6 +81,7 @@ public sealed class GetImportProcessQueryHandlerTests : IDisposable
     {
         // Arrange
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         var process = AddRun(1);
 
         // Act
@@ -105,8 +107,14 @@ public sealed class GetImportProcessQueryHandlerTests : IDisposable
     {
         // Arrange
         _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         _principal
             .Setup(p => p.HasPermission(
+                ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Imports),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _principal
+            .Setup(p => p.HoldsPermission(
                 ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Imports),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);

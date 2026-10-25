@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace Wayd.Infrastructure.Auth;
 
 /// <summary>
@@ -8,15 +10,19 @@ namespace Wayd.Infrastructure.Auth;
 /// breaks the CurrentUser ↔ UserService dependency cycle without a service locator.
 /// </summary>
 /// <remarks>
-/// Both lookups read the database rather than the caller's token. Claims are a snapshot taken when
-/// the token was issued, which is why <see cref="ICurrentUser.GetEmployeeId"/> (claim-sourced) goes
-/// stale — see <see cref="ICurrentPrincipal.GetEmployeeId"/>.
+/// The permission set is the user's, narrowed by the scope of the token the request carries
+/// (<see cref="TokenScopeAccess"/>). Both lookups read the database rather than the caller's token.
+/// Claims are a snapshot taken when the token was issued, which is why
+/// <see cref="ICurrentUser.GetEmployeeId"/> (claim-sourced) goes stale — see
+/// <see cref="ICurrentPrincipal.GetEmployeeId"/>.
 /// </remarks>
-internal class CurrentPrincipal(ICurrentUser currentUser, IUserService userService) : ICurrentPrincipal
+internal class CurrentPrincipal(ICurrentUser currentUser, IUserService userService, IHttpContextAccessor httpContextAccessor) : ICurrentPrincipal
 {
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IUserService _userService = userService;
+    private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 
+    private HashSet<string>? _heldCache;
     private HashSet<string>? _permissionsCache;
 
     // Two fields, not a Guid? cache: "no link" is a normal, common answer (service accounts, admins,
@@ -41,10 +47,29 @@ internal class CurrentPrincipal(ICurrentUser currentUser, IUserService userServi
                 return false;
         }
 
-        _permissionsCache ??= [.. await _userService.GetPermissionsAsync(_currentUser.GetUserId(), cancellationToken)];
+        if (_permissionsCache is null)
+        {
+            var user = _httpContextAccessor.HttpContext?.User;
+            var held = await Held(cancellationToken);
+            _permissionsCache = [.. held.Where(p => TokenScopeAccess.Permits(user, p))];
+        }
 
         return _permissionsCache.Contains(permission);
     }
+
+    public async Task<bool> HoldsPermission(string permission, CancellationToken cancellationToken = default) =>
+        _currentUser.Kind switch
+        {
+            ActorKind.System => true,
+            ActorKind.Anonymous => false,
+            _ => (await Held(cancellationToken)).Contains(permission),
+        };
+
+    public bool IsReadOnly => TokenScopeAccess.IsReadOnly(_httpContextAccessor.HttpContext?.User);
+
+    /// <summary>The user's own permissions, read once per scope.</summary>
+    private async Task<HashSet<string>> Held(CancellationToken cancellationToken) =>
+        _heldCache ??= [.. await _userService.GetPermissionsAsync(_currentUser.GetUserId(), cancellationToken)];
 
     public async Task<bool> HasAnyPermission(IReadOnlyCollection<string> permissions, CancellationToken cancellationToken = default)
     {

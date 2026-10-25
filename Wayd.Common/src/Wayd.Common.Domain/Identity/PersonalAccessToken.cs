@@ -1,5 +1,6 @@
 ﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Data;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Identity;
@@ -69,11 +70,13 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
     } = null!;
 
     /// <summary>
-    /// Gets the scopes/permissions this token is limited to.
-    /// Null or empty means full access (all user permissions).
-    /// JSON array of permission names (e.g., ["Permissions.WorkItems.View"]).
+    /// The OAuth scope string this token is limited to, such as <c>wayd:read</c>. Null for a token created before
+    /// tokens had scopes, which keeps all of its user's access. Read it through <see cref="Scope"/>.
     /// </summary>
     public string? Scopes { get; private set; }
+
+    /// <summary>How much of its user's access this token may use.</summary>
+    public TokenScope Scope => TokenScopes.Parse(Scopes) ?? TokenScopes.Default;
 
     /// <summary>
     /// Gets when this token expires.
@@ -233,7 +236,7 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
     /// <param name="tokenHash">The hashed token value.</param>
     /// <param name="userId">The ID of the user who owns this token.</param>
     /// <param name="expiresAt">When the token expires.</param>
-    /// <param name="scopes">Optional scopes to limit token permissions.</param>
+    /// <param name="scope">How much of the user's access the token may use.</param>
     /// <param name="actor">Who created the token, for the event.</param>
     /// <param name="timestamp">The timestamp of the creation.</param>
     /// <returns>A Result containing the new PersonalAccessToken or an error.</returns>
@@ -243,7 +246,7 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
         string tokenHash,
         string userId,
         Instant expiresAt,
-        string? scopes,
+        TokenScope scope,
         EventActor actor,
         Instant timestamp)
     {
@@ -256,11 +259,11 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
 
             var token = new PersonalAccessToken(name, tokenIdentifier, tokenHash, userId, expiresAt, timestamp)
             {
-                Scopes = scopes
+                Scopes = scope.ToScopeString()
             };
 
-            token.AddDomainEvent(new PersonalAccessTokenCreatedEvent(
-                token.Id, token.UserId, token.Name, token.ExpiresAt, token.Scopes, actor, timestamp));
+            token.AddDomainEvent(new PersonalAccessTokenCreatedEventV2(
+                token.Id, token.UserId, token.Name, token.ExpiresAt, token.Scope, actor, timestamp));
 
             return Result.Success(token);
         }

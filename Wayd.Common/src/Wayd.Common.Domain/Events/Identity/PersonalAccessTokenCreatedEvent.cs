@@ -7,9 +7,12 @@ namespace Wayd.Common.Domain.Events.Identity;
 /// A user created a personal access token.
 /// </summary>
 /// <remarks>
-/// Carries nothing derived from the token itself — neither its hash nor its identifier, which is a prefix of
-/// the plain text. Also listed on the owning user's Activity.
+/// Frozen at its published shape and never raised; <see cref="PersonalAccessTokenCreatedEventV2"/> replaced it when
+/// tokens gained a scope, which <see cref="Scopes"/> could not carry without changing what it means. Kept so every
+/// payload written as this type still deserializes into it — its name and members are the contract those payloads
+/// were written against, so neither may change.
 /// </remarks>
+[Obsolete("Superseded by PersonalAccessTokenCreatedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record PersonalAccessTokenCreatedEvent : DomainEvent<PersonalAccessTokenCreatedEvent>, IDomainEventDescriptor, IRelatedAggregateEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Created;

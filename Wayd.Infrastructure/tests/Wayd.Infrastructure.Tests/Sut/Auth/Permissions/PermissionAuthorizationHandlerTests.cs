@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Wayd.Common.Application.Identity.Users;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Infrastructure.Auth.Permissions;
 using Wayd.Infrastructure.OpenTelemetry;
 
@@ -76,6 +77,46 @@ public sealed class PermissionAuthorizationHandlerTests
             Times.Never);
     }
 
+    [Fact]
+    public async Task HandleRequirementAsync_WhenReadScopedTokenAsksForAWritePermission_DeniesWithoutCheckingPermissions()
+    {
+        // Arrange
+        const string permission = "Permissions.Projects.Update";
+        _userService
+            .Setup(s => s.HasPermissionAsync("user-1", permission, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var context = ScopedContext("user-1", TokenScopes.Read, new PermissionRequirement(permission));
+
+        // Act
+        await new PermissionAuthorizationHandler(_userService.Object).HandleAsync(context);
+
+        // Assert
+        context.HasSucceeded.Should().BeFalse();
+        _userService.Verify(
+            s => s.HasPermissionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Theory]
+    [InlineData(TokenScopes.Read, "Permissions.Projects.View", true)]
+    [InlineData(TokenScopes.Read, "Permissions.Projects.View", false)]
+    [InlineData(TokenScopes.Write, "Permissions.Projects.Update", true)]
+    [InlineData(TokenScopes.Write, "Permissions.Projects.Update", false)]
+    public async Task HandleRequirementAsync_WhenTheScopeAllowsThePermission_DecidesByWhetherTheUserHoldsIt(string scope, string permission, bool holds)
+    {
+        // Arrange
+        _userService
+            .Setup(s => s.HasPermissionAsync("user-1", permission, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(holds);
+        var context = ScopedContext("user-1", scope, new PermissionRequirement(permission));
+
+        // Act
+        await new PermissionAuthorizationHandler(_userService.Object).HandleAsync(context);
+
+        // Assert
+        context.HasSucceeded.Should().Be(holds);
+    }
+
     private static AuthorizationHandlerContext Context(string userId, IAuthorizationRequirement requirement) =>
         new(
             [requirement],
@@ -99,4 +140,11 @@ public sealed class PermissionAuthorizationHandlerTests
         ActivitySource.AddActivityListener(listener);
         return listener;
     }
+
+    private static AuthorizationHandlerContext ScopedContext(string userId, string scope, IAuthorizationRequirement requirement) =>
+        new(
+            [requirement],
+            new ClaimsPrincipal(new ClaimsIdentity(
+                [new Claim(ClaimTypes.NameIdentifier, userId), new Claim(TokenScopes.ClaimType, scope)], "Test")),
+            null);
 }

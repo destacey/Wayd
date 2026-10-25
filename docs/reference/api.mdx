@@ -143,11 +143,11 @@ x-api-key: your-personal-access-token
 **Managing PATs:**
 - Navigate to your [Profile](../getting-started/your-profile.mdx#personal-access-tokens) page
 - Open the **PATs** tab
-- **Create** a new token with a name and an expiration date (at most two years away); each user can hold up to 10 active tokens
+- **Create** a new token with a name, its access (`scope`: `Write` for full access, the default, or `Read`) and an expiration date (at most two years away); each user can hold up to 10 active tokens
 - Copy the token immediately — it cannot be retrieved after creation
 - **Revoke** tokens that are no longer needed
 
-PATs inherit the permissions of the user who created them. See [Your Profile](../getting-started/your-profile.mdx#personal-access-tokens) for details on creating and managing tokens.
+A PAT has the permissions of the user who created it, narrowed by its scope. A `Read` token keeps only the permissions whose action is `View`, `Search` or `Export`, and is refused (`403`) any request other than `GET`, apart from the few reads sent as `POST` (such as the sessions list). `GET /api/user-management/profiles/permissions` answers with the permissions the token can use. See [Your Profile](../getting-started/your-profile.mdx#personal-access-tokens) for details on creating and managing tokens.
 
 ## Rate limits
 

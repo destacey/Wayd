@@ -305,6 +305,7 @@ public sealed class EmployeeTimeAwayHandlerTests(SqlServerDbContextFixture fixtu
     {
         var principal = new Mock<ICurrentPrincipal>();
         principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
         return principal.Object;
     }
@@ -314,6 +315,7 @@ public sealed class EmployeeTimeAwayHandlerTests(SqlServerDbContextFixture fixtu
     {
         var principal = new Mock<ICurrentPrincipal>();
         principal.Setup(p => p.HasPermission(TimeAwayAuthorization.AdministratorPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        principal.Setup(p => p.HoldsPermission(TimeAwayAuthorization.AdministratorPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
         return principal.Object;
     }

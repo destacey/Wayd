@@ -58,6 +58,13 @@ public class UserRefreshToken
     /// </summary>
     public string? ClientId { get; set; }
 
+    /// <summary>
+    /// The scope the user granted the OAuth client, which every access token issued from this session carries. Null for
+    /// a sign-in to the web app, which no scope limits, and for a client session opened before tokens had scopes,
+    /// which keeps <see cref="TokenScopes.Default"/>.
+    /// </summary>
+    public TokenScope? Scope { get; set; }
+
     public Instant CreatedAt { get; set; }
 
     public Instant LastUsedAt { get; set; }

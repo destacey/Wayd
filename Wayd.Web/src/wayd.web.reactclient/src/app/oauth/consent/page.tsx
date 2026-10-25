@@ -2,11 +2,23 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Alert, Button, Card, Flex, Result, Spin, Typography } from 'antd'
+import {
+  Alert,
+  Button,
+  Card,
+  Flex,
+  Radio,
+  Result,
+  Spin,
+  Typography,
+} from 'antd'
 import dayjs from 'dayjs'
 import styles from './page.module.css'
 import { getOAuthAuthorizationRequestsClient } from '@/src/services/clients'
-import { OAuthAuthorizationRequestResponse } from '@/src/services/wayd-api'
+import {
+  OAuthAuthorizationRequestResponse,
+  TokenScope,
+} from '@/src/services/wayd-api'
 import { useDocumentTitle, useFeatureFlag } from '@/src/hooks'
 import { toApiError } from '@/src/utils/problem-details'
 import { isFramed, navigateWithFullReload } from '@/src/utils/window-utils'
@@ -73,6 +85,64 @@ const Destination = ({
   )
 }
 
+/**
+ * What approving grants. An application that asked for write access can be
+ * narrowed to read-only here; one that asked for read-only cannot be widened.
+ */
+const AccessChoice = ({
+  requested,
+  granted,
+  disabled,
+  onChange,
+}: {
+  requested: TokenScope
+  granted: TokenScope
+  disabled: boolean
+  onChange: (scope: TokenScope) => void
+}) => {
+  if (requested === TokenScope.Read) {
+    return (
+      <div>
+        <Text strong>If you approve, it can:</Text>
+        <ul className={styles.grants}>
+          <li>use Wayd as you, through Wayd&apos;s MCP endpoint</li>
+          <li>
+            view, search and export what your account can see, but not change
+            anything
+          </li>
+        </ul>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <Text strong>
+        If you approve, it can use Wayd as you, through Wayd&apos;s MCP
+        endpoint, with:
+      </Text>
+      <Radio.Group
+        className={styles.access}
+        value={granted}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        options={[
+          {
+            value: TokenScope.Write,
+            label: 'Full access: anything your account can do',
+          },
+          {
+            value: TokenScope.Read,
+            label:
+              'Read-only access: view, search and export, but not change anything',
+          },
+        ]}
+        vertical
+      />
+    </div>
+  )
+}
+
 const ConsentRequest = ({
   request,
   deciding,
@@ -82,9 +152,10 @@ const ConsentRequest = ({
   request: OAuthAuthorizationRequestResponse
   deciding: Decision | null
   error: string | null
-  onDecide: (decision: Decision) => void
+  onDecide: (decision: Decision, scope: TokenScope) => void
 }) => {
   const approveArmed = useApproveArmed()
+  const [scope, setScope] = useState<TokenScope>(request.scope)
 
   return (
     <Flex vertical gap="small">
@@ -98,15 +169,12 @@ const ConsentRequest = ({
 
       <Destination request={request} />
 
-      <div>
-        <Text strong>If you approve, it can:</Text>
-        <ul className={styles.grants}>
-          <li>use Wayd as you, through Wayd&apos;s MCP endpoint</li>
-          <li>
-            do anything your account can do: it gets all of your permissions
-          </li>
-        </ul>
-      </div>
+      <AccessChoice
+        requested={request.scope}
+        granted={scope}
+        disabled={deciding !== null}
+        onChange={setScope}
+      />
       <Paragraph type="secondary">
         You can disconnect it at any time from Account → Sessions. This request
         expires at {dayjs(request.expiresAt).format('h:mm A')}.
@@ -116,7 +184,7 @@ const ConsentRequest = ({
 
       <Flex gap="small" justify="end">
         <Button
-          onClick={() => onDecide('deny')}
+          onClick={() => onDecide('deny', scope)}
           disabled={deciding !== null}
           loading={deciding === 'deny'}
         >
@@ -124,7 +192,7 @@ const ConsentRequest = ({
         </Button>
         <Button
           type="primary"
-          onClick={() => onDecide('approve')}
+          onClick={() => onDecide('approve', scope)}
           disabled={deciding !== null || !approveArmed}
           loading={deciding === 'approve'}
         >
@@ -168,7 +236,7 @@ const ConsentContent = () => {
     }
   }, [handle, framed, attempt])
 
-  const decide = async (decision: Decision) => {
+  const decide = async (decision: Decision, scope: TokenScope) => {
     if (!handle || decisionSent.current) return
     decisionSent.current = true
     setDeciding(decision)
@@ -178,7 +246,7 @@ const ConsentContent = () => {
       const client = getOAuthAuthorizationRequestsClient()
       const { redirectUrl } =
         decision === 'approve'
-          ? await client.approve(handle)
+          ? await client.approve(handle, { scope })
           : await client.deny(handle)
       setState({ kind: 'decided', decision })
       navigateWithFullReload(redirectUrl)

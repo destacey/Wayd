@@ -27,10 +27,11 @@ internal interface IRefreshTokenStore : IScopedService
     /// <param name="userId">The user the client acts for.</param>
     /// <param name="clientId">The client's <c>client_id</c>; only that client may refresh the session.</param>
     /// <param name="clientName">The client's cleaned display name, shown in the user's sessions list.</param>
+    /// <param name="scope">The scope the user granted the client, which every access token from the session carries.</param>
     /// <param name="context">The request that redeemed the authorization code.</param>
     /// <param name="cancellationToken">Cancels the save.</param>
     /// <remarks>Its save commits whatever else the context is tracking, together with the session.</remarks>
-    Task<ClientSession> IssueForClient(Guid sessionId, string userId, string clientId, string clientName, SessionContext context, CancellationToken cancellationToken);
+    Task<ClientSession> IssueForClient(Guid sessionId, string userId, string clientId, string clientName, TokenScope scope, SessionContext context, CancellationToken cancellationToken);
 
     /// <summary>
     /// Verifies a refresh token presented by <paramref name="clientId"/> and, when <paramref name="mayRefresh"/>
@@ -96,10 +97,11 @@ internal readonly record struct ClientSession(Guid SessionId, string Token);
 /// <param name="Token">The replacement token when rotated.</param>
 /// <param name="UserId">The user the session acts for when rotated.</param>
 /// <param name="SessionId">The session rotated, which the new access token names.</param>
-internal readonly record struct ClientRotationResult(RefreshRotationOutcome Outcome, string? Token, string? UserId, Guid? SessionId)
+/// <param name="Scope">The scope the session was granted, which the new access token carries.</param>
+internal readonly record struct ClientRotationResult(RefreshRotationOutcome Outcome, string? Token, string? UserId, Guid? SessionId, TokenScope? Scope)
 {
     /// <summary>No live session for the client holds the token, or its user may not refresh.</summary>
-    public static ClientRotationResult NotFound() => new(RefreshRotationOutcome.NotFound, null, null, null);
+    public static ClientRotationResult NotFound() => new(RefreshRotationOutcome.NotFound, null, null, null, null);
 }
 
 internal readonly record struct RefreshRotationResult(RefreshRotationOutcome Outcome, string? Token)

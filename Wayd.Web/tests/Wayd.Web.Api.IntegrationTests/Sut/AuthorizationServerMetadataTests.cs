@@ -46,6 +46,7 @@ public sealed class AuthorizationServerMetadataTests(WaydSqlServerApiFactory fac
         Assert.Equal(["authorization_code", "refresh_token"], Strings(metadata, "grant_types_supported"));
         Assert.Equal(["S256"], Strings(metadata, "code_challenge_methods_supported"));
         Assert.Equal(["none"], Strings(metadata, "token_endpoint_auth_methods_supported"));
+        Assert.Equal(["wayd:read", "wayd:write"], Strings(metadata, "scopes_supported"));
         Assert.True(metadata.GetProperty("client_id_metadata_document_supported").GetBoolean());
         Assert.True(metadata.GetProperty("authorization_response_iss_parameter_supported").GetBoolean());
     }
@@ -66,6 +67,7 @@ public sealed class AuthorizationServerMetadataTests(WaydSqlServerApiFactory fac
 
         // Assert
         Assert.Equal(authorizationServer, metadata.GetProperty("issuer").GetString());
+        Assert.Equal(Strings(metadata, "scopes_supported"), Strings(resource, "scopes_supported"));
     }
 
     [Fact]

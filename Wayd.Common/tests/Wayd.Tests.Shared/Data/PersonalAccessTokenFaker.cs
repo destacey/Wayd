@@ -1,3 +1,4 @@
+using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Identity;
 using NodaTime;
 using Wayd.TestData.Core;
@@ -16,7 +17,7 @@ public sealed class PersonalAccessTokenFaker : PrivateConstructorFaker<PersonalA
         RuleFor(x => x.TokenHash, f => f.Random.Hash(40));
         RuleFor(x => x.UserId, f => f.Random.Guid().ToString());
         RuleFor(x => x.ExpiresAt, f => now.Plus(Duration.FromDays(f.Random.Int(30, 730))));
-        RuleFor(x => x.Scopes, f => f.Random.Bool() ? null : $"[\"Permissions.{f.PickRandom("WorkItems", "Teams", "Projects")}.{f.PickRandom("View", "Create", "Update")}\"]");
+        RuleFor(x => x.Scopes, f => f.PickRandom(TokenScopes.Read, TokenScopes.Write));
         RuleFor(x => x.LastUsedAt, (Instant?)null);
         RuleFor(x => x.RevokedAt, (Instant?)null);
         RuleFor(x => x.RevokedBy, (string?)null);
@@ -61,6 +62,7 @@ public static class PersonalAccessTokenFakerExtensions
         return faker;
     }
 
+    /// <summary>Sets the stored scope string as is; null makes a token from before tokens had scopes.</summary>
     public static PersonalAccessTokenFaker WithScopes(this PersonalAccessTokenFaker faker, string? scopes)
     {
         faker.RuleFor(x => x.Scopes, scopes);

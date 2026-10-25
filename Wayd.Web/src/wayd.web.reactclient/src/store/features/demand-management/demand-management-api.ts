@@ -20,6 +20,7 @@ import {
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import { toHttpError } from '../http-error'
+import { ActivityLogQueryArg } from '@/src/components/common/activities'
 
 export interface IntakeRequestListArgs {
   deskId?: string
@@ -94,14 +95,16 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    // Takes the shared activity-log argument so the request page can drive it with useActivityLog. The
+    // request page passes the id, which is what mutations invalidate by.
     getIntakeRequestActivities: builder.query<
       PagedResponseOfActivityLogDto,
-      { requestId: string; page?: number; pageSize?: number }
+      ActivityLogQueryArg
     >({
-      queryFn: async ({ requestId, page, pageSize }) => {
+      queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
           const data = await getIntakeRequestsClient().getActivities(
-            requestId,
+            String(idOrKey),
             page,
             pageSize,
           )
@@ -110,8 +113,8 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           return toError(error)
         }
       },
-      providesTags: (_result, _error, { requestId }) => [
-        { type: QueryTags.ActivityLog, id: requestId },
+      providesTags: (_result, _error, { idOrKey }) => [
+        { type: QueryTags.ActivityLog, id: String(idOrKey) },
       ],
     }),
 
@@ -263,6 +266,7 @@ export const {
   useGetIntakeRequestsQuery,
   useGetIntakeRequestQuery,
   useGetIntakeRequestActivitiesQuery,
+  useLazyGetIntakeRequestActivitiesQuery,
   useCreateIntakeRequestMutation,
   useUpdateIntakeRequestMutation,
   useAddIntakeRequestParticipantMutation,

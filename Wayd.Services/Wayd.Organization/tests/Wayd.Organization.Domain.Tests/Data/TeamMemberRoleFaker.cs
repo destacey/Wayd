@@ -1,7 +1,7 @@
 using Wayd.Organization.Domain.Models;
 using Wayd.TestData.Core;
 
-namespace Wayd.Organization.TestData;
+namespace Wayd.Organization.Domain.Tests.Data;
 
 public class TeamMemberRoleFaker : PrivateConstructorFaker<TeamMemberRole>
 {

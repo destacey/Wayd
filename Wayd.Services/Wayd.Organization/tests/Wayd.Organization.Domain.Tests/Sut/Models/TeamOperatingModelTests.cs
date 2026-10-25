@@ -1,7 +1,7 @@
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Organization.Domain.Models;
-using Wayd.Organization.TestData;
+using Wayd.Organization.Domain.Tests.Data;
 using NodaTime;
 
 namespace Wayd.Organization.Domain.Tests.Sut.Models;

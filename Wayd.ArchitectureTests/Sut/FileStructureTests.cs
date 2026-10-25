@@ -379,7 +379,7 @@ public class FileStructureTests
 
         // Assert
         invalidTestProjects.Should().BeEmpty(
-            "All service test projects should end with '.Tests' or '.IntegrationTests' (except *.TestData faker libraries). Invalid: {0}",
+            "All service test projects should end with '.Tests' or '.IntegrationTests'. Invalid: {0}",
             string.Join(", ", invalidTestProjects));
     }
 

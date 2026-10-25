@@ -11,7 +11,7 @@ using Wayd.Common.Domain.Tests.Data;
 using Wayd.Organization.Application.EmployeeCapacities.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
 using Wayd.Organization.Domain.Models;
-using Wayd.Organization.TestData;
+using Wayd.Organization.Domain.Tests.Data;
 using Wayd.Tests.Shared;
 
 namespace Wayd.Organization.Application.Tests.Sut.EmployeeCapacities.Commands;

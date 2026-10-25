@@ -4,7 +4,7 @@ using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Tests.Data;
 using Wayd.Common.Models;
 using Wayd.Organization.Domain.Models;
-using Wayd.Organization.TestData;
+using Wayd.Organization.Domain.Tests.Data;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Extensions;
 using NodaTime;

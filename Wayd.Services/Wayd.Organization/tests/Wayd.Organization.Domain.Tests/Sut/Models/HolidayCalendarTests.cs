@@ -1,7 +1,7 @@
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Organization.Domain.Models;
-using Wayd.Organization.TestData;
+using Wayd.Organization.Domain.Tests.Data;
 using Wayd.Tests.Shared.Extensions;
 using NodaTime;
 

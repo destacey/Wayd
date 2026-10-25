@@ -30,9 +30,9 @@ import { useGetProjectQuery } from '@/src/store/features/ppm/projects-api'
 import { formatCalendarDate, toCalendarDate } from '@/src/utils/calendar-date'
 import { toApiError } from '@/src/utils/problem-details'
 import styles from '../following.module.css'
-import { followedRecordHref } from './followed-record-href'
+import { recordHref } from '@/src/components/common/record/record-href'
 import FollowedRecordHealth from './followed-record-health'
-import { formatTimeAgo } from './time-ago'
+import { formatTimeAgo } from '@/src/utils/time-ago'
 
 const { Title, Text } = Typography
 
@@ -182,7 +182,7 @@ const FollowedRecordDetail = ({
   }
 
   const record = detail.record
-  const href = followedRecordHref(record)
+  const href = recordHref(record)
 
   return (
     <div className={asView ? styles.mobileDetail : undefined}>

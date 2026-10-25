@@ -26,7 +26,8 @@ const details = (id: string) => ({
   summary: { id, key: 7, title: 'An ask' },
   substance: null,
   canEdit: false,
-  canReview: false,
+  canRemoveParticipants: false,
+  canDelete: false,
   canAddParticipants: false,
 })
 

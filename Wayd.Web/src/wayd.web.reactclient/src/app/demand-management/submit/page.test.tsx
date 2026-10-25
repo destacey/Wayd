@@ -62,7 +62,9 @@ const desk = (id: string, name: string, description: string) => ({
   isRequesterSelectable: true,
   isOpen: true,
   requesterMayAddParticipants: true,
-  reviewers: [{ id: 'e-9', key: 9, name: 'Riley Reviewer' }],
+  members: [
+    { employee: { id: 'e-9', key: 9, name: 'Riley Reviewer' }, role: 'Agent' },
+  ],
 })
 
 let mockDesks: any[] = []

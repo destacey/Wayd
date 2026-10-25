@@ -7,6 +7,7 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Models;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Domain.Models;
@@ -56,7 +57,11 @@ public sealed class IntakeScenario
         return this;
     }
 
-    public static string[] Review => [IntakeRequestAuthorization.ReviewPermission];
+    /// <summary>Browses requests on desks the caller is not on.</summary>
+    public static string[] View => [IntakeRequestAuthorization.ViewPermission];
+
+    /// <summary>The Demand Management Admin.</summary>
+    public static string[] Administer => [IntakeRequestAuthorization.AdministerPermission];
 
     public Employee Employee(bool isActive = true)
     {
@@ -78,13 +83,22 @@ public sealed class IntakeScenario
     }
 
     public IntakeDesk Desk(IntakeDeskVisibility visibility = IntakeDeskVisibility.Open, bool isRequesterSelectable = true,
-        bool requesterMayAddParticipants = true, params Guid[] reviewerIds)
+        bool requesterMayAddParticipants = true, params Guid[] agentIds) =>
+        AddDesk(visibility, isRequesterSelectable, requesterMayAddParticipants,
+            [.. agentIds.Select(id => new IntakeDeskMemberDetails(id, IntakeDeskRole.Agent))]);
+
+    /// <summary>A desk on which the employees are Desk Admins.</summary>
+    public IntakeDesk DeskAdministeredBy(params Guid[] adminIds) =>
+        AddDesk(IntakeDeskVisibility.Open, true, true, [.. adminIds.Select(id => new IntakeDeskMemberDetails(id, IntakeDeskRole.Admin))]);
+
+    private IntakeDesk AddDesk(IntakeDeskVisibility visibility, bool isRequesterSelectable, bool requesterMayAddParticipants,
+        IntakeDeskMemberDetails[] members)
     {
         var desk = new IntakeDeskFaker()
             .WithVisibility(visibility)
             .WithIsRequesterSelectable(isRequesterSelectable)
             .WithRequesterMayAddParticipants(requesterMayAddParticipants)
-            .WithReviewers(reviewerIds)
+            .WithMembers(members)
             .Generate();
         DbContext.AddDesks(desk);
         return desk;

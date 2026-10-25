@@ -83794,6 +83794,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeDeskVisibilityDto>> GetVisibilitiesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the roles a desk member can hold, with their codes.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeDeskRoleDto>> GetRolesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -84151,6 +84159,80 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<IntakeDeskVisibilityDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the roles a desk member can hold, with their codes.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeDeskRoleDto>> GetRolesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-desks/roles"
+                    urlBuilder_.Append("api/demand-management/intake-desks/roles");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<IntakeDeskRoleDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -84586,7 +84668,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the intake requests you can see, as summaries.
         /// </summary>
         /// <remarks>
-        /// Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf.
+        /// Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -84624,7 +84706,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update an intake request.
         /// </summary>
         /// <remarks>
-        /// The requester can edit their own request while it is proposed; otherwise the Update permission is needed. You must also be able to read the request's detail.
+        /// The requester can edit their own request while it is proposed; otherwise you must be an agent on the request's desk. You must also be able to read the request's detail.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -84634,27 +84716,30 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Delete an intake request.
         /// </summary>
+        /// <remarks>
+        /// Needs a Desk Admin on the request's desk. Refused once the request has moved through review; withdrawing or declining keeps it on record.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Assign the reviewer who owns an intake request, or unassign it.
+        /// Give an intake request a different assignee, or unassign it.
         /// </summary>
         /// <remarks>
-        /// Needs Review on the request's desk. The assignee must be a reviewer on that desk.
+        /// Needs an agent on the request's desk. The assignee must be a member of that desk.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task AssignReviewerAsync(System.Guid id, AssignIntakeRequestReviewerRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ChangeAssigneeAsync(System.Guid id, ChangeIntakeRequestAssigneeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Give an employee access to an intake request as a participant.
         /// </summary>
         /// <remarks>
-        /// A reviewer on the request's desk can always add someone; the requester and submitter can too, except on a private desk that does not allow it.
+        /// An agent on the request's desk can always add someone; the requester and submitter can too, except on a private desk that does not allow it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -84665,7 +84750,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Remove a participant's access to an intake request.
         /// </summary>
         /// <remarks>
-        /// Needs Review on the request's desk.
+        /// Needs an agent on the request's desk.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -84742,7 +84827,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the intake requests you can see, as summaries.
         /// </summary>
         /// <remarks>
-        /// Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf.
+        /// Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -85110,7 +85195,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update an intake request.
         /// </summary>
         /// <remarks>
-        /// The requester can edit their own request while it is proposed; otherwise the Update permission is needed. You must also be able to read the request's detail.
+        /// The requester can edit their own request while it is proposed; otherwise you must be an agent on the request's desk. You must also be able to read the request's detail.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -85221,6 +85306,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Delete an intake request.
         /// </summary>
+        /// <remarks>
+        /// Needs a Desk Admin on the request's desk. Refused once the request has moved through review; withdrawing or declining keeps it on record.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -85311,14 +85399,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Assign the reviewer who owns an intake request, or unassign it.
+        /// Give an intake request a different assignee, or unassign it.
         /// </summary>
         /// <remarks>
-        /// Needs Review on the request's desk. The assignee must be a reviewer on that desk.
+        /// Needs an agent on the request's desk. The assignee must be a member of that desk.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task AssignReviewerAsync(System.Guid id, AssignIntakeRequestReviewerRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task ChangeAssigneeAsync(System.Guid id, ChangeIntakeRequestAssigneeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -85340,10 +85428,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/demand-management/intake-requests/{id}/assigned-reviewer"
+                    // Operation Path: "api/demand-management/intake-requests/{id}/assignee"
                     urlBuilder_.Append("api/demand-management/intake-requests/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/assigned-reviewer");
+                    urlBuilder_.Append("/assignee");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -85427,7 +85515,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Give an employee access to an intake request as a participant.
         /// </summary>
         /// <remarks>
-        /// A reviewer on the request's desk can always add someone; the requester and submitter can too, except on a private desk that does not allow it.
+        /// An agent on the request's desk can always add someone; the requester and submitter can too, except on a private desk that does not allow it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -85540,7 +85628,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Remove a participant's access to an intake request.
         /// </summary>
         /// <remarks>
-        /// Needs Review on the request's desk.
+        /// Needs an agent on the request's desk.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -97121,21 +97209,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
-    /// <summary>
-    /// The reviewer who owns an intake request.
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class AssignIntakeRequestReviewerRequest
-    {
-
-        /// <summary>
-        /// A reviewer on the request's desk, or null to unassign it.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("reviewerId")]
-        public System.Guid? ReviewerId { get; set; } = default!;
-
-    }
-
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class AssignPortfolioScoringModelRequest
     {
@@ -97944,6 +98017,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The member of an intake request's desk who owns it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ChangeIntakeRequestAssigneeRequest
+    {
+
+        /// <summary>
+        /// A member of the request's desk, or null to unassign it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("assigneeId")]
+        public System.Guid? AssigneeId { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ChangePasswordRequest
     {
@@ -98126,6 +98214,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One value of a closed set of options, carrying the stable `code` that endpoints
+    /// <br/>filtering on the set accept.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CommonEnumDtoOfIntakeDeskRole : CommonEnumDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<IntakeDeskRole>))]
+        public IntakeDeskRole Code { get; set; } = default!;
 
     }
 
@@ -99003,14 +99106,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A new intake desk and its initial reviewers.
+    /// A new intake desk and its initial members.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CreateIntakeDeskRequest
     {
 
         /// <summary>
-        /// What reviewers and administrators call the desk. Unique.
+        /// What its members and administrators call the desk. Unique.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -99034,7 +99137,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public IntakeDeskVisibility Visibility { get; set; } = default!;
 
         /// <summary>
-        /// Whether a requester can pick the desk. One they cannot is a destination reviewers route to.
+        /// Whether a requester can pick the desk. One they cannot is a destination agents route to.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isRequesterSelectable")]
         public bool IsRequesterSelectable { get; set; } = default!;
@@ -99046,17 +99149,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool IsOpen { get; set; } = default!;
 
         /// <summary>
-        /// On a private desk, whether the requester may add participants themselves. Reviewers always can.
+        /// On a private desk, whether the requester may add participants themselves. Agents always can.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("requesterMayAddParticipants")]
         public bool RequesterMayAddParticipants { get; set; } = default!;
 
         /// <summary>
-        /// The employees named as the desk's reviewers.
+        /// The employees named on the desk, each with their role. An employee holds one role on a desk.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("reviewerIds")]
+        [System.Text.Json.Serialization.JsonPropertyName("members")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<System.Guid> ReviewerIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+        public System.Collections.Generic.ICollection<IntakeDeskMemberRequest> Members { get; set; } = new System.Collections.ObjectModel.Collection<IntakeDeskMemberRequest>();
 
     }
 
@@ -105434,7 +105537,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// An intake desk: what it takes, who reviews on it, and how much of its requests the rest of the company reads.
+    /// An intake desk: what it takes, who works it, and how much of its requests the rest of the company reads.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class IntakeDeskDto
@@ -105454,7 +105557,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public int Key { get; set; } = default!;
 
         /// <summary>
-        /// What reviewers and administrators call the desk.
+        /// What its members and administrators call the desk.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -105494,11 +105597,79 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool RequesterMayAddParticipants { get; set; } = default!;
 
         /// <summary>
-        /// The employees named as reviewers on the desk, by name.
+        /// The employees named on the desk, by name, with their roles.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("reviewers")]
+        [System.Text.Json.Serialization.JsonPropertyName("members")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Reviewers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+        public System.Collections.Generic.ICollection<IntakeDeskMemberDto> Members { get; set; } = new System.Collections.ObjectModel.Collection<IntakeDeskMemberDto>();
+
+    }
+
+    /// <summary>
+    /// One member of an intake desk and what they may do on it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeDeskMemberDto
+    {
+
+        /// <summary>
+        /// The member, by name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employee")]
+        public EmployeeNavigationDto Employee { get; set; } = default!;
+
+        /// <summary>
+        /// What the member may do on the desk: Admin or Agent.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("role")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<IntakeDeskRole>))]
+        public IntakeDeskRole Role { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One employee to name on an intake desk, with their role.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeDeskMemberRequest
+    {
+
+        /// <summary>
+        /// The employee to name on the desk.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employeeId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid EmployeeId { get; set; } = default!;
+
+        /// <summary>
+        /// What they may do on the desk: Admin runs it, Agent acts on its requests.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("role")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<IntakeDeskRole>))]
+        public IntakeDeskRole Role { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum IntakeDeskRole
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Admin")]
+        Admin = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Agent")]
+        Agent = 1,
+
+    }
+
+    /// <summary>
+    /// One desk role: its code, name and what it may do.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeDeskRoleDto : CommonEnumDtoOfIntakeDeskRole
+    {
 
     }
 
@@ -105553,13 +105724,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool CanEdit { get; set; } = default!;
 
         /// <summary>
-        /// Whether the reader may review the request: Review on its desk, or Administer.
+        /// Whether the reader may remove the request's participants: an agent on its desk.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("canReview")]
-        public bool CanReview { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("canRemoveParticipants")]
+        public bool CanRemoveParticipants { get; set; } = default!;
 
         /// <summary>
-        /// Whether the reader may give someone access to the request as a participant: a reviewer on its desk, or
+        /// Whether the reader may delete the request: a Desk Admin on its desk.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canDelete")]
+        public bool CanDelete { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the reader may give someone access to the request as a participant: an agent on its desk, or
         /// <br/>its requester or submitter unless the desk is private and does not allow it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canAddParticipants")]
@@ -105811,10 +105988,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public IntakeChannelNavigationDto Channel { get; set; } = new IntakeChannelNavigationDto();
 
         /// <summary>
-        /// The reviewer who owns the request, when one is assigned.
+        /// The member of the request's desk who owns it, when one is assigned.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("assignedReviewer")]
-        public EmployeeNavigationDto? AssignedReviewer { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("assignee")]
+        public EmployeeNavigationDto? Assignee { get; set; } = default!;
 
         /// <summary>
         /// When the request has to land and why, when it has a need-by date.

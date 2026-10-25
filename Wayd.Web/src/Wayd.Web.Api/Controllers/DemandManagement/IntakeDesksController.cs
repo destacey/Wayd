@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.FeatureManagement;
@@ -20,7 +21,7 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.IntakeRequests)]
+    [Authorize]
     [EndpointSummary("Get the intake desks, or only those a requester can submit to now.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<IntakeDeskDto>>> GetIntakeDesks([FromQuery] bool submittableOnly = false, CancellationToken cancellationToken = default)
@@ -30,7 +31,7 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("{idOrKey}")]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.IntakeRequests)]
+    [Authorize]
     [EndpointSummary("Get an intake desk.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -55,12 +56,22 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("visibilities")]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.IntakeRequests)]
+    [Authorize]
     [EndpointSummary("Get the desk visibility values, with their codes.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<IntakeDeskVisibilityDto>>> GetVisibilities(CancellationToken cancellationToken)
     {
         var visibilities = await _dispatcher.Send(new GetIntakeDeskVisibilitiesQuery(), cancellationToken);
         return Ok(visibilities);
+    }
+
+    [HttpGet("roles")]
+    [Authorize]
+    [EndpointSummary("Get the roles a desk member can hold, with their codes.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<IntakeDeskRoleDto>>> GetRoles(CancellationToken cancellationToken)
+    {
+        var roles = await _dispatcher.Send(new GetIntakeDeskRolesQuery(), cancellationToken);
+        return Ok(roles);
     }
 }

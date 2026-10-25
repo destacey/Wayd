@@ -5,10 +5,10 @@ using Wayd.Common.Domain.Enums.DemandManagement;
 namespace Wayd.Common.Domain.Events.DemandManagement;
 
 /// <summary>
-/// An intake desk was defined, with the visibility and reviewers it started with.
+/// An intake desk was defined, with the visibility and members it started with.
 /// </summary>
 /// <remarks>
-/// Carries the visibility and reviewers because together they decide who could read which requests from
+/// Carries the visibility and members because together they decide who could read which requests from
 /// this moment on, so a later change has a starting point to be compared with.
 /// </remarks>
 public sealed record IntakeDeskCreatedEvent : DomainEvent<IntakeDeskCreatedEvent>, IDomainEventDescriptor, IDemandManagementEvent
@@ -24,7 +24,7 @@ public sealed record IntakeDeskCreatedEvent : DomainEvent<IntakeDeskCreatedEvent
         bool isRequesterSelectable,
         bool isOpen,
         bool requesterMayAddParticipants,
-        IReadOnlyList<Guid> reviewerIds,
+        IReadOnlyList<IntakeDeskMemberDetails> members,
         EventActor actor,
         Instant timestamp)
         : base(actor, "1.0")
@@ -37,7 +37,7 @@ public sealed record IntakeDeskCreatedEvent : DomainEvent<IntakeDeskCreatedEvent
         IsRequesterSelectable = isRequesterSelectable;
         IsOpen = isOpen;
         RequesterMayAddParticipants = requesterMayAddParticipants;
-        ReviewerIds = reviewerIds;
+        Members = members;
 
         Timestamp = timestamp;
     }
@@ -53,8 +53,8 @@ public sealed record IntakeDeskCreatedEvent : DomainEvent<IntakeDeskCreatedEvent
     public bool IsOpen { get; }
     public bool RequesterMayAddParticipants { get; }
 
-    /// <summary>The employees named as reviewers when the desk was defined.</summary>
-    public IReadOnlyList<Guid> ReviewerIds { get; }
+    /// <summary>The employees named on the desk when it was defined, with their roles.</summary>
+    public IReadOnlyList<IntakeDeskMemberDetails> Members { get; }
 
     [JsonIgnore]
     public string AggregateType => "IntakeDesk";

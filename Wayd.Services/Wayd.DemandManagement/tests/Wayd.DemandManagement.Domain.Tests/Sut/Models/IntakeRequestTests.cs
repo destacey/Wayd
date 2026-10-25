@@ -16,9 +16,9 @@ public sealed class IntakeRequestTests
 {
     private readonly TestingDateTimeProvider _dateTimeProvider = new(new FakeClock(DateTime.UtcNow.ToInstant()));
 
-    private static IntakeRequestEditor AnUpdateHolder() => new(Guid.NewGuid(), HoldsUpdate: true, EventActor.System);
+    private static IntakeRequestEditor ADeskAgent() => new(Guid.NewGuid(), IsDeskAgent: true, EventActor.System);
 
-    private static IntakeRequestEditor SomeoneWithoutUpdate() => new(Guid.NewGuid(), HoldsUpdate: false, EventActor.System);
+    private static IntakeRequestEditor SomeoneOffTheDesk() => new(Guid.NewGuid(), IsDeskAgent: false, EventActor.System);
 
     private static IntakeRequestNeedBy ANeedBy(string reference = "PCI DSS 4.0") =>
         IntakeRequestNeedBy.Create(new LocalDate(2026, 12, 31), NeedByBasis.Regulatory, reference, null, null).Value;
@@ -52,7 +52,7 @@ public sealed class IntakeRequestTests
         sut.ChannelId.Should().Be(channel.Id);
         sut.NeedBy.Should().Be(needBy);
         sut.Origin.Should().Be(origin);
-        sut.AssignedReviewerId.Should().BeNull();
+        sut.AssigneeId.Should().BeNull();
         sut.Participants.Should().BeEmpty();
         sut.StatusCategory.Should().Be(StatusCategory.Proposed);
     }
@@ -129,41 +129,41 @@ public sealed class IntakeRequestTests
     #region Edit lock
 
     [Fact]
-    public void CanEdit_WhileProposed_AllowsTheRequesterWithoutUpdate()
+    public void CanEdit_WhileProposed_AllowsTheRequesterOffTheDesk()
     {
         // Arrange
         var requesterId = Guid.NewGuid();
         var sut = new IntakeRequestFaker().WithRequesterId(requesterId).Generate();
 
         // Act
-        var result = sut.CanEdit(new IntakeRequestEditor(requesterId, HoldsUpdate: false, EventActor.System));
+        var result = sut.CanEdit(new IntakeRequestEditor(requesterId, IsDeskAgent: false, EventActor.System));
 
         // Assert
         result.Should().BeTrue();
     }
 
     [Fact]
-    public void CanEdit_WhileProposed_AllowsAnUpdateHolder()
+    public void CanEdit_WhileProposed_AllowsADeskAgent()
     {
         // Arrange
         var sut = new IntakeRequestFaker().Generate();
 
         // Act
-        var result = sut.CanEdit(AnUpdateHolder());
+        var result = sut.CanEdit(ADeskAgent());
 
         // Assert
         result.Should().BeTrue();
     }
 
     [Fact]
-    public void CanEdit_WhileProposed_RefusesSomeoneElseWithoutUpdate()
+    public void CanEdit_WhileProposed_RefusesSomeoneElseOffTheDesk()
     {
-        // Arrange — the submitter is not the requester, and only the requester edits without Update
+        // Arrange — the submitter is not the requester, and only the requester edits without working the desk
         var submittedById = Guid.NewGuid();
         var sut = new IntakeRequestFaker().WithSubmittedById(submittedById).Generate();
 
         // Act
-        var result = sut.CanEdit(new IntakeRequestEditor(submittedById, HoldsUpdate: false, EventActor.System));
+        var result = sut.CanEdit(new IntakeRequestEditor(submittedById, IsDeskAgent: false, EventActor.System));
 
         // Assert
         result.Should().BeFalse();
@@ -177,11 +177,11 @@ public sealed class IntakeRequestTests
         var title = sut.Title;
 
         // Act
-        var result = sut.Retitle("New title", SomeoneWithoutUpdate(), _dateTimeProvider.Now);
+        var result = sut.Retitle("New title", SomeoneOffTheDesk(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Only the requester or someone who can update requests may edit this request.");
+        result.Error.Should().Be("Only the requester or an agent on the request's desk may edit this request.");
         sut.Title.Should().Be(title);
         sut.DomainEvents.Should().BeEmpty();
     }
@@ -198,7 +198,7 @@ public sealed class IntakeRequestTests
         var fromTitle = sut.Title;
 
         // Act
-        var result = sut.Retitle(" New title ", AnUpdateHolder(), _dateTimeProvider.Now);
+        var result = sut.Retitle(" New title ", ADeskAgent(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -215,7 +215,7 @@ public sealed class IntakeRequestTests
         var sut = new IntakeRequestFaker().Generate();
 
         // Act
-        sut.Retitle($"  {sut.Title}  ", AnUpdateHolder(), _dateTimeProvider.Now);
+        sut.Retitle($"  {sut.Title}  ", ADeskAgent(), _dateTimeProvider.Now);
 
         // Assert
         sut.DomainEvents.Should().BeEmpty();
@@ -234,7 +234,7 @@ public sealed class IntakeRequestTests
         var previousExpectedBenefits = sut.ExpectedBenefits;
 
         // Act
-        var result = sut.UpdateDetails("New description", "  ", AnUpdateHolder(), _dateTimeProvider.Now);
+        var result = sut.UpdateDetails("New description", "  ", ADeskAgent(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -253,7 +253,7 @@ public sealed class IntakeRequestTests
         var sut = new IntakeRequestFaker().Generate();
 
         // Act
-        sut.UpdateDetails(sut.Description + " ", sut.ExpectedBenefits, AnUpdateHolder(), _dateTimeProvider.Now);
+        sut.UpdateDetails(sut.Description + " ", sut.ExpectedBenefits, ADeskAgent(), _dateTimeProvider.Now);
 
         // Assert
         sut.DomainEvents.Should().BeEmpty();
@@ -271,7 +271,7 @@ public sealed class IntakeRequestTests
         var needBy = ANeedBy();
 
         // Act
-        sut.ChangeNeedBy(needBy, AnUpdateHolder(), _dateTimeProvider.Now);
+        sut.ChangeNeedBy(needBy, ADeskAgent(), _dateTimeProvider.Now);
 
         // Assert
         sut.NeedBy.Should().Be(needBy);
@@ -289,7 +289,7 @@ public sealed class IntakeRequestTests
         var sut = new IntakeRequestFaker().WithNeedBy(from).Generate();
 
         // Act
-        sut.ChangeNeedBy(to, AnUpdateHolder(), _dateTimeProvider.Now);
+        sut.ChangeNeedBy(to, ADeskAgent(), _dateTimeProvider.Now);
 
         // Assert
         var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestNeedByChangedEvent>().Subject;
@@ -305,7 +305,7 @@ public sealed class IntakeRequestTests
         var sut = new IntakeRequestFaker().WithNeedBy(from).Generate();
 
         // Act
-        sut.ChangeNeedBy(null, AnUpdateHolder(), _dateTimeProvider.Now);
+        sut.ChangeNeedBy(null, ADeskAgent(), _dateTimeProvider.Now);
 
         // Assert
         sut.NeedBy.Should().BeNull();
@@ -321,7 +321,7 @@ public sealed class IntakeRequestTests
         var sut = new IntakeRequestFaker().WithNeedBy(ANeedBy()).Generate();
 
         // Act
-        sut.ChangeNeedBy(ANeedBy(), AnUpdateHolder(), _dateTimeProvider.Now);
+        sut.ChangeNeedBy(ANeedBy(), ADeskAgent(), _dateTimeProvider.Now);
 
         // Assert
         sut.DomainEvents.Should().BeEmpty();
@@ -340,7 +340,7 @@ public sealed class IntakeRequestTests
         var channel = new IntakeChannelFaker().Generate();
 
         // Act
-        var result = sut.ChangeChannel(channel, AnUpdateHolder(), _dateTimeProvider.Now);
+        var result = sut.ChangeChannel(channel, ADeskAgent(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -357,7 +357,7 @@ public sealed class IntakeRequestTests
         var sut = new IntakeRequestFaker().Generate();
 
         // Act
-        var result = sut.ChangeChannel(new IntakeChannelFaker().AsArchived().Generate(), AnUpdateHolder(), _dateTimeProvider.Now);
+        var result = sut.ChangeChannel(new IntakeChannelFaker().AsArchived().Generate(), ADeskAgent(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -372,7 +372,7 @@ public sealed class IntakeRequestTests
         var sut = new IntakeRequestFaker().WithChannelId(channel.Id).Generate();
 
         // Act
-        var result = sut.ChangeChannel(channel, AnUpdateHolder(), _dateTimeProvider.Now);
+        var result = sut.ChangeChannel(channel, ADeskAgent(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -381,40 +381,40 @@ public sealed class IntakeRequestTests
 
     #endregion ChangeChannel
 
-    #region AssignReviewer
+    #region ChangeAssignee
 
     [Fact]
-    public void AssignReviewer_WhenReassigned_RaisesWithBothEnds()
+    public void ChangeAssignee_WhenReassigned_RaisesWithBothEnds()
     {
         // Arrange
-        var fromReviewerId = Guid.NewGuid();
-        var toReviewerId = Guid.NewGuid();
-        var sut = new IntakeRequestFaker().WithAssignedReviewerId(fromReviewerId).Generate();
+        var fromAssigneeId = Guid.NewGuid();
+        var toAssigneeId = Guid.NewGuid();
+        var sut = new IntakeRequestFaker().WithAssigneeId(fromAssigneeId).Generate();
 
         // Act
-        sut.AssignReviewer(toReviewerId, EventActor.System, _dateTimeProvider.Now);
+        sut.ChangeAssignee(toAssigneeId, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        sut.AssignedReviewerId.Should().Be(toReviewerId);
-        var assigned = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestReviewerAssignedEvent>().Subject;
-        assigned.FromReviewerId.Should().Be(fromReviewerId);
-        assigned.ToReviewerId.Should().Be(toReviewerId);
+        sut.AssigneeId.Should().Be(toAssigneeId);
+        var assigned = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestAssigneeChangedEvent>().Subject;
+        assigned.FromAssigneeId.Should().Be(fromAssigneeId);
+        assigned.ToAssigneeId.Should().Be(toAssigneeId);
     }
 
     [Fact]
-    public void AssignReviewer_WhenUnassignedAlready_RaisesNothing()
+    public void ChangeAssignee_WhenUnassignedAlready_RaisesNothing()
     {
         // Arrange
-        var sut = new IntakeRequestFaker().WithAssignedReviewerId(null).Generate();
+        var sut = new IntakeRequestFaker().WithAssigneeId(null).Generate();
 
         // Act
-        sut.AssignReviewer(null, EventActor.System, _dateTimeProvider.Now);
+        sut.ChangeAssignee(null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         sut.DomainEvents.Should().BeEmpty();
     }
 
-    #endregion AssignReviewer
+    #endregion ChangeAssignee
 
     #region Participants
 

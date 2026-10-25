@@ -31,8 +31,8 @@ public sealed record IntakeRequestSummaryDto
     /// <summary>Where the request came from.</summary>
     public required IntakeChannelNavigationDto Channel { get; init; }
 
-    /// <summary>The reviewer who owns the request, when one is assigned.</summary>
-    public EmployeeNavigationDto? AssignedReviewer { get; init; }
+    /// <summary>The member of the request's desk who owns it, when one is assigned.</summary>
+    public EmployeeNavigationDto? Assignee { get; init; }
 
     /// <summary>When the request has to land and why, when it has a need-by date.</summary>
     public IntakeRequestNeedByDto? NeedBy { get; init; }

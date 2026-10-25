@@ -111,7 +111,8 @@ const request = {
   },
   substance: null,
   canEdit: true,
-  canReview: false,
+  canRemoveParticipants: false,
+  canDelete: false,
   canAddParticipants: false,
 } as unknown as IntakeRequestDetailsDto
 

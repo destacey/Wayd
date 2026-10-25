@@ -50,7 +50,7 @@ An **intake request**, shown as a **Request**, is one ask: a business need, cust
 - **Channel** — Where it came from
 - **Expected benefits** — What gets better, and for whom, if the request is delivered. Optional
 - **Need-by date** — Optional, and always with its basis (see below)
-- **Assigned reviewer** — Optional. Ownership, never an approver
+- **Assignee** — Optional. The member of the desk who owns the request: ownership, never an approver
 
 :::warning[Titles are visible beyond the desk]
 On most desks everyone who can view requests sees a request's title, even when its detail is kept to the desk. Write titles you would be comfortable with anyone in the company reading.
@@ -58,9 +58,16 @@ On most desks everyone who can view requests sees a request's title, even when i
 
 ### Intake desks
 
-An **intake desk** is a review responsibility: what kind of ask it accepts, who reviews it, the process they follow and what they weigh requests on. A desk is not a team and not a department. One engineering team can serve two desks, and one person can review on several.
+An **intake desk** is a review responsibility: what kind of ask it accepts, who works it, the process they follow and what they weigh requests on. A desk is not a team and not a department. One engineering team can serve two desks, and one person can work on several.
 
-No desk is set up on install: an administrator creates the desks the company will staff, and a company that runs no review desk has none. A requester always chooses the desk their request goes to, by the desk's description of what kind of ask it takes rather than by the name of the group behind it.
+The people who work a desk are its **members**, each in one of two roles:
+
+- **Agent** — Acts on the desk's requests: reads them in full, edits them, assigns them, manages their participants and, as later features arrive, moves them through review
+- **Desk Admin** — Everything an agent does, plus runs the desk itself and is the only one who can delete its requests
+
+Being named on a desk is all it takes: no permission is needed beside it, and working one desk gives you nothing on another. Someone whose employee record becomes inactive stops being a member of every desk.
+
+No desk is set up on install: the Demand Management Admin creates the desks the company will staff, with their first members, and a company that runs no review desk has none. A requester always chooses the desk their request goes to, by the desk's description of what kind of ask it takes rather than by the name of the group behind it.
 
 ### Channels
 
@@ -68,7 +75,7 @@ A **channel** records where a request came from: business stakeholder, customer 
 
 ### Need-by date and its basis
 
-A date on its own tells a reviewer nothing. Two requests can both say 31 December, one because a regulation sets the date and one because somebody picked it in a meeting. So a need-by date always carries its **basis**, the thing that makes it that date, and a reference saying what the date rests on.
+A date on its own tells an agent nothing. Two requests can both say 31 December, one because a regulation sets the date and one because somebody picked it in a meeting. So a need-by date always carries its **basis**, the thing that makes it that date, and a reference saying what the date rests on.
 
 | Basis | Family | What the reference records |
 |---|---|---|
@@ -84,13 +91,13 @@ A *fixed* date moves only if the world moves. A *chosen* date has an owner, so i
 
 **Demand Management** sits next to PPM in the main menu, and holds:
 
-- **Submit a Request** — Raise a new request. Shown to people who can create requests and whose account is linked to an employee record
+- **Submit a Request** — Raise a new request. Shown to anyone whose account is linked to an employee record
 - **My Requests** — The requests you asked for, and those you submitted on someone else's behalf
-- **Requests** — Every request you can see, on every desk
+- **Requests** — Every request you can see: those on the desks you work, your own, and, if you can view requests, everyone else's that their desk lets you see
 
 ### Submitting a request
 
-The first question is where the request goes, and it is asked only when more than one desk is taking requests. Each desk is offered by its own description of what kind of ask it takes, with its name and its reviewers beneath. When only one desk is open, the form shows which desk the request goes to and asks nothing about it. When none is open, the page says so and nothing can be submitted.
+The first question is where the request goes, and it is asked only when more than one desk is taking requests. Each desk is offered by its own description of what kind of ask it takes, with its name and its members beneath. When only one desk is open, the form shows which desk the request goes to and asks nothing about it. When none is open, the page says so and nothing can be submitted.
 
 The rest of the form is the same for every desk:
 
@@ -98,7 +105,7 @@ The rest of the form is the same for every desk:
 - **Title** — The form reminds you that everyone who can view requests sees the title, even on a desk that keeps the detail to itself
 - **Description** and **Expected benefits** — The ask in full, and what gets better if it is delivered
 - **Where did this come from?** — The [channel](#channels)
-- **Need by** — Optional. Once you give a date, the form asks what makes it that date, with the bases grouped as *Fixed for us* and *We chose it*. Choosing a basis asks only what that basis needs: what the date rests on, and for a commitment, who made it and when. A preview shows the date as reviewers will see it. Clearing the date clears the rest
+- **Need by** — Optional. Once you give a date, the form asks what makes it that date, with the bases grouped as *Fixed for us* and *We chose it*. Choosing a basis asks only what that basis needs: what the date rests on, and for a commitment, who made it and when. A preview shows the date as the desk will see it. Clearing the date clears the rest
 
 Submitting opens the new request.
 
@@ -114,26 +121,26 @@ Submitting needs your account to be linked to an employee record, because every 
 
 ### The request page
 
-Opening a request shows its number and title. The panel opened from the header lists its desk, channel, requester and assigned reviewer and, where you can read them, who submitted it and where it came from.
+Opening a request shows its number and title. The panel opened from the header lists its desk, channel, requester and assignee and, where you can read them, who submitted it and where it came from.
 
 - **Details** — The description, the expected benefits and the need-by date. On a desk that keeps its detail to itself, people outside it see a message saying the detail is limited to that desk, rather than empty fields
 - **People** — The requester, the submitter when it is someone else, and the request's participants. Participants can read the request and reply to it, but cannot change it, and being one does not assign them any work. Shown only to people who can read the request's detail
 - **Activity** — The request's history, limited to what you can read
 
-**Edit** appears in the actions menu when you can change the request: the requester while it is proposed, or someone with the Update permission. The desk cannot be changed here.
+**Edit** appears in the actions menu when you can change the request: the requester while it is proposed, or an agent on its desk. The desk cannot be changed here.
 
-**Add Participant** appears when you can give someone access: a reviewer on the request's desk, or its requester or submitter unless the desk is private and does not allow it. Only a reviewer on the desk can remove a participant, and removing one takes away their access from then on; what they have already read stays read.
+**Add Participant** appears when you can give someone access: an agent on the request's desk, or its requester or submitter unless the desk is private and does not allow it. Only an agent on the desk can remove a participant, and removing one takes away their access from then on; what they have already read stays read.
 
 ### Setting up a desk
 
-An administrator creates a desk from **Create Desk** on the **Requests** page, giving it:
+The Demand Management Admin creates a desk from **Create Desk** on the **Requests** page, giving it:
 
-- A **name**, which is what reviewers and administrators call it
+- A **name**, which is what its members and administrators call it
 - **What to bring here**, the description requesters choose by. Describe the kind of ask it takes rather than the group behind it
 - Its **visibility** — see [Who Can See a Request](#who-can-see-a-request)
 - Whether **requesters can choose it**, and whether it is **open to new requests**
 - On a private desk, whether **requesters may add participants**
-- Its **reviewers**. A desk with no reviewers has nobody to look at what arrives
+- Its **Desk Admins** and **Agents**. Someone holds one role on a desk, and a desk with no members has nobody to look at what arrives
 
 Changing a desk after it is created comes later.
 
@@ -141,13 +148,13 @@ Changing a desk after it is created comes later.
 
 A request is read in three tiers:
 
-- **Summary** — Number, title, desk, status, requester, channel, assigned reviewer, tags, and the need-by date with its basis and reference
+- **Summary** — Number, title, desk, status, requester, channel, assignee, tags, and the need-by date with its basis and reference
 - **Substance** — Description, expected benefits, who submitted it, its participants, where it came from, evidence, replies, score and ratings
-- **Internal** — Internal notes and triage reasoning, for reviewers only
+- **Internal** — Internal notes and triage reasoning, for the desk's members only
 
 Each desk sets how much of that reaches the rest of the company:
 
-| Desk visibility | Everyone who can view requests | The desk's reviewers and the request's own people |
+| Desk visibility | Everyone who can view requests | The desk's members and the request's own people |
 |---|---|---|
 | **Open** | Summary and substance | Everything their role allows |
 | **Summary only** | Summary | Everything their role allows |
@@ -155,7 +162,7 @@ Each desk sets how much of that reaches the rest of the company:
 
 A request's own people are its **requester**, whoever **submitted** it on the requester's behalf, and any **participants** given access to it. Participants read the request and can join the discussion, but they cannot change it and never see internal notes.
 
-A reviewer on any desk reads the substance of requests on every desk, because a reviewer cannot judge whether a request belongs on another desk without reading it.
+Working one desk gives you nothing on another: an agent reads other desks' requests only as far as those desks let everyone. Someone who cannot view requests sees only their own requests and those on the desks they work.
 
 A request's history shows only the changes to what you can read. If you can read only the summary, the history also leaves out who made each change, because whoever submitted a request on someone's behalf is part of its substance.
 
@@ -163,13 +170,11 @@ Request numbers run across the whole company, so a gap in the numbers you see ca
 
 ## Permissions
 
+Most of what happens to a request is decided by [desk roles](#intake-desks), not permissions, so Demand Management has only two:
+
 | Permission | What it allows |
 |---|---|
-| View | Read requests, within the desk visibility above |
-| Create | Submit a request |
-| Update | Edit requests |
-| Delete | Delete a request that has not yet moved through review |
-| Review | Review requests, on the desks where you are a reviewer |
-| Administer | Manage desks and channels, and review on every desk |
+| View | Browse other people's requests, within the desk visibility above |
+| Administer | The Demand Management Admin: create and delete desks, change a desk's visibility, name Desk Admins, manage channels, and act as Desk Admin on every desk |
 
-Most people need only **View** and **Create**. A requester can edit their own request while it is still proposed, without Update.
+Submitting a request, and reading, editing (while it is proposed) and replying to your own, need no permission. See [Demand Management: desk roles](../settings/permissions.mdx#demand-management-desk-roles).

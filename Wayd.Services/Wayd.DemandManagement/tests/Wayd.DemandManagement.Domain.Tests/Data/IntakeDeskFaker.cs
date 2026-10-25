@@ -1,5 +1,6 @@
 using System.Reflection;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.TestData.Core;
 
@@ -22,8 +23,8 @@ public sealed class IntakeDeskFaker : PrivateConstructorFaker<IntakeDesk>
 
 public static class IntakeDeskFakerExtensions
 {
-    private static readonly FieldInfo ReviewersField =
-        typeof(IntakeDesk).GetField("_reviewers", BindingFlags.Instance | BindingFlags.NonPublic)!;
+    private static readonly FieldInfo MembersField =
+        typeof(IntakeDesk).GetField("_members", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
     public static IntakeDeskFaker WithId(this IntakeDeskFaker faker, Guid id)
     {
@@ -75,21 +76,27 @@ public static class IntakeDeskFakerExtensions
     }
 
     /// <summary>
-    /// Names the employees as the desk's reviewers.
+    /// Names the employees on the desk with their roles, replacing any members it had.
     /// </summary>
     /// <remarks>
-    /// Set through the backing list because the domain adds reviewers only at creation until desk
-    /// administration arrives, and tests need desks whose reviewers are known.
+    /// Set through the backing list because the domain adds members only at creation until desk
+    /// administration arrives, and tests need desks whose members are known.
     /// </remarks>
-    public static IntakeDeskFaker WithReviewers(this IntakeDeskFaker faker, params Guid[] employeeIds)
+    public static IntakeDeskFaker WithMembers(this IntakeDeskFaker faker, params IntakeDeskMemberDetails[] members)
     {
         faker.FinishWith((_, desk) =>
         {
-            var reviewers = (List<IntakeDeskReviewer>)ReviewersField.GetValue(desk)!;
-            reviewers.Clear();
-            reviewers.AddRange(employeeIds.Select(id => new IntakeDeskReviewer(desk.Id, id)));
+            var list = (List<IntakeDeskMember>)MembersField.GetValue(desk)!;
+            list.Clear();
+            list.AddRange(members.Select(m => new IntakeDeskMember(desk.Id, m.EmployeeId, m.Role)));
         });
 
         return faker;
     }
+
+    /// <summary>
+    /// Names the employees on the desk as agents, replacing any members it had.
+    /// </summary>
+    public static IntakeDeskFaker WithAgents(this IntakeDeskFaker faker, params Guid[] employeeIds) =>
+        faker.WithMembers([.. employeeIds.Select(id => new IntakeDeskMemberDetails(id, IntakeDeskRole.Agent))]);
 }

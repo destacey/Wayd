@@ -3,7 +3,7 @@
 import { PageTitle } from '@/src/components/common'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
+import { requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle, useLinkedEmployee } from '@/src/hooks'
 import {
   useGetIntakeRequestsQuery,
@@ -24,8 +24,7 @@ const IntakeRequestsPage: FC = () => {
   const messageApi = useMessage()
   const { hasPermissionClaim } = useAuth()
   const { hasLinkedEmployee } = useLinkedEmployee()
-  const canSubmit =
-    hasPermissionClaim('Permissions.IntakeRequests.Create') && hasLinkedEmployee
+  const canSubmit = hasLinkedEmployee
 
   // Until desk administration exists, this is where an administrator creates the first desk.
   const canCreateDesk = hasPermissionClaim(
@@ -84,12 +83,9 @@ const IntakeRequestsPage: FC = () => {
   )
 }
 
+// No permission gate: the server lists what the reader may see, which View widens but does not decide.
 const IntakeRequestsPageWithAuthorization = requireFeatureFlag(
-  authorizePage(
-    IntakeRequestsPage,
-    'Permission',
-    'Permissions.IntakeRequests.View',
-  ),
+  IntakeRequestsPage,
   'demand-management',
 )
 

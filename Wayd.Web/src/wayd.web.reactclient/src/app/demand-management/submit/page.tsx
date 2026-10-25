@@ -3,7 +3,7 @@
 import { PageTitle } from '@/src/components/common'
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
+import { requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle, useLinkedEmployee } from '@/src/hooks'
 import {
   useCreateIntakeRequestMutation,
@@ -196,12 +196,9 @@ const SubmitIntakeRequestPage: FC = () => {
   )
 }
 
+// Submitting needs no permission, only a linked employee, which the page checks itself.
 const SubmitIntakeRequestPageWithAuthorization = requireFeatureFlag(
-  authorizePage(
-    SubmitIntakeRequestPage,
-    'Permission',
-    'Permissions.IntakeRequests.Create',
-  ),
+  SubmitIntakeRequestPage,
   'demand-management',
 )
 

@@ -33,7 +33,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         IntakeDesk SummaryOnly,
         IntakeDesk Private,
         Employee Requester,
-        Employee Reviewer,
+        Employee Agent,
         Employee Participant,
         IntakeRequest OnOpen,
         IntakeRequest OnSummaryOnly,
@@ -57,7 +57,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
     }
 
     [Fact]
-    public async Task GetIntakeRequests_ForTheRequesterAndThePrivateDesksReviewer_IncludesThePrivateRequest()
+    public async Task GetIntakeRequests_ForTheRequesterAndThePrivateDesksAgentWithoutAnyClaim_IncludesThePrivateRequest()
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
@@ -65,14 +65,14 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         await using var context = _fixture.CreateContext();
 
         // Act
-        var asRequester = await new GetIntakeRequestsQueryHandler(context, Principal(scenario.Requester.Id))
+        var asRequester = await new GetIntakeRequestsQueryHandler(context, Principal(scenario.Requester.Id, holdsView: false))
             .Handle(new GetIntakeRequestsQuery(scenario.Private.Id), ct);
-        var asReviewer = await new GetIntakeRequestsQueryHandler(context, Principal(scenario.Reviewer.Id, holdsReview: true))
+        var asAgent = await new GetIntakeRequestsQueryHandler(context, Principal(scenario.Agent.Id, holdsView: false))
             .Handle(new GetIntakeRequestsQuery(scenario.Private.Id), ct);
 
         // Assert
         asRequester.Select(r => r.Id).Should().Equal(scenario.OnPrivate.Id);
-        asReviewer.Select(r => r.Id).Should().Equal(scenario.OnPrivate.Id);
+        asAgent.Select(r => r.Id).Should().Equal(scenario.OnPrivate.Id);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         {
             var desk = await seeding.IntakeDesks.SingleAsync(d => d.Id == scenario.SummaryOnly.Id, ct);
             var channel = await seeding.IntakeChannels.SingleAsync(c => c.Id == scenario.OnOpen.ChannelId, ct);
-            var request = IntakeRequest.Create(UniqueName("Ask"), "Entered for someone else", null, scenario.Reviewer.Id,
+            var request = IntakeRequest.Create(UniqueName("Ask"), "Entered for someone else", null, scenario.Agent.Id,
                 scenario.Participant.Id, desk, channel, null, null, EventActor.System, Now).Value;
             seeding.IntakeRequests.Add(request);
             await seeding.SaveChangesAsync(ct);
@@ -130,9 +130,10 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         summary.NeedBy.Should().NotBeNull();
         summary.NeedBy!.Basis.Should().Be(NeedByBasis.Commitment);
         summary.NeedBy.Family.Should().Be(NeedByBasisFamily.ChosenByUs);
-        summary.NeedBy.CommittedBy!.Id.Should().Be(scenario.Reviewer.Id);
+        summary.NeedBy.CommittedBy!.Id.Should().Be(scenario.Agent.Id);
         result.CanEdit.Should().BeFalse();
-        result.CanReview.Should().BeFalse();
+        result.CanRemoveParticipants.Should().BeFalse();
+        result.CanDelete.Should().BeFalse();
         result.CanAddParticipants.Should().BeFalse();
     }
 
@@ -179,7 +180,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
     }
 
     [Fact]
-    public async Task GetIntakeRequest_ForAnUpdateHolderWhoCannotReadTheDetail_CannotEdit()
+    public async Task GetIntakeRequest_ForAViewHolderWhoCannotReadTheDetail_CannotEdit()
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
@@ -187,7 +188,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         await using var context = _fixture.CreateContext();
 
         // Act
-        var result = await new GetIntakeRequestQueryHandler(context, Principal(Guid.NewGuid(), holdsUpdate: true))
+        var result = await new GetIntakeRequestQueryHandler(context, Principal(Guid.NewGuid()))
             .Handle(new GetIntakeRequestQuery(new IdOrKey(scenario.OnSummaryOnly.Id)), ct);
 
         // Assert — the update carries the description, so the DTO agrees with what the command would refuse
@@ -227,7 +228,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
     }
 
     [Fact]
-    public async Task GetIntakeDesk_ProjectsItsReviewers()
+    public async Task GetIntakeDesk_ProjectsItsMembersWithTheirRoles()
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
@@ -239,17 +240,19 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
 
         // Assert
         result!.Visibility.Should().Be(IntakeDeskVisibility.Private);
-        result.Reviewers.Select(r => r.Id).Should().Equal(scenario.Reviewer.Id);
+        result.Members.Should().ContainSingle().Which.Should().BeEquivalentTo(new
+        {
+            Employee = new { scenario.Agent.Id, Name = "Intake Probe" },
+            Role = IntakeDeskRole.Agent,
+        });
     }
 
-    private static ICurrentPrincipal Principal(Guid employeeId, bool holdsReview = false, bool holdsUpdate = false)
+    private static ICurrentPrincipal Principal(Guid employeeId, bool holdsView = true)
     {
         var principal = new Mock<ICurrentPrincipal>();
         principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
-        principal.Setup(p => p.HasPermission(IntakeRequestAuthorization.ReviewPermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsReview);
-        principal.Setup(p => p.HoldsPermission(IntakeRequestAuthorization.ReviewPermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsReview);
-        principal.Setup(p => p.HasPermission(IntakeRequestAuthorization.UpdatePermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsUpdate);
-        principal.Setup(p => p.HoldsPermission(IntakeRequestAuthorization.UpdatePermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsUpdate);
+        principal.Setup(p => p.HasPermission(IntakeRequestAuthorization.ViewPermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsView);
+        principal.Setup(p => p.HoldsPermission(IntakeRequestAuthorization.ViewPermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsView);
         return principal.Object;
     }
 
@@ -258,23 +261,24 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         await using var context = _fixture.CreateContext();
 
         var requester = SeedEmployee(context);
-        var reviewer = SeedEmployee(context);
+        var agent = SeedEmployee(context);
         var participant = SeedEmployee(context);
         await context.SaveChangesAsync(ct);
 
-        IntakeDesk Desk(IntakeDeskVisibility visibility, params Guid[] reviewers) =>
-            IntakeDesk.Create(UniqueName("Desk"), "Anything", visibility, true, true, true, reviewers, EventActor.System, Now);
+        IntakeDesk Desk(IntakeDeskVisibility visibility, params Guid[] agents) =>
+            IntakeDesk.Create(UniqueName("Desk"), "Anything", visibility, true, true, true,
+                [.. agents.Select(id => new IntakeDeskMemberDetails(id, IntakeDeskRole.Agent))], EventActor.System, Now);
 
         var open = Desk(IntakeDeskVisibility.Open);
         var summaryOnly = Desk(IntakeDeskVisibility.SummaryOnly);
-        var @private = Desk(IntakeDeskVisibility.Private, reviewer.Id);
+        var @private = Desk(IntakeDeskVisibility.Private, agent.Id);
         var channel = IntakeChannel.Create(UniqueName("Channel"), null, 1);
         context.IntakeDesks.AddRange(open, summaryOnly, @private);
         context.IntakeChannels.Add(channel);
         await context.SaveChangesAsync(ct);
 
         var needBy = IntakeRequestNeedBy.Create(new LocalDate(2026, 12, 31), NeedByBasis.Commitment, "Steering committee",
-            reviewer.Id, new LocalDate(2026, 9, 3)).Value;
+            agent.Id, new LocalDate(2026, 9, 3)).Value;
         var origin = IntakeRequestOrigin.Create("ServicePortal", UniqueName("REQ"), null).Value;
 
         IntakeRequest Request(IntakeDesk desk, IntakeRequestNeedBy? withNeedBy = null, IntakeRequestOrigin? withOrigin = null) =>
@@ -288,7 +292,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         context.IntakeRequests.AddRange(onOpen, onSummaryOnly, onPrivate);
         await context.SaveChangesAsync(ct);
 
-        return new Scenario(open, summaryOnly, @private, requester, reviewer, participant, onOpen, onSummaryOnly, onPrivate);
+        return new Scenario(open, summaryOnly, @private, requester, agent, participant, onOpen, onSummaryOnly, onPrivate);
     }
 
     private static string UniqueName(string prefix) => $"{prefix}-{Guid.NewGuid():N}"[..30];

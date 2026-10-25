@@ -7,7 +7,7 @@ namespace Wayd.DemandManagement.Application.Tests.Sut.IntakeRequests.Commands;
 
 public sealed class AddIntakeRequestParticipantCommandHandlerTests
 {
-    private const string NotAllowed = "Only the desk's reviewers, or the requester where the desk allows it, can add participants.";
+    private const string NotAllowed = "Only the desk's agents, or the requester where the desk allows it, can add participants.";
 
     private readonly IntakeScenario _scenario = new();
 
@@ -50,13 +50,13 @@ public sealed class AddIntakeRequestParticipantCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ByAReviewerOnAPrivateDeskThatDoesNotLetRequestersAdd_AddsTheParticipant()
+    public async Task Handle_ByAnAgentOnAPrivateDeskThatDoesNotLetRequestersAdd_AddsTheParticipant()
     {
         // Arrange
-        var reviewer = _scenario.Employee();
-        var desk = _scenario.Desk(IntakeDeskVisibility.Private, requesterMayAddParticipants: false, reviewerIds: [reviewer.Id]);
+        var agent = _scenario.Employee();
+        var desk = _scenario.Desk(IntakeDeskVisibility.Private, requesterMayAddParticipants: false, agentIds: [agent.Id]);
         var request = _scenario.Request(desk, _scenario.Employee());
-        _scenario.SignedInAs(reviewer, IntakeScenario.Review);
+        _scenario.SignedInAs(agent);
 
         // Act
         var result = await CreateHandler().Handle(new AddIntakeRequestParticipantCommand(request.Id, _scenario.Employee().Id),

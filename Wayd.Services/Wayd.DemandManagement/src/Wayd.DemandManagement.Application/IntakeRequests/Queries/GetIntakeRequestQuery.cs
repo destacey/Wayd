@@ -55,8 +55,9 @@ public sealed class GetIntakeRequestQueryHandler(
             Summary = summary,
             Substance = substance,
             CanEdit = !_currentPrincipal.IsReadOnly && await CanEdit(visible, reader, substance is not null, cancellationToken),
-            // Every review command needs a linked employee, so the flag does too.
-            CanReview = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.CanReview(summary.Desk.Id),
+            // The remove command needs a linked employee, so the flag does too.
+            CanRemoveParticipants = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id),
+            CanDelete = !_currentPrincipal.IsReadOnly && reader.IsDeskAdminOn(summary.Desk.Id),
             CanAddParticipants = !_currentPrincipal.IsReadOnly && await CanAddParticipants(visible, reader, cancellationToken),
         };
     }
@@ -91,8 +92,8 @@ public sealed class GetIntakeRequestQueryHandler(
             return false;
 
         var record = await visible.FirstOrDefaultAsync(cancellationToken);
-        var holdsUpdate = await _currentPrincipal.HasPermission(IntakeRequestAuthorization.UpdatePermission, cancellationToken);
 
-        return record is not null && record.CanEdit(new IntakeRequestEditor(reader.EmployeeId, holdsUpdate, EventActor.Anonymous));
+        return record is not null
+            && record.CanEdit(new IntakeRequestEditor(reader.EmployeeId, reader.IsAgentOn(record.DeskId), EventActor.Anonymous));
     }
 }

@@ -39456,6 +39456,35 @@
         ]
       }
     },
+    "/api/demand-management/intake-desks/roles": {
+      "get": {
+        "tags": [
+          "IntakeDesks"
+        ],
+        "summary": "Get the roles a desk member can hold, with their codes.",
+        "operationId": "IntakeDesks_GetRoles",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeDeskRoleDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/demand-management/employee-options": {
       "get": {
         "tags": [
@@ -39492,7 +39521,7 @@
           "IntakeRequests"
         ],
         "summary": "Get the intake requests you can see, as summaries.",
-        "description": "Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf.",
+        "description": "Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf.",
         "operationId": "IntakeRequests_GetIntakeRequests",
         "parameters": [
           {
@@ -39704,7 +39733,7 @@
           "IntakeRequests"
         ],
         "summary": "Update an intake request.",
-        "description": "The requester can edit their own request while it is proposed; otherwise the Update permission is needed. You must also be able to read the request's detail.",
+        "description": "The requester can edit their own request while it is proposed; otherwise you must be an agent on the request's desk. You must also be able to read the request's detail.",
         "operationId": "IntakeRequests_Update",
         "parameters": [
           {
@@ -39776,6 +39805,7 @@
           "IntakeRequests"
         ],
         "summary": "Delete an intake request.",
+        "description": "Needs a Desk Admin on the request's desk. Refused once the request has moved through review; withdrawing or declining keeps it on record.",
         "operationId": "IntakeRequests_Delete",
         "parameters": [
           {
@@ -39821,14 +39851,14 @@
         ]
       }
     },
-    "/api/demand-management/intake-requests/{id}/assigned-reviewer": {
+    "/api/demand-management/intake-requests/{id}/assignee": {
       "put": {
         "tags": [
           "IntakeRequests"
         ],
-        "summary": "Assign the reviewer who owns an intake request, or unassign it.",
-        "description": "Needs Review on the request's desk. The assignee must be a reviewer on that desk.",
-        "operationId": "IntakeRequests_AssignReviewer",
+        "summary": "Give an intake request a different assignee, or unassign it.",
+        "description": "Needs an agent on the request's desk. The assignee must be a member of that desk.",
+        "operationId": "IntakeRequests_ChangeAssignee",
         "parameters": [
           {
             "name": "id",
@@ -39845,7 +39875,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AssignIntakeRequestReviewerRequest"
+                "$ref": "#/components/schemas/ChangeIntakeRequestAssigneeRequest"
               }
             }
           },
@@ -39901,7 +39931,7 @@
           "IntakeRequests"
         ],
         "summary": "Give an employee access to an intake request as a participant.",
-        "description": "A reviewer on the request's desk can always add someone; the requester and submitter can too, except on a private desk that does not allow it.",
+        "description": "An agent on the request's desk can always add someone; the requester and submitter can too, except on a private desk that does not allow it.",
         "operationId": "IntakeRequests_AddParticipant",
         "parameters": [
           {
@@ -39975,7 +40005,7 @@
           "IntakeRequests"
         ],
         "summary": "Remove a participant's access to an intake request.",
-        "description": "Needs Review on the request's desk.",
+        "description": "Needs an agent on the request's desk.",
         "operationId": "IntakeRequests_RemoveParticipant",
         "parameters": [
           {
@@ -45669,19 +45699,6 @@
         "additionalProperties": false,
         "description": "Assembles several component releases into one shipment."
       },
-      "AssignIntakeRequestReviewerRequest": {
-        "type": "object",
-        "properties": {
-          "reviewerId": {
-            "type": "string",
-            "description": "A reviewer on the request's desk, or null to unassign it.",
-            "format": "uuid",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false,
-        "description": "The reviewer who owns an intake request."
-      },
       "AssignPortfolioScoringModelRequest": {
         "required": [
           "scoringModelId"
@@ -46656,6 +46673,19 @@
         "additionalProperties": false,
         "description": "The share of production deployments that failed or were rolled back."
       },
+      "ChangeIntakeRequestAssigneeRequest": {
+        "type": "object",
+        "properties": {
+          "assigneeId": {
+            "type": "string",
+            "description": "A member of the request's desk, or null to unassign it.",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The member of an intake request's desk who owns it."
+      },
       "ChangePasswordRequest": {
         "required": [
           "currentPassword",
@@ -46857,6 +46887,26 @@
           }
         },
         "additionalProperties": false
+      },
+      "CommonEnumDtoOfIntakeDeskRole": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDto"
+          },
+          {
+            "required": [
+              "code"
+            ],
+            "type": "object",
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/IntakeDeskRole"
+              }
+            },
+            "additionalProperties": false
+          }
+        ],
+        "description": "One value of a closed set of options, carrying the stable `code` that endpoints\nfiltering on the set accept."
       },
       "CommonEnumDtoOfIntakeDeskVisibility": {
         "allOf": [
@@ -47817,7 +47867,7 @@
           "isRequesterSelectable",
           "isOpen",
           "requesterMayAddParticipants",
-          "reviewerIds"
+          "members"
         ],
         "type": "object",
         "properties": {
@@ -47825,7 +47875,7 @@
             "maxLength": 128,
             "minLength": 1,
             "type": "string",
-            "description": "What reviewers and administrators call the desk. Unique."
+            "description": "What its members and administrators call the desk. Unique."
           },
           "description": {
             "maxLength": 1024,
@@ -47843,7 +47893,7 @@
           },
           "isRequesterSelectable": {
             "type": "boolean",
-            "description": "Whether a requester can pick the desk. One they cannot is a destination reviewers route to."
+            "description": "Whether a requester can pick the desk. One they cannot is a destination agents route to."
           },
           "isOpen": {
             "type": "boolean",
@@ -47851,20 +47901,18 @@
           },
           "requesterMayAddParticipants": {
             "type": "boolean",
-            "description": "On a private desk, whether the requester may add participants themselves. Reviewers always can."
+            "description": "On a private desk, whether the requester may add participants themselves. Agents always can."
           },
-          "reviewerIds": {
+          "members": {
             "type": "array",
             "items": {
-              "minLength": 1,
-              "type": "string",
-              "format": "uuid"
+              "$ref": "#/components/schemas/IntakeDeskMemberRequest"
             },
-            "description": "The employees named as the desk's reviewers."
+            "description": "The employees named on the desk, each with their role. An employee holds one role on a desk."
           }
         },
         "additionalProperties": false,
-        "description": "A new intake desk and its initial reviewers."
+        "description": "A new intake desk and its initial members."
       },
       "CreateIntakeRequestRequest": {
         "required": [
@@ -54517,7 +54565,7 @@
         "required": [
           "name",
           "description",
-          "reviewers",
+          "members",
           "id",
           "key",
           "visibility",
@@ -54539,7 +54587,7 @@
           },
           "name": {
             "type": "string",
-            "description": "What reviewers and administrators call the desk."
+            "description": "What its members and administrators call the desk."
           },
           "description": {
             "type": "string",
@@ -54565,16 +54613,87 @@
             "type": "boolean",
             "description": "On a private desk, whether the requester may add participants themselves."
           },
-          "reviewers": {
+          "members": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/EmployeeNavigationDto"
+              "$ref": "#/components/schemas/IntakeDeskMemberDto"
             },
-            "description": "The employees named as reviewers on the desk, by name."
+            "description": "The employees named on the desk, by name, with their roles."
           }
         },
         "additionalProperties": false,
-        "description": "An intake desk: what it takes, who reviews on it, and how much of its requests the rest of the company reads."
+        "description": "An intake desk: what it takes, who works it, and how much of its requests the rest of the company reads."
+      },
+      "IntakeDeskMemberDto": {
+        "required": [
+          "employee",
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "employee": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ],
+            "description": "The member, by name."
+          },
+          "role": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeDeskRole"
+              }
+            ],
+            "description": "What the member may do on the desk: Admin or Agent."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One member of an intake desk and what they may do on it."
+      },
+      "IntakeDeskMemberRequest": {
+        "required": [
+          "employeeId",
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The employee to name on the desk.",
+            "format": "uuid"
+          },
+          "role": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeDeskRole"
+              }
+            ],
+            "description": "What they may do on the desk: Admin runs it, Agent acts on its requests."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One employee to name on an intake desk, with their role."
+      },
+      "IntakeDeskRole": {
+        "enum": [
+          "Admin",
+          "Agent"
+        ],
+        "type": "string"
+      },
+      "IntakeDeskRoleDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDtoOfIntakeDeskRole"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false
+          }
+        ],
+        "description": "One desk role: its code, name and what it may do."
       },
       "IntakeDeskVisibility": {
         "enum": [
@@ -54600,7 +54719,8 @@
         "required": [
           "summary",
           "canEdit",
-          "canReview",
+          "canRemoveParticipants",
+          "canDelete",
           "canAddParticipants"
         ],
         "type": "object",
@@ -54626,13 +54746,17 @@
             "type": "boolean",
             "description": "Whether the reader may edit the request as it stands."
           },
-          "canReview": {
+          "canRemoveParticipants": {
             "type": "boolean",
-            "description": "Whether the reader may review the request: Review on its desk, or Administer."
+            "description": "Whether the reader may remove the request's participants: an agent on its desk."
+          },
+          "canDelete": {
+            "type": "boolean",
+            "description": "Whether the reader may delete the request: a Desk Admin on its desk."
           },
           "canAddParticipants": {
             "type": "boolean",
-            "description": "Whether the reader may give someone access to the request as a participant: a reviewer on its desk, or\nits requester or submitter unless the desk is private and does not allow it."
+            "description": "Whether the reader may give someone access to the request as a participant: an agent on its desk, or\nits requester or submitter unless the desk is private and does not allow it."
           }
         },
         "additionalProperties": false,
@@ -54885,13 +55009,13 @@
             ],
             "description": "Where the request came from."
           },
-          "assignedReviewer": {
+          "assignee": {
             "oneOf": [
               {
                 "$ref": "#/components/schemas/EmployeeNavigationDto"
               }
             ],
-            "description": "The reviewer who owns the request, when one is assigned.",
+            "description": "The member of the request's desk who owns it, when one is assigned.",
             "nullable": true
           },
           "needBy": {

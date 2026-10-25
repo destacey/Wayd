@@ -293,13 +293,13 @@ public sealed class CurrentPrincipalTests
     public async Task HoldsPermission_ForReadScopedToken_AnswersWhatTheUserHolds()
     {
         // Arrange
-        GivenUserWithPermissions("user-1", "Permissions.IntakeRequests.Review");
+        GivenUserWithPermissions("user-1", "Permissions.IntakeRequests.Administer");
         GivenTokenScope(TokenScopes.Read);
         var sut = CreateSut();
 
         // Act
-        var holds = await sut.HoldsPermission("Permissions.IntakeRequests.Review", TestContext.Current.CancellationToken);
-        var may = await sut.HasPermission("Permissions.IntakeRequests.Review", TestContext.Current.CancellationToken);
+        var holds = await sut.HoldsPermission("Permissions.IntakeRequests.Administer", TestContext.Current.CancellationToken);
+        var may = await sut.HasPermission("Permissions.IntakeRequests.Administer", TestContext.Current.CancellationToken);
 
         // Assert
         holds.Should().BeTrue();

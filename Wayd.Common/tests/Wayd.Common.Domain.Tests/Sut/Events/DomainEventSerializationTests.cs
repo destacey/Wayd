@@ -375,9 +375,11 @@ public sealed class DomainEventSerializationTests
     [Fact]
     public void IntakeDeskCreatedEvent_RoundTripsThroughDurableSerializer()
     {
-        // Arrange — an enum and a list of reviewer ids
+        // Arrange — an enum, and a list of members each carrying an enum of its own
         var original = new IntakeDeskCreatedEvent(Guid.NewGuid(), 3, "IT", "Internal tools", IntakeDeskVisibility.Private,
-            true, true, false, [Guid.NewGuid(), Guid.NewGuid()], EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+            true, true, false,
+            [new IntakeDeskMemberDetails(Guid.NewGuid(), IntakeDeskRole.Admin), new IntakeDeskMemberDetails(Guid.NewGuid(), IntakeDeskRole.Agent)],
+            EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
 
         // Act
         var roundTripped = RoundTrip(original);

@@ -8,7 +8,7 @@ import {
   useActivityLog,
 } from '@/src/components/common/activities'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
-import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
+import { requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import {
   useGetIntakeRequestActivitiesQuery,
@@ -179,12 +179,10 @@ const IntakeRequestDetailsPage = (props: {
   )
 }
 
+// No permission gate: a request's own people and its desk read it without one, and the server answers 404
+// for anyone else.
 const IntakeRequestDetailsPageWithAuthorization = requireFeatureFlag(
-  authorizePage(
-    IntakeRequestDetailsPage,
-    'Permission',
-    'Permissions.IntakeRequests.View',
-  ),
+  IntakeRequestDetailsPage,
   'demand-management',
 )
 

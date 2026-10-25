@@ -34,10 +34,8 @@ const IntakeRequestFacts: FC<IntakeRequestFactsProps> = ({ request }) => {
             {substance.submittedBy.name}
           </LabeledContent>
         )}
-        <LabeledContent label="Assigned Reviewer">
-          {summary.assignedReviewer?.name ?? (
-            <Text type="secondary">Not assigned</Text>
-          )}
+        <LabeledContent label="Assignee">
+          {summary.assignee?.name ?? <Text type="secondary">Not assigned</Text>}
         </LabeledContent>
       </RecordFactsGroup>
       {substance?.origin && (

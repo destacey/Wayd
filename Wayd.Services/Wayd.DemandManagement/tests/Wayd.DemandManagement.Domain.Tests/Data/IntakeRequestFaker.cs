@@ -65,9 +65,9 @@ public static class IntakeRequestFakerExtensions
         return faker;
     }
 
-    public static IntakeRequestFaker WithAssignedReviewerId(this IntakeRequestFaker faker, Guid? reviewerId)
+    public static IntakeRequestFaker WithAssigneeId(this IntakeRequestFaker faker, Guid? assigneeId)
     {
-        faker.RuleFor(x => x.AssignedReviewerId, reviewerId);
+        faker.RuleFor(x => x.AssigneeId, assigneeId);
 
         return faker;
     }

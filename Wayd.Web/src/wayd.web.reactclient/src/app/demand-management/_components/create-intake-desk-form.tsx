@@ -3,7 +3,7 @@
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { IntakeDeskVisibility } from '@/src/services/wayd-api'
+import { IntakeDeskRole, IntakeDeskVisibility } from '@/src/services/wayd-api'
 import {
   useCreateIntakeDeskMutation,
   useGetIntakeDeskVisibilitiesQuery,
@@ -28,7 +28,8 @@ interface CreateIntakeDeskFormValues {
   isRequesterSelectable: boolean
   isOpen: boolean
   requesterMayAddParticipants: boolean
-  reviewerIds: string[]
+  adminIds: string[]
+  agentIds: string[]
 }
 
 /**
@@ -43,6 +44,10 @@ const CreateIntakeDeskForm: FC<CreateIntakeDeskFormProps> = ({
   const [createDesk] = useCreateIntakeDeskMutation()
   const { data: visibilities } = useGetIntakeDeskVisibilitiesQuery()
   const { data: employees } = useGetIntakeEmployeeOptionsQuery()
+  const employeeOptions = (employees ?? []).map((e) => ({
+    label: e.name,
+    value: e.id,
+  }))
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<CreateIntakeDeskFormValues>({
@@ -58,7 +63,16 @@ const CreateIntakeDeskForm: FC<CreateIntakeDeskFormProps> = ({
             // it; send the API's own default rather than nothing.
             requesterMayAddParticipants:
               values.requesterMayAddParticipants ?? true,
-            reviewerIds: values.reviewerIds ?? [],
+            members: [
+              ...(values.adminIds ?? []).map((employeeId) => ({
+                employeeId,
+                role: IntakeDeskRole.Admin,
+              })),
+              ...(values.agentIds ?? []).map((employeeId) => ({
+                employeeId,
+                role: IntakeDeskRole.Agent,
+              })),
+            ],
           }).unwrap()
           messageApi.success('Desk created.')
           return true
@@ -101,13 +115,14 @@ const CreateIntakeDeskForm: FC<CreateIntakeDeskFormProps> = ({
           isRequesterSelectable: true,
           isOpen: true,
           requesterMayAddParticipants: true,
-          reviewerIds: [],
+          adminIds: [],
+          agentIds: [],
         }}
       >
         <Item
           name="name"
           label="Name"
-          extra="What reviewers and administrators call the desk."
+          extra="What its members and administrators call the desk."
           rules={[
             { required: true, whitespace: true, message: 'Name is required.' },
             { max: 128 },
@@ -168,7 +183,7 @@ const CreateIntakeDeskForm: FC<CreateIntakeDeskFormProps> = ({
                 name="requesterMayAddParticipants"
                 label="Requesters may add participants"
                 valuePropName="checked"
-                extra="Reviewers can always add people. A private desk keeps its requests from the company, not from the person asking."
+                extra="Agents can always add people. A private desk keeps its requests from the company, not from the person asking."
               >
                 <Switch />
               </Item>
@@ -179,7 +194,7 @@ const CreateIntakeDeskForm: FC<CreateIntakeDeskFormProps> = ({
           name="isRequesterSelectable"
           label="Requesters can choose it"
           valuePropName="checked"
-          extra="Turn off for a desk reviewers route requests to, but requesters never pick."
+          extra="Turn off for a desk agents route requests to, but requesters never pick."
         >
           <Switch />
         </Item>
@@ -191,17 +206,33 @@ const CreateIntakeDeskForm: FC<CreateIntakeDeskFormProps> = ({
           <Switch />
         </Item>
         <Item
-          name="reviewerIds"
-          label="Reviewers"
-          extra="A desk with no reviewers has nobody to look at what arrives."
+          name="adminIds"
+          label="Desk Admins"
+          extra="Run the desk: change its details and settings, name its agents, and delete its requests. They also do everything an agent does."
         >
-          <EmployeeSelect
-            allowMultiple
-            employees={(employees ?? []).map((e) => ({
-              label: e.name,
-              value: e.id,
-            }))}
-          />
+          <EmployeeSelect allowMultiple employees={employeeOptions} />
+        </Item>
+        <Item
+          name="agentIds"
+          label="Agents"
+          extra="Work the desk's requests. A desk with no members has nobody to look at what arrives."
+          dependencies={['adminIds']}
+          rules={[
+            ({ getFieldValue }) => ({
+              validator: (_, agentIds: string[] | undefined) => {
+                const adminIds: string[] = getFieldValue('adminIds') ?? []
+                return (agentIds ?? []).some((id) => adminIds.includes(id))
+                  ? Promise.reject(
+                      new Error(
+                        'Someone holds one role on a desk: a Desk Admin already does everything an agent does.',
+                      ),
+                    )
+                  : Promise.resolve()
+              },
+            }),
+          ]}
+        >
+          <EmployeeSelect allowMultiple employees={employeeOptions} />
         </Item>
       </Form>
     </Modal>

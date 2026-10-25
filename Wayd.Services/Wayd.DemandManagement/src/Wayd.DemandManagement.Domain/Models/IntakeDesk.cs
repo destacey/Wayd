@@ -7,22 +7,22 @@ using Wayd.Common.Domain.Events.DemandManagement;
 namespace Wayd.DemandManagement.Domain.Models;
 
 /// <summary>
-/// A review responsibility: what demand it accepts, who reviews it, and how much of its requests the rest
+/// A review responsibility: what demand it accepts, who works it, and how much of its requests the rest
 /// of the company reads. Every request is on exactly one desk.
 /// </summary>
 /// <remarks>
 /// A desk is not a team and not a department, and nothing on it says who builds the thing. One engineering
-/// team can serve two desks, and one person can review on several.
+/// team can serve two desks, and one person can work on several.
 /// <para>
 /// There is no unassigned state: a requester chooses the desk their request goes to, by its description of
 /// what it takes, so no query, view or permission check downstream carries a null-desk branch. Desks are
-/// created here and read; changing one — its reviewers, visibility and settings — arrives with desk
+/// created here and read; changing one — its members, visibility and settings — arrives with desk
 /// administration.
 /// </para>
 /// </remarks>
 public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
 {
-    private readonly List<IntakeDeskReviewer> _reviewers = [];
+    private readonly List<IntakeDeskMember> _members = [];
 
     private IntakeDesk() { }
 
@@ -33,7 +33,7 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         bool isRequesterSelectable,
         bool isOpen,
         bool requesterMayAddParticipants,
-        IEnumerable<Guid> reviewerIds)
+        IEnumerable<IntakeDeskMemberDetails> members)
     {
         Name = name;
         Description = description;
@@ -42,10 +42,14 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         IsOpen = isOpen;
         RequesterMayAddParticipants = requesterMayAddParticipants;
 
-        foreach (var employeeId in reviewerIds.Distinct())
+        foreach (var member in members.Distinct())
         {
-            Guard.Against.Default(employeeId, nameof(reviewerIds));
-            _reviewers.Add(new IntakeDeskReviewer(Id, employeeId));
+            Guard.Against.Default(member.EmployeeId, nameof(members));
+            Guard.Against.EnumOutOfRange(member.Role, nameof(members));
+            if (_members.Any(m => m.EmployeeId == member.EmployeeId))
+                throw new ArgumentException("An employee can hold only one role on a desk.", nameof(members));
+
+            _members.Add(new IntakeDeskMember(Id, member.EmployeeId, member.Role));
         }
     }
 
@@ -55,7 +59,7 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     public int Key { get; private init; }
 
     /// <summary>
-    /// What reviewers and administrators call the desk ("Product delivery", "IT").
+    /// What its members and administrators call the desk ("Product delivery", "IT").
     /// </summary>
     public string Name
     {
@@ -79,7 +83,7 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     public IntakeDeskVisibility Visibility { get; private set; }
 
     /// <summary>
-    /// Whether a requester can pick this desk. One they cannot is a destination reviewers route to.
+    /// Whether a requester can pick this desk. One they cannot is a destination agents route to.
     /// </summary>
     public bool IsRequesterSelectable { get; private set; }
 
@@ -89,7 +93,7 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     public bool IsOpen { get; private set; }
 
     /// <summary>
-    /// On a private desk, whether the requester may add participants themselves. Reviewers always can.
+    /// On a private desk, whether the requester may add participants themselves. Agents always can.
     /// </summary>
     /// <remarks>
     /// Defaults to allowed: a private desk protects the request from the company, not from the person whose
@@ -98,14 +102,14 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     public bool RequesterMayAddParticipants { get; private set; }
 
     /// <summary>
-    /// The employees named as reviewers on the desk.
+    /// The employees named on the desk, each with their role.
     /// </summary>
-    public IReadOnlyCollection<IntakeDeskReviewer> Reviewers => _reviewers.AsReadOnly();
+    public IReadOnlyCollection<IntakeDeskMember> Members => _members.AsReadOnly();
 
     /// <summary>
-    /// Whether the employee is named as a reviewer on the desk. Needs <see cref="Reviewers"/> loaded.
+    /// The employee's role on the desk, or null when they are not a member. Needs <see cref="Members"/> loaded.
     /// </summary>
-    public bool IsReviewer(Guid employeeId) => _reviewers.Any(r => r.EmployeeId == employeeId);
+    public IntakeDeskRole? RoleOf(Guid employeeId) => _members.FirstOrDefault(m => m.EmployeeId == employeeId)?.Role;
 
     /// <summary>
     /// Defines a desk.
@@ -117,11 +121,11 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         bool isRequesterSelectable,
         bool isOpen,
         bool requesterMayAddParticipants,
-        IEnumerable<Guid> reviewerIds,
+        IEnumerable<IntakeDeskMemberDetails> members,
         EventActor actor,
         Instant timestamp) =>
         Created(new IntakeDesk(name, description, visibility, isRequesterSelectable, isOpen, requesterMayAddParticipants,
-            reviewerIds), actor, timestamp);
+            members), actor, timestamp);
 
     private static IntakeDesk Created(IntakeDesk desk, EventActor actor, Instant timestamp)
     {
@@ -134,7 +138,7 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         var isRequesterSelectable = desk.IsRequesterSelectable;
         var isOpen = desk.IsOpen;
         var requesterMayAddParticipants = desk.RequesterMayAddParticipants;
-        var reviewerIds = desk._reviewers.Select(r => r.EmployeeId).ToArray();
+        var members = desk._members.Select(m => new IntakeDeskMemberDetails(m.EmployeeId, m.Role)).ToArray();
 
         desk.AddPostPersistenceAction(() => desk.AddDomainEvent(new IntakeDeskCreatedEvent(
             desk.Id,
@@ -145,7 +149,7 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
             isRequesterSelectable,
             isOpen,
             requesterMayAddParticipants,
-            reviewerIds,
+            members,
             actor,
             timestamp)));
 

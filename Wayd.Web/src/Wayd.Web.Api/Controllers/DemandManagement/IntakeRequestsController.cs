@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using CSharpFunctionalExtensions;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Activities.Dtos;
@@ -28,9 +29,9 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.IntakeRequests)]
+    [Authorize]
     [EndpointSummary("Get the intake requests you can see, as summaries.")]
-    [EndpointDescription("Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf.")]
+    [EndpointDescription("Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<IntakeRequestSummaryDto>>> GetIntakeRequests([FromQuery] Guid? deskId, [FromQuery] bool mine = false, CancellationToken cancellationToken = default)
     {
@@ -39,7 +40,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("{idOrKey}")]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.IntakeRequests)]
+    [Authorize]
     [EndpointSummary("Get an intake request in the tiers you can read.")]
     [EndpointDescription("The summary is always returned; the substance is null when you may not read it.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -53,7 +54,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("{idOrKey}/activities")]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.IntakeRequests)]
+    [Authorize]
     [EndpointSummary("Get an intake request's history, limited to the tiers you can read.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -66,7 +67,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPost]
-    [MustHavePermission(ApplicationAction.Create, ApplicationResource.IntakeRequests)]
+    [Authorize]
     [EndpointSummary("Submit an intake request to a desk.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateIntakeRequestRequest request, CancellationToken cancellationToken)
@@ -78,9 +79,9 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.IntakeRequests)]
+    [Authorize]
     [EndpointSummary("Update an intake request.")]
-    [EndpointDescription("The requester can edit their own request while it is proposed; otherwise the Update permission is needed. You must also be able to read the request's detail.")]
+    [EndpointDescription("The requester can edit their own request while it is proposed; otherwise you must be an agent on the request's desk. You must also be able to read the request's detail.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -93,21 +94,21 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
         return NoContentOrError(await _dispatcher.Send(request.ToUpdateIntakeRequestCommand(), cancellationToken));
     }
 
-    [HttpPut("{id}/assigned-reviewer")]
-    [MustHavePermission(ApplicationAction.Review, ApplicationResource.IntakeRequests)]
-    [EndpointSummary("Assign the reviewer who owns an intake request, or unassign it.")]
-    [EndpointDescription("Needs Review on the request's desk. The assignee must be a reviewer on that desk.")]
+    [HttpPut("{id}/assignee")]
+    [Authorize]
+    [EndpointSummary("Give an intake request a different assignee, or unassign it.")]
+    [EndpointDescription("Needs an agent on the request's desk. The assignee must be a member of that desk.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> AssignReviewer(Guid id, [FromBody] AssignIntakeRequestReviewerRequest request, CancellationToken cancellationToken) =>
-        NoContentOrError(await _dispatcher.Send(new AssignIntakeRequestReviewerCommand(id, request.ReviewerId), cancellationToken));
+    public async Task<ActionResult> ChangeAssignee(Guid id, [FromBody] ChangeIntakeRequestAssigneeRequest request, CancellationToken cancellationToken) =>
+        NoContentOrError(await _dispatcher.Send(new ChangeIntakeRequestAssigneeCommand(id, request.AssigneeId), cancellationToken));
 
     [HttpPost("{id}/participants")]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.IntakeRequests)]
+    [Authorize]
     [EndpointSummary("Give an employee access to an intake request as a participant.")]
-    [EndpointDescription("A reviewer on the request's desk can always add someone; the requester and submitter can too, except on a private desk that does not allow it.")]
+    [EndpointDescription("An agent on the request's desk can always add someone; the requester and submitter can too, except on a private desk that does not allow it.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -116,9 +117,9 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
         NoContentOrError(await _dispatcher.Send(new AddIntakeRequestParticipantCommand(id, request.EmployeeId), cancellationToken));
 
     [HttpDelete("{id}/participants/{employeeId}")]
-    [MustHavePermission(ApplicationAction.Review, ApplicationResource.IntakeRequests)]
+    [Authorize]
     [EndpointSummary("Remove a participant's access to an intake request.")]
-    [EndpointDescription("Needs Review on the request's desk.")]
+    [EndpointDescription("Needs an agent on the request's desk.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -126,8 +127,9 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
         NoContentOrError(await _dispatcher.Send(new RemoveIntakeRequestParticipantCommand(id, employeeId), cancellationToken));
 
     [HttpDelete("{id}")]
-    [MustHavePermission(ApplicationAction.Delete, ApplicationResource.IntakeRequests)]
+    [Authorize]
     [EndpointSummary("Delete an intake request.")]
+    [EndpointDescription("Needs a Desk Admin on the request's desk. Refused once the request has moved through review; withdrawing or declining keeps it on record.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -135,7 +137,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
         NoContentOrError(await _dispatcher.Send(new DeleteIntakeRequestCommand(id), cancellationToken));
 
     [HttpGet("need-by-bases")]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.IntakeRequests)]
+    [Authorize]
     [EndpointSummary("Get the need-by basis values, with their codes and families.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<NeedByBasisDto>>> GetNeedByBases(CancellationToken cancellationToken)
@@ -145,7 +147,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("need-by-basis-families")]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.IntakeRequests)]
+    [Authorize]
     [EndpointSummary("Get the need-by basis families, with their codes and names.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<NeedByBasisFamilyDto>>> GetNeedByBasisFamilies(CancellationToken cancellationToken)

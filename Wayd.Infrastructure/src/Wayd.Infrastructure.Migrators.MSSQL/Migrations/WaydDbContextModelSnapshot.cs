@@ -1811,7 +1811,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("IntakeDesks", "DemandManagement");
                 });
 
-            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDeskReviewer", b =>
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDeskMember", b =>
                 {
                     b.Property<Guid>("DeskId")
                         .HasColumnType("uniqueidentifier");
@@ -1819,11 +1819,16 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
                     b.HasKey("DeskId", "EmployeeId");
 
                     b.HasIndex("EmployeeId");
 
-                    b.ToTable("IntakeDeskReviewers", "DemandManagement");
+                    b.ToTable("IntakeDeskMembers", "DemandManagement");
                 });
 
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequest", b =>
@@ -1831,7 +1836,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("AssignedReviewerId")
+                    b.Property<Guid?>("AssigneeId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("ChannelId")
@@ -1882,7 +1887,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasAlternateKey("Key");
 
-                    b.HasIndex("AssignedReviewerId");
+                    b.HasIndex("AssigneeId");
 
                     b.HasIndex("ChannelId");
 
@@ -8460,10 +8465,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDeskReviewer", b =>
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDeskMember", b =>
                 {
                     b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeDesk", null)
-                        .WithMany("Reviewers")
+                        .WithMany("Members")
                         .HasForeignKey("DeskId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -8479,7 +8484,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 {
                     b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
                         .WithMany()
-                        .HasForeignKey("AssignedReviewerId")
+                        .HasForeignKey("AssigneeId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeChannel", null)
@@ -10372,7 +10377,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDesk", b =>
                 {
-                    b.Navigation("Reviewers");
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequest", b =>

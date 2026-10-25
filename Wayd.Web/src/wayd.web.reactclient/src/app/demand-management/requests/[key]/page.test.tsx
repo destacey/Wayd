@@ -133,7 +133,8 @@ const details = (overrides: Record<string, unknown> = {}) => ({
   summary,
   substance,
   canEdit: false,
-  canReview: false,
+  canRemoveParticipants: false,
+  canDelete: false,
   canAddParticipants: false,
   ...overrides,
 })
@@ -219,7 +220,10 @@ describe('IntakeRequestDetailsPage', () => {
 
     it('offers Add Participant and Remove only where the server allows each', async () => {
       // Arrange
-      mockRequest = details({ canAddParticipants: true, canReview: false })
+      mockRequest = details({
+        canAddParticipants: true,
+        canRemoveParticipants: false,
+      })
 
       // Act
       await renderPage()
@@ -233,9 +237,9 @@ describe('IntakeRequestDetailsPage', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('lets a reviewer remove a participant but never the requester', async () => {
+    it('lets an agent remove a participant but never the requester', async () => {
       // Arrange
-      mockRequest = details({ canReview: true })
+      mockRequest = details({ canRemoveParticipants: true })
 
       // Act
       await renderPage()

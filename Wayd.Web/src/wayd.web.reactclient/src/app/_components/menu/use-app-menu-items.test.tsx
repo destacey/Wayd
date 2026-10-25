@@ -106,10 +106,10 @@ describe('useAppMenuItems', () => {
     expect(keys).not.toContain('demand.requests')
   })
 
-  it('includes Demand Management for someone who can view requests once the flag is on', () => {
-    // Arrange
+  it('includes Requests for a signed-in user holding no permission once the flag is on', () => {
+    // Arrange — the list shows what the server lets the reader see, which View widens but does not decide
     mockFlags['demand-management'] = true
-    mockClaims.held = new Set(['Permissions.IntakeRequests.View'])
+    mockClaims.held = new Set()
 
     // Act
     const { result } = renderHook(() => useAppMenuItems())
@@ -118,13 +118,10 @@ describe('useAppMenuItems', () => {
     expect(keysOf(result.current.menuItems)).toContain('demand.requests')
   })
 
-  it('offers Submit a Request to a linked employee who can create requests', () => {
-    // Arrange
+  it('offers Submit a Request and My Requests to a linked employee holding no permission', () => {
+    // Arrange — submitting and following your own requests need no claim
     mockFlags['demand-management'] = true
-    mockClaims.held = new Set([
-      'Permissions.IntakeRequests.View',
-      'Permissions.IntakeRequests.Create',
-    ])
+    mockClaims.held = new Set()
 
     // Act
     const { result } = renderHook(() => useAppMenuItems())
@@ -147,18 +144,6 @@ describe('useAppMenuItems', () => {
     expect(keys).toContain('demand.requests')
     expect(keys).not.toContain('demand.submit')
     expect(keys).not.toContain('demand.my-requests')
-  })
-
-  it('withholds Demand Management from someone who cannot view requests', () => {
-    // Arrange
-    mockFlags['demand-management'] = true
-    mockClaims.held = new Set(['Permissions.Projects.View'])
-
-    // Act
-    const { result } = renderHook(() => useAppMenuItems())
-
-    // Assert
-    expect(keysOf(result.current.menuItems)).not.toContain('demand')
   })
 
   it('omits Versions while the Product Management flag is off', () => {

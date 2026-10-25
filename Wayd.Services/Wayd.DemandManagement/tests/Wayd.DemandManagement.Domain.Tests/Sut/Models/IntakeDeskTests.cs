@@ -20,11 +20,13 @@ public sealed class IntakeDeskTests
     public void Create_WhenValid_SetsEverySetting()
     {
         // Arrange
-        var reviewerId = Guid.NewGuid();
+        var adminId = Guid.NewGuid();
+        var agentId = Guid.NewGuid();
 
         // Act
         var sut = IntakeDesk.Create(" IT ", " Laptops, access and internal tools ", IntakeDeskVisibility.SummaryOnly,
-            isRequesterSelectable: true, isOpen: false, requesterMayAddParticipants: false, [reviewerId],
+            isRequesterSelectable: true, isOpen: false, requesterMayAddParticipants: false,
+            [new(adminId, IntakeDeskRole.Admin), new(agentId, IntakeDeskRole.Agent)],
             EventActor.System, _dateTimeProvider.Now);
 
         // Assert
@@ -34,29 +36,58 @@ public sealed class IntakeDeskTests
         sut.IsRequesterSelectable.Should().BeTrue();
         sut.IsOpen.Should().BeFalse();
         sut.RequesterMayAddParticipants.Should().BeFalse();
-        sut.Reviewers.Should().ContainSingle().Which.Should().BeEquivalentTo(new { DeskId = sut.Id, EmployeeId = reviewerId });
+        sut.Members.Should().BeEquivalentTo(
+        [
+            new { DeskId = sut.Id, EmployeeId = adminId, Role = IntakeDeskRole.Admin },
+            new { DeskId = sut.Id, EmployeeId = agentId, Role = IntakeDeskRole.Agent },
+        ]);
     }
 
     [Fact]
-    public void Create_WithARepeatedReviewer_NamesThemOnce()
+    public void Create_WithARepeatedMember_NamesThemOnce()
     {
         // Arrange
-        var reviewerId = Guid.NewGuid();
+        var agentId = Guid.NewGuid();
 
         // Act
         var sut = IntakeDesk.Create("IT", "Internal tools", IntakeDeskVisibility.Open, true, true, true,
-            [reviewerId, reviewerId], EventActor.System, _dateTimeProvider.Now);
+            [new(agentId, IntakeDeskRole.Agent), new(agentId, IntakeDeskRole.Agent)], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        sut.Reviewers.Should().ContainSingle();
+        sut.Members.Should().ContainSingle();
     }
 
     [Fact]
-    public void Create_WithAnEmptyReviewerId_Throws()
+    public void Create_WithAnEmployeeInTwoRoles_Throws()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+
+        // Act
+        Action act = () => IntakeDesk.Create("IT", "Internal tools", IntakeDeskVisibility.Open, true, true, true,
+            [new(employeeId, IntakeDeskRole.Admin), new(employeeId, IntakeDeskRole.Agent)], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Create_WithAnEmptyMemberId_Throws()
     {
         // Act
         Action act = () => IntakeDesk.Create("IT", "Internal tools", IntakeDeskVisibility.Open, true, true, true,
-            [Guid.Empty], EventActor.System, _dateTimeProvider.Now);
+            [new(Guid.Empty, IntakeDeskRole.Agent)], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Create_WithAnUndefinedRole_Throws()
+    {
+        // Act
+        Action act = () => IntakeDesk.Create("IT", "Internal tools", IntakeDeskVisibility.Open, true, true, true,
+            [new(Guid.NewGuid(), (IntakeDeskRole)99)], EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         act.Should().Throw<ArgumentException>();
@@ -90,12 +121,12 @@ public sealed class IntakeDeskTests
     public void Create_RaisesCreatedEventOnlyOnceKeyed_WithTheDeskAsCreated()
     {
         // Arrange
-        var reviewerId = Guid.NewGuid();
+        var adminId = Guid.NewGuid();
         var timestamp = _dateTimeProvider.Now;
 
         // Act
         var sut = IntakeDesk.Create("IT", "Internal tools", IntakeDeskVisibility.Private, false, true, false,
-            [reviewerId], EventActor.System, timestamp);
+            [new(adminId, IntakeDeskRole.Admin)], EventActor.System, timestamp);
 
         // Assert
         sut.DomainEvents.Should().BeEmpty();
@@ -109,40 +140,44 @@ public sealed class IntakeDeskTests
         created.IsRequesterSelectable.Should().BeFalse();
         created.IsOpen.Should().BeTrue();
         created.RequesterMayAddParticipants.Should().BeFalse();
-        created.ReviewerIds.Should().Equal(reviewerId);
+        created.Members.Should().Equal(new IntakeDeskMemberDetails(adminId, IntakeDeskRole.Admin));
         created.Timestamp.Should().Be(timestamp);
     }
 
     #endregion Create
 
-    #region IsReviewer
+    #region RoleOf
 
-    [Fact]
-    public void IsReviewer_ForANamedReviewer_IsTrue()
+    [Theory]
+    [InlineData(IntakeDeskRole.Admin)]
+    [InlineData(IntakeDeskRole.Agent)]
+    public void RoleOf_ForAMember_IsTheirRole(IntakeDeskRole role)
     {
         // Arrange
-        var reviewerId = Guid.NewGuid();
-        var sut = new IntakeDeskFaker().WithReviewers(reviewerId).Generate();
+        var employeeId = Guid.NewGuid();
+        var sut = new IntakeDeskFaker()
+            .WithMembers(new(Guid.NewGuid(), IntakeDeskRole.Agent), new(employeeId, role))
+            .Generate();
 
         // Act
-        var result = sut.IsReviewer(reviewerId);
+        var result = sut.RoleOf(employeeId);
 
         // Assert
-        result.Should().BeTrue();
+        result.Should().Be(role);
     }
 
     [Fact]
-    public void IsReviewer_ForSomeoneNotNamed_IsFalse()
+    public void RoleOf_ForSomeoneNotNamed_IsNull()
     {
         // Arrange
-        var sut = new IntakeDeskFaker().WithReviewers(Guid.NewGuid()).Generate();
+        var sut = new IntakeDeskFaker().WithAgents(Guid.NewGuid()).Generate();
 
         // Act
-        var result = sut.IsReviewer(Guid.NewGuid());
+        var result = sut.RoleOf(Guid.NewGuid());
 
         // Assert
-        result.Should().BeFalse();
+        result.Should().BeNull();
     }
 
-    #endregion IsReviewer
+    #endregion RoleOf
 }

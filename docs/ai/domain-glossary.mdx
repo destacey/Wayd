@@ -153,7 +153,10 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | Term | Definition |
 |------|-----------|
 | **Intake Request** | One ask for delivery capacity that is not yet a project or work item, shown as a Request. On exactly one desk, chosen by the requester. API only — no screens yet. |
-| **Intake Desk** | A review responsibility: what demand it accepts, who reviews it and how much of its requests others read. Not a team or a department. None are seeded. |
+| **Intake Desk** | A review responsibility: what demand it accepts, who works it and how much of its requests others read. Not a team or a department. None are seeded. |
+| **Desk Admin / Agent** | The two roles on a desk (`IntakeDeskRole`). An Agent acts on the desk's requests; a Desk Admin also runs the desk and deletes its requests. Membership is the grant, with no permission beside it. Generic on purpose, so neither reads as a job title. |
+| **Demand Management Admin** | Whoever holds `Permissions.IntakeRequests.Administer`: creates and deletes desks, sets their visibility, names Desk Admins, and acts as Desk Admin on every desk. |
+| **Assignee** | The desk member who owns a request. Ownership, never an approver. |
 | **Desk Visibility** | Open (everyone reads the whole request), Summary Only (everyone reads the summary; the substance stays with the desk and the request's own people) or Private (only they know the request exists). Set per desk. |
 | **Read Tier** | Summary, Substance or Internal: the slices a request is read in, granted separately. The DTOs and the request's history are built per tier. |
 | **Intake Channel** | Where a request came from. Company-defined, referenced by id; eight are seeded. Not the desk. |

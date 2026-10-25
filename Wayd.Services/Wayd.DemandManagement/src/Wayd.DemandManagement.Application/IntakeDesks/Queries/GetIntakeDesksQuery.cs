@@ -6,7 +6,7 @@ namespace Wayd.DemandManagement.Application.IntakeDesks.Queries;
 /// The intake desks, or only those a requester can submit to now.
 /// </summary>
 /// <remarks>
-/// A desk is not a request: a private desk's existence, description and reviewers are not hidden, only the
+/// A desk is not a request: a private desk's existence, description and members are not hidden, only the
 /// requests on it.
 /// </remarks>
 /// <param name="SubmittableOnly">Only desks that are open and that requesters can pick.</param>

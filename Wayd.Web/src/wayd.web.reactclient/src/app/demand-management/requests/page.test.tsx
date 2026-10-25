@@ -67,12 +67,16 @@ jest.mock(
 
 describe('IntakeRequestsPage', () => {
   beforeEach(() => {
-    mockClaims = new Set(['Permissions.IntakeRequests.View'])
+    mockClaims = new Set()
     mockEmployeeId = 'e-1'
   })
 
-  it('offers neither action to someone who can only view requests', () => {
-    // Arrange / Act
+  it('offers neither action to an account with no linked employee and no Administer', () => {
+    // Arrange
+    mockClaims.add('Permissions.IntakeRequests.View')
+    mockEmployeeId = null
+
+    // Act
     render(<IntakeRequestsPage />)
 
     // Assert
@@ -85,9 +89,8 @@ describe('IntakeRequestsPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('offers Submit a Request to a linked employee who can create requests', () => {
-    // Arrange
-    mockClaims.add('Permissions.IntakeRequests.Create')
+  it('offers Submit a Request to a linked employee holding no permission', () => {
+    // Arrange — submitting needs only an employee to be the submitter
 
     // Act
     render(<IntakeRequestsPage />)
@@ -100,7 +103,6 @@ describe('IntakeRequestsPage', () => {
 
   it('withholds Submit a Request from an account with no linked employee', () => {
     // Arrange
-    mockClaims.add('Permissions.IntakeRequests.Create')
     mockEmployeeId = null
 
     // Act

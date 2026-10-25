@@ -396,7 +396,7 @@ const FollowingPage = () => {
     <div className={styles.page}>
       <PageTitle
         title="Following"
-        subtitle="Records you follow and can still see. Following records your interest; notifications come later."
+        subtitle="Records you follow and can still see. You are told about their changes in Notifications, under the bell."
       />
       <Suspense fallback={<Spin />}>
         <FollowingContent />

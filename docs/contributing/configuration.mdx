@@ -616,6 +616,8 @@ Changes take effect without a restart, from each caller's next window. A limit w
 | Setting | Default | Limits |
 |---|---|---|
 | `RateLimitSettings:PerUser` | a burst of 200, then 5 per second | Every request from a signed-in user |
+| `RateLimitSettings:PerUserElevated` | a burst of 1000, then 25 per second | Every request from a signed-in user holding `Permissions.RateLimits.Elevated`, in place of `PerUser` |
+| `RateLimitSettings:TierCacheSeconds` | 300 | How long a user's tier is remembered before their permissions are read again; `0` reads them on every request |
 | `RateLimitSettings:Imports` | 2 at a time | CSV import submissions in flight per user (every action marked `[CsvImport]`) |
 | `RateLimitSettings:OAuthAuthorize` | 30 per 60 s | `GET /oauth/authorize`, per address |
 | `RateLimitSettings:OAuthToken` | 60 per 60 s | `POST /oauth/token`, per address |
@@ -624,9 +626,13 @@ Changes take effect without a restart, from each caller's next window. A limit w
 | `RateLimitSettings:AuthProviders` | 60 per 60 s | `GET /api/auth/providers`, per address |
 | `RateLimitSettings:AuthSetup` | 5 per 900 s | `POST /api/auth/setup`, per address |
 
-`PerUser` has `TokenLimit` (the burst), `TokensPerPeriod` and `PeriodSeconds` (the steady rate). `Imports` has `PermitLimit`. The rest each have `PermitLimit` and `WindowSeconds`. Set them like any other setting, such as `RateLimitSettings__PerUser__TokenLimit=400` as an environment variable. In Azure a changed environment variable starts a new revision, so there it means no release rather than no restart.
+`PerUser` and `PerUserElevated` have `TokenLimit` (the burst), `TokensPerPeriod` and `PeriodSeconds` (the steady rate). `Imports` has `PermitLimit`. The rest each have `PermitLimit` and `WindowSeconds`. Set them like any other setting, such as `RateLimitSettings__PerUser__TokenLimit=400` as an environment variable. In Azure a changed environment variable starts a new revision, so there it means no release rather than no restart.
 
 **The per-user limit counts the user, not the token.** A user's web session, personal access tokens and MCP connections draw from one bucket, so minting more tokens buys no more room. Anonymous requests are not counted here; the anonymous endpoints have their own per-address limits. Size the burst above the request count of the heaviest page, which loads many things at once.
+
+**A user holding `Permissions.RateLimits.Elevated` gets the elevated bucket.** It is meant for automation and service accounts whose steady traffic outgrows a person's, without making them admins: grant it through a role. The Admin role has it, because it holds every non-root permission and the seeder reassigns that set at startup. The elevated bucket is a multiple of the standard one, never unlimited, so a runaway script with the permission is still capped; the host refuses to start if `PerUserElevated` has a smaller burst or a slower refill than `PerUser`. If you have raised `PerUser`, raise `PerUserElevated` with it, or the host will not start.
+
+**A grant or revoke of the elevated tier takes up to five minutes to apply** by default. The limiter cannot read permissions itself (its partition function is synchronous), and tokens are no help: personal access tokens and delegated MCP tokens carry no permissions, and the web app's can be out of date. So a middleware between authorization and the limiter reads the user's permissions, as authorization does, and remembers the tier per user for `RateLimitSettings:TierCacheSeconds` (default 300; `0` reads on every request, which costs a permission read even for a request the limiter then refuses, so keep it for tests). Anonymous requests skip it, and so does `/mcp`, whose tool calls are resolved by their inner requests. If the permissions cannot be read, the request is held to the standard tier and the next one reads again. The tier is part of the bucket's key, so a user whose tier changes starts on a full bucket of the new size. The memory is per replica, like the buckets.
 
 **The limiter runs after authorization**, because that is where the user becomes known: the API has no default authentication scheme, so each authorization policy authenticates with its own. A request with a bad credential is therefore refused with 401 before any limit counts it.
 

@@ -31,9 +31,9 @@ Permissions are named `Permissions.{Resource}.{Action}` and follow a consistent 
 | `Review` | Review records for a review group, only where you belong to it (see [Intake review](#intake-review-desk-membership)) |
 | `Administer` | Domain-wide administrative standing (see [PPM Administrator](#ppm-administrator)) |
 
-Some resources add specific actions — `Permissions.Projects.ManageProjectWorkItems` and `Permissions.Teams.ManageTeamMemberships`.
+Some resources add specific actions — `Permissions.Projects.ManageProjectWorkItems`, `Permissions.Teams.ManageTeamMemberships` and `Permissions.RateLimits.Elevated`.
 
-The server checks a user's permissions against their current roles on every request, so a role or permission change applies to what they can do straight away. The menus and buttons the app shows are decided by the permissions carried in the user's sign-in token, so they catch up on the user's next token refresh.
+The server checks a user's permissions against their current roles on every request, so a role or permission change applies to what they can do straight away. The one exception is [`Permissions.RateLimits.Elevated`](#elevated-rate-limits), which by default takes up to five minutes. The menus and buttons the app shows are decided by the permissions carried in the user's sign-in token, so they catch up on the user's next token refresh.
 
 ## Permission catalogue
 
@@ -55,6 +55,7 @@ Every permission Wayd defines, as **Settings → Access → Roles** groups them.
 | Identity | `RoleClaims` | `View`, `Update` |
 | Identity | `Permissions` | `View` |
 | Identity | `OidcProviders` | `View`, `Create`, `Update`, `Delete` |
+| Identity | `RateLimits` | `Elevated` (see [Elevated rate limits](#elevated-rate-limits)) |
 | Integrations | `Connections` | `View`, `Create`, `Update`, `Delete` |
 | Integrations | `Connectors` | `View` |
 | Health | `HealthChecks` | `View`, `Create`, `Update` |
@@ -194,6 +195,14 @@ The first two come from who you are, so your user account must be linked to an e
 The same people are the only ones shown the **reason** for a stretch of time away. Everyone who can view the employee (`Permissions.Employees.View`) sees the days and how much of each, and so does everyone who can see a team's capacity.
 
 Setting the holiday calendar a person takes, or their [working day](../organizations/index.mdx#working-day), is not time away: each needs `Permissions.Employees.Update`. The person and their managers cannot set either without it.
+
+## Elevated rate limits
+
+Every signed-in user has a [request budget](../../reference/api.mdx#rate-limits) shared by their session, personal access tokens and MCP connections. `Permissions.RateLimits.Elevated` gives a user a larger one: by default five times the standard budget, but never unlimited.
+
+Grant it to accounts whose steady traffic outgrows what a person needs — a service account that syncs data, or a script or agent that makes many calls — by adding it to a role in **Settings → Access → Roles** and giving that role to the account. The account does not need to be an admin. The seeded **Admin** role includes it.
+
+By default a grant or revoke takes up to five minutes to apply, because Wayd remembers each user's budget for that long rather than checking it on every request.
 
 ## Why an action might be unavailable
 

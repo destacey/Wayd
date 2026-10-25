@@ -4,6 +4,7 @@ import { MarkdownRenderer } from '@/src/components/common/markdown'
 import {
   IntakeRequestDetailsDto,
   NeedByBasisDto,
+  NeedByBasisFamilyDto,
 } from '@/src/services/wayd-api'
 import { Alert, Flex, Typography } from 'antd'
 import { FC, ReactNode } from 'react'
@@ -14,6 +15,7 @@ const { Text } = Typography
 export interface IntakeRequestDetailsProps {
   request: IntakeRequestDetailsDto
   needByBases: NeedByBasisDto[] | undefined
+  needByFamilies: NeedByBasisFamilyDto[] | undefined
 }
 
 const Block: FC<{ title: string; children: ReactNode }> = ({
@@ -35,6 +37,7 @@ const Block: FC<{ title: string; children: ReactNode }> = ({
 const IntakeRequestDetails: FC<IntakeRequestDetailsProps> = ({
   request,
   needByBases,
+  needByFamilies,
 }) => {
   const { summary, substance } = request
 
@@ -64,7 +67,11 @@ const IntakeRequestDetails: FC<IntakeRequestDetailsProps> = ({
       )}
       <Block title="Need By">
         {summary.needBy ? (
-          <RequestNeedBy needBy={summary.needBy} bases={needByBases} />
+          <RequestNeedBy
+            needBy={summary.needBy}
+            bases={needByBases}
+            families={needByFamilies}
+          />
         ) : (
           <Text type="secondary">No date</Text>
         )}

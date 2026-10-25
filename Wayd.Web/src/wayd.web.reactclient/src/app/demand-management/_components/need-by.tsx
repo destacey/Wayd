@@ -7,14 +7,16 @@ import {
   IntakeRequestNeedByRequest,
   NeedByBasis,
   NeedByBasisDto,
+  NeedByBasisFamilyDto,
 } from '@/src/services/wayd-api'
 import {
   formatCalendarDate,
   parseCalendarDate,
   toCalendarDate,
 } from '@/src/utils'
-import { DatePicker, Flex, Form, Input, Select, Typography } from 'antd'
+import { DatePicker, Flex, Form, Input, Select, Tag, Typography } from 'antd'
 import type { Dayjs } from 'dayjs'
+import type { SelectProps } from 'antd'
 import type { NamePath } from 'antd/es/form/interface'
 import { FC } from 'react'
 
@@ -88,6 +90,7 @@ export interface NeedBySummaryProps {
   committedByName?: string
   committedOn?: string
   bases: NeedByBasisDto[] | undefined
+  families: NeedByBasisFamilyDto[] | undefined
 }
 
 /**
@@ -101,8 +104,10 @@ export const NeedBySummary: FC<NeedBySummaryProps> = ({
   committedByName,
   committedOn,
   bases,
+  families,
 }) => {
   const basisDto = basisNamed(bases, basis)
+  const family = families?.find((f) => f.code === basisDto?.family)
   const commitment = [
     committedByName && `made by ${committedByName}`,
     committedOn && `on ${formatCalendarDate(committedOn)}`,
@@ -112,7 +117,10 @@ export const NeedBySummary: FC<NeedBySummaryProps> = ({
 
   return (
     <Flex vertical gap={2}>
-      <Text strong>{formatCalendarDate(date)}</Text>
+      <Flex gap={8} align="center">
+        <Text strong>{formatCalendarDate(date)}</Text>
+        {family && <Tag title={family.description}>{family.name}</Tag>}
+      </Flex>
       <Text>
         {basisDto?.name ?? basis}
         {reference && <Text type="secondary"> — {reference}</Text>}
@@ -126,7 +134,8 @@ export const NeedBySummary: FC<NeedBySummaryProps> = ({
 export const RequestNeedBy: FC<{
   needBy: IntakeRequestNeedByDto
   bases: NeedByBasisDto[] | undefined
-}> = ({ needBy, bases }) => (
+  families: NeedByBasisFamilyDto[] | undefined
+}> = ({ needBy, bases, families }) => (
   <NeedBySummary
     date={needBy.date}
     basis={needBy.basis}
@@ -134,34 +143,45 @@ export const RequestNeedBy: FC<{
     committedByName={needBy.committedBy?.name}
     committedOn={needBy.committedOn}
     bases={bases}
+    families={families}
   />
 )
 
 export interface NeedByFieldsProps {
   bases: NeedByBasisDto[] | undefined
+  families: NeedByBasisFamilyDto[] | undefined
   employees: EmployeeNavigationDto[] | undefined
 }
 
 /**
  * The need-by question: a date, and once there is one, what makes it that date. Choosing a basis asks only
  * the follow-up that basis needs, and the preview shows the requester what reviewers will read.
+ *
+ * The follow-ups render from `shouldUpdate` rather than `Form.useWatch`: a watch on a field whose item
+ * mounts later reads undefined, so an edit form opening on a saved basis would hide its own reference.
  */
-export const NeedByFields: FC<NeedByFieldsProps> = ({ bases, employees }) => {
-  const form = Form.useFormInstance()
-  const date = Form.useWatch(['needBy', 'date'], form) as Dayjs | null
-  const basis = Form.useWatch(['needBy', 'basis'], form) as
-    NeedByBasis | undefined
-  const reference = Form.useWatch(['needBy', 'reference'], form) as
-    string | undefined
-  const committedById = Form.useWatch(['needBy', 'committedById'], form) as
-    string | undefined
-  const committedOn = Form.useWatch(
-    ['needBy', 'committedOn'],
-    form,
-  ) as Dayjs | null
-
-  const basisDto = basisNamed(bases, basis)
-  const hasDate = !!date
+export const NeedByFields: FC<NeedByFieldsProps> = ({
+  bases,
+  families,
+  employees,
+}) => {
+  const basisOption = (b: NeedByBasisDto) => ({
+    value: b.code,
+    label: b.name,
+    title: b.description,
+  })
+  // Grouped by family, so the requester answers "is this fixed for us or did we choose it?" in passing.
+  const basisOptions: SelectProps['options'] = families?.length
+    ? [...families]
+        .sort((a, b) => a.order - b.order)
+        .map((f) => ({
+          label: f.name,
+          title: f.description,
+          options: (bases ?? [])
+            .filter((b) => b.family === f.code)
+            .map(basisOption),
+        }))
+    : (bases ?? []).map(basisOption)
 
   const employeeOptions = (employees ?? []).map((e) => ({
     label: e.name,
@@ -177,90 +197,108 @@ export const NeedByFields: FC<NeedByFieldsProps> = ({ bases, employees }) => {
       >
         <DatePicker allowClear />
       </Item>
-      {hasDate && (
-        <Item
-          name={['needBy', 'basis']}
-          label="What makes it that date?"
-          rules={[{ required: true, message: 'Choose what sets the date.' }]}
-        >
-          <Select
-            placeholder="Choose a basis"
-            options={(bases ?? []).map((b) => ({
-              value: b.code,
-              label: b.name,
-              title: b.description,
-            }))}
-            optionRender={(option) => (
-              <Flex vertical>
-                <Text>{option.data.label}</Text>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  {option.data.title}
-                </Text>
-              </Flex>
-            )}
-          />
-        </Item>
-      )}
-      {hasDate && basisDto && (
-        <Item
-          name={['needBy', 'reference']}
-          label="What does the date rest on?"
-          extra={basisDto.description}
-          rules={[
-            {
-              required: true,
-              whitespace: true,
-              message: 'Say what the date rests on.',
-            },
-            { max: 1024 },
-          ]}
-        >
-          <Input.TextArea
-            autoSize={{ minRows: 1, maxRows: 4 }}
-            maxLength={1024}
-          />
-        </Item>
-      )}
-      {hasDate && basisDto?.recordsCommitment && (
-        <>
-          <Item
-            name={['needBy', 'committedById']}
-            label="Who made the commitment?"
-            rules={[
-              { required: true, message: 'Name who made the commitment.' },
-            ]}
-          >
-            <EmployeeSelect employees={employeeOptions} />
-          </Item>
-          <Item
-            name={['needBy', 'committedOn']}
-            label="When was it made?"
-            rules={[{ required: true, message: 'Give the date it was made.' }]}
-          >
-            <DatePicker />
-          </Item>
-        </>
-      )}
-      {hasDate && basis && (
-        <Item label="Reviewers will see">
-          <NeedBySummary
-            date={toCalendarDate(date)}
-            basis={basis}
-            reference={reference?.trim() ?? ''}
-            committedByName={
-              basisDto?.recordsCommitment
-                ? employees?.find((e) => e.id === committedById)?.name
-                : undefined
-            }
-            committedOn={
-              basisDto?.recordsCommitment && committedOn
-                ? toCalendarDate(committedOn)
-                : undefined
-            }
-            bases={bases}
-          />
-        </Item>
-      )}
+      <Item
+        noStyle
+        shouldUpdate={(previous, current) => previous.needBy !== current.needBy}
+      >
+        {({ getFieldValue }) => {
+          const needBy = (getFieldValue('needBy') ?? {}) as NeedByFormValues
+          const basisDto = basisNamed(bases, needBy.basis)
+          if (!needBy.date) return null
+
+          return (
+            <>
+              <Item
+                name={['needBy', 'basis']}
+                label="What makes it that date?"
+                rules={[
+                  { required: true, message: 'Choose what sets the date.' },
+                ]}
+              >
+                <Select
+                  placeholder="Choose a basis"
+                  options={basisOptions}
+                  optionRender={(option) => (
+                    <Flex vertical>
+                      <Text>{option.data.label}</Text>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {option.data.title}
+                      </Text>
+                    </Flex>
+                  )}
+                />
+              </Item>
+              {basisDto && (
+                <Item
+                  name={['needBy', 'reference']}
+                  label="What does the date rest on?"
+                  extra={basisDto.description}
+                  rules={[
+                    {
+                      required: true,
+                      whitespace: true,
+                      message: 'Say what the date rests on.',
+                    },
+                    { max: 1024 },
+                  ]}
+                >
+                  <Input.TextArea
+                    autoSize={{ minRows: 1, maxRows: 4 }}
+                    maxLength={1024}
+                  />
+                </Item>
+              )}
+              {basisDto?.recordsCommitment && (
+                <>
+                  <Item
+                    name={['needBy', 'committedById']}
+                    label="Who made the commitment?"
+                    rules={[
+                      {
+                        required: true,
+                        message: 'Name who made the commitment.',
+                      },
+                    ]}
+                  >
+                    <EmployeeSelect employees={employeeOptions} />
+                  </Item>
+                  <Item
+                    name={['needBy', 'committedOn']}
+                    label="When was it made?"
+                    rules={[
+                      { required: true, message: 'Give the date it was made.' },
+                    ]}
+                  >
+                    <DatePicker />
+                  </Item>
+                </>
+              )}
+              {basisDto && (
+                <Item label="Reviewers will see">
+                  <NeedBySummary
+                    date={toCalendarDate(needBy.date)}
+                    basis={basisDto.code}
+                    reference={needBy.reference?.trim() ?? ''}
+                    committedByName={
+                      basisDto.recordsCommitment
+                        ? employees?.find((e) => e.id === needBy.committedById)
+                            ?.name
+                        : undefined
+                    }
+                    committedOn={
+                      basisDto.recordsCommitment && needBy.committedOn
+                        ? toCalendarDate(needBy.committedOn)
+                        : undefined
+                    }
+                    bases={bases}
+                    families={families}
+                  />
+                </Item>
+              )}
+            </>
+          )
+        }}
+      </Item>
     </>
   )
 }

@@ -102,6 +102,7 @@ jest.mock(
       refetch: jest.fn(),
     }),
     useGetNeedByBasesQuery: () => ({ data: [] }),
+    useGetNeedByBasisFamiliesQuery: () => ({ data: [] }),
     useGetIntakeRequestActivitiesQuery: () => ({
       currentData: undefined,
       isLoading: false,

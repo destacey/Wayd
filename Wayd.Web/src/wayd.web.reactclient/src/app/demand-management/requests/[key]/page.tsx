@@ -14,6 +14,7 @@ import {
   useGetIntakeRequestActivitiesQuery,
   useGetIntakeRequestQuery,
   useGetNeedByBasesQuery,
+  useGetNeedByBasisFamiliesQuery,
   useLazyGetIntakeRequestActivitiesQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
 import { Alert, Button } from 'antd'
@@ -49,6 +50,7 @@ const IntakeRequestDetailsPage = (props: {
 
   const { data: request, error, refetch } = useGetIntakeRequestQuery(key)
   const { data: needByBases } = useGetNeedByBasesQuery()
+  const { data: needByFamilies } = useGetNeedByBasisFamiliesQuery()
 
   const requestId = request?.summary.id
   const activitiesQuery = useGetIntakeRequestActivitiesQuery(
@@ -123,7 +125,11 @@ const IntakeRequestDetailsPage = (props: {
     switch (section) {
       case RequestSection.Details:
         return (
-          <IntakeRequestDetails request={request} needByBases={needByBases} />
+          <IntakeRequestDetails
+            request={request}
+            needByBases={needByBases}
+            needByFamilies={needByFamilies}
+          />
         )
       case RequestSection.Participants:
         return substance ? (

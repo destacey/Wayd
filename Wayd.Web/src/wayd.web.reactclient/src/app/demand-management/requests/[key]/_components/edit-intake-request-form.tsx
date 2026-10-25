@@ -10,6 +10,7 @@ import {
   useGetIntakeChannelsQuery,
   useGetIntakeEmployeeOptionsQuery,
   useGetNeedByBasesQuery,
+  useGetNeedByBasisFamiliesQuery,
   useUpdateIntakeRequestMutation,
 } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError, toFormErrors } from '@/src/utils'
@@ -53,6 +54,7 @@ const EditIntakeRequestForm: FC<EditIntakeRequestFormProps> = ({
   const messageApi = useMessage()
   const [updateRequest] = useUpdateIntakeRequestMutation()
   const { data: bases } = useGetNeedByBasesQuery()
+  const { data: families } = useGetNeedByBasisFamiliesQuery()
   const { data: employees } = useGetIntakeEmployeeOptionsQuery()
   // Archived channels too, so a request still on one shows it rather than an empty field.
   const { data: allChannels } = useGetIntakeChannelsQuery({
@@ -124,7 +126,7 @@ const EditIntakeRequestForm: FC<EditIntakeRequestFormProps> = ({
         name="edit-intake-request-form"
       >
         <RequestTextFields channels={channels} />
-        <NeedByFields bases={bases} employees={employees} />
+        <NeedByFields bases={bases} families={families} employees={employees} />
       </Form>
     </Modal>
   )

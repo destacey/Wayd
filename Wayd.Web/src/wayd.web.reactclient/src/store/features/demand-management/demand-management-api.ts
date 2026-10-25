@@ -13,6 +13,7 @@ import {
   IntakeRequestDetailsDto,
   IntakeRequestSummaryDto,
   NeedByBasisDto,
+  NeedByBasisFamilyDto,
   ObjectIdAndKey,
   PagedResponseOfActivityLogDto,
   UpdateIntakeRequestRequest,
@@ -201,6 +202,18 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       providesTags: [{ type: QueryTags.IntakeLookup, id: 'NEED-BY-BASES' }],
     }),
 
+    getNeedByBasisFamilies: builder.query<NeedByBasisFamilyDto[], void>({
+      queryFn: async () => {
+        try {
+          const data = await getIntakeRequestsClient().getNeedByBasisFamilies()
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      providesTags: [{ type: QueryTags.IntakeLookup, id: 'NEED-BY-FAMILIES' }],
+    }),
+
     getIntakeDesks: builder.query<
       IntakeDeskDto[],
       { submittableOnly?: boolean } | void
@@ -272,6 +285,7 @@ export const {
   useAddIntakeRequestParticipantMutation,
   useRemoveIntakeRequestParticipantMutation,
   useGetNeedByBasesQuery,
+  useGetNeedByBasisFamiliesQuery,
   useGetIntakeDesksQuery,
   useGetIntakeDeskVisibilitiesQuery,
   useGetIntakeChannelsQuery,

@@ -1,0 +1,17 @@
+.group {
+  width: 100%;
+}
+
+.option {
+  width: 100%;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--ant-color-border);
+  border-radius: var(--ant-border-radius-lg);
+  align-items: flex-start;
+}
+
+.option:has(:global(.ant-radio-checked)) {
+  border-color: var(--ant-color-primary);
+  background: var(--ant-color-primary-bg);
+}

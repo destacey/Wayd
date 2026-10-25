@@ -118,6 +118,35 @@ describe('useAppMenuItems', () => {
     expect(keysOf(result.current.menuItems)).toContain('demand.requests')
   })
 
+  it('offers Submit a Request to a linked employee who can create requests', () => {
+    // Arrange
+    mockFlags['demand-management'] = true
+    mockClaims.held = new Set([
+      'Permissions.IntakeRequests.View',
+      'Permissions.IntakeRequests.Create',
+    ])
+
+    // Act
+    const { result } = renderHook(() => useAppMenuItems())
+
+    // Assert
+    expect(keysOf(result.current.menuItems)).toContain('demand.submit')
+  })
+
+  it('withholds Submit a Request from an account with no linked employee', () => {
+    // Arrange — submitting needs an employee to be the submitter
+    mockFlags['demand-management'] = true
+    mockAuth.employeeId = null
+
+    // Act
+    const { result } = renderHook(() => useAppMenuItems())
+
+    // Assert
+    const keys = keysOf(result.current.menuItems)
+    expect(keys).toContain('demand.requests')
+    expect(keys).not.toContain('demand.submit')
+  })
+
   it('withholds Demand Management from someone who cannot view requests', () => {
     // Arrange
     mockFlags['demand-management'] = true

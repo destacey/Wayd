@@ -6,6 +6,7 @@ import {
   HealthChecksClient,
   LinksClient,
   MyFollowsClient,
+  MyNotificationsClient,
   OidcProvidersClient,
   PermissionsClient,
   ProfileClient,
@@ -449,6 +450,9 @@ export const getHealthChecksClient = () =>
 export const getLinksClient = () => new LinksClient('', axiosClient)
 
 export const getMyFollowsClient = () => new MyFollowsClient('', axiosClient)
+
+export const getMyNotificationsClient = () =>
+  new MyNotificationsClient('', axiosClient)
 
 // ORGANIZATION
 export const getEmployeesClient = () => new EmployeesClient('', axiosClient)

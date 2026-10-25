@@ -707,7 +707,7 @@
           "MyNotifications"
         ],
         "summary": "List your notifications.",
-        "description": "Returns one page of your notifications, one entry per record, newest change first. Each entry has the `record` (`ownerType`, `id`, `key`, `name`, `statusName`; an objective also carries `parentKey` and `parentName`, its planning interval), the newest change — `event` (`Created`, `StatusChanged`, `LifecycleChanged`, `HealthReported`, `TimelineChanged`, `RolesChanged`, `Reparented`, `ScoreRecorded`), `eventId`, `occurredOn`, `actorKind` and `actor` (null when no employee is linked to whoever made it) — the `reasons` you were told (`Following`, `Participant`, and later `Requester`, `Assigned`, `Mentioned`), `unreadCount`, `count`, `isUnread` and `latestNotificationId`. You are never told about your own changes, or about imports. A record you can no longer read is left out of the page and the total. `unreadOnly` keeps only entries with something unread. `page` starts at 1; `pageSize` is at most 100. Requires the following feature flag; returns 404 when it is off.",
+        "description": "Returns one page of your notifications, one entry per record, newest change first. Each entry has the `record` (`ownerType`, `id`, `key`, `name`, `statusName`; an objective also carries `parentKey` and `parentName`, its planning interval), the newest change — `event` (`Created`, `StatusChanged`, `LifecycleChanged`, `HealthReported`, `TimelineChanged`, `RolesChanged`, `Reparented`, `ScoreRecorded`), `eventId`, `occurredOn`, `actorKind` and `actor` (null when no employee is linked to whoever made it) — the `reasons` you were told (`Following`, `Participant`, and later `Requester`, `Assigned`, `Mentioned`), `unreadCount`, `count`, `isUnread` and `latestNotificationId`. You are never told about your own changes, or about imports. A record you can no longer read is left out. `unreadOnly` keeps only entries with something unread. `pageSize` is at most 100. For the next page, pass the response's `nextCursor` as `before`; `nextCursor` is null on the last page. Paging by cursor means an entry that moves to the top while you read on is neither repeated nor skipped; it appears when you read the first page again. Requires the following feature flag; returns 404 when it is off.",
         "operationId": "MyNotifications_GetNotifications",
         "parameters": [
           {
@@ -720,12 +720,11 @@
             "x-position": 1
           },
           {
-            "name": "page",
+            "name": "before",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 1
+              "type": "string",
+              "nullable": true
             },
             "x-position": 2
           },
@@ -746,7 +745,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PagedResponseOfNotificationDto"
+                  "$ref": "#/components/schemas/CursorPageOfNotificationDto"
                 }
               }
             }
@@ -49718,6 +49717,28 @@
         "additionalProperties": false,
         "description": "Counts of jobs that exist now. Each agrees with the matching job list."
       },
+      "CursorPageOfNotificationDto": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationDto"
+            },
+            "description": "The items on this page, in the list's order."
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Pass this back as the next request's cursor, or null when this page is the last. Opaque: its format is not part of the contract.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One page of a list read by cursor: the items, and where the next page starts."
+      },
       "CutToReleasedDto": {
         "required": [
           "measuredCount",
@@ -56939,50 +56960,6 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/FollowedRecordDto"
-            }
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalPages": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "hasPreviousPage": {
-            "type": "boolean"
-          },
-          "hasNextPage": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false,
-        "description": "One page of results, with the paging position and the total across all pages."
-      },
-      "PagedResponseOfNotificationDto": {
-        "required": [
-          "items",
-          "pageNumber",
-          "pageSize",
-          "totalCount",
-          "totalPages",
-          "hasPreviousPage",
-          "hasNextPage"
-        ],
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/NotificationDto"
             }
           },
           "pageNumber": {

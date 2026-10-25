@@ -1203,20 +1203,18 @@ export class MyNotificationsClient {
     /**
      * List your notifications.
      * @param unreadOnly (optional) 
-     * @param page (optional) 
+     * @param before (optional) 
      * @param pageSize (optional) 
      * @return OK
      */
-    getNotifications(unreadOnly?: boolean | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfNotificationDto> {
+    getNotifications(unreadOnly?: boolean | undefined, before?: string | null | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<CursorPageOfNotificationDto> {
         let url_ = this.baseUrl + "/api/me/notifications?";
         if (unreadOnly === null)
             throw new globalThis.Error("The parameter 'unreadOnly' cannot be null.");
         else if (unreadOnly !== undefined)
             url_ += "unreadOnly=" + encodeURIComponent("" + unreadOnly) + "&";
-        if (page === null)
-            throw new globalThis.Error("The parameter 'page' cannot be null.");
-        else if (page !== undefined)
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (before !== undefined && before !== null)
+            url_ += "before=" + encodeURIComponent("" + before) + "&";
         if (pageSize === null)
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
@@ -1243,7 +1241,7 @@ export class MyNotificationsClient {
         });
     }
 
-    protected processGetNotifications(response: AxiosResponse): Promise<PagedResponseOfNotificationDto> {
+    protected processGetNotifications(response: AxiosResponse): Promise<CursorPageOfNotificationDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1258,7 +1256,7 @@ export class MyNotificationsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<PagedResponseOfNotificationDto>(result200);
+            return Promise.resolve<CursorPageOfNotificationDto>(result200);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -1271,7 +1269,7 @@ export class MyNotificationsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<PagedResponseOfNotificationDto>(null as any);
+        return Promise.resolve<CursorPageOfNotificationDto>(null as any);
     }
 
     /**
@@ -53794,6 +53792,14 @@ export interface CurrentJobCountsResponse {
     servers: number;
 }
 
+/** One page of a list read by cursor: the items, and where the next page starts. */
+export interface CursorPageOfNotificationDto {
+    /** The items on this page, in the list's order. */
+    items: NotificationDto[];
+    /** Pass this back as the next request's cursor, or null when this page is the last. Opaque: its format is not part of the contract. */
+    nextCursor?: string | undefined;
+}
+
 /** How long a cut version waited before it shipped. */
 export interface CutToReleasedDto {
     /** Mean days from cut to release, or `null` where nothing measurable shipped. */
@@ -56214,17 +56220,6 @@ export interface PagedResponseOfActivityLogDto {
 /** One page of results, with the paging position and the total across all pages. */
 export interface PagedResponseOfFollowedRecordDto {
     items: FollowedRecordDto[];
-    pageNumber: number;
-    pageSize: number;
-    totalCount: number;
-    totalPages: number;
-    hasPreviousPage: boolean;
-    hasNextPage: boolean;
-}
-
-/** One page of results, with the paging position and the total across all pages. */
-export interface PagedResponseOfNotificationDto {
-    items: NotificationDto[];
     pageNumber: number;
     pageSize: number;
     totalCount: number;

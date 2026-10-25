@@ -18,14 +18,22 @@ namespace Wayd.Common.Application.Notifications.Queries;
 /// Readability is applied before anything is grouped, counted or paged, through each record's own read rule,
 /// so a notification about a record the caller can no longer see is never shown and never counted.
 /// <para>
+/// Paged by cursor, not offset: an entry moves to the top whenever its record changes, and drops out when the
+/// caller loses access, so an offset would repeat or skip entries as the caller reads on. The next page starts
+/// strictly after the last entry seen, wherever the list has moved since.
+/// </para>
+/// <para>
 /// Not <see cref="IRequireLinkedEmployee"/>: a caller with no employee has been told nothing, so the answer is
 /// an empty page.
 /// </para>
 /// </remarks>
-public sealed record GetMyNotificationsQuery(bool UnreadOnly = false, int PageNumber = 1, int PageSize = 25)
-    : IQuery<PagedResponse<NotificationDto>>;
+/// <param name="UnreadOnly">Keeps only entries with something unread.</param>
+/// <param name="Before">The previous page's <see cref="CursorPage{T}.NextCursor"/>; null for the first page.</param>
+/// <param name="PageSize">How many entries to return.</param>
+public sealed record GetMyNotificationsQuery(bool UnreadOnly = false, string? Before = null, int PageSize = 25)
+    : IQuery<CursorPage<NotificationDto>>;
 
-/// <summary>Bounds the paging a caller may ask for.</summary>
+/// <summary>Bounds the page size and refuses a cursor the API did not hand out.</summary>
 public sealed class GetMyNotificationsQueryValidator : CustomValidator<GetMyNotificationsQuery>
 {
     /// <summary>The largest page a caller may ask for.</summary>
@@ -33,8 +41,11 @@ public sealed class GetMyNotificationsQueryValidator : CustomValidator<GetMyNoti
 
     public GetMyNotificationsQueryValidator()
     {
-        RuleFor(q => q.PageNumber).GreaterThanOrEqualTo(1);
         RuleFor(q => q.PageSize).InclusiveBetween(1, MaxPageSize);
+        RuleFor(q => q.Before)
+            .Must(before => NotificationCursor.TryDecode(before, out _))
+            .When(q => q.Before is not null)
+            .WithMessage("'Before' must be a cursor from a previous page.");
     }
 }
 
@@ -44,28 +55,26 @@ public sealed class GetMyNotificationsQueryHandler(
     IWaydDbContext waydDbContext,
     IEnumerable<IRecordReadRule> readRules,
     ICurrentPrincipal currentPrincipal)
-    : IQueryHandler<GetMyNotificationsQuery, PagedResponse<NotificationDto>>
+    : IQueryHandler<GetMyNotificationsQuery, CursorPage<NotificationDto>>
 {
     private readonly INotificationsDbContext _notificationsDbContext = notificationsDbContext;
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly IEnumerable<IRecordReadRule> _readRules = readRules;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
 
-    public async Task<PagedResponse<NotificationDto>> Handle(GetMyNotificationsQuery request, CancellationToken cancellationToken)
+    public async Task<CursorPage<NotificationDto>> Handle(GetMyNotificationsQuery request, CancellationToken cancellationToken)
     {
-        var empty = new PagedResponse<NotificationDto>([], 0, request.PageNumber, request.PageSize);
-
         var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (employeeId is null)
         {
-            return empty;
+            return CursorPage<NotificationDto>.Empty;
         }
 
         var owners = FollowReadRules.Select(_readRules, null).Value;
         var rows = await NotificationRows.Build(_notificationsDbContext.Notifications, employeeId.Value, owners, cancellationToken);
         if (rows is null)
         {
-            return empty;
+            return CursorPage<NotificationDto>.Empty;
         }
 
         var groups = rows.ByRecord();
@@ -74,22 +83,39 @@ public sealed class GetMyNotificationsQueryHandler(
             groups = groups.Where(g => g.UnreadCount > 0);
         }
 
-        var totalCount = await groups.CountAsync(cancellationToken);
-        if (totalCount == 0)
+        if (NotificationCursor.TryDecode(request.Before, out var before))
         {
-            return empty;
+            groups = groups.Where(g => g.LatestOn < before.LatestOn
+                || (g.LatestOn == before.LatestOn
+                    && (string.Compare(g.OwnerType, before.OwnerType) > 0
+                        || (g.OwnerType == before.OwnerType && g.OwnerId.CompareTo(before.OwnerId) > 0))));
         }
 
+        // One more than asked for says whether another page follows, without counting the whole list.
         var page = await groups
             .OrderByDescending(g => g.LatestOn)
-            .ThenByDescending(g => g.LatestId)
-            .Skip((request.PageNumber - 1) * request.PageSize)
-            .Take(request.PageSize)
+            .ThenBy(g => g.OwnerType)
+            .ThenBy(g => g.OwnerId)
+            .Take(request.PageSize + 1)
             .ToListAsync(cancellationToken);
+
+        var hasMore = page.Count > request.PageSize;
+        if (hasMore)
+        {
+            page.RemoveAt(page.Count - 1);
+        }
 
         var items = await Render(employeeId.Value, page, owners, cancellationToken);
 
-        return new PagedResponse<NotificationDto>(items, totalCount, request.PageNumber, request.PageSize);
+        // From the page's rows, not the rendered entries: an entry dropped while rendering still ends the page.
+        var last = page.Count > 0 ? page[^1] : null;
+        return new CursorPage<NotificationDto>
+        {
+            Items = items,
+            NextCursor = hasMore && last is not null
+                ? new NotificationCursor(last.LatestOn, last.OwnerType, last.OwnerId).Encode()
+                : null,
+        };
     }
 
     private async Task<List<NotificationDto>> Render(

@@ -110,6 +110,9 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     public void AddFollow(Follow follow) => _follows.Add(follow);
     public void AddNotification(Notification notification) => _notifications.Add(notification);
 
+    /// <summary>Removes a notification, as the store's set-based writes would replace or delete it.</summary>
+    public void RemoveNotification(Notification notification) => _notifications.Remove(notification);
+
     #endregion Helper Methods for Test Setup
 
     public void Dispose()

@@ -46,9 +46,6 @@ internal sealed class NotificationGroupRow
     /// <summary>When the newest change in the entry happened.</summary>
     public Instant LatestOn { get; init; }
 
-    /// <summary>The highest notification id in the entry; unique across entries, so it settles ties.</summary>
-    public long LatestId { get; init; }
-
     /// <summary>How many of the entry's notifications are unread.</summary>
     public int UnreadCount { get; init; }
 
@@ -142,7 +139,6 @@ internal static class NotificationRows
                 OwnerType = g.Key.OwnerType,
                 OwnerId = g.Key.OwnerId,
                 LatestOn = g.Max(r => r.OccurredOn),
-                LatestId = g.Max(r => r.Id),
                 UnreadCount = g.Count(r => r.IsUnread),
                 Count = g.Count(),
                 FollowingCount = g.Count(r => (r.Reasons & NotificationReason.Following) != 0),

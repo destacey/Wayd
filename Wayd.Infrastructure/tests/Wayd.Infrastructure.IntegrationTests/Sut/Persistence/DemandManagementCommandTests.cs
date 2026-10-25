@@ -197,6 +197,49 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         (await reader.ActivityLogs.AnyAsync(a => a.AggregateId == desk.Id && a.EventType == nameof(IntakeDeskDeletedEvent), ct)).Should().BeTrue();
     }
 
+    [Fact]
+    public async Task RerouteIntakeRequest_MovesItAndUnassignsAnAssigneeNotOnTheDestination()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        Employee agent;
+        IntakeDesk from, to;
+        Guid requestId;
+        await using (var seeding = _fixture.CreateContext())
+        {
+            agent = SeedEmployee(seeding);
+            from = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Private, true, true, true,
+                [new IntakeDeskMemberDetails(agent.Id, IntakeDeskRole.Agent)], EventActor.System, Now);
+            to = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true, [],
+                EventActor.System, Now);
+            var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
+            seeding.IntakeDesks.AddRange(from, to);
+            seeding.IntakeChannels.Add(channel);
+            await seeding.SaveChangesAsync(ct);
+            var request = IntakeRequest.Create("Title", "Description", null, agent.Id, agent.Id, from, channel, null, null, EventActor.System, Now).Value;
+            seeding.IntakeRequests.Add(request);
+            await seeding.SaveChangesAsync(ct);
+            request.ChangeAssignee(agent.Id, EventActor.System, Now);
+            await seeding.SaveChangesAsync(ct);
+            requestId = request.Id;
+        }
+
+        // Act — private to open widens who can read it, so the move is confirmed
+        await using var context = _fixture.CreateContext();
+        var result = await new RerouteIntakeRequestCommandHandler(context, Principal(agent.Id), User(), _clock)
+            .Handle(new RerouteIntakeRequestCommand(requestId, to.Id, ConfirmWiderVisibility: true), ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        await using var reader = _fixture.CreateContext();
+        var saved = await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == requestId, ct);
+        saved.DeskId.Should().Be(to.Id);
+        saved.AssigneeId.Should().BeNull();
+        var rerouted = await reader.ActivityLogs.AsNoTracking()
+            .SingleAsync(a => a.AggregateId == requestId && a.EventType == nameof(IntakeRequestReroutedEvent), ct);
+        rerouted.Payload.Should().Contain($"\"fromDeskId\":\"{from.Id}\"").And.Contain("\"toVisibility\":\"open\"");
+    }
+
     private static ICurrentPrincipal Principal(Guid employeeId, params string[] permissions)
     {
         var principal = new Mock<ICurrentPrincipal>();

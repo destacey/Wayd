@@ -173,4 +173,23 @@ public sealed class GetIntakeRequestQueryHandlerTests
         result.CanRemoveParticipants.Should().BeFalse();
         result.CanDelete.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task Handle_OffersRerouteToAnAgentOnTheDeskButNotToTheRequester()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var requester = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(agentIds: agent.Id), requester);
+
+        // Act
+        _scenario.SignedInAs(agent);
+        var asAgent = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+        _scenario.SignedInAs(requester);
+        var asRequester = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        asAgent!.CanReroute.Should().BeTrue();
+        asRequester!.CanReroute.Should().BeFalse();
+    }
 }

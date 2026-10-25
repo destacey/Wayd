@@ -105,6 +105,17 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult> ChangeAssignee(Guid id, [FromBody] ChangeIntakeRequestAssigneeRequest request, CancellationToken cancellationToken) =>
         NoContentOrError(await _dispatcher.Send(new ChangeIntakeRequestAssigneeCommand(id, request.AssigneeId), cancellationToken));
 
+    [HttpPost("{id}/reroute")]
+    [Authorize]
+    [EndpointSummary("Move an open intake request to another desk.")]
+    [EndpointDescription("Needs an agent on the request's current desk; the destination need not be one you work, but must be open to new requests. A move to a less private desk is refused unless `confirmWiderVisibility` is set. An assignee who is not a member of the destination is unassigned.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Reroute(Guid id, [FromBody] RerouteIntakeRequestRequest request, CancellationToken cancellationToken) =>
+        NoContentOrError(await _dispatcher.Send(new RerouteIntakeRequestCommand(id, request.DeskId, request.ConfirmWiderVisibility), cancellationToken));
+
     [HttpPost("{id}/participants")]
     [Authorize]
     [EndpointSummary("Give an employee access to an intake request as a participant.")]

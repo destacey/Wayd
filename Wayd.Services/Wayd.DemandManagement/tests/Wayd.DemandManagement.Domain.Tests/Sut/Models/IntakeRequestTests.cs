@@ -543,4 +543,145 @@ public sealed class IntakeRequestTests
     }
 
     #endregion Delete
+
+    #region Reroute
+
+    private static (IntakeDesk From, IntakeDesk To, IntakeRequest Request) RerouteScenario(
+        IntakeDeskVisibility fromVisibility, IntakeDeskVisibility toVisibility, bool toIsOpen = true)
+    {
+        var from = new IntakeDeskFaker().WithVisibility(fromVisibility).Generate();
+        var to = new IntakeDeskFaker().WithVisibility(toVisibility).WithIsOpen(toIsOpen).Generate();
+        var request = new IntakeRequestFaker().WithDeskId(from.Id).Generate();
+        return (from, to, request);
+    }
+
+    [Fact]
+    public void Reroute_ToAnotherDesk_MovesItAndRaisesWithBothEndsAndTheirVisibility()
+    {
+        // Arrange
+        var (from, to, sut) = RerouteScenario(IntakeDeskVisibility.Open, IntakeDeskVisibility.Private);
+
+        // Act
+        var result = sut.Reroute(from, to, widerVisibilityConfirmed: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert — a move to a more private desk needs no confirmation
+        result.IsSuccess.Should().BeTrue();
+        sut.DeskId.Should().Be(to.Id);
+        var rerouted = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestReroutedEvent>().Subject;
+        rerouted.FromDeskId.Should().Be(from.Id);
+        rerouted.ToDeskId.Should().Be(to.Id);
+        rerouted.FromVisibility.Should().Be(IntakeDeskVisibility.Open);
+        rerouted.ToVisibility.Should().Be(IntakeDeskVisibility.Private);
+    }
+
+    [Theory]
+    [InlineData(IntakeDeskVisibility.Private, IntakeDeskVisibility.SummaryOnly)]
+    [InlineData(IntakeDeskVisibility.SummaryOnly, IntakeDeskVisibility.Open)]
+    public void Reroute_ToALessPrivateDeskUnconfirmed_FailsAndStays(IntakeDeskVisibility fromVisibility, IntakeDeskVisibility toVisibility)
+    {
+        // Arrange
+        var (from, to, sut) = RerouteScenario(fromVisibility, toVisibility);
+
+        // Act
+        var result = sut.Reroute(from, to, widerVisibilityConfirmed: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.WiderVisibilityNotConfirmedError);
+        sut.DeskId.Should().Be(from.Id);
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Reroute_ToALessPrivateDeskConfirmed_Moves()
+    {
+        // Arrange
+        var (from, to, sut) = RerouteScenario(IntakeDeskVisibility.Private, IntakeDeskVisibility.Open);
+
+        // Act
+        var result = sut.Reroute(from, to, widerVisibilityConfirmed: true, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DeskId.Should().Be(to.Id);
+    }
+
+    [Fact]
+    public void Reroute_ToADeskClosedToNewRequests_Fails()
+    {
+        // Arrange
+        var (from, to, sut) = RerouteScenario(IntakeDeskVisibility.Open, IntakeDeskVisibility.Open, toIsOpen: false);
+
+        // Act
+        var result = sut.Reroute(from, to, false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("This desk is not accepting new requests.");
+        sut.DeskId.Should().Be(from.Id);
+    }
+
+    [Fact]
+    public void Reroute_ToItsOwnDesk_Fails()
+    {
+        // Arrange
+        var (from, _, sut) = RerouteScenario(IntakeDeskVisibility.Open, IntakeDeskVisibility.Open);
+
+        // Act
+        var result = sut.Reroute(from, from, false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Reroute_WithAnAssigneeNotOnTheDestination_UnassignsThemInTheSameMove()
+    {
+        // Arrange
+        var assigneeId = Guid.NewGuid();
+        var from = new IntakeDeskFaker().WithAgents(assigneeId).Generate();
+        var to = new IntakeDeskFaker().WithAgents(Guid.NewGuid()).Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(from.Id).WithAssigneeId(assigneeId).Generate();
+
+        // Act
+        sut.Reroute(from, to, false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.AssigneeId.Should().BeNull();
+        sut.DomainEvents.Select(e => e.GetType()).Should().Equal(typeof(IntakeRequestReroutedEvent), typeof(IntakeRequestAssigneeChangedEvent));
+    }
+
+    [Fact]
+    public void Reroute_WithAnAssigneeWhoAlsoWorksTheDestination_KeepsThem()
+    {
+        // Arrange
+        var assigneeId = Guid.NewGuid();
+        var from = new IntakeDeskFaker().WithAgents(assigneeId).Generate();
+        var to = new IntakeDeskFaker().WithAgents(assigneeId).Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(from.Id).WithAssigneeId(assigneeId).Generate();
+
+        // Act
+        sut.Reroute(from, to, false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.AssigneeId.Should().Be(assigneeId);
+        sut.DomainEvents.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void Reroute_FromADeskOtherThanItsOwn_Throws()
+    {
+        // Arrange — the visibility the event records must be the current desk's
+        var (_, to, sut) = RerouteScenario(IntakeDeskVisibility.Open, IntakeDeskVisibility.Open);
+        var notItsDesk = new IntakeDeskFaker().Generate();
+
+        // Act
+        Action act = () => sut.Reroute(notItsDesk, to, false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    #endregion Reroute
 }

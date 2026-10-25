@@ -262,6 +262,42 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
     }
 
     [Fact]
+    public async Task RerouteRequest_ToALessPrivateDesk_NeedsConfirmation()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await SetFlag(true);
+        var agent = await SeedEmployee();
+        var admin = await _factory.CreateAuthenticatedClient(Administer);
+        var agentClient = await _factory.CreateAuthenticatedClient(agent);
+        var requesterClient = await _factory.CreateAuthenticatedClient(await SeedEmployee());
+        var privateDeskId = await CreateDesk(admin.Client, "Private", agents: [agent]);
+        var openDeskId = await CreateDesk(admin.Client, "Open");
+        var created = await requesterClient.Client.PostAsJsonAsync(Requests, new
+        {
+            title = "Sensitive ask",
+            description = "Written for the private desk",
+            deskId = privateDeskId,
+            channelId = await FirstChannel(requesterClient.Client),
+        }, ct);
+        var request = (await created.Content.ReadFromJsonAsync<ObjectIdAndKey>(ct))!;
+        var asAgent = await agentClient.Client.GetFromJsonAsync<JsonElement>($"{Requests}/{request.Id}", ct);
+
+        // Act
+        var unconfirmed = await agentClient.Client.PostAsJsonAsync($"{Requests}/{request.Id}/reroute",
+            new { deskId = openDeskId, confirmWiderVisibility = false }, ct);
+        var confirmed = await agentClient.Client.PostAsJsonAsync($"{Requests}/{request.Id}/reroute",
+            new { deskId = openDeskId, confirmWiderVisibility = true }, ct);
+        var moved = await requesterClient.Client.GetFromJsonAsync<JsonElement>($"{Requests}/{request.Id}", ct);
+
+        // Assert
+        asAgent.GetProperty("canReroute").GetBoolean().Should().BeTrue();
+        unconfirmed.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        confirmed.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        moved.GetProperty("summary").GetProperty("desk").GetProperty("id").GetGuid().Should().Be(openDeskId);
+    }
+
+    [Fact]
     public async Task CreateDesk_NeedsAdminister()
     {
         // Arrange

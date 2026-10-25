@@ -58,6 +58,9 @@ public sealed class GetIntakeRequestQueryHandler(
             // The remove command needs a linked employee, so the flag does too.
             CanRemoveParticipants = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id),
             CanDelete = !_currentPrincipal.IsReadOnly && reader.IsDeskAdminOn(summary.Desk.Id),
+            // The reroute command needs a linked employee, so the flag does too.
+            CanReroute = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id)
+                && (await visible.FirstAsync(cancellationToken)).IsOpen,
             CanAddParticipants = !_currentPrincipal.IsReadOnly && await CanAddParticipants(visible, reader, cancellationToken),
         };
     }

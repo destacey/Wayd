@@ -32,3 +32,18 @@ public enum IntakeDeskVisibility
     [Display(Name = "Private", Description = "Only the desk and the request's own people know the request exists.", Order = 3)]
     Private = 3,
 }
+
+public static class IntakeDeskVisibilityExtensions
+{
+    /// <summary>
+    /// Whether a request on a desk of this visibility reaches more people than on one of <paramref name="other"/>:
+    /// Open reaches more than Summary Only, which reaches more than Private.
+    /// </summary>
+    public static bool IsLessPrivateThan(this IntakeDeskVisibility visibility, IntakeDeskVisibility other) => visibility switch
+    {
+        IntakeDeskVisibility.Open => other is IntakeDeskVisibility.SummaryOnly or IntakeDeskVisibility.Private,
+        IntakeDeskVisibility.SummaryOnly => other is IntakeDeskVisibility.Private,
+        IntakeDeskVisibility.Private => false,
+        _ => throw new ArgumentOutOfRangeException(nameof(visibility), visibility, "Unknown desk visibility."),
+    };
+}

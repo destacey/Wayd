@@ -100,6 +100,7 @@ public class IntakeRequestConfiguration : IEntityTypeConfiguration<IntakeRequest
 
         // Derived until requests follow their desk's review workflow, which persists a real status.
         builder.Ignore(r => r.StatusCategory);
+        builder.Ignore(r => r.IsOpen);
 
         builder.OwnsOne(r => r.NeedBy, needBy =>
         {

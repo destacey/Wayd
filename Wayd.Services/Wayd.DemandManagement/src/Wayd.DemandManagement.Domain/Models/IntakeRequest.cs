@@ -1,6 +1,7 @@
 using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using NodaTime;
+using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -103,7 +104,7 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// The desk the request is reviewed on. Summary tier.
     /// </summary>
-    public Guid DeskId { get; private init; }
+    public Guid DeskId { get; private set; }
 
     /// <summary>
     /// Where the request came from. Summary tier.
@@ -274,6 +275,55 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// Whether the request is still open — Proposed or Active — which is when it can be moved to another desk.
+    /// </summary>
+    public bool IsOpen => StatusCategory is StatusCategory.Proposed or StatusCategory.Active;
+
+    /// <summary>
+    /// Moves the request to another desk. Needs <paramref name="to"/>'s <see cref="IntakeDesk.Members"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// Needs an agent on the current desk, which the caller checks; the destination need not be a desk they
+    /// work. Refused for a closed request, and for a destination closed to new requests. A move to a less
+    /// private desk publishes words written expecting privacy, so it is refused unless the mover confirmed it;
+    /// a move to a more private desk is silent. An assignee who is not a member of the destination is
+    /// unassigned in the same move, because an assignee is always a member of the request's desk.
+    /// </remarks>
+    public Result Reroute(IntakeDesk from, IntakeDesk to, bool widerVisibilityConfirmed, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(from);
+        Guard.Against.Null(to);
+        if (from.Id != DeskId)
+            throw new ArgumentException("The desk the request is moving from must be its current desk.", nameof(from));
+
+        if (to.Id == DeskId)
+            return Result.Failure("The request is already on this desk.");
+
+        if (!IsOpen)
+            return Result.Failure("A closed request cannot be moved to another desk.");
+
+        if (!to.IsOpen)
+            return Result.Failure("This desk is not accepting new requests.");
+
+        if (to.Visibility.IsLessPrivateThan(from.Visibility) && !widerVisibilityConfirmed)
+            return Result.Failure(WiderVisibilityNotConfirmedError);
+
+        DeskId = to.Id;
+        RaiseWhenKeyed(() => new IntakeRequestReroutedEvent(Id, Key, from.Id, to.Id, from.Visibility, to.Visibility, actor, timestamp));
+
+        if (AssigneeId is { } assigneeId && to.RoleOf(assigneeId) is null)
+            ChangeAssignee(null, actor, timestamp);
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// The failure for a move to a less private desk the mover did not confirm.
+    /// </summary>
+    public const string WiderVisibilityNotConfirmedError =
+        "Moving this request to a less private desk makes it visible to more people. Confirm the move to continue.";
 
     /// <summary>
     /// Gives an employee access to the request as a participant. Needs <see cref="Participants"/> loaded.

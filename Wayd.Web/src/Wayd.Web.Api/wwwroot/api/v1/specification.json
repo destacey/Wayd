@@ -40049,6 +40049,80 @@
         ]
       }
     },
+    "/api/demand-management/intake-requests/{id}/reroute": {
+      "post": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Move an open intake request to another desk.",
+        "description": "Needs an agent on the request's current desk; the destination need not be one you work, but must be open to new requests. A move to a less private desk is refused unless `confirmWiderVisibility` is set. An assignee who is not a member of the destination is unassigned.",
+        "operationId": "IntakeRequests_Reroute",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RerouteIntakeRequestRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/demand-management/intake-requests/{id}/participants": {
       "post": {
         "tags": [
@@ -54890,6 +54964,7 @@
           "canEdit",
           "canRemoveParticipants",
           "canDelete",
+          "canReroute",
           "canAddParticipants"
         ],
         "type": "object",
@@ -54922,6 +54997,10 @@
           "canDelete": {
             "type": "boolean",
             "description": "Whether the reader may delete the request: a Desk Admin on its desk."
+          },
+          "canReroute": {
+            "type": "boolean",
+            "description": "Whether the reader may move the request to another desk: an agent on its current desk, while the request\nis open."
           },
           "canAddParticipants": {
             "type": "boolean",
@@ -62442,6 +62521,27 @@
           }
         },
         "additionalProperties": false
+      },
+      "RerouteIntakeRequestRequest": {
+        "required": [
+          "deskId",
+          "confirmWiderVisibility"
+        ],
+        "type": "object",
+        "properties": {
+          "deskId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The desk to move the request to. It must be open to new requests; it need not be one the mover works.",
+            "format": "uuid"
+          },
+          "confirmWiderVisibility": {
+            "type": "boolean",
+            "description": "Confirms a move to a less private desk, which makes the request visible to more people. Such a move is\nrefused without it; a move to an equally or more private desk ignores it."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The desk to move an intake request to."
       },
       "ResetPasswordRequest": {
         "required": [

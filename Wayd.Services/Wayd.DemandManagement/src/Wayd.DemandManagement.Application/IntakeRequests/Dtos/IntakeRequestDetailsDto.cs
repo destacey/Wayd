@@ -26,6 +26,12 @@ public sealed record IntakeRequestDetailsDto
     public bool CanDelete { get; init; }
 
     /// <summary>
+    /// Whether the reader may move the request to another desk: an agent on its current desk, while the request
+    /// is open.
+    /// </summary>
+    public bool CanReroute { get; init; }
+
+    /// <summary>
     /// Whether the reader may give someone access to the request as a participant: an agent on its desk, or
     /// its requester or submitter unless the desk is private and does not allow it.
     /// </summary>

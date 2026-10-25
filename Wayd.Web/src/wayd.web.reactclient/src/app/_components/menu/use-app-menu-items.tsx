@@ -292,6 +292,8 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
               'demand.requests',
               '/demand-management/requests',
             ),
+            // A desk is not hidden, only the requests on a private one; each desk is run from its own page.
+            menuItem('Desks', 'demand.desks', '/demand-management/desks'),
           ],
         ),
       ]

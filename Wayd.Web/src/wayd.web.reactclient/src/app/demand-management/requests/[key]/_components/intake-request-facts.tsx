@@ -4,7 +4,9 @@ import { LabeledContent } from '@/src/components/common/content'
 import { RecordFactsGroup } from '@/src/components/common/record'
 import { IntakeRequestDetailsDto } from '@/src/services/wayd-api'
 import { Typography } from 'antd'
+import NextLink from 'next/link'
 import { FC } from 'react'
+import { deskHref } from '../../../_components/desk-status'
 
 const { Text, Link } = Typography
 
@@ -22,7 +24,11 @@ const IntakeRequestFacts: FC<IntakeRequestFactsProps> = ({ request }) => {
   return (
     <>
       <RecordFactsGroup label="Request">
-        <LabeledContent label="Desk">{summary.desk.name}</LabeledContent>
+        <LabeledContent label="Desk">
+          <NextLink href={deskHref(summary.desk.key)}>
+            {summary.desk.name}
+          </NextLink>
+        </LabeledContent>
         <LabeledContent label="Channel">{summary.channel.name}</LabeledContent>
       </RecordFactsGroup>
       <RecordFactsGroup label="People">

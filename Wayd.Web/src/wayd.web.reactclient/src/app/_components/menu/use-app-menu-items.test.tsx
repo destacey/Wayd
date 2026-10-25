@@ -116,6 +116,7 @@ describe('useAppMenuItems', () => {
 
     // Assert
     expect(keysOf(result.current.menuItems)).toContain('demand.requests')
+    expect(keysOf(result.current.menuItems)).toContain('demand.desks')
   })
 
   it('offers Submit a Request and My Requests to a linked employee holding no permission', () => {

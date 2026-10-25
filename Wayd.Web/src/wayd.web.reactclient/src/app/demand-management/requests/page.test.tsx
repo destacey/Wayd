@@ -43,14 +43,10 @@ jest.mock('@/src/components/hoc', () => ({
   requireFeatureFlag: (Component: React.ComponentType<any>) => Component,
 }))
 
-// The grid and the desk form have suites of their own; here only which actions the page offers matters.
+// The grid has a suite of its own; here only which actions the page offers matters.
 jest.mock('../_components/intake-requests-grid', () => ({
   __esModule: true,
   default: () => <div data-testid="requests-grid" />,
-}))
-jest.mock('../_components/create-intake-desk-form', () => ({
-  __esModule: true,
-  default: () => <div data-testid="create-desk-form" />,
 }))
 
 jest.mock(
@@ -71,9 +67,9 @@ describe('IntakeRequestsPage', () => {
     mockEmployeeId = 'e-1'
   })
 
-  it('offers neither action to an account with no linked employee and no Administer', () => {
+  it('offers no Create Desk, which lives on the Desks page, even to the Demand Management Admin', () => {
     // Arrange
-    mockClaims.add('Permissions.IntakeRequests.View')
+    mockClaims.add('Permissions.IntakeRequests.Administer')
     mockEmployeeId = null
 
     // Act
@@ -112,18 +108,5 @@ describe('IntakeRequestsPage', () => {
     expect(
       screen.queryByRole('button', { name: 'Submit a Request' }),
     ).not.toBeInTheDocument()
-  })
-
-  it('offers Create Desk only to an administrator', () => {
-    // Arrange
-    mockClaims.add('Permissions.IntakeRequests.Administer')
-
-    // Act
-    render(<IntakeRequestsPage />)
-
-    // Assert
-    expect(
-      screen.getByRole('button', { name: 'Create Desk' }),
-    ).toBeInTheDocument()
   })
 })

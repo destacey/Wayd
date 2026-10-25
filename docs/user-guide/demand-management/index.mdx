@@ -94,6 +94,7 @@ A *fixed* date moves only if the world moves. A *chosen* date has an owner, so i
 - **Submit a Request** — Raise a new request. Shown to anyone whose account is linked to an employee record
 - **My Requests** — The requests you asked for, and those you submitted on someone else's behalf
 - **Requests** — Every request you can see: those on the desks you work, your own, and, if you can view requests, everyone else's that their desk lets you see
+- **Desks** — Every desk, who works it, and what is waiting on the desks you work. Each desk is run from its own page
 
 ### Submitting a request
 
@@ -131,9 +132,17 @@ Opening a request shows its number and title. The panel opened from the header l
 
 **Add Participant** appears when you can give someone access: an agent on the request's desk, or its requester or submitter unless the desk is private and does not allow it. Only an agent on the desk can remove a participant, and removing one takes away their access from then on; what they have already read stays read.
 
-### Setting up a desk
+### Desks
 
-The Demand Management Admin creates a desk from **Create Desk** on the **Requests** page, giving it:
+**Desks** lists every desk with its visibility, how many members it has and whether it is open to new requests. On the desks you work, it also shows what is waiting there: how many requests, and how long ago the oldest was submitted. Nobody else sees those numbers — a private desk's requests are never counted for anyone outside it.
+
+:::warning[A desk with no members]
+A desk nobody works is flagged **No members** wherever desks are listed, and its page says so above its requests. Requests sent there have nobody looking at them, so name its agents or close it.
+:::
+
+#### Setting up a desk
+
+The Demand Management Admin creates a desk from **Create Desk** on the **Desks** page, giving it:
 
 - A **name**, which is what its members and administrators call it
 - **What to bring here**, the description requesters choose by. Describe the kind of ask it takes rather than the group behind it
@@ -142,7 +151,28 @@ The Demand Management Admin creates a desk from **Create Desk** on the **Request
 - On a private desk, whether **requesters may add participants**
 - Its **Desk Admins** and **Agents**. Someone holds one role on a desk, and a desk with no members has nobody to look at what arrives
 
-Changing a desk after it is created comes later.
+#### Running a desk
+
+A desk is run from its own page, opened from **Desks** or from the desk named on any request. The page has three sections:
+
+- **Requests** — The requests on the desk that you can see
+- **Members** — Who works the desk, and in which role
+- **Settings** — Its name, what to bring here, who can see its requests (with what that exposes, in plain words), whether it is open, and what requesters may do on it
+
+What you can change depends on your role:
+
+| Change | Desk Admin | Demand Management Admin |
+|---|---|---|
+| Name and what to bring here | Yes | Yes |
+| Open to new requests, requesters can choose it, requesters may add participants | Yes | Yes |
+| Name or remove **Agents** | Yes | Yes |
+| Name or remove **Desk Admins** | No | Yes |
+| **Visibility** | No | Yes |
+| **Delete** the desk | No | Yes, while no request is on it |
+
+Removing someone from a desk unassigns them from the requests they own there.
+
+A desk with requests on it cannot be deleted, because every request is always on exactly one desk. To retire one, **close** it to new requests and turn off **Requesters can choose it**; the requests already there stay put.
 
 ## Who Can See a Request
 

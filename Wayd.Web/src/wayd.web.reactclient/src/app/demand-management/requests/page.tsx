@@ -1,7 +1,6 @@
 'use client'
 
 import { PageTitle } from '@/src/components/common'
-import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle, useLinkedEmployee } from '@/src/hooks'
@@ -9,10 +8,9 @@ import {
   useGetIntakeRequestsQuery,
   useGetNeedByBasesQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
-import { Button, Flex } from 'antd'
+import { Button } from 'antd'
 import Link from 'next/link'
-import { FC, useEffect, useState } from 'react'
-import CreateIntakeDeskForm from '../_components/create-intake-desk-form'
+import { FC, useEffect } from 'react'
 import IntakeRequestsGrid from '../_components/intake-requests-grid'
 
 /**
@@ -22,15 +20,8 @@ import IntakeRequestsGrid from '../_components/intake-requests-grid'
 const IntakeRequestsPage: FC = () => {
   useDocumentTitle('Requests')
   const messageApi = useMessage()
-  const { hasPermissionClaim } = useAuth()
   const { hasLinkedEmployee } = useLinkedEmployee()
   const canSubmit = hasLinkedEmployee
-
-  // Until desk administration exists, this is where an administrator creates the first desk.
-  const canCreateDesk = hasPermissionClaim(
-    'Permissions.IntakeRequests.Administer',
-  )
-  const [openCreateDesk, setOpenCreateDesk] = useState(false)
 
   const { data, isLoading, error, refetch } = useGetIntakeRequestsQuery()
   const { data: needByBases } = useGetNeedByBasesQuery()
@@ -48,19 +39,10 @@ const IntakeRequestsPage: FC = () => {
         title="Requests"
         tooltip="Every request you can see, on every desk. Search here before submitting to find out whether someone has already asked."
         actions={
-          canSubmit || canCreateDesk ? (
-            <Flex gap={8} wrap>
-              {canSubmit && (
-                <Link href="/demand-management/submit">
-                  <Button>Submit a Request</Button>
-                </Link>
-              )}
-              {canCreateDesk && (
-                <Button onClick={() => setOpenCreateDesk(true)}>
-                  Create Desk
-                </Button>
-              )}
-            </Flex>
+          canSubmit ? (
+            <Link href="/demand-management/submit">
+              <Button>Submit a Request</Button>
+            </Link>
           ) : null
         }
       />
@@ -73,12 +55,6 @@ const IntakeRequestsPage: FC = () => {
         csvFileName="requests"
         emptyMessage="No requests found"
       />
-      {openCreateDesk && (
-        <CreateIntakeDeskForm
-          onFormComplete={() => setOpenCreateDesk(false)}
-          onFormCancel={() => setOpenCreateDesk(false)}
-        />
-      )}
     </div>
   )
 }

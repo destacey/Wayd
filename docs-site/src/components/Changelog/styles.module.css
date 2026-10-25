@@ -1,0 +1,97 @@
+.page {
+  max-width: 860px;
+}
+
+.intro {
+  color: var(--ifm-color-emphasis-700);
+  margin-bottom: 2rem;
+}
+
+.release {
+  border-top: 1px solid var(--ifm-color-emphasis-200);
+  padding: 1.5rem 0 1rem;
+}
+
+.releaseHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.releaseHeader h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.date {
+  color: var(--ifm-color-emphasis-600);
+  font-size: 0.9rem;
+}
+
+.items {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+}
+
+.item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.5rem;
+  padding: 0.35rem 0;
+  line-height: 1.5;
+}
+
+.type {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: var(--ifm-color-emphasis-200);
+  color: var(--ifm-color-emphasis-800);
+}
+
+.type[data-type="feat"] {
+  background: var(--ifm-color-primary-contrast-background);
+  color: var(--ifm-color-primary-contrast-foreground);
+}
+
+.type[data-type="fix"] {
+  background: var(--ifm-color-danger-contrast-background);
+  color: var(--ifm-color-danger-contrast-foreground);
+}
+
+.type[data-type="perf"] {
+  background: var(--ifm-color-success-contrast-background);
+  color: var(--ifm-color-success-contrast-foreground);
+}
+
+.scope {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.meta a {
+  color: var(--ifm-color-emphasis-600);
+}
+
+.compare {
+  font-size: 0.85rem;
+}
+
+.empty {
+  color: var(--ifm-color-emphasis-600);
+}

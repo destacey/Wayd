@@ -1,6 +1,7 @@
 import { themes as prismThemes } from "prism-react-renderer";
 import type { Config } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
+import changelogPlugin from "./plugins/changelog";
 
 const config: Config = {
   title: "Wayd",
@@ -52,6 +53,7 @@ const config: Config = {
   ],
 
   plugins: [
+    changelogPlugin,
     [
       "@docusaurus/plugin-client-redirects",
       {
@@ -117,6 +119,7 @@ const config: Config = {
           position: "left",
           label: "Reference",
         },
+        { to: "/changelog", label: "Changelog", position: "left" },
         {
           href: "https://github.com/destacey/Wayd",
           label: "GitHub",
@@ -149,6 +152,7 @@ const config: Config = {
         {
           title: "More",
           items: [
+            { label: "Changelog", to: "/changelog" },
             {
               label: "GitHub",
               href: "https://github.com/destacey/Wayd",

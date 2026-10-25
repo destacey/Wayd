@@ -120,6 +120,83 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         (await reader.ActivityLogs.AnyAsync(a => a.AggregateId == requestId && a.EventType == nameof(IntakeRequestDeletedEvent), ct)).Should().BeTrue();
     }
 
+    [Fact]
+    public async Task UpdateIntakeDesk_ByADeskAdmin_ChangesItsAgentsAndUnassignsTheOneRemoved()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        Employee deskAdmin, leaving, joining;
+        IntakeDesk desk;
+        Guid requestId;
+        await using (var seeding = _fixture.CreateContext())
+        {
+            deskAdmin = SeedEmployee(seeding);
+            leaving = SeedEmployee(seeding);
+            joining = SeedEmployee(seeding);
+            desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true,
+                [new IntakeDeskMemberDetails(deskAdmin.Id, IntakeDeskRole.Admin), new IntakeDeskMemberDetails(leaving.Id, IntakeDeskRole.Agent)],
+                EventActor.System, Now);
+            var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
+            seeding.IntakeDesks.Add(desk);
+            seeding.IntakeChannels.Add(channel);
+            await seeding.SaveChangesAsync(ct);
+            var request = IntakeRequest.Create("Title", "Description", null, deskAdmin.Id, deskAdmin.Id, desk, channel, null, null, EventActor.System, Now).Value;
+            seeding.IntakeRequests.Add(request);
+            await seeding.SaveChangesAsync(ct);
+            request.ChangeAssignee(leaving.Id, EventActor.System, Now);
+            await seeding.SaveChangesAsync(ct);
+            requestId = request.Id;
+        }
+
+        // Act — the Desk Admin holds no claim
+        await using var context = _fixture.CreateContext();
+        var result = await new UpdateIntakeDeskCommandHandler(context, Principal(deskAdmin.Id), User(), _clock).Handle(
+            new UpdateIntakeDeskCommand(desk.Id, "Renamed desk", desk.Description, desk.Visibility, false, false, true,
+                [new IntakeDeskMemberDetails(deskAdmin.Id, IntakeDeskRole.Admin), new IntakeDeskMemberDetails(joining.Id, IntakeDeskRole.Agent)]),
+            ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        await using var reader = _fixture.CreateContext();
+        var saved = await reader.IntakeDesks.AsNoTracking().Include(d => d.Members).SingleAsync(d => d.Id == desk.Id, ct);
+        saved.Name.Should().Be("Renamed desk");
+        saved.IsOpen.Should().BeFalse();
+        saved.Members.Select(m => (m.EmployeeId, m.Role)).Should().BeEquivalentTo(
+            [(deskAdmin.Id, IntakeDeskRole.Admin), (joining.Id, IntakeDeskRole.Agent)]);
+        (await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == requestId, ct)).AssigneeId.Should().BeNull();
+        (await reader.ActivityLogs.AsNoTracking().Where(a => a.AggregateId == desk.Id).Select(a => a.EventType).ToListAsync(ct))
+            .Should().Contain([nameof(IntakeDeskDetailsUpdatedEvent), nameof(IntakeDeskClosedEvent), nameof(IntakeDeskMembersChangedEvent)]);
+    }
+
+    [Fact]
+    public async Task DeleteIntakeDesk_RemovesAnEmptyDeskAndItsMembers()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        IntakeDesk desk;
+        Employee administrator;
+        await using (var seeding = _fixture.CreateContext())
+        {
+            administrator = SeedEmployee(seeding);
+            var agent = SeedEmployee(seeding);
+            desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true,
+                [new IntakeDeskMemberDetails(agent.Id, IntakeDeskRole.Agent)], EventActor.System, Now);
+            seeding.IntakeDesks.Add(desk);
+            await seeding.SaveChangesAsync(ct);
+        }
+
+        // Act
+        await using var context = _fixture.CreateContext();
+        var result = await new DeleteIntakeDeskCommandHandler(context, Principal(administrator.Id), User(), _clock)
+            .Handle(new DeleteIntakeDeskCommand(desk.Id), ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        await using var reader = _fixture.CreateContext();
+        (await reader.IntakeDesks.AnyAsync(d => d.Id == desk.Id, ct)).Should().BeFalse();
+        (await reader.ActivityLogs.AnyAsync(a => a.AggregateId == desk.Id && a.EventType == nameof(IntakeDeskDeletedEvent), ct)).Should().BeTrue();
+    }
+
     private static ICurrentPrincipal Principal(Guid employeeId, params string[] permissions)
     {
         var principal = new Mock<ICurrentPrincipal>();

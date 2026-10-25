@@ -33,4 +33,21 @@ public sealed record IntakeDeskDto
 
     /// <summary>The employees named on the desk, by name, with their roles.</summary>
     public required IReadOnlyList<IntakeDeskMemberDto> Members { get; init; }
+
+    /// <summary>
+    /// What is waiting on the desk, for its members and the Demand Management Admin; null for anyone else,
+    /// so a private desk's numbers never reach someone outside it.
+    /// </summary>
+    public IntakeDeskWaitingDto? Waiting { get; init; }
+
+    /// <summary>Whether the reader may change the desk's details, settings and agents: a Desk Admin on it.</summary>
+    public bool CanManage { get; init; }
+
+    /// <summary>
+    /// Whether the reader may change the desk's visibility and its Desk Admins: the Demand Management Admin.
+    /// </summary>
+    public bool CanAdminister { get; init; }
+
+    /// <summary>Whether the reader may delete the desk: the Demand Management Admin, and only while no request is on it.</summary>
+    public bool CanDelete { get; init; }
 }

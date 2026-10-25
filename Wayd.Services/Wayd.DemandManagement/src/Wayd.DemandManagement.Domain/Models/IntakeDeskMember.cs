@@ -29,4 +29,7 @@ public sealed class IntakeDeskMember
 
     /// <summary>What the employee may do on the desk.</summary>
     public IntakeDeskRole Role { get; private set; }
+
+    /// <summary>Gives the member a different role. Only the desk changes it, which records the change.</summary>
+    internal void ChangeRole(IntakeDeskRole role) => Role = role;
 }

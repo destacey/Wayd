@@ -236,7 +236,8 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         await using var context = _fixture.CreateContext();
 
         // Act
-        var result = await new GetIntakeDeskQueryHandler(context).Handle(new GetIntakeDeskQuery(new IdOrKey(scenario.Private.Key)), ct);
+        var result = await new GetIntakeDeskQueryHandler(context, Principal(Guid.NewGuid()))
+            .Handle(new GetIntakeDeskQuery(new IdOrKey(scenario.Private.Key)), ct);
 
         // Assert
         result!.Visibility.Should().Be(IntakeDeskVisibility.Private);
@@ -245,6 +246,29 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
             Employee = new { scenario.Agent.Id, Name = "Intake Probe" },
             Role = IntakeDeskRole.Agent,
         });
+    }
+
+    [Fact]
+    public async Task GetIntakeDesks_CountWhatIsWaitingOnlyForTheDesksMembers()
+    {
+        // Arrange — a private desk's numbers never reach anyone outside it
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var asAgent = await new GetIntakeDesksQueryHandler(context, Principal(scenario.Agent.Id, holdsView: false))
+            .Handle(new GetIntakeDesksQuery(), ct);
+        var asOutsider = await new GetIntakeDesksQueryHandler(context, Principal(Guid.NewGuid()))
+            .Handle(new GetIntakeDesksQuery(), ct);
+
+        // Assert
+        var worked = asAgent.Single(d => d.Id == scenario.Private.Id);
+        worked.Waiting!.Count.Should().Be(1);
+        worked.Waiting.OldestSubmittedOn.Should().NotBeNull();
+        worked.CanManage.Should().BeFalse();
+        asAgent.Single(d => d.Id == scenario.Open.Id).Waiting.Should().BeNull();
+        asOutsider.Single(d => d.Id == scenario.Private.Id).Waiting.Should().BeNull();
     }
 
     private static ICurrentPrincipal Principal(Guid employeeId, bool holdsView = true)

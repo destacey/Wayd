@@ -188,6 +188,80 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
     }
 
     [Fact]
+    public async Task UpdateDesk_ByItsDeskAdminSucceeds_ButNotByAnAgentNorForVisibility()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await SetFlag(true);
+        var deskAdmin = await SeedEmployee();
+        var agent = await SeedEmployee();
+        var admin = await _factory.CreateAuthenticatedClient(Administer);
+        var deskAdminClient = await _factory.CreateAuthenticatedClient(deskAdmin);
+        var agentClient = await _factory.CreateAuthenticatedClient(agent);
+        var deskId = await CreateDesk(admin.Client, "Open", agents: [agent], admins: [deskAdmin]);
+        object Body(string name, string visibility) => new
+        {
+            id = deskId,
+            name,
+            description = "Anything you need built",
+            visibility,
+            isRequesterSelectable = true,
+            isOpen = true,
+            requesterMayAddParticipants = true,
+            members = new object[]
+            {
+                new { employeeId = deskAdmin, role = "Admin" },
+                new { employeeId = agent, role = "Agent" },
+            },
+        };
+
+        // Act
+        var renamedByAgent = await agentClient.Client.PutAsJsonAsync($"{Desks}/{deskId}", Body($"Desk {Guid.NewGuid():N}"[..20], "Open"), ct);
+        var madePrivateByDeskAdmin = await deskAdminClient.Client.PutAsJsonAsync($"{Desks}/{deskId}", Body($"Desk {Guid.NewGuid():N}"[..20], "Private"), ct);
+        var renamedByDeskAdmin = await deskAdminClient.Client.PutAsJsonAsync($"{Desks}/{deskId}", Body($"Desk {Guid.NewGuid():N}"[..20], "Open"), ct);
+        var asDeskAdmin = await deskAdminClient.Client.GetFromJsonAsync<JsonElement>($"{Desks}/{deskId}", ct);
+
+        // Assert
+        renamedByAgent.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        madePrivateByDeskAdmin.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        renamedByDeskAdmin.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        asDeskAdmin.GetProperty("canManage").GetBoolean().Should().BeTrue();
+        asDeskAdmin.GetProperty("canAdminister").GetBoolean().Should().BeFalse();
+        asDeskAdmin.GetProperty("waiting").GetProperty("count").GetInt32().Should().Be(0);
+    }
+
+    [Fact]
+    public async Task DeleteDesk_NeedsAdminister_AndRefusesADeskWithRequests()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await SetFlag(true);
+        var deskAdmin = await SeedEmployee();
+        var admin = await _factory.CreateAuthenticatedClient(Administer);
+        var deskAdminClient = await _factory.CreateAuthenticatedClient(deskAdmin);
+        var requesterClient = await _factory.CreateAuthenticatedClient(await SeedEmployee());
+        var emptyDeskId = await CreateDesk(admin.Client, "Open", admins: [deskAdmin]);
+        var busyDeskId = await CreateDesk(admin.Client, "Open");
+        await requesterClient.Client.PostAsJsonAsync(Requests, new
+        {
+            title = "Keep me",
+            description = "A request on the desk",
+            deskId = busyDeskId,
+            channelId = await FirstChannel(requesterClient.Client),
+        }, ct);
+
+        // Act
+        var byDeskAdmin = await deskAdminClient.Client.DeleteAsync($"{Desks}/{emptyDeskId}", ct);
+        var busy = await admin.Client.DeleteAsync($"{Desks}/{busyDeskId}", ct);
+        var empty = await admin.Client.DeleteAsync($"{Desks}/{emptyDeskId}", ct);
+
+        // Assert
+        byDeskAdmin.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        busy.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        empty.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
     public async Task CreateDesk_NeedsAdminister()
     {
         // Arrange

@@ -91,6 +91,10 @@ public sealed class IntakeScenario
     public IntakeDesk DeskAdministeredBy(params Guid[] adminIds) =>
         AddDesk(IntakeDeskVisibility.Open, true, true, [.. adminIds.Select(id => new IntakeDeskMemberDetails(id, IntakeDeskRole.Admin))]);
 
+    /// <summary>An open desk with the given members in their roles.</summary>
+    public IntakeDesk DeskWithMembers(params IntakeDeskMemberDetails[] members) =>
+        AddDesk(IntakeDeskVisibility.Open, true, true, members);
+
     private IntakeDesk AddDesk(IntakeDeskVisibility visibility, bool isRequesterSelectable, bool requesterMayAddParticipants,
         IntakeDeskMemberDetails[] members)
     {

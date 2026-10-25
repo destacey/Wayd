@@ -39427,6 +39427,130 @@
         ]
       }
     },
+    "/api/demand-management/intake-desks/{id}": {
+      "put": {
+        "tags": [
+          "IntakeDesks"
+        ],
+        "summary": "Update an intake desk's settings and members.",
+        "description": "Needs a Desk Admin on the desk. Changing its visibility, or naming, removing or re-roling a Desk Admin, needs the Demand Management Admin. A member removed while owning requests on the desk is unassigned from them.",
+        "operationId": "IntakeDesks_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIntakeDeskRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "IntakeDesks"
+        ],
+        "summary": "Delete an intake desk with no requests on it.",
+        "description": "A desk with requests on it cannot be deleted; close it instead.",
+        "operationId": "IntakeDesks_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/demand-management/intake-desks/visibilities": {
       "get": {
         "tags": [
@@ -54571,7 +54695,10 @@
           "visibility",
           "isRequesterSelectable",
           "isOpen",
-          "requesterMayAddParticipants"
+          "requesterMayAddParticipants",
+          "canManage",
+          "canAdminister",
+          "canDelete"
         ],
         "type": "object",
         "properties": {
@@ -54619,6 +54746,27 @@
               "$ref": "#/components/schemas/IntakeDeskMemberDto"
             },
             "description": "The employees named on the desk, by name, with their roles."
+          },
+          "waiting": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeDeskWaitingDto"
+              }
+            ],
+            "description": "What is waiting on the desk, for its members and the Demand Management Admin; null for anyone else,\nso a private desk's numbers never reach someone outside it.",
+            "nullable": true
+          },
+          "canManage": {
+            "type": "boolean",
+            "description": "Whether the reader may change the desk's details, settings and agents: a Desk Admin on it."
+          },
+          "canAdminister": {
+            "type": "boolean",
+            "description": "Whether the reader may change the desk's visibility and its Desk Admins: the Demand Management Admin."
+          },
+          "canDelete": {
+            "type": "boolean",
+            "description": "Whether the reader may delete the desk: the Demand Management Admin, and only while no request is on it."
           }
         },
         "additionalProperties": false,
@@ -54714,6 +54862,27 @@
           }
         ],
         "description": "One desk visibility value: its code, name and what it exposes."
+      },
+      "IntakeDeskWaitingDto": {
+        "required": [
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "How many requests are waiting on the desk.",
+            "format": "int32"
+          },
+          "oldestSubmittedOn": {
+            "type": "string",
+            "description": "When the oldest waiting request was submitted, or null when none is waiting.",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The requests waiting on a desk: how many, and since when the oldest has waited."
       },
       "IntakeRequestDetailsDto": {
         "required": [
@@ -70444,6 +70613,68 @@
           }
         },
         "additionalProperties": false
+      },
+      "UpdateIntakeDeskRequest": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "visibility",
+          "isRequesterSelectable",
+          "isOpen",
+          "requesterMayAddParticipants",
+          "members"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The desk being changed; must match the route.",
+            "format": "uuid"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "description": "What its members and administrators call the desk. Unique."
+          },
+          "description": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "type": "string",
+            "description": "The requester-facing description of what kind of ask to bring here, which requesters choose by."
+          },
+          "visibility": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeDeskVisibility"
+              }
+            ],
+            "description": "How much of a request on the desk reaches people outside it: Open, SummaryOnly or Private. Only the\nDemand Management Admin may change it."
+          },
+          "isRequesterSelectable": {
+            "type": "boolean",
+            "description": "Whether a requester can pick the desk. One they cannot is a destination agents route to."
+          },
+          "isOpen": {
+            "type": "boolean",
+            "description": "Whether the desk accepts new requests."
+          },
+          "requesterMayAddParticipants": {
+            "type": "boolean",
+            "description": "On a private desk, whether the requester may add participants themselves. Agents always can."
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntakeDeskMemberRequest"
+            },
+            "description": "Everyone on the desk after the change, each with their role. Naming, removing or re-roling a Desk Admin\nneeds the Demand Management Admin."
+          }
+        },
+        "additionalProperties": false,
+        "description": "An intake desk's settings and members, overwriting what it has. Settings that do not change record nothing."
       },
       "UpdateIntakeRequestRequest": {
         "required": [

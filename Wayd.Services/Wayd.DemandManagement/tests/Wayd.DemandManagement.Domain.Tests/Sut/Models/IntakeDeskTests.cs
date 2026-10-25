@@ -180,4 +180,276 @@ public sealed class IntakeDeskTests
     }
 
     #endregion RoleOf
+
+    #region UpdateDetails
+
+    [Fact]
+    public void UpdateDetails_WhenChanged_RaisesWithBothEnds()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().WithName("IT").Generate();
+        var previousDescription = sut.Description;
+
+        // Act
+        var result = sut.UpdateDetails(" IT services ", " Laptops and access ", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Name.Should().Be("IT services");
+        var updated = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskDetailsUpdatedEvent>().Subject;
+        updated.Name.Should().Be("IT services");
+        updated.Description.Should().Be("Laptops and access");
+        updated.PreviousName.Should().Be("IT");
+        updated.PreviousDescription.Should().Be(previousDescription);
+    }
+
+    [Fact]
+    public void UpdateDetails_DifferingOnlyByWhitespace_RaisesNothing()
+    {
+        // Arrange — the setters trim, so the comparison is after assignment
+        var sut = new IntakeDeskFaker().Generate();
+
+        // Act
+        sut.UpdateDetails($" {sut.Name} ", $"{sut.Description}  ", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    #endregion UpdateDetails
+
+    #region ChangeVisibility
+
+    [Fact]
+    public void ChangeVisibility_WhenChanged_RaisesWithBothEnds()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().WithVisibility(IntakeDeskVisibility.Private).Generate();
+
+        // Act
+        sut.ChangeVisibility(IntakeDeskVisibility.Open, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.Visibility.Should().Be(IntakeDeskVisibility.Open);
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskVisibilityChangedEvent>().Subject;
+        changed.FromVisibility.Should().Be(IntakeDeskVisibility.Private);
+        changed.ToVisibility.Should().Be(IntakeDeskVisibility.Open);
+    }
+
+    [Fact]
+    public void ChangeVisibility_ToTheSameValue_RaisesNothing()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().WithVisibility(IntakeDeskVisibility.SummaryOnly).Generate();
+
+        // Act
+        sut.ChangeVisibility(IntakeDeskVisibility.SummaryOnly, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    #endregion ChangeVisibility
+
+    #region Open and Close
+
+    [Fact]
+    public void Close_AnOpenDesk_ClosesItAndRaises()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().WithIsOpen(true).Generate();
+
+        // Act
+        sut.Close(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.IsOpen.Should().BeFalse();
+        sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskClosedEvent>();
+    }
+
+    [Fact]
+    public void Open_AClosedDesk_OpensItAndRaises()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().WithIsOpen(false).Generate();
+
+        // Act
+        sut.Open(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.IsOpen.Should().BeTrue();
+        sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskOpenedEvent>();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void OpenOrClose_AlreadyThere_RaisesNothing(bool isOpen)
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().WithIsOpen(isOpen).Generate();
+
+        // Act
+        var result = isOpen ? sut.Open(EventActor.System, _dateTimeProvider.Now) : sut.Close(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    #endregion Open and Close
+
+    #region ChangeRequesterSettings
+
+    [Fact]
+    public void ChangeRequesterSettings_WhenChanged_RaisesWithBothEnds()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().WithIsRequesterSelectable(true).WithRequesterMayAddParticipants(true).Generate();
+
+        // Act
+        sut.ChangeRequesterSettings(false, true, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.IsRequesterSelectable.Should().BeFalse();
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskRequesterSettingsChangedEvent>().Subject;
+        changed.IsRequesterSelectable.Should().BeFalse();
+        changed.PreviousIsRequesterSelectable.Should().BeTrue();
+        changed.RequesterMayAddParticipants.Should().BeTrue();
+        changed.PreviousRequesterMayAddParticipants.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ChangeRequesterSettings_Unchanged_RaisesNothing()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().WithIsRequesterSelectable(false).WithRequesterMayAddParticipants(true).Generate();
+
+        // Act
+        sut.ChangeRequesterSettings(false, true, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    #endregion ChangeRequesterSettings
+
+    #region ChangeMembers
+
+    [Fact]
+    public void ChangeMembers_AddingRemovingAndReRoling_RaisesOneEventWithEveryPart()
+    {
+        // Arrange
+        var staying = Guid.NewGuid();
+        var promoted = Guid.NewGuid();
+        var leaving = Guid.NewGuid();
+        var joining = Guid.NewGuid();
+        var sut = new IntakeDeskFaker()
+            .WithMembers(new(staying, IntakeDeskRole.Agent), new(promoted, IntakeDeskRole.Agent), new(leaving, IntakeDeskRole.Admin))
+            .Generate();
+
+        // Act
+        var result = sut.ChangeMembers(
+            [new(staying, IntakeDeskRole.Agent), new(promoted, IntakeDeskRole.Admin), new(joining, IntakeDeskRole.Agent)],
+            EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Members.Select(m => (m.EmployeeId, m.Role)).Should().BeEquivalentTo(
+            [(staying, IntakeDeskRole.Agent), (promoted, IntakeDeskRole.Admin), (joining, IntakeDeskRole.Agent)]);
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskMembersChangedEvent>().Subject;
+        changed.Added.Should().Equal(new IntakeDeskMemberDetails(joining, IntakeDeskRole.Agent));
+        changed.Removed.Should().Equal(new IntakeDeskMemberDetails(leaving, IntakeDeskRole.Admin));
+        changed.RoleChanges.Should().Equal(new IntakeDeskRoleChange(promoted, IntakeDeskRole.Agent, IntakeDeskRole.Admin));
+        changed.Members.Should().HaveCount(3);
+    }
+
+    [Fact]
+    public void ChangeMembers_ToTheSameMembers_RaisesNothing()
+    {
+        // Arrange
+        var agent = Guid.NewGuid();
+        var sut = new IntakeDeskFaker().WithAgents(agent).Generate();
+
+        // Act
+        sut.ChangeMembers([new(agent, IntakeDeskRole.Agent)], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeMembers_GivingSomeoneTwoRoles_FailsAndChangesNothing()
+    {
+        // Arrange
+        var agent = Guid.NewGuid();
+        var sut = new IntakeDeskFaker().WithAgents(agent).Generate();
+
+        // Act
+        var result = sut.ChangeMembers([new(agent, IntakeDeskRole.Agent), new(agent, IntakeDeskRole.Admin)],
+            EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("An employee can hold only one role on a desk.");
+        sut.Members.Should().ContainSingle().Which.Role.Should().Be(IntakeDeskRole.Agent);
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(IntakeDeskRole.Agent, IntakeDeskRole.Agent, false)]
+    [InlineData(IntakeDeskRole.Agent, IntakeDeskRole.Admin, true)]
+    [InlineData(IntakeDeskRole.Admin, IntakeDeskRole.Agent, true)]
+    public void MembershipChange_ReRoling_TouchesDeskAdminsOnlyWhenAdminIsAnEnd(
+        IntakeDeskRole from, IntakeDeskRole to, bool expected)
+    {
+        // Arrange
+        var member = Guid.NewGuid();
+        var sut = new IntakeDeskFaker().WithMembers(new IntakeDeskMemberDetails(member, from)).Generate();
+
+        // Act
+        var change = sut.MembershipChange([new(member, to)]);
+
+        // Assert
+        change.TouchesDeskAdmins.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(IntakeDeskRole.Agent, false)]
+    [InlineData(IntakeDeskRole.Admin, true)]
+    public void MembershipChange_AddingOrRemoving_TouchesDeskAdminsOnlyForADeskAdmin(IntakeDeskRole role, bool expected)
+    {
+        // Arrange
+        var existing = Guid.NewGuid();
+        var sut = new IntakeDeskFaker().WithMembers(new IntakeDeskMemberDetails(existing, role)).Generate();
+
+        // Act
+        var removing = sut.MembershipChange([]);
+        var adding = sut.MembershipChange([new(existing, role), new(Guid.NewGuid(), role)]);
+
+        // Assert
+        removing.TouchesDeskAdmins.Should().Be(expected);
+        adding.TouchesDeskAdmins.Should().Be(expected);
+    }
+
+    #endregion ChangeMembers
+
+    #region Delete
+
+    [Fact]
+    public void Delete_RecordsTheDeskByName()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().WithName("IT").Generate();
+
+        // Act
+        sut.Delete(EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        var deleted = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskDeletedEvent>().Subject;
+        deleted.Id.Should().Be(sut.Id);
+        deleted.Name.Should().Be("IT");
+    }
+
+    #endregion Delete
 }

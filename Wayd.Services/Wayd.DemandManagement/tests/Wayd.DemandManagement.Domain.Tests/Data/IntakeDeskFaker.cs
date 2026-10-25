@@ -12,7 +12,7 @@ public sealed class IntakeDeskFaker : PrivateConstructorFaker<IntakeDesk>
     {
         RuleFor(x => x.Id, f => f.Random.Guid());
         RuleFor(x => x.Key, f => f.Random.Int(1, 10000));
-        RuleFor(x => x.Name, f => f.PickRandom("Product delivery", "IT", "Data", "Security"));
+        RuleFor(x => x.Name, f => $"{f.PickRandom("Product delivery", "IT", "Data", "Security")} {f.IndexGlobal}");
         RuleFor(x => x.Description, f => f.Lorem.Sentence());
         RuleFor(x => x.Visibility, IntakeDeskVisibility.Open);
         RuleFor(x => x.IsRequesterSelectable, true);

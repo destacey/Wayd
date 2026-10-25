@@ -45676,6 +45676,147 @@ export class IntakeDesksClient {
     }
 
     /**
+     * Update an intake desk's settings and members.
+     * @return No Content
+     */
+    update(id: string, request: UpdateIntakeDeskRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdate(_response);
+        });
+    }
+
+    protected processUpdate(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Delete an intake desk with no requests on it.
+     * @return No Content
+     */
+    delete(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDelete(_response);
+        });
+    }
+
+    protected processDelete(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get the desk visibility values, with their codes.
      * @return OK
      */
@@ -55481,6 +55622,15 @@ export interface IntakeDeskDto {
     requesterMayAddParticipants: boolean;
     /** The employees named on the desk, by name, with their roles. */
     members: IntakeDeskMemberDto[];
+    /** What is waiting on the desk, for its members and the Demand Management Admin; null for anyone else,
+so a private desk's numbers never reach someone outside it. */
+    waiting?: IntakeDeskWaitingDto | undefined;
+    /** Whether the reader may change the desk's details, settings and agents: a Desk Admin on it. */
+    canManage: boolean;
+    /** Whether the reader may change the desk's visibility and its Desk Admins: the Demand Management Admin. */
+    canAdminister: boolean;
+    /** Whether the reader may delete the desk: the Demand Management Admin, and only while no request is on it. */
+    canDelete: boolean;
 }
 
 /** One member of an intake desk and what they may do on it. */
@@ -55516,6 +55666,14 @@ export enum IntakeDeskVisibility {
 
 /** One desk visibility value: its code, name and what it exposes. */
 export interface IntakeDeskVisibilityDto extends CommonEnumDtoOfIntakeDeskVisibility {
+}
+
+/** The requests waiting on a desk: how many, and since when the oldest has waited. */
+export interface IntakeDeskWaitingDto {
+    /** How many requests are waiting on the desk. */
+    count: number;
+    /** When the oldest waiting request was submitted, or null when none is waiting. */
+    oldestSubmittedOn?: Date | undefined;
 }
 
 /** One intake request as its reader may see it: the summary always, the substance only when they may read it. */
@@ -60500,6 +60658,28 @@ export interface UpdateHolidayCalendarRequest {
     name: string;
     /** What the calendar covers, such as the region or office. */
     description?: string | undefined;
+}
+
+/** An intake desk's settings and members, overwriting what it has. Settings that do not change record nothing. */
+export interface UpdateIntakeDeskRequest {
+    /** The desk being changed; must match the route. */
+    id: string;
+    /** What its members and administrators call the desk. Unique. */
+    name: string;
+    /** The requester-facing description of what kind of ask to bring here, which requesters choose by. */
+    description: string;
+    /** How much of a request on the desk reaches people outside it: Open, SummaryOnly or Private. Only the
+Demand Management Admin may change it. */
+    visibility: IntakeDeskVisibility;
+    /** Whether a requester can pick the desk. One they cannot is a destination agents route to. */
+    isRequesterSelectable: boolean;
+    /** Whether the desk accepts new requests. */
+    isOpen: boolean;
+    /** On a private desk, whether the requester may add participants themselves. Agents always can. */
+    requesterMayAddParticipants: boolean;
+    /** Everyone on the desk after the change, each with their role. Naming, removing or re-roling a Desk Admin
+needs the Demand Management Admin. */
+    members: IntakeDeskMemberRequest[];
 }
 
 /** An intake request's editable fields, overwritten as a whole. Fields that did not change record nothing. */

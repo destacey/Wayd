@@ -17,8 +17,8 @@ import {
 import { findScrollParent } from '@/src/utils/scroll-parent'
 import styles from '../following.module.css'
 import FollowedRecordHealth from './followed-record-health'
-import { recordId } from './following-filters'
-import { formatTimeAgo } from './time-ago'
+import { recordId } from '@/src/components/common/record/record-identity'
+import { formatTimeAgo } from '@/src/utils/time-ago'
 
 export interface FollowedRecordsListProps {
   records: FollowedRecordDto[]

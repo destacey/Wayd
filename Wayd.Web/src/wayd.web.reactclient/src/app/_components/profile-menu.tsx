@@ -2,6 +2,7 @@
 
 import { Avatar, Dropdown, Grid, MenuProps, Space, Typography } from 'antd'
 import {
+  BellOutlined,
   BgColorsOutlined,
   EyeOutlined,
   FileTextOutlined,
@@ -47,6 +48,12 @@ const ProfileMenu = () => {
             label: 'Following',
             icon: <EyeOutlined />,
             onClick: () => router.push('/account/following'),
+          },
+          {
+            key: 'notifications',
+            label: 'Notifications',
+            icon: <BellOutlined />,
+            onClick: () => router.push('/account/notifications'),
           },
         ]
       : []),

@@ -21,6 +21,7 @@ import {
 } from 'antd'
 import useMenuToggle from '../../components/contexts/menu-toggle'
 import { useAppMenuItems } from './menu'
+import NotificationBell from './notifications/notification-bell'
 import ProfileMenu from './profile-menu'
 import GlobalSearchModal from './global-search/global-search-modal'
 import { useGlobalSearch } from './global-search/use-global-search'
@@ -222,6 +223,7 @@ const AppHeader: FC = React.memo(() => {
             style={{ color: appBar.color }}
           />
         </Tooltip>
+        <NotificationBell />
         {profileComponent}
       </Flex>
       <GlobalSearchModal

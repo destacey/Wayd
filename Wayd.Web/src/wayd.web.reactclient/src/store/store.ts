@@ -1,4 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit'
+import { setupListeners } from '@reduxjs/toolkit/query'
 import teamReducer from './features/organizations/team-slice'
 import roadmapTimelineSettingsReducer from './features/planning/roadmap-timeline-settings-slice'
 import workProcessReducer from './features/work-management/work-process-slice'
@@ -20,6 +21,10 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(apiSlice.middleware),
 })
+
+// Tracks window focus and connectivity, without which a query's
+// refetchOnFocus and skipPollingIfUnfocused do nothing.
+setupListeners(store.dispatch)
 
 export type RootState = ReturnType<typeof store.getState>
 export type AppDispatch = typeof store.dispatch

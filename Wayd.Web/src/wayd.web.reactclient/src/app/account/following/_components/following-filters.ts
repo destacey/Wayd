@@ -1,9 +1,4 @@
-import {
-  FollowCountsDto,
-  FollowedRecordDto,
-  FollowView,
-} from '@/src/services/wayd-api'
-import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
+import { FollowCountsDto, FollowView } from '@/src/services/wayd-api'
 
 /** What narrows the list: one kind of record, one "needs a look" view, both or neither. */
 export interface FollowingFilter {
@@ -29,18 +24,3 @@ export const viewCount = (
   counts: FollowCountsDto | undefined,
   view: FollowView,
 ) => counts?.views.find((v) => v.view === view)?.count ?? 0
-
-/** Short names for the kinds of record, sized to fit a list row. */
-const typeLabels: Record<string, string> = {
-  [FollowOwnerTypes.Project]: 'Project',
-  [FollowOwnerTypes.Program]: 'Program',
-  [FollowOwnerTypes.PlanningIntervalObjective]: 'PI Objective',
-}
-
-/** What to call a kind of record: its short name, else the name the API gives it. */
-export const typeLabel = (ownerType: string, displayName?: string) =>
-  typeLabels[ownerType] ?? displayName ?? 'Record'
-
-/** Identifies a followed record across owner types. */
-export const recordId = (record: Pick<FollowedRecordDto, 'ownerType' | 'id'>) =>
-  `${record.ownerType}:${record.id}`

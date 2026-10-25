@@ -9,9 +9,10 @@ import {
   useGetIntakeRequestsQuery,
   useGetNeedByBasesQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
-import { Button } from 'antd'
+import { Button, Flex } from 'antd'
 import Link from 'next/link'
-import { FC, useEffect } from 'react'
+import { FC, useEffect, useState } from 'react'
+import CreateIntakeDeskForm from '../_components/create-intake-desk-form'
 import IntakeRequestsGrid from '../_components/intake-requests-grid'
 
 /**
@@ -25,6 +26,12 @@ const IntakeRequestsPage: FC = () => {
   const { hasLinkedEmployee } = useLinkedEmployee()
   const canSubmit =
     hasPermissionClaim('Permissions.IntakeRequests.Create') && hasLinkedEmployee
+
+  // Until desk administration exists, this is where an administrator creates the first desk.
+  const canCreateDesk = hasPermissionClaim(
+    'Permissions.IntakeRequests.Administer',
+  )
+  const [openCreateDesk, setOpenCreateDesk] = useState(false)
 
   const { data, isLoading, error, refetch } = useGetIntakeRequestsQuery()
   const { data: needByBases } = useGetNeedByBasesQuery()
@@ -42,10 +49,19 @@ const IntakeRequestsPage: FC = () => {
         title="Requests"
         tooltip="Every request you can see, on every desk. Search here before submitting to find out whether someone has already asked."
         actions={
-          canSubmit ? (
-            <Link href="/demand-management/submit">
-              <Button>Submit a Request</Button>
-            </Link>
+          canSubmit || canCreateDesk ? (
+            <Flex gap={8} wrap>
+              {canSubmit && (
+                <Link href="/demand-management/submit">
+                  <Button>Submit a Request</Button>
+                </Link>
+              )}
+              {canCreateDesk && (
+                <Button onClick={() => setOpenCreateDesk(true)}>
+                  Create Desk
+                </Button>
+              )}
+            </Flex>
           ) : null
         }
       />
@@ -58,6 +74,12 @@ const IntakeRequestsPage: FC = () => {
         csvFileName="requests"
         emptyMessage="No requests found"
       />
+      {openCreateDesk && (
+        <CreateIntakeDeskForm
+          onFormComplete={() => setOpenCreateDesk(false)}
+          onFormCancel={() => setOpenCreateDesk(false)}
+        />
+      )}
     </div>
   )
 }

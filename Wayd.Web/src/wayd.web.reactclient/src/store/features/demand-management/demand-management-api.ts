@@ -5,6 +5,7 @@ import {
   getIntakeRequestsClient,
 } from '@/src/services/clients'
 import {
+  CreateIntakeDeskRequest,
   CreateIntakeRequestRequest,
   EmployeeNavigationDto,
   IntakeChannelDto,
@@ -231,6 +232,20 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       providesTags: [{ type: QueryTags.IntakeDesk, id: 'LIST' }],
     }),
 
+    createIntakeDesk: builder.mutation<ObjectIdAndKey, CreateIntakeDeskRequest>(
+      {
+        queryFn: async (request) => {
+          try {
+            const data = await getIntakeDesksClient().create(request)
+            return { data }
+          } catch (error) {
+            return toError(error)
+          }
+        },
+        invalidatesTags: [{ type: QueryTags.IntakeDesk, id: 'LIST' }],
+      },
+    ),
+
     getIntakeDeskVisibilities: builder.query<IntakeDeskVisibilityDto[], void>({
       queryFn: async () => {
         try {
@@ -288,6 +303,7 @@ export const {
   useGetNeedByBasisFamiliesQuery,
   useGetIntakeDesksQuery,
   useGetIntakeDeskVisibilitiesQuery,
+  useCreateIntakeDeskMutation,
   useGetIntakeChannelsQuery,
   useGetIntakeEmployeeOptionsQuery,
 } = demandManagementApi

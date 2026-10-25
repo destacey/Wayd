@@ -1,0 +1,208 @@
+'use client'
+
+import { EmployeeSelect } from '@/src/components/common/organizations'
+import { useMessage } from '@/src/components/contexts/messaging'
+import { useModalForm } from '@/src/hooks'
+import { IntakeDeskVisibility } from '@/src/services/wayd-api'
+import {
+  useCreateIntakeDeskMutation,
+  useGetIntakeDeskVisibilitiesQuery,
+  useGetIntakeEmployeeOptionsQuery,
+} from '@/src/store/features/demand-management/demand-management-api'
+import { toApiError, toFormErrors } from '@/src/utils'
+import { Flex, Form, Input, Modal, Radio, Switch, Typography } from 'antd'
+import { FC } from 'react'
+
+const { Item } = Form
+const { Text } = Typography
+
+export interface CreateIntakeDeskFormProps {
+  onFormComplete: () => void
+  onFormCancel: () => void
+}
+
+interface CreateIntakeDeskFormValues {
+  name: string
+  description: string
+  visibility: IntakeDeskVisibility
+  isRequesterSelectable: boolean
+  isOpen: boolean
+  requesterMayAddParticipants: boolean
+  reviewerIds: string[]
+}
+
+/**
+ * Creates a desk, so a new install can take requests before desk administration exists. Changing or
+ * archiving a desk, and moving requests between desks, are not here.
+ */
+const CreateIntakeDeskForm: FC<CreateIntakeDeskFormProps> = ({
+  onFormComplete,
+  onFormCancel,
+}) => {
+  const messageApi = useMessage()
+  const [createDesk] = useCreateIntakeDeskMutation()
+  const { data: visibilities } = useGetIntakeDeskVisibilitiesQuery()
+  const { data: employees } = useGetIntakeEmployeeOptionsQuery()
+
+  const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
+    useModalForm<CreateIntakeDeskFormValues>({
+      onSubmit: async (values, form) => {
+        try {
+          await createDesk({
+            name: values.name.trim(),
+            description: values.description.trim(),
+            visibility: values.visibility,
+            isRequesterSelectable: values.isRequesterSelectable,
+            isOpen: values.isOpen,
+            requesterMayAddParticipants: values.requesterMayAddParticipants,
+            reviewerIds: values.reviewerIds ?? [],
+          }).unwrap()
+          messageApi.success('Desk created.')
+          return true
+        } catch (error) {
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            form.setFields(toFormErrors(apiError.errors))
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(apiError.detail ?? 'Failed to create the desk.')
+          }
+          return false
+        }
+      },
+      onComplete: onFormComplete,
+      onCancel: onFormCancel,
+      errorMessage: 'Failed to create the desk.',
+      permission: 'Permissions.IntakeRequests.Administer',
+    })
+
+  return (
+    <Modal
+      title="Create Desk"
+      open={isOpen}
+      onOk={handleOk}
+      okButtonProps={{ disabled: !isValid }}
+      okText="Create"
+      confirmLoading={isSaving}
+      onCancel={handleCancel}
+      keyboard={false}
+      destroyOnHidden
+      width={640}
+    >
+      <Form
+        form={form}
+        size="small"
+        layout="vertical"
+        name="create-intake-desk-form"
+        initialValues={{
+          isRequesterSelectable: true,
+          isOpen: true,
+          requesterMayAddParticipants: true,
+          reviewerIds: [],
+        }}
+      >
+        <Item
+          name="name"
+          label="Name"
+          extra="What reviewers and administrators call the desk."
+          rules={[
+            { required: true, whitespace: true, message: 'Name is required.' },
+            { max: 128 },
+          ]}
+        >
+          <Input maxLength={128} showCount />
+        </Item>
+        <Item
+          name="description"
+          label="What to bring here"
+          extra="Requesters choose a desk by this, so describe the kind of ask it takes rather than the group behind it."
+          rules={[
+            {
+              required: true,
+              whitespace: true,
+              message: 'Describe what this desk takes.',
+            },
+            { max: 1024 },
+          ]}
+        >
+          <Input.TextArea
+            autoSize={{ minRows: 2, maxRows: 4 }}
+            maxLength={1024}
+            showCount
+          />
+        </Item>
+        <Item
+          name="visibility"
+          label="Who can see its requests"
+          rules={[{ required: true, message: 'Choose a visibility.' }]}
+        >
+          <Radio.Group>
+            <Flex vertical gap={8}>
+              {(visibilities ?? []).map((v) => (
+                <Radio key={v.code} value={v.code}>
+                  <Flex vertical>
+                    <Text>{v.name}</Text>
+                    {v.description && (
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {v.description}
+                      </Text>
+                    )}
+                  </Flex>
+                </Radio>
+              ))}
+            </Flex>
+          </Radio.Group>
+        </Item>
+        <Item
+          noStyle
+          shouldUpdate={(previous, current) =>
+            previous.visibility !== current.visibility
+          }
+        >
+          {({ getFieldValue }) =>
+            getFieldValue('visibility') === IntakeDeskVisibility.Private && (
+              <Item
+                name="requesterMayAddParticipants"
+                label="Requesters may add participants"
+                valuePropName="checked"
+                extra="Reviewers can always add people. A private desk keeps its requests from the company, not from the person asking."
+              >
+                <Switch />
+              </Item>
+            )
+          }
+        </Item>
+        <Item
+          name="isRequesterSelectable"
+          label="Requesters can choose it"
+          valuePropName="checked"
+          extra="Turn off for a desk reviewers route requests to, but requesters never pick."
+        >
+          <Switch />
+        </Item>
+        <Item
+          name="isOpen"
+          label="Open to new requests"
+          valuePropName="checked"
+        >
+          <Switch />
+        </Item>
+        <Item
+          name="reviewerIds"
+          label="Reviewers"
+          extra="A desk with no reviewers has nobody to look at what arrives."
+        >
+          <EmployeeSelect
+            allowMultiple
+            employees={(employees ?? []).map((e) => ({
+              label: e.name,
+              value: e.id,
+            }))}
+          />
+        </Item>
+      </Form>
+    </Modal>
+  )
+}
+
+export default CreateIntakeDeskForm

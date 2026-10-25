@@ -6,6 +6,11 @@ on:
     paths:
       - "docs/**"
       - "docs-site/**"
+  # The changelog page is built from GitHub releases, which change without a push.
+  # A schedule runs on main, which the github-pages environment accepts; a release
+  # event would run on the release's tag.
+  schedule:
+    - cron: "17 6 * * *"
   workflow_dispatch:
 
     # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
@@ -39,6 +44,9 @@ jobs:
 
       - name: Build Docusaurus site
         working-directory: docs-site
+        env:
+          # Read the releases for the changelog page without the anonymous rate limit.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build
 
       - name: Setup Pages

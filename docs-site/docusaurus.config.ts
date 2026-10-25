@@ -1,11 +1,12 @@
 import { themes as prismThemes } from "prism-react-renderer";
 import type { Config } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
+import changelogPlugin from "./plugins/changelog";
 
 const config: Config = {
   title: "Wayd",
   tagline:
-    "Work management for planning, managing, and delivering across teams",
+    "Wayd is an intelligent delivery management platform designed to give leaders and teams end-to-end visibility into software delivery.",
   favicon: "img/favicon.ico",
 
   future: {
@@ -33,9 +34,26 @@ const config: Config = {
       onBrokenMarkdownLinks: "throw",
     },
   },
-  themes: ["@docusaurus/theme-mermaid"],
+  themes: [
+    "@docusaurus/theme-mermaid",
+    [
+      // Builds the search index at build time, so search works on GitHub Pages
+      // with no external service.
+      "@easyops-cn/docusaurus-search-local",
+      {
+        hashed: true,
+        docsDir: "../docs",
+        docsRouteBasePath: "docs",
+        indexBlog: false,
+        indexPages: false,
+        highlightSearchTermsOnTargetPage: true,
+        explicitSearchResultPath: true,
+      },
+    ],
+  ],
 
   plugins: [
+    changelogPlugin,
     [
       "@docusaurus/plugin-client-redirects",
       {
@@ -71,12 +89,17 @@ const config: Config = {
   ],
 
   themeConfig: {
+    image: "img/wayd-social-card.jpg",
     colorMode: {
       defaultMode: "light",
       respectPrefersColorScheme: true,
     },
     navbar: {
       title: "Wayd",
+      logo: {
+        alt: "Wayd",
+        src: "img/wayd-icon.png",
+      },
       items: [
         {
           type: "docSidebar",
@@ -96,6 +119,7 @@ const config: Config = {
           position: "left",
           label: "Reference",
         },
+        { to: "/changelog", label: "Changelog", position: "left" },
         {
           href: "https://github.com/destacey/Wayd",
           label: "GitHub",
@@ -128,6 +152,7 @@ const config: Config = {
         {
           title: "More",
           items: [
+            { label: "Changelog", to: "/changelog" },
             {
               label: "GitHub",
               href: "https://github.com/destacey/Wayd",

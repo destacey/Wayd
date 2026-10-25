@@ -1,6 +1,7 @@
 ﻿using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Events.Planning.Iterations;
+using Wayd.Common.Domain.Events.Planning.PlanningIntervalObjectives;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervals;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events.StrategicManagement;
@@ -104,6 +105,25 @@ public static class DurableEventRoutes
         // Organization Employee → their EmployeeCapacity, whose allocations end when they are deactivated. No
         // in-request reader; a people sync deactivates many at once and none may be lost.
         typeof(EmployeeDeactivatedEvent),
+
+        // Changes people are told about → their notifications. Nothing in the request that made the change
+        // reads a notification, and a failure to write one must not fail that request. ProjectCreatedEvent is
+        // routed above for the Work projection and notifies too.
+        typeof(ProjectStatusChangedEventV2),
+        typeof(ProjectLifecycleChangedEventV2),
+        typeof(ProjectHealthCheckAddedEventV2),
+        typeof(ProjectTimelineChangedEventV2),
+        typeof(ProjectRolesChangedEventV2),
+        typeof(ProjectReparentedEventV2),
+        typeof(ProjectScoreRecordedEventV2),
+        typeof(ProgramCreatedEvent),
+        typeof(ProgramStatusChangedEvent),
+        typeof(ProgramTimelineChangedEvent),
+        typeof(ProgramRolesChangedEvent),
+        typeof(PlanningIntervalObjectiveCreatedEvent),
+        typeof(PlanningIntervalObjectiveStatusChangedEvent),
+        typeof(PlanningIntervalObjectiveHealthCheckAddedEvent),
+        typeof(PlanningIntervalObjectiveTimelineChangedEvent),
 
         // Superseded by TeamDetailsUpdatedEvent; routed durably for envelopes written before the switch.
 #pragma warning disable CS0618

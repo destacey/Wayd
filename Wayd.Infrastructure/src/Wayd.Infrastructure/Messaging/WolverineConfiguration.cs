@@ -276,6 +276,7 @@ public static class WolverineConfiguration
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Identity.Roles.IRoleService>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.SystemSettings.ISystemSettingsStore>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Following.IFollowStore>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Notifications.INotificationStore>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.FeatureManagement.IFeatureFlags>();
 
         // The DbContext facades are allow-listed for CORRECTNESS, like AmbientUserId below, not opaqueness.

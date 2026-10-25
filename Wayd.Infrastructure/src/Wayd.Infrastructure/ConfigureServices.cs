@@ -14,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Infrastructure.Following;
+using Wayd.Infrastructure.Notifications;
 using Wayd.Infrastructure.ConnectorModules;
 using Wayd.Infrastructure.DataProtection;
 using Wayd.Infrastructure.FeatureManagement;
@@ -102,6 +103,7 @@ public static class ConfigureServices
         services.AddScoped<IStatusRecordCounter, DeploymentStatusRecordMigrator>();
 
         services.AddFollowing();
+        services.AddNotifications();
 
         // Data protection (at-rest secret encryption) must initialize before
         // persistence so the EF model can pick up the protector via SecretProtectorAccessor.

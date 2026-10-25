@@ -9,6 +9,7 @@ import {
   ProjectOutlined,
   FundOutlined,
   ProductOutlined,
+  InboxOutlined,
 } from '@ant-design/icons'
 import {
   buildRouteKeyMap,
@@ -28,6 +29,7 @@ const menuIcons = {
   org: <TeamOutlined />,
   planning: <ScheduleOutlined />,
   ppm: <ProjectOutlined />,
+  demand: <InboxOutlined />,
   product: <ProductOutlined />,
   strategy: <FundOutlined />,
   work: <CarryOutOutlined />,
@@ -38,6 +40,7 @@ interface MenuOptions {
   planningPoker: boolean
   storyMaps: boolean
   productManagement: boolean
+  demandManagement: boolean
   /**
    * Whether the signed-in account is linked to an employee record. Personal views are keyed on the
    * employee, so they are omitted entirely for an unlinked account rather than offered and empty.
@@ -258,6 +261,24 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
   //     ),
   //   ],
   // ),
+  ...(options.demandManagement
+    ? [
+        restrictedMenuSection(
+          'Demand Management',
+          'demand',
+          undefined,
+          menuIcons.demand,
+          [
+            restrictedPermissionMenuItem(
+              'Permissions.IntakeRequests.View',
+              'Requests',
+              'demand.requests',
+              '/demand-management/requests',
+            ),
+          ],
+        ),
+      ]
+    : []),
   { key: 'settings-divider', type: 'divider' },
   menuItem('Settings', 'settings', '/settings', menuIcons.settings),
 ]
@@ -268,11 +289,13 @@ const useAppMenuItems = () => {
   const { isEnabled: planningPoker } = useFeatureFlag('planning-poker')
   const { isEnabled: storyMaps } = useFeatureFlag('story-maps')
   const { isEnabled: productManagement } = useFeatureFlag('product-management')
+  const { isEnabled: demandManagement } = useFeatureFlag('demand-management')
 
   const items = buildMenuItems({
     planningPoker,
     storyMaps,
     productManagement,
+    demandManagement,
     hasLinkedEmployee,
   })
 

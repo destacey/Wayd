@@ -269,7 +269,7 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
           undefined,
           menuIcons.demand,
           [
-            // Submitting needs a linked employee, so an unlinked account is not offered it.
+            // Both are keyed on the employee, so an unlinked account is offered neither.
             ...(options.hasLinkedEmployee
               ? [
                   restrictedPermissionMenuItem(
@@ -277,6 +277,12 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
                     'Submit a Request',
                     'demand.submit',
                     '/demand-management/submit',
+                  ),
+                  restrictedPermissionMenuItem(
+                    'Permissions.IntakeRequests.View',
+                    'My Requests',
+                    'demand.my-requests',
+                    '/demand-management/my-requests',
                   ),
                 ]
               : []),

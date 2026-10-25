@@ -131,9 +131,10 @@ describe('useAppMenuItems', () => {
 
     // Assert
     expect(keysOf(result.current.menuItems)).toContain('demand.submit')
+    expect(keysOf(result.current.menuItems)).toContain('demand.my-requests')
   })
 
-  it('withholds Submit a Request from an account with no linked employee', () => {
+  it('withholds Submit a Request and My Requests from an account with no linked employee', () => {
     // Arrange — submitting needs an employee to be the submitter
     mockFlags['demand-management'] = true
     mockAuth.employeeId = null
@@ -145,6 +146,7 @@ describe('useAppMenuItems', () => {
     const keys = keysOf(result.current.menuItems)
     expect(keys).toContain('demand.requests')
     expect(keys).not.toContain('demand.submit')
+    expect(keys).not.toContain('demand.my-requests')
   })
 
   it('withholds Demand Management from someone who cannot view requests', () => {

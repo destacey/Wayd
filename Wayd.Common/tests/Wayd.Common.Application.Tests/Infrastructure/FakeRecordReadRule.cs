@@ -36,9 +36,10 @@ public sealed class FakeRecordReadRule(string ownerType) : IRecordReadRule
         string? parentKey = null,
         string? parentName = null,
         HealthStatus? health = null,
-        LifecycleCategory lifecycle = LifecycleCategory.Active)
+        LifecycleCategory lifecycle = LifecycleCategory.Active,
+        Guid? id = null)
     {
-        var record = new FakeRecord(Guid.NewGuid(), key, name, parentKey, parentName, health, lifecycle);
+        var record = new FakeRecord(id ?? Guid.NewGuid(), key, name, parentKey, parentName, health, lifecycle);
         _records.Add(record);
         return record;
     }
@@ -86,6 +87,9 @@ public sealed class FakeRecordReadRule(string ownerType) : IRecordReadRule
                 StatusName = r.Lifecycle.ToString(),
                 Lifecycle = r.Lifecycle,
                 Health = r.Health,
+                // The record's own id stands in for its current health check's and its parent's.
+                HealthCheckId = r.Health is null ? null : r.Id,
+                ParentId = r.ParentKey is null ? null : r.Id,
                 People = [new RecordPerson("Owner", "Avery Chen", null)],
             });
 

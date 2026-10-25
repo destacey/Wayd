@@ -4,6 +4,7 @@ using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Imports.Commands;
+using Wayd.Common.Application.Notifications.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Work.Application.Iterations.Queries;
@@ -239,5 +240,22 @@ public class JobManager(
 
         _logger.LogInformation(
             "Completed {BackgroundJob} job ({Count} row payloads cleared)", nameof(RunImportRetentionSweep), result.Value);
+    }
+
+    [DisableConcurrentExecution(60 * 60)]
+    [AutomaticRetry(Attempts = 0)]
+    public async Task RunNotificationRetentionSweep(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Running {BackgroundJob} job", nameof(RunNotificationRetentionSweep));
+
+        var result = await _dispatcher.Send(new PurgeExpiredNotificationsCommand(), cancellationToken);
+        if (result.IsFailure)
+        {
+            _logger.LogError("Failed to sweep expired notifications: {Error}", result.Error);
+            return;
+        }
+
+        _logger.LogInformation(
+            "Completed {BackgroundJob} job ({Count} notifications deleted)", nameof(RunNotificationRetentionSweep), result.Value);
     }
 }

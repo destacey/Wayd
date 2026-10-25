@@ -518,8 +518,9 @@ Container Apps ingress terminates TLS and redirects HTTP→HTTPS, but does not a
 
 Row caps, chunk size, retry count, stall grace periods and the retention window are fixed in code, not
 configuration — see [Settings → System → Imports → Limits and rules](../user-guide/settings/imports.mdx#limits-and-rules)
-for the values. The two maintenance jobs (`import-stall-recovery`, `import-retention-sweep`) are scheduled
-on first start and can be re-timed under **Settings → System → Background Jobs**.
+for the values. The maintenance jobs (`import-stall-recovery`, `import-retention-sweep`, and
+`notification-retention-sweep`, which keeps notifications for 90 days) are scheduled on first start and can
+be re-timed under **Settings → System → Background Jobs**.
 
 ## System settings
 

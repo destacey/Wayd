@@ -14,7 +14,7 @@ public static class FeatureFlags
     public static readonly FeatureFlagDefinition McpServer = new(Names.McpServer, "MCP Server", "Controls availability of the hosted MCP endpoint (/mcp) that exposes the API as agent tools.");
     public static readonly FeatureFlagDefinition TeamCapacityManagement = new(Names.TeamCapacityManagement, "Team Capacity Management", "Controls availability of employee allocation to teams and team capacity planning.");
     public static readonly FeatureFlagDefinition DemandManagement = new(Names.DemandManagement, "Demand Management", "Controls availability of the Demand Management module: intake requests and the desks that review them.");
-    public static readonly FeatureFlagDefinition Following = new(Names.Following, "Following", "Controls availability of following projects, programs and planning interval objectives, and the Following list. Following notifies nobody until in-app notifications ship.");
+    public static readonly FeatureFlagDefinition Following = new(Names.Following, "Following", "Controls availability of following projects, programs and planning interval objectives, the Following list, and in-app notifications about changes to those records.");
 
     /// <summary>
     /// Compile-time constant names for use in attributes (e.g., [FeatureGate]).

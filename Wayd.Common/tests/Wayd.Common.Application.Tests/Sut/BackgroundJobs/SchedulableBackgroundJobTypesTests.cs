@@ -18,6 +18,7 @@ public sealed class SchedulableBackgroundJobTypesTests
         BackgroundJobType.PortfolioRankRebalance,
         BackgroundJobType.ImportStallRecovery,
         BackgroundJobType.ImportRetentionSweep,
+        BackgroundJobType.NotificationRetentionSweep,
     ];
 
     [Fact]

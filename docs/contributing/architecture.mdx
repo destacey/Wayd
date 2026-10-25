@@ -351,6 +351,36 @@ check, and never widen a read because a follow exists. Readability is applied be
 caller has lost access to leaves both the list and its total. Keep follows apart from participants, who are
 given a record and the access that goes with it.
 
+### Notifications
+
+A notification (`Common.Domain/Notifications`, table `Notifications.Notifications`) is one person told about
+one change to one followable record. It stores facts, never prose: recipient, owner type and id, the domain
+event's `EventId` (the key of its activity log entry, which holds the full change), a `NotificationEvent`
+(`StatusChanged`, `HealthReported`, …), the actor's kind and employee, the instant, the `NotificationReason`
+set, and when it was read. The wording is produced when the list is read, from the record as it is then.
+
+- **Written only from domain events.** No module calls anything to notify. Each owning module has one Wolverine
+  handler per owner type (`ProjectNotificationEventHandler`, `ProgramNotificationEventHandler`,
+  `PlanningIntervalObjectiveNotificationEventHandler`) that picks which of its events notify, reads the
+  record's participants as it is now, and hands both to `INotificationWriter`. The notifying events are routed
+  durably in `DurableEventRoutes`, so a failure to notify never fails the change. Making a new owner type
+  notify is a handler in its module and its events in that list.
+- **The writer decides the audience.** Followers (`Following`) plus the module's participants (`Participant`),
+  merged so each person gets one notification carrying every reason; minus the actor; minus deleted and
+  inactive employees, whose follows and roles outlive them. It writes nothing for a change no person made
+  directly — an import, a sync or the platform's own work — and nothing while the `following` flag is off.
+- **One per person per event.** `(EventId, RecipientEmployeeId)` is unique, so a redelivered event writes
+  nothing; `INotificationStore` turns a concurrent duplicate into that outcome.
+- **Read through the record's read rule, every time.** The list and the unread count join each owner type's
+  notifications to its `Readable` rows and combine the types with `UNION ALL`, as the Following list does, then
+  collapse each record's notifications into one entry (newest change, counts, every reason) in SQL. A
+  notification about a record its recipient can no longer read is never shown or counted.
+  `NotificationQueryTranslationIntegrationTests` runs the real read rules in that union against SQL Server.
+- **Not an audit trail.** A nightly job (`notification-retention-sweep`, 03:30) deletes notifications more than
+  90 days old, read or not; the activity log keeps what happened.
+
+`Requester`, `Assigned` and `Mentioned` are defined so muting can store them, but nothing produces them yet.
+
 ## Connector framework
 
 Customer-configured integrations (Azure DevOps, Entra, Workday, Azure OpenAI, future Jira / GitHub connectors) plug into a shared framework in the `Wayd.AppIntegration` service, the `Wayd.Integrations.*` projects, and a frontend registry pair. The goal is that adding a connector is *additive* — drop in new files, register them, no edits to the generic plumbing.

@@ -151,9 +151,11 @@ public sealed class PlanningIntervalObjectiveReadRuleTests
         summary.Name.Should().Be("Launch checkout");
         summary.ParentKey.Should().Be("26");
         summary.ParentName.Should().Be("PI 2026.1");
+        summary.ParentId.Should().Be(pi26.Id);
         summary.StatusName.Should().Be("In Progress");
         summary.Lifecycle.Should().Be(LifecycleCategory.Active);
         summary.Health.Should().Be(HealthStatus.AtRisk);
+        summary.HealthCheckId.Should().Be(launch.HealthChecks.Single().Id);
         summary.Progress.Should().Be(launch.Progress);
         summary.People.Should().Equal(new Wayd.Common.Application.Records.RecordPerson("Team", _team.Name, null));
         summary.Start.Should().Be(new LocalDate(2026, 1, 5));

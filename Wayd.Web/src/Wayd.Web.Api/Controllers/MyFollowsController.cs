@@ -23,17 +23,12 @@ namespace Wayd.Web.Api.Controllers;
 [McpTools("wayd-users")]
 public class MyFollowsController(IDispatcher dispatcher) : ControllerBase
 {
-    private const string OwnerTypeValues =
-        "`ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`";
-
-    private const string OwnerTypes = $"{OwnerTypeValues}; `ownerId` is the record's UUID, not its key.";
-
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [EndpointSummary("List the records you follow.")]
     [EndpointDescription(
-        $"Returns one page of the records you follow — projects, programs and planning interval objectives together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` ({OwnerTypeValues}; any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for records that have finished, whatever the outcome: completed, canceled, or a missed objective) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default) or `Followed`, and `direction` is `Descending` (default, most recent first) or `Ascending`; a record with no activity counts as the least recently changed, so it comes last when descending and first when ascending. `page` starts at 1; `pageSize` is at most 100. Following notifies nobody yet: it records interest. Requires the following feature flag; returns 404 when it is off.")]
+        $"Returns one page of the records you follow — projects, programs and planning interval objectives together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` ({OwnerTypeDocs.Values}; any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for records that have finished, whatever the outcome: completed, canceled, or a missed objective) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default) or `Followed`, and `direction` is `Descending` (default, most recent first) or `Ascending`; a record with no activity counts as the least recently changed, so it comes last when descending and first when ascending. `page` starts at 1; `pageSize` is at most 100. Following a record tells you about its changes through your notifications. Requires the following feature flag; returns 404 when it is off.")]
     [McpTool("Me_GetFollows", "List what I follow")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -69,7 +64,7 @@ public class MyFollowsController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("{ownerType}/{ownerId:guid}/record")]
     [EndpointSummary("Get a record you follow, with what has happened since you followed it.")]
     [EndpointDescription(
-        $"Returns the record as `Me_GetFollows` lists it (`record`), plus `progress` (0–100, objectives only), `people` (each with a `role`, a `name` and the `employeeId` of a person, null for a team: a project's or program's owners then managers, an objective's team), `start` and `end`, and `changesSinceFollowed`: its activity since you followed it, newest first, at most 20 — `hasMoreChanges` says whether there is more. {OwnerTypes} Returns 404 when you do not follow the record or can no longer read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.")]
+        $"Returns the record as `Me_GetFollows` lists it (`record`), plus `progress` (0–100, objectives only), `people` (each with a `role`, a `name` and the `employeeId` of a person, null for a team: a project's or program's owners then managers, an objective's team), `start` and `end`, and `changesSinceFollowed`: its activity since you followed it, newest first, at most 20 — `hasMoreChanges` says whether there is more. {OwnerTypeDocs.Parameters} Returns 404 when you do not follow the record or can no longer read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.")]
     [McpTool("Me_GetFollowedRecord", "Get a record I follow")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -90,7 +85,7 @@ public class MyFollowsController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("{ownerType}/{ownerId:guid}")]
     [EndpointSummary("Get whether you follow a record.")]
     [EndpointDescription(
-        $"Returns `isFollowing` and, when true, `followedOn`. {OwnerTypes} Returns 404 when the record does not exist or you cannot read it — even if you followed it before losing access — and 400 for an owner type that cannot be followed. Requires the following feature flag.")]
+        $"Returns `isFollowing` and, when true, `followedOn`. {OwnerTypeDocs.Parameters} Returns 404 when the record does not exist or you cannot read it — even if you followed it before losing access — and 400 for an owner type that cannot be followed. Requires the following feature flag.")]
     [McpTool("Me_GetFollowStatus", "Check if I follow a record")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -111,7 +106,7 @@ public class MyFollowsController(IDispatcher dispatcher) : ControllerBase
     [HttpPut("{ownerType}/{ownerId:guid}")]
     [EndpointSummary("Follow a record.")]
     [EndpointDescription(
-        $"Follows the record for you. {OwnerTypes} Following a record you already follow changes nothing and still succeeds. You can follow only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Following grants no access and notifies nobody yet. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.")]
+        $"Follows the record for you. {OwnerTypeDocs.Parameters} Following a record you already follow changes nothing and still succeeds. You can follow only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Following grants no access; it tells you about the record's changes through your notifications. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.")]
     [McpTool("Me_Follow", "Follow a record", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -133,7 +128,7 @@ public class MyFollowsController(IDispatcher dispatcher) : ControllerBase
     [HttpDelete("{ownerType}/{ownerId:guid}")]
     [EndpointSummary("Stop following a record.")]
     [EndpointDescription(
-        $"Removes your follow of the record. {OwnerTypes} Succeeds whether or not you followed it, and works on a record you can no longer read. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.")]
+        $"Removes your follow of the record. {OwnerTypeDocs.Parameters} Succeeds whether or not you followed it, and works on a record you can no longer read. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.")]
     [McpTool("Me_Unfollow", "Stop following a record")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

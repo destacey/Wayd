@@ -5,7 +5,7 @@ import {
   SortAscendingOutlined,
   SortDescendingOutlined,
 } from '@ant-design/icons'
-import { Alert, Badge, Button, Input, Select, Space, Spin, Tooltip } from 'antd'
+import { Alert, Button, Input, Select, Space, Spin, Tooltip } from 'antd'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { LifecycleStatusTag } from '@/src/components/common'
@@ -16,7 +16,8 @@ import {
 } from '@/src/services/wayd-api'
 import { findScrollParent } from '@/src/utils/scroll-parent'
 import styles from '../following.module.css'
-import { healthBadgeStatus, healthLabel, recordId } from './following-filters'
+import FollowedRecordHealth from './followed-record-health'
+import { recordId } from './following-filters'
 import { formatTimeAgo } from './time-ago'
 
 export interface FollowedRecordsListProps {
@@ -69,8 +70,6 @@ const FollowedRecordRow = ({
     className={`${styles.row} ${selected ? styles.rowSelected : ''}`}
     onClick={() => onSelect(record)}
   >
-    <Badge status={healthBadgeStatus(record.health)} />
-    <span className={styles.visuallyHidden}>{healthLabel(record.health)}.</span>
     <span className={styles.rowBody}>
       <span className={styles.rowName}>{record.name}</span>
       <span className={styles.rowMeta}>
@@ -84,13 +83,16 @@ const FollowedRecordRow = ({
           : 'no changes yet'}
       </span>
     </span>
-    <LifecycleStatusTag
-      status={{
-        id: 0,
-        name: record.statusName,
-        lifecycleCategory: record.lifecycle,
-      }}
-    />
+    <span className={styles.rowTrail}>
+      <FollowedRecordHealth record={record} variant="flag" />
+      <LifecycleStatusTag
+        status={{
+          id: 0,
+          name: record.statusName,
+          lifecycleCategory: record.lifecycle,
+        }}
+      />
+    </span>
   </button>
 )
 

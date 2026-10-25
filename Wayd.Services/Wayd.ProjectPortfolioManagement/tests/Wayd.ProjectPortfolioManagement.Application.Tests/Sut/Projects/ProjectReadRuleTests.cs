@@ -170,6 +170,7 @@ public sealed class ProjectReadRuleTests
         summary.StatusName.Should().Be("Active");
         summary.Lifecycle.Should().Be(LifecycleCategory.Active);
         summary.Health.Should().Be(HealthStatus.Healthy);
+        summary.HealthCheckId.Should().Be(project.HealthChecks.Single().Id);
         // Owners before managers whatever the names; sponsors and members are left out.
         summary.People.Should().Equal(
             new RecordPerson("Project Owner", owner.Name.DisplayName, _ownerId),

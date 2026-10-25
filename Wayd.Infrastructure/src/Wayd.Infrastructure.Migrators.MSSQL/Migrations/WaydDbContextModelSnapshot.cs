@@ -1027,6 +1027,70 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("IterationExternalMetadata", "Work");
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.Notifications.Notification", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid?>("ActorEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ActorKind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<string>("Event")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("OccurredOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OwnerType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar");
+
+                    b.Property<DateTime?>("ReadOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Reasons")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RecipientEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorEmployeeId");
+
+                    b.HasIndex("OccurredOn");
+
+                    b.HasIndex("EventId", "RecipientEmployeeId")
+                        .IsUnique();
+
+                    b.HasIndex("RecipientEmployeeId", "OwnerType", "OwnerId")
+                        .HasDatabaseName("IX_Notifications_Unread")
+                        .HasFilter("[ReadOn] IS NULL");
+
+                    b.HasIndex("RecipientEmployeeId", "OwnerType", "OwnerId", "OccurredOn");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("RecipientEmployeeId", "OwnerType", "OwnerId", "OccurredOn"), new[] { "ReadOn", "Reasons" });
+
+                    b.ToTable("Notifications", "Notifications");
+                });
+
             modelBuilder.Entity("Wayd.Common.Domain.Scoring.ScoringModel", b =>
                 {
                     b.Property<Guid>("Id")
@@ -8273,6 +8337,20 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasOne("Wayd.Work.Domain.Models.Iteration", null)
                         .WithMany("ExternalMetadata")
                         .HasForeignKey("ObjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Notifications.Notification", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("ActorEmployeeId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("RecipientEmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

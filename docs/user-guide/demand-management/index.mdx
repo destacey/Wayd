@@ -161,15 +161,15 @@ Opening a request shows its number and title. The panel opened from the header l
 **Change Status** in the request's actions menu is offered to an agent on its desk. It lists the statuses of the desk's workflow, in the order the desk laid them out, apart from the one the request holds and Withdrawn. Choosing a status asks for what it needs:
 
 - A **reason** — required for declining, deferring, marking a duplicate and finishing a request, and optional otherwise. The requester reads it on the request, so write it for them
-- For **Duplicate**, the request this one gives way to — any other request you can see that is not itself a duplicate
+- For **Duplicate**, the request this one gives way to — any other request you can see. One that is itself a duplicate is refused, so a duplicate always leads straight to the request that survives
 
 A closed request can be moved back to an open status the same way, which also lets it be edited again.
 
 #### Duplicates
 
-Once a request is marked a duplicate, its requester and its other readers are taken to the surviving request when they open it, and that request says which duplicate brought them there. The desk's agents stay on the duplicate, with a link to the surviving request, so they can see why and reopen it.
+Once a request is marked a duplicate, anyone who opens it and can see the surviving request is taken there, and that request says which duplicate brought them. The desk's agents stay on the duplicate, with a link to the surviving request, so they can see why and reopen it.
 
-When the surviving request is on a private desk the requester is not part of, they cannot be taken to it. They see their request marked Duplicate, with your reason, and nothing about the other request — the form warns you when you choose a request on a private desk. A request that others are marked duplicates of cannot be deleted.
+Someone who cannot see the surviving request stays on the duplicate. They see it marked Duplicate, with your reason, and nothing about the other request. Whether the requester can see it depends on that request's desk, as [Who Can See a Request](#who-can-see-a-request) describes: a request on a private desk they are not part of is hidden from them, and so is one on any other desk if they cannot view requests. A request that others are marked duplicates of cannot be deleted.
 
 ### Withdrawing a request
 
@@ -177,13 +177,13 @@ When the surviving request is on a private desk the requester is not part of, th
 
 **Add Participant** appears when you can give someone access: an agent on the request's desk, or its requester or submitter unless the desk is private and does not allow it. Only an agent on the desk can remove a participant, and removing one takes away their access from then on; what they have already read stays read.
 
-**Delete** is a Desk Admin's last resort, offered only while the request has never left the status it was submitted in and no other request is marked a duplicate of it. Once a request has moved through review it is part of the record of a decision: decline it instead, and the requester can withdraw it.
+Deleting a request is a Desk Admin's last resort, and the request page does not offer it yet; it is available through the API. It is allowed only while the request has never left the status it was submitted in and no other request is marked a duplicate of it. Once a request has moved through review it is part of the record of a decision: decline it instead, and the requester can withdraw it.
 
 ### Moving a request to another desk
 
 A requester picks the desk they think fits, and an agent confirms it or moves the request to the desk that should own the decision. **Move to Another Desk** in the request's actions menu is offered to an agent on the desk the request is on now. The new desk does not have to be one you work: it can be any desk open to new requests, including one requesters cannot choose. Nothing moves a request automatically — editing its channel, for example, never changes its desk.
 
-When you choose a desk, the form asks what the request **arrives as** there: one of that desk's open statuses that needs no reason, since what to decide about it is the new desk's call. It starts at the status the request holds when both desks follow the same workflow, or the one with the same meaning or name when they do not; when nothing matches, you choose. A move onto a desk with a different workflow is recorded in the request's status history as a switch onto that workflow.
+When you choose a desk, the form asks what the request **arrives as** there: one of that desk's open statuses that needs no reason and is neither Withdrawn nor Duplicate, since what to decide about it is the new desk's call. It starts at the status the request holds when both desks follow the same workflow, or the one with the same meaning or name when they do not; when nothing matches, you choose. A move onto a desk with a different workflow is recorded in the request's status history as a switch onto that workflow.
 
 The form also says what the move changes:
 
@@ -240,7 +240,7 @@ Removing someone from a desk unassigns them from the requests they own there.
 
 **Review Workflow** in the desk's Settings names the workflow its requests follow, marked **Organization default** while the desk follows the default. **Change Workflow** lets a Desk Admin or the Demand Management Admin choose any published intake workflow. The workflows themselves are built and changed in [Settings → Status Workflows](../settings/status-workflows.mdx), which needs the status workflow permissions.
 
-Choosing a workflow other than the default gives the desk its own, so a later change to the default no longer reaches it. A desk's workflow can be chosen only while no request is on it, closed ones included — moving a desk's requests onto another workflow is not supported yet. Choose it when you set the desk up, before requesters can pick it.
+Choosing a workflow other than the default gives the desk its own, so a later change to the default no longer reaches it. Choosing the default's workflow again puts the desk back on the default, and changes to it reach the desk once more. A desk's workflow can be chosen only while no request is on it, closed ones included — moving a desk's requests onto another workflow is not supported yet. Choose it when you set the desk up, before requesters can pick it.
 
 If someone else changes the desk while you have its settings or members open, your save is refused with a message to reload, rather than quietly undoing their change — and saving again from the same form is refused too. Close the form, reopen it to see their change, and make yours again.
 

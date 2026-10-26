@@ -21,7 +21,7 @@ public sealed class UpdateIntakeRequestCommandHandlerTests
         new(request.Id, title, request.Description, request.ExpectedBenefits, request.ChannelId, null);
 
     [Fact]
-    public async Task Handle_ByTheRequesterWithoutUpdate_RecordsOnlyWhatChanged()
+    public async Task Handle_ByTheRequesterOffTheDesk_RecordsOnlyWhatChanged()
     {
         // Arrange
         var requester = _scenario.Employee();
@@ -41,11 +41,11 @@ public sealed class UpdateIntakeRequestCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ByAnUpdateHolderWhoCannotReadTheDetail_Fails()
+    public async Task Handle_ByAViewHolderWhoCannotReadTheDetail_Fails()
     {
         // Arrange — the command carries the description, so nobody overwrites what they cannot read
         var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.SummaryOnly), _scenario.Employee());
-        _scenario.SignedInAs(_scenario.Employee(), IntakeRequestAuthorization.UpdatePermission);
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.View);
 
         // Act
         var result = await CreateHandler().Handle(Retitled(request), TestContext.Current.CancellationToken);
@@ -57,18 +57,36 @@ public sealed class UpdateIntakeRequestCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_BySomeoneWithoutUpdateWhoIsNotTheRequester_Fails()
+    public async Task Handle_BySomeoneOffTheDeskWhoIsNotTheRequester_Fails()
     {
-        // Arrange
+        // Arrange — View reads an open desk's request in full, but editing it belongs to the desk
         var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), _scenario.Employee());
-        _scenario.SignedInAs(_scenario.Employee());
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.View);
 
         // Act
         var result = await CreateHandler().Handle(Retitled(request), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Only the requester or someone who can update requests may edit this request.");
+        result.Error.Should().Be("Only the requester or an agent on the request's desk may edit this request.");
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ByAnAgentOnTheDeskHoldingNoClaim_Saves()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Private, agentIds: [agent.Id]), _scenario.Employee());
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(Retitled(request), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        request.Title.Should().Be(Retitled(request).Title);
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     [Fact]
@@ -143,7 +161,7 @@ public sealed class UpdateIntakeRequestCommandHandlerTests
     {
         // Arrange
         var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Private), _scenario.Employee());
-        _scenario.SignedInAs(_scenario.Employee(), IntakeRequestAuthorization.UpdatePermission);
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.View);
 
         // Act
         var result = await CreateHandler().Handle(Retitled(request), TestContext.Current.CancellationToken);

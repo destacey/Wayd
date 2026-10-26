@@ -1,10 +1,9 @@
-using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Domain.Enums.DemandManagement;
 
 namespace Wayd.DemandManagement.Application.IntakeDesks.Dtos;
 
 /// <summary>
-/// An intake desk: what it takes, who reviews on it, and how much of its requests the rest of the company reads.
+/// An intake desk: what it takes, who works it, and how much of its requests the rest of the company reads.
 /// </summary>
 public sealed record IntakeDeskDto
 {
@@ -14,7 +13,7 @@ public sealed record IntakeDeskDto
     /// <summary>The desk's key.</summary>
     public int Key { get; init; }
 
-    /// <summary>What reviewers and administrators call the desk.</summary>
+    /// <summary>What its members and administrators call the desk.</summary>
     public required string Name { get; init; }
 
     /// <summary>The requester-facing description of what kind of ask to bring here, which requesters choose by.</summary>
@@ -32,6 +31,23 @@ public sealed record IntakeDeskDto
     /// <summary>On a private desk, whether the requester may add participants themselves.</summary>
     public bool RequesterMayAddParticipants { get; init; }
 
-    /// <summary>The employees named as reviewers on the desk, by name.</summary>
-    public required IReadOnlyList<EmployeeNavigationDto> Reviewers { get; init; }
+    /// <summary>The employees named on the desk, by name, with their roles.</summary>
+    public required IReadOnlyList<IntakeDeskMemberDto> Members { get; init; }
+
+    /// <summary>
+    /// What is waiting on the desk, for its members and the Demand Management Admin; null for anyone else,
+    /// so a private desk's numbers never reach someone outside it.
+    /// </summary>
+    public IntakeDeskWaitingDto? Waiting { get; init; }
+
+    /// <summary>Whether the reader may change the desk's details, settings and agents: a Desk Admin on it.</summary>
+    public bool CanManage { get; init; }
+
+    /// <summary>
+    /// Whether the reader may change the desk's visibility and its Desk Admins: the Demand Management Admin.
+    /// </summary>
+    public bool CanAdminister { get; init; }
+
+    /// <summary>Whether the reader may delete the desk: the Demand Management Admin, and only while no request is on it.</summary>
+    public bool CanDelete { get; init; }
 }

@@ -8,7 +8,7 @@ import {
   useActivityLog,
 } from '@/src/components/common/activities'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
-import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
+import { requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import {
   useGetIntakeRequestActivitiesQuery,
@@ -27,6 +27,7 @@ import EditIntakeRequestForm from './_components/edit-intake-request-form'
 import IntakeRequestDetails from './_components/intake-request-details'
 import IntakeRequestFacts from './_components/intake-request-facts'
 import IntakeRequestParticipants from './_components/intake-request-participants'
+import RerouteIntakeRequestForm from './_components/reroute-intake-request-form'
 import IntakeRequestDetailsLoading from './loading'
 
 enum RequestSection {
@@ -35,7 +36,7 @@ enum RequestSection {
   Activity = 'activity',
 }
 
-type RequestDialog = 'edit' | 'add-participant'
+type RequestDialog = 'edit' | 'add-participant' | 'reroute'
 
 const IntakeRequestDetailsPage = (props: {
   params: Promise<{ key: string }>
@@ -107,10 +108,20 @@ const IntakeRequestDetailsPage = (props: {
     { id: RequestSection.Activity, label: 'Activity' },
   ]
 
-  const actionItems: ItemType[] =
-    request.canEdit && substance
+  const actionItems: ItemType[] = [
+    ...(request.canEdit && substance
       ? [{ key: 'edit', label: 'Edit', onClick: () => setDialog('edit') }]
-      : []
+      : []),
+    ...(request.canReroute
+      ? [
+          {
+            key: 'reroute',
+            label: 'Move to Another Desk',
+            onClick: () => setDialog('reroute'),
+          },
+        ]
+      : []),
+  ]
 
   const sectionActions =
     activeSection === RequestSection.Participants &&
@@ -168,6 +179,13 @@ const IntakeRequestDetailsPage = (props: {
           onFormCancel={() => setDialog(null)}
         />
       )}
+      {dialog === 'reroute' && request.canReroute && (
+        <RerouteIntakeRequestForm
+          request={request}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
+        />
+      )}
       {dialog === 'add-participant' && request.canAddParticipants && (
         <AddIntakeRequestParticipantForm
           request={request}
@@ -179,12 +197,10 @@ const IntakeRequestDetailsPage = (props: {
   )
 }
 
+// No permission gate: a request's own people and its desk read it without one, and the server answers 404
+// for anyone else.
 const IntakeRequestDetailsPageWithAuthorization = requireFeatureFlag(
-  authorizePage(
-    IntakeRequestDetailsPage,
-    'Permission',
-    'Permissions.IntakeRequests.View',
-  ),
+  IntakeRequestDetailsPage,
   'demand-management',
 )
 

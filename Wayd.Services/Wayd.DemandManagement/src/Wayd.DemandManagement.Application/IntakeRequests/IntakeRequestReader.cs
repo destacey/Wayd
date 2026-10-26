@@ -9,51 +9,45 @@ namespace Wayd.DemandManagement.Application.IntakeRequests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <strong>Summary</strong> — on an <c>Open</c> or <c>SummaryOnly</c> desk, everyone with View. On a
-/// <c>Private</c> desk, only the desk's reviewers and the request's own people (requester, submitter,
-/// participants); for anyone else the request is absent from every list, search and count, never a
-/// redacted row.
+/// <strong>Summary</strong> — the desk's members, the request's own people (requester, submitter,
+/// participants), and on an <c>Open</c> or <c>SummaryOnly</c> desk everyone with View. On a <c>Private</c>
+/// desk the request is absent for anyone else from every list, search and count, never a redacted row.
 /// </para>
 /// <para>
-/// <strong>Substance</strong> — on an <c>Open</c> desk, everyone with View; otherwise the request's own
-/// people, and anyone who reviews on any desk, because a reviewer cannot judge whether a request belongs on
-/// another desk without reading it. A private desk still withholds even the summary from reviewers of other
-/// desks: the substance rule applies only to requests the reader can see at all.
+/// <strong>Substance</strong> — the desk's members and the request's own people, and on an <c>Open</c> desk
+/// everyone with View. Working one desk grants nothing on another.
 /// </para>
 /// <para>
-/// <strong>Internal</strong> — Review on the request's desk.
+/// <strong>Internal</strong> — the desk's members.
 /// </para>
-/// Review is the Review permission plus being named a reviewer on the desk; the Administer permission waives
-/// the membership but never the permission, the same shape as <c>SprintAuthorization.CanManageTeamSprints</c>.
+/// Membership is the grant: an agent or Desk Admin needs no claim beside it. The Demand Management Admin
+/// (<c>Permissions.IntakeRequests.Administer</c>) acts as Desk Admin on every desk without being a member.
 /// The rules are expressions so they run in the database, which keeps paging and totals honest.
 /// </remarks>
 /// <param name="EmployeeId">The reading employee, or null when the user is linked to none.</param>
-/// <param name="HoldsReview">Whether the reader holds <c>Permissions.IntakeRequests.Review</c>.</param>
-/// <param name="HoldsAdminister">Whether the reader holds <c>Permissions.IntakeRequests.Administer</c>.</param>
-/// <param name="ReviewerDeskIds">The desks the reader is named a reviewer on.</param>
+/// <param name="HoldsView">Whether the reader holds <c>Permissions.IntakeRequests.View</c>, which browses desks they are not on.</param>
+/// <param name="IsDemandManagementAdmin">Whether the reader holds <c>Permissions.IntakeRequests.Administer</c>.</param>
+/// <param name="DeskRoles">The reader's role on each desk they are a member of. Empty for an inactive employee.</param>
 public sealed record IntakeRequestReader(
     Guid? EmployeeId,
-    bool HoldsReview,
-    bool HoldsAdminister,
-    IReadOnlyCollection<Guid> ReviewerDeskIds)
+    bool HoldsView,
+    bool IsDemandManagementAdmin,
+    IReadOnlyDictionary<Guid, IntakeDeskRole> DeskRoles)
 {
     /// <summary>
-    /// Whether the reader reviews on every desk: Review with Administer waiving the membership.
+    /// Whether the reader acts on the desk's requests: an agent or Desk Admin on it, or the Demand
+    /// Management Admin.
     /// </summary>
-    public bool ReviewsEveryDesk => HoldsReview && HoldsAdminister;
+    public bool IsAgentOn(Guid deskId) => IsDemandManagementAdmin || DeskRoles.ContainsKey(deskId);
 
     /// <summary>
-    /// Whether the reader reviews on at least one desk.
+    /// Whether the reader runs the desk: a Desk Admin on it, or the Demand Management Admin.
     /// </summary>
-    public bool ReviewsAnyDesk => ReviewsEveryDesk || (HoldsReview && ReviewerDeskIds.Count > 0);
+    public bool IsDeskAdminOn(Guid deskId) =>
+        IsDemandManagementAdmin || (DeskRoles.TryGetValue(deskId, out var role) && role == IntakeDeskRole.Admin);
 
     /// <summary>
-    /// Whether the reader may review requests on the desk.
-    /// </summary>
-    public bool CanReview(Guid deskId) => ReviewsEveryDesk || (HoldsReview && ReviewerDeskIds.Contains(deskId));
-
-    /// <summary>
-    /// Whether the reader may give someone access to a request as a participant: a reviewer on its desk
+    /// Whether the reader may give someone access to a request as a participant: an agent on its desk
     /// always, and its requester or submitter unless the desk is private and does not allow it. Participants
     /// cannot add others. Needs a linked employee, because the participant records who added them.
     /// </summary>
@@ -68,7 +62,7 @@ public sealed record IntakeRequestReader(
         if (EmployeeId is not { } employeeId)
             return false;
 
-        if (CanReview(request.DeskId))
+        if (IsAgentOn(request.DeskId))
             return true;
 
         var isRequesterOrSubmitter = request.RequesterId == employeeId || request.SubmittedById == employeeId;
@@ -81,30 +75,39 @@ public sealed record IntakeRequestReader(
     /// </summary>
     public Expression<Func<IntakeRequest, bool>> CanSeeSummary(IQueryable<IntakeDesk> desks)
     {
-        if (ReviewsEveryDesk)
+        if (IsDemandManagementAdmin)
             return r => true;
 
         var employeeId = EmployeeId ?? Guid.Empty;
-        var reviewedDeskIds = HoldsReview ? ReviewerDeskIds.ToArray() : [];
+        var memberDeskIds = DeskRoles.Keys.ToArray();
+
+        if (!HoldsView)
+            return r => memberDeskIds.Contains(r.DeskId)
+                || r.RequesterId == employeeId
+                || r.SubmittedById == employeeId
+                || r.Participants.Any(p => p.EmployeeId == employeeId);
 
         return r => desks.Any(d => d.Id == r.DeskId && d.Visibility != IntakeDeskVisibility.Private)
-            || reviewedDeskIds.Contains(r.DeskId)
+            || memberDeskIds.Contains(r.DeskId)
             || r.RequesterId == employeeId
             || r.SubmittedById == employeeId
             || r.Participants.Any(p => p.EmployeeId == employeeId);
     }
 
     /// <summary>
-    /// Requests whose substance the reader may see. Applied to requests whose summary they can see.
+    /// Requests whose substance the reader may see. Applied only to requests whose summary they can see, which
+    /// is what keeps an open desk's substance from a reader without View.
     /// </summary>
     public Expression<Func<IntakeRequest, bool>> CanSeeSubstance(IQueryable<IntakeDesk> desks)
     {
-        if (ReviewsAnyDesk)
+        if (IsDemandManagementAdmin)
             return r => true;
 
         var employeeId = EmployeeId ?? Guid.Empty;
+        var memberDeskIds = DeskRoles.Keys.ToArray();
 
         return r => desks.Any(d => d.Id == r.DeskId && d.Visibility == IntakeDeskVisibility.Open)
+            || memberDeskIds.Contains(r.DeskId)
             || r.RequesterId == employeeId
             || r.SubmittedById == employeeId
             || r.Participants.Any(p => p.EmployeeId == employeeId);

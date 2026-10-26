@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.DemandManagement.Application.IntakeChannels.Dtos;
@@ -17,7 +18,7 @@ public class IntakeChannelsController(IDispatcher dispatcher) : ControllerBase
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.IntakeRequests)]
+    [Authorize]
     [EndpointSummary("Get the intake channels in the order requesters see them.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<IntakeChannelDto>>> GetIntakeChannels([FromQuery] bool includeArchived = false, CancellationToken cancellationToken = default)

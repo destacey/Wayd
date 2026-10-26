@@ -59,7 +59,7 @@ public sealed class GetIntakeRequestActivitiesQueryHandler(
         List<IntakeRequestReadTier> tiers = [IntakeRequestReadTier.Summary];
         if (await visible.Where(reader.CanSeeSubstance(_dbContext.IntakeDesks)).AnyAsync(cancellationToken))
             tiers.Add(IntakeRequestReadTier.Substance);
-        if (reader.CanReview(target.DeskId))
+        if (reader.IsAgentOn(target.DeskId))
             tiers.Add(IntakeRequestReadTier.Internal);
 
         var activities = await _activityLogReader.ReadEventTypes(

@@ -1,23 +1,24 @@
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.DemandManagement.Domain.Models;
 
 namespace Wayd.DemandManagement.Application.IntakeDesks.Commands;
 
 /// <summary>
-/// Creates an intake desk with its initial reviewers. The Administer permission is checked by the endpoint.
+/// Creates an intake desk with its initial members. The Administer permission is checked by the endpoint.
 /// </summary>
 /// <remarks>
-/// No desk is seeded, so this is how a company sets up the review it will staff. Changing a desk after it is
-/// created arrives with desk administration.
+/// No desk is seeded, so this is how a company sets up the review it will staff. Only the Demand Management
+/// Admin creates desks, so it is also how a desk gets its first Desk Admins.
 /// </remarks>
-/// <param name="Name">What reviewers and administrators call the desk.</param>
+/// <param name="Name">What its members and administrators call the desk.</param>
 /// <param name="Description">The requester-facing description of what kind of ask to bring here.</param>
 /// <param name="Visibility">How much of a request on the desk reaches people outside it.</param>
 /// <param name="IsRequesterSelectable">Whether a requester can pick the desk.</param>
 /// <param name="IsOpen">Whether the desk accepts new requests.</param>
 /// <param name="RequesterMayAddParticipants">On a private desk, whether the requester may add participants themselves.</param>
-/// <param name="ReviewerIds">The employees named as the desk's reviewers.</param>
+/// <param name="Members">The employees named on the desk, each with their role.</param>
 public sealed record CreateIntakeDeskCommand(
     string Name,
     string Description,
@@ -25,7 +26,7 @@ public sealed record CreateIntakeDeskCommand(
     bool IsRequesterSelectable,
     bool IsOpen,
     bool RequesterMayAddParticipants,
-    IReadOnlyList<Guid> ReviewerIds) : ICommand<ObjectIdAndKey>;
+    IReadOnlyList<IntakeDeskMemberDetails> Members) : ICommand<ObjectIdAndKey>;
 
 public sealed class CreateIntakeDeskCommandValidator : CustomValidator<CreateIntakeDeskCommand>
 {
@@ -34,8 +35,14 @@ public sealed class CreateIntakeDeskCommandValidator : CustomValidator<CreateInt
         RuleFor(c => c.Name).NotEmpty().MaximumLength(128);
         RuleFor(c => c.Description).NotEmpty().MaximumLength(1024);
         RuleFor(c => c.Visibility).IsInEnum();
-        RuleFor(c => c.ReviewerIds).NotNull();
-        RuleForEach(c => c.ReviewerIds).NotEmpty();
+        RuleFor(c => c.Members).NotNull()
+            .Must(members => members.Select(m => m.EmployeeId).Distinct().Count() == members.Count)
+            .WithMessage("An employee can hold only one role on a desk.");
+        RuleForEach(c => c.Members).ChildRules(member =>
+        {
+            member.RuleFor(m => m.EmployeeId).NotEmpty();
+            member.RuleFor(m => m.Role).IsInEnum();
+        });
     }
 }
 
@@ -57,11 +64,11 @@ public sealed class CreateIntakeDeskCommandHandler(
         if (await _dbContext.IntakeDesks.AnyAsync(d => d.Name == name, cancellationToken))
             return Result.Failure<ObjectIdAndKey>("A desk with this name already exists.");
 
-        var reviewerIds = request.ReviewerIds.Distinct().ToArray();
-        var activeReviewers = await _dbContext.Employees
-            .CountAsync(e => reviewerIds.Contains(e.Id) && e.IsActive, cancellationToken);
-        if (activeReviewers != reviewerIds.Length)
-            return Result.Failure<ObjectIdAndKey>("Every reviewer must be an active employee.");
+        var memberIds = request.Members.Select(m => m.EmployeeId).Distinct().ToArray();
+        var activeMembers = await _dbContext.Employees
+            .CountAsync(e => memberIds.Contains(e.Id) && e.IsActive, cancellationToken);
+        if (activeMembers != memberIds.Length)
+            return Result.Failure<ObjectIdAndKey>("Every member must be an active employee.");
 
         var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         var desk = IntakeDesk.Create(
@@ -71,7 +78,7 @@ public sealed class CreateIntakeDeskCommandHandler(
             request.IsRequesterSelectable,
             request.IsOpen,
             request.RequesterMayAddParticipants,
-            reviewerIds,
+            request.Members,
             EventActor.User(_currentUser.GetUserId(), employeeId),
             _dateTimeProvider.Now);
 

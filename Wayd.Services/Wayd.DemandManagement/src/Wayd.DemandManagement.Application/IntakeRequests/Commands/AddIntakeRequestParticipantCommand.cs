@@ -6,7 +6,7 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
 /// Gives an employee access to an intake request as a participant.
 /// </summary>
 /// <remarks>
-/// A reviewer on the request's desk can always add someone. The requester and the submitter can too, except
+/// An agent on the request's desk can always add someone. The requester and the submitter can too, except
 /// on a private desk that does not allow it. Participants cannot add others: on an open desk participation
 /// accrues from joining the discussion, and on a private one it is granted.
 /// </remarks>
@@ -54,7 +54,7 @@ public sealed class AddIntakeRequestParticipantCommandHandler(
             .FirstAsync(cancellationToken);
         var people = new IntakeRequestPeople(intakeRequest.DeskId, intakeRequest.RequesterId, intakeRequest.SubmittedById);
         if (!reader.CanAddParticipants(people, desk.Visibility, desk.RequesterMayAddParticipants))
-            return Result.Failure("Only the desk's reviewers, or the requester where the desk allows it, can add participants.");
+            return Result.Failure("Only the desk's agents, or the requester where the desk allows it, can add participants.");
 
         if (!await _dbContext.IsActiveEmployee(request.EmployeeId, cancellationToken))
             return Result.Failure("A participant must be an active employee.");

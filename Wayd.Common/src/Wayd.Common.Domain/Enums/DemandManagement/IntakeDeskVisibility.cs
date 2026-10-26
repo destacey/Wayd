@@ -6,9 +6,9 @@ namespace Wayd.Common.Domain.Enums.DemandManagement;
 /// How much of a request on a desk reaches people outside it. Every request on the desk inherits it.
 /// </summary>
 /// <remarks>
-/// A request is read in three tiers: its summary, its substance, and the internal notes only reviewers
-/// see. This decides the first two for everyone who is not the desk's reviewer or the request's own people
-/// (requester, submitter and participants); the internal tier never leaves Review whatever the desk says.
+/// A request is read in three tiers: its summary, its substance, and the internal notes only the desk's
+/// agents see. This decides the first two for everyone who is not a member of the desk or the request's own
+/// people (requester, submitter and participants); the internal tier never leaves the desk whatever it says.
 /// <para>
 /// Set per desk rather than per request, because the failure mode of a per-request setting is someone
 /// forgetting it and a sensitive ask sitting unrestricted. A sensitive request is routed to a private desk.
@@ -23,7 +23,7 @@ public enum IntakeDeskVisibility
     SummaryOnly = 2,
 
     /// <summary>
-    /// Only the desk's reviewers and the request's own people know the request exists.
+    /// Only the desk's members and the request's own people know the request exists.
     /// </summary>
     /// <remarks>
     /// Absent rather than redacted: the request appears in no list, search, count or aggregate for anyone
@@ -31,4 +31,19 @@ public enum IntakeDeskVisibility
     /// </remarks>
     [Display(Name = "Private", Description = "Only the desk and the request's own people know the request exists.", Order = 3)]
     Private = 3,
+}
+
+public static class IntakeDeskVisibilityExtensions
+{
+    /// <summary>
+    /// Whether a request on a desk of this visibility reaches more people than on one of <paramref name="other"/>:
+    /// Open reaches more than Summary Only, which reaches more than Private.
+    /// </summary>
+    public static bool IsLessPrivateThan(this IntakeDeskVisibility visibility, IntakeDeskVisibility other) => visibility switch
+    {
+        IntakeDeskVisibility.Open => other is IntakeDeskVisibility.SummaryOnly or IntakeDeskVisibility.Private,
+        IntakeDeskVisibility.SummaryOnly => other is IntakeDeskVisibility.Private,
+        IntakeDeskVisibility.Private => false,
+        _ => throw new ArgumentOutOfRangeException(nameof(visibility), visibility, "Unknown desk visibility."),
+    };
 }

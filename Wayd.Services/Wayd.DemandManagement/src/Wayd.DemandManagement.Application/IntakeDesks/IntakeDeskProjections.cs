@@ -6,7 +6,7 @@ using Wayd.DemandManagement.Domain.Models;
 namespace Wayd.DemandManagement.Application.IntakeDesks;
 
 /// <summary>
-/// Projects an intake desk into its DTO in the database, resolving its reviewers from the shared employee table.
+/// Projects an intake desk into its DTO in the database, resolving its members from the shared employee table.
 /// </summary>
 internal static class IntakeDeskProjections
 {
@@ -24,10 +24,14 @@ internal static class IntakeDeskProjections
             IsRequesterSelectable = d.IsRequesterSelectable,
             IsOpen = d.IsOpen,
             RequesterMayAddParticipants = d.RequesterMayAddParticipants,
-            Reviewers = employees
-                .Where(e => d.Reviewers.Any(r => r.EmployeeId == e.Id))
-                .OrderBy(e => e.Name.FirstName).ThenBy(e => e.Name.LastName).ThenBy(e => e.Id)
-                .Select(e => new EmployeeNavigationDto { Id = e.Id, Key = e.Key, Name = e.Name.FirstName + " " + e.Name.LastName })
+            Members = d.Members
+                .Join(employees, m => m.EmployeeId, e => e.Id, (m, e) => new { m.Role, Employee = e })
+                .OrderBy(x => x.Role).ThenBy(x => x.Employee.Name.FirstName).ThenBy(x => x.Employee.Name.LastName).ThenBy(x => x.Employee.Id)
+                .Select(x => new IntakeDeskMemberDto
+                {
+                    Employee = new EmployeeNavigationDto { Id = x.Employee.Id, Key = x.Employee.Key, Name = x.Employee.Name.FirstName + " " + x.Employee.Name.LastName },
+                    Role = x.Role,
+                })
                 .ToList(),
         };
     }

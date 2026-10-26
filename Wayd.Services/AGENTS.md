@@ -1,10 +1,14 @@
 # AGENTS.md — Domain services
 
-The root [AGENTS.md](../AGENTS.md) applies here too. This file holds the rules for list queries and for domain events, which every module raises and consumes. Each rule links to its full explanation in [domain-events.mdx](../docs/contributing/domain-events.mdx) — **read the linked section before adding, changing, or consuming an event.**
+The root [AGENTS.md](../AGENTS.md) applies here too. This file holds the rules for list queries, Demand Management's authorization, and domain events, which every module raises and consumes. Each rule links to its full explanation in [domain-events.mdx](../docs/contributing/domain-events.mdx) — **read the linked section before adding, changing, or consuming an event.**
 
 ## List Queries
 
 - **A list query ends its order on a unique key** (`Key` or `Id` last), never on whatever order the database returns. The hosted MCP server pages a list tool's answer with an `offset` over several calls, so an unstable order repeats and skips records between them. [Result size](../docs/contributing/mcp-server.mdx#the-hosted-endpoint)
+
+## Demand Management Authorization
+
+- **Acting on an intake request is decided by desk role alone**: Agent or Desk Admin on its desk (`IntakeRequestReader.IsAgentOn` / `IsDeskAdminOn`, read from `IntakeDeskMember`; an inactive employee is a member of nothing). Its endpoints carry `[Authorize]` only, so the handler is the whole gate. `Permissions.IntakeRequests.View` only widens browsing; `Administer` is Desk Admin on every desk. Never add a resource permission beside a desk role. [Permission-based vs membership-based](../docs/contributing/architecture.mdx#permission-based-vs-membership-based-authorization)
 
 ## Domain Events
 

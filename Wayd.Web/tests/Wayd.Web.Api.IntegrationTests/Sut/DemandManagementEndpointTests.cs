@@ -443,6 +443,35 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
         withdrawn.StatusCode.Should().Be(HttpStatusCode.NoContent, await withdrawn.Content.ReadAsStringAsync(ct));
     }
 
+    [Fact]
+    public async Task DeskWorkflow_IsChosenByItsDeskAdminWithNoClaim_ButNotByAnAgent()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await SetFlag(true);
+        var agent = await SeedEmployee();
+        var deskAdmin = await SeedEmployee();
+        var admin = await _factory.CreateAuthenticatedClient(Administer);
+        var agentClient = await _factory.CreateAuthenticatedClient(agent);
+        var deskAdminClient = await _factory.CreateAuthenticatedClient(deskAdmin);
+        var deskId = await CreateDesk(admin.Client, "Open", agents: [agent], admins: [deskAdmin]);
+
+        // Act
+        var choices = await deskAdminClient.Client.GetFromJsonAsync<JsonElement>($"{Desks}/workflow-choices", ct);
+        var workflowId = choices.EnumerateArray().First().GetProperty("id").GetGuid();
+        var asDeskAdmin = await deskAdminClient.Client.GetFromJsonAsync<JsonElement>($"{Desks}/{deskId}/workflow", ct);
+        var byAgent = await agentClient.Client.PutAsJsonAsync($"{Desks}/{deskId}/workflow", new { workflowId }, ct);
+        var byDeskAdmin = await deskAdminClient.Client.PutAsJsonAsync($"{Desks}/{deskId}/workflow", new { workflowId }, ct);
+        var forNoDesk = await deskAdminClient.Client.GetAsync($"{Desks}/{Guid.NewGuid()}/workflow", ct);
+
+        // Assert
+        asDeskAdmin.GetProperty("canChange").GetBoolean().Should().BeTrue();
+        asDeskAdmin.GetProperty("followsOrganizationDefault").GetBoolean().Should().BeTrue();
+        byAgent.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        byDeskAdmin.StatusCode.Should().Be(HttpStatusCode.NoContent, await byDeskAdmin.Content.ReadAsStringAsync(ct));
+        forNoDesk.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     private static string Permission(string action) => ApplicationPermission.NameFor(action, ApplicationResource.IntakeRequests);
 
     private async Task<Guid> CreateDesk(HttpClient admin, string visibility, Guid[]? agents = null, Guid[]? admins = null)

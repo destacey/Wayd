@@ -40241,6 +40241,158 @@
         ]
       }
     },
+    "/api/demand-management/intake-desks/{idOrKey}/workflow": {
+      "get": {
+        "tags": [
+          "IntakeDesks"
+        ],
+        "summary": "Get the review workflow a desk's requests follow.",
+        "description": "Whether the desk follows the organization's default, and whether you may choose another: a Desk Admin on it or the Demand Management Admin, while no request is on it.",
+        "operationId": "IntakeDesks_GetWorkflow",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeDeskWorkflowDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-desks/{id}/workflow": {
+      "put": {
+        "tags": [
+          "IntakeDesks"
+        ],
+        "summary": "Point a desk at another published intake request workflow.",
+        "description": "Needs a Desk Admin on the desk or the Demand Management Admin, and is refused while any request is on the desk. The desk then follows the chosen workflow rather than the organization's default.",
+        "operationId": "IntakeDesks_ChangeWorkflow",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeIntakeDeskWorkflowRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-desks/workflow-choices": {
+      "get": {
+        "tags": [
+          "IntakeDesks"
+        ],
+        "summary": "Get the published intake request workflows a desk can follow.",
+        "description": "Building and editing workflows is in Settings, under status workflow administration.",
+        "operationId": "IntakeDesks_GetWorkflowChoices",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeWorkflowChoiceDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/demand-management/intake-desks/roles": {
       "get": {
         "tags": [
@@ -47958,6 +48110,22 @@
         },
         "additionalProperties": false,
         "description": "The share of production deployments that failed or were rolled back."
+      },
+      "ChangeIntakeDeskWorkflowRequest": {
+        "required": [
+          "workflowId"
+        ],
+        "type": "object",
+        "properties": {
+          "workflowId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "A published intake request workflow, from the workflow choices.",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The review workflow a desk's requests should follow."
       },
       "ChangeIntakeRequestAssigneeRequest": {
         "type": "object",
@@ -56107,6 +56275,39 @@
         "additionalProperties": false,
         "description": "The requests waiting on a desk: how many, and since when the oldest has waited."
       },
+      "IntakeDeskWorkflowDto": {
+        "required": [
+          "workflow",
+          "followsOrganizationDefault",
+          "hasRequests",
+          "canChange"
+        ],
+        "type": "object",
+        "properties": {
+          "workflow": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeWorkflowChoiceDto"
+              }
+            ],
+            "description": "The workflow governing the desk."
+          },
+          "followsOrganizationDefault": {
+            "type": "boolean",
+            "description": "Whether the desk follows the organization's default workflow rather than one chosen for it, so a change\nto the default reaches it."
+          },
+          "hasRequests": {
+            "type": "boolean",
+            "description": "Whether any request is on the desk, which stops its workflow changing."
+          },
+          "canChange": {
+            "type": "boolean",
+            "description": "Whether the reader may choose the desk's workflow: a Desk Admin on it or the Demand Management Admin,\nwhile no request is on it."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The review workflow a desk's requests follow, and whether the reader may point the desk at another."
+      },
       "IntakeRequestArrivalStatusesDto": {
         "required": [
           "statuses"
@@ -56535,6 +56736,37 @@
         },
         "additionalProperties": false,
         "description": "The summary tier of an intake request: enough to recognise that an ask exists."
+      },
+      "IntakeWorkflowChoiceDto": {
+        "required": [
+          "name",
+          "id",
+          "key"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The workflow's id.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "description": "The workflow's key, which its page in Settings is addressed by.",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "description": "The workflow's name."
+          },
+          "description": {
+            "type": "string",
+            "description": "What the workflow is for, when its author said.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A published intake request workflow a desk can follow."
       },
       "IntegrationStateDto": {
         "required": [

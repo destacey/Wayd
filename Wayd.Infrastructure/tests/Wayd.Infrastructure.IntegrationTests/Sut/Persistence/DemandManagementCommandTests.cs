@@ -7,6 +7,8 @@ using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.Events.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Models;
 using Wayd.DemandManagement.Application.IntakeDesks;
@@ -549,6 +551,73 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         // The request was created at the same test instant in an earlier save, so only the move's own events are ordered.
         events.Where(e => e != nameof(IntakeRequestCreatedEvent))
             .Should().Equal(nameof(IntakeRequestStatusChangedEvent), nameof(IntakeRequestReroutedEvent));
+    }
+
+    [Fact]
+    public async Task ADeskWithItsOwnWorkflow_StartsItsRequestsThere_AndAMoveToADefaultDeskSwitchesThemBack()
+    {
+        // Arrange — a desk chooses a copy of the default before anything is submitted to it
+        var ct = TestContext.Current.CancellationToken;
+        Employee requester, deskAdmin;
+        IntakeDesk ownDesk, defaultDesk;
+        IntakeChannel channel;
+        StatusWorkflow copy;
+        await using (var seeding = _fixture.CreateContext())
+        {
+            await IntakeStatuses.SeededResolver(seeding, ct);
+            requester = SeedEmployee(seeding);
+            deskAdmin = SeedEmployee(seeding);
+            ownDesk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true,
+                [new IntakeDeskMemberDetails(deskAdmin.Id, IntakeDeskRole.Admin)], EventActor.System, Now);
+            defaultDesk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true, [],
+                EventActor.System, Now);
+            channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
+            seeding.IntakeDesks.AddRange(ownDesk, defaultDesk);
+            seeding.IntakeChannels.Add(channel);
+
+            var seeded = await seeding.StatusWorkflows.Include(w => w.Statuses).Include(w => w.Transitions)
+                .SingleAsync(w => w.OwnerType == DemandManagementWorkflowOwners.IntakeRequest.Key && w.IsSystem, ct);
+            copy = seeded.Clone($"Board Review {Guid.NewGuid():N}"[..30], null, EventActor.System, Now);
+            copy.Publish(EventActor.System, Now).IsSuccess.Should().BeTrue();
+            seeding.StatusWorkflows.Add(copy);
+            await seeding.SaveChangesAsync(ct);
+        }
+
+        // Act
+        await using var context = _fixture.CreateContext();
+        var assignments = new ScopedWorkflowAssignments(context);
+        var chosen = await new ChangeIntakeDeskWorkflowCommandHandler(context, Principal(deskAdmin.Id), User(), _clock, assignments)
+            .Handle(new ChangeIntakeDeskWorkflowCommand(ownDesk.Id, copy.Id), ct);
+        var resolver = new StatusResolver(context);
+        var created = await new CreateIntakeRequestCommandHandler(context, Principal(requester.Id), User(), _clock, resolver)
+            .Handle(new CreateIntakeRequestCommand("Export invoices", "Finance needs a CSV export", null, ownDesk.Id, channel.Id, null, null), ct);
+        var nowHasRequests = await new ChangeIntakeDeskWorkflowCommandHandler(context, Principal(deskAdmin.Id), User(), _clock, assignments)
+            .Handle(new ChangeIntakeDeskWorkflowCommand(ownDesk.Id, (await assignments.Current(DemandManagementWorkflowOwners.IntakeRequest.Key, defaultDesk.Id, ct)).Value.Workflow.Id), ct);
+        var moved = await new RerouteIntakeRequestCommandHandler(context, Principal(deskAdmin.Id), User(), _clock, resolver)
+            .Handle(new RerouteIntakeRequestCommand(created.Value.Id, defaultDesk.Id, false), ct);
+
+        // Assert
+        chosen.IsSuccess.Should().BeTrue();
+        created.IsSuccess.Should().BeTrue();
+        nowHasRequests.IsFailure.Should().BeTrue();
+        nowHasRequests.Error.Should().Be(ChangeIntakeDeskWorkflowCommandHandler.DeskHasRequestsError);
+        moved.IsSuccess.Should().BeTrue();
+
+        await using var reader = _fixture.CreateContext();
+        var ownView = await new GetIntakeDeskWorkflowQueryHandler(reader, Principal(deskAdmin.Id), new ScopedWorkflowAssignments(reader))
+            .Handle(new GetIntakeDeskWorkflowQuery(new IdOrKey(ownDesk.Id)), ct);
+        ownView!.Workflow.Id.Should().Be(copy.Id);
+        ownView.FollowsOrganizationDefault.Should().BeFalse();
+
+        var transitions = await reader.StatusTransitions.AsNoTracking()
+            .Where(t => t.OwnerType == DemandManagementWorkflowOwners.IntakeRequest.Key && t.RecordId == created.Value.Id)
+            .OrderBy(t => t.Sequence)
+            .ToListAsync(ct);
+        transitions[0].WorkflowId.Should().Be(copy.Id, "the request started in its desk's own workflow");
+        transitions[1].WorkflowId.Should().NotBe(copy.Id, "moving to a desk on the default switched it onto that workflow");
+        transitions[1].ToStatusName.Should().Be("Submitted");
+        (await reader.ActivityLogs.AnyAsync(a => a.AggregateId == created.Value.Id && a.EventType == nameof(StatusWorkflowSwitchedEvent), ct))
+            .Should().BeTrue();
     }
 
     private static ICurrentPrincipal Principal(Guid employeeId, params string[] permissions)

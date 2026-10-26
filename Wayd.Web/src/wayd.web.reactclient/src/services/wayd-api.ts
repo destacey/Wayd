@@ -46540,6 +46540,196 @@ export class IntakeDesksClient {
     }
 
     /**
+     * Get the review workflow a desk's requests follow.
+     * @return OK
+     */
+    getWorkflow(idOrKey: string, cancelToken?: CancelToken): Promise<IntakeDeskWorkflowDto> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks/{idOrKey}/workflow";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkflow(_response);
+        });
+    }
+
+    protected processGetWorkflow(response: AxiosResponse): Promise<IntakeDeskWorkflowDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeDeskWorkflowDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeDeskWorkflowDto>(null as any);
+    }
+
+    /**
+     * Point a desk at another published intake request workflow.
+     * @return No Content
+     */
+    changeWorkflow(id: string, request: ChangeIntakeDeskWorkflowRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks/{id}/workflow";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeWorkflow(_response);
+        });
+    }
+
+    protected processChangeWorkflow(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get the published intake request workflows a desk can follow.
+     * @return OK
+     */
+    getWorkflowChoices( cancelToken?: CancelToken): Promise<IntakeWorkflowChoiceDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks/workflow-choices";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkflowChoices(_response);
+        });
+    }
+
+    protected processGetWorkflowChoices(response: AxiosResponse): Promise<IntakeWorkflowChoiceDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeWorkflowChoiceDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeWorkflowChoiceDto[]>(null as any);
+    }
+
+    /**
      * Get the roles a desk member can hold, with their codes.
      * @return OK
      */
@@ -54297,6 +54487,12 @@ judge", which is not the same as a rate of zero. */
     rate?: number | undefined;
 }
 
+/** The review workflow a desk's requests should follow. */
+export interface ChangeIntakeDeskWorkflowRequest {
+    /** A published intake request workflow, from the workflow choices. */
+    workflowId: string;
+}
+
 /** The member of an intake request's desk who owns it. */
 export interface ChangeIntakeRequestAssigneeRequest {
     /** A member of the request's desk, or null to unassign it. */
@@ -56900,6 +57096,20 @@ export interface IntakeDeskWaitingDto {
     oldestSubmittedOn?: Date | undefined;
 }
 
+/** The review workflow a desk's requests follow, and whether the reader may point the desk at another. */
+export interface IntakeDeskWorkflowDto {
+    /** The workflow governing the desk. */
+    workflow: IntakeWorkflowChoiceDto;
+    /** Whether the desk follows the organization's default workflow rather than one chosen for it, so a change
+to the default reaches it. */
+    followsOrganizationDefault: boolean;
+    /** Whether any request is on the desk, which stops its workflow changing. */
+    hasRequests: boolean;
+    /** Whether the reader may choose the desk's workflow: a Desk Admin on it or the Demand Management Admin,
+while no request is on it. */
+    canChange: boolean;
+}
+
 /** The statuses an intake request can arrive in when moved to a desk, and the one it arrives in unless the mover chooses. */
 export interface IntakeRequestArrivalStatusesDto {
     /** The destination workflow's open statuses that need no reason, in the workflow's order. */
@@ -57056,6 +57266,18 @@ export interface IntakeRequestSummaryDto {
     assignee?: EmployeeNavigationDto | undefined;
     /** When the request has to land and why, when it has a need-by date. */
     needBy?: IntakeRequestNeedByDto | undefined;
+}
+
+/** A published intake request workflow a desk can follow. */
+export interface IntakeWorkflowChoiceDto {
+    /** The workflow's id. */
+    id: string;
+    /** The workflow's key, which its page in Settings is addressed by. */
+    key: number;
+    /** The workflow's name. */
+    name: string;
+    /** What the workflow is for, when its author said. */
+    description?: string | undefined;
 }
 
 export interface IntegrationStateDto {

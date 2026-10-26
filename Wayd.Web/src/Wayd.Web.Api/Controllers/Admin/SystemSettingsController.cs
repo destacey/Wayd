@@ -45,9 +45,10 @@ public class SystemSettingsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.SystemSettings)]
     [EndpointSummary("Get the scheduling settings' change history.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetSchedulingSettingsActivities([FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetSchedulingSettingsActivities([FromQuery] int page = PageRequest.FirstPage, [FromQuery] int pageSize = PageSizes.Default, CancellationToken cancellationToken = default)
     {
-        var activities = await _dispatcher.Send(new GetSchedulingSettingsActivitiesQuery(page, pageSize), cancellationToken);
+        var activities = await _dispatcher.Send(new GetSchedulingSettingsActivitiesQuery(new PageRequest(page, pageSize)), cancellationToken);
         return Ok(activities);
     }
 
@@ -80,9 +81,10 @@ public class SystemSettingsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.SystemSettings)]
     [EndpointSummary("Get the sprint metrics settings' change history.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetSprintMetricsSettingsActivities([FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetSprintMetricsSettingsActivities([FromQuery] int page = PageRequest.FirstPage, [FromQuery] int pageSize = PageSizes.Default, CancellationToken cancellationToken = default)
     {
-        var activities = await _dispatcher.Send(new GetSprintMetricsSettingsActivitiesQuery(page, pageSize), cancellationToken);
+        var activities = await _dispatcher.Send(new GetSprintMetricsSettingsActivitiesQuery(new PageRequest(page, pageSize)), cancellationToken);
         return Ok(activities);
     }
 }

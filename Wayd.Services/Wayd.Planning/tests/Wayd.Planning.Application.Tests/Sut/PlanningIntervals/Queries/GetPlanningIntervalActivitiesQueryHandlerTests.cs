@@ -29,13 +29,13 @@ public sealed class GetPlanningIntervalActivitiesQueryHandlerTests : IDisposable
     {
         // Act
         var result = await _handler.Handle(
-            new GetPlanningIntervalActivitiesQuery(new IdOrKey(Guid.NewGuid())),
+            new GetPlanningIntervalActivitiesQuery(new IdOrKey(Guid.NewGuid()), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeNull();
-        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -62,12 +62,12 @@ public sealed class GetPlanningIntervalActivitiesQueryHandlerTests : IDisposable
         ], 1, 1, 50);
 
         _activityLogReader
-            .Setup(r => r.Read(planningInterval.Id, "PlanningInterval", 1, 50, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(planningInterval.Id, "PlanningInterval", new PageRequest(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
         // Act
         var result = await _handler.Handle(
-            new GetPlanningIntervalActivitiesQuery(new IdOrKey("26"), 1, 50),
+            new GetPlanningIntervalActivitiesQuery(new IdOrKey("26"), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert

@@ -4,7 +4,7 @@ using Wayd.Organization.Domain.Models;
 using NodaTime;
 using Wayd.TestData.Core;
 
-namespace Wayd.Organization.TestData;
+namespace Wayd.Organization.Domain.Tests.Data;
 
 public class TeamOperatingModelFaker : PrivateConstructorFaker<TeamOperatingModel>
 {

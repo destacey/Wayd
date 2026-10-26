@@ -11,19 +11,20 @@ namespace Wayd.Work.Application.Iterations.Queries;
 /// <summary>
 /// Retrieves activity history for a sprint, newest first.
 /// </summary>
-public sealed record GetSprintActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>
+public sealed record GetSprintActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery
 {
-    public GetSprintActivitiesQuery(IdOrKey idOrKey, int page = 1, int pageSize = 50)
+    public GetSprintActivitiesQuery(IdOrKey idOrKey, PageRequest paging)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<Iteration>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<Iteration, bool>> IdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetSprintActivitiesQueryValidator : PagedQueryValidator<GetSprintActivitiesQuery>;
 
 public sealed class GetSprintActivitiesQueryHandler(
     IWorkDbContext workDbContext,
@@ -50,8 +51,7 @@ public sealed class GetSprintActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             sprintId.Value,
             aggregateType: "Iteration",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(activities);

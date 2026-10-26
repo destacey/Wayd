@@ -218,9 +218,11 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
             .Select(t => t.ProtocolTool.Name)
             .ToHashSet(StringComparer.Ordinal);
 
-        // Assert — a list, an already-paged list, a list the endpoint limits, a single record, and a write
+        // Assert — a list, lists paged by number and by cursor, a list the endpoint limits, a single record, and a write
         Assert.Contains("Projects_GetWorkItems", withOffset);
         Assert.DoesNotContain("Projects_GetActivities", withOffset);
+        Assert.DoesNotContain("Me_GetFollows", withOffset);
+        Assert.DoesNotContain("Me_GetNotifications", withOffset);
         Assert.DoesNotContain("DeliveryOverview_GetRecentDeliveryEvents", withOffset);
         Assert.DoesNotContain("Projects_GetProject", withOffset);
         Assert.DoesNotContain("Projects_Create", withOffset);
@@ -370,7 +372,7 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
 
         // Assert
         Assert.Equal(Enum.GetValues<McpToolset>(), tools.Where(t => t.Toolset is not null).Select(t => t.Toolset!.Value).Distinct().Order());
-        Assert.Equal(["Me_Follow", "Me_GetAllocations", "Me_GetFollowCounts", "Me_GetFollowStatus", "Me_GetFollowedRecord", "Me_GetFollows", "Me_GetNotifications", "Me_GetProfile", "Me_GetTeamMemberships", "Me_GetUnreadNotificationCount", "Me_GetWorkItems", "Me_MarkAllNotificationsRead", "Me_MarkNotificationRead", "Me_MarkRecordNotificationsRead", "Me_Unfollow", SkillTools.Name], tools.Where(t => t.Toolset is null).Select(t => t.Tool.ProtocolTool.Name));
+        Assert.Equal(["Me_Follow", "Me_GetAllocations", "Me_GetFollowCounts", "Me_GetFollowStatus", "Me_GetFollowedRecord", "Me_GetFollows", "Me_GetMutedRecords", "Me_GetNotifications", "Me_GetProfile", "Me_GetReasonMutes", "Me_GetRecordMuteStatus", "Me_GetTeamMemberships", "Me_GetUnreadNotificationCount", "Me_GetWorkItems", "Me_MarkAllNotificationsRead", "Me_MarkNotificationRead", "Me_MarkRecordNotificationsRead", "Me_MuteReason", "Me_MuteRecord", "Me_Unfollow", "Me_UnmuteReason", "Me_UnmuteRecord", SkillTools.Name], tools.Where(t => t.Toolset is null).Select(t => t.Tool.ProtocolTool.Name));
     }
 
     [Fact]

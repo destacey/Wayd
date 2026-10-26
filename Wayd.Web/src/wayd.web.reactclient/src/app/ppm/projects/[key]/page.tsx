@@ -3,6 +3,7 @@
 import {
   FollowButton,
   LifecycleStatusTag,
+  MuteButton,
   PageActions,
 } from '@/src/components/common'
 import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
@@ -538,6 +539,10 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
                 </Button>
               )}
               <FollowButton
+                ownerType={FollowOwnerTypes.Project}
+                ownerId={projectData.id}
+              />
+              <MuteButton
                 ownerType={FollowOwnerTypes.Project}
                 ownerId={projectData.id}
               />

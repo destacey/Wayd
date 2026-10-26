@@ -38,8 +38,8 @@ public sealed class GetIntakeRequestActivitiesQueryHandlerTests
     {
         _activityLogReader
             .Setup(r => r.ReadEventTypes(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
-                It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .Callback<Guid, string, IReadOnlyCollection<string>, int, int, CancellationToken>((_, _, types, _, _, _) => _requestedEventTypes = types)
+                It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()))
+            .Callback<Guid, string, IReadOnlyCollection<string>, PageRequest?, CancellationToken>((_, _, types, _, _) => _requestedEventTypes = types)
             .ReturnsAsync(new PagedResponse<ActivityLogDto>([CreatedEntry], 1, 1, 50));
     }
 
@@ -80,7 +80,7 @@ public sealed class GetIntakeRequestActivitiesQueryHandlerTests
         SignedInAs(Guid.NewGuid());
 
         // Act
-        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key)), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key), new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().NotBeNull();
@@ -96,7 +96,7 @@ public sealed class GetIntakeRequestActivitiesQueryHandlerTests
         SignedInAs(Guid.NewGuid());
 
         // Act
-        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key)), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key), new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         var entry = result!.Items.Should().ContainSingle().Subject;
@@ -113,7 +113,7 @@ public sealed class GetIntakeRequestActivitiesQueryHandlerTests
         SignedInAs(Guid.NewGuid());
 
         // Act
-        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key)), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key), new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         var entry = result!.Items.Should().ContainSingle().Subject;
@@ -133,7 +133,7 @@ public sealed class GetIntakeRequestActivitiesQueryHandlerTests
         SignedInAs(requesterId, holdsView: false);
 
         // Act
-        await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key)), TestContext.Current.CancellationToken);
+        await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key), new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         _requestedEventTypes.Should().Contain([nameof(IntakeRequestRetitledEvent), nameof(IntakeRequestDetailsUpdatedEvent)]);
@@ -147,12 +147,12 @@ public sealed class GetIntakeRequestActivitiesQueryHandlerTests
         SignedInAs(Guid.NewGuid());
 
         // Act
-        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key)), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key), new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeNull();
         _activityLogReader.Verify(r => r.ReadEventTypes(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
-            It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -164,11 +164,11 @@ public sealed class GetIntakeRequestActivitiesQueryHandlerTests
         SignedInAs(agentId, holdsView: false);
 
         // Act
-        await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+        await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Id), new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         _activityLogReader.Verify(r => r.ReadEventTypes(request.Id, nameof(IntakeRequest), It.IsAny<IReadOnlyCollection<string>>(),
-            1, 50, It.IsAny<CancellationToken>()), Times.Once);
+            new PageRequest(), It.IsAny<CancellationToken>()), Times.Once);
         _requestedEventTypes.Should().Contain(nameof(IntakeRequestDetailsUpdatedEvent));
     }
 }

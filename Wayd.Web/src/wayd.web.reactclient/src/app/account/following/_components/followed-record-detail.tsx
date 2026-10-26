@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeftOutlined, EyeFilled } from '@ant-design/icons'
+import { ArrowLeftOutlined, EyeFilled, MutedOutlined } from '@ant-design/icons'
 import {
   Alert,
   Button,
@@ -227,6 +227,11 @@ const FollowedRecordDetail = ({
             }}
           />
           <FollowedRecordHealth record={record} variant="tag" />
+          {record.isMuted ? (
+            <Tooltip title="You still follow this, but are told nothing about it. Unmute it on its page, or under Notifications → Muted.">
+              <Tag icon={<MutedOutlined />}>Muted</Tag>
+            </Tooltip>
+          ) : null}
         </Flex>
       </div>
 

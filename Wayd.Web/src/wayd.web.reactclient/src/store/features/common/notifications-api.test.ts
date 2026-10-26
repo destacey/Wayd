@@ -4,7 +4,7 @@ import {
   buildNotification,
   buildNotifiedRecord,
 } from '@/src/components/common/notifications/notification-test-data'
-import { notificationEntries, notificationsApi } from './notifications-api'
+import { notificationsApi } from './notifications-api'
 
 const getNotifications = jest.fn()
 const getUnreadCount = jest.fn()
@@ -26,15 +26,8 @@ const createStore = () =>
     middleware: (getDefault) => getDefault().concat(apiSlice.middleware),
   })
 
-const emptyPage = {
-  items: [],
-  pageNumber: 1,
-  pageSize: 10,
-  totalCount: 0,
-  totalPages: 0,
-  hasPreviousPage: false,
-  hasNextPage: false,
-}
+// The server sends null, not an absent field, on the last page.
+const emptyPage = { items: [], nextCursor: null }
 
 /** Loads the list and the count, as the bell does, and returns the store. */
 const loadedStore = async () => {
@@ -76,7 +69,7 @@ describe('notificationsApi', () => {
     )
 
     // Assert
-    expect(getNotifications).toHaveBeenCalledWith(true, 1, 25)
+    expect(getNotifications).toHaveBeenCalledWith(true, null, 25)
   })
 
   it('refetches the list and the count after a record is marked read', async () => {
@@ -117,53 +110,110 @@ describe('notificationsApi', () => {
   })
 })
 
-describe('notificationEntries', () => {
+describe('notificationsApi paging', () => {
   const entry = (id: string) =>
     buildNotification({ record: buildNotifiedRecord({ id }) })
-  const page = (items: ReturnType<typeof entry>[]) => ({
-    ...emptyPage,
-    items,
+
+  beforeEach(() => {
+    jest.clearAllMocks()
   })
 
-  it('keeps every entry of every page in order', () => {
+  it('asks for the next page with the cursor the last one gave', async () => {
+    // Arrange
+    getNotifications
+      .mockResolvedValueOnce({ items: [entry('a')], nextCursor: 'cursor-1' })
+      .mockResolvedValueOnce({ items: [entry('b')], nextCursor: undefined })
+    const store = createStore()
+    const arg = { pageSize: 1 }
+    await store.dispatch(
+      notificationsApi.endpoints.getMyNotifications.initiate(arg),
+    )
+
     // Act
-    const entries = notificationEntries([
-      page([entry('a'), entry('b')]),
-      page([entry('c')]),
-    ])
+    await store.dispatch(
+      notificationsApi.endpoints.getMyNotifications.initiate(arg, {
+        direction: 'forward',
+      }),
+    )
 
     // Assert
-    expect(entries.map((e) => e.record.id)).toEqual(['a', 'b', 'c'])
+    expect(getNotifications).toHaveBeenNthCalledWith(1, undefined, null, 1)
+    expect(getNotifications).toHaveBeenNthCalledWith(
+      2,
+      undefined,
+      'cursor-1',
+      1,
+    )
+    const state = notificationsApi.endpoints.getMyNotifications.select(arg)(
+      store.getState(),
+    )
+    expect(
+      state.data?.pages.flatMap((page) => page.items.map((i) => i.record.id)),
+    ).toEqual(['a', 'b'])
+    expect(state.hasNextPage).toBe(false)
   })
 
-  it('keeps the first sighting of a record that reached two pages', () => {
+  it('starts again from the first page after a mark-read, following the refetched cursors', async () => {
+    // Arrange — two pages loaded and held, as the Notifications page holds them.
+    getNotifications
+      .mockResolvedValueOnce({ items: [entry('a')], nextCursor: 'cursor-a' })
+      .mockResolvedValueOnce({ items: [entry('b')], nextCursor: null })
+    const store = createStore()
+    const arg = { pageSize: 1 }
+    store.dispatch(notificationsApi.endpoints.getMyNotifications.initiate(arg))
+    await waitForCalls()
+    await store.dispatch(
+      notificationsApi.endpoints.getMyNotifications.initiate(arg, {
+        direction: 'forward',
+      }),
+    )
+    // Since then a new change moved record c to the top.
+    getNotifications
+      .mockResolvedValueOnce({ items: [entry('c')], nextCursor: 'cursor-c' })
+      .mockResolvedValueOnce({ items: [entry('a')], nextCursor: 'cursor-a' })
+    markAllRead.mockResolvedValue(undefined)
+
     // Act
-    const entries = notificationEntries([
-      page([entry('a'), entry('b')]),
-      page([entry('b'), entry('c')]),
-    ])
+    await store.dispatch(
+      notificationsApi.endpoints.markAllNotificationsRead.initiate(),
+    )
+    await waitForCalls()
+
+    // Assert — the refetch asks for the first page again, then the page after
+    // its new last entry, not the stale stored cursor.
+    expect(getNotifications).toHaveBeenNthCalledWith(3, undefined, null, 1)
+    expect(getNotifications).toHaveBeenNthCalledWith(
+      4,
+      undefined,
+      'cursor-c',
+      1,
+    )
+    const state = notificationsApi.endpoints.getMyNotifications.select(arg)(
+      store.getState(),
+    )
+    expect(
+      state.data?.pages.flatMap((page) => page.items.map((i) => i.record.id)),
+    ).toEqual(['c', 'a'])
+  })
+
+  it('has no next page when the first page gives no cursor', async () => {
+    // Arrange
+    getNotifications.mockResolvedValue({
+      items: [entry('a')],
+      nextCursor: null,
+    })
+    const store = createStore()
+    const arg = { pageSize: 1 }
+
+    // Act
+    await store.dispatch(
+      notificationsApi.endpoints.getMyNotifications.initiate(arg),
+    )
 
     // Assert
-    expect(entries.map((e) => e.record.id)).toEqual(['a', 'b', 'c'])
-  })
-
-  it('keeps records that share an id across owner types', () => {
-    // Act
-    const entries = notificationEntries([
-      page([
-        entry('a'),
-        buildNotification({
-          record: buildNotifiedRecord({ id: 'a', ownerType: 'ppm.program' }),
-        }),
-      ]),
-    ])
-
-    // Assert
-    expect(entries).toHaveLength(2)
-  })
-
-  it('gives nothing before the first page arrives', () => {
-    // Act & Assert
-    expect(notificationEntries(undefined)).toEqual([])
+    const state = notificationsApi.endpoints.getMyNotifications.select(arg)(
+      store.getState(),
+    )
+    expect(state.hasNextPage).toBe(false)
   })
 })

@@ -21,9 +21,6 @@ const mockUseList = jest.fn()
 const mockUseCount = jest.fn()
 const mockMarkAllRead = jest.fn()
 jest.mock('@/src/store/features/common/notifications-api', () => ({
-  notificationEntries: jest.requireActual(
-    '@/src/store/features/common/notifications-api',
-  ).notificationEntries,
   useGetMyNotificationsInfiniteQuery: (...args: unknown[]) =>
     mockUseList(...args),
   useGetUnreadNotificationCountQuery: (...args: unknown[]) =>
@@ -33,6 +30,24 @@ jest.mock('@/src/store/features/common/notifications-api', () => ({
     { isLoading: false },
   ],
   useMarkRecordNotificationsReadMutation: () => [jest.fn(), {}],
+}))
+
+jest.mock('@/src/store/features/common/notification-mutes-api', () => ({
+  useMuteRecordMutation: () => [jest.fn(), {}],
+  useUnmuteRecordMutation: () => [jest.fn(), {}],
+}))
+
+jest.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({
+    success: jest.fn(),
+    error: jest.fn(),
+    destroy: jest.fn(),
+  }),
+}))
+
+jest.mock('./_components/muted-notifications', () => ({
+  __esModule: true,
+  default: () => <div>Everything you muted</div>,
 }))
 
 const notification = (id: string, name: string): NotificationDto =>
@@ -107,28 +122,6 @@ describe('NotificationsPage', () => {
     expect(mockMarkAllRead).toHaveBeenCalledTimes(1)
   })
 
-  it('shows a record once when it reaches two pages', () => {
-    // Arrange
-    mockUseList.mockReturnValue(
-      list([
-        [notification('1', 'Apollo'), notification('2', 'Gemini')],
-        [notification('2', 'Gemini'), notification('3', 'Mercury')],
-      ]),
-    )
-
-    // Act
-    render(<NotificationsPage />)
-
-    // Assert
-    expect(
-      screen.getAllByRole('listitem').map((item) => item.textContent),
-    ).toEqual([
-      expect.stringContaining('Apollo'),
-      expect.stringContaining('Gemini'),
-      expect.stringContaining('Mercury'),
-    ])
-  })
-
   it('offers no mark all read when nothing is unread', () => {
     // Arrange
     mockUseList.mockReturnValue(list([[notification('1', 'Apollo')]]))
@@ -150,6 +143,19 @@ describe('NotificationsPage', () => {
 
     // Assert
     expect(screen.getByText(NoNotificationsMessage)).toBeInTheDocument()
+  })
+
+  it('shows everything muted on the Muted tab', () => {
+    // Arrange
+    mockUseList.mockReturnValue(list([[notification('1', 'Apollo')]]))
+    render(<NotificationsPage />)
+    expect(screen.queryByText('Everything you muted')).toBeNull()
+
+    // Act
+    fireEvent.click(screen.getByRole('tab', { name: 'Muted' }))
+
+    // Assert
+    expect(screen.getByText('Everything you muted')).toBeInTheDocument()
   })
 
   it('asks for a linked employee, and loads nothing, without one', () => {

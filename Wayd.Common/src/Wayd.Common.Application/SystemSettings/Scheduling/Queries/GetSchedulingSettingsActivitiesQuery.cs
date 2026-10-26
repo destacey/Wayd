@@ -7,8 +7,11 @@ namespace Wayd.Common.Application.SystemSettings.Scheduling.Queries;
 /// <summary>
 /// The scheduling settings' change history, newest first. Empty until the section is first saved.
 /// </summary>
-public sealed record GetSchedulingSettingsActivitiesQuery(int Page = 1, int PageSize = 50)
-    : IQuery<PagedResponse<ActivityLogDto>>;
+public sealed record GetSchedulingSettingsActivitiesQuery(PageRequest Paging)
+    : IQuery<PagedResponse<ActivityLogDto>>, IPagedQuery;
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetSchedulingSettingsActivitiesQueryValidator : PagedQueryValidator<GetSchedulingSettingsActivitiesQuery>;
 
 public sealed class GetSchedulingSettingsActivitiesQueryHandler(IActivityLogReader activityLogReader)
     : IQueryHandler<GetSchedulingSettingsActivitiesQuery, PagedResponse<ActivityLogDto>>
@@ -19,7 +22,6 @@ public sealed class GetSchedulingSettingsActivitiesQueryHandler(IActivityLogRead
         _activityLogReader.Read(
             SystemSettingsSection.IdFor<SchedulingSettings>(),
             aggregateType: "SystemSettingsSection",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 }

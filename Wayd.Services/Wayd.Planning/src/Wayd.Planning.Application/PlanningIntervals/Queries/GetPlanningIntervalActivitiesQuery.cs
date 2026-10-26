@@ -8,19 +8,20 @@ namespace Wayd.Planning.Application.PlanningIntervals.Queries;
 /// <summary>
 /// Retrieves activity history for a planning interval, newest first.
 /// </summary>
-public sealed record GetPlanningIntervalActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>
+public sealed record GetPlanningIntervalActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery
 {
-    public GetPlanningIntervalActivitiesQuery(IdOrKey idOrKey, int page = 1, int pageSize = 50)
+    public GetPlanningIntervalActivitiesQuery(IdOrKey idOrKey, PageRequest paging)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<PlanningInterval>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<PlanningInterval, bool>> IdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetPlanningIntervalActivitiesQueryValidator : PagedQueryValidator<GetPlanningIntervalActivitiesQuery>;
 
 public sealed class GetPlanningIntervalActivitiesQueryHandler(
     IPlanningDbContext planningDbContext,
@@ -46,8 +47,7 @@ public sealed class GetPlanningIntervalActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             planningIntervalId.Value,
             aggregateType: "PlanningInterval",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(activities);

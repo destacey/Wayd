@@ -1,7 +1,6 @@
 import { getMyNotificationsClient } from '@/src/services/clients'
 import {
-  NotificationDto,
-  PagedResponseOfNotificationDto,
+  CursorPageOfNotificationDto,
   UnreadNotificationCountDto,
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
@@ -13,7 +12,7 @@ export interface NotifiedRecordTarget {
   ownerId: string
 }
 
-/** What narrows the notification list; paging is handled by the infinite query. */
+/** What narrows the notification list; the infinite query follows each page's cursor. */
 export interface GetMyNotificationsRequest {
   unreadOnly?: boolean
   pageSize: number
@@ -21,25 +20,6 @@ export interface GetMyNotificationsRequest {
 
 /** How often the unread count is refreshed while the window has focus. */
 export const UnreadCountPollingInterval = 60_000
-
-/**
- * The entries of every loaded page, each record once. Pages are by offset over
- * an order that moves as records change, so a record can reach two pages; the
- * first, newest, sighting is kept. Cursor paging (#1138) removes the cause.
- */
-export const notificationEntries = (
-  pages: PagedResponseOfNotificationDto[] | undefined,
-): NotificationDto[] => {
-  const seen = new Set<string>()
-  return (pages ?? [])
-    .flatMap((page) => page.items)
-    .filter((entry) => {
-      const id = `${entry.record.ownerType}:${entry.record.id}`
-      if (seen.has(id)) return false
-      seen.add(id)
-      return true
-    })
-}
 
 /**
  * Every mark-read changes both the list and the count. Neither is patched in
@@ -53,15 +33,17 @@ const readStateTags = [
 
 export const notificationsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    // Paged by cursor: each page starts after the last entry of the one
+    // before, so an entry that moves to the top while the reader loads more is
+    // neither repeated nor skipped.
     getMyNotifications: builder.infiniteQuery<
-      PagedResponseOfNotificationDto,
+      CursorPageOfNotificationDto,
       GetMyNotificationsRequest,
-      number
+      string | null
     >({
       infiniteQueryOptions: {
-        initialPageParam: 1,
-        getNextPageParam: (lastPage) =>
-          lastPage.hasNextPage ? lastPage.pageNumber + 1 : undefined,
+        initialPageParam: null,
+        getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
       },
       queryFn: async ({ queryArg, pageParam }) => {
         try {

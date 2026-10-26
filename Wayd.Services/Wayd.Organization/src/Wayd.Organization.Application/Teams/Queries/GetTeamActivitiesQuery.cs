@@ -8,19 +8,20 @@ namespace Wayd.Organization.Application.Teams.Queries;
 /// <summary>
 /// Retrieves activity history for a team, newest first.
 /// </summary>
-public sealed record GetTeamActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>
+public sealed record GetTeamActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery
 {
-    public GetTeamActivitiesQuery(IdOrKey idOrKey, int page = 1, int pageSize = 50)
+    public GetTeamActivitiesQuery(IdOrKey idOrKey, PageRequest paging)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<Team>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<Team, bool>> IdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetTeamActivitiesQueryValidator : PagedQueryValidator<GetTeamActivitiesQuery>;
 
 public sealed class GetTeamActivitiesQueryHandler(
     IOrganizationDbContext organizationDbContext,
@@ -46,8 +47,7 @@ public sealed class GetTeamActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             teamId.Value,
             aggregateType: "Team",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(activities);

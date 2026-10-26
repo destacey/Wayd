@@ -7,7 +7,7 @@ using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Events;
 using Wayd.Organization.Application.Tests.Infrastructure;
 using Wayd.Organization.Application.TeamsOfTeams.Queries;
-using Wayd.Organization.TestData;
+using Wayd.Organization.Domain.Tests.Data;
 
 namespace Wayd.Organization.Application.Tests.Sut.TeamsOfTeams.Queries;
 
@@ -29,13 +29,13 @@ public class GetTeamOfTeamsActivitiesQueryHandlerTests : IDisposable
     {
         // Act
         var result = await _handler.Handle(
-            new GetTeamOfTeamsActivitiesQuery(new IdOrKey(Guid.NewGuid())),
+            new GetTeamOfTeamsActivitiesQuery(new IdOrKey(Guid.NewGuid()), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeNull();
-        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -64,12 +64,12 @@ public class GetTeamOfTeamsActivitiesQueryHandlerTests : IDisposable
         var expectedResponse = new PagedResponse<ActivityLogDto>(expectedActivities, 1, 1, 50);
 
         _activityLogReader
-            .Setup(r => r.Read(teamOfTeams.Id, "Team", 1, 50, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(teamOfTeams.Id, "Team", new PageRequest(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
         var result = await _handler.Handle(
-            new GetTeamOfTeamsActivitiesQuery(new IdOrKey(teamOfTeams.Id), 1, 50),
+            new GetTeamOfTeamsActivitiesQuery(new IdOrKey(teamOfTeams.Id), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -90,12 +90,12 @@ public class GetTeamOfTeamsActivitiesQueryHandlerTests : IDisposable
         var joined = Activity(child.Id, isRelated: true);
 
         _activityLogReader
-            .Setup(r => r.Read(parent.Id, "Team", 1, 50, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(parent.Id, "Team", new PageRequest(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PagedResponse<ActivityLogDto>([joined, own], 2, 1, 50));
 
         // Act
         var result = await _handler.Handle(
-            new GetTeamOfTeamsActivitiesQuery(new IdOrKey(parent.Id), 1, 50),
+            new GetTeamOfTeamsActivitiesQuery(new IdOrKey(parent.Id), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -114,12 +114,12 @@ public class GetTeamOfTeamsActivitiesQueryHandlerTests : IDisposable
         var fromRemoved = Activity(Guid.CreateVersion7(), isRelated: true);
 
         _activityLogReader
-            .Setup(r => r.Read(parent.Id, "Team", 1, 50, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(parent.Id, "Team", new PageRequest(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PagedResponse<ActivityLogDto>([fromRemoved], 1, 1, 50));
 
         // Act
         var result = await _handler.Handle(
-            new GetTeamOfTeamsActivitiesQuery(new IdOrKey(parent.Id), 1, 50),
+            new GetTeamOfTeamsActivitiesQuery(new IdOrKey(parent.Id), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert

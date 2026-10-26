@@ -1,5 +1,6 @@
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.FeatureManagement;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.ProjectPortfolioManagement.Application.Projects.HealthChecks.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Models;
@@ -18,7 +19,7 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 /// </summary>
 public sealed class ProjectHealthCheckEvidenceComposer(IDispatcher dispatcher, IFeatureFlags featureFlags, IDateTimeProvider dateTimeProvider)
 {
-    /// <summary>Entries read per activity page, the most the reader returns.</summary>
+    /// <summary>Entries read per activity page while walking the project's history.</summary>
     private const int ActivityPageSize = 100;
 
     /// <summary>
@@ -112,7 +113,7 @@ public sealed class ProjectHealthCheckEvidenceComposer(IDispatcher dispatcher, I
 
         for (var page = 1; page <= maxPages; page++)
         {
-            var result = await _dispatcher.Send(new GetProjectActivitiesQuery(projectId, page, ActivityPageSize), cancellationToken);
+            var result = await _dispatcher.Send(new GetProjectActivitiesQuery(projectId, new PageRequest(page, ActivityPageSize)), cancellationToken);
             var items = result.IsSuccess ? result.Value : null;
             if (items is null)
                 return (activity, false);

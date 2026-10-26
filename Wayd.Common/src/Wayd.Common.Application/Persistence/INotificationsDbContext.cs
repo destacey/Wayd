@@ -33,4 +33,16 @@ public interface INotificationsDbContext
     /// nothing twice and marks read set-based.
     /// </remarks>
     DbSet<Notification> Notifications { get; }
+
+    /// <summary>
+    /// Every record mute. Reads are keyed by (<c>OwnerType</c>, <c>OwnerId</c>) or by <c>EmployeeId</c>.
+    /// </summary>
+    /// <remarks>
+    /// Read through this set; write through <c>IMuteStore</c>, which makes muting twice a no-op.
+    /// </remarks>
+    DbSet<RecordMute> RecordMutes { get; }
+
+    /// <summary>Every reason mute. Reads are keyed by <c>EmployeeId</c>.</summary>
+    /// <remarks>Read through this set; write through <c>IMuteStore</c>.</remarks>
+    DbSet<ReasonMute> ReasonMutes { get; }
 }

@@ -1187,7 +1187,7 @@ export class MyFollowsClient {
     }
 }
 
-export class MyNotificationsClient {
+export class MyNotificationMutesClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
     protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
@@ -1201,18 +1201,13 @@ export class MyNotificationsClient {
     }
 
     /**
-     * List your notifications.
-     * @param unreadOnly (optional) 
+     * List the records you have muted.
      * @param page (optional) 
      * @param pageSize (optional) 
      * @return OK
      */
-    getNotifications(unreadOnly?: boolean | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfNotificationDto> {
-        let url_ = this.baseUrl + "/api/me/notifications?";
-        if (unreadOnly === null)
-            throw new globalThis.Error("The parameter 'unreadOnly' cannot be null.");
-        else if (unreadOnly !== undefined)
-            url_ += "unreadOnly=" + encodeURIComponent("" + unreadOnly) + "&";
+    getMutedRecords(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfMutedRecordDto> {
+        let url_ = this.baseUrl + "/api/me/notification-mutes/records?";
         if (page === null)
             throw new globalThis.Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
@@ -1239,11 +1234,11 @@ export class MyNotificationsClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processGetNotifications(_response);
+            return this.processGetMutedRecords(_response);
         });
     }
 
-    protected processGetNotifications(response: AxiosResponse): Promise<PagedResponseOfNotificationDto> {
+    protected processGetMutedRecords(response: AxiosResponse): Promise<PagedResponseOfMutedRecordDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1258,7 +1253,7 @@ export class MyNotificationsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<PagedResponseOfNotificationDto>(result200);
+            return Promise.resolve<PagedResponseOfMutedRecordDto>(result200);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -1271,7 +1266,529 @@ export class MyNotificationsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<PagedResponseOfNotificationDto>(null as any);
+        return Promise.resolve<PagedResponseOfMutedRecordDto>(null as any);
+    }
+
+    /**
+     * Get whether you have muted a record.
+     * @return OK
+     */
+    getRecordMuteStatus(ownerType: string, ownerId: string, cancelToken?: CancelToken): Promise<RecordMuteStatusDto> {
+        let url_ = this.baseUrl + "/api/me/notification-mutes/records/{ownerType}/{ownerId}";
+        if (ownerType === undefined || ownerType === null)
+            throw new globalThis.Error("The parameter 'ownerType' must be defined.");
+        url_ = url_.replace("{ownerType}", encodeURIComponent("" + ownerType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetRecordMuteStatus(_response);
+        });
+    }
+
+    protected processGetRecordMuteStatus(response: AxiosResponse): Promise<RecordMuteStatusDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<RecordMuteStatusDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<RecordMuteStatusDto>(null as any);
+    }
+
+    /**
+     * Mute a record.
+     * @return OK
+     */
+    muteRecord(ownerType: string, ownerId: string, cancelToken?: CancelToken): Promise<MuteRecordResponse> {
+        let url_ = this.baseUrl + "/api/me/notification-mutes/records/{ownerType}/{ownerId}";
+        if (ownerType === undefined || ownerType === null)
+            throw new globalThis.Error("The parameter 'ownerType' must be defined.");
+        url_ = url_.replace("{ownerType}", encodeURIComponent("" + ownerType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMuteRecord(_response);
+        });
+    }
+
+    protected processMuteRecord(response: AxiosResponse): Promise<MuteRecordResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<MuteRecordResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MuteRecordResponse>(null as any);
+    }
+
+    /**
+     * Unmute a record.
+     * @return No Content
+     */
+    unmuteRecord(ownerType: string, ownerId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/me/notification-mutes/records/{ownerType}/{ownerId}";
+        if (ownerType === undefined || ownerType === null)
+            throw new globalThis.Error("The parameter 'ownerType' must be defined.");
+        url_ = url_.replace("{ownerType}", encodeURIComponent("" + ownerType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUnmuteRecord(_response);
+        });
+    }
+
+    protected processUnmuteRecord(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * List the reasons you can mute, and which you have.
+     * @return OK
+     */
+    getReasonMutes( cancelToken?: CancelToken): Promise<ReasonMuteDto[]> {
+        let url_ = this.baseUrl + "/api/me/notification-mutes/reasons";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetReasonMutes(_response);
+        });
+    }
+
+    protected processGetReasonMutes(response: AxiosResponse): Promise<ReasonMuteDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ReasonMuteDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ReasonMuteDto[]>(null as any);
+    }
+
+    /**
+     * Mute a reason.
+     * @return No Content
+     */
+    muteReason(reason: NotificationReason, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/me/notification-mutes/reasons/{reason}";
+        if (reason === undefined || reason === null)
+            throw new globalThis.Error("The parameter 'reason' must be defined.");
+        url_ = url_.replace("{reason}", encodeURIComponent("" + reason));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "PUT",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMuteReason(_response);
+        });
+    }
+
+    protected processMuteReason(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Unmute a reason.
+     * @return No Content
+     */
+    unmuteReason(reason: NotificationReason, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/me/notification-mutes/reasons/{reason}";
+        if (reason === undefined || reason === null)
+            throw new globalThis.Error("The parameter 'reason' must be defined.");
+        url_ = url_.replace("{reason}", encodeURIComponent("" + reason));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUnmuteReason(_response);
+        });
+    }
+
+    protected processUnmuteReason(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
+export class MyNotificationsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * List your notifications.
+     * @param unreadOnly (optional) 
+     * @param before (optional) 
+     * @param pageSize (optional) 
+     * @return OK
+     */
+    getNotifications(unreadOnly?: boolean | undefined, before?: string | null | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<CursorPageOfNotificationDto> {
+        let url_ = this.baseUrl + "/api/me/notifications?";
+        if (unreadOnly === null)
+            throw new globalThis.Error("The parameter 'unreadOnly' cannot be null.");
+        else if (unreadOnly !== undefined)
+            url_ += "unreadOnly=" + encodeURIComponent("" + unreadOnly) + "&";
+        if (before !== undefined && before !== null)
+            url_ += "before=" + encodeURIComponent("" + before) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetNotifications(_response);
+        });
+    }
+
+    protected processGetNotifications(response: AxiosResponse): Promise<CursorPageOfNotificationDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<CursorPageOfNotificationDto>(result200);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CursorPageOfNotificationDto>(null as any);
     }
 
     /**
@@ -1931,6 +2448,13 @@ export class SprintsClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2894,6 +3418,13 @@ export class WorkProcessesClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -6154,6 +6685,13 @@ export class OidcProvidersClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -8399,6 +8937,13 @@ export class UsersClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -9564,6 +10109,13 @@ export class StrategicThemesClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -11954,6 +12506,13 @@ export class DeploymentsClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -12699,6 +13258,13 @@ export class ProductsClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -15308,6 +15874,13 @@ export class ReleasePackagesClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -16262,6 +16835,13 @@ export class ReleasesClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -17405,6 +17985,13 @@ export class VersionsClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -18984,6 +19571,13 @@ export class PortfoliosClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -20485,6 +21079,13 @@ export class ProgramsClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22698,6 +23299,13 @@ export class ProjectsClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -26013,6 +26621,13 @@ export class StrategicInitiativesClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -28156,6 +28771,13 @@ export class PlanningIntervalsClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -29602,6 +30224,13 @@ export class PlanningIntervalsClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -32095,6 +32724,13 @@ export class RisksClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -38293,6 +38929,13 @@ export class HolidayCalendarsClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -39380,6 +40023,13 @@ export class TeamsClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -42627,6 +43277,13 @@ export class TeamsOfTeamsClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -46264,6 +46921,13 @@ export class IntakeRequestsClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -47835,6 +48499,13 @@ export class ConnectionsClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -49595,6 +50266,13 @@ export class ScoringModelsClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -51344,6 +52022,13 @@ export class StatusWorkflowsClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -52281,6 +52966,13 @@ export class SystemSettingsClient {
             result200 = resultData200;
             return Promise.resolve<PagedResponseOfActivityLogDto>(result200);
 
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -52460,6 +53152,13 @@ export class SystemSettingsClient {
             let resultData200  = _responseText;
             result200 = resultData200;
             return Promise.resolve<PagedResponseOfActivityLogDto>(result200);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -54082,6 +54781,14 @@ export interface CurrentJobCountsResponse {
     servers: number;
 }
 
+/** One page of a list read by cursor: the items, and where the next page starts. */
+export interface CursorPageOfNotificationDto {
+    /** The items on this page, in the list's order. */
+    items: NotificationDto[];
+    /** Pass this back as the next request's cursor, or null when this page is the last. Opaque: its format is not part of the contract. */
+    nextCursor?: string | undefined;
+}
+
 /** How long a cut version waited before it shipped. */
 export interface CutToReleasedDto {
     /** Mean days from cut to release, or `null` where nothing measurable shipped. */
@@ -54787,6 +55494,8 @@ it, when, and the note. Null when the record has no current health. */
     /** When the record last changed: the newest entry its Activity section lists, its own or one naming it as
 related. Null when it has no recorded activity. */
     lastChangedOn?: Date | undefined;
+    /** Whether the caller has muted the record: they still follow it, but are told nothing about it. */
+    isMuted: boolean;
 }
 
 /** The order the Following list is shown in. */
@@ -56251,6 +56960,38 @@ export interface MoveVersionTargetDateRequest {
     targetDate?: string | undefined;
 }
 
+/** A record the caller has muted, as the list of their mutes shows it. */
+export interface MutedRecordDto {
+    /** The record's owner type, such as `ppm.project`. */
+    ownerType: string;
+    /** The record's id. */
+    id: string;
+    /** The record's human-readable key, as its own pages address it. */
+    key: string;
+    /** The record's name or title. */
+    name: string;
+    /** The key of the record this one is addressed under, such as a planning interval objective's planning
+interval. Null when the owner type does not nest. */
+    parentKey?: string | undefined;
+    /** The name of the parent record. Null when there is none. */
+    parentName?: string | undefined;
+    /** The record's status as its own pages name it. */
+    statusName: string;
+    /** Where the status sits in the record's lifecycle. */
+    lifecycle: LifecycleCategory;
+    /** Whether the caller also follows the record. Muting a record never stops following it. */
+    isFollowing: boolean;
+    /** When the caller muted the record. */
+    mutedOn: Date;
+}
+
+/** What muting a record did. */
+export interface MuteRecordResponse {
+    /** Whether the record was already muted before this call, so nothing changed. An "undo" of this call
+must not unmute a record that was muted already. */
+    wasAlreadyMuted: boolean;
+}
+
 /** Summary of the current user's project involvement, with counts per role. */
 export interface MyProjectsSummaryDto {
     totalCount: number;
@@ -56560,8 +57301,8 @@ export interface PagedResponseOfFollowedRecordDto {
 }
 
 /** One page of results, with the paging position and the total across all pages. */
-export interface PagedResponseOfNotificationDto {
-    items: NotificationDto[];
+export interface PagedResponseOfMutedRecordDto {
+    items: MutedRecordDto[];
     pageNumber: number;
     pageSize: number;
     totalCount: number;
@@ -57878,6 +58619,16 @@ export interface ProjectTeamMemberDto {
     activeWorkItemCount: number;
 }
 
+/** One reason the caller can be told for, and whether they have muted it. */
+export interface ReasonMuteDto {
+    /** The reason. */
+    reason: NotificationReason;
+    /** Whether the caller has muted it, everywhere. */
+    isMuted: boolean;
+    /** When the caller muted it; null when it is not muted. */
+    mutedOn?: Date | undefined;
+}
+
 /** A request to move a scope onto another workflow and bring its records with it. */
 export interface ReassignWorkflowRequest {
     /** The workflow the scope should move onto. */
@@ -57915,6 +58666,14 @@ export interface ReclassifyWorkflowStatusRequest {
     category: StatusCategory;
     /** The well-known meaning the status carries within its owner type, or zero for none. */
     alias: number;
+}
+
+/** Whether the caller has muted a record. */
+export interface RecordMuteStatusDto {
+    /** Whether the caller has muted the record. */
+    isMuted: boolean;
+    /** When the caller muted the record; null when it is not muted. */
+    mutedOn?: Date | undefined;
 }
 
 /** A person leading a record, or the team owning it, and the role they hold. */

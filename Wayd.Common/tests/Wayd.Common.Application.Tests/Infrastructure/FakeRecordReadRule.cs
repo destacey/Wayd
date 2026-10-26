@@ -11,6 +11,7 @@ public sealed class FakeRecordReadRule(string ownerType) : IRecordReadRule
 {
     private readonly List<FakeRecord> _records = [];
     private readonly HashSet<Guid> _hidden = [];
+    private readonly HashSet<Guid> _goneBeforeDescribe = [];
 
     public string OwnerType { get; } = ownerType;
 
@@ -50,6 +51,12 @@ public sealed class FakeRecordReadRule(string ownerType) : IRecordReadRule
     /// <summary>Deletes a record, leaving any follows of it behind.</summary>
     public void Delete(Guid id) => _records.RemoveAll(r => r.Id == id);
 
+    /// <summary>
+    /// Leaves a record readable but missing when it is described, as when it is deleted between a page's query
+    /// and the read that names its records.
+    /// </summary>
+    public void DeleteBeforeDescribe(Guid id) => _goneBeforeDescribe.Add(id);
+
     public Task<IQueryable<RecordFacts>?> Readable(string? search, CancellationToken cancellationToken)
     {
         LastSearch = search;
@@ -77,7 +84,7 @@ public sealed class FakeRecordReadRule(string ownerType) : IRecordReadRule
         LastDescribedIds = ids;
 
         IReadOnlyDictionary<Guid, RecordSummary> summaries = _records
-            .Where(r => ids.Contains(r.Id))
+            .Where(r => ids.Contains(r.Id) && !_goneBeforeDescribe.Contains(r.Id))
             .ToDictionary(r => r.Id, r => new RecordSummary
             {
                 Key = r.Key,

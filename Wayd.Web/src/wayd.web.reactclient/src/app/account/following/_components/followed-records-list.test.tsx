@@ -36,6 +36,7 @@ const record = (
   statusName: 'Active',
   lifecycle: LifecycleCategory.Active,
   followedOn: new Date('2026-10-01T09:00:00Z'),
+  isMuted: false,
   ...overrides,
 })
 
@@ -64,6 +65,21 @@ const props = (
 const row = (name: RegExp) => screen.getByRole('button', { name })
 
 describe('FollowedRecordsList', () => {
+  it('marks a muted record, and only that one', () => {
+    // Act
+    render(
+      <FollowedRecordsList
+        {...props({ records: [record(1, { isMuted: true }), record(2)] })}
+      />,
+    )
+
+    // Assert
+    expect(
+      row(/Project 1/).querySelector('[aria-label="Muted"]'),
+    ).not.toBeNull()
+    expect(row(/Project 2/).querySelector('[aria-label="Muted"]')).toBeNull()
+  })
+
   it('shows each record with its kind, key, parent, status and when it last changed', () => {
     // Arrange
     const objective = record(1, {

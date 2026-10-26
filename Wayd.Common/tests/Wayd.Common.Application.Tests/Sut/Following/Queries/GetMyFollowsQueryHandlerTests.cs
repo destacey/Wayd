@@ -10,6 +10,7 @@ using Wayd.Common.Domain.Activities;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Following;
+using Wayd.Common.Domain.Notifications;
 using Wayd.Tests.Shared;
 
 namespace Wayd.Common.Application.Tests.Sut.Following.Queries;
@@ -64,7 +65,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         SeedActivity(older.Id, Now.Minus(Duration.FromDays(25)));
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
@@ -72,6 +73,26 @@ public sealed class GetMyFollowsQueryHandlerTests
         result.Value.Items.Select(i => i.Key).Should().Equal("W-1", "G-1", "G-2", "W-2");
         result.Value.Items[0].LastChangedOn.Should().Be(Now.Minus(Duration.FromHours(1)));
         result.Value.Items[3].LastChangedOn.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldMarkOnlyTheRecordsTheCallerMuted()
+    {
+        // Arrange
+        var muted = _gadgets.Add("G-1", "Sprocket");
+        var mutedBySomeoneElse = _gadgets.Add("G-2", "Flange");
+        var sameIdOtherType = _widgets.Add("W-1", "Lever", id: muted.Id);
+        SeedFollow(GadgetType, muted.Id, 1);
+        SeedFollow(GadgetType, mutedBySomeoneElse.Id, 2);
+        SeedFollow(WidgetType, sameIdOtherType.Id, 3);
+        _dbContext.AddRecordMute(RecordMute.Create(GadgetType, muted.Id, _employeeId, Start).Value);
+        _dbContext.AddRecordMute(RecordMute.Create(GadgetType, mutedBySomeoneElse.Id, Guid.NewGuid(), Start).Value);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), Sort: FollowSort.Followed), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value.Items.Select(i => (i.Key, i.IsMuted)).Should().Equal(("W-1", false), ("G-2", false), ("G-1", true));
     }
 
     [Fact]
@@ -85,7 +106,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         SeedActivity(first.Id, Now);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(Sort: FollowSort.Followed), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), Sort: FollowSort.Followed), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.Items.Select(i => i.Key).Should().Equal("W-1", "G-1");
@@ -107,7 +128,7 @@ public sealed class GetMyFollowsQueryHandlerTests
             relatedAggregates: [new AggregateReference(FakeRecordReadRule.ActivityType, related.Id)]));
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
@@ -130,7 +151,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         SeedActivity(busy.Id, Now.Minus(Duration.FromHours(1)));
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(Direction: SortDirection.Ascending), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), Direction: SortDirection.Ascending), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
@@ -147,7 +168,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         SeedFollow(WidgetType, second.Id, 2);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(Sort: FollowSort.Followed, Direction: SortDirection.Ascending), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), Sort: FollowSort.Followed, Direction: SortDirection.Ascending), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.Items.Select(i => i.Key).Should().Equal("G-1", "W-1");
@@ -161,7 +182,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         SeedFollow(WidgetType, widget.Id, 2);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         var item = result.Value.Items.Should().ContainSingle().Subject;
@@ -190,7 +211,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         SeedFollow(GadgetType, theirs.Id, 2, employeeId: Guid.NewGuid());
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.TotalCount.Should().Be(1);
@@ -208,7 +229,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         _gadgets.Hide(hidden.Id);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         // The total counting the hidden record would tell the caller one exists that they cannot see.
@@ -228,7 +249,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         _gadgets.CanView = false;
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.TotalCount.Should().Be(1);
@@ -247,7 +268,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         _gadgets.Delete(deleted.Id);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.TotalCount.Should().Be(1);
@@ -264,7 +285,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         }
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(Sort: FollowSort.Followed, PageNumber: 2, PageSize: 2), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(2, 2), Sort: FollowSort.Followed), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.Items.Select(i => i.Key).Should().Equal("G-3", "G-2");
@@ -282,7 +303,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         SeedFollow(WidgetType, _widgets.Add("W-1", "Lever").Id, 2);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(WidgetType.ToUpperInvariant()), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), WidgetType.ToUpperInvariant()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.Items.Select(i => i.OwnerType).Should().Equal(WidgetType);
@@ -299,7 +320,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         SeedFollow(WidgetType, _widgets.Add("W-1", "Lever").Id, 3);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(View: FollowView.Unhealthy), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), View: FollowView.Unhealthy), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.TotalCount.Should().Be(1);
@@ -317,7 +338,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         SeedFollow(GadgetType, _gadgets.Add("G-2", "Flange", lifecycle: LifecycleCategory.Active).Id, 3);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(View: FollowView.Closed, Sort: FollowSort.Followed), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), View: FollowView.Closed, Sort: FollowSort.Followed), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.Items.Select(i => i.Id).Should().Equal(canceled.Id, completed.Id);
@@ -339,7 +360,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         SeedActivity(stale.Id, Now.Minus(Duration.FromDays(7)).Minus(Duration.FromSeconds(1)));
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(View: FollowView.ChangedRecently), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), View: FollowView.ChangedRecently), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.Items.Select(i => i.Id).Should().Equal(recent.Id, edge.Id);
@@ -354,7 +375,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         SeedFollow(GadgetType, flange.Id, 2);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(Search: "  flan "), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), Search: "  flan "), TestContext.Current.CancellationToken);
 
         // Assert
         _gadgets.LastSearch.Should().Be("flan");
@@ -369,7 +390,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         SeedFollow(GadgetType, _gadgets.Add("G-1", "Sprocket").Id, 1);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(Search: "   "), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), Search: "   "), TestContext.Current.CancellationToken);
 
         // Assert
         _gadgets.LastSearch.Should().BeNull();
@@ -384,7 +405,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         _currentPrincipal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync((Guid?)null);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
@@ -396,7 +417,7 @@ public sealed class GetMyFollowsQueryHandlerTests
     public async Task Handle_ShouldFail_ForAnOwnerTypeThatCannotBeFollowed()
     {
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery("test.my-follows.unknown"), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), "test.my-follows.unknown"), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();

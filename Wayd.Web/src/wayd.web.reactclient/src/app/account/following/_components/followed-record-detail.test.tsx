@@ -67,6 +67,7 @@ const detail = (
     health: HealthStatus.Healthy,
     healthCheck: { id: 'hc-1', status: { id: 1, name: 'Healthy' } },
     followedOn: new Date('2026-10-24T09:00:00Z'),
+    isMuted: false,
     lastChangedOn: new Date(Date.now() - 24 * 60 * 60 * 1000),
   },
   people: [

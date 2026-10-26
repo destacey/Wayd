@@ -148,7 +148,7 @@ public sealed class ObjectiveHealthCheckEvidenceComposer(IDispatcher dispatcher,
         for (var page = 1; ; page++)
         {
             var result = await _dispatcher.Send(
-                new GetPlanningIntervalObjectiveActivitiesQuery(new IdOrKey(planningIntervalId.ToString()), new IdOrKey(objective.Id.ToString()), page, ActivityPageSize),
+                new GetPlanningIntervalObjectiveActivitiesQuery(new IdOrKey(planningIntervalId.ToString()), new IdOrKey(objective.Id.ToString()), new PageRequest(page, ActivityPageSize)),
                 cancellationToken);
             var entries = result.IsSuccess ? result.Value : null;
             if (entries is null)

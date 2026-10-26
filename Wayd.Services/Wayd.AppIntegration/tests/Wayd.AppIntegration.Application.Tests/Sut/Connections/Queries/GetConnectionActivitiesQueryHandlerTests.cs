@@ -28,12 +28,12 @@ public sealed class GetConnectionActivitiesQueryHandlerTests : IDisposable
     public async Task Handle_ReturnsNull_WhenConnectionDoesNotExist()
     {
         // Act
-        var result = await _sut.Handle(new GetConnectionActivitiesQuery(Guid.NewGuid()), TestContext.Current.CancellationToken);
+        var result = await _sut.Handle(new GetConnectionActivitiesQuery(Guid.NewGuid(), new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeNull();
-        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed class GetConnectionActivitiesQueryHandlerTests : IDisposable
         _db.AddConnection(connection);
 
         // Act
-        var result = await _sut.Handle(new GetConnectionActivitiesQuery(connection.Id), TestContext.Current.CancellationToken);
+        var result = await _sut.Handle(new GetConnectionActivitiesQuery(connection.Id, new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.Should().BeNull();
@@ -75,11 +75,11 @@ public sealed class GetConnectionActivitiesQueryHandlerTests : IDisposable
             },
         ], 1, 1, 50);
         _activityLogReader
-            .Setup(r => r.Read(connection.Id, "Connection", 1, 50, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(connection.Id, "Connection", new PageRequest(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
         // Act
-        var result = await _sut.Handle(new GetConnectionActivitiesQuery(connection.Id), TestContext.Current.CancellationToken);
+        var result = await _sut.Handle(new GetConnectionActivitiesQuery(connection.Id, new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.Should().BeEquivalentTo(expected);

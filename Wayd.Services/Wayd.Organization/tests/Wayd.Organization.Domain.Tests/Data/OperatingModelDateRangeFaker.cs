@@ -2,7 +2,7 @@ using Bogus;
 using Wayd.Organization.Domain.Models;
 using NodaTime;
 
-namespace Wayd.Organization.TestData;
+namespace Wayd.Organization.Domain.Tests.Data;
 
 public sealed class OperatingModelDateRangeFaker : Faker<OperatingModelDateRange>
 {

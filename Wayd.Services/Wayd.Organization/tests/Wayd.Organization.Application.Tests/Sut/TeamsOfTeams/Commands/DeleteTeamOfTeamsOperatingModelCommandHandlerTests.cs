@@ -6,7 +6,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Identity;
 using Wayd.Organization.Application.Tests.Infrastructure;
 using Wayd.Organization.Application.TeamsOfTeams.Commands;
-using Wayd.Organization.TestData;
+using Wayd.Organization.Domain.Tests.Data;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Extensions;
 

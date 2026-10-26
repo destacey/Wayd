@@ -83,14 +83,17 @@ public sealed class GetFollowedRecordQueryHandler(
         var activity = await _activityLogReader.Read(
             row.OwnerId,
             resolved.Value.ReadRule.ActivityAggregateType,
-            page: 1,
-            pageSize: ChangeLimit,
+            paging: new PageRequest(PageSize: ChangeLimit),
             cancellationToken: cancellationToken);
         var changes = activity.Items.Where(a => a.Timestamp >= row.FollowedOn).ToList();
 
+        var isMuted = await _notificationsDbContext.RecordMutes.AnyAsync(
+            m => m.OwnerType == row.OwnerType && m.OwnerId == row.OwnerId && m.EmployeeId == employeeId.Value,
+            cancellationToken);
+
         return new FollowedRecordDetailDto
         {
-            Record = FollowedRecordDto.Create(row.OwnerType, row.OwnerId, row.FollowedOn, row.LastChangedOn, summary),
+            Record = FollowedRecordDto.Create(row.OwnerType, row.OwnerId, row.FollowedOn, row.LastChangedOn, isMuted, summary),
             Progress = summary.Progress,
             People = [.. summary.People],
             Start = summary.Start,

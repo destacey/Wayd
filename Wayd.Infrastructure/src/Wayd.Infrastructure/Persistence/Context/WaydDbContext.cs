@@ -144,6 +144,10 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
 
     public DbSet<Notification> Notifications => Set<Notification>();
 
+    public DbSet<RecordMute> RecordMutes => Set<RecordMute>();
+
+    public DbSet<ReasonMute> ReasonMutes => Set<ReasonMute>();
+
     #endregion Notifications
 
     #region ProductManagement

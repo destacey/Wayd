@@ -75,6 +75,11 @@ public sealed record FollowedRecordDto
     public Instant? LastChangedOn { get; init; }
 
     /// <summary>
+    /// Whether the caller has muted the record: they still follow it, but are told nothing about it.
+    /// </summary>
+    public bool IsMuted { get; init; }
+
+    /// <summary>
     /// A followed record as its owner type describes it, with the follow's own facts.
     /// </summary>
     public static FollowedRecordDto Create(
@@ -82,6 +87,7 @@ public sealed record FollowedRecordDto
         Guid id,
         Instant followedOn,
         Instant? lastChangedOn,
+        bool isMuted,
         RecordSummary summary) =>
         summary.Adapt<FollowedRecordDto>() with
         {
@@ -89,6 +95,7 @@ public sealed record FollowedRecordDto
             Id = id,
             FollowedOn = followedOn,
             LastChangedOn = lastChangedOn,
+            IsMuted = isMuted,
             HealthCheck = FollowedHealthCheckDto.From(summary),
         };
 }

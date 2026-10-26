@@ -8,6 +8,7 @@ using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Tests.Infrastructure;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Following;
+using Wayd.Common.Domain.Notifications;
 
 namespace Wayd.Common.Application.Tests.Sut.Following.Queries;
 
@@ -39,7 +40,7 @@ public sealed class GetFollowedRecordQueryHandlerTests
 
     private void ActivityReturns(ActivityLogDto[] newestFirst, bool hasNextPage = false) =>
         _activityLogReader
-            .Setup(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), 1, GetFollowedRecordQueryHandler.ChangeLimit, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), new PageRequest(PageRequest.FirstPage, GetFollowedRecordQueryHandler.ChangeLimit), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PagedResponse<ActivityLogDto>(
                 [.. newestFirst],
                 hasNextPage ? newestFirst.Length + 1 : newestFirst.Length,
@@ -79,7 +80,29 @@ public sealed class GetFollowedRecordQueryHandlerTests
         detail.People.Should().Equal(new Wayd.Common.Application.Records.RecordPerson("Owner", "Avery Chen", null));
         detail.ChangesSinceFollowed.Should().Equal(after, atFollow);
         detail.HasMoreChanges.Should().BeFalse();
-        _activityLogReader.Verify(r => r.Read(gadget.Id, FakeRecordReadRule.ActivityType, 1, GetFollowedRecordQueryHandler.ChangeLimit, It.IsAny<CancellationToken>()), Times.Once);
+        _activityLogReader.Verify(r => r.Read(gadget.Id, FakeRecordReadRule.ActivityType, new PageRequest(PageRequest.FirstPage, GetFollowedRecordQueryHandler.ChangeLimit), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("caller", true)]
+    [InlineData("someone else", false)]
+    [InlineData("nobody", false)]
+    public async Task Handle_ShouldSayWhetherTheCallerMutedTheRecord(string mutedBy, bool expected)
+    {
+        // Arrange
+        var gadget = _gadgets.Add("G-1", "Sprocket");
+        SeedFollow(gadget.Id);
+        if (mutedBy != "nobody")
+        {
+            var muter = mutedBy == "caller" ? _employeeId : Guid.NewGuid();
+            _dbContext.AddRecordMute(RecordMute.Create(GadgetType, gadget.Id, muter, FollowedOn).Value);
+        }
+
+        // Act
+        var result = await CreateHandler().Handle(new GetFollowedRecordQuery(GadgetType, gadget.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value!.Record.IsMuted.Should().Be(expected);
     }
 
     [Fact]

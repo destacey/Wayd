@@ -2,6 +2,7 @@
 'use no memo'
 
 import {
+  MutedOutlined,
   SortAscendingOutlined,
   SortDescendingOutlined,
 } from '@ant-design/icons'
@@ -84,6 +85,11 @@ const FollowedRecordRow = ({
       </span>
     </span>
     <span className={styles.rowTrail}>
+      {record.isMuted ? (
+        <Tooltip title="Muted: you are told nothing about this">
+          <MutedOutlined aria-label="Muted" className={styles.rowMuted} />
+        </Tooltip>
+      ) : null}
       <FollowedRecordHealth record={record} variant="flag" />
       <LifecycleStatusTag
         status={{

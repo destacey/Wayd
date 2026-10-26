@@ -14,6 +14,7 @@ internal static class ConfigureServices
     {
         services.AddScoped<INotificationStore, NotificationStore>();
         services.AddScoped<INotificationWriter, NotificationWriter>();
+        services.AddScoped<IMuteStore, MuteStore>();
 
         return services;
     }

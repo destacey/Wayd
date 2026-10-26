@@ -3,6 +3,7 @@
 import {
   FollowButton,
   LifecycleStatusTag,
+  MuteButton,
   PageActions,
 } from '@/src/components/common'
 import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
@@ -354,6 +355,10 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           actions: (
             <>
               <FollowButton
+                ownerType={FollowOwnerTypes.Program}
+                ownerId={programData.id}
+              />
+              <MuteButton
                 ownerType={FollowOwnerTypes.Program}
                 ownerId={programData.id}
               />

@@ -1091,6 +1091,46 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("Notifications", "Notifications");
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.Notifications.ReasonMute", b =>
+                {
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Reason")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("MutedOn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("EmployeeId", "Reason");
+
+                    b.ToTable("ReasonMutes", "Notifications");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Notifications.RecordMute", b =>
+                {
+                    b.Property<string>("OwnerType")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("MutedOn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("OwnerType", "OwnerId", "EmployeeId");
+
+                    b.HasIndex("EmployeeId", "MutedOn");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("EmployeeId", "MutedOn"), new[] { "OwnerType", "OwnerId" });
+
+                    b.ToTable("RecordMutes", "Notifications");
+                });
+
             modelBuilder.Entity("Wayd.Common.Domain.Scoring.ScoringModel", b =>
                 {
                     b.Property<Guid>("Id")
@@ -8370,6 +8410,24 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
                         .WithMany()
                         .HasForeignKey("RecipientEmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Notifications.ReasonMute", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Notifications.RecordMute", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

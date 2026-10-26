@@ -180,9 +180,10 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
     [EndpointSummary("Get activity history for the connection.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(Guid id, [FromQuery] int page = PageRequest.FirstPage, [FromQuery] int pageSize = PageSizes.Default, CancellationToken cancellationToken = default)
     {
-        var result = await _dispatcher.Send(new GetConnectionActivitiesQuery(id, page, pageSize), cancellationToken);
+        var result = await _dispatcher.Send(new GetConnectionActivitiesQuery(id, new PageRequest(page, pageSize)), cancellationToken);
 
         return result.Value is not null
             ? Ok(result.Value)

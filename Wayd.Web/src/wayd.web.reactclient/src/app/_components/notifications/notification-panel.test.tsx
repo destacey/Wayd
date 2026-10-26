@@ -25,6 +25,19 @@ jest.mock('@/src/store/features/common/notifications-api', () => ({
   useMarkRecordNotificationsReadMutation: () => [jest.fn(), {}],
 }))
 
+jest.mock('@/src/store/features/common/notification-mutes-api', () => ({
+  useMuteRecordMutation: () => [jest.fn(), {}],
+  useUnmuteRecordMutation: () => [jest.fn(), {}],
+}))
+
+jest.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({
+    success: jest.fn(),
+    error: jest.fn(),
+    destroy: jest.fn(),
+  }),
+}))
+
 const arrange = (items: NotificationDto[], unreadCount = 0) => {
   mockUseList.mockReturnValue({
     data: { pages: [{ items }] },

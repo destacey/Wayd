@@ -6,7 +6,7 @@ using Wayd.Common.Domain.Tests.Data;
 using Wayd.Organization.Application.TeamMemberRoles.Commands;
 using Wayd.Organization.Application.Tests.Infrastructure;
 using Wayd.Organization.Domain.Models;
-using Wayd.Organization.TestData;
+using Wayd.Organization.Domain.Tests.Data;
 
 namespace Wayd.Organization.Application.Tests.Sut.TeamMemberRoles.Commands;
 

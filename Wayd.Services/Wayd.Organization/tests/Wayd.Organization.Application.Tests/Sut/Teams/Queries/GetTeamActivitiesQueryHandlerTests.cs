@@ -7,7 +7,7 @@ using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Events;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Organization.Application.Tests.Infrastructure;
-using Wayd.Organization.TestData;
+using Wayd.Organization.Domain.Tests.Data;
 
 namespace Wayd.Organization.Application.Tests.Sut.Teams.Queries;
 
@@ -28,13 +28,13 @@ public class GetTeamActivitiesQueryHandlerTests : IDisposable
     {
         // Act
         var result = await _handler.Handle(
-            new GetTeamActivitiesQuery(new IdOrKey(Guid.NewGuid())),
+            new GetTeamActivitiesQuery(new IdOrKey(Guid.NewGuid()), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeNull();
-        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -63,12 +63,12 @@ public class GetTeamActivitiesQueryHandlerTests : IDisposable
         var expectedResponse = new PagedResponse<ActivityLogDto>(expectedActivities, 1, 1, 50);
 
         _activityLogReader
-            .Setup(r => r.Read(team.Id, "Team", 1, 50, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(team.Id, "Team", new PageRequest(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
         var result = await _handler.Handle(
-            new GetTeamActivitiesQuery(new IdOrKey(team.Id), 1, 50),
+            new GetTeamActivitiesQuery(new IdOrKey(team.Id), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert

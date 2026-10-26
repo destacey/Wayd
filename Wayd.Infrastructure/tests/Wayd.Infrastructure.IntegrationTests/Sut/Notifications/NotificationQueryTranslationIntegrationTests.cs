@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Notifications.Queries;
 using Wayd.Common.Application.Records;
 using Wayd.Common.Domain.Enums;
@@ -25,7 +26,7 @@ namespace Wayd.Infrastructure.IntegrationTests.Sut.Notifications;
 /// <remarks>
 /// The unit tests prove what the queries return over in-memory sets. Only a real provider proves that each
 /// owner type's notifications joined to its readable records, combined with <c>UNION ALL</c>, then grouped by
-/// record, counted and paged, translates at all. The real owner types are always part of the union here, so a
+/// record, counted and paged by cursor, translates at all. The real owner types are always part of the union here, so a
 /// column whose store type differs between them fails these tests.
 /// </remarks>
 [Collection(nameof(SqlServerTestCollection))]
@@ -33,9 +34,10 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
 {
     private static readonly Instant Timestamp = Instant.FromUtc(2026, 10, 24, 12, 0);
     private static readonly FollowOwnerDescriptor EmployeeOwner = new("test.notification-translation.employee", "Test Employee");
+    private static readonly FollowOwnerDescriptor ColleagueOwner = new("test.notification-translation.colleague", "Test Colleague");
 
     [Fact]
-    public async Task GetMyNotifications_ShouldGroupCountAndPageAcrossEveryOwnerTypeInSql()
+    public async Task GetMyNotifications_ShouldGroupCountAndPageByCursorAcrossEveryOwnerTypeInSql()
     {
         // Arrange — notifications on every real owner type (about records that do not exist) unioned with an
         // owner type over real employee rows: two readable, one not. The middle record has two notifications,
@@ -74,13 +76,14 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
         var handler = new GetMyNotificationsQueryHandler(context, context, ReadRules(context, principal.Object, readable: [newest.Id, middle.Id]), principal.Object);
 
         // Act
-        var firstPage = await handler.Handle(new GetMyNotificationsQuery(PageNumber: 1, PageSize: 1), cancellationToken);
-        var secondPage = await handler.Handle(new GetMyNotificationsQuery(PageNumber: 2, PageSize: 1), cancellationToken);
-        var unreadOnly = await handler.Handle(new GetMyNotificationsQuery(UnreadOnly: true), cancellationToken);
+        var firstPage = await handler.Handle(new GetMyNotificationsQuery(new CursorRequest(PageSize: 1)), cancellationToken);
+        var secondPage = await handler.Handle(new GetMyNotificationsQuery(new CursorRequest(Before: firstPage.NextCursor, PageSize: 1)), cancellationToken);
+        var unreadOnly = await handler.Handle(new GetMyNotificationsQuery(new CursorRequest(), UnreadOnly: true), cancellationToken);
 
         // Assert
-        firstPage.TotalCount.Should().Be(2);
         firstPage.Items.Should().ContainSingle().Which.Record.Id.Should().Be(newest.Id);
+        firstPage.NextCursor.Should().NotBeNull();
+        secondPage.NextCursor.Should().BeNull();
 
         var entry = secondPage.Items.Should().ContainSingle().Subject;
         entry.Record.Id.Should().Be(middle.Id);
@@ -92,7 +95,55 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
         entry.Actor.Should().NotBeNull();
         entry.Actor!.Id.Should().Be(actor.Id);
 
-        unreadOnly.TotalCount.Should().Be(2);
+        unreadOnly.Items.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task GetMyNotifications_ShouldWalkEveryEntryOnceByCursor_WhenChangesDifferByATickOrTie()
+    {
+        // Arrange — two records a single tick apart, then three changed at one instant across two owner types,
+        // so the cursor must survive the round trip through SQL Server to the tick and settle the tie by owner
+        // type and then record id, compared in SQL as the page was ordered.
+        var cancellationToken = TestContext.Current.CancellationToken;
+        RegisterOwners();
+        var recipient = await NotificationTestData.SeedEmployee(fixture);
+        var records = new List<Guid>();
+        for (var i = 0; i < 5; i++)
+        {
+            records.Add((await NotificationTestData.SeedEmployee(fixture)).Id);
+        }
+
+        await using (var seed = fixture.CreateContext())
+        {
+            var store = new NotificationStore(seed);
+            await Seed(store, recipient.Id, EmployeeOwner.Key, records[0], Timestamp);
+            await Seed(store, recipient.Id, EmployeeOwner.Key, records[1], Timestamp.PlusTicks(1));
+            await Seed(store, recipient.Id, EmployeeOwner.Key, records[2], Timestamp.PlusTicks(2));
+            await Seed(store, recipient.Id, ColleagueOwner.Key, records[3], Timestamp.PlusTicks(2));
+            await Seed(store, recipient.Id, EmployeeOwner.Key, records[4], Timestamp.PlusTicks(2));
+        }
+
+        await using var context = fixture.CreateContext();
+        var principal = Principal(recipient.Id);
+        var handler = new GetMyNotificationsQueryHandler(context, context, ReadRules(context, principal.Object, readable: [.. records]), principal.Object);
+
+        // Act
+        var seen = new List<Guid>();
+        string? before = null;
+        do
+        {
+            var page = await handler.Handle(new GetMyNotificationsQuery(new CursorRequest(Before: before, PageSize: 1)), cancellationToken);
+            seen.AddRange(page.Items.Select(i => i.Record.Id));
+            before = page.NextCursor;
+        }
+        while (before is not null && seen.Count <= records.Count);
+
+        // Assert — newest first, each once. Of the three tied, the colleague sorts first by owner type; the two
+        // employees follow in SQL Server's order for their ids.
+        seen.Should().HaveCount(5).And.OnlyHaveUniqueItems();
+        seen[0].Should().Be(records[3]);
+        seen.Skip(1).Take(2).Should().BeEquivalentTo([records[2], records[4]]);
+        seen.Skip(3).Should().Equal(records[1], records[0]);
     }
 
     [Fact]
@@ -137,6 +188,59 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
         count.IsCapped.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task GetMyMutedRecords_ShouldCountOrderAndPageAcrossEveryOwnerTypeInSql()
+    {
+        // Arrange — mutes on every real owner type (of records that do not exist) unioned with two owner types
+        // over real employee rows: three readable across both types, one not, one muted by someone else.
+        // The oldest readable mute is also followed.
+        var cancellationToken = TestContext.Current.CancellationToken;
+        RegisterOwners();
+        var caller = await NotificationTestData.SeedEmployee(fixture);
+        var someoneElse = await NotificationTestData.SeedEmployee(fixture);
+        var oldest = await NotificationTestData.SeedEmployee(fixture);
+        var middle = await NotificationTestData.SeedEmployee(fixture);
+        var newest = await NotificationTestData.SeedEmployee(fixture);
+        var unreadable = await NotificationTestData.SeedEmployee(fixture);
+
+        await using (var seed = fixture.CreateContext())
+        {
+            foreach (var descriptor in PpmFollowOwners.All.Concat(PlanningFollowOwners.All))
+            {
+                seed.RecordMutes.Add(RecordMute.Create(descriptor.Key, Guid.CreateVersion7(), caller.Id, Timestamp.Plus(Duration.FromDays(1))).Value);
+            }
+
+            seed.RecordMutes.AddRange(
+                RecordMute.Create(EmployeeOwner.Key, oldest.Id, caller.Id, Timestamp).Value,
+                RecordMute.Create(ColleagueOwner.Key, middle.Id, caller.Id, Timestamp.Plus(Duration.FromHours(1))).Value,
+                RecordMute.Create(EmployeeOwner.Key, newest.Id, caller.Id, Timestamp.Plus(Duration.FromHours(2))).Value,
+                RecordMute.Create(EmployeeOwner.Key, unreadable.Id, caller.Id, Timestamp.Plus(Duration.FromHours(3))).Value,
+                RecordMute.Create(EmployeeOwner.Key, middle.Id, someoneElse.Id, Timestamp.Plus(Duration.FromHours(4))).Value);
+            seed.Follows.Add(Follow.Create(EmployeeOwner.Key, oldest.Id, caller.Id, Timestamp).Value);
+            await seed.SaveChangesAsync(cancellationToken);
+        }
+
+        await using var context = fixture.CreateContext();
+        var principal = Principal(caller.Id);
+        var handler = new GetMyMutedRecordsQueryHandler(context, ReadRules(context, principal.Object, readable: [oldest.Id, middle.Id, newest.Id]), principal.Object);
+
+        // Act
+        var pages = new List<Wayd.Common.Application.Models.PagedResponse<Wayd.Common.Application.Notifications.Dtos.MutedRecordDto>>();
+        for (var page = 1; page <= 3; page++)
+        {
+            pages.Add(await handler.Handle(new GetMyMutedRecordsQuery(new Wayd.Common.Application.Models.PageRequest(page, 1)), cancellationToken));
+        }
+
+        // Assert
+        pages.Should().AllSatisfy(p => p.TotalCount.Should().Be(3));
+        pages.Select(p => p.Items.Single())
+            .Select(i => (i.OwnerType, i.Id, i.IsFollowing))
+            .Should().Equal(
+                (EmployeeOwner.Key, newest.Id, false),
+                (ColleagueOwner.Key, middle.Id, false),
+                (EmployeeOwner.Key, oldest.Id, true));
+    }
+
     private static async Task Seed(
         NotificationStore store,
         Guid recipientId,
@@ -157,7 +261,7 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
     {
         PpmFollowOwners.Register();
         PlanningFollowOwners.Register();
-        FollowOwners.Register(EmployeeOwner);
+        FollowOwners.Register(EmployeeOwner, ColleagueOwner);
     }
 
     private static IRecordReadRule[] ReadRules(WaydDbContext context, ICurrentPrincipal principal, Guid[] readable) =>
@@ -165,7 +269,8 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
         new ProjectReadRule(context, principal, Clock()),
         new ProgramReadRule(context, principal),
         new PlanningIntervalObjectiveReadRule(context, principal, Clock()),
-        new EmployeeReadRule(context, readable),
+        new EmployeeReadRule(context, readable, EmployeeOwner.Key),
+        new EmployeeReadRule(context, readable, ColleagueOwner.Key),
     ];
 
     private static IDateTimeProvider Clock()
@@ -184,9 +289,9 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
     }
 
     /// <summary>A read rule over real employee rows, readable only where the test says.</summary>
-    private sealed class EmployeeReadRule(WaydDbContext context, Guid[] readable) : IRecordReadRule
+    private sealed class EmployeeReadRule(WaydDbContext context, Guid[] readable, string ownerType) : IRecordReadRule
     {
-        public string OwnerType => EmployeeOwner.Key;
+        public string OwnerType => ownerType;
 
         public string ActivityAggregateType => "Employee";
 

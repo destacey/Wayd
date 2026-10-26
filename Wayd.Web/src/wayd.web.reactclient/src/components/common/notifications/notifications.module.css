@@ -116,9 +116,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* The small tick is 24px; on a touch screen it grows to a comfortable target. */
+/* The small tick and mute buttons are 24px; on a touch screen they grow to a
+ * comfortable target. */
 @media (pointer: coarse) {
-  .markRead {
+  .entryAction {
     min-width: 40px;
     min-height: 40px;
   }

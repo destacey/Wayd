@@ -8,19 +8,20 @@ namespace Wayd.Planning.Application.Risks.Queries;
 /// <summary>
 /// Retrieves activity history for a risk, newest first.
 /// </summary>
-public sealed record GetRiskActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>
+public sealed record GetRiskActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery
 {
-    public GetRiskActivitiesQuery(IdOrKey idOrKey, int page = 1, int pageSize = 50)
+    public GetRiskActivitiesQuery(IdOrKey idOrKey, PageRequest paging)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<Risk>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<Risk, bool>> IdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetRiskActivitiesQueryValidator : PagedQueryValidator<GetRiskActivitiesQuery>;
 
 public sealed class GetRiskActivitiesQueryHandler(
     IPlanningDbContext planningDbContext,
@@ -46,8 +47,7 @@ public sealed class GetRiskActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             riskId.Value,
             aggregateType: "Risk",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(activities);

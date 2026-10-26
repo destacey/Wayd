@@ -198,7 +198,7 @@ Ask the user to confirm the recommendation or provide any adjustments (change st
 - A PI's changes (details, dates, teams, iterations, sprint mappings, objectives locked or unlocked): `PlanningIntervals_GetActivities` with `idOrKey`
 - One objective's changes (details, status, progress, order, stretch, timeline, health checks): `PlanningIntervals_GetObjectiveActivities` with `idOrKey` + `objectiveIdOrKey`
 
-Both return entries newest first, paged (at most 100 per page). Each entry has a `category`, a `summary`, who made the change and when, and a `payload` JSON string holding both the old and new value. A `Baseline` entry marks where tracking began for an objective or PI that already existed; nothing before it is recorded. People inside a payload are employee ids.
+Both return entries newest first, paged (50 per page by default, at most 500). Each entry has a `category`, a `summary`, who made the change and when, and a `payload` JSON string holding both the old and new value. A `Baseline` entry marks where tracking began for an objective or PI that already existed; nothing before it is recorded. People inside a payload are employee ids.
 
 ### Predictability
 

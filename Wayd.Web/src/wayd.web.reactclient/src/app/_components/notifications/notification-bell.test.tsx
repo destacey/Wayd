@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import NotificationBell from './notification-bell'
 
 const mockUseAuth = jest.fn()
@@ -181,6 +181,27 @@ describe('NotificationBell', () => {
     // Assert
     expect(bell).toHaveFocus()
     expect(bell).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('shows no tooltip after the panel closes from a click elsewhere', async () => {
+    // Arrange: hover the bell until its tooltip shows, then open the panel.
+    arrange()
+    render(<NotificationBell />)
+    const bell = screen.getByRole('button', { name: 'Notifications' })
+    fireEvent.mouseEnter(bell)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'Notifications',
+    )
+    fireEvent.click(bell)
+    await screen.findByTestId('panel')
+
+    // Act
+    fireEvent.mouseDown(document.body)
+    fireEvent.click(document.body)
+
+    // Assert
+    await waitFor(() => expect(bell).toHaveAttribute('aria-expanded', 'false'))
+    expect(screen.queryByRole('tooltip')).toBeNull()
   })
 
   it('opens the panel in a named drawer on a phone', async () => {

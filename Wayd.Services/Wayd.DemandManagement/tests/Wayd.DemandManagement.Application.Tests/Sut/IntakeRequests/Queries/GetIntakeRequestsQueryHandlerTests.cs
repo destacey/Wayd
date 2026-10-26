@@ -1,9 +1,10 @@
 using FluentAssertions;
 using Moq;
+using NodaTime;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
 using Wayd.DemandManagement.Application.Tests.Infrastructure;
-using Wayd.DemandManagement.Domain.Tests.Data;
 
 namespace Wayd.DemandManagement.Application.Tests.Sut.IntakeRequests.Queries;
 
@@ -20,13 +21,7 @@ public sealed class GetIntakeRequestsQueryHandlerTests
         var caller = _scenario.Employee();
         var someoneElse = _scenario.Employee();
         var desk = _scenario.Desk(IntakeDeskVisibility.SummaryOnly);
-        var onBehalf = new IntakeRequestFaker()
-            .WithDeskId(desk.Id)
-            .WithChannelId(_scenario.Channel().Id)
-            .WithRequesterId(someoneElse.Id)
-            .WithSubmittedById(caller.Id)
-            .Generate();
-        _scenario.DbContext.AddRequests(onBehalf);
+        var onBehalf = _scenario.RequestOnBehalf(desk, someoneElse, caller);
         var requested = _scenario.Request(desk, caller);
         _scenario.Request(desk, someoneElse);
         _scenario.SignedInAs(caller);
@@ -115,5 +110,43 @@ public sealed class GetIntakeRequestsQueryHandlerTests
 
         // Assert
         result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_OpenOnly_LeavesOutDoneAndRemovedRequests()
+    {
+        // Arrange — open is the Proposed and Active categories, whatever the desk's workflow names the status
+        var desk = _scenario.Desk(IntakeDeskVisibility.Open);
+        var proposed = _scenario.Request(desk, _scenario.Employee());
+        var active = _scenario.RequestIn(desk, _scenario.Employee(), StatusCategory.Active, IntakeRequestStatusAlias.Accepted);
+        _scenario.RequestIn(desk, _scenario.Employee(), StatusCategory.Done);
+        _scenario.RequestIn(desk, _scenario.Employee(), StatusCategory.Removed, IntakeRequestStatusAlias.Declined);
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.View);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestsQuery(OpenOnly: true), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Select(r => r.Id).Should().BeEquivalentTo([proposed.Id, active.Id]);
+    }
+
+    [Fact]
+    public async Task Handle_ReadsWhenARequestArrivedAndWhenItEnteredItsStatusFromItsHistory()
+    {
+        // Arrange
+        var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), _scenario.Employee());
+        var submittedOn = _scenario.Clock.Now;
+        _scenario.RecordMove(request, "In Review", submittedOn + Duration.FromDays(2));
+        var lastMovedOn = submittedOn + Duration.FromDays(5);
+        _scenario.RecordMove(request, "Waiting on Requester", lastMovedOn);
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.View);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestsQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var summary = result.Should().ContainSingle().Subject;
+        summary.SubmittedOn.Should().Be(submittedOn);
+        summary.StatusChangedOn.Should().Be(lastMovedOn);
     }
 }

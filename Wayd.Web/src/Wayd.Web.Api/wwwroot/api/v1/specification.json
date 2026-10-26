@@ -40458,7 +40458,7 @@
           "IntakeRequests"
         ],
         "summary": "Get the intake requests you can see, as summaries.",
-        "description": "Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf.",
+        "description": "Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf. With `openOnly`, only requests still under review or accepted — in the Proposed or Active status category, whatever the desk's workflow calls the status.",
         "operationId": "IntakeRequests_GetIntakeRequests",
         "parameters": [
           {
@@ -40479,6 +40479,15 @@
               "default": false
             },
             "x-position": 2
+          },
+          {
+            "name": "openOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 3
           }
         ],
         "responses": {
@@ -56670,7 +56679,9 @@
           "requester",
           "channel",
           "id",
-          "key"
+          "key",
+          "submittedOn",
+          "statusChangedOn"
         ],
         "type": "object",
         "properties": {
@@ -56737,6 +56748,16 @@
             ],
             "description": "When the request has to land and why, when it has a need-by date.",
             "nullable": true
+          },
+          "submittedOn": {
+            "type": "string",
+            "description": "When the request was submitted, from which its age is read.",
+            "format": "date-time"
+          },
+          "statusChangedOn": {
+            "type": "string",
+            "description": "When the request entered its current status, from which its time in that status is read.",
+            "format": "date-time"
           }
         },
         "additionalProperties": false,

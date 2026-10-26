@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.DemandManagement.Domain.Models;
 
 namespace Wayd.DemandManagement.Application;
@@ -40,6 +41,16 @@ public interface IDemandManagementDbContext
     /// employee up separately.
     /// </remarks>
     IQueryable<Employee> Employees { get; }
+
+    /// <summary>
+    /// The status history of intake requests, read-only, and only theirs.
+    /// </summary>
+    /// <remarks>
+    /// One table holds every owner type's history, so this is narrowed to the intake request owner type before
+    /// the module sees it: the module reads when a request arrived and when it entered its status, never another
+    /// module's records. History is appended by the aggregate, so nothing here writes it.
+    /// </remarks>
+    IQueryable<StatusTransition> IntakeRequestStatusTransitions { get; }
 
     /// <summary>
     /// Saves the tracked changes, together with the events, audit trail and activity log they produce.

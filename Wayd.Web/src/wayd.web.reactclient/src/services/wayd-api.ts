@@ -46865,9 +46865,10 @@ export class IntakeRequestsClient {
      * Get the intake requests you can see, as summaries.
      * @param deskId (optional) 
      * @param mine (optional) 
+     * @param openOnly (optional) 
      * @return OK
      */
-    getIntakeRequests(deskId?: string | null | undefined, mine?: boolean | undefined, cancelToken?: CancelToken): Promise<IntakeRequestSummaryDto[]> {
+    getIntakeRequests(deskId?: string | null | undefined, mine?: boolean | undefined, openOnly?: boolean | undefined, cancelToken?: CancelToken): Promise<IntakeRequestSummaryDto[]> {
         let url_ = this.baseUrl + "/api/demand-management/intake-requests?";
         if (deskId !== undefined && deskId !== null)
             url_ += "deskId=" + encodeURIComponent("" + deskId) + "&";
@@ -46875,6 +46876,10 @@ export class IntakeRequestsClient {
             throw new globalThis.Error("The parameter 'mine' cannot be null.");
         else if (mine !== undefined)
             url_ += "mine=" + encodeURIComponent("" + mine) + "&";
+        if (openOnly === null)
+            throw new globalThis.Error("The parameter 'openOnly' cannot be null.");
+        else if (openOnly !== undefined)
+            url_ += "openOnly=" + encodeURIComponent("" + openOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -57270,6 +57275,10 @@ export interface IntakeRequestSummaryDto {
     assignee?: EmployeeNavigationDto | undefined;
     /** When the request has to land and why, when it has a need-by date. */
     needBy?: IntakeRequestNeedByDto | undefined;
+    /** When the request was submitted, from which its age is read. */
+    submittedOn: Date;
+    /** When the request entered its current status, from which its time in that status is read. */
+    statusChangedOn: Date;
 }
 
 /** A published intake request workflow a desk can follow. */

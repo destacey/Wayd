@@ -1,3 +1,4 @@
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Queries;
@@ -11,7 +12,11 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Queries;
 /// substance and absent from the summary, so a client cannot find requests entered on someone else's behalf.
 /// A user linked to no employee has none.
 /// </param>
-public sealed record GetIntakeRequestsQuery(Guid? DeskId = null, bool Mine = false) : IQuery<List<IntakeRequestSummaryDto>>;
+/// <param name="OpenOnly">
+/// Only requests still open: in the Proposed or Active status category, whatever the desk's workflow calls the
+/// status. What reviewers work from; browsing for an existing ask wants the closed ones too.
+/// </param>
+public sealed record GetIntakeRequestsQuery(Guid? DeskId = null, bool Mine = false, bool OpenOnly = false) : IQuery<List<IntakeRequestSummaryDto>>;
 
 public sealed class GetIntakeRequestsQueryHandler(
     IDemandManagementDbContext dbContext,
@@ -39,6 +44,9 @@ public sealed class GetIntakeRequestsQueryHandler(
 
             query = query.Where(r => r.RequesterId == employeeId || r.SubmittedById == employeeId);
         }
+
+        if (request.OpenOnly)
+            query = query.Where(r => r.StatusCategory == StatusCategory.Proposed || r.StatusCategory == StatusCategory.Active);
 
         return await query
             .OrderBy(r => r.Key)

@@ -40,4 +40,10 @@ public sealed record IntakeRequestSummaryDto
 
     /// <summary>When the request has to land and why, when it has a need-by date.</summary>
     public IntakeRequestNeedByDto? NeedBy { get; init; }
+
+    /// <summary>When the request was submitted, from which its age is read.</summary>
+    public Instant SubmittedOn { get; init; }
+
+    /// <summary>When the request entered its current status, from which its time in that status is read.</summary>
+    public Instant StatusChangedOn { get; init; }
 }

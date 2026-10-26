@@ -142,6 +142,31 @@ jobs:
             - name: npm run build
               run: npm run build
 
+            # Starts the standalone server with OpenTelemetry on, because a module the build fails to trace
+            # only fails when the instrumentation hook loads, after "Ready". The copy runs outside the
+            # checkout: inside it, Node resolves a missing module from the project's own node_modules.
+            - name: Smoke test standalone server
+              run: |
+                  dir="$RUNNER_TEMP/standalone"
+                  cp -r .next/standalone "$dir"
+                  cd "$dir"
+                  PORT=3999 HOSTNAME=127.0.0.1 OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 \
+                      node server.js > server.log 2>&1 &
+                  pid=$!
+                  status=000
+                  for _ in $(seq 1 30); do
+                      kill -0 "$pid" 2>/dev/null || break
+                      status=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3999/login || true)
+                      [ "$status" != 000 ] && break
+                      sleep 1
+                  done
+                  kill "$pid" 2>/dev/null || true
+                  cat server.log
+                  if [ "$status" != 200 ]; then
+                      echo "::error::Standalone server returned HTTP $status for /login"
+                      exit 1
+                  fi
+
             # Coverage instrumentation costs roughly 4x the test run itself (v8 provider over the whole
             # source tree), and a PR publishes no coverage report, so PRs run the tests without it. The
             # main-branch build collects coverage and uploads it alongside the .NET report.

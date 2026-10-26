@@ -2550,7 +2550,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// List the records you have muted.
         /// </summary>
         /// <remarks>
-        /// Returns one page of the records you have muted, most recently muted first: each with `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle`, `isFollowing` (muting never stops following) and `mutedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A muted record tells you nothing more, whatever the reason. A record you can no longer read is left out of the page and the total. `page` starts at 1; `pageSize` is at most 100. Requires the following feature flag; returns 404 when it is off.
+        /// Returns one page of the records you have muted, most recently muted first: each with `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle`, `isFollowing` (muting never stops following) and `mutedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A muted record tells you nothing more, whatever the reason. A record you can no longer read is left out of the page and the total. `page` starts at 1; `pageSize` is at most 500. Requires the following feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -2677,7 +2677,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// List the records you have muted.
         /// </summary>
         /// <remarks>
-        /// Returns one page of the records you have muted, most recently muted first: each with `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle`, `isFollowing` (muting never stops following) and `mutedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A muted record tells you nothing more, whatever the reason. A record you can no longer read is left out of the page and the total. `page` starts at 1; `pageSize` is at most 100. Requires the following feature flag; returns 404 when it is off.
+        /// Returns one page of the records you have muted, most recently muted first: each with `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle`, `isFollowing` (muting never stops following) and `mutedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A muted record tells you nothing more, whatever the reason. A record you can no longer read is left out of the page and the total. `page` starts at 1; `pageSize` is at most 500. Requires the following feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>

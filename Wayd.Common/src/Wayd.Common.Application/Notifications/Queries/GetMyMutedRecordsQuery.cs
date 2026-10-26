@@ -19,20 +19,11 @@ namespace Wayd.Common.Application.Notifications.Queries;
 /// Not <see cref="IRequireLinkedEmployee"/>: a caller with no employee has muted nothing.
 /// </para>
 /// </remarks>
-public sealed record GetMyMutedRecordsQuery(int PageNumber = 1, int PageSize = 25) : IQuery<PagedResponse<MutedRecordDto>>;
+/// <param name="Paging">The page to read.</param>
+public sealed record GetMyMutedRecordsQuery(PageRequest Paging) : IQuery<PagedResponse<MutedRecordDto>>, IPagedQuery;
 
 /// <summary>Bounds the paging a caller may ask for.</summary>
-public sealed class GetMyMutedRecordsQueryValidator : CustomValidator<GetMyMutedRecordsQuery>
-{
-    /// <summary>The largest page a caller may ask for.</summary>
-    public const int MaxPageSize = 100;
-
-    public GetMyMutedRecordsQueryValidator()
-    {
-        RuleFor(q => q.PageNumber).GreaterThanOrEqualTo(1);
-        RuleFor(q => q.PageSize).InclusiveBetween(1, MaxPageSize);
-    }
-}
+public sealed class GetMyMutedRecordsQueryValidator : PagedQueryValidator<GetMyMutedRecordsQuery>;
 
 /// <summary>Reads one page of the caller's readable record mutes and describes the records on it.</summary>
 public sealed class GetMyMutedRecordsQueryHandler(
@@ -47,7 +38,7 @@ public sealed class GetMyMutedRecordsQueryHandler(
 
     public async Task<PagedResponse<MutedRecordDto>> Handle(GetMyMutedRecordsQuery request, CancellationToken cancellationToken)
     {
-        var empty = new PagedResponse<MutedRecordDto>([], 0, request.PageNumber, request.PageSize);
+        var empty = new PagedResponse<MutedRecordDto>([], 0, request.Paging.Page, request.Paging.PageSize);
 
         var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (employeeId is null)
@@ -72,8 +63,8 @@ public sealed class GetMyMutedRecordsQueryHandler(
             .OrderByDescending(r => r.MutedOn)
             .ThenBy(r => r.OwnerType)
             .ThenBy(r => r.OwnerId)
-            .Skip((request.PageNumber - 1) * request.PageSize)
-            .Take(request.PageSize)
+            .Skip(request.Paging.Skip)
+            .Take(request.Paging.PageSize)
             .ToListAsync(cancellationToken);
 
         var summaries = await FollowReadRules.Describe(page.Select(r => (r.OwnerType, r.OwnerId)), owners, cancellationToken);
@@ -84,7 +75,7 @@ public sealed class GetMyMutedRecordsQueryHandler(
             .Select(r => MutedRecordDto.Create(r.OwnerType, r.OwnerId, r.IsFollowing, r.MutedOn, summaries[(r.OwnerType, r.OwnerId)]))
             .ToList();
 
-        return new PagedResponse<MutedRecordDto>(items, totalCount, request.PageNumber, request.PageSize);
+        return new PagedResponse<MutedRecordDto>(items, totalCount, request.Paging.Page, request.Paging.PageSize);
     }
 
     /// <summary>

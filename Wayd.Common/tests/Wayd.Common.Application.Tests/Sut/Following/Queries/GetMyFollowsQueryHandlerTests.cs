@@ -89,7 +89,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         _dbContext.AddRecordMute(RecordMute.Create(GadgetType, mutedBySomeoneElse.Id, Guid.NewGuid(), Start).Value);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(Sort: FollowSort.Followed), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), Sort: FollowSort.Followed), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.Items.Select(i => (i.Key, i.IsMuted)).Should().Equal(("W-1", false), ("G-2", false), ("G-1", true));

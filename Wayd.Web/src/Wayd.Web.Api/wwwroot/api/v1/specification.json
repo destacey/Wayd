@@ -707,7 +707,7 @@
           "MyNotificationMutes"
         ],
         "summary": "List the records you have muted.",
-        "description": "Returns one page of the records you have muted, most recently muted first: each with `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle`, `isFollowing` (muting never stops following) and `mutedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A muted record tells you nothing more, whatever the reason. A record you can no longer read is left out of the page and the total. `page` starts at 1; `pageSize` is at most 100. Requires the following feature flag; returns 404 when it is off.",
+        "description": "Returns one page of the records you have muted, most recently muted first: each with `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle`, `isFollowing` (muting never stops following) and `mutedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A muted record tells you nothing more, whatever the reason. A record you can no longer read is left out of the page and the total. `page` starts at 1; `pageSize` is at most 500. Requires the following feature flag; returns 404 when it is off.",
         "operationId": "MyNotificationMutes_GetMutedRecords",
         "parameters": [
           {
@@ -726,7 +726,7 @@
             "schema": {
               "type": "integer",
               "format": "int32",
-              "default": 25
+              "default": 50
             },
             "x-position": 2
           }

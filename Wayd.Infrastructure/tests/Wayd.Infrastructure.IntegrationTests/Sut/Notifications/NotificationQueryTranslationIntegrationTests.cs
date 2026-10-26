@@ -228,7 +228,7 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
         var pages = new List<Wayd.Common.Application.Models.PagedResponse<Wayd.Common.Application.Notifications.Dtos.MutedRecordDto>>();
         for (var page = 1; page <= 3; page++)
         {
-            pages.Add(await handler.Handle(new GetMyMutedRecordsQuery(PageNumber: page, PageSize: 1), cancellationToken));
+            pages.Add(await handler.Handle(new GetMyMutedRecordsQuery(new Wayd.Common.Application.Models.PageRequest(page, 1)), cancellationToken));
         }
 
         // Assert

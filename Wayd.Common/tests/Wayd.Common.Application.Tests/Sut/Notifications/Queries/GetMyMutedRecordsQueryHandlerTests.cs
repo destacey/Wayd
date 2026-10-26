@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Notifications.Queries;
 using Wayd.Common.Application.Tests.Infrastructure;
 using Wayd.Common.Domain.Following;
@@ -44,7 +45,7 @@ public sealed class GetMyMutedRecordsQueryHandlerTests
         _dbContext.AddFollow(Follow.Create(GadgetType, older.Id, _employeeId, Start).Value);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyMutedRecordsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyMutedRecordsQuery(new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.TotalCount.Should().Be(2);
@@ -72,7 +73,7 @@ public sealed class GetMyMutedRecordsQueryHandlerTests
         Mute(WidgetType, widget.Id, 3);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyMutedRecordsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyMutedRecordsQuery(new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.TotalCount.Should().Be(1);
@@ -87,7 +88,7 @@ public sealed class GetMyMutedRecordsQueryHandlerTests
         Mute(GadgetType, gadget.Id, 1, employeeId: Guid.NewGuid());
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyMutedRecordsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyMutedRecordsQuery(new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.TotalCount.Should().Be(0);
@@ -104,7 +105,7 @@ public sealed class GetMyMutedRecordsQueryHandlerTests
         }
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyMutedRecordsQuery(PageNumber: 2, PageSize: 2), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyMutedRecordsQuery(new PageRequest(2, 2)), TestContext.Current.CancellationToken);
 
         // Assert
         result.TotalCount.Should().Be(5);
@@ -119,7 +120,7 @@ public sealed class GetMyMutedRecordsQueryHandlerTests
         _currentPrincipal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync((Guid?)null);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyMutedRecordsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyMutedRecordsQuery(new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.TotalCount.Should().Be(0);

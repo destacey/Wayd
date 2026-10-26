@@ -13,6 +13,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.StatusWorkflows;
+using Wayd.DemandManagement.Domain;
 using Wayd.Infrastructure.Following;
 using Wayd.Infrastructure.Notifications;
 using Wayd.Infrastructure.ConnectorModules;
@@ -85,6 +86,7 @@ public static class ConfigureServices
         // read from the database needs its owner type already known. Each module contributes its own;
         // the engine holds no module's vocabulary. Idempotent, so a second call is harmless.
         ProductWorkflowOwners.Register();
+        DemandManagementWorkflowOwners.Register();
 
         // Registered by hand rather than by the marker scan: that scan binds one implementation per
         // interface, so migrators sharing IStatusRecordMigrator would collapse to whichever was

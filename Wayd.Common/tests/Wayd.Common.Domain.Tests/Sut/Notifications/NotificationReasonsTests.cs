@@ -43,4 +43,21 @@ public sealed class NotificationReasonsTests
         // Assert
         isValid.Should().Be(expected);
     }
+
+    [Theory]
+    [InlineData(NotificationReason.Following, true)]
+    [InlineData(NotificationReason.Participant, true)]
+    [InlineData(NotificationReason.Requester, false)]
+    [InlineData(NotificationReason.Assigned, false)]
+    [InlineData(NotificationReason.Mentioned, false)]
+    [InlineData(NotificationReason.Following | NotificationReason.Participant, false)]
+    [InlineData((NotificationReason)0, false)]
+    public void IsMutable_ShouldAcceptOnlyASingleProducedReason(NotificationReason reason, bool expected)
+    {
+        // Act
+        var isMutable = NotificationReasons.IsMutable(reason);
+
+        // Assert
+        isMutable.Should().Be(expected);
+    }
 }

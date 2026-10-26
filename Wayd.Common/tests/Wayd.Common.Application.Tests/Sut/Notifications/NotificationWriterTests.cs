@@ -280,6 +280,100 @@ public sealed class NotificationWriterTests
         _dbContext.Notifications.Should().ContainSingle();
     }
 
+    [Fact]
+    public async Task Notify_ShouldNotTellSomeoneWhoMutedTheRecord_WhateverTheirReasons()
+    {
+        // Arrange
+        var muter = AddEmployee();
+        var other = AddEmployee();
+        Follow(muter);
+        Follow(other);
+        _dbContext.AddRecordMute(RecordMute.Create(GadgetType, _gadgetId, muter, Now).Value);
+
+        // Act
+        var added = await CreateWriter().Notify(Change(), [muter, other], TestContext.Current.CancellationToken);
+
+        // Assert
+        added.Should().Be(1);
+        _dbContext.Notifications.Should().ContainSingle()
+            .Which.RecipientEmployeeId.Should().Be(other);
+    }
+
+    [Fact]
+    public async Task Notify_ShouldIgnoreAMuteOfAnotherRecordWithTheSameId()
+    {
+        // Arrange
+        var follower = AddEmployee();
+        Follow(follower);
+        _dbContext.AddRecordMute(RecordMute.Create(WidgetType, _gadgetId, follower, Now).Value);
+        _dbContext.AddRecordMute(RecordMute.Create(GadgetType, Guid.NewGuid(), follower, Now).Value);
+
+        // Act
+        var added = await CreateWriter().Notify(Change(), [], TestContext.Current.CancellationToken);
+
+        // Assert
+        added.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Notify_ShouldStillTellSomeone_ForTheReasonTheyDidNotMute()
+    {
+        // Arrange
+        var person = AddEmployee();
+        Follow(person);
+        _dbContext.AddReasonMute(ReasonMute.Create(person, NotificationReason.Participant, Now).Value);
+
+        // Act
+        await CreateWriter().Notify(Change(), [person], TestContext.Current.CancellationToken);
+
+        // Assert
+        _dbContext.Notifications.Should().ContainSingle()
+            .Which.Reasons.Should().Be(NotificationReason.Following);
+    }
+
+    [Theory]
+    [InlineData(NotificationReason.Following)]
+    [InlineData(NotificationReason.Participant)]
+    public async Task Notify_ShouldNotTellSomeone_WhoMutedTheirOnlyReason(NotificationReason muted)
+    {
+        // Arrange
+        var muter = AddEmployee();
+        var other = AddEmployee();
+        if (muted == NotificationReason.Following)
+        {
+            Follow(muter);
+            Follow(other);
+        }
+
+        _dbContext.AddReasonMute(ReasonMute.Create(muter, muted, Now).Value);
+        IReadOnlyCollection<Guid> participants = muted == NotificationReason.Participant ? [muter, other] : [];
+
+        // Act
+        await CreateWriter().Notify(Change(), participants, TestContext.Current.CancellationToken);
+
+        // Assert
+        var notification = _dbContext.Notifications.Should().ContainSingle().Subject;
+        notification.RecipientEmployeeId.Should().Be(other);
+        notification.Reasons.Should().Be(muted);
+    }
+
+    [Fact]
+    public async Task Notify_ShouldNotTellSomeone_WhoMutedEveryReasonTheyHave()
+    {
+        // Arrange
+        var person = AddEmployee();
+        Follow(person);
+        _dbContext.AddReasonMute(ReasonMute.Create(person, NotificationReason.Following, Now).Value);
+        _dbContext.AddReasonMute(ReasonMute.Create(person, NotificationReason.Participant, Now).Value);
+
+        // Act
+        var added = await CreateWriter().Notify(Change(), [person], TestContext.Current.CancellationToken);
+
+        // Assert
+        added.Should().Be(0);
+        _dbContext.Notifications.Should().BeEmpty();
+    }
+
     private Guid AddEmployee(Func<EmployeeFaker, EmployeeFaker>? configure = null)
     {
         var faker = new EmployeeFaker().AsActive();

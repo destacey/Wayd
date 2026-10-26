@@ -219,6 +219,8 @@ public partial class EventCoverageTests
         // A person's own preferences, not history of any record.
         [typeof(Follow)] = "One person's choice to hear about a record; it changes nothing about the record.",
         [typeof(Notification)] = "A per-person, trimmable view of a change the activity log already records; reading one is not history.",
+        [typeof(RecordMute)] = "One person's choice to hear nothing more about a record; it changes nothing about the record.",
+        [typeof(ReasonMute)] = "One person's choice to stop being told for a reason; it changes no record.",
 
         // Not yet evented: each awaits the issue it names.
         [typeof(Strategy)] = "#951.",

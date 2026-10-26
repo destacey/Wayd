@@ -16,6 +16,9 @@ namespace Wayd.Common.Application.Notifications;
 /// <item>the person who made the change — nobody is told about their own action;</item>
 /// <item>employees who are deleted or inactive — both mean the person has left, and their follows and roles
 /// outlive them;</item>
+/// <item>anyone who muted the record, and from everyone else the reasons they muted — someone left with no
+/// reason is not told. A mute applies here, as the notification is written, so a muted change is never
+/// recorded and unmuting brings nothing back;</item>
 /// </list>
 /// and writes nothing at all for a change no person made directly. Imports, syncs and the platform's own
 /// work change records in bulk; telling everyone about each row would bury the changes people made.
@@ -83,9 +86,26 @@ public sealed class NotificationWriter(
             return 0;
         }
 
+        var mutedRecord = await _notificationsDbContext.RecordMutes
+            .Where(m => m.OwnerType == change.OwnerType && m.OwnerId == change.OwnerId && currentIds.Contains(m.EmployeeId))
+            .Select(m => m.EmployeeId)
+            .ToListAsync(cancellationToken);
+        var mutedReasons = (await _notificationsDbContext.ReasonMutes
+                .Where(m => currentIds.Contains(m.EmployeeId))
+                .Select(m => new { m.EmployeeId, m.Reason })
+                .ToListAsync(cancellationToken))
+            .GroupBy(m => m.EmployeeId)
+            .ToDictionary(g => g.Key, g => g.Aggregate((NotificationReason)0, (all, m) => all | m.Reason));
+
         var notifications = new List<Notification>(currentIds.Count);
-        foreach (var recipientId in currentIds)
+        foreach (var recipientId in currentIds.Except(mutedRecord))
         {
+            var reasons = audience[recipientId] & ~mutedReasons.GetValueOrDefault(recipientId);
+            if (reasons == 0)
+            {
+                continue;
+            }
+
             var notification = Notification.Create(
                 recipientId,
                 change.OwnerType,
@@ -95,7 +115,7 @@ public sealed class NotificationWriter(
                 actor.Kind,
                 actorEmployeeId,
                 change.Source.Timestamp,
-                audience[recipientId]);
+                reasons);
 
             // Every input is fixed by the handler that called, so a failure is a bug there, not bad data.
             if (notification.IsFailure)
@@ -105,6 +125,11 @@ public sealed class NotificationWriter(
             }
 
             notifications.Add(notification.Value);
+        }
+
+        if (notifications.Count == 0)
+        {
+            return 0;
         }
 
         var added = await _notificationStore.Add(notifications, cancellationToken);

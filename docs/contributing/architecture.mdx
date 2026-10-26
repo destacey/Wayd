@@ -369,6 +369,11 @@ set, and when it was read. The wording is produced when the list is read, from t
   merged so each person gets one notification carrying every reason; minus the actor; minus deleted and
   inactive employees, whose follows and roles outlive them. It writes nothing for a change no person made
   directly — an import, a sync or the platform's own work — and nothing while the `following` flag is off.
+- **Mutes apply as the notification is written.** The writer drops anyone with a `RecordMute` on the record
+  (`Notifications.RecordMutes`) and removes each person's `ReasonMute` reasons (`Notifications.ReasonMutes`)
+  from their set, telling nobody left without a reason. A muted change is never recorded, so the list and count
+  read no mutes and unmuting brings nothing back. Mutes, like follows, are never an input to authorization or
+  participation, and muting a record runs its read rule first, as following does.
 - **One per person per event.** `(EventId, RecipientEmployeeId)` is unique, so a redelivered event writes
   nothing; `INotificationStore` turns a concurrent duplicate into that outcome.
 - **Read through the record's read rule, every time.** The list and the unread count join each owner type's
@@ -379,7 +384,9 @@ set, and when it was read. The wording is produced when the list is read, from t
 - **Not an audit trail.** A nightly job (`notification-retention-sweep`, 03:30) deletes notifications more than
   90 days old, read or not; the activity log keeps what happened.
 
-`Requester`, `Assigned` and `Mentioned` are defined so muting can store them, but nothing produces them yet.
+`Requester`, `Assigned` and `Mentioned` are defined, but nothing produces them yet. Only the reasons in
+`NotificationReasons.Produced` can be muted; a producer of a new reason adds it there, or its mute would be
+refused.
 
 ## Connector framework
 

@@ -8,8 +8,10 @@ import {
   ChangeIntakeRequestStatusRequest,
   CreateIntakeDeskRequest,
   CreateIntakeRequestRequest,
+  IntakeDeskWorkflowDto,
   IntakeRequestArrivalStatusesDto,
   IntakeRequestStatusOptionDto,
+  IntakeWorkflowChoiceDto,
   StatusTransitionDto,
   StatusWorkflowDetailsDto,
   WithdrawIntakeRequestRequest,
@@ -447,6 +449,53 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       invalidatesTags: [deskListTag],
     }),
 
+    // Fetched by id, which the change invalidates; tagged with the desk too, since a request arriving on it
+    // stops the workflow changing.
+    getIntakeDeskWorkflow: builder.query<IntakeDeskWorkflowDto, string>({
+      queryFn: async (deskId) => {
+        try {
+          const data = await getIntakeDesksClient().getWorkflow(deskId)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      providesTags: (_result, _error, deskId) => [
+        { type: QueryTags.IntakeDesk, id: deskId },
+      ],
+    }),
+
+    getIntakeWorkflowChoices: builder.query<IntakeWorkflowChoiceDto[], void>({
+      queryFn: async () => {
+        try {
+          const data = await getIntakeDesksClient().getWorkflowChoices()
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      providesTags: [QueryTags.StatusWorkflow],
+    }),
+
+    changeIntakeDeskWorkflow: builder.mutation<
+      void,
+      { deskId: string; workflowId: string }
+    >({
+      queryFn: async ({ deskId, workflowId }) => {
+        try {
+          const data = await getIntakeDesksClient().changeWorkflow(deskId, {
+            workflowId,
+          })
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: (_result, _error, { deskId }) => [
+        { type: QueryTags.IntakeDesk, id: deskId },
+      ],
+    }),
+
     getIntakeDeskRoles: builder.query<IntakeDeskRoleDto[], void>({
       queryFn: async () => {
         try {
@@ -532,6 +581,9 @@ export const {
   useGetIntakeDeskQuery,
   useGetIntakeDeskVisibilitiesQuery,
   useGetIntakeDeskRolesQuery,
+  useGetIntakeDeskWorkflowQuery,
+  useGetIntakeWorkflowChoicesQuery,
+  useChangeIntakeDeskWorkflowMutation,
   useCreateIntakeDeskMutation,
   useUpdateIntakeDeskMutation,
   useDeleteIntakeDeskMutation,

@@ -36,4 +36,17 @@ public sealed record IntakeRequestDetailsDto
     /// its requester or submitter unless the desk is private and does not allow it.
     /// </summary>
     public bool CanAddParticipants { get; init; }
+
+    /// <summary>Whether the reader may move the request to another status: an agent on its desk.</summary>
+    public bool CanChangeStatus { get; init; }
+
+    /// <summary>Whether the reader may withdraw the request: its requester, while it is open.</summary>
+    public bool CanWithdraw { get; init; }
+
+    /// <summary>
+    /// The request this one is a duplicate of, while its status means Duplicate and the reader can see that
+    /// request; its page shows that one instead. Null otherwise, so a request the reader cannot see is never
+    /// named or counted.
+    /// </summary>
+    public IntakeRequestNavigationDto? DuplicateOf { get; init; }
 }

@@ -47229,6 +47229,418 @@ export class IntakeRequestsClient {
     }
 
     /**
+     * Get the statuses an intake request can arrive in on another desk.
+     * @param deskId (optional) 
+     * @return OK
+     */
+    getArrivalStatuses(id: string, deskId?: string | undefined, cancelToken?: CancelToken): Promise<IntakeRequestArrivalStatusesDto> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}/arrival-statuses?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (deskId === null)
+            throw new globalThis.Error("The parameter 'deskId' cannot be null.");
+        else if (deskId !== undefined)
+            url_ += "deskId=" + encodeURIComponent("" + deskId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetArrivalStatuses(_response);
+        });
+    }
+
+    protected processGetArrivalStatuses(response: AxiosResponse): Promise<IntakeRequestArrivalStatusesDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeRequestArrivalStatusesDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeRequestArrivalStatusesDto>(null as any);
+    }
+
+    /**
+     * Move an intake request to another status of its desk's workflow.
+     * @return No Content
+     */
+    changeStatus(id: string, request: ChangeIntakeRequestStatusRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}/status";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeStatus(_response);
+        });
+    }
+
+    protected processChangeStatus(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Withdraw your own open intake request.
+     * @return No Content
+     */
+    withdraw(id: string, request: WithdrawIntakeRequestRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}/withdraw";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processWithdraw(_response);
+        });
+    }
+
+    protected processWithdraw(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get the statuses you can move an intake request to, with what each move needs.
+     * @return OK
+     */
+    getStatusOptions(id: string, cancelToken?: CancelToken): Promise<IntakeRequestStatusOptionDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}/status-options";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetStatusOptions(_response);
+        });
+    }
+
+    protected processGetStatusOptions(response: AxiosResponse): Promise<IntakeRequestStatusOptionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeRequestStatusOptionDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeRequestStatusOptionDto[]>(null as any);
+    }
+
+    /**
+     * Get an intake request's status changes, newest first, in the tiers you can read.
+     * @return OK
+     */
+    getStatusHistory(idOrKey: string, cancelToken?: CancelToken): Promise<StatusTransitionDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{idOrKey}/status-history";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetStatusHistory(_response);
+        });
+    }
+
+    protected processGetStatusHistory(response: AxiosResponse): Promise<StatusTransitionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<StatusTransitionDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<StatusTransitionDto[]>(null as any);
+    }
+
+    /**
+     * Get the status workflow an intake request moves through.
+     * @return OK
+     */
+    getStatusWorkflow(idOrKey: string, cancelToken?: CancelToken): Promise<StatusWorkflowDetailsDto> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{idOrKey}/status-workflow";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetStatusWorkflow(_response);
+        });
+    }
+
+    protected processGetStatusWorkflow(response: AxiosResponse): Promise<StatusWorkflowDetailsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<StatusWorkflowDetailsDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<StatusWorkflowDetailsDto>(null as any);
+    }
+
+    /**
      * Give an employee access to an intake request as a participant.
      * @return No Content
      */
@@ -53891,6 +54303,17 @@ export interface ChangeIntakeRequestAssigneeRequest {
     assigneeId?: string | undefined;
 }
 
+/** The status to move an intake request to, with what that move needs. */
+export interface ChangeIntakeRequestStatusRequest {
+    /** A status of the workflow governing the request's desk, from its status options. */
+    statusId: string;
+    /** Why, as the requester reads it. Required for declining, deferring, marking a duplicate and finishing a
+request; the status options say which. */
+    reason?: string | undefined;
+    /** For a status meaning Duplicate, the request this one gives way to; otherwise null. */
+    duplicateOfId?: string | undefined;
+}
+
 export interface ChangePasswordRequest {
     currentPassword: string;
     newPassword: string;
@@ -56477,6 +56900,16 @@ export interface IntakeDeskWaitingDto {
     oldestSubmittedOn?: Date | undefined;
 }
 
+/** The statuses an intake request can arrive in when moved to a desk, and the one it arrives in unless the mover chooses. */
+export interface IntakeRequestArrivalStatusesDto {
+    /** The destination workflow's open statuses that need no reason, in the workflow's order. */
+    statuses: StatusNavigationDto[];
+    /** The status the request arrives in unless the mover chooses another: the one it holds, when the desk
+shares its workflow, otherwise the one with the same meaning or name. Null when none fits, and the mover
+must choose. */
+    defaultStatusId?: string | undefined;
+}
+
 /** One intake request as its reader may see it: the summary always, the substance only when they may read it. */
 export interface IntakeRequestDetailsDto {
     /** The summary tier. */
@@ -56495,6 +56928,24 @@ is open. */
     /** Whether the reader may give someone access to the request as a participant: an agent on its desk, or
 its requester or submitter unless the desk is private and does not allow it. */
     canAddParticipants: boolean;
+    /** Whether the reader may move the request to another status: an agent on its desk. */
+    canChangeStatus: boolean;
+    /** Whether the reader may withdraw the request: its requester, while it is open. */
+    canWithdraw: boolean;
+    /** The request this one is a duplicate of, while its status means Duplicate and the reader can see that
+request; its page shows that one instead. Null otherwise, so a request the reader cannot see is never
+named or counted. */
+    duplicateOf?: IntakeRequestNavigationDto | undefined;
+}
+
+/** Another intake request, named enough to link to: its number and title, both summary tier. */
+export interface IntakeRequestNavigationDto {
+    /** The request's id. */
+    id: string;
+    /** The request's number, which its page is addressed by. */
+    key: number;
+    /** What it asks for, in a line. */
+    title: string;
 }
 
 /** An intake request's need-by date, its basis and what the date rests on. */
@@ -56547,6 +56998,27 @@ export interface IntakeRequestParticipantDto {
     addedOn: Date;
 }
 
+/** The status a record currently holds, as a reader needs it. */
+export interface StatusNavigationDto {
+    id: string;
+    /** What the status was called when the record last moved. Frozen, so renaming a status does not
+rewrite what past records read as. */
+    name: string;
+    /** The status's bucket — Proposed, Active, Done or Removed. What rollups and invariants group on. */
+    category: StatusCategory;
+    /** The well-known meaning the status carries, as the consuming module's alias value, or
+`0` when it carries none. */
+    alias: number;
+}
+
+/** A status an agent can move an intake request to, with what the move needs. */
+export interface IntakeRequestStatusOptionDto extends StatusNavigationDto {
+    /** Whether the move needs a reason the requester can read: declining, deferring, marking a duplicate or finishing. */
+    needsReason: boolean;
+    /** Whether the move needs the request this one duplicates. */
+    needsSurvivingRequest: boolean;
+}
+
 /** The substance tier of an intake request: the ask itself and its own people. */
 export interface IntakeRequestSubstanceDto {
     /** The ask in full. */
@@ -56559,6 +57031,9 @@ export interface IntakeRequestSubstanceDto {
     participants: IntakeRequestParticipantDto[];
     /** The upstream record the request arrived from, when it did not start in Wayd. */
     origin?: IntakeRequestOriginDto | undefined;
+    /** Why the request is in its current status: the desk's reason for declining, deferring, marking a duplicate
+or finishing it, or the requester's note on withdrawing. Null when the move recorded none. */
+    statusReason?: string | undefined;
 }
 
 /** The summary tier of an intake request: enough to recognise that an ask exists. */
@@ -58902,6 +59377,10 @@ export interface RerouteIntakeRequestRequest {
     /** Confirms a move to a less private desk, which makes the request visible to more people. Such a move is
 refused without it; a move to an equally or more private desk ignores it. */
     confirmWiderVisibility: boolean;
+    /** The status the request arrives in, from the destination's arrival statuses: an open one needing no
+reason. When omitted, the status it holds if the desk shares its workflow, otherwise the one with the
+same meaning or name; the move is refused when none fits. */
+    statusId?: string | undefined;
 }
 
 export interface ResetPasswordRequest {
@@ -60040,19 +60519,6 @@ export enum StatusCategory {
     Active = "Active",
     Done = "Done",
     Removed = "Removed",
-}
-
-/** The status a record currently holds, as a reader needs it. */
-export interface StatusNavigationDto {
-    id: string;
-    /** What the status was called when the record last moved. Frozen, so renaming a status does not
-rewrite what past records read as. */
-    name: string;
-    /** The status's bucket — Proposed, Active, Done or Removed. What rollups and invariants group on. */
-    category: StatusCategory;
-    /** The well-known meaning the status carries, as the consuming module's alias value, or
-`0` when it carries none. */
-    alias: number;
 }
 
 /** A status a record can be moved to, with what the move needs. */
@@ -62352,6 +62818,12 @@ export enum VisionState {
 }
 
 export interface VisionStateDto extends CommonEnumDtoOfVisionState {
+}
+
+/** A requester withdrawing their own intake request. */
+export interface WithdrawIntakeRequestRequest {
+    /** Why, if the requester wants to say; the desk reads it. */
+    note?: string | undefined;
 }
 
 /** Pulls a package after it was assembled. The package is kept — deployments may reference it. */

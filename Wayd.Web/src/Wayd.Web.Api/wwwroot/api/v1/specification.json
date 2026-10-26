@@ -40794,6 +40794,373 @@
         ]
       }
     },
+    "/api/demand-management/intake-requests/{id}/arrival-statuses": {
+      "get": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Get the statuses an intake request can arrive in on another desk.",
+        "description": "The destination workflow's open statuses that need no reason, in its order, and the one the request arrives in unless you choose. Empty unless you can move the request: an agent on its current desk.",
+        "operationId": "IntakeRequests_GetArrivalStatuses",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "deskId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeRequestArrivalStatusesDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{id}/status": {
+      "post": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Move an intake request to another status of its desk's workflow.",
+        "description": "Needs an agent on the request's desk. Declining, deferring, marking a duplicate and finishing need a `reason` the requester can read; marking a duplicate needs `duplicateOfId`, a request you can see that is not itself a duplicate. Withdrawn is the requester's, through withdraw.",
+        "operationId": "IntakeRequests_ChangeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeIntakeRequestStatusRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{id}/withdraw": {
+      "post": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Withdraw your own open intake request.",
+        "description": "Only the request's requester; the submitter cannot withdraw a request entered on someone's behalf.",
+        "operationId": "IntakeRequests_Withdraw",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawIntakeRequestRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{id}/status-options": {
+      "get": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Get the statuses you can move an intake request to, with what each move needs.",
+        "description": "In its desk workflow's order, without the status it holds or Withdrawn. Empty unless you are an agent on the request's desk.",
+        "operationId": "IntakeRequests_GetStatusOptions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeRequestStatusOptionDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{idOrKey}/status-history": {
+      "get": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Get an intake request's status changes, newest first, in the tiers you can read.",
+        "description": "Each change reports the status names as they were at the time. Without the request's substance, each change comes without its reason or who made it.",
+        "operationId": "IntakeRequests_GetStatusHistory",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StatusTransitionDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{idOrKey}/status-workflow": {
+      "get": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Get the status workflow an intake request moves through.",
+        "description": "Readable by anyone who can see the request, so its status history can be drawn on the workflow without workflow administration permissions.",
+        "operationId": "IntakeRequests_GetStatusWorkflow",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusWorkflowDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/demand-management/intake-requests/{id}/participants": {
       "post": {
         "tags": [
@@ -47604,6 +47971,34 @@
         },
         "additionalProperties": false,
         "description": "The member of an intake request's desk who owns it."
+      },
+      "ChangeIntakeRequestStatusRequest": {
+        "required": [
+          "statusId"
+        ],
+        "type": "object",
+        "properties": {
+          "statusId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "A status of the workflow governing the request's desk, from its status options.",
+            "format": "uuid"
+          },
+          "reason": {
+            "maxLength": 1024,
+            "type": "string",
+            "description": "Why, as the requester reads it. Required for declining, deferring, marking a duplicate and finishing a\nrequest; the status options say which.",
+            "nullable": true
+          },
+          "duplicateOfId": {
+            "type": "string",
+            "description": "For a status meaning Duplicate, the request this one gives way to; otherwise null.",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The status to move an intake request to, with what that move needs."
       },
       "ChangePasswordRequest": {
         "required": [
@@ -55712,6 +56107,29 @@
         "additionalProperties": false,
         "description": "The requests waiting on a desk: how many, and since when the oldest has waited."
       },
+      "IntakeRequestArrivalStatusesDto": {
+        "required": [
+          "statuses"
+        ],
+        "type": "object",
+        "properties": {
+          "statuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusNavigationDto"
+            },
+            "description": "The destination workflow's open statuses that need no reason, in the workflow's order."
+          },
+          "defaultStatusId": {
+            "type": "string",
+            "description": "The status the request arrives in unless the mover chooses another: the one it holds, when the desk\nshares its workflow, otherwise the one with the same meaning or name. Null when none fits, and the mover\nmust choose.",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The statuses an intake request can arrive in when moved to a desk, and the one it arrives in unless the\nmover chooses."
+      },
       "IntakeRequestDetailsDto": {
         "required": [
           "summary",
@@ -55719,7 +56137,9 @@
           "canRemoveParticipants",
           "canDelete",
           "canReroute",
-          "canAddParticipants"
+          "canAddParticipants",
+          "canChangeStatus",
+          "canWithdraw"
         ],
         "type": "object",
         "properties": {
@@ -55759,10 +56179,53 @@
           "canAddParticipants": {
             "type": "boolean",
             "description": "Whether the reader may give someone access to the request as a participant: an agent on its desk, or\nits requester or submitter unless the desk is private and does not allow it."
+          },
+          "canChangeStatus": {
+            "type": "boolean",
+            "description": "Whether the reader may move the request to another status: an agent on its desk."
+          },
+          "canWithdraw": {
+            "type": "boolean",
+            "description": "Whether the reader may withdraw the request: its requester, while it is open."
+          },
+          "duplicateOf": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRequestNavigationDto"
+              }
+            ],
+            "description": "The request this one is a duplicate of, while its status means Duplicate and the reader can see that\nrequest; its page shows that one instead. Null otherwise, so a request the reader cannot see is never\nnamed or counted.",
+            "nullable": true
           }
         },
         "additionalProperties": false,
         "description": "One intake request as its reader may see it: the summary always, the substance only when they may read it."
+      },
+      "IntakeRequestNavigationDto": {
+        "required": [
+          "title",
+          "id",
+          "key"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The request's id.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "description": "The request's number, which its page is addressed by.",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string",
+            "description": "What it asks for, in a line."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Another intake request, named enough to link to: its number and title, both summary tier."
       },
       "IntakeRequestNeedByDto": {
         "required": [
@@ -55917,6 +56380,32 @@
         "additionalProperties": false,
         "description": "A participant on an intake request: who, and who added them when."
       },
+      "IntakeRequestStatusOptionDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/StatusNavigationDto"
+          },
+          {
+            "required": [
+              "needsReason",
+              "needsSurvivingRequest"
+            ],
+            "type": "object",
+            "properties": {
+              "needsReason": {
+                "type": "boolean",
+                "description": "Whether the move needs a reason the requester can read: declining, deferring, marking a duplicate or finishing."
+              },
+              "needsSurvivingRequest": {
+                "type": "boolean",
+                "description": "Whether the move needs the request this one duplicates."
+              }
+            },
+            "additionalProperties": false
+          }
+        ],
+        "description": "A status an agent can move an intake request to, with what the move needs."
+      },
       "IntakeRequestSubstanceDto": {
         "required": [
           "description",
@@ -55956,6 +56445,11 @@
               }
             ],
             "description": "The upstream record the request arrived from, when it did not start in Wayd.",
+            "nullable": true
+          },
+          "statusReason": {
+            "type": "string",
+            "description": "Why the request is in its current status: the desk's reason for declining, deferring, marking a duplicate\nor finishing it, or the requester's note on withdrawing. Null when the move recorded none.",
             "nullable": true
           }
         },
@@ -63429,6 +63923,12 @@
           "confirmWiderVisibility": {
             "type": "boolean",
             "description": "Confirms a move to a less private desk, which makes the request visible to more people. Such a move is\nrefused without it; a move to an equally or more private desk ignores it."
+          },
+          "statusId": {
+            "type": "string",
+            "description": "The status the request arrives in, from the destination's arrival statuses: an open one needing no\nreason. When omitted, the status it holds if the desk shares its workflow, otherwise the one with the\nsame meaning or name; the move is refused when none fits.",
+            "format": "uuid",
+            "nullable": true
           }
         },
         "additionalProperties": false,
@@ -74440,6 +74940,19 @@
             "additionalProperties": false
           }
         ]
+      },
+      "WithdrawIntakeRequestRequest": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "maxLength": 1024,
+            "type": "string",
+            "description": "Why, if the requester wants to say; the desk reads it.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A requester withdrawing their own intake request."
       },
       "WithdrawReleasePackageRequest": {
         "type": "object",

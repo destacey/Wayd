@@ -1893,6 +1893,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("DeskId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("DuplicateOfId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("ExpectedBenefits")
                         .HasColumnType("nvarchar(max)");
 
@@ -1920,6 +1923,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("StatusReason")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
 
                     b.Property<int>("StatusTransitionCount")
                         .HasColumnType("int");
@@ -1958,6 +1965,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasIndex("ChannelId");
 
                     b.HasIndex("DeskId");
+
+                    b.HasIndex("DuplicateOfId");
 
                     b.HasIndex("RequesterId");
 
@@ -8586,6 +8595,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasForeignKey("DeskId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeRequest", null)
+                        .WithMany()
+                        .HasForeignKey("DuplicateOfId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
                         .WithMany()

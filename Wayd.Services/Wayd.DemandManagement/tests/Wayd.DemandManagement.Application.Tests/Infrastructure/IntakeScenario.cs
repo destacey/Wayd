@@ -39,20 +39,27 @@ public sealed class IntakeScenario
             .ReturnsAsync((string permission, CancellationToken _) => _permissions.Contains(permission));
         Principal.Setup(p => p.IsReadOnly).Returns(() => _readOnly);
         User.Setup(u => u.GetUserId()).Returns("user-1");
-        Statuses.Setup(r => r.ForAlias(DemandManagementWorkflowOwners.IntakeRequest.Key, It.IsAny<Guid?>(),
-                (int)IntakeRequestStatusAlias.Submitted, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success(SubmittedStatus));
+        Statuses.Setup(r => r.ForScope(DemandManagementWorkflowOwners.IntakeRequest.Key, It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => Result.Success(Workflow));
+        Statuses.Setup(r => r.ForAlias(DemandManagementWorkflowOwners.IntakeRequest.Key, It.IsAny<Guid?>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string _, Guid? _, int alias, CancellationToken _) =>
+                Workflow.StatusFor(alias) is { } status
+                    ? Result.Success(Workflow.TargetRef(status.Id)!)
+                    : Result.Failure<StatusRef>($"'{Workflow.Name}' has no status for {alias}."));
     }
 
     public FakeDemandManagementDbContext DbContext { get; } = new();
     public Mock<ICurrentPrincipal> Principal { get; } = new();
     public Mock<ICurrentUser> User { get; } = new();
 
-    /// <summary>Resolves statuses from the workflow governing a desk. Hands out <see cref="SubmittedStatus"/> for every desk.</summary>
+    /// <summary>Resolves statuses from the workflow governing a desk: <see cref="Workflow"/>, for every desk.</summary>
     public Mock<IStatusResolver> Statuses { get; } = new();
 
-    /// <summary>The status meaning Submitted, which every desk's workflow resolves to.</summary>
-    public StatusRef SubmittedStatus { get; } = IntakeStatusRefFactory.Submitted();
+    /// <summary>The workflow every desk follows, shaped like the seeded default.</summary>
+    public StatusWorkflow Workflow { get; } = IntakeWorkflowFactory.Default();
+
+    /// <summary>The status meaning Submitted in <see cref="Workflow"/>.</summary>
+    public StatusRef SubmittedStatus => Workflow.Ref("Submitted");
     public TestingDateTimeProvider Clock { get; } = new(new FakeClock(Instant.FromUtc(2026, 10, 1, 8, 0, 0)));
 
     /// <summary>Signs in as the employee, holding the given permissions.</summary>
@@ -137,12 +144,36 @@ public sealed class IntakeScenario
         IntakeRequestStatusAlias alias = IntakeRequestStatusAlias.None) =>
         AddRequest(RequestFaker(desk, requester).InStatus(category, alias));
 
+    /// <summary>A request the submitter entered on the requester's behalf.</summary>
+    public IntakeRequest RequestOnBehalf(IntakeDesk desk, Employee requester, Employee submitter) =>
+        AddRequest(RequestFaker(desk, requester).WithSubmittedById(submitter.Id));
+
+    /// <summary>A request in the named status of <see cref="Workflow"/>, moved there from Submitted.</summary>
+    public IntakeRequest RequestInStatus(IntakeDesk desk, Employee requester, string statusName) =>
+        AddRequest(InStatus(RequestFaker(desk, requester), statusName));
+
+    /// <summary>A request marked a duplicate of <paramref name="survivor"/>.</summary>
+    public IntakeRequest DuplicateOf(IntakeRequest survivor, IntakeDesk desk, Employee requester) =>
+        AddRequest(InStatus(RequestFaker(desk, requester), "Duplicate").WithDuplicateOfId(survivor.Id).WithStatusReason("Asked for already"));
+
+    private IntakeRequestFaker InStatus(IntakeRequestFaker faker, string statusName)
+    {
+        var status = Workflow.Status(statusName);
+        return faker
+            .WithStatusId(status.Id)
+            .WithStatusCategory(status.Category)
+            .WithStatusAlias((IntakeRequestStatusAlias)status.Alias)
+            .WithStatusTransitionCount(2);
+    }
+
     private IntakeRequestFaker RequestFaker(IntakeDesk desk, Employee requester) =>
         new IntakeRequestFaker()
             .WithDeskId(desk.Id)
             .WithChannelId(Channel().Id)
             .WithRequesterId(requester.Id)
-            .WithSubmittedById(requester.Id);
+            .WithSubmittedById(requester.Id)
+            .WithStatusWorkflowId(Workflow.Id)
+            .WithStatusId(Workflow.Status("Submitted").Id);
 
     private IntakeRequest AddRequest(IntakeRequestFaker faker)
     {

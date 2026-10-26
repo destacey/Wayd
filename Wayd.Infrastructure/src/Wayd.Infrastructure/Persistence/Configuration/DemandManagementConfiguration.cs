@@ -117,8 +117,17 @@ public class IntakeRequestConfiguration : IEntityTypeConfiguration<IntakeRequest
         builder.Ignore(r => r.StatusAlias);
         builder.Ignore(r => r.HasLeftItsInitialStatus);
         builder.Ignore(r => r.IsOpen);
+        builder.Property(r => r.StatusReason).HasMaxLength(1024);
 
         builder.ConfigureStatusHistory();
+
+        // Restrict, so a request others give way to is never removed from under them; deleting one is refused
+        // before it reaches the database.
+        builder.HasIndex(r => r.DuplicateOfId);
+        builder.HasOne<IntakeRequest>()
+            .WithMany()
+            .HasForeignKey(r => r.DuplicateOfId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.OwnsOne(r => r.NeedBy, needBy =>
         {

@@ -89,6 +89,7 @@ internal static class IntakeRequestProjections
                     ExternalId = r.Origin.ExternalId,
                     Url = r.Origin.Url,
                 },
+            StatusReason = r.StatusReason,
         };
     }
 }

@@ -358,6 +358,37 @@ public sealed class DomainEventSerializationTests
     }
 
     [Fact]
+    public void IntakeRequestStatusChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — both ends of the status and of the surviving request, one end of each cleared
+        var original = new IntakeRequestStatusChangedEvent(Guid.NewGuid(), 42,
+            Guid.NewGuid(), StatusCategory.Removed, IntakeRequestStatusAlias.Duplicate,
+            Guid.NewGuid(), StatusCategory.Proposed, IntakeRequestStatusAlias.None,
+            Guid.NewGuid(), null, EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
+    }
+
+    [Fact]
+    public void IntakeRequestWithdrawnEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var original = new IntakeRequestWithdrawnEvent(Guid.NewGuid(), 42,
+            Guid.NewGuid(), StatusCategory.Active, IntakeRequestStatusAlias.Accepted,
+            Guid.NewGuid(), StatusCategory.Removed, EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
+    }
+
+    [Fact]
     public void IntakeRequestCreatedEvent_WrittenBeforeStatuses_ReadsAsProposedWithNoStatus()
     {
         // Arrange — a 1.0 payload, from before requests had a status

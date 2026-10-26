@@ -117,6 +117,20 @@ public static class IntakeRequestFakerExtensions
         return faker;
     }
 
+    public static IntakeRequestFaker WithDuplicateOfId(this IntakeRequestFaker faker, Guid? duplicateOfId)
+    {
+        faker.RuleFor(x => x.DuplicateOfId, duplicateOfId);
+
+        return faker;
+    }
+
+    public static IntakeRequestFaker WithStatusReason(this IntakeRequestFaker faker, string? reason)
+    {
+        faker.RuleFor(x => x.StatusReason, reason);
+
+        return faker;
+    }
+
     public static IntakeRequestFaker WithAssigneeId(this IntakeRequestFaker faker, Guid? assigneeId)
     {
         faker.RuleFor(x => x.AssigneeId, assigneeId);

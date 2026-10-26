@@ -234,10 +234,38 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
                 : Result.Failure("This record's status is not in the workflow being moved from.");
         }
 
-        var from = new StatusRef(StatusWorkflowId, StatusId, StatusName, StatusCategory, StatusAliasValue);
-
         // Exempt from the target workflow's transitions and their conditions: a migration must move every
         // record, whatever its status, and the remap has already decided where each one lands.
+        return MoveOntoWorkflow(target, actor, timestamp, reason);
+    }
+
+    /// <summary>
+    /// Moves this one record onto another workflow, into a status chosen there, recording the switch.
+    /// </summary>
+    /// <remarks>
+    /// For an aggregate whose records can change container one at a time — an intake request moved to a desk
+    /// that follows a different workflow — where the status it lands in is decided for that record rather
+    /// than by a remap of the whole scope. Like <see cref="SwitchWorkflow"/>, the move is exempt from the
+    /// target workflow's transitions and raises <see cref="StatusWorkflowSwitchedEvent"/>.
+    /// </remarks>
+    /// <param name="target">A status of a workflow other than the record's own.</param>
+    protected Result SwitchWorkflowTo(StatusRef target, EventActor actor, Instant timestamp, string? reason = null)
+    {
+        Guard.Against.Null(target, nameof(target));
+        Guard.Against.Null(actor, nameof(actor));
+
+        if (target.WorkflowId == StatusWorkflowId)
+        {
+            throw new ArgumentException("The status belongs to the record's own workflow; apply it rather than switching.", nameof(target));
+        }
+
+        return MoveOntoWorkflow(target, actor, timestamp, reason);
+    }
+
+    private Result MoveOntoWorkflow(StatusRef target, EventActor actor, Instant timestamp, string? reason)
+    {
+        var from = new StatusRef(StatusWorkflowId, StatusId, StatusName, StatusCategory, StatusAliasValue);
+
         var applied = ApplyStatus(target, actor, timestamp, reason, enforceTransitions: false);
         if (applied.IsFailure)
         {

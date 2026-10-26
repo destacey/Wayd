@@ -59,13 +59,29 @@ public sealed class GetIntakeRequestQueryHandler(
             CanEdit = !_currentPrincipal.IsReadOnly && CanEdit(record, reader, substance is not null),
             // The remove command needs a linked employee, so the flag does too.
             CanRemoveParticipants = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id),
-            CanDelete = !_currentPrincipal.IsReadOnly && reader.IsDeskAdminOn(summary.Desk.Id) && !record.HasLeftItsInitialStatus,
+            CanDelete = !_currentPrincipal.IsReadOnly && reader.IsDeskAdminOn(summary.Desk.Id) && !record.HasLeftItsInitialStatus
+                && !await _dbContext.IntakeRequests.AnyAsync(r => r.DuplicateOfId == record.Id, cancellationToken),
             // The reroute command needs a linked employee, so the flag does too.
             CanReroute = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id)
                 && record.IsOpen,
             CanAddParticipants = !_currentPrincipal.IsReadOnly && await CanAddParticipants(visible, reader, cancellationToken),
+            // Both commands need a linked employee, so the flags do too.
+            CanChangeStatus = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id),
+            CanWithdraw = !_currentPrincipal.IsReadOnly && reader.EmployeeId == record.RequesterId && record.IsOpen,
+            DuplicateOf = record.DuplicateOfId is { } survivorId ? await VisibleRequest(survivorId, reader, cancellationToken) : null,
         };
     }
+
+    /// <summary>
+    /// The request, named, when the reader may see it; otherwise null, so a request they cannot see is never
+    /// named.
+    /// </summary>
+    private Task<IntakeRequestNavigationDto?> VisibleRequest(Guid id, IntakeRequestReader reader, CancellationToken cancellationToken) =>
+        _dbContext.IntakeRequests
+            .Where(r => r.Id == id)
+            .Where(reader.CanSeeSummary(_dbContext.IntakeDesks))
+            .Select(r => new IntakeRequestNavigationDto { Id = r.Id, Key = r.Key, Title = r.Title })
+            .FirstOrDefaultAsync(cancellationToken);
 
     /// <summary>
     /// Whether the reader may add participants, by the rule the add command applies.

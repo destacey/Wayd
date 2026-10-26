@@ -389,6 +389,60 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
         ((int)response.StatusCode).Should().BeOneOf(400, 422);
     }
 
+    [Fact]
+    public async Task ChangeStatus_IsAnAgentsWithNoClaim_AndWithdrawIsTheRequesters()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await SetFlag(true);
+        var agent = await SeedEmployee();
+        var admin = await _factory.CreateAuthenticatedClient(Administer);
+        var agentClient = await _factory.CreateAuthenticatedClient(agent);
+        var requesterClient = await _factory.CreateAuthenticatedClient(await SeedEmployee());
+        var deskId = await CreateDesk(admin.Client, "Open", agents: [agent]);
+        async Task<ObjectIdAndKey> Submit(string title)
+        {
+            var created = await requesterClient.Client.PostAsJsonAsync(Requests, new
+            {
+                title,
+                description = "Finance needs a CSV export",
+                deskId,
+                channelId = await FirstChannel(requesterClient.Client),
+            }, ct);
+            return (await created.Content.ReadFromJsonAsync<ObjectIdAndKey>(ct))!;
+        }
+        var toDecline = await Submit("Export invoices");
+        var toWithdraw = await Submit("Export receipts");
+
+        // Act
+        var options = await agentClient.Client.GetFromJsonAsync<JsonElement>($"{Requests}/{toDecline.Id}/status-options", ct);
+        var declined = options.EnumerateArray().Single(o => o.GetProperty("name").GetString() == "Declined");
+        var withoutReason = await agentClient.Client.PostAsJsonAsync($"{Requests}/{toDecline.Id}/status",
+            new { statusId = declined.GetProperty("id").GetGuid() }, ct);
+        var byRequester = await requesterClient.Client.PostAsJsonAsync($"{Requests}/{toDecline.Id}/status",
+            new { statusId = declined.GetProperty("id").GetGuid(), reason = "Changed my mind" }, ct);
+        var byAgent = await agentClient.Client.PostAsJsonAsync($"{Requests}/{toDecline.Id}/status",
+            new { statusId = declined.GetProperty("id").GetGuid(), reason = "Budget went elsewhere" }, ct);
+        var asRequester = await requesterClient.Client.GetFromJsonAsync<JsonElement>($"{Requests}/{toDecline.Id}", ct);
+        var history = await requesterClient.Client.GetFromJsonAsync<JsonElement>($"{Requests}/{toDecline.Id}/status-history", ct);
+        var withdrawnByAgent = await agentClient.Client.PostAsJsonAsync($"{Requests}/{toWithdraw.Id}/withdraw", new { }, ct);
+        var withdrawn = await requesterClient.Client.PostAsJsonAsync($"{Requests}/{toWithdraw.Id}/withdraw", new { note = "Solved it another way" }, ct);
+
+        // Assert
+        declined.GetProperty("needsReason").GetBoolean().Should().BeTrue();
+        withoutReason.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        byRequester.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        byAgent.StatusCode.Should().Be(HttpStatusCode.NoContent, await byAgent.Content.ReadAsStringAsync(ct));
+        var status = asRequester.GetProperty("summary").GetProperty("status");
+        status.GetProperty("name").GetString().Should().Be("Declined");
+        status.GetProperty("category").GetString().Should().Be("Removed", "a closed set crosses the API as its code");
+        asRequester.GetProperty("substance").GetProperty("statusReason").GetString().Should().Be("Budget went elsewhere");
+        asRequester.GetProperty("canEdit").GetBoolean().Should().BeFalse();
+        history.EnumerateArray().First().GetProperty("reason").GetString().Should().Be("Budget went elsewhere");
+        withdrawnByAgent.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        withdrawn.StatusCode.Should().Be(HttpStatusCode.NoContent, await withdrawn.Content.ReadAsStringAsync(ct));
+    }
+
     private static string Permission(string action) => ApplicationPermission.NameFor(action, ApplicationResource.IntakeRequests);
 
     private async Task<Guid> CreateDesk(HttpClient admin, string visibility, Guid[]? agents = null, Guid[]? admins = null)

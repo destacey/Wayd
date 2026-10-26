@@ -253,6 +253,85 @@ public sealed class GetIntakeRequestQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_OffersStatusChangesToAnAgentAndWithdrawingToTheRequester()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var requester = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(agentIds: agent.Id), requester);
+
+        // Act
+        _scenario.SignedInAs(agent);
+        var asAgent = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+        _scenario.SignedInAs(requester);
+        var asRequester = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        asAgent!.CanChangeStatus.Should().BeTrue();
+        asAgent.CanWithdraw.Should().BeFalse();
+        asRequester!.CanChangeStatus.Should().BeFalse();
+        asRequester.CanWithdraw.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotOfferWithdrawingOnceTheRequestIsClosed_NorToTheSubmitter()
+    {
+        // Arrange
+        var requester = _scenario.Employee();
+        var submitter = _scenario.Employee();
+        var declined = _scenario.RequestInStatus(_scenario.Desk(), requester, "Declined");
+        var onBehalf = _scenario.RequestOnBehalf(_scenario.Desk(), _scenario.Employee(), submitter);
+
+        // Act
+        _scenario.SignedInAs(requester);
+        var forDeclined = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(declined.Id)), TestContext.Current.CancellationToken);
+        _scenario.SignedInAs(submitter);
+        var forSubmitter = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(onBehalf.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        forDeclined!.CanWithdraw.Should().BeFalse();
+        forSubmitter!.CanWithdraw.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ForAReadOnlyToken_OffersNeitherStatusChangeNorWithdraw()
+    {
+        // Arrange
+        var requester = _scenario.Employee();
+        var request = _scenario.Request(_scenario.DeskAdministeredBy(requester.Id), requester);
+        _scenario.SignedInAs(requester).WithReadOnlyToken();
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.CanChangeStatus.Should().BeFalse();
+        result.CanWithdraw.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ForADuplicate_NamesTheSurvivingRequestOnlyToAReaderWhoCanSeeIt()
+    {
+        // Arrange — the survivor is on a private desk the duplicate's requester is not on
+        var requester = _scenario.Employee();
+        var privateAgent = _scenario.Employee();
+        var survivor = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Private, agentIds: privateAgent.Id), _scenario.Employee());
+        var duplicate = _scenario.DuplicateOf(survivor, _scenario.Desk(agentIds: privateAgent.Id), requester);
+
+        // Act
+        _scenario.SignedInAs(requester, IntakeScenario.View);
+        var asRequester = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(duplicate.Id)), TestContext.Current.CancellationToken);
+        _scenario.SignedInAs(privateAgent);
+        var asAgent = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(duplicate.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        asRequester!.DuplicateOf.Should().BeNull();
+        asAgent!.DuplicateOf!.Id.Should().Be(survivor.Id);
+        asAgent.DuplicateOf.Key.Should().Be(survivor.Key);
+        asAgent.DuplicateOf.Title.Should().Be(survivor.Title);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsTheStatusInTheSummary()
     {
         // Arrange

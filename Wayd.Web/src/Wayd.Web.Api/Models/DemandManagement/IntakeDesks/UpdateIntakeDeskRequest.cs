@@ -50,9 +50,15 @@ public sealed record UpdateIntakeDeskRequest
     /// </summary>
     public List<IntakeDeskMemberRequest> Members { get; set; } = [];
 
+    /// <summary>
+    /// The desk's <c>revision</c> as it was read before making this change. A desk changed since refuses the
+    /// update with 409, so a stale page never undoes what someone else changed.
+    /// </summary>
+    public int ExpectedRevision { get; set; }
+
     public UpdateIntakeDeskCommand ToUpdateIntakeDeskCommand() =>
         new(Id, Name, Description, Visibility, IsRequesterSelectable, IsOpen, RequesterMayAddParticipants,
-            [.. Members.Select(m => m.ToMemberDetails())]);
+            [.. Members.Select(m => m.ToMemberDetails())], ExpectedRevision);
 }
 
 public sealed class UpdateIntakeDeskRequestValidator : CustomValidator<UpdateIntakeDeskRequest>

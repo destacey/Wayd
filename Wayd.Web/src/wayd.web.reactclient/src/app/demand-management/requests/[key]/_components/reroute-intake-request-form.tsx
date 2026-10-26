@@ -26,7 +26,9 @@ const privacy: Record<IntakeDeskVisibility, number> = {
 
 /**
  * What a move from one desk to another makes visible, and to whom, or null when it makes nothing more
- * visible. Names only what a request holds today; the server refuses the move unless it is confirmed.
+ * visible. Readers are granted by the request's current desk alone, so the request's history comes with
+ * what it shows — earlier versions included — and the notice says so. The server refuses the move unless
+ * it is confirmed.
  */
 export const wideningNotice = (
   from: IntakeDeskVisibility,
@@ -34,14 +36,17 @@ export const wideningNotice = (
 ): string | null => {
   if (privacy[to] >= privacy[from]) return null
 
-  const summary = 'its title, requester, channel and need-by date'
-  const substance = 'its description and expected benefits'
+  const prefix = 'Everyone who can view requests will see'
+  const summary =
+    'its title, requester, channel, need-by date and assignee, with earlier titles, past assignees and every desk it has been on, including this one'
+  const substance =
+    'its description, expected benefits and participants, who submitted it and where it came from, earlier versions of the description, and who made each change in its history'
   if (from === IntakeDeskVisibility.Private) {
     return to === IntakeDeskVisibility.Open
-      ? `Everyone who can view requests will see ${summary}, and ${substance}.`
-      : `Everyone who can view requests will see ${summary}.`
+      ? `${prefix} the whole request: ${summary}; and ${substance}.`
+      : `${prefix} ${summary}.`
   }
-  return `Everyone who can view requests will see ${substance}.`
+  return `${prefix} ${substance}.`
 }
 
 export interface RerouteIntakeRequestFormProps {

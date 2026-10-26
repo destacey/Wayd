@@ -46,6 +46,10 @@ public class IntakeDeskConfiguration : IEntityTypeConfiguration<IntakeDesk>
         builder.Property(d => d.IsOpen).IsRequired();
         builder.Property(d => d.RequesterMayAddParticipants).IsRequired();
 
+        // The desk is saved whole; without this, two saves read at the same revision would both pass the
+        // handler's check and the second would undo the first.
+        builder.Property(d => d.Revision).IsConcurrencyToken();
+
         builder.HasMany(d => d.Members)
             .WithOne()
             .HasForeignKey(m => m.DeskId)
@@ -155,6 +159,16 @@ public class IntakeRequestConfiguration : IEntityTypeConfiguration<IntakeRequest
         builder.HasOne<Employee>()
             .WithMany()
             .HasForeignKey(r => r.AssigneeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // An assignee is always a member of the request's desk. The handlers check it, but an assignment and a
+        // member's removal from the desk can each pass their check and commit in either order; this key makes
+        // whichever saves second fail instead of leaving a request owned by someone who no longer works its
+        // desk. It is enforced only while AssigneeId is set.
+        builder.HasOne<IntakeDeskMember>()
+            .WithMany()
+            .HasForeignKey(r => new { r.DeskId, r.AssigneeId })
+            .HasPrincipalKey(m => new { m.DeskId, m.EmployeeId })
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(r => r.Participants)

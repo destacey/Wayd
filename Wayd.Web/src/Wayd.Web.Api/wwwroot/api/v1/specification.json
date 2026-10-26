@@ -40074,7 +40074,7 @@
           "IntakeDesks"
         ],
         "summary": "Update an intake desk's settings and members.",
-        "description": "Needs a Desk Admin on the desk. Changing its visibility, or naming, removing or re-roling a Desk Admin, needs the Demand Management Admin. A member removed while owning requests on the desk is unassigned from them.",
+        "description": "Needs a Desk Admin on the desk. Changing its visibility, or naming, removing or re-roling a Desk Admin, needs the Demand Management Admin. A member removed while owning requests on the desk is unassigned from them. Send the desk's `revision` as `expectedRevision`: a desk changed since answers 409.",
         "operationId": "IntakeDesks_Update",
         "parameters": [
           {
@@ -40124,6 +40124,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Unprocessable Entity",
             "content": {
@@ -40146,7 +40156,7 @@
           "IntakeDesks"
         ],
         "summary": "Delete an intake desk with no requests on it.",
-        "description": "A desk with requests on it cannot be deleted; close it instead.",
+        "description": "A desk with requests on it cannot be deleted; close it instead. A desk changed while the delete was under way answers 409.",
         "operationId": "IntakeDesks_Delete",
         "parameters": [
           {
@@ -40176,6 +40186,16 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
@@ -55498,6 +55518,7 @@
           "isRequesterSelectable",
           "isOpen",
           "requesterMayAddParticipants",
+          "revision",
           "canManage",
           "canAdminister",
           "canDelete"
@@ -55541,6 +55562,11 @@
           "requesterMayAddParticipants": {
             "type": "boolean",
             "description": "On a private desk, whether the requester may add participants themselves."
+          },
+          "revision": {
+            "type": "integer",
+            "description": "How many changes the desk has recorded; sent back with a change so a stale one is refused.",
+            "format": "int32"
           },
           "members": {
             "type": "array",
@@ -71579,7 +71605,8 @@
           "isRequesterSelectable",
           "isOpen",
           "requesterMayAddParticipants",
-          "members"
+          "members",
+          "expectedRevision"
         ],
         "type": "object",
         "properties": {
@@ -71627,6 +71654,11 @@
               "$ref": "#/components/schemas/IntakeDeskMemberRequest"
             },
             "description": "Everyone on the desk after the change, each with their role. Naming, removing or re-roling a Desk Admin\nneeds the Demand Management Admin."
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "description": "The desk's `revision` as it was read before making this change. A desk changed since refuses the\nupdate with 409, so a stale page never undoes what someone else changed.",
+            "format": "int32"
           }
         },
         "additionalProperties": false,

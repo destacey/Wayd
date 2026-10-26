@@ -61,10 +61,11 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     [HttpPut("{id}")]
     [Authorize]
     [EndpointSummary("Update an intake desk's settings and members.")]
-    [EndpointDescription("Needs a Desk Admin on the desk. Changing its visibility, or naming, removing or re-roling a Desk Admin, needs the Demand Management Admin. A member removed while owning requests on the desk is unassigned from them.")]
+    [EndpointDescription("Needs a Desk Admin on the desk. Changing its visibility, or naming, removing or re-roling a Desk Admin, needs the Demand Management Admin. A member removed while owning requests on the desk is unassigned from them. Send the desk's `revision` as `expectedRevision`: a desk changed since answers 409.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Update(Guid id, [FromBody] UpdateIntakeDeskRequest request, CancellationToken cancellationToken)
     {
@@ -77,10 +78,11 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
     [EndpointSummary("Delete an intake desk with no requests on it.")]
-    [EndpointDescription("A desk with requests on it cannot be deleted; close it instead.")]
+    [EndpointDescription("A desk with requests on it cannot be deleted; close it instead. A desk changed while the delete was under way answers 409.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken) =>
         NoContentOrError(await _dispatcher.Send(new DeleteIntakeDeskCommand(id), cancellationToken));
 
@@ -109,5 +111,7 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
             ? NoContent()
             : result.Error == IntakeDeskAccess.NotFoundError
                 ? NotFound()
-                : BadRequest(result.ToBadRequestObject(HttpContext));
+                : result.Error == IntakeDeskAccess.StaleError
+                    ? Conflict(ProblemDetailsExtensions.ForConflict(result.Error, HttpContext))
+                    : BadRequest(result.ToBadRequestObject(HttpContext));
 }

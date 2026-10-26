@@ -199,9 +199,10 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
         var deskAdminClient = await _factory.CreateAuthenticatedClient(deskAdmin);
         var agentClient = await _factory.CreateAuthenticatedClient(agent);
         var deskId = await CreateDesk(admin.Client, "Open", agents: [agent], admins: [deskAdmin]);
-        object Body(string name, string visibility) => new
+        object Body(string name, string visibility, int expectedRevision = 0) => new
         {
             id = deskId,
+            expectedRevision,
             name,
             description = "Anything you need built",
             visibility,
@@ -219,12 +220,15 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
         var renamedByAgent = await agentClient.Client.PutAsJsonAsync($"{Desks}/{deskId}", Body($"Desk {Guid.NewGuid():N}"[..20], "Open"), ct);
         var madePrivateByDeskAdmin = await deskAdminClient.Client.PutAsJsonAsync($"{Desks}/{deskId}", Body($"Desk {Guid.NewGuid():N}"[..20], "Private"), ct);
         var renamedByDeskAdmin = await deskAdminClient.Client.PutAsJsonAsync($"{Desks}/{deskId}", Body($"Desk {Guid.NewGuid():N}"[..20], "Open"), ct);
+        var staleRename = await deskAdminClient.Client.PutAsJsonAsync($"{Desks}/{deskId}", Body($"Desk {Guid.NewGuid():N}"[..20], "Open"), ct);
         var asDeskAdmin = await deskAdminClient.Client.GetFromJsonAsync<JsonElement>($"{Desks}/{deskId}", ct);
 
         // Assert
         renamedByAgent.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         madePrivateByDeskAdmin.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         renamedByDeskAdmin.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        staleRename.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        asDeskAdmin.GetProperty("revision").GetInt32().Should().Be(1);
         asDeskAdmin.GetProperty("canManage").GetBoolean().Should().BeTrue();
         asDeskAdmin.GetProperty("canAdminister").GetBoolean().Should().BeFalse();
         asDeskAdmin.GetProperty("waiting").GetProperty("count").GetInt32().Should().Be(0);

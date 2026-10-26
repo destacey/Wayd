@@ -1822,6 +1822,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<bool>("RequesterMayAddParticipants")
                         .HasColumnType("bit");
 
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("SystemCreated")
                         .HasColumnType("datetime2");
 
@@ -1936,6 +1940,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasIndex("RequesterId");
 
                     b.HasIndex("SubmittedById");
+
+                    b.HasIndex("DeskId", "AssigneeId");
 
                     b.ToTable("IntakeRequests", "DemandManagement");
                 });
@@ -8568,6 +8574,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasForeignKey("SubmittedById")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeDeskMember", null)
+                        .WithMany()
+                        .HasForeignKey("DeskId", "AssigneeId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.OwnsOne("Wayd.DemandManagement.Domain.Models.IntakeRequestNeedBy", "NeedBy", b1 =>
                         {

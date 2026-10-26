@@ -84989,7 +84989,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update an intake desk's settings and members.
         /// </summary>
         /// <remarks>
-        /// Needs a Desk Admin on the desk. Changing its visibility, or naming, removing or re-roling a Desk Admin, needs the Demand Management Admin. A member removed while owning requests on the desk is unassigned from them.
+        /// Needs a Desk Admin on the desk. Changing its visibility, or naming, removing or re-roling a Desk Admin, needs the Demand Management Admin. A member removed while owning requests on the desk is unassigned from them. Send the desk's `revision` as `expectedRevision`: a desk changed since answers 409.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -85000,7 +85000,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete an intake desk with no requests on it.
         /// </summary>
         /// <remarks>
-        /// A desk with requests on it cannot be deleted; close it instead.
+        /// A desk with requests on it cannot be deleted; close it instead. A desk changed while the delete was under way answers 409.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -85336,7 +85336,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update an intake desk's settings and members.
         /// </summary>
         /// <remarks>
-        /// Needs a Desk Admin on the desk. Changing its visibility, or naming, removing or re-roling a Desk Admin, needs the Demand Management Admin. A member removed while owning requests on the desk is unassigned from them.
+        /// Needs a Desk Admin on the desk. Changing its visibility, or naming, removing or re-roling a Desk Admin, needs the Demand Management Admin. A member removed while owning requests on the desk is unassigned from them. Send the desk's `revision` as `expectedRevision`: a desk changed since answers 409.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -85414,6 +85414,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                             throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
                         if (status_ == 422)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
@@ -85448,7 +85458,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete an intake desk with no requests on it.
         /// </summary>
         /// <remarks>
-        /// A desk with requests on it cannot be deleted; close it instead.
+        /// A desk with requests on it cannot be deleted; close it instead. A desk changed while the delete was under way answers 409.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -85517,6 +85527,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -107236,6 +107256,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool RequesterMayAddParticipants { get; set; } = default!;
 
         /// <summary>
+        /// How many changes the desk has recorded; sent back with a change so a stale one is refused.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("revision")]
+        public int Revision { get; set; } = default!;
+
+        /// <summary>
         /// The employees named on the desk, by name, with their roles.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("members")]
@@ -122477,6 +122503,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("members")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<IntakeDeskMemberRequest> Members { get; set; } = new System.Collections.ObjectModel.Collection<IntakeDeskMemberRequest>();
+
+        /// <summary>
+        /// The desk's `revision` as it was read before making this change. A desk changed since refuses the
+        /// <br/>update with 409, so a stale page never undoes what someone else changed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("expectedRevision")]
+        public int ExpectedRevision { get; set; } = default!;
 
     }
 

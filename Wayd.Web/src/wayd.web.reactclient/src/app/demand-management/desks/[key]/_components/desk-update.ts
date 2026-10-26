@@ -6,13 +6,17 @@ import {
 
 /**
  * The desk as an update request, with the given changes. The update overwrites the whole desk, so a form
- * that edits part of it sends the rest unchanged.
+ * that edits part of it sends the rest unchanged — and the revision it was read at, so the server refuses
+ * the save if someone changed the desk since rather than undoing their change.
  */
 export const toUpdateRequest = (
   desk: IntakeDeskDto,
-  changes: Partial<Omit<UpdateIntakeDeskRequest, 'id'>> = {},
+  changes: Partial<
+    Omit<UpdateIntakeDeskRequest, 'id' | 'expectedRevision'>
+  > = {},
 ): UpdateIntakeDeskRequest => ({
   id: desk.id,
+  expectedRevision: desk.revision,
   name: desk.name,
   description: desk.description,
   visibility: desk.visibility,

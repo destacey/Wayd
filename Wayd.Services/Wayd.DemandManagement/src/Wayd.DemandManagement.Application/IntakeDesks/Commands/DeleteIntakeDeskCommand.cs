@@ -7,7 +7,8 @@ namespace Wayd.DemandManagement.Application.IntakeDesks.Commands;
 /// </summary>
 /// <remarks>
 /// Every request is on exactly one desk, with no unassigned state, so a desk with requests on it cannot go;
-/// closing it, and making it one requesters cannot choose, is the way to retire it.
+/// closing it, and making it one requesters cannot choose, is the way to retire it. A desk changed between
+/// reading and deleting it is refused like a stale update, by the revision's concurrency check.
 /// </remarks>
 /// <param name="Id">The desk.</param>
 public sealed record DeleteIntakeDeskCommand(Guid Id) : ICommand;
@@ -49,7 +50,14 @@ public sealed class DeleteIntakeDeskCommandHandler(
             return result;
 
         _dbContext.IntakeDesks.Remove(desk);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result.Failure(IntakeDeskAccess.StaleError);
+        }
 
         return Result.Success();
     }

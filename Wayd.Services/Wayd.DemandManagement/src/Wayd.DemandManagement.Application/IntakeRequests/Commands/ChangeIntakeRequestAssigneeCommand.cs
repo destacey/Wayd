@@ -7,7 +7,9 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
 /// </summary>
 /// <remarks>
 /// Needs an agent on the request's desk, and the assignee must be an active member of that desk: ownership of
-/// a request belongs to the people who work its desk.
+/// a request belongs to the people who work its desk. A key in the database holds the same rule, so if the
+/// assignee is removed from the desk between this check and the save, the save fails instead of leaving the
+/// request owned by someone who no longer works its desk.
 /// </remarks>
 /// <param name="Id">The request.</param>
 /// <param name="AssigneeId">The member to assign, or null to unassign.</param>
@@ -34,6 +36,8 @@ public sealed class ChangeIntakeRequestAssigneeCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
+    public const string NotADeskMemberError = "The assignee must be an active member of the request's desk.";
+
     public async Task<Result> Handle(ChangeIntakeRequestAssigneeCommand request, CancellationToken cancellationToken)
     {
         var reader = await _currentPrincipal.ResolveIntakeRequestReader(_dbContext, cancellationToken);
@@ -52,7 +56,7 @@ public sealed class ChangeIntakeRequestAssigneeCommandHandler(
             var isDeskMember = await _dbContext.IntakeDesks
                 .AnyAsync(d => d.Id == intakeRequest.DeskId && d.Members.Any(m => m.EmployeeId == assigneeId), cancellationToken);
             if (!isDeskMember || !await _dbContext.IsActiveEmployee(assigneeId, cancellationToken))
-                return Result.Failure("The assignee must be an active member of the request's desk.");
+                return Result.Failure(NotADeskMemberError);
         }
 
         var result = intakeRequest.ChangeAssignee(request.AssigneeId,
@@ -60,7 +64,15 @@ public sealed class ChangeIntakeRequestAssigneeCommandHandler(
         if (result.IsFailure)
             return result;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // The checks above passed, so a failed save here is the assignee leaving the desk meanwhile.
+            return Result.Failure(NotADeskMemberError);
+        }
 
         return Result.Success();
     }

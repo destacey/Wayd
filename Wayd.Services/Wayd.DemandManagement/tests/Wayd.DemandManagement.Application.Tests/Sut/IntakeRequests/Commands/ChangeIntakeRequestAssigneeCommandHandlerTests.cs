@@ -118,6 +118,24 @@ public sealed class ChangeIntakeRequestAssigneeCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WhenTheAssigneeLeavesTheDeskBeforeTheSave_FailsAsNotAMember()
+    {
+        // Arrange — the membership check passes, then the database refuses the save
+        var agent = _scenario.Employee();
+        var assignee = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(agentIds: [agent.Id, assignee.Id]), _scenario.Employee());
+        _scenario.SignedInAs(agent);
+        _scenario.DbContext.FailNextSaveWith = new Microsoft.EntityFrameworkCore.DbUpdateException("FK violation");
+
+        // Act
+        var result = await CreateHandler().Handle(new ChangeIntakeRequestAssigneeCommand(request.Id, assignee.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(ChangeIntakeRequestAssigneeCommandHandler.NotADeskMemberError);
+    }
+
+    [Fact]
     public async Task Handle_WithNoAssignee_Unassigns()
     {
         // Arrange

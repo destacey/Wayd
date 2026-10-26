@@ -39,6 +39,8 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     // Following, for handlers that reach INotificationsDbContext.
     private readonly List<Follow> _follows = [];
     private readonly List<Notification> _notifications = [];
+    private readonly List<RecordMute> _recordMutes = [];
+    private readonly List<ReasonMute> _reasonMutes = [];
 
     // DbSet properties
     public DbSet<Employee> Employees => _employees.AsDbSet();
@@ -57,6 +59,8 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
 
     public DbSet<Follow> Follows => _follows.AsDbSet();
     public DbSet<Notification> Notifications => _notifications.AsDbSet();
+    public DbSet<RecordMute> RecordMutes => _recordMutes.AsDbSet();
+    public DbSet<ReasonMute> ReasonMutes => _reasonMutes.AsDbSet();
 
     // ChangeTracker - we can't create a real one, so we return null and the handler uses defensive coding (_dbContext.ChangeTracker?.Clear())
     public ChangeTracker ChangeTracker => null!;
@@ -109,6 +113,8 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     public void AddEmployee(Employee employee) => _employees.Add(employee);
     public void AddFollow(Follow follow) => _follows.Add(follow);
     public void AddNotification(Notification notification) => _notifications.Add(notification);
+    public void AddRecordMute(RecordMute mute) => _recordMutes.Add(mute);
+    public void AddReasonMute(ReasonMute mute) => _reasonMutes.Add(mute);
 
     /// <summary>Removes a notification, as the store's set-based writes would replace or delete it.</summary>
     public void RemoveNotification(Notification notification) => _notifications.Remove(notification);

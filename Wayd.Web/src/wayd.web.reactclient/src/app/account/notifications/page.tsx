@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, Flex, Segmented } from 'antd'
+import { Button, Flex, Segmented, Tabs } from 'antd'
 import { useState } from 'react'
 import { PageTitle, WaydEmpty } from '@/src/components/common'
 import NotificationList, {
@@ -15,6 +15,7 @@ import {
   useGetUnreadNotificationCountQuery,
   useMarkAllNotificationsReadMutation,
 } from '@/src/store/features/common/notifications-api'
+import MutedNotifications from './_components/muted-notifications'
 import styles from './notifications.module.css'
 
 /** How many entries each page of the list loads. */
@@ -42,7 +43,7 @@ const NotificationsContent = () => {
   const notifications = list.data?.pages.flatMap((page) => page.items) ?? []
 
   return (
-    <>
+    <div className={styles.content}>
       <Flex align="center" justify="space-between" gap="small" wrap>
         <Segmented<View>
           value={view}
@@ -82,7 +83,7 @@ const NotificationsContent = () => {
           }
         />
       </div>
-    </>
+    </div>
   )
 }
 
@@ -97,7 +98,20 @@ const NotificationsPage = () => {
         subtitle="Changes to the records you follow or take part in, newest first. Opening one marks it read."
       />
       {user?.employeeId ? (
-        <NotificationsContent />
+        <Tabs
+          items={[
+            {
+              key: 'notifications',
+              label: 'Notifications',
+              children: <NotificationsContent />,
+            },
+            {
+              key: 'muted',
+              label: 'Muted',
+              children: <MutedNotifications />,
+            },
+          ]}
+        />
       ) : (
         <WaydEmpty message="Notifications need your account to be linked to an employee. Ask an administrator to link it in Settings → Users." />
       )}

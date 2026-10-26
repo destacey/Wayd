@@ -188,6 +188,59 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
         count.IsCapped.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task GetMyMutedRecords_ShouldCountOrderAndPageAcrossEveryOwnerTypeInSql()
+    {
+        // Arrange — mutes on every real owner type (of records that do not exist) unioned with two owner types
+        // over real employee rows: three readable across both types, one not, one muted by someone else.
+        // The oldest readable mute is also followed.
+        var cancellationToken = TestContext.Current.CancellationToken;
+        RegisterOwners();
+        var caller = await NotificationTestData.SeedEmployee(fixture);
+        var someoneElse = await NotificationTestData.SeedEmployee(fixture);
+        var oldest = await NotificationTestData.SeedEmployee(fixture);
+        var middle = await NotificationTestData.SeedEmployee(fixture);
+        var newest = await NotificationTestData.SeedEmployee(fixture);
+        var unreadable = await NotificationTestData.SeedEmployee(fixture);
+
+        await using (var seed = fixture.CreateContext())
+        {
+            foreach (var descriptor in PpmFollowOwners.All.Concat(PlanningFollowOwners.All))
+            {
+                seed.RecordMutes.Add(RecordMute.Create(descriptor.Key, Guid.CreateVersion7(), caller.Id, Timestamp.Plus(Duration.FromDays(1))).Value);
+            }
+
+            seed.RecordMutes.AddRange(
+                RecordMute.Create(EmployeeOwner.Key, oldest.Id, caller.Id, Timestamp).Value,
+                RecordMute.Create(ColleagueOwner.Key, middle.Id, caller.Id, Timestamp.Plus(Duration.FromHours(1))).Value,
+                RecordMute.Create(EmployeeOwner.Key, newest.Id, caller.Id, Timestamp.Plus(Duration.FromHours(2))).Value,
+                RecordMute.Create(EmployeeOwner.Key, unreadable.Id, caller.Id, Timestamp.Plus(Duration.FromHours(3))).Value,
+                RecordMute.Create(EmployeeOwner.Key, middle.Id, someoneElse.Id, Timestamp.Plus(Duration.FromHours(4))).Value);
+            seed.Follows.Add(Follow.Create(EmployeeOwner.Key, oldest.Id, caller.Id, Timestamp).Value);
+            await seed.SaveChangesAsync(cancellationToken);
+        }
+
+        await using var context = fixture.CreateContext();
+        var principal = Principal(caller.Id);
+        var handler = new GetMyMutedRecordsQueryHandler(context, ReadRules(context, principal.Object, readable: [oldest.Id, middle.Id, newest.Id]), principal.Object);
+
+        // Act
+        var pages = new List<Wayd.Common.Application.Models.PagedResponse<Wayd.Common.Application.Notifications.Dtos.MutedRecordDto>>();
+        for (var page = 1; page <= 3; page++)
+        {
+            pages.Add(await handler.Handle(new GetMyMutedRecordsQuery(new Wayd.Common.Application.Models.PageRequest(page, 1)), cancellationToken));
+        }
+
+        // Assert
+        pages.Should().AllSatisfy(p => p.TotalCount.Should().Be(3));
+        pages.Select(p => p.Items.Single())
+            .Select(i => (i.OwnerType, i.Id, i.IsFollowing))
+            .Should().Equal(
+                (EmployeeOwner.Key, newest.Id, false),
+                (ColleagueOwner.Key, middle.Id, false),
+                (EmployeeOwner.Key, oldest.Id, true));
+    }
+
     private static async Task Seed(
         NotificationStore store,
         Guid recipientId,

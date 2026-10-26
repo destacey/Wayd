@@ -118,6 +118,7 @@ const record = (n: number): FollowedRecordDto => ({
   statusName: 'Active',
   lifecycle: LifecycleCategory.Active,
   followedOn: new Date('2026-10-01T09:00:00Z'),
+  isMuted: false,
 })
 
 const counts = (total: number): FollowCountsDto => ({

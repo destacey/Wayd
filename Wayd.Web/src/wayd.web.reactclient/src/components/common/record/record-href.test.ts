@@ -9,6 +9,7 @@ const record = (overrides: Partial<FollowedRecordDto>): FollowedRecordDto => ({
   statusName: 'Active',
   lifecycle: LifecycleCategory.Active,
   followedOn: new Date('2026-10-23T09:30:00Z'),
+  isMuted: false,
   ...overrides,
 })
 

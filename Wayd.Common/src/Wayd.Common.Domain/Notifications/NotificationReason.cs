@@ -10,9 +10,8 @@ namespace Wayd.Common.Domain.Notifications;
 /// reasons, and seeing both is what lets them understand why muting one does not silence the record.
 /// Flags are how the set is stored; every boundary outside the domain carries it as a collection of names.
 /// <para>
-/// Every member is part of the published contract, including those nothing produces yet, because muting by
-/// reason stores them. <strong>Never renumber a member</strong>: the values are persisted on every
-/// notification.
+/// Every member is part of the published contract, including those nothing produces yet.
+/// <strong>Never renumber a member</strong>: the values are persisted on every notification and reason mute.
 /// </para>
 /// <para>
 /// No <c>None</c>. A notification exists because of at least one reason, so zero is never a valid value.
@@ -48,6 +47,19 @@ public static class NotificationReasons
         | NotificationReason.Assigned
         | NotificationReason.Mentioned;
 
+    /// <summary>
+    /// The reasons something tells people for today, and so the only reasons that can be muted.
+    /// </summary>
+    /// <remarks>
+    /// A mute of a reason nothing produces would sit unnoticed until a producer arrived, then silently swallow
+    /// its first notifications. A producer of a new reason adds it here.
+    /// </remarks>
+    public const NotificationReason Produced = NotificationReason.Following | NotificationReason.Participant;
+
     /// <summary>Whether the set holds at least one reason and nothing that is not a defined reason.</summary>
     public static bool IsValid(NotificationReason reasons) => reasons != 0 && (reasons & ~All) == 0;
+
+    /// <summary>Whether the value is exactly one reason that is produced today, so it can be muted.</summary>
+    public static bool IsMutable(NotificationReason reason) =>
+        reason != 0 && (reason & (reason - 1)) == 0 && (reason & ~Produced) == 0;
 }

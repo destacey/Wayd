@@ -34,6 +34,10 @@ const NotificationBellButton = () => {
   const screens = useBreakpoint()
   const isPhone = !screens.md
   const [open, setOpen] = useState(false)
+  // Controlled, so opening or closing the panel clears it. Left to itself the
+  // tooltip remembers the hover that opened the panel and appears the moment
+  // the panel closes, even after a click elsewhere.
+  const [tooltipOpen, setTooltipOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const { data: unread } = useGetUnreadNotificationCountQuery(undefined, {
     pollingInterval: UnreadCountPollingInterval,
@@ -45,8 +49,12 @@ const NotificationBellButton = () => {
   const label = countText
     ? `Notifications, ${countText} unread`
     : 'Notifications'
+  const setPanelOpen = (next: boolean) => {
+    setOpen(next)
+    setTooltipOpen(false)
+  }
   const close = ({ returnFocus = false } = {}) => {
-    setOpen(false)
+    setPanelOpen(false)
     if (returnFocus) triggerRef.current?.focus()
   }
 
@@ -93,13 +101,19 @@ const NotificationBellButton = () => {
       trigger="click"
       placement="bottomRight"
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={setPanelOpen}
       destroyOnHidden
       arrow={false}
       styles={{ container: { padding: 0 } }}
       content={<NotificationPanel onClose={close} />}
     >
-      <Tooltip title={open ? undefined : 'Notifications'}>{trigger}</Tooltip>
+      <Tooltip
+        title="Notifications"
+        open={!open && tooltipOpen}
+        onOpenChange={setTooltipOpen}
+      >
+        {trigger}
+      </Tooltip>
     </Popover>
   )
 }

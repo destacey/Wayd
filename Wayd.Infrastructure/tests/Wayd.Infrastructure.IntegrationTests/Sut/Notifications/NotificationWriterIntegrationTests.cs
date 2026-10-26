@@ -83,6 +83,54 @@ public sealed class NotificationWriterIntegrationTests(SqlServerDbContextFixture
         ]);
     }
 
+    [Fact]
+    public async Task Notify_ShouldApplyRecordAndReasonMutes()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        FollowOwners.Register(Gadget, Widget);
+        var ownerId = Guid.CreateVersion7();
+
+        var recordMuter = await NotificationTestData.SeedEmployee(fixture);
+        var participantMuter = await NotificationTestData.SeedEmployee(fixture);
+        var widgetMuter = await NotificationTestData.SeedEmployee(fixture);
+        var actor = await NotificationTestData.SeedEmployee(fixture);
+
+        await using (var seed = fixture.CreateContext())
+        {
+            seed.Follows.AddRange(
+                Follow.Create(GadgetType, ownerId, recordMuter.Id, Timestamp).Value,
+                Follow.Create(GadgetType, ownerId, participantMuter.Id, Timestamp).Value,
+                Follow.Create(GadgetType, ownerId, widgetMuter.Id, Timestamp).Value);
+            seed.RecordMutes.AddRange(
+                RecordMute.Create(GadgetType, ownerId, recordMuter.Id, Timestamp).Value,
+                // Same id, different owner type: a different record, so it silences nothing here.
+                RecordMute.Create(WidgetType, ownerId, widgetMuter.Id, Timestamp).Value);
+            seed.ReasonMutes.Add(ReasonMute.Create(participantMuter.Id, NotificationReason.Participant, Timestamp).Value);
+            await seed.SaveChangesAsync(cancellationToken);
+        }
+
+        var source = new GadgetChangedEvent(EventActor.User("actor-user", actor.Id), Timestamp);
+        await using var context = fixture.CreateContext();
+
+        // Act
+        await CreateWriter(context).Notify(
+            new RecordChange(GadgetType, ownerId, NotificationEvent.StatusChanged, source),
+            [recordMuter.Id, participantMuter.Id, widgetMuter.Id],
+            cancellationToken);
+
+        // Assert
+        await using var reader = fixture.CreateContext();
+        var stored = await reader.Notifications
+            .Where(n => n.EventId == source.EventId)
+            .Select(n => new { n.RecipientEmployeeId, n.Reasons })
+            .ToListAsync(cancellationToken);
+        stored.Should().BeEquivalentTo([
+            new { RecipientEmployeeId = participantMuter.Id, Reasons = NotificationReason.Following },
+            new { RecipientEmployeeId = widgetMuter.Id, Reasons = NotificationReason.Following | NotificationReason.Participant },
+        ]);
+    }
+
     private static NotificationWriter CreateWriter(WaydDbContext context)
     {
         var featureFlags = new Mock<IFeatureFlags>();

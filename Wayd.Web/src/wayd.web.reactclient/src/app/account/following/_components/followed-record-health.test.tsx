@@ -31,6 +31,7 @@ const record = (overrides: Partial<FollowedRecordDto>): FollowedRecordDto => ({
   health: HealthStatus.AtRisk,
   healthCheck: { id: 'hc-1', status: { id: 2, name: 'At Risk' } },
   followedOn: new Date('2026-10-24T09:00:00Z'),
+  isMuted: false,
   ...overrides,
 })
 

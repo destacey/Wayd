@@ -45,6 +45,63 @@ public class FollowConfiguration : IEntityTypeConfiguration<Follow>
 }
 
 /// <summary>
+/// Maps <see cref="RecordMute"/> to <c>Notifications.RecordMutes</c>: one row per person per muted record.
+/// </summary>
+public class RecordMuteConfiguration : IEntityTypeConfiguration<RecordMute>
+{
+    /// <inheritdoc/>
+    public void Configure(EntityTypeBuilder<RecordMute> builder)
+    {
+        builder.ToTable("RecordMutes", SchemaNames.Notifications);
+
+        // Record first, as for follows: writing a notification asks who muted this record.
+        builder.HasKey(m => new { m.OwnerType, m.OwnerId, m.EmployeeId });
+
+        // The list of everything a person has muted, newest first.
+        builder.HasIndex(m => new { m.EmployeeId, m.MutedOn })
+            .IncludeProperties(m => new { m.OwnerType, m.OwnerId });
+
+        builder.Property(m => m.OwnerType).IsRequired()
+            .HasColumnType("varchar")
+            .HasMaxLength(FollowOwnerDescriptor.KeyMaxLength);
+
+        // No foreign key, as for follows: the target lives in a different table per owner type.
+        builder.Property(m => m.OwnerId).IsRequired();
+
+        builder.Property(m => m.MutedOn).IsRequired();
+
+        builder.HasOne<Employee>()
+            .WithMany()
+            .HasForeignKey(m => m.EmployeeId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+/// <summary>
+/// Maps <see cref="ReasonMute"/> to <c>Notifications.ReasonMutes</c>: one row per person per muted reason.
+/// </summary>
+public class ReasonMuteConfiguration : IEntityTypeConfiguration<ReasonMute>
+{
+    /// <inheritdoc/>
+    public void Configure(EntityTypeBuilder<ReasonMute> builder)
+    {
+        builder.ToTable("ReasonMutes", SchemaNames.Notifications);
+
+        builder.HasKey(m => new { m.EmployeeId, m.Reason });
+
+        // The reason's flag value, as notifications store their reasons; the enum is never renumbered.
+        builder.Property(m => m.Reason).IsRequired();
+
+        builder.Property(m => m.MutedOn).IsRequired();
+
+        builder.HasOne<Employee>()
+            .WithMany()
+            .HasForeignKey(m => m.EmployeeId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+/// <summary>
 /// Maps <see cref="Notification"/> to <c>Notifications.Notifications</c>: one row per person per event.
 /// </summary>
 public class NotificationConfiguration : IEntityTypeConfiguration<Notification>

@@ -50,20 +50,39 @@ public sealed class GetIntakeRequestQueryHandler(
             .Select(IntakeRequestProjections.Substance(_dbContext))
             .FirstOrDefaultAsync(cancellationToken);
 
+        var record = await visible.FirstAsync(cancellationToken);
+
         return new IntakeRequestDetailsDto
         {
             Summary = summary,
             Substance = substance,
-            CanEdit = !_currentPrincipal.IsReadOnly && await CanEdit(visible, reader, substance is not null, cancellationToken),
+            CanEdit = !_currentPrincipal.IsReadOnly && CanEdit(record, reader, substance is not null),
             // The remove command needs a linked employee, so the flag does too.
             CanRemoveParticipants = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id),
-            CanDelete = !_currentPrincipal.IsReadOnly && reader.IsDeskAdminOn(summary.Desk.Id),
+            CanDelete = !_currentPrincipal.IsReadOnly && reader.IsDeskAdminOn(summary.Desk.Id) && !record.HasLeftItsInitialStatus
+                && !await _dbContext.IntakeRequests.AnyAsync(r => r.DuplicateOfId == record.Id, cancellationToken),
             // The reroute command needs a linked employee, so the flag does too.
             CanReroute = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id)
-                && (await visible.FirstAsync(cancellationToken)).IsOpen,
+                && record.IsOpen,
             CanAddParticipants = !_currentPrincipal.IsReadOnly && await CanAddParticipants(visible, reader, cancellationToken),
+            IsDeskAgent = reader.IsAgentOn(summary.Desk.Id),
+            // Both commands need a linked employee, so the flags do too.
+            CanChangeStatus = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id),
+            CanWithdraw = !_currentPrincipal.IsReadOnly && reader.EmployeeId == record.RequesterId && record.IsOpen,
+            DuplicateOf = record.DuplicateOfId is { } survivorId ? await VisibleRequest(survivorId, reader, cancellationToken) : null,
         };
     }
+
+    /// <summary>
+    /// The request, named, when the reader may see it; otherwise null, so a request they cannot see is never
+    /// named.
+    /// </summary>
+    private Task<IntakeRequestNavigationDto?> VisibleRequest(Guid id, IntakeRequestReader reader, CancellationToken cancellationToken) =>
+        _dbContext.IntakeRequests
+            .Where(r => r.Id == id)
+            .Where(reader.CanSeeSummary(_dbContext.IntakeDesks))
+            .Select(r => new IntakeRequestNavigationDto { Id = r.Id, Key = r.Key, Title = r.Title })
+            .FirstOrDefaultAsync(cancellationToken);
 
     /// <summary>
     /// Whether the reader may add participants, by the rule the add command applies.
@@ -89,14 +108,8 @@ public sealed class GetIntakeRequestQueryHandler(
     /// Whether the reader may edit the request, by the same rules the update command applies: a linked
     /// employee, the substance (the update carries the description), and the request's own edit lock.
     /// </summary>
-    private async Task<bool> CanEdit(IQueryable<IntakeRequest> visible, IntakeRequestReader reader, bool canSeeSubstance, CancellationToken cancellationToken)
-    {
-        if (reader.EmployeeId is null || !canSeeSubstance)
-            return false;
-
-        var record = await visible.FirstOrDefaultAsync(cancellationToken);
-
-        return record is not null
-            && record.CanEdit(new IntakeRequestEditor(reader.EmployeeId, reader.IsAgentOn(record.DeskId), EventActor.Anonymous));
-    }
+    private static bool CanEdit(IntakeRequest record, IntakeRequestReader reader, bool canSeeSubstance) =>
+        reader.EmployeeId is not null
+        && canSeeSubstance
+        && record.CanEdit(new IntakeRequestEditor(reader.EmployeeId, reader.IsAgentOn(record.DeskId), EventActor.Anonymous));
 }

@@ -1,12 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Moq;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using NodaTime;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.DemandManagement.Domain;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
 using Wayd.Infrastructure.Persistence.Context;
 using Wayd.Infrastructure.Persistence.Initialization;
@@ -36,9 +38,13 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
         return provider.Object;
     }
 
+    /// <summary>Every owner type a module seeds a default workflow for.</summary>
+    private static WorkflowOwnerDescriptor[] SeededOwners => [.. ProductWorkflowOwners.All, .. DemandManagementWorkflowOwners.All];
+
     private async Task SeedAll(WaydDbContext context)
     {
         await new ProductManagementWorkflowSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
+        await new DemandManagementWorkflowSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
         await new WorkflowAliasNameSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
         await new ProductTypeSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
     }
@@ -56,7 +62,7 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
         await SeedAll(context);
 
         // Assert
-        foreach (var owner in ProductWorkflowOwners.All)
+        foreach (var owner in SeededOwners)
         {
             var workflow = await context.StatusWorkflows
                 .Include(w => w.Statuses)
@@ -81,7 +87,7 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
         // Assert
         // A seeded workflow missing a required alias would be refused at activation, so this also
         // proves the defaults are internally consistent rather than merely present.
-        foreach (var owner in ProductWorkflowOwners.All)
+        foreach (var owner in SeededOwners)
         {
             var workflow = await context.StatusWorkflows
                 .Include(w => w.Statuses)
@@ -147,7 +153,7 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
         // Assert
         // Publishing only makes a workflow available to assign. Without the assignment the resolver has
         // nothing to resolve and every operation fails at runtime, so this is not merely tidiness.
-        foreach (var owner in ProductWorkflowOwners.All)
+        foreach (var owner in SeededOwners)
         {
             var assignment = await context.WorkflowAssignments
                 .SingleOrDefaultAsync(
@@ -213,6 +219,35 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
         entries.First().Payload.Should().Contain($"\"key\":{workflow.Key}", "the events were raised once the key was assigned");
     }
 
+    [Fact]
+    public async Task Seeder_ShouldSeedTheDefaultIntakeReview()
+    {
+        // Arrange
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        await SeedAll(context);
+
+        // Assert
+        // The default #1040 settles: four open stages, one active, one done and three ways out.
+        var workflow = await context.StatusWorkflows
+            .Include(w => w.Statuses)
+            .SingleAsync(w => w.OwnerType == DemandManagementWorkflowOwners.IntakeRequest.Key && w.IsSystem, TestContext.Current.CancellationToken);
+
+        workflow.Statuses.OrderBy(s => s.Order)
+            .Select(s => (s.Name, s.Category, (IntakeRequestStatusAlias)s.Alias))
+            .Should().Equal(
+                ("Submitted", StatusCategory.Proposed, IntakeRequestStatusAlias.Submitted),
+                ("In Review", StatusCategory.Proposed, IntakeRequestStatusAlias.None),
+                ("Waiting on Requester", StatusCategory.Proposed, IntakeRequestStatusAlias.WaitingOnRequester),
+                ("Deferred", StatusCategory.Proposed, IntakeRequestStatusAlias.Deferred),
+                ("Accepted", StatusCategory.Active, IntakeRequestStatusAlias.Accepted),
+                ("Fulfilled", StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled),
+                ("Declined", StatusCategory.Removed, IntakeRequestStatusAlias.Declined),
+                ("Duplicate", StatusCategory.Removed, IntakeRequestStatusAlias.Duplicate),
+                ("Withdrawn", StatusCategory.Removed, IntakeRequestStatusAlias.Withdrawn));
+    }
+
     #endregion Workflow seeding
 
     #region Alias lookup
@@ -230,7 +265,7 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
         // Assert
         // This lookup is what makes an int alias column readable in a query; a missing row would leave
         // a deployment outcome showing as a bare number.
-        foreach (var owner in ProductWorkflowOwners.All)
+        foreach (var owner in SeededOwners)
         {
             foreach (var (alias, name) in owner.Aliases)
             {

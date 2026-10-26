@@ -108,6 +108,30 @@ public sealed class WorkflowAssignment : BaseAuditableEntity
     }
 
     /// <summary>
+    /// Records that a narrower scope's own assignment is being removed, so the scope follows the
+    /// organization's workflow again, or because the scope itself is gone. Removing it is the caller's.
+    /// </summary>
+    /// <remarks>
+    /// Like reassignment, removal is not a migration: the caller guarantees the scope holds no records on this
+    /// workflow, since nothing here moves them. The organization-level assignment is never removed — it is the
+    /// fallback every scope relies on.
+    /// </remarks>
+    /// <param name="organizationWorkflowId">
+    /// The organization's workflow the scope follows from now on, or <c>null</c> when the scope itself is gone.
+    /// </param>
+    public Result Remove(Guid? organizationWorkflowId, EventActor actor, Instant timestamp)
+    {
+        if (ScopeId is not { } scopeId)
+        {
+            return Result.Failure("The organization's workflow assignment cannot be removed.");
+        }
+
+        AddDomainEvent(new WorkflowAssignmentRemovedEvent(OwnerType, scopeId, WorkflowId, organizationWorkflowId, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Assigns a workflow to a scope.
     /// </summary>
     /// <param name="scopeId">The scope, or <c>null</c> for the organization-level default.</param>

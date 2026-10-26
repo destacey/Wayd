@@ -13,15 +13,21 @@ namespace Wayd.Common.Application.StatusWorkflows.Queries;
 /// </remarks>
 public sealed record GetWorkflowAssignmentsQuery(string? OwnerType) : IQuery<List<WorkflowAssignmentDto>>;
 
-public sealed class GetWorkflowAssignmentsQueryHandler(IStatusWorkflowDbContext dbContext)
+public sealed class GetWorkflowAssignmentsQueryHandler(
+    IStatusWorkflowDbContext dbContext,
+    IWorkflowOwnerAvailability ownerAvailability)
     : IQueryHandler<GetWorkflowAssignmentsQuery, List<WorkflowAssignmentDto>>
 {
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
+    private readonly IWorkflowOwnerAvailability _ownerAvailability = ownerAvailability;
 
     public async Task<List<WorkflowAssignmentDto>> Handle(
         GetWorkflowAssignmentsQuery request, CancellationToken cancellationToken)
     {
-        var query = _dbContext.WorkflowAssignments.AsNoTracking();
+        var unavailable = (await _ownerAvailability.Unavailable(cancellationToken)).ToArray();
+
+        var query = _dbContext.WorkflowAssignments.AsNoTracking()
+            .Where(a => !unavailable.Contains(a.OwnerType));
 
         if (!string.IsNullOrWhiteSpace(request.OwnerType))
         {
@@ -59,7 +65,12 @@ public sealed class GetWorkflowAssignmentsQueryHandler(IStatusWorkflowDbContext 
                         Name = a.WorkflowName,
                     },
                 })
-                .OrderBy(a => a.Owner.Name, StringComparer.OrdinalIgnoreCase),
+                // The organization's assignment first within an owner type, then each scope's, ending on the id so
+                // the order is the same on every call.
+                .OrderBy(a => a.Owner.Name, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(a => a.ScopeId is not null)
+                .ThenBy(a => a.ScopeId)
+                .ThenBy(a => a.Id),
         ];
     }
 }

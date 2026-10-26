@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Application.StatusWorkflows.Commands;
@@ -234,7 +235,7 @@ public sealed class WorkflowTransitionIntegrationTests(SqlServerDbContextFixture
 
         await using var context = _fixture.CreateContext();
         var sut = new CloneStatusWorkflowCommandHandler(
-            context, CurrentUser(), DateTimeProvider(), NullLogger<CloneStatusWorkflowCommandHandler>.Instance);
+            context, CurrentUser(), DateTimeProvider(), NullLogger<CloneStatusWorkflowCommandHandler>.Instance, new WorkflowOwnerAvailability(Mock.Of<IFeatureFlags>()));
 
         // Act
         var result = await sut.Handle(
@@ -354,7 +355,7 @@ public sealed class WorkflowTransitionIntegrationTests(SqlServerDbContextFixture
 
         await using var context = _fixture.CreateContext();
         var sut = new CloneStatusWorkflowCommandHandler(
-            context, CurrentUser(), DateTimeProvider(), NullLogger<CloneStatusWorkflowCommandHandler>.Instance);
+            context, CurrentUser(), DateTimeProvider(), NullLogger<CloneStatusWorkflowCommandHandler>.Instance, new WorkflowOwnerAvailability(Mock.Of<IFeatureFlags>()));
 
         // Act
         var result = await sut.Handle(

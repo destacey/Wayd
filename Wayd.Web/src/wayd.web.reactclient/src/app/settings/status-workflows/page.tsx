@@ -68,8 +68,11 @@ const StatusWorkflowsPage = () => {
   // Owner, category and alias arrive as navigation objects rather than flat
   // fields, so every one of those columns needs an accessorFn — a dotted
   // accessorKey would be read as a literal key name.
-  const columns = useMemo<ColumnDef<StatusWorkflowListDto, any>[]>(
-    () => [
+  const columns = useMemo<ColumnDef<StatusWorkflowListDto, any>[]>(() => {
+    const organizationAssignment = (workflowId: string) =>
+      assignments?.find((a) => a.workflow.id === workflowId && !a.scopeId)
+
+    return [
       // Cloning is on the row because it is the only way to change a seeded
       // workflow, and every workflow that ships is seeded.
       createActionsColumn<StatusWorkflowListDto>({
@@ -81,16 +84,15 @@ const StatusWorkflowsPage = () => {
               label: 'Clone',
               onClick: () => setCloning(workflow),
             },
-            // Only on the workflow a type is actually using: changing an unused
-            // workflow's assignment is meaningless.
+            // Only on the workflow an owner type uses organization-wide. A
+            // workflow a single scope chose (an intake desk's) is changed where
+            // that scope is managed, not here.
             canUpdateStatusWorkflow &&
-              workflow.isAssigned && {
+              organizationAssignment(workflow.id) && {
                 key: 'change',
                 label: 'Change workflow',
                 onClick: () => {
-                  const assignment = assignments?.find(
-                    (a) => a.workflow.id === workflow.id,
-                  )
+                  const assignment = organizationAssignment(workflow.id)
                   if (assignment) setReassigning(assignment)
                 },
               },
@@ -142,9 +144,8 @@ const StatusWorkflowsPage = () => {
         size: 110,
         meta: { columnType: 'yesNo' },
       },
-    ],
-    [assignments, canCreateStatusWorkflow, canUpdateStatusWorkflow],
-  )
+    ]
+  }, [assignments, canCreateStatusWorkflow, canUpdateStatusWorkflow])
 
   const refresh = async () => {
     refetch()
@@ -213,4 +214,3 @@ const StatusWorkflowsPageWithAuthorization = authorizePage(
 )
 
 export default StatusWorkflowsPageWithAuthorization
-

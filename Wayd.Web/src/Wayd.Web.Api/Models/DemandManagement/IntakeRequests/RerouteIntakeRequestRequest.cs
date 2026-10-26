@@ -15,6 +15,13 @@ public sealed record RerouteIntakeRequestRequest
     /// refused without it; a move to an equally or more private desk ignores it.
     /// </summary>
     public bool ConfirmWiderVisibility { get; set; }
+
+    /// <summary>
+    /// The status the request arrives in, from the destination's arrival statuses: an open one needing no
+    /// reason. When omitted, the status it holds if the desk shares its workflow, otherwise the one with the
+    /// same meaning or name; the move is refused when none fits.
+    /// </summary>
+    public Guid? StatusId { get; set; }
 }
 
 public sealed class RerouteIntakeRequestRequestValidator : CustomValidator<RerouteIntakeRequestRequest>
@@ -22,5 +29,6 @@ public sealed class RerouteIntakeRequestRequestValidator : CustomValidator<Rerou
     public RerouteIntakeRequestRequestValidator()
     {
         RuleFor(r => r.DeskId).NotEmpty();
+        RuleFor(r => r.StatusId).NotEqual(Guid.Empty);
     }
 }

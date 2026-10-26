@@ -5,8 +5,16 @@ import {
   getIntakeRequestsClient,
 } from '@/src/services/clients'
 import {
+  ChangeIntakeRequestStatusRequest,
   CreateIntakeDeskRequest,
   CreateIntakeRequestRequest,
+  IntakeDeskWorkflowDto,
+  IntakeRequestArrivalStatusesDto,
+  IntakeRequestStatusOptionDto,
+  IntakeWorkflowChoiceDto,
+  StatusTransitionDto,
+  StatusWorkflowDetailsDto,
+  WithdrawIntakeRequestRequest,
   EmployeeNavigationDto,
   IntakeChannelDto,
   IntakeDeskDto,
@@ -46,11 +54,30 @@ const requestTags = (requestId: string) => [
   { type: QueryTags.ActivityLog, id: requestId },
 ]
 
+/**
+ * What a status move changes: the request, its activity and status history, every list it appears in, and
+ * the waiting counts on its desk.
+ */
+const statusMoveTags = (requestId: string) => [
+  ...requestTags(requestId),
+  { type: QueryTags.StatusHistory, id: requestId },
+  listTag,
+  QueryTags.IntakeDesk,
+]
+
 const listTag = { type: QueryTags.IntakeRequest, id: 'LIST' } as const
 
 const deskListTag = { type: QueryTags.IntakeDesk, id: 'LIST' } as const
 
 export interface RerouteIntakeRequestArgs extends RerouteIntakeRequestRequest {
+  requestId: string
+}
+
+export interface ChangeIntakeRequestStatusArgs extends ChangeIntakeRequestStatusRequest {
+  requestId: string
+}
+
+export interface WithdrawIntakeRequestArgs extends WithdrawIntakeRequestRequest {
   requestId: string
 }
 
@@ -192,10 +219,126 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           return toError(error)
         }
       },
-      invalidatesTags: (_result, _error, { requestId }) => [
-        ...requestTags(requestId),
-        listTag,
-        QueryTags.IntakeDesk,
+      // A move can change the request's status too.
+      invalidatesTags: (_result, _error, { requestId }) =>
+        statusMoveTags(requestId),
+    }),
+
+    // The statuses the request can arrive in on a desk, which depend on the status it holds.
+    getIntakeRequestArrivalStatuses: builder.query<
+      IntakeRequestArrivalStatusesDto,
+      { requestId: string; deskId: string }
+    >({
+      queryFn: async ({ requestId, deskId }) => {
+        try {
+          const data = await getIntakeRequestsClient().getArrivalStatuses(
+            requestId,
+            deskId,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      // Tagged with the destination desk too: its workflow decides the statuses.
+      providesTags: (_result, _error, { requestId, deskId }) => [
+        { type: QueryTags.IntakeRequest, id: requestId },
+        { type: QueryTags.IntakeDesk, id: deskId },
+      ],
+    }),
+
+    // Fetched by id: the options depend on the status the request holds, which a move invalidates by id.
+    getIntakeRequestStatusOptions: builder.query<
+      IntakeRequestStatusOptionDto[],
+      string
+    >({
+      queryFn: async (requestId) => {
+        try {
+          const data =
+            await getIntakeRequestsClient().getStatusOptions(requestId)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      providesTags: (_result, _error, requestId) => [
+        { type: QueryTags.IntakeRequest, id: requestId },
+      ],
+    }),
+
+    changeIntakeRequestStatus: builder.mutation<
+      void,
+      ChangeIntakeRequestStatusArgs
+    >({
+      queryFn: async ({ requestId, ...request }) => {
+        try {
+          const data = await getIntakeRequestsClient().changeStatus(
+            requestId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: (_result, _error, { requestId }) =>
+        statusMoveTags(requestId),
+    }),
+
+    withdrawIntakeRequest: builder.mutation<void, WithdrawIntakeRequestArgs>({
+      queryFn: async ({ requestId, ...request }) => {
+        try {
+          const data = await getIntakeRequestsClient().withdraw(
+            requestId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: (_result, _error, { requestId }) =>
+        statusMoveTags(requestId),
+    }),
+
+    /**
+     * Fetched by id, the tag every status move invalidates, so the history never shows what it was before
+     * the change.
+     */
+    getIntakeRequestStatusHistory: builder.query<StatusTransitionDto[], string>(
+      {
+        queryFn: async (requestId) => {
+          try {
+            const data =
+              await getIntakeRequestsClient().getStatusHistory(requestId)
+            return { data }
+          } catch (error) {
+            return toError(error)
+          }
+        },
+        providesTags: (_result, _error, requestId) => [
+          { type: QueryTags.StatusHistory, id: requestId },
+        ],
+      },
+    ),
+
+    // Tagged with the history too: a move to a desk on another workflow switches the request onto it.
+    getIntakeRequestStatusWorkflow: builder.query<
+      StatusWorkflowDetailsDto,
+      string
+    >({
+      queryFn: async (requestId) => {
+        try {
+          const data =
+            await getIntakeRequestsClient().getStatusWorkflow(requestId)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      providesTags: (result, _error, requestId) => [
+        ...(result ? [{ type: QueryTags.StatusWorkflow, id: result.id }] : []),
+        { type: QueryTags.StatusHistory, id: requestId },
       ],
     }),
 
@@ -308,6 +451,57 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       invalidatesTags: [deskListTag],
     }),
 
+    // Fetched by id, which the change invalidates; tagged with the desk too, since a request arriving on it
+    // stops the workflow changing.
+    getIntakeDeskWorkflow: builder.query<IntakeDeskWorkflowDto, string>({
+      queryFn: async (deskId) => {
+        try {
+          const data = await getIntakeDesksClient().getWorkflow(deskId)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      providesTags: (_result, _error, deskId) => [
+        { type: QueryTags.IntakeDesk, id: deskId },
+      ],
+    }),
+
+    getIntakeWorkflowChoices: builder.query<IntakeWorkflowChoiceDto[], void>({
+      queryFn: async () => {
+        try {
+          const data = await getIntakeDesksClient().getWorkflowChoices()
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      providesTags: [QueryTags.StatusWorkflow],
+    }),
+
+    changeIntakeDeskWorkflow: builder.mutation<
+      void,
+      { deskId: string; workflowId: string }
+    >({
+      queryFn: async ({ deskId, workflowId }) => {
+        try {
+          const data = await getIntakeDesksClient().changeWorkflow(deskId, {
+            workflowId,
+          })
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      // Settings → Status Workflows lists the assignments and marks the workflows in use, and a request's
+      // arrival statuses on this desk come from its workflow.
+      invalidatesTags: (_result, _error, { deskId }) => [
+        { type: QueryTags.IntakeDesk, id: deskId },
+        { type: QueryTags.WorkflowAssignment, id: 'LIST' },
+        { type: QueryTags.StatusWorkflow, id: 'LIST' },
+      ],
+    }),
+
     getIntakeDeskRoles: builder.query<IntakeDeskRoleDto[], void>({
       queryFn: async () => {
         try {
@@ -393,10 +587,19 @@ export const {
   useGetIntakeDeskQuery,
   useGetIntakeDeskVisibilitiesQuery,
   useGetIntakeDeskRolesQuery,
+  useGetIntakeDeskWorkflowQuery,
+  useGetIntakeWorkflowChoicesQuery,
+  useChangeIntakeDeskWorkflowMutation,
   useCreateIntakeDeskMutation,
   useUpdateIntakeDeskMutation,
   useDeleteIntakeDeskMutation,
   useRerouteIntakeRequestMutation,
+  useGetIntakeRequestArrivalStatusesQuery,
+  useGetIntakeRequestStatusOptionsQuery,
+  useChangeIntakeRequestStatusMutation,
+  useWithdrawIntakeRequestMutation,
+  useGetIntakeRequestStatusHistoryQuery,
+  useGetIntakeRequestStatusWorkflowQuery,
   useGetIntakeChannelsQuery,
   useGetIntakeEmployeeOptionsQuery,
 } = demandManagementApi

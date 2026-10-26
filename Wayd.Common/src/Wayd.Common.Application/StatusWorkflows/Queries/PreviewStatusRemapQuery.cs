@@ -23,11 +23,13 @@ public sealed record PreviewStatusRemapQuery(Guid AssignmentId, Guid TargetWorkf
 
 public sealed class PreviewStatusRemapQueryHandler(
     IStatusWorkflowDbContext dbContext,
-    IEnumerable<IStatusRecordCounter> counters)
+    IEnumerable<IStatusRecordCounter> counters,
+    IWorkflowOwnerAvailability ownerAvailability)
     : IQueryHandler<PreviewStatusRemapQuery, Result<StatusRemapPreviewDto>>
 {
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly IEnumerable<IStatusRecordCounter> _counters = counters;
+    private readonly IWorkflowOwnerAvailability _ownerAvailability = ownerAvailability;
 
     public async Task<Result<StatusRemapPreviewDto>> Handle(
         PreviewStatusRemapQuery request, CancellationToken cancellationToken)
@@ -36,7 +38,9 @@ public sealed class PreviewStatusRemapQueryHandler(
             .AsNoTracking()
             .FirstOrDefaultAsync(a => a.Id == request.AssignmentId, cancellationToken);
 
-        if (assignment is null)
+        // The target must share the assignment's owner type, which the remap checks, so the assignment
+        // alone decides whether either side is hidden.
+        if (assignment is null || !await _ownerAvailability.IsAvailable(assignment.OwnerType, cancellationToken))
         {
             return Result.Failure<StatusRemapPreviewDto>("Workflow assignment not found.");
         }

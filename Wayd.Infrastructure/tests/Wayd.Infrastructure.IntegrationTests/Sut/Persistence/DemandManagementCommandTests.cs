@@ -1,14 +1,23 @@
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
+using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.Events.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Models;
 using Wayd.DemandManagement.Application.IntakeDesks;
 using Wayd.DemandManagement.Application.IntakeDesks.Commands;
+using Wayd.DemandManagement.Application.IntakeDesks.Queries;
+using Wayd.DemandManagement.Application.IntakeRequests;
+using Wayd.DemandManagement.Application.IntakeRequests.Queries;
 using Wayd.DemandManagement.Application.IntakeRequests.Commands;
+using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
 using Wayd.Infrastructure.Persistence.Context;
@@ -24,7 +33,14 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
 {
     private static readonly Instant Now = Instant.FromUtc(2026, 10, 1, 8, 0, 0);
 
-    private readonly SqlServerDbContextFixture _fixture = fixture;
+    // Deleting a desk removes any workflow it chose, which resolves the owner type the host registers at startup.
+    private readonly SqlServerDbContextFixture _fixture = RegisterOwners(fixture);
+
+    private static SqlServerDbContextFixture RegisterOwners(SqlServerDbContextFixture fixture)
+    {
+        DemandManagementWorkflowOwners.Register();
+        return fixture;
+    }
     private readonly IDateTimeProvider _clock = Clock();
 
     [Fact]
@@ -49,7 +65,8 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         var desk = await new CreateIntakeDeskCommandHandler(context, Principal(agent.Id), User(), _clock).Handle(
             new CreateIntakeDeskCommand($"Desk-{Guid.NewGuid():N}"[..30], "Internal tools", IntakeDeskVisibility.SummaryOnly,
                 true, true, true, [new IntakeDeskMemberDetails(agent.Id, IntakeDeskRole.Agent)]), ct);
-        var created = await new CreateIntakeRequestCommandHandler(context, Principal(requester.Id), User(), _clock).Handle(
+        var created = await new CreateIntakeRequestCommandHandler(context, Principal(requester.Id), User(), _clock,
+            await IntakeStatuses.SeededResolver(context, ct)).Handle(
             new CreateIntakeRequestCommand("Export invoices", "Finance needs a CSV export", null, desk.Value.Id, channel.Id,
                 null, null), ct);
         var updated = await new UpdateIntakeRequestCommandHandler(context, Principal(requester.Id), User(), _clock).Handle(
@@ -70,6 +87,14 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         saved.NeedBy!.Basis.Should().Be(NeedByBasis.RequesterPreference);
         saved.Participants.Select(p => p.EmployeeId).Should().Equal(colleague.Id);
         saved.AssigneeId.Should().Be(agent.Id);
+        // Started in the default workflow's Submitted, with that first move in the shared history table.
+        saved.StatusAlias.Should().Be(IntakeRequestStatusAlias.Submitted);
+        saved.StatusTransitionCount.Should().Be(1);
+        var transition = await reader.StatusTransitions.AsNoTracking()
+            .SingleAsync(t => t.OwnerType == DemandManagementWorkflowOwners.IntakeRequest.Key && t.RecordId == saved.Id, ct);
+        transition.FromStatusId.Should().BeNull();
+        transition.ToStatusId.Should().Be(saved.StatusId);
+        transition.WorkflowId.Should().Be(saved.StatusWorkflowId);
 
         var events = await reader.ActivityLogs.AsNoTracking()
             .Where(a => a.AggregateId == created.Value.Id)
@@ -102,7 +127,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             seeding.IntakeDesks.Add(desk);
             seeding.IntakeChannels.Add(channel);
             await seeding.SaveChangesAsync(ct);
-            var request = IntakeRequest.Create("Title", "Description", null, requester.Id, requester.Id, desk, channel, null, null, EventActor.System, Now).Value;
+            var request = IntakeRequest.Create("Title", "Description", null, requester.Id, requester.Id, desk, channel, null, null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
             request.AddParticipant(participant.Id, null, EventActor.System, Now);
             seeding.IntakeRequests.Add(request);
             await seeding.SaveChangesAsync(ct);
@@ -141,7 +166,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             seeding.IntakeDesks.Add(desk);
             seeding.IntakeChannels.Add(channel);
             await seeding.SaveChangesAsync(ct);
-            var request = IntakeRequest.Create("Title", "Description", null, deskAdmin.Id, deskAdmin.Id, desk, channel, null, null, EventActor.System, Now).Value;
+            var request = IntakeRequest.Create("Title", "Description", null, deskAdmin.Id, deskAdmin.Id, desk, channel, null, null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
             seeding.IntakeRequests.Add(request);
             await seeding.SaveChangesAsync(ct);
             request.ChangeAssignee(leaving.Id, EventActor.System, Now);
@@ -233,7 +258,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         }
 
         // Act — the deleting context still tracks the desk as it read it
-        var result = await new DeleteIntakeDeskCommandHandler(deleting, Principal(administrator.Id), User(), _clock)
+        var result = await new DeleteIntakeDeskCommandHandler(deleting, Principal(administrator.Id), User(), _clock, new ScopedWorkflowAssignments(deleting))
             .Handle(new DeleteIntakeDeskCommand(desk.Id), ct);
 
         // Assert
@@ -261,7 +286,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             seeding.IntakeDesks.Add(desk);
             seeding.IntakeChannels.Add(channel);
             await seeding.SaveChangesAsync(ct);
-            var request = IntakeRequest.Create("Title", "Description", null, agent.Id, agent.Id, desk, channel, null, null, EventActor.System, Now).Value;
+            var request = IntakeRequest.Create("Title", "Description", null, agent.Id, agent.Id, desk, channel, null, null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
             seeding.IntakeRequests.Add(request);
             await seeding.SaveChangesAsync(ct);
             requestId = request.Id;
@@ -307,7 +332,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
 
         // Act
         await using var context = _fixture.CreateContext();
-        var result = await new DeleteIntakeDeskCommandHandler(context, Principal(administrator.Id), User(), _clock)
+        var result = await new DeleteIntakeDeskCommandHandler(context, Principal(administrator.Id), User(), _clock, new ScopedWorkflowAssignments(context))
             .Handle(new DeleteIntakeDeskCommand(desk.Id), ct);
 
         // Assert
@@ -336,7 +361,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             seeding.IntakeDesks.AddRange(from, to);
             seeding.IntakeChannels.Add(channel);
             await seeding.SaveChangesAsync(ct);
-            var request = IntakeRequest.Create("Title", "Description", null, agent.Id, agent.Id, from, channel, null, null, EventActor.System, Now).Value;
+            var request = IntakeRequest.Create("Title", "Description", null, agent.Id, agent.Id, from, channel, null, null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
             seeding.IntakeRequests.Add(request);
             await seeding.SaveChangesAsync(ct);
             request.ChangeAssignee(agent.Id, EventActor.System, Now);
@@ -346,7 +371,8 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
 
         // Act — private to open widens who can read it, so the move is confirmed
         await using var context = _fixture.CreateContext();
-        var result = await new RerouteIntakeRequestCommandHandler(context, Principal(agent.Id), User(), _clock)
+        var result = await new RerouteIntakeRequestCommandHandler(context, Principal(agent.Id), User(), _clock,
+                await IntakeStatuses.SeededResolver(context, ct))
             .Handle(new RerouteIntakeRequestCommand(requestId, to.Id, ConfirmWiderVisibility: true), ct);
 
         // Assert
@@ -358,6 +384,310 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         var rerouted = await reader.ActivityLogs.AsNoTracking()
             .SingleAsync(a => a.AggregateId == requestId && a.EventType == nameof(IntakeRequestReroutedEvent), ct);
         rerouted.Payload.Should().Contain($"\"fromDeskId\":\"{from.Id}\"").And.Contain("\"toVisibility\":\"open\"");
+    }
+
+    /// <summary>
+    /// A desk with the agent on it and a request on that desk in the seeded default workflow's Submitted, as
+    /// submitting one leaves it.
+    /// </summary>
+    private async Task<(IntakeDesk Desk, Guid RequestId, Employee Requester, Employee Agent)> SeedOnTheDefaultWorkflow(
+        CancellationToken ct, IntakeDeskRole agentRole = IntakeDeskRole.Agent)
+    {
+        await using var seeding = _fixture.CreateContext();
+        var resolver = await IntakeStatuses.SeededResolver(seeding, ct);
+        var requester = SeedEmployee(seeding);
+        var agent = SeedEmployee(seeding);
+        var desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true,
+            [new IntakeDeskMemberDetails(agent.Id, agentRole)], EventActor.System, Now);
+        var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
+        seeding.IntakeDesks.Add(desk);
+        seeding.IntakeChannels.Add(channel);
+        await seeding.SaveChangesAsync(ct);
+
+        var submitted = await resolver.ForAlias(DemandManagementWorkflowOwners.IntakeRequest.Key, desk.Id, (int)IntakeRequestStatusAlias.Submitted, ct);
+        var request = IntakeRequest.Create("Title", "Description", null, requester.Id, requester.Id, desk, channel, null, null,
+            submitted.Value, EventActor.System, Now).Value;
+        seeding.IntakeRequests.Add(request);
+        await seeding.SaveChangesAsync(ct);
+
+        return (desk, request.Id, requester, agent);
+    }
+
+    private static async Task<Guid> StatusId(IStatusResolver resolver, Guid deskId, string name, CancellationToken ct) =>
+        (await resolver.ForScope(DemandManagementWorkflowOwners.IntakeRequest.Key, deskId, ct)).Value.Statuses.Single(s => s.Name == name).Id;
+
+    [Fact]
+    public async Task ChangeIntakeRequestStatus_ToDeclined_RecordsTheReasonOnTheRequestAndItsHistory_AndTakesItOffTheDesksWaitingCount()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (desk, requestId, _, agent) = await SeedOnTheDefaultWorkflow(ct, IntakeDeskRole.Admin);
+
+        // Act
+        await using var context = _fixture.CreateContext();
+        var resolver = new StatusResolver(context);
+        var result = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver)
+            .Handle(new ChangeIntakeRequestStatusCommand(requestId, await StatusId(resolver, desk.Id, "Declined", ct), "Budget went elsewhere", null), ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        await using var reader = _fixture.CreateContext();
+        var saved = await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == requestId, ct);
+        saved.StatusAlias.Should().Be(IntakeRequestStatusAlias.Declined);
+        saved.StatusReason.Should().Be("Budget went elsewhere");
+        saved.StatusTransitionCount.Should().Be(2);
+        var transitions = await reader.StatusTransitions.AsNoTracking()
+            .Where(t => t.OwnerType == DemandManagementWorkflowOwners.IntakeRequest.Key && t.RecordId == requestId)
+            .OrderBy(t => t.Sequence)
+            .ToListAsync(ct);
+        transitions.Select(t => t.ToStatusName).Should().Equal("Submitted", "Declined");
+        transitions[1].Reason.Should().Be("Budget went elsewhere");
+        (await reader.ActivityLogs.AnyAsync(a => a.AggregateId == requestId && a.EventType == nameof(IntakeRequestStatusChangedEvent), ct))
+            .Should().BeTrue();
+
+        // A closed request is no longer waiting, and the desk still cannot be deleted while it holds one.
+        var deskView = await new GetIntakeDeskQueryHandler(reader, Principal(agent.Id))
+            .Handle(new GetIntakeDeskQuery(new IdOrKey(desk.Key)), ct);
+        deskView!.Waiting!.Count.Should().Be(0);
+        deskView.Waiting.OldestSubmittedOn.Should().BeNull();
+        var asAdministrator = await new GetIntakeDeskQueryHandler(reader, Principal(agent.Id, IntakeRequestAuthorization.AdministerPermission))
+            .Handle(new GetIntakeDeskQuery(new IdOrKey(desk.Key)), ct);
+        asAdministrator!.CanDelete.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ChangeIntakeRequestStatus_ToDuplicate_PointsAtTheSurvivor_WhichThenCannotBeDeleted()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (desk, duplicateId, _, agent) = await SeedOnTheDefaultWorkflow(ct, IntakeDeskRole.Admin);
+        Guid survivorId;
+        await using (var seeding = _fixture.CreateContext())
+        {
+            var original = await seeding.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == duplicateId, ct);
+            var submitted = await new StatusResolver(seeding).ForAlias(DemandManagementWorkflowOwners.IntakeRequest.Key, desk.Id, (int)IntakeRequestStatusAlias.Submitted, ct);
+            var survivor = IntakeRequest.Create("The first ask", "Description", null, original.RequesterId, original.RequesterId,
+                await seeding.IntakeDesks.SingleAsync(d => d.Id == desk.Id, ct),
+                await seeding.IntakeChannels.SingleAsync(c => c.Id == original.ChannelId, ct),
+                null, null, submitted.Value, EventActor.System, Now).Value;
+            seeding.IntakeRequests.Add(survivor);
+            await seeding.SaveChangesAsync(ct);
+            survivorId = survivor.Id;
+        }
+
+        // Act
+        await using var context = _fixture.CreateContext();
+        var resolver = new StatusResolver(context);
+        var marked = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver)
+            .Handle(new ChangeIntakeRequestStatusCommand(duplicateId, await StatusId(resolver, desk.Id, "Duplicate", ct), "Asked for already", survivorId), ct);
+        await using var deleting = _fixture.CreateContext();
+        var deleted = await new DeleteIntakeRequestCommandHandler(deleting, Principal(agent.Id), User(), _clock)
+            .Handle(new DeleteIntakeRequestCommand(survivorId), ct);
+
+        // Assert
+        marked.IsSuccess.Should().BeTrue();
+        deleted.IsFailure.Should().BeTrue();
+        deleted.Error.Should().Be(IntakeRequest.PartOfARecordError);
+        await using var reader = _fixture.CreateContext();
+        var details = await new GetIntakeRequestQueryHandler(reader, Principal(agent.Id))
+            .Handle(new GetIntakeRequestQuery(new IdOrKey(duplicateId)), ct);
+        details!.DuplicateOf!.Id.Should().Be(survivorId);
+        details.DuplicateOf.Title.Should().Be("The first ask");
+        details.Substance!.StatusReason.Should().Be("Asked for already");
+        var survivorDetails = await new GetIntakeRequestQueryHandler(reader, Principal(agent.Id))
+            .Handle(new GetIntakeRequestQuery(new IdOrKey(survivorId)), ct);
+        survivorDetails!.CanDelete.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task WithdrawIntakeRequest_ByTheRequester_ClosesItWithTheirNote()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (_, requestId, requester, _) = await SeedOnTheDefaultWorkflow(ct);
+
+        // Act
+        await using var context = _fixture.CreateContext();
+        var resolver = new StatusResolver(context);
+        var result = await new WithdrawIntakeRequestCommandHandler(context, Principal(requester.Id), User(), _clock, resolver)
+            .Handle(new WithdrawIntakeRequestCommand(requestId, "Solved it another way"), ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        await using var reader = _fixture.CreateContext();
+        var saved = await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == requestId, ct);
+        saved.StatusAlias.Should().Be(IntakeRequestStatusAlias.Withdrawn);
+        saved.StatusCategory.Should().Be(StatusCategory.Removed);
+        saved.StatusReason.Should().Be("Solved it another way");
+        (await reader.ActivityLogs.AnyAsync(a => a.AggregateId == requestId && a.EventType == nameof(IntakeRequestWithdrawnEvent), ct))
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RerouteIntakeRequest_IntoAChosenStatus_MovesBothTogether()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (desk, requestId, _, agent) = await SeedOnTheDefaultWorkflow(ct);
+        IntakeDesk to;
+        await using (var seeding = _fixture.CreateContext())
+        {
+            to = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true, [],
+                EventActor.System, Now);
+            seeding.IntakeDesks.Add(to);
+            await seeding.SaveChangesAsync(ct);
+        }
+
+        // Act
+        await using var context = _fixture.CreateContext();
+        var resolver = new StatusResolver(context);
+        var result = await new RerouteIntakeRequestCommandHandler(context, Principal(agent.Id), User(), _clock, resolver)
+            .Handle(new RerouteIntakeRequestCommand(requestId, to.Id, false, await StatusId(resolver, desk.Id, "In Review", ct)), ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        await using var reader = _fixture.CreateContext();
+        var saved = await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == requestId, ct);
+        saved.DeskId.Should().Be(to.Id);
+        saved.StatusName.Should().Be("In Review");
+        var events = await reader.ActivityLogs.AsNoTracking()
+            .Where(a => a.AggregateId == requestId)
+            .OrderBy(a => a.Timestamp).ThenBy(a => a.Ordinal)
+            .Select(a => a.EventType)
+            .ToListAsync(ct);
+        // The request was created at the same test instant in an earlier save, so only the move's own events are ordered.
+        events.Where(e => e != nameof(IntakeRequestCreatedEvent))
+            .Should().Equal(nameof(IntakeRequestStatusChangedEvent), nameof(IntakeRequestReroutedEvent));
+    }
+
+    [Fact]
+    public async Task ADeskWithItsOwnWorkflow_StartsItsRequestsThere_AndAMoveToADefaultDeskSwitchesThemBack()
+    {
+        // Arrange — a desk chooses a copy of the default before anything is submitted to it
+        var ct = TestContext.Current.CancellationToken;
+        Employee requester, deskAdmin;
+        IntakeDesk ownDesk, defaultDesk;
+        IntakeChannel channel;
+        StatusWorkflow copy;
+        await using (var seeding = _fixture.CreateContext())
+        {
+            await IntakeStatuses.SeededResolver(seeding, ct);
+            requester = SeedEmployee(seeding);
+            deskAdmin = SeedEmployee(seeding);
+            ownDesk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true,
+                [new IntakeDeskMemberDetails(deskAdmin.Id, IntakeDeskRole.Admin)], EventActor.System, Now);
+            defaultDesk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true, [],
+                EventActor.System, Now);
+            channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
+            seeding.IntakeDesks.AddRange(ownDesk, defaultDesk);
+            seeding.IntakeChannels.Add(channel);
+
+            var seeded = await seeding.StatusWorkflows.Include(w => w.Statuses).Include(w => w.Transitions)
+                .SingleAsync(w => w.OwnerType == DemandManagementWorkflowOwners.IntakeRequest.Key && w.IsSystem, ct);
+            copy = seeded.Clone($"Board Review {Guid.NewGuid():N}"[..30], null, EventActor.System, Now);
+            copy.Publish(EventActor.System, Now).IsSuccess.Should().BeTrue();
+            seeding.StatusWorkflows.Add(copy);
+            await seeding.SaveChangesAsync(ct);
+        }
+
+        // Act
+        await using var context = _fixture.CreateContext();
+        var assignments = new ScopedWorkflowAssignments(context);
+        var chosen = await new ChangeIntakeDeskWorkflowCommandHandler(context, Principal(deskAdmin.Id), User(), _clock, assignments)
+            .Handle(new ChangeIntakeDeskWorkflowCommand(ownDesk.Id, copy.Id), ct);
+        var resolver = new StatusResolver(context);
+        var created = await new CreateIntakeRequestCommandHandler(context, Principal(requester.Id), User(), _clock, resolver)
+            .Handle(new CreateIntakeRequestCommand("Export invoices", "Finance needs a CSV export", null, ownDesk.Id, channel.Id, null, null), ct);
+        var nowHasRequests = await new ChangeIntakeDeskWorkflowCommandHandler(context, Principal(deskAdmin.Id), User(), _clock, assignments)
+            .Handle(new ChangeIntakeDeskWorkflowCommand(ownDesk.Id, (await assignments.Current(DemandManagementWorkflowOwners.IntakeRequest.Key, defaultDesk.Id, ct)).Value.Workflow.Id), ct);
+        var moved = await new RerouteIntakeRequestCommandHandler(context, Principal(deskAdmin.Id), User(), _clock, resolver)
+            .Handle(new RerouteIntakeRequestCommand(created.Value.Id, defaultDesk.Id, false), ct);
+
+        // Assert
+        chosen.IsSuccess.Should().BeTrue();
+        created.IsSuccess.Should().BeTrue();
+        nowHasRequests.IsFailure.Should().BeTrue();
+        nowHasRequests.Error.Should().Be(ChangeIntakeDeskWorkflowCommandHandler.DeskHasRequestsError);
+        moved.IsSuccess.Should().BeTrue();
+
+        await using var reader = _fixture.CreateContext();
+        var ownView = await new GetIntakeDeskWorkflowQueryHandler(reader, Principal(deskAdmin.Id), new ScopedWorkflowAssignments(reader))
+            .Handle(new GetIntakeDeskWorkflowQuery(new IdOrKey(ownDesk.Id)), ct);
+        ownView!.Workflow.Id.Should().Be(copy.Id);
+        ownView.FollowsOrganizationDefault.Should().BeFalse();
+
+        var transitions = await reader.StatusTransitions.AsNoTracking()
+            .Where(t => t.OwnerType == DemandManagementWorkflowOwners.IntakeRequest.Key && t.RecordId == created.Value.Id)
+            .OrderBy(t => t.Sequence)
+            .ToListAsync(ct);
+        transitions[0].WorkflowId.Should().Be(copy.Id, "the request started in its desk's own workflow");
+        transitions[1].WorkflowId.Should().NotBe(copy.Id, "moving to a desk on the default switched it onto that workflow");
+        transitions[1].ToStatusName.Should().Be("Submitted");
+        (await reader.ActivityLogs.AnyAsync(a => a.AggregateId == created.Value.Id && a.EventType == nameof(StatusWorkflowSwitchedEvent), ct))
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ADesksOwnWorkflow_CanGoBackToTheDefault_AndGoesWithTheDesk_SoTheWorkflowCanBeArchived()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        Employee administrator;
+        IntakeDesk desk;
+        StatusWorkflow copy;
+        Guid defaultWorkflowId;
+        await using (var seeding = _fixture.CreateContext())
+        {
+            await IntakeStatuses.SeededResolver(seeding, ct);
+            administrator = SeedEmployee(seeding);
+            desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true, [],
+                EventActor.System, Now);
+            seeding.IntakeDesks.Add(desk);
+            var seeded = await seeding.StatusWorkflows.Include(w => w.Statuses).Include(w => w.Transitions)
+                .SingleAsync(w => w.OwnerType == DemandManagementWorkflowOwners.IntakeRequest.Key && w.IsSystem, ct);
+            defaultWorkflowId = seeded.Id;
+            copy = seeded.Clone($"Board Review {Guid.NewGuid():N}"[..30], null, EventActor.System, Now);
+            copy.Publish(EventActor.System, Now).IsSuccess.Should().BeTrue();
+            seeding.StatusWorkflows.Add(copy);
+            await seeding.SaveChangesAsync(ct);
+        }
+        var admin = Principal(administrator.Id, IntakeRequestAuthorization.AdministerPermission);
+
+        // Act — choose the copy, go back to the default, choose the copy again, then delete the desk
+        await using (var choosing = _fixture.CreateContext())
+        {
+            var assignments = new ScopedWorkflowAssignments(choosing);
+            (await new ChangeIntakeDeskWorkflowCommandHandler(choosing, admin, User(), _clock, assignments)
+                .Handle(new ChangeIntakeDeskWorkflowCommand(desk.Id, copy.Id), ct)).IsSuccess.Should().BeTrue();
+            (await new ChangeIntakeDeskWorkflowCommandHandler(choosing, admin, User(), _clock, assignments)
+                .Handle(new ChangeIntakeDeskWorkflowCommand(desk.Id, defaultWorkflowId), ct)).IsSuccess.Should().BeTrue();
+        }
+        await using (var reading = _fixture.CreateContext())
+        {
+            var backOnDefault = await new GetIntakeDeskWorkflowQueryHandler(reading, admin, new ScopedWorkflowAssignments(reading))
+                .Handle(new GetIntakeDeskWorkflowQuery(new IdOrKey(desk.Id)), ct);
+            backOnDefault!.FollowsOrganizationDefault.Should().BeTrue();
+            backOnDefault.Workflow.Id.Should().Be(defaultWorkflowId);
+        }
+        await using (var choosingAgain = _fixture.CreateContext())
+        {
+            (await new ChangeIntakeDeskWorkflowCommandHandler(choosingAgain, admin, User(), _clock, new ScopedWorkflowAssignments(choosingAgain))
+                .Handle(new ChangeIntakeDeskWorkflowCommand(desk.Id, copy.Id), ct)).IsSuccess.Should().BeTrue();
+        }
+        await using (var deleting = _fixture.CreateContext())
+        {
+            (await new DeleteIntakeDeskCommandHandler(deleting, admin, User(), _clock, new ScopedWorkflowAssignments(deleting))
+                .Handle(new DeleteIntakeDeskCommand(desk.Id), ct)).IsSuccess.Should().BeTrue();
+        }
+
+        // Assert
+        await using var reader = _fixture.CreateContext();
+        (await reader.WorkflowAssignments.AnyAsync(a => a.ScopeId == desk.Id, ct)).Should().BeFalse();
+        (await reader.ActivityLogs.CountAsync(a => a.EventType == nameof(WorkflowAssignmentRemovedEvent)
+            && (a.AggregateId == copy.Id), ct)).Should().Be(2, "once going back to the default, once with the desk");
+        var archivable = await reader.StatusWorkflows.Include(w => w.Statuses).SingleAsync(w => w.Id == copy.Id, ct);
+        archivable.Archive(isAssigned: await reader.WorkflowAssignments.AnyAsync(a => a.WorkflowId == copy.Id, ct), EventActor.System, Now)
+            .IsSuccess.Should().BeTrue();
     }
 
     private static ICurrentPrincipal Principal(Guid employeeId, params string[] permissions)

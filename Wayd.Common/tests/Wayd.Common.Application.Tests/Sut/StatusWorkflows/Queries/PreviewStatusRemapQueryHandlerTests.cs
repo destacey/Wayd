@@ -20,7 +20,7 @@ public sealed class PreviewStatusRemapQueryHandlerTests : StatusWorkflowHandlerT
         _counter.SetupGet(c => c.OwnerType).Returns(Widget.Key);
     }
 
-    private PreviewStatusRemapQueryHandler CreateSut() => new(DbContext, [_counter.Object]);
+    private PreviewStatusRemapQueryHandler CreateSut() => new(DbContext, [_counter.Object], OwnerAvailability);
 
     private (WorkflowAssignment Assignment, StatusWorkflow Current, StatusWorkflow Target) SeedReassignment(Guid? scopeId = null)
     {
@@ -77,5 +77,26 @@ public sealed class PreviewStatusRemapQueryHandlerTests : StatusWorkflowHandlerT
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("Records of this type have no scope.");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_WhenTheAssignmentsFeatureIsOff()
+    {
+        // Arrange
+        var current = SeedWorkflow("Current Gadget", publish: true, owner: Gadget);
+        var target = SeedWorkflow("Target Gadget", publish: true, owner: Gadget);
+        var assignment = WorkflowAssignment.Create(Gadget.Key, null, current, EventActor.System, Now).Value;
+        assignment.ClearDomainEvents();
+        DbContext.AddWorkflowAssignment(assignment);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(
+            new PreviewStatusRemapQuery(assignment.Id, target.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Workflow assignment not found.");
     }
 }

@@ -7,8 +7,7 @@ namespace Wayd.DemandManagement.Application.IntakeDesks.Dtos;
 /// </summary>
 /// <remarks>
 /// A desk with no members and requests waiting on it is where asks go to be forgotten, which is why this is
-/// shown wherever desks are managed. Waiting means open — Proposed or Active — which is every request until
-/// requests follow their desk's review workflow.
+/// shown wherever desks are managed. Waiting means open: a status in the Proposed or Active category.
 /// </remarks>
 public sealed record IntakeDeskWaitingDto
 {

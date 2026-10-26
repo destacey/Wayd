@@ -19,7 +19,9 @@ Renaming a status changes what people read; it does not change what Wayd does. T
 
 ### Record types
 
-Every workflow governs exactly one **record type**, chosen when the workflow is created and fixed thereafter. Today those are Product, Version, Release, Release Package and Deployment. The screens call it the **Owner Type** in the create form and **Owner** in the workflow list.
+Every workflow governs exactly one **record type**, chosen when the workflow is created and fixed thereafter. Today those are Product, Version, Release, Release Package, Deployment and Intake Request. The screens call it the **Owner Type** in the create form and **Owner** in the workflow list.
+
+A record type whose module is switched off is absent here: while the **Demand Management** feature flag is off, no Intake Request workflow is listed, and none can be created, cloned or reassigned.
 
 The record type also decides the vocabulary available to the workflow's statuses — a Release has a meaning for "Released" that a Product does not.
 
@@ -57,6 +59,9 @@ Each record type declares aliases it cannot function without, and a workflow mis
 | Release | Ready, Released, Withdrawn |
 | Release Package | Released, Withdrawn |
 | Deployment | In Progress, Succeeded, Failed, Rolled Back |
+| Intake Request | Submitted, Waiting on Requester, Accepted, Deferred, Declined, Duplicate, Withdrawn |
+
+Intake Request also has an optional **Fulfilled** alias, and its rules otherwise follow the category: any Done status needs a reason, and only Proposed and Active requests are open. Intake Request workflows always allow any move, because a requester must be able to withdraw from any open status.
 
 An alias can be held by only one status in a workflow — two statuses both meaning Released would make "is it released?" unanswerable.
 
@@ -198,6 +203,10 @@ This is the same shape Jira and Azure DevOps use, and for the same reason: the w
 A record type can have several workflows — the one in use, a draft being prepared, and any it has retired — so the list's **Assigned** column marks the one actually governing records. **Change workflow**, on that row's actions menu, moves the record type to another workflow and brings every existing record with it. The steps below run in a dialog whose last button is **Reassign**.
 
 This is the only operation in Wayd that rewrites every record of a type at once, so it runs in three reviewed steps.
+
+:::note[Intake requests are chosen per desk]
+Each intake desk follows the organization's default Intake Request workflow — the one **Change workflow** acts on here — unless its Desk Admins choose another on the [desk's own Settings](../demand-management/index.mdx#choosing-a-desks-review-workflow). Moving intake requests onto another workflow is not supported yet, so reassigning the default is refused while any request follows it, and a desk's workflow can be chosen only while no request is on it.
+:::
 
 ### 1. Choose a target
 

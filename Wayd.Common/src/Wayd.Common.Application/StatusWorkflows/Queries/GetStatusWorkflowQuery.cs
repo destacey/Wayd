@@ -15,13 +15,21 @@ public sealed record GetStatusWorkflowQuery : IQuery<StatusWorkflowDetailsDto?>
 
 public sealed class GetStatusWorkflowQueryHandler(
     IStatusWorkflowDetailsReader detailsReader,
-    ITransitionConditionChecker conditionChecker)
+    ITransitionConditionChecker conditionChecker,
+    IWorkflowOwnerAvailability ownerAvailability)
     : IQueryHandler<GetStatusWorkflowQuery, StatusWorkflowDetailsDto?>
 {
     private readonly IStatusWorkflowDetailsReader _detailsReader = detailsReader;
     private readonly ITransitionConditionChecker _conditionChecker = conditionChecker;
+    private readonly IWorkflowOwnerAvailability _ownerAvailability = ownerAvailability;
 
-    public Task<StatusWorkflowDetailsDto?> Handle(
-        GetStatusWorkflowQuery request, CancellationToken cancellationToken) =>
-        _detailsReader.Read(request.IdOrKeyFilter, _conditionChecker.IsAvailable, cancellationToken);
+    public async Task<StatusWorkflowDetailsDto?> Handle(
+        GetStatusWorkflowQuery request, CancellationToken cancellationToken)
+    {
+        var workflow = await _detailsReader.Read(request.IdOrKeyFilter, _conditionChecker.IsAvailable, cancellationToken);
+
+        return workflow is not null && await _ownerAvailability.IsAvailable(workflow.Owner.Key, cancellationToken)
+            ? workflow
+            : null;
+    }
 }

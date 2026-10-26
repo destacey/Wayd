@@ -43,7 +43,9 @@ public sealed class DeleteIntakeRequestCommandHandler(
         if (!reader.IsDeskAdminOn(intakeRequest.DeskId))
             return Result.Failure(IntakeRequestAuthorization.NotADeskAdminError);
 
-        var result = intakeRequest.Delete(EventActor.User(_currentUser.GetUserId(), reader.EmployeeId), _dateTimeProvider.Now);
+        var hasDuplicates = await _dbContext.IntakeRequests.AnyAsync(r => r.DuplicateOfId == intakeRequest.Id, cancellationToken);
+
+        var result = intakeRequest.Delete(hasDuplicates, EventActor.User(_currentUser.GetUserId(), reader.EmployeeId), _dateTimeProvider.Now);
         if (result.IsFailure)
             return result;
 

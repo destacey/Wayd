@@ -1,8 +1,10 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.DemandManagement.Application;
+using Wayd.DemandManagement.Domain;
 using Wayd.Infrastructure.StatusWorkflows;
 using Wayd.ProductManagement.Application;
 using Wayd.ProductManagement.Domain;
@@ -25,17 +27,22 @@ namespace Wayd.Infrastructure.Tests.Sut.StatusWorkflows;
 /// </remarks>
 public sealed class StatusRecordMigratorRegistrationTests
 {
+    /// <summary>Every owner type a module registers.</summary>
+    private static WorkflowOwnerDescriptor[] RegisteredOwners => [.. ProductWorkflowOwners.All, .. DemandManagementWorkflowOwners.All];
+
     private static ServiceProvider BuildProvider()
     {
         var services = new ServiceCollection();
 
         services.AddScoped(_ => new Mock<IProductManagementDbContext>().Object);
+        services.AddScoped(_ => new Mock<IDemandManagementDbContext>().Object);
 
         services.AddScoped<IStatusRecordMigrator, ProductStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, VersionStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, ReleaseStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, ReleasePackageStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, DeploymentStatusRecordMigrator>();
+        services.AddScoped<IStatusRecordMigrator, IntakeRequestStatusRecordMigrator>();
 
         return services.BuildServiceProvider();
     }
@@ -45,6 +52,7 @@ public sealed class StatusRecordMigratorRegistrationTests
     {
         // Arrange
         ProductWorkflowOwners.Register();
+        DemandManagementWorkflowOwners.Register();
         using var provider = BuildProvider();
 
         // Act
@@ -54,7 +62,7 @@ public sealed class StatusRecordMigratorRegistrationTests
         // Assert
         // An owner type with no migrator cannot be reassigned at all — its records would be left on a
         // workflow the assignment no longer points at.
-        foreach (var descriptor in ProductWorkflowOwners.All)
+        foreach (var descriptor in RegisteredOwners)
         {
             covered.Should().Contain(descriptor.Key);
         }
@@ -71,7 +79,7 @@ public sealed class StatusRecordMigratorRegistrationTests
 
         // Assert
         // The failure this guards is silent: a collapsed registration yields one migrator, not an error.
-        migrators.Should().HaveCount(ProductWorkflowOwners.All.Length);
+        migrators.Should().HaveCount(RegisteredOwners.Length);
         migrators.Select(m => m.OwnerType).Should().OnlyHaveUniqueItems();
     }
 
@@ -86,6 +94,7 @@ public sealed class StatusRecordMigratorRegistrationTests
             typeof(ReleaseStatusRecordMigrator),
             typeof(ReleasePackageStatusRecordMigrator),
             typeof(DeploymentStatusRecordMigrator),
+            typeof(IntakeRequestStatusRecordMigrator),
         ];
 
         // Act & Assert

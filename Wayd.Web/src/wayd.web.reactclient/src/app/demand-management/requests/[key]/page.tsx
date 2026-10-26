@@ -20,23 +20,33 @@ import {
 import { toApiError } from '@/src/utils'
 import { Alert, Button } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
-import { notFound, useSearchParams } from 'next/navigation'
-import { use, useState } from 'react'
+import NextLink from 'next/link'
+import { notFound, useRouter, useSearchParams } from 'next/navigation'
+import { use, useEffect, useState } from 'react'
+import { requestHref } from '../../_components/intake-requests-grid'
 import AddIntakeRequestParticipantForm from './_components/add-intake-request-participant-form'
+import ChangeIntakeRequestStatusForm from './_components/change-intake-request-status-form'
 import EditIntakeRequestForm from './_components/edit-intake-request-form'
 import IntakeRequestDetails from './_components/intake-request-details'
 import IntakeRequestFacts from './_components/intake-request-facts'
 import IntakeRequestParticipants from './_components/intake-request-participants'
+import IntakeRequestStatusHistory from './_components/intake-request-status-history'
 import RerouteIntakeRequestForm from './_components/reroute-intake-request-form'
+import WithdrawIntakeRequestForm from './_components/withdraw-intake-request-form'
 import IntakeRequestDetailsLoading from './loading'
 
 enum RequestSection {
   Details = 'details',
   Participants = 'participants',
+  StatusHistory = 'status-history',
   Activity = 'activity',
 }
 
-type RequestDialog = 'edit' | 'add-participant' | 'reroute'
+type RequestDialog =
+  'edit' | 'add-participant' | 'reroute' | 'change-status' | 'withdraw'
+
+/** The query parameter a redirected duplicate's number arrives in, so its surviving request can say why. */
+const DUPLICATE_PARAM = 'duplicate'
 
 const IntakeRequestDetailsPage = (props: {
   params: Promise<{ key: string }>
@@ -49,8 +59,23 @@ const IntakeRequestDetailsPage = (props: {
   const activeSection = searchParams.get('section') ?? RequestSection.Details
 
   const [dialog, setDialog] = useState<RequestDialog | null>(null)
+  const router = useRouter()
 
   const { data: request, error, refetch } = useGetIntakeRequestQuery(key)
+
+  // A duplicate sends its readers to the request it gives way to. The agents who decide it stay, so they
+  // can see why and reopen it; a reader who cannot see the surviving request gets no link and stays too.
+  const redirectTo =
+    request?.duplicateOf && !request.isDeskAgent
+      ? `${requestHref(request.duplicateOf.key)}?${DUPLICATE_PARAM}=${request.summary.key}`
+      : null
+  useEffect(() => {
+    if (redirectTo) router.replace(redirectTo)
+  }, [redirectTo, router])
+
+  // The number of a duplicate that redirected here. Taken from the address, so it says nothing the reader
+  // was not already shown.
+  const arrivedFrom = Number(searchParams.get(DUPLICATE_PARAM)) || null
   const { data: needByBases } = useGetNeedByBasesQuery()
   const { data: needByFamilies } = useGetNeedByBasisFamiliesQuery()
 
@@ -73,7 +98,7 @@ const IntakeRequestDetailsPage = (props: {
     return notFound()
   }
 
-  if (!request) {
+  if (!request || redirectTo) {
     if (error) {
       return (
         <div className="page-gutters">
@@ -105,12 +130,31 @@ const IntakeRequestDetailsPage = (props: {
           },
         ]
       : []),
+    { id: RequestSection.StatusHistory, label: 'Status History' },
     { id: RequestSection.Activity, label: 'Activity' },
   ]
 
   const actionItems: ItemType[] = [
+    ...(request.canChangeStatus
+      ? [
+          {
+            key: 'change-status',
+            label: 'Change Status',
+            onClick: () => setDialog('change-status'),
+          },
+        ]
+      : []),
     ...(request.canEdit && substance
       ? [{ key: 'edit', label: 'Edit', onClick: () => setDialog('edit') }]
+      : []),
+    ...(request.canWithdraw
+      ? [
+          {
+            key: 'withdraw',
+            label: 'Withdraw Request',
+            onClick: () => setDialog('withdraw'),
+          },
+        ]
       : []),
     ...(request.canReroute
       ? [
@@ -141,8 +185,37 @@ const IntakeRequestDetailsPage = (props: {
             request={request}
             needByBases={needByBases}
             needByFamilies={needByFamilies}
+            notices={
+              <>
+                {request.duplicateOf && (
+                  <Alert
+                    type="info"
+                    showIcon
+                    title={
+                      <>
+                        A duplicate of{' '}
+                        <NextLink href={requestHref(request.duplicateOf.key)}>
+                          {request.duplicateOf.key} ·{' '}
+                          {request.duplicateOf.title}
+                        </NextLink>
+                      </>
+                    }
+                    description="Readers who can see that request are taken to it when they open this one. The desk's agents stay here."
+                  />
+                )}
+                {arrivedFrom && (
+                  <Alert
+                    type="info"
+                    showIcon
+                    title={`Request ${arrivedFrom} was marked a duplicate of this one, so you were brought here.`}
+                  />
+                )}
+              </>
+            }
           />
         )
+      case RequestSection.StatusHistory:
+        return <IntakeRequestStatusHistory requestId={summary.id} />
       case RequestSection.Participants:
         return substance ? (
           <IntakeRequestParticipants request={request} substance={substance} />
@@ -181,6 +254,20 @@ const IntakeRequestDetailsPage = (props: {
       )}
       {dialog === 'reroute' && request.canReroute && (
         <RerouteIntakeRequestForm
+          request={request}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'change-status' && request.canChangeStatus && (
+        <ChangeIntakeRequestStatusForm
+          request={request}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'withdraw' && request.canWithdraw && (
+        <WithdrawIntakeRequestForm
           request={request}
           onFormComplete={() => setDialog(null)}
           onFormCancel={() => setDialog(null)}

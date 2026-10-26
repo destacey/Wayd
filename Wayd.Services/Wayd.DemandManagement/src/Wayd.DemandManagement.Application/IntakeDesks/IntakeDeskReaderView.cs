@@ -1,4 +1,5 @@
 using NodaTime;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Application.IntakeDesks.Dtos;
 using Wayd.DemandManagement.Application.IntakeRequests;
 
@@ -24,9 +25,10 @@ internal static class IntakeDeskReaderView
     {
         var workedDeskIds = desks.Select(d => d.Id).Where(reader.IsAgentOn).ToArray();
 
-        // Every request counts as waiting until requests carry a status; the submitted time is when the
-        // request was first saved.
-        var waiting = workedDeskIds.Length == 0
+        // Waiting means still open — Proposed or Active — whatever the desk's workflow calls the status; the
+        // submitted time is when the request was first saved. The total counts closed requests too, because a
+        // desk holding any request cannot be deleted.
+        var counts = workedDeskIds.Length == 0
             ? []
             : await dbContext.IntakeRequests
                 .Where(r => workedDeskIds.Contains(r.DeskId))
@@ -34,23 +36,26 @@ internal static class IntakeDeskReaderView
                 .Select(g => new
                 {
                     DeskId = g.Key,
-                    Count = g.Count(),
-                    Oldest = g.Min(r => EF.Property<Instant>(r, "SystemCreated")),
+                    Total = g.Count(),
+                    Waiting = g.Count(r => r.StatusCategory == StatusCategory.Proposed || r.StatusCategory == StatusCategory.Active),
+                    OldestWaiting = g
+                        .Where(r => r.StatusCategory == StatusCategory.Proposed || r.StatusCategory == StatusCategory.Active)
+                        .Min(r => (Instant?)EF.Property<Instant>(r, "SystemCreated")),
                 })
                 .ToDictionaryAsync(w => w.DeskId, cancellationToken);
 
         return [.. desks.Select(d =>
         {
             var worked = workedDeskIds.Contains(d.Id);
-            var stats = waiting.GetValueOrDefault(d.Id);
+            var stats = counts.GetValueOrDefault(d.Id);
             return d with
             {
                 Waiting = worked
-                    ? new IntakeDeskWaitingDto { Count = stats?.Count ?? 0, OldestSubmittedOn = stats?.Oldest }
+                    ? new IntakeDeskWaitingDto { Count = stats?.Waiting ?? 0, OldestSubmittedOn = stats?.OldestWaiting }
                     : null,
                 CanManage = !isReadOnly && reader.IsDeskAdminOn(d.Id),
                 CanAdminister = !isReadOnly && reader.IsDemandManagementAdmin,
-                CanDelete = !isReadOnly && reader.IsDemandManagementAdmin && (stats?.Count ?? 0) == 0,
+                CanDelete = !isReadOnly && reader.IsDemandManagementAdmin && (stats?.Total ?? 0) == 0,
             };
         })];
     }

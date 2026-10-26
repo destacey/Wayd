@@ -171,4 +171,73 @@ public sealed class GetIntakeRequestActivitiesQueryHandlerTests
             new PageRequest(), It.IsAny<CancellationToken>()), Times.Once);
         _requestedEventTypes.Should().Contain(nameof(IntakeRequestDetailsUpdatedEvent));
     }
+
+    private void HistoryReturns(params ActivityLogDto[] entries) =>
+        _activityLogReader
+            .Setup(r => r.ReadEventTypes(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResponse<ActivityLogDto>([.. entries], entries.Length, 1, 50));
+
+    private static ActivityLogDto MarkedDuplicateOf(Guid survivorId) => new()
+    {
+        EventType = nameof(IntakeRequestStatusChangedEvent),
+        DomainArea = "DemandManagement",
+        AggregateType = nameof(IntakeRequest),
+        Payload = $$$"""{"id":"x","key":1,"fromDuplicateOfId":null,"toDuplicateOfId":"{{{survivorId}}}","actor":{"kind":"user"}}""",
+    };
+
+    [Fact]
+    public async Task Handle_LeavesOutASurvivingRequestTheReaderCannotSee()
+    {
+        // Arrange — the survivor is on a private desk; its id alone would say that it exists
+        var survivor = RequestOn(IntakeDeskVisibility.Private);
+        var request = RequestOn(IntakeDeskVisibility.Open);
+        HistoryReturns(MarkedDuplicateOf(survivor.Id));
+        SignedInAs(Guid.NewGuid());
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key), new PageRequest()), TestContext.Current.CancellationToken);
+
+        // Assert
+        var payload = result!.Items.Single().Payload;
+        payload.Should().NotContain(survivor.Id.ToString());
+        payload.Should().Contain("\"toDuplicateOfId\":null");
+    }
+
+    [Fact]
+    public async Task Handle_KeepsASurvivingRequestTheReaderCanSee()
+    {
+        // Arrange
+        var survivor = RequestOn(IntakeDeskVisibility.Open);
+        var request = RequestOn(IntakeDeskVisibility.Open);
+        HistoryReturns(MarkedDuplicateOf(survivor.Id));
+        SignedInAs(Guid.NewGuid());
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key), new PageRequest()), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Items.Single().Payload.Should().Contain(survivor.Id.ToString());
+    }
+
+    [Fact]
+    public async Task Handle_ForASummaryReader_LeavesOutTheReasonForAWorkflowSwitch()
+    {
+        // Arrange
+        var request = RequestOn(IntakeDeskVisibility.SummaryOnly);
+        HistoryReturns(new ActivityLogDto
+        {
+            EventType = "StatusWorkflowSwitchedEvent",
+            DomainArea = "StatusWorkflows",
+            AggregateType = nameof(IntakeRequest),
+            Payload = """{"recordId":"x","reason":"Moved with the desk","actor":{"kind":"user"}}""",
+        });
+        SignedInAs(Guid.NewGuid());
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key), new PageRequest()), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Items.Single().Payload.Should().NotContain("Moved with the desk").And.NotContain("actor");
+    }
 }

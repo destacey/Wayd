@@ -5,6 +5,8 @@ using NodaTime.Testing;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.Events.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.DemandManagement.Domain.Tests.Data;
@@ -19,6 +21,10 @@ public sealed class IntakeRequestTests
     private static IntakeRequestEditor ADeskAgent() => new(Guid.NewGuid(), IsDeskAgent: true, EventActor.System);
 
     private static IntakeRequestEditor SomeoneOffTheDesk() => new(Guid.NewGuid(), IsDeskAgent: false, EventActor.System);
+
+    /// <summary>The status the request already holds, as a move to a desk on the same workflow keeps it.</summary>
+    private static StatusRef StayingPut(IntakeRequest request) =>
+        new(request.StatusWorkflowId, request.StatusId, request.StatusName, request.StatusCategory, request.StatusAliasValue);
 
     private static IntakeRequestNeedBy ANeedBy(string reference = "PCI DSS 4.0") =>
         IntakeRequestNeedBy.Create(new LocalDate(2026, 12, 31), NeedByBasis.Regulatory, reference, null, null).Value;
@@ -38,7 +44,7 @@ public sealed class IntakeRequestTests
 
         // Act
         var result = IntakeRequest.Create(" Export invoices ", " Finance needs a CSV export ", " Saves a day a month ",
-            requesterId, submittedById, desk, channel, needBy, origin, EventActor.System, _dateTimeProvider.Now);
+            requesterId, submittedById, desk, channel, needBy, origin, IntakeStatusRefFactory.Submitted(), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -65,7 +71,7 @@ public sealed class IntakeRequestTests
 
         // Act
         var result = IntakeRequest.Create("Title", "Description", null, Guid.NewGuid(), Guid.NewGuid(), desk,
-            new IntakeChannelFaker().Generate(), null, null, EventActor.System, _dateTimeProvider.Now);
+            new IntakeChannelFaker().Generate(), null, null, IntakeStatusRefFactory.Submitted(), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -78,7 +84,7 @@ public sealed class IntakeRequestTests
         // Act
         var result = IntakeRequest.Create("Title", "Description", null, Guid.NewGuid(), Guid.NewGuid(),
             new IntakeDeskFaker().Generate(), new IntakeChannelFaker().AsArchived().Generate(), null, null,
-            EventActor.System, _dateTimeProvider.Now);
+            IntakeStatusRefFactory.Submitted(), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -91,7 +97,7 @@ public sealed class IntakeRequestTests
         // Act
         Action act = () => IntakeRequest.Create("Title", "Description", null, Guid.Empty, Guid.NewGuid(),
             new IntakeDeskFaker().Generate(), new IntakeChannelFaker().Generate(), null, null,
-            EventActor.System, _dateTimeProvider.Now);
+            IntakeStatusRefFactory.Submitted(), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         act.Should().Throw<ArgumentException>();
@@ -106,7 +112,7 @@ public sealed class IntakeRequestTests
         var requesterId = Guid.NewGuid();
         var needBy = ANeedBy();
         var sut = IntakeRequest.Create("Export invoices", "Description", null, requesterId, Guid.NewGuid(), desk,
-            channel, needBy, null, EventActor.System, _dateTimeProvider.Now).Value;
+            channel, needBy, null, IntakeStatusRefFactory.Submitted(), EventActor.System, _dateTimeProvider.Now).Value;
 
         // Act — retitled and given another channel before the first save, as an import could
         sut.Retitle("Renamed", IntakeRequestEditor.System, _dateTimeProvider.Now);
@@ -122,6 +128,47 @@ public sealed class IntakeRequestTests
         created.ChannelId.Should().Be(channel.Id);
         created.RequesterId.Should().Be(requesterId);
         created.NeedBy.Should().Be(needBy.ToDetails());
+        created.StatusId.Should().Be(sut.StatusId);
+        created.StatusCategory.Should().Be(StatusCategory.Proposed);
+        created.StatusAlias.Should().Be(IntakeRequestStatusAlias.Submitted);
+    }
+
+    [Fact]
+    public void Create_EntersTheSubmittedStatus_RecordingItAsTheFirstTransition()
+    {
+        // Arrange
+        var submitted = IntakeStatusRefFactory.Submitted();
+
+        // Act
+        var sut = IntakeRequest.Create("Title", "Description", null, Guid.NewGuid(), Guid.NewGuid(),
+            new IntakeDeskFaker().Generate(), new IntakeChannelFaker().Generate(), null, null, submitted,
+            EventActor.System, _dateTimeProvider.Now).Value;
+
+        // Assert
+        sut.StatusId.Should().Be(submitted.StatusId);
+        sut.StatusWorkflowId.Should().Be(submitted.WorkflowId);
+        sut.StatusName.Should().Be(submitted.Name);
+        sut.StatusAlias.Should().Be(IntakeRequestStatusAlias.Submitted);
+        sut.StatusOwnerType.Should().Be(DemandManagementWorkflowOwners.IntakeRequest.Key);
+        var transition = sut.StatusTransitions.Should().ContainSingle().Subject;
+        transition.FromStatusId.Should().BeNull();
+        transition.ToStatusId.Should().Be(submitted.StatusId);
+        sut.HasLeftItsInitialStatus.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Create_InAStatusOtherThanSubmitted_Throws()
+    {
+        // Arrange — the resolver is asked for Submitted; anything else is a caller's bug
+        var inReview = IntakeStatusRefFactory.For(StatusCategory.Proposed);
+
+        // Act
+        Action act = () => IntakeRequest.Create("Title", "Description", null, Guid.NewGuid(), Guid.NewGuid(),
+            new IntakeDeskFaker().Generate(), new IntakeChannelFaker().Generate(), null, null, inReview,
+            EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
     }
 
     #endregion Create
@@ -184,6 +231,100 @@ public sealed class IntakeRequestTests
         result.Error.Should().Be("Only the requester or an agent on the request's desk may edit this request.");
         sut.Title.Should().Be(title);
         sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CanEdit_WhileActive_RefusesTheRequesterOffTheDesk()
+    {
+        // Arrange
+        var requesterId = Guid.NewGuid();
+        var sut = new IntakeRequestFaker().WithRequesterId(requesterId).InStatus(StatusCategory.Active, IntakeRequestStatusAlias.Accepted).Generate();
+
+        // Act
+        var result = sut.CanEdit(new IntakeRequestEditor(requesterId, IsDeskAgent: false, EventActor.System));
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CanEdit_WhileActive_AllowsADeskAgent()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().InStatus(StatusCategory.Active, IntakeRequestStatusAlias.Accepted).Generate();
+
+        // Act
+        var result = sut.CanEdit(ADeskAgent());
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(StatusCategory.Done)]
+    [InlineData(StatusCategory.Removed)]
+    public void CanEdit_WhileClosed_RefusesEveryoneIncludingTheDesksAgents(StatusCategory category)
+    {
+        // Arrange
+        var requesterId = Guid.NewGuid();
+        var sut = new IntakeRequestFaker().WithRequesterId(requesterId).InStatus(category).Generate();
+
+        // Act
+        var byAgent = sut.CanEdit(ADeskAgent());
+        var byRequester = sut.CanEdit(new IntakeRequestEditor(requesterId, IsDeskAgent: false, EventActor.System));
+
+        // Assert
+        byAgent.Should().BeFalse();
+        byRequester.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Retitle_ByTheRequesterOnceAccepted_FailsNamingTheAgentsOnly()
+    {
+        // Arrange
+        var requesterId = Guid.NewGuid();
+        var sut = new IntakeRequestFaker().WithRequesterId(requesterId).InStatus(StatusCategory.Active, IntakeRequestStatusAlias.Accepted).Generate();
+
+        // Act
+        var result = sut.Retitle("New title", new IntakeRequestEditor(requesterId, IsDeskAgent: false, EventActor.System), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Once a request is accepted, only agents on its desk may edit it.");
+    }
+
+    [Fact]
+    public void Retitle_ByADeskAgentWhileClosed_FailsUntilItIsReopened()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().InStatus(StatusCategory.Removed, IntakeRequestStatusAlias.Declined).Generate();
+        var title = sut.Title;
+
+        // Act
+        var result = sut.Retitle("New title", ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A closed request cannot be edited until it is moved back to an open status.");
+        sut.Title.Should().Be(title);
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(StatusCategory.Proposed, true)]
+    [InlineData(StatusCategory.Active, true)]
+    [InlineData(StatusCategory.Done, false)]
+    [InlineData(StatusCategory.Removed, false)]
+    public void IsOpen_FollowsTheStatusCategory(StatusCategory category, bool expected)
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().InStatus(category).Generate();
+
+        // Act
+        var isOpen = sut.IsOpen;
+
+        // Assert
+        isOpen.Should().Be(expected);
     }
 
     #endregion Edit lock
@@ -533,13 +674,28 @@ public sealed class IntakeRequestTests
         var sut = new IntakeRequestFaker().Generate();
 
         // Act
-        var result = sut.Delete(EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Delete(hasDuplicates: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         var deleted = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestDeletedEvent>().Subject;
         deleted.Title.Should().Be(sut.Title);
         deleted.DeskId.Should().Be(sut.DeskId);
+    }
+
+    [Fact]
+    public void Delete_OnceItHasLeftItsInitialStatus_FailsAndRaisesNothing()
+    {
+        // Arrange — moved on and back again: the status is Submitted, but the history is not just Submitted
+        var sut = new IntakeRequestFaker().WithStatusTransitionCount(3).Generate();
+
+        // Act
+        var result = sut.Delete(hasDuplicates: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.PartOfARecordError);
+        sut.DomainEvents.Should().BeEmpty();
     }
 
     #endregion Delete
@@ -562,7 +718,7 @@ public sealed class IntakeRequestTests
         var (from, to, sut) = RerouteScenario(IntakeDeskVisibility.Open, IntakeDeskVisibility.Private);
 
         // Act
-        var result = sut.Reroute(from, to, widerVisibilityConfirmed: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Reroute(from, to, StayingPut(sut), widerVisibilityConfirmed: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert — a move to a more private desk needs no confirmation
         result.IsSuccess.Should().BeTrue();
@@ -583,7 +739,7 @@ public sealed class IntakeRequestTests
         var (from, to, sut) = RerouteScenario(fromVisibility, toVisibility);
 
         // Act
-        var result = sut.Reroute(from, to, widerVisibilityConfirmed: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Reroute(from, to, StayingPut(sut), widerVisibilityConfirmed: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -599,7 +755,7 @@ public sealed class IntakeRequestTests
         var (from, to, sut) = RerouteScenario(IntakeDeskVisibility.Private, IntakeDeskVisibility.Open);
 
         // Act
-        var result = sut.Reroute(from, to, widerVisibilityConfirmed: true, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Reroute(from, to, StayingPut(sut), widerVisibilityConfirmed: true, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -613,7 +769,7 @@ public sealed class IntakeRequestTests
         var (from, to, sut) = RerouteScenario(IntakeDeskVisibility.Open, IntakeDeskVisibility.Open, toIsOpen: false);
 
         // Act
-        var result = sut.Reroute(from, to, false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Reroute(from, to, StayingPut(sut), false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -628,7 +784,7 @@ public sealed class IntakeRequestTests
         var (from, _, sut) = RerouteScenario(IntakeDeskVisibility.Open, IntakeDeskVisibility.Open);
 
         // Act
-        var result = sut.Reroute(from, from, false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Reroute(from, from, StayingPut(sut), false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -645,7 +801,7 @@ public sealed class IntakeRequestTests
         var sut = new IntakeRequestFaker().WithDeskId(from.Id).WithAssigneeId(assigneeId).Generate();
 
         // Act
-        sut.Reroute(from, to, false, EventActor.System, _dateTimeProvider.Now);
+        sut.Reroute(from, to, StayingPut(sut), false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         sut.AssigneeId.Should().BeNull();
@@ -662,7 +818,7 @@ public sealed class IntakeRequestTests
         var sut = new IntakeRequestFaker().WithDeskId(from.Id).WithAssigneeId(assigneeId).Generate();
 
         // Act
-        sut.Reroute(from, to, false, EventActor.System, _dateTimeProvider.Now);
+        sut.Reroute(from, to, StayingPut(sut), false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         sut.AssigneeId.Should().Be(assigneeId);
@@ -677,11 +833,479 @@ public sealed class IntakeRequestTests
         var notItsDesk = new IntakeDeskFaker().Generate();
 
         // Act
-        Action act = () => sut.Reroute(notItsDesk, to, false, EventActor.System, _dateTimeProvider.Now);
+        Action act = () => sut.Reroute(notItsDesk, to, StayingPut(sut), false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         act.Should().Throw<ArgumentException>();
     }
 
+    [Theory]
+    [InlineData(StatusCategory.Done)]
+    [InlineData(StatusCategory.Removed)]
+    public void Reroute_AClosedRequest_FailsAndStays(StatusCategory category)
+    {
+        // Arrange
+        var from = new IntakeDeskFaker().Generate();
+        var to = new IntakeDeskFaker().Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(from.Id).InStatus(category).Generate();
+
+        // Act
+        var result = sut.Reroute(from, to, StayingPut(sut), false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A closed request cannot be moved to another desk.");
+        sut.DeskId.Should().Be(from.Id);
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Reroute_AnAcceptedRequest_Moves()
+    {
+        // Arrange — accepted is still open
+        var from = new IntakeDeskFaker().Generate();
+        var to = new IntakeDeskFaker().Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(from.Id).InStatus(StatusCategory.Active, IntakeRequestStatusAlias.Accepted).Generate();
+
+        // Act
+        var result = sut.Reroute(from, to, StayingPut(sut), false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DeskId.Should().Be(to.Id);
+    }
+
+    [Fact]
+    public void Reroute_ToADeskOnTheSameWorkflowInAnotherStatus_MovesBothAndRaisesTheChange()
+    {
+        // Arrange
+        var from = new IntakeDeskFaker().Generate();
+        var to = new IntakeDeskFaker().Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(from.Id).Generate();
+        var fromStatusId = sut.StatusId;
+        var inReview = IntakeStatusRefFactory.For(StatusCategory.Proposed, workflowId: sut.StatusWorkflowId);
+
+        // Act
+        var result = sut.Reroute(from, to, inReview, false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DeskId.Should().Be(to.Id);
+        sut.StatusId.Should().Be(inReview.StatusId);
+        sut.DomainEvents.Select(e => e.GetType()).Should().Equal(typeof(IntakeRequestStatusChangedEvent), typeof(IntakeRequestReroutedEvent));
+        var changed = sut.DomainEvents.OfType<IntakeRequestStatusChangedEvent>().Single();
+        changed.FromStatusId.Should().Be(fromStatusId);
+        changed.ToStatusId.Should().Be(inReview.StatusId);
+    }
+
+    [Fact]
+    public void Reroute_ToADeskOnAnotherWorkflow_SwitchesTheRequestOntoIt()
+    {
+        // Arrange
+        var from = new IntakeDeskFaker().Generate();
+        var to = new IntakeDeskFaker().Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(from.Id).Generate();
+        var fromWorkflowId = sut.StatusWorkflowId;
+        var theirSubmitted = IntakeStatusRefFactory.Submitted();
+
+        // Act
+        var result = sut.Reroute(from, to, theirSubmitted, false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.StatusWorkflowId.Should().Be(theirSubmitted.WorkflowId);
+        sut.StatusId.Should().Be(theirSubmitted.StatusId);
+        var switched = sut.DomainEvents.OfType<StatusWorkflowSwitchedEvent>().Should().ContainSingle().Subject;
+        switched.FromWorkflowId.Should().Be(fromWorkflowId);
+        switched.ToWorkflowId.Should().Be(theirSubmitted.WorkflowId);
+        sut.StatusTransitions.Should().ContainSingle();
+    }
+
+    [Theory]
+    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.Declined)]
+    [InlineData(StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled)]
+    [InlineData(StatusCategory.Proposed, IntakeRequestStatusAlias.Deferred)]
+    public void Reroute_ArrivingClosedOrInAStatusNeedingAReason_FailsAndChangesNothing(StatusCategory category, IntakeRequestStatusAlias alias)
+    {
+        // Arrange
+        var from = new IntakeDeskFaker().Generate();
+        var to = new IntakeDeskFaker().Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(from.Id).Generate();
+        var statusId = sut.StatusId;
+        var arrival = IntakeStatusRefFactory.For(category, alias, sut.StatusWorkflowId);
+
+        // Act
+        var result = sut.Reroute(from, to, arrival, false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.ArrivalStatusNotOpenError);
+        sut.DeskId.Should().Be(from.Id);
+        sut.StatusId.Should().Be(statusId);
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(IntakeRequestStatusAlias.Withdrawn)]
+    [InlineData(IntakeRequestStatusAlias.Duplicate)]
+    public void CanArriveIn_RefusesWithdrawnAndDuplicate_EvenWhenAWorkflowFilesThemAsOpen(IntakeRequestStatusAlias alias)
+    {
+        // Act — the engine lets a company's workflow put any alias in any category
+        var canArrive = IntakeRequest.CanArriveIn(StatusCategory.Proposed, alias);
+
+        // Assert
+        canArrive.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Reroute_OntoAnotherWorkflow_ClearsTheSurvivingRequestOfAnOpenDuplicate()
+    {
+        // Arrange — a company's workflow that files Duplicate as open
+        var from = new IntakeDeskFaker().Generate();
+        var to = new IntakeDeskFaker().Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(from.Id).InStatus(StatusCategory.Proposed, IntakeRequestStatusAlias.Duplicate)
+            .WithDuplicateOfId(Guid.NewGuid()).WithStatusReason("Asked already").Generate();
+
+        // Act
+        var result = sut.Reroute(from, to, IntakeStatusRefFactory.Submitted(), false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DuplicateOfId.Should().BeNull();
+        sut.StatusReason.Should().BeNull();
+    }
+
     #endregion Reroute
+
+    #region ChangeStatus
+
+    private static StatusRef InItsWorkflow(IntakeRequest request, StatusCategory category,
+        IntakeRequestStatusAlias alias = IntakeRequestStatusAlias.None) =>
+        IntakeStatusRefFactory.For(category, alias, request.StatusWorkflowId);
+
+    [Fact]
+    public void ChangeStatus_ToAnotherStage_MovesItAndRaisesWithBothEnds()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+        var fromStatusId = sut.StatusId;
+        var inReview = InItsWorkflow(sut, StatusCategory.Proposed);
+
+        // Act
+        var result = sut.ChangeStatus(inReview, null, null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.StatusId.Should().Be(inReview.StatusId);
+        sut.HasLeftItsInitialStatus.Should().BeTrue();
+        sut.StatusTransitions.Should().ContainSingle().Which.FromStatusId.Should().Be(fromStatusId);
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestStatusChangedEvent>().Subject;
+        changed.FromStatusId.Should().Be(fromStatusId);
+        changed.FromCategory.Should().Be(StatusCategory.Proposed);
+        changed.FromAlias.Should().Be(IntakeRequestStatusAlias.Submitted);
+        changed.ToStatusId.Should().Be(inReview.StatusId);
+        changed.ToAlias.Should().Be(IntakeRequestStatusAlias.None);
+        changed.FromDuplicateOfId.Should().BeNull();
+        changed.ToDuplicateOfId.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.Declined)]
+    [InlineData(StatusCategory.Proposed, IntakeRequestStatusAlias.Deferred)]
+    [InlineData(StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled)]
+    [InlineData(StatusCategory.Done, IntakeRequestStatusAlias.None)]
+    public void ChangeStatus_ToAStatusNeedingAReason_WithoutOne_FailsAndChangesNothing(StatusCategory category, IntakeRequestStatusAlias alias)
+    {
+        // Arrange — a company's own finishing status needs one as much as Fulfilled does
+        var sut = new IntakeRequestFaker().Generate();
+        var statusId = sut.StatusId;
+
+        // Act
+        var result = sut.ChangeStatus(InItsWorkflow(sut, category, alias), "  ", null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().EndWith("needs a reason the requester can read.");
+        sut.StatusId.Should().Be(statusId);
+        sut.StatusTransitions.Should().BeEmpty();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeStatus_ToDeclinedWithAReason_KeepsItOnTheRequestAndTheTransition()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+
+        // Act
+        var result = sut.ChangeStatus(InItsWorkflow(sut, StatusCategory.Removed, IntakeRequestStatusAlias.Declined),
+            " Budget went to the platform rebuild ", null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.StatusReason.Should().Be("Budget went to the platform rebuild");
+        sut.StatusTransitions.Should().ContainSingle().Which.Reason.Should().Be("Budget went to the platform rebuild");
+        sut.IsOpen.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ChangeStatus_ToWithdrawn_FailsBecauseOnlyTheRequesterWithdraws()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+
+        // Act
+        var result = sut.ChangeStatus(InItsWorkflow(sut, StatusCategory.Removed, IntakeRequestStatusAlias.Withdrawn),
+            "Asked to", null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only the requester can withdraw a request.");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeStatus_ToDuplicate_RecordsTheSurvivingRequest()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+        var survivor = new IntakeRequestFaker().Generate();
+
+        // Act
+        var result = sut.ChangeStatus(InItsWorkflow(sut, StatusCategory.Removed, IntakeRequestStatusAlias.Duplicate),
+            "Same ask as the finance export", survivor, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DuplicateOfId.Should().Be(survivor.Id);
+        var changed = sut.DomainEvents.OfType<IntakeRequestStatusChangedEvent>().Single();
+        changed.FromDuplicateOfId.Should().BeNull();
+        changed.ToDuplicateOfId.Should().Be(survivor.Id);
+    }
+
+    [Fact]
+    public void ChangeStatus_ToDuplicateWithoutASurvivor_Fails()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+
+        // Act
+        var result = sut.ChangeStatus(InItsWorkflow(sut, StatusCategory.Removed, IntakeRequestStatusAlias.Duplicate),
+            "Seen before", null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Name the request this one duplicates.");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeStatus_ToADuplicateOfItself_Fails()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+
+        // Act
+        var result = sut.ChangeStatus(InItsWorkflow(sut, StatusCategory.Removed, IntakeRequestStatusAlias.Duplicate),
+            "Seen before", sut, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeStatus_ToADuplicateOfADuplicate_Fails_SoRedirectsNeverChain()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+        var alreadyADuplicate = new IntakeRequestFaker().InStatus(StatusCategory.Removed, IntakeRequestStatusAlias.Duplicate).Generate();
+
+        // Act
+        var result = sut.ChangeStatus(InItsWorkflow(sut, StatusCategory.Removed, IntakeRequestStatusAlias.Duplicate),
+            "Seen before", alreadyADuplicate, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("That request is itself a duplicate. Name the request it gives way to instead.");
+    }
+
+    [Fact]
+    public void ChangeStatus_NamingASurvivorForAnythingButDuplicate_Fails()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+
+        // Act
+        var result = sut.ChangeStatus(InItsWorkflow(sut, StatusCategory.Proposed), null, new IntakeRequestFaker().Generate(),
+            EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only a duplicate names a surviving request.");
+    }
+
+    [Fact]
+    public void ChangeStatus_AwayFromDuplicate_ClearsTheSurvivorAndTheReason()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+        var survivor = new IntakeRequestFaker().Generate();
+        sut.ChangeStatus(InItsWorkflow(sut, StatusCategory.Removed, IntakeRequestStatusAlias.Duplicate), "Seen before", survivor,
+            EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act — reopened by an agent
+        var result = sut.ChangeStatus(InItsWorkflow(sut, StatusCategory.Proposed), null, null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DuplicateOfId.Should().BeNull();
+        sut.StatusReason.Should().BeNull();
+        sut.IsOpen.Should().BeTrue();
+        var changed = sut.DomainEvents.OfType<IntakeRequestStatusChangedEvent>().Single();
+        changed.FromDuplicateOfId.Should().Be(survivor.Id);
+        changed.ToDuplicateOfId.Should().BeNull();
+    }
+
+    [Fact]
+    public void ChangeStatus_ToTheStatusItHolds_ChangesNothing()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+        var same = new StatusRef(sut.StatusWorkflowId, sut.StatusId, sut.StatusName, sut.StatusCategory, sut.StatusAliasValue);
+
+        // Act
+        var result = sut.ChangeStatus(same, null, null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.StatusTransitions.Should().BeEmpty();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeStatus_ToAStatusOfAnotherWorkflow_Throws()
+    {
+        // Arrange — moving onto another workflow is a switch, never a plain status change
+        var sut = new IntakeRequestFaker().Generate();
+
+        // Act
+        Action act = () => sut.ChangeStatus(IntakeStatusRefFactory.For(StatusCategory.Proposed), null, null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    #endregion ChangeStatus
+
+    #region Withdraw
+
+    private static StatusRef WithdrawnIn(IntakeRequest request) =>
+        IntakeStatusRefFactory.For(StatusCategory.Removed, IntakeRequestStatusAlias.Withdrawn, request.StatusWorkflowId);
+
+    [Fact]
+    public void Withdraw_ByTheRequester_ClosesItAndRaisesWithBothEnds()
+    {
+        // Arrange
+        var requesterId = Guid.NewGuid();
+        var sut = new IntakeRequestFaker().WithRequesterId(requesterId).Generate();
+        var fromStatusId = sut.StatusId;
+        var withdrawn = WithdrawnIn(sut);
+
+        // Act
+        var result = sut.Withdraw(requesterId, withdrawn, " Solved it another way ", EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.StatusAlias.Should().Be(IntakeRequestStatusAlias.Withdrawn);
+        sut.IsOpen.Should().BeFalse();
+        sut.StatusReason.Should().Be("Solved it another way");
+        var withdrawnEvent = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestWithdrawnEvent>().Subject;
+        withdrawnEvent.FromStatusId.Should().Be(fromStatusId);
+        withdrawnEvent.FromAlias.Should().Be(IntakeRequestStatusAlias.Submitted);
+        withdrawnEvent.ToStatusId.Should().Be(withdrawn.StatusId);
+        withdrawnEvent.ToCategory.Should().Be(StatusCategory.Removed);
+    }
+
+    [Fact]
+    public void Withdraw_ByTheSubmitter_Fails()
+    {
+        // Arrange — entered on the requester's behalf; it is still their ask
+        var submittedById = Guid.NewGuid();
+        var sut = new IntakeRequestFaker().WithSubmittedById(submittedById).Generate();
+
+        // Act
+        var result = sut.Withdraw(submittedById, WithdrawnIn(sut), null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only the requester can withdraw their request.");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Withdraw_AClosedRequest_Fails()
+    {
+        // Arrange
+        var requesterId = Guid.NewGuid();
+        var sut = new IntakeRequestFaker().WithRequesterId(requesterId).InStatus(StatusCategory.Removed, IntakeRequestStatusAlias.Declined).Generate();
+
+        // Act
+        var result = sut.Withdraw(requesterId, WithdrawnIn(sut), null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only an open request can be withdrawn.");
+    }
+
+    [Fact]
+    public void Withdraw_AnAcceptedRequest_IsAllowed()
+    {
+        // Arrange — accepted is still open
+        var requesterId = Guid.NewGuid();
+        var sut = new IntakeRequestFaker().WithRequesterId(requesterId).InStatus(StatusCategory.Active, IntakeRequestStatusAlias.Accepted).Generate();
+
+        // Act
+        var result = sut.Withdraw(requesterId, WithdrawnIn(sut), null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Withdraw_IntoAStatusThatDoesNotMeanWithdrawn_Throws()
+    {
+        // Arrange
+        var requesterId = Guid.NewGuid();
+        var sut = new IntakeRequestFaker().WithRequesterId(requesterId).Generate();
+
+        // Act
+        Action act = () => sut.Withdraw(requesterId, InItsWorkflow(sut, StatusCategory.Removed, IntakeRequestStatusAlias.Declined), null,
+            EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    #endregion Withdraw
+
+    #region Delete with duplicates
+
+    [Fact]
+    public void Delete_WhenOtherRequestsAreItsDuplicates_Fails()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+
+        // Act
+        var result = sut.Delete(hasDuplicates: true, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.PartOfARecordError);
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    #endregion Delete with duplicates
 }

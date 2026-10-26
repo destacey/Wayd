@@ -76,6 +76,8 @@ public sealed class TokenScopeEnforcementTests(WaydSqlServerApiFactory factory)
     [Theory]
     [InlineData("PUT", "")]
     [InlineData("POST", "/participants")]
+    [InlineData("POST", "/status")]
+    [InlineData("POST", "/withdraw")]
     public async Task ReadToken_IsRefusedAWriteEndpointGatedByAViewPermission(string method, string suffix)
     {
         // Arrange — a requester may change their own intake request under the view permission alone

@@ -8,6 +8,7 @@ import {
 } from '@/src/services/wayd-api'
 import { Flex, Typography } from 'antd'
 import { FC } from 'react'
+import IntakeDeskWorkflow from './intake-desk-workflow'
 
 const { Text } = Typography
 
@@ -32,6 +33,9 @@ const IntakeDeskSettings: FC<IntakeDeskSettingsProps> = ({
       <LabeledContent label="Name">{desk.name}</LabeledContent>
       <LabeledContent label="What to Bring Here">
         {desk.description}
+      </LabeledContent>
+      <LabeledContent label="Review Workflow">
+        <IntakeDeskWorkflow deskId={desk.id} deskName={desk.name} />
       </LabeledContent>
       <LabeledContent label="Who Can See Its Requests">
         <Flex vertical>

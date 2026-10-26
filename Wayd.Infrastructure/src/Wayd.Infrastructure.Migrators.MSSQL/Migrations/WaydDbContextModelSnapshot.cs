@@ -1893,6 +1893,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("DeskId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("DuplicateOfId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("ExpectedBenefits")
                         .HasColumnType("nvarchar(max)");
 
@@ -1903,6 +1906,32 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
 
                     b.Property<Guid>("RequesterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("StatusAliasValue")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StatusCategory")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<Guid>("StatusId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("StatusName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("StatusReason")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<int>("StatusTransitionCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("StatusWorkflowId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("SubmittedById")
@@ -1937,7 +1966,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("DeskId");
 
+                    b.HasIndex("DuplicateOfId");
+
                     b.HasIndex("RequesterId");
+
+                    b.HasIndex("StatusWorkflowId");
 
                     b.HasIndex("SubmittedById");
 
@@ -8562,6 +8595,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasForeignKey("DeskId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeRequest", null)
+                        .WithMany()
+                        .HasForeignKey("DuplicateOfId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
                         .WithMany()

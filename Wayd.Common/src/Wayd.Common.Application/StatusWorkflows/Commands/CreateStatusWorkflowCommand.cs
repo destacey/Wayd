@@ -20,7 +20,8 @@ public sealed class CreateStatusWorkflowCommandHandler(
     IStatusWorkflowDbContext dbContext,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
-    ILogger<CreateStatusWorkflowCommandHandler> logger)
+    ILogger<CreateStatusWorkflowCommandHandler> logger,
+    IWorkflowOwnerAvailability ownerAvailability)
     : ICommandHandler<CreateStatusWorkflowCommand, Guid>
 {
     private const string AppRequestName = nameof(CreateStatusWorkflowCommand);
@@ -29,11 +30,18 @@ public sealed class CreateStatusWorkflowCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<CreateStatusWorkflowCommandHandler> _logger = logger;
+    private readonly IWorkflowOwnerAvailability _ownerAvailability = ownerAvailability;
 
     public async Task<Result<Guid>> Handle(CreateStatusWorkflowCommand request, CancellationToken cancellationToken)
     {
         try
         {
+            // Answered as for an owner type no module registers, so a hidden module is not disclosed.
+            if (!await _ownerAvailability.IsAvailable(request.OwnerType.Trim(), cancellationToken))
+            {
+                return Result.Failure<Guid>($"'{request.OwnerType.Trim()}' is not a registered workflow owner type.");
+            }
+
             var result = StatusWorkflow.Create(request.Name, request.Description, request.OwnerType, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {

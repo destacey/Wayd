@@ -3,6 +3,7 @@ using CSharpFunctionalExtensions;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.DemandManagement.Application.IntakeDesks;
 using Wayd.DemandManagement.Application.IntakeRequests;
@@ -116,7 +117,90 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Reroute(Guid id, [FromBody] RerouteIntakeRequestRequest request, CancellationToken cancellationToken) =>
-        NoContentOrError(await _dispatcher.Send(new RerouteIntakeRequestCommand(id, request.DeskId, request.ConfirmWiderVisibility), cancellationToken));
+        NoContentOrError(await _dispatcher.Send(new RerouteIntakeRequestCommand(id, request.DeskId, request.ConfirmWiderVisibility, request.StatusId), cancellationToken));
+
+    [HttpGet("{id}/arrival-statuses")]
+    [Authorize]
+    [EndpointSummary("Get the statuses an intake request can arrive in on another desk.")]
+    [EndpointDescription("The destination workflow's open statuses that need no reason, in its order, and the one the request arrives in unless you choose. Empty unless you can move the request: an agent on its current desk.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IntakeRequestArrivalStatusesDto>> GetArrivalStatuses(Guid id, [FromQuery] Guid deskId, CancellationToken cancellationToken)
+    {
+        var arrival = await _dispatcher.Send(new GetIntakeRequestArrivalStatusesQuery(id, deskId), cancellationToken);
+        return arrival is not null
+            ? Ok(arrival)
+            : NotFound();
+    }
+
+    [HttpPost("{id}/status")]
+    [Authorize]
+    [EndpointSummary("Move an intake request to another status of its desk's workflow.")]
+    [EndpointDescription("Needs an agent on the request's desk. Declining, deferring, marking a duplicate and finishing need a `reason` the requester can read; marking a duplicate needs `duplicateOfId`, a request you can see that is not itself a duplicate. Withdrawn is the requester's, through withdraw.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> ChangeStatus(Guid id, [FromBody] ChangeIntakeRequestStatusRequest request, CancellationToken cancellationToken) =>
+        NoContentOrError(await _dispatcher.Send(new ChangeIntakeRequestStatusCommand(id, request.StatusId, request.Reason, request.DuplicateOfId), cancellationToken));
+
+    [HttpPost("{id}/withdraw")]
+    [Authorize]
+    [EndpointSummary("Withdraw your own open intake request.")]
+    [EndpointDescription("Only the request's requester; the submitter cannot withdraw a request entered on someone's behalf.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Withdraw(Guid id, [FromBody] WithdrawIntakeRequestRequest request, CancellationToken cancellationToken) =>
+        NoContentOrError(await _dispatcher.Send(new WithdrawIntakeRequestCommand(id, request.Note), cancellationToken));
+
+    [HttpGet("{id}/status-options")]
+    [Authorize]
+    [EndpointSummary("Get the statuses you can move an intake request to, with what each move needs.")]
+    [EndpointDescription("In its desk workflow's order, without the status it holds or Withdrawn. Empty unless you are an agent on the request's desk.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IEnumerable<IntakeRequestStatusOptionDto>>> GetStatusOptions(Guid id, CancellationToken cancellationToken)
+    {
+        var options = await _dispatcher.Send(new GetIntakeRequestStatusOptionsQuery(id), cancellationToken);
+        return options is not null
+            ? Ok(options)
+            : NotFound();
+    }
+
+    [HttpGet("{idOrKey}/status-history")]
+    [Authorize]
+    [EndpointSummary("Get an intake request's status changes, newest first, in the tiers you can read.")]
+    [EndpointDescription("Each change reports the status names as they were at the time. Without the request's substance, each change comes without its reason or who made it.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IEnumerable<StatusTransitionDto>>> GetStatusHistory(string idOrKey, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new GetIntakeRequestStatusHistoryQuery(new IdOrKey(idOrKey)), cancellationToken);
+
+        if (result.IsFailure)
+            return BadRequest(result.ToBadRequestObject(HttpContext));
+
+        return result.Value is not null
+            ? Ok(result.Value)
+            : NotFound();
+    }
+
+    [HttpGet("{idOrKey}/status-workflow")]
+    [Authorize]
+    [EndpointSummary("Get the status workflow an intake request moves through.")]
+    [EndpointDescription("Readable by anyone who can see the request, so its status history can be drawn on the workflow without workflow administration permissions.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StatusWorkflowDetailsDto>> GetStatusWorkflow(string idOrKey, CancellationToken cancellationToken)
+    {
+        var workflow = await _dispatcher.Send(new GetIntakeRequestStatusWorkflowQuery(new IdOrKey(idOrKey)), cancellationToken);
+        return workflow is not null
+            ? Ok(workflow)
+            : NotFound();
+    }
 
     [HttpPost("{id}/participants")]
     [Authorize]

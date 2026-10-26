@@ -25,4 +25,10 @@ public sealed record IntakeRequestSubstanceDto
 
     /// <summary>The upstream record the request arrived from, when it did not start in Wayd.</summary>
     public IntakeRequestOriginDto? Origin { get; init; }
+
+    /// <summary>
+    /// Why the request is in its current status: the desk's reason for declining, deferring, marking a duplicate
+    /// or finishing it, or the requester's note on withdrawing. Null when the move recorded none.
+    /// </summary>
+    public string? StatusReason { get; init; }
 }

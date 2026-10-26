@@ -2,6 +2,7 @@ using FluentAssertions;
 using Moq;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
 using Wayd.DemandManagement.Application.Tests.Infrastructure;
 
@@ -191,5 +192,179 @@ public sealed class GetIntakeRequestQueryHandlerTests
         // Assert
         asAgent!.CanReroute.Should().BeTrue();
         asRequester!.CanReroute.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ForTheRequesterOnceAccepted_DoesNotOfferEdit_ButOffersItToAnAgent()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var requester = _scenario.Employee();
+        var request = _scenario.RequestIn(_scenario.Desk(agentIds: agent.Id), requester, StatusCategory.Active, IntakeRequestStatusAlias.Accepted);
+
+        // Act
+        _scenario.SignedInAs(requester);
+        var asRequester = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+        _scenario.SignedInAs(agent);
+        var asAgent = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        asRequester!.CanEdit.Should().BeFalse();
+        asAgent!.CanEdit.Should().BeTrue();
+        asAgent.CanReroute.Should().BeTrue("an accepted request is still open");
+    }
+
+    [Theory]
+    [InlineData(StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled)]
+    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.Declined)]
+    public async Task Handle_ForAClosedRequest_OffersNeitherEditNorReroute_EvenToADeskAdmin(StatusCategory category, IntakeRequestStatusAlias alias)
+    {
+        // Arrange
+        var admin = _scenario.Employee();
+        var request = _scenario.RequestIn(_scenario.DeskAdministeredBy(admin.Id), _scenario.Employee(), category, alias);
+        _scenario.SignedInAs(admin);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.CanEdit.Should().BeFalse();
+        result.CanReroute.Should().BeFalse();
+        result.CanDelete.Should().BeFalse("it has moved through review");
+    }
+
+    [Fact]
+    public async Task Handle_ForADeskAdmin_OffersDeleteOnlyWhileTheRequestHasNotLeftSubmitted()
+    {
+        // Arrange — back in an open status, but with review history behind it
+        var admin = _scenario.Employee();
+        var desk = _scenario.DeskAdministeredBy(admin.Id);
+        var untouched = _scenario.Request(desk, _scenario.Employee());
+        var reviewed = _scenario.RequestIn(desk, _scenario.Employee(), StatusCategory.Proposed, IntakeRequestStatusAlias.Submitted);
+        _scenario.SignedInAs(admin);
+
+        // Act
+        var forUntouched = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(untouched.Id)), TestContext.Current.CancellationToken);
+        var forReviewed = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(reviewed.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        forUntouched!.CanDelete.Should().BeTrue();
+        forReviewed!.CanDelete.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_OffersStatusChangesToAnAgentAndWithdrawingToTheRequester()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var requester = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(agentIds: agent.Id), requester);
+
+        // Act
+        _scenario.SignedInAs(agent);
+        var asAgent = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+        _scenario.SignedInAs(requester);
+        var asRequester = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        asAgent!.CanChangeStatus.Should().BeTrue();
+        asAgent.CanWithdraw.Should().BeFalse();
+        asRequester!.CanChangeStatus.Should().BeFalse();
+        asRequester.CanWithdraw.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotOfferWithdrawingOnceTheRequestIsClosed_NorToTheSubmitter()
+    {
+        // Arrange
+        var requester = _scenario.Employee();
+        var submitter = _scenario.Employee();
+        var declined = _scenario.RequestInStatus(_scenario.Desk(), requester, "Declined");
+        var onBehalf = _scenario.RequestOnBehalf(_scenario.Desk(), _scenario.Employee(), submitter);
+
+        // Act
+        _scenario.SignedInAs(requester);
+        var forDeclined = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(declined.Id)), TestContext.Current.CancellationToken);
+        _scenario.SignedInAs(submitter);
+        var forSubmitter = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(onBehalf.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        forDeclined!.CanWithdraw.Should().BeFalse();
+        forSubmitter!.CanWithdraw.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ForAReadOnlyToken_OffersNeitherStatusChangeNorWithdraw()
+    {
+        // Arrange
+        var requester = _scenario.Employee();
+        var request = _scenario.Request(_scenario.DeskAdministeredBy(requester.Id), requester);
+        _scenario.SignedInAs(requester).WithReadOnlyToken();
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.CanChangeStatus.Should().BeFalse();
+        result.CanWithdraw.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ForADuplicate_NamesTheSurvivingRequestOnlyToAReaderWhoCanSeeIt()
+    {
+        // Arrange — the survivor is on a private desk the duplicate's requester is not on
+        var requester = _scenario.Employee();
+        var privateAgent = _scenario.Employee();
+        var survivor = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Private, agentIds: privateAgent.Id), _scenario.Employee());
+        var duplicate = _scenario.DuplicateOf(survivor, _scenario.Desk(agentIds: privateAgent.Id), requester);
+
+        // Act
+        _scenario.SignedInAs(requester, IntakeScenario.View);
+        var asRequester = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(duplicate.Id)), TestContext.Current.CancellationToken);
+        _scenario.SignedInAs(privateAgent);
+        var asAgent = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(duplicate.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        asRequester!.DuplicateOf.Should().BeNull();
+        asAgent!.DuplicateOf!.Id.Should().Be(survivor.Id);
+        asAgent.DuplicateOf.Key.Should().Be(survivor.Key);
+        asAgent.DuplicateOf.Title.Should().Be(survivor.Title);
+    }
+
+    [Fact]
+    public async Task Handle_SaysWhetherTheReaderWorksTheDesk_WhateverTheirToken()
+    {
+        // Arrange — who the reader is, not what they may do: a read-only token keeps an agent an agent
+        var agent = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(agentIds: agent.Id), _scenario.Employee());
+
+        // Act
+        _scenario.SignedInAs(agent).WithReadOnlyToken();
+        var asAgent = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.View);
+        var asOutsider = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        asAgent!.IsDeskAgent.Should().BeTrue();
+        asAgent.CanChangeStatus.Should().BeFalse();
+        asOutsider!.IsDeskAgent.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsTheStatusInTheSummary()
+    {
+        // Arrange
+        var requester = _scenario.Employee();
+        var request = _scenario.RequestIn(_scenario.Desk(), requester, StatusCategory.Proposed, IntakeRequestStatusAlias.Deferred);
+        _scenario.SignedInAs(requester);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Summary.Status.Id.Should().Be(request.StatusId);
+        result.Summary.Status.Name.Should().Be(request.StatusName);
+        result.Summary.Status.Category.Should().Be(StatusCategory.Proposed);
+        result.Summary.Status.Alias.Should().Be((int)IntakeRequestStatusAlias.Deferred);
     }
 }

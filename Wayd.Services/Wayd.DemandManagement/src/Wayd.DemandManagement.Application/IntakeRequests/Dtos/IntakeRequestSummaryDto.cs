@@ -1,5 +1,6 @@
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Employees.Dtos;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.DemandManagement.Application.IntakeChannels.Dtos;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Dtos;
@@ -21,6 +22,9 @@ public sealed record IntakeRequestSummaryDto
 
     /// <summary>What is being asked for, in a line.</summary>
     public required string Title { get; init; }
+
+    /// <summary>Where the request stands in its desk's review workflow, as the status was called when it moved there.</summary>
+    public required StatusNavigationDto Status { get; init; }
 
     /// <summary>The desk the request is reviewed on.</summary>
     public required NavigationDto Desk { get; init; }

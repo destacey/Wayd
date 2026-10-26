@@ -16,6 +16,8 @@ export interface IntakeRequestDetailsProps {
   request: IntakeRequestDetailsDto
   needByBases: NeedByBasisDto[] | undefined
   needByFamilies: NeedByBasisFamilyDto[] | undefined
+  /** What the page has to say about the request before its detail, such as where a duplicate leads. */
+  notices?: ReactNode
 }
 
 const Block: FC<{ title: string; children: ReactNode }> = ({
@@ -38,11 +40,21 @@ const IntakeRequestDetails: FC<IntakeRequestDetailsProps> = ({
   request,
   needByBases,
   needByFamilies,
+  notices,
 }) => {
   const { summary, substance } = request
 
   return (
     <Flex vertical gap={16}>
+      {notices}
+      {substance?.statusReason && (
+        <Alert
+          type="info"
+          showIcon
+          title={summary.status.name}
+          description={substance.statusReason}
+        />
+      )}
       {!substance && (
         <Alert
           type="info"

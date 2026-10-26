@@ -96,6 +96,42 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
         return Ok(visibilities);
     }
 
+    [HttpGet("{idOrKey}/workflow")]
+    [Authorize]
+    [EndpointSummary("Get the review workflow a desk's requests follow.")]
+    [EndpointDescription("Whether the desk follows the organization's default, and whether you may choose another: a Desk Admin on it or the Demand Management Admin, while no request is on it.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IntakeDeskWorkflowDto>> GetWorkflow(string idOrKey, CancellationToken cancellationToken)
+    {
+        var workflow = await _dispatcher.Send(new GetIntakeDeskWorkflowQuery(new IdOrKey(idOrKey)), cancellationToken);
+        return workflow is not null
+            ? Ok(workflow)
+            : NotFound();
+    }
+
+    [HttpPut("{id}/workflow")]
+    [Authorize]
+    [EndpointSummary("Point a desk at another published intake request workflow.")]
+    [EndpointDescription("Needs a Desk Admin on the desk or the Demand Management Admin, and is refused while any request is on the desk. The desk then follows the chosen workflow rather than the organization's default.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> ChangeWorkflow(Guid id, [FromBody] ChangeIntakeDeskWorkflowRequest request, CancellationToken cancellationToken) =>
+        NoContentOrError(await _dispatcher.Send(new ChangeIntakeDeskWorkflowCommand(id, request.WorkflowId), cancellationToken));
+
+    [HttpGet("workflow-choices")]
+    [Authorize]
+    [EndpointSummary("Get the published intake request workflows a desk can follow.")]
+    [EndpointDescription("Building and editing workflows is in Settings, under status workflow administration.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<IntakeWorkflowChoiceDto>>> GetWorkflowChoices(CancellationToken cancellationToken)
+    {
+        var choices = await _dispatcher.Send(new GetIntakeWorkflowChoicesQuery(), cancellationToken);
+        return Ok(choices);
+    }
+
     [HttpGet("roles")]
     [Authorize]
     [EndpointSummary("Get the roles a desk member can hold, with their codes.")]

@@ -1,3 +1,5 @@
+using Wayd.Common.Application.StatusWorkflows;
+using Wayd.DemandManagement.Domain;
 using Wayd.Common.Domain.Events;
 
 namespace Wayd.DemandManagement.Application.IntakeDesks.Commands;
@@ -25,7 +27,8 @@ public sealed class DeleteIntakeDeskCommandHandler(
     IDemandManagementDbContext dbContext,
     ICurrentPrincipal currentPrincipal,
     ICurrentUser currentUser,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    IScopedWorkflowAssignments workflowAssignments)
     : ICommandHandler<DeleteIntakeDeskCommand>
 {
     public const string HasRequestsError = "A desk with requests on it cannot be deleted. Close it instead.";
@@ -34,6 +37,7 @@ public sealed class DeleteIntakeDeskCommandHandler(
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly IScopedWorkflowAssignments _workflowAssignments = workflowAssignments;
 
     public async Task<Result> Handle(DeleteIntakeDeskCommand request, CancellationToken cancellationToken)
     {
@@ -45,9 +49,17 @@ public sealed class DeleteIntakeDeskCommandHandler(
             return Result.Failure(HasRequestsError);
 
         var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        var result = desk.Delete(EventActor.User(_currentUser.GetUserId(), employeeId), _dateTimeProvider.Now);
+        var actor = EventActor.User(_currentUser.GetUserId(), employeeId);
+        var result = desk.Delete(actor, _dateTimeProvider.Now);
         if (result.IsFailure)
             return result;
+
+        // A workflow the desk chose goes with it, or the assignment would outlive its scope and keep that
+        // workflow from ever being archived. Saved below, with the desk's removal.
+        var unassigned = await _workflowAssignments.RemoveScope(DemandManagementWorkflowOwners.IntakeRequest.Key, desk.Id, actor,
+            _dateTimeProvider.Now, cancellationToken);
+        if (unassigned.IsFailure)
+            return unassigned;
 
         _dbContext.IntakeDesks.Remove(desk);
         try

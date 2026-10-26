@@ -87,7 +87,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
             var desk = await seeding.IntakeDesks.SingleAsync(d => d.Id == scenario.SummaryOnly.Id, ct);
             var channel = await seeding.IntakeChannels.SingleAsync(c => c.Id == scenario.OnOpen.ChannelId, ct);
             var request = IntakeRequest.Create(UniqueName("Ask"), "Entered for someone else", null, scenario.Agent.Id,
-                scenario.Participant.Id, desk, channel, null, null, EventActor.System, Now).Value;
+                scenario.Participant.Id, desk, channel, null, null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
             seeding.IntakeRequests.Add(request);
             await seeding.SaveChangesAsync(ct);
             onBehalf = request.Id;
@@ -332,7 +332,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
 
         IntakeRequest Request(IntakeDesk desk, IntakeRequestNeedBy? withNeedBy = null, IntakeRequestOrigin? withOrigin = null) =>
             IntakeRequest.Create(UniqueName("Ask"), "What is being asked for", null, requester.Id, requester.Id, desk, channel,
-                withNeedBy, withOrigin, EventActor.System, Now).Value;
+                withNeedBy, withOrigin, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
 
         var onOpen = Request(open, needBy, origin);
         onOpen.AddParticipant(participant.Id, requester.Id, EventActor.System, Now).IsSuccess.Should().BeTrue();

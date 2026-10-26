@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Employees.Dtos;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.DemandManagement.Application.IntakeChannels.Dtos;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 using Wayd.DemandManagement.Domain.Models;
@@ -28,6 +29,7 @@ internal static class IntakeRequestProjections
             Id = r.Id,
             Key = r.Key,
             Title = r.Title,
+            Status = new StatusNavigationDto { Id = r.StatusId, Name = r.StatusName, Category = r.StatusCategory, Alias = r.StatusAliasValue },
             Desk = desks.Where(d => d.Id == r.DeskId)
                 .Select(d => new NavigationDto { Id = d.Id, Key = d.Key, Name = d.Name })
                 .First(),
@@ -87,6 +89,7 @@ internal static class IntakeRequestProjections
                     ExternalId = r.Origin.ExternalId,
                     Url = r.Origin.Url,
                 },
+            StatusReason = r.StatusReason,
         };
     }
 }

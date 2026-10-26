@@ -13,7 +13,7 @@ Demand Management holds **what people are asking for before anyone has decided t
 Demand Management is gated by the **Demand Management** feature flag, which is disabled when first deployed. Until it is on, the menu section, its pages and its endpoints are absent.
 :::
 
-People can submit, browse and follow requests today, and agents can move them to the desk that should own them. Reviewing them, with statuses and a review workflow, comes later.
+People submit, browse and follow requests. Each desk reviews its requests through a status workflow, agents move them through it and to the desk that should own them, and requesters see where their request stands and why.
 
 ## How Demand Management Connects Across Wayd
 
@@ -47,6 +47,7 @@ An **intake request**, shown as a **Request**, is one ask: a business need, cust
 - **Title** and **description** — What is being asked for
 - **Requester** — The employee the request is for, who may differ from the person who entered it
 - **Desk** — Where it is reviewed. Every request is on exactly one desk
+- **Status** — Where it stands in its desk's review (see [Statuses and the review workflow](#statuses-and-the-review-workflow))
 - **Channel** — Where it came from
 - **Expected benefits** — What gets better, and for whom, if the request is delivered. Optional
 - **Need-by date** — Optional, and always with its basis (see below)
@@ -62,12 +63,36 @@ An **intake desk** is a review responsibility: what kind of ask it accepts, who 
 
 The people who work a desk are its **members**, each in one of two roles:
 
-- **Agent** — Acts on the desk's requests: reads them in full, edits them, assigns them, manages their participants and, as later features arrive, moves them through review
+- **Agent** — Acts on the desk's requests: reads them in full, edits them, moves them through review, assigns them, moves them to other desks and manages their participants
 - **Desk Admin** — Everything an agent does, plus runs the desk itself and is the only one who can delete its requests
 
 Being named on a desk is all it takes: no permission is needed beside it, and working one desk gives you nothing on another. Someone whose employee record becomes inactive stops being a member of every desk.
 
 No desk is set up on install: the Demand Management Admin creates the desks the company will staff, with their first members, and a company that runs no review desk has none. A requester always chooses the desk their request goes to, by the desk's description of what kind of ask it takes rather than by the name of the group behind it.
+
+### Statuses and the review workflow
+
+Each desk reviews its requests through a **status workflow**: the stages a request passes from submission to a decision. Every request starts in **Submitted**, and agents move it on from there. Wayd ships a default that every desk follows until it is given its own:
+
+| Status | Category | Means |
+|---|---|---|
+| Submitted | Proposed | Received, and waiting for the desk to look at it |
+| In Review | Proposed | Being reviewed by the desk |
+| Waiting on Requester | Proposed | Waiting for the requester to answer a question |
+| Deferred | Proposed | Worth doing, but not now |
+| Accepted | Active | Accepted for delivery |
+| Fulfilled | Done | Delivered |
+| Declined | Removed | Not going ahead |
+| Duplicate | Removed | Already asked for in another request |
+| Withdrawn | Removed | Withdrawn by the requester |
+
+A company shapes its own review — a single triage, staged assessment, a review board — by building workflows in [Settings → Status Workflows](../settings/status-workflows.mdx) and choosing one for each desk. What Wayd does with a status depends on its **category** and its well-known meaning, never its name, so the rules below hold whatever a desk calls its stages:
+
+- **Proposed** and **Active** requests are **open**: they count as waiting on their desk and can be moved to another desk.
+- Who can **edit** follows the category too. While a request is Proposed, its requester and the desk's agents can edit it; once it is Active, only the desk's agents; once it is **Done** or **Removed**, nobody, until an agent moves it back to an open status.
+- **Declined**, **Deferred**, **Duplicate** and any **Done** status need a reason, which the requester reads on the request.
+- A **Duplicate** names the request it gives way to.
+- Only the requester reaches **Withdrawn**, by withdrawing their request.
 
 ### Channels
 
@@ -116,27 +141,51 @@ Submitting needs your account to be linked to an employee record, because every 
 
 ### Finding requests
 
-**Requests** lists every request you can see, across desks, with its number, title, desk, requester, channel and need-by date and basis. Search and filter it to check whether someone has already asked for the same thing before you submit. Requests on a private desk you are not part of never appear, so the list and its count cover only what you can see.
+**Requests** lists every request you can see, across desks, with its number, title, status, desk, requester, channel and need-by date and basis. Hovering a status shows its category. Search and filter it to check whether someone has already asked for the same thing before you submit. Requests on a private desk you are not part of never appear, so the list and its count cover only what you can see.
 
 **My Requests** shows the same columns, limited to requests you asked for or submitted.
 
 ### The request page
 
-Opening a request shows its number and title. The panel opened from the header lists its desk, channel, requester and assignee and, where you can read them, who submitted it and where it came from.
+Opening a request shows its number and title. The panel opened from the header lists its status, desk, channel, requester and assignee and, where you can read them, who submitted it and where it came from.
 
-- **Details** — The description, the expected benefits and the need-by date. On a desk that keeps its detail to itself, people outside it see a message saying the detail is limited to that desk, rather than empty fields
+- **Details** — The reason for its current status, when it has one, then the description, the expected benefits and the need-by date. On a desk that keeps its detail to itself, people outside it see a message saying the detail is limited to that desk, rather than empty fields
 - **People** — The requester, the submitter when it is someone else, and the request's participants. Participants can read the request and reply to it, but cannot change it, and being one does not assign them any work. Shown only to people who can read the request's detail
+- **Status History** — Every status the request has been in, as a timeline or drawn on its desk's workflow. Without the request's detail you see each change without its reason or who made it
 - **Activity** — The request's history, limited to what you can read
 
-**Edit** appears in the actions menu when you can change the request: the requester while it is proposed, or an agent on its desk. The desk cannot be changed here.
+**Edit** appears in the actions menu when you can change the request: the requester while it is proposed, or an agent on its desk while it is open. The desk cannot be changed here.
+
+### Changing a request's status
+
+**Change Status** in the request's actions menu is offered to an agent on its desk. It lists the statuses of the desk's workflow, in the order the desk laid them out, apart from the one the request holds and Withdrawn. Choosing a status asks for what it needs:
+
+- A **reason** — required for declining, deferring, marking a duplicate and finishing a request, and optional otherwise. The requester reads it on the request, so write it for them
+- For **Duplicate**, the request this one gives way to — any other request you can see that is not itself a duplicate
+
+A closed request can be moved back to an open status the same way, which also lets it be edited again.
+
+#### Duplicates
+
+Once a request is marked a duplicate, its requester and its other readers are taken to the surviving request when they open it, and that request says which duplicate brought them there. The desk's agents stay on the duplicate, with a link to the surviving request, so they can see why and reopen it.
+
+When the surviving request is on a private desk the requester is not part of, they cannot be taken to it. They see their request marked Duplicate, with your reason, and nothing about the other request — the form warns you when you choose a request on a private desk. A request that others are marked duplicates of cannot be deleted.
+
+### Withdrawing a request
+
+**Withdraw Request** is offered to a request's requester while it is open. Withdrawing tells the desk you no longer need it; you can leave a note for the desk saying why. The request stays on record, marked Withdrawn, and an agent can reopen it. Whoever submitted a request on someone's behalf cannot withdraw it — it is the requester's ask.
 
 **Add Participant** appears when you can give someone access: an agent on the request's desk, or its requester or submitter unless the desk is private and does not allow it. Only an agent on the desk can remove a participant, and removing one takes away their access from then on; what they have already read stays read.
+
+**Delete** is a Desk Admin's last resort, offered only while the request has never left the status it was submitted in and no other request is marked a duplicate of it. Once a request has moved through review it is part of the record of a decision: decline it instead, and the requester can withdraw it.
 
 ### Moving a request to another desk
 
 A requester picks the desk they think fits, and an agent confirms it or moves the request to the desk that should own the decision. **Move to Another Desk** in the request's actions menu is offered to an agent on the desk the request is on now. The new desk does not have to be one you work: it can be any desk open to new requests, including one requesters cannot choose. Nothing moves a request automatically — editing its channel, for example, never changes its desk.
 
-When you choose a desk, the form says what the move changes:
+When you choose a desk, the form asks what the request **arrives as** there: one of that desk's open statuses that needs no reason, since what to decide about it is the new desk's call. It starts at the status the request holds when both desks follow the same workflow, or the one with the same meaning or name when they do not; when nothing matches, you choose. A move onto a desk with a different workflow is recorded in the request's status history as a switch onto that workflow.
+
+The form also says what the move changes:
 
 - **A less private desk.** Moving from Private to Summary Only, or from either to Open, publishes words the requester wrote expecting them to stay with the first desk. The form names what becomes visible to everyone who can view requests, and the move goes ahead only once you confirm it. A moved request is read by its new desk's rules from start to finish, so its history comes with it:
   - Reaching **Summary Only** from Private exposes the title, requester, channel, need-by date and assignee — with earlier titles, past assignees and every desk the request has been on, including the private one.
@@ -148,7 +197,7 @@ A move to an equally or more private desk needs no confirmation. Every move is r
 
 ### Desks
 
-**Desks** lists every desk with its visibility, how many members it has and whether it is open to new requests. On the desks you work, it also shows what is waiting there: how many requests, and how long ago the oldest was submitted. Nobody else sees those numbers — a private desk's requests are never counted for anyone outside it.
+**Desks** lists every desk with its visibility, how many members it has and whether it is open to new requests. On the desks you work, it also shows what is waiting there: how many open requests, and how long ago the oldest of them was submitted. Nobody else sees those numbers — a private desk's requests are never counted for anyone outside it.
 
 :::warning[A desk with no members]
 A desk nobody works is flagged **No members** wherever desks are listed, and its page says so above its requests. Requests sent there have nobody looking at them, so name its agents or close it.
@@ -171,7 +220,7 @@ A desk is run from its own page, opened from **Desks** or from the desk named on
 
 - **Requests** — The requests on the desk that you can see
 - **Members** — Who works the desk, and in which role
-- **Settings** — Its name, what to bring here, who can see its requests (with what that exposes, in plain words), whether it is open, and what requesters may do on it
+- **Settings** — Its name, what to bring here, its review workflow, who can see its requests (with what that exposes, in plain words), whether it is open, and what requesters may do on it
 
 What you can change depends on your role:
 
@@ -180,11 +229,18 @@ What you can change depends on your role:
 | Name and what to bring here | Yes | Yes |
 | Open to new requests, requesters can choose it, requesters may add participants | Yes | Yes |
 | Name or remove **Agents** | Yes | Yes |
+| **Review workflow** | Yes, while no request is on it | Yes, while no request is on it |
 | Name or remove **Desk Admins** | No | Yes |
 | **Visibility** | No | Yes |
 | **Delete** the desk | No | Yes, while no request is on it |
 
 Removing someone from a desk unassigns them from the requests they own there.
+
+#### Choosing a desk's review workflow
+
+**Review Workflow** in the desk's Settings names the workflow its requests follow, marked **Organization default** while the desk follows the default. **Change Workflow** lets a Desk Admin or the Demand Management Admin choose any published intake workflow. The workflows themselves are built and changed in [Settings → Status Workflows](../settings/status-workflows.mdx), which needs the status workflow permissions.
+
+Choosing a workflow other than the default gives the desk its own, so a later change to the default no longer reaches it. A desk's workflow can be chosen only while no request is on it, closed ones included — moving a desk's requests onto another workflow is not supported yet. Choose it when you set the desk up, before requesters can pick it.
 
 If someone else changes the desk while you have its settings or members open, your save is refused with a message to reload, rather than quietly undoing their change — and saving again from the same form is refused too. Close the form, reopen it to see their change, and make yours again.
 
@@ -195,7 +251,7 @@ A desk with requests on it cannot be deleted, because every request is always on
 A request is read in three tiers:
 
 - **Summary** — Number, title, desk, status, requester, channel, assignee, tags, and the need-by date with its basis and reference
-- **Substance** — Description, expected benefits, who submitted it, its participants, where it came from, evidence, replies, score and ratings
+- **Substance** — Description, expected benefits, who submitted it, its participants, where it came from, the reason for its status, evidence, replies, score and ratings
 - **Internal** — Internal notes and triage reasoning, for the desk's members only
 
 Each desk sets how much of that reaches the rest of the company:
@@ -210,7 +266,9 @@ A request's own people are its **requester**, whoever **submitted** it on the re
 
 Working one desk gives you nothing on another: an agent reads other desks' requests only as far as those desks let everyone. Someone who cannot view requests sees only their own requests and those on the desks they work.
 
-A request's history shows only the changes to what you can read. If you can read only the summary, the history also leaves out who made each change, because whoever submitted a request on someone's behalf is part of its substance.
+A request's history shows only the changes to what you can read. If you can read only the summary, the history and the status history also leave out who made each change, because whoever submitted a request on someone's behalf is part of its substance, and the status history leaves out each change's reason.
+
+A duplicate shows the request it gives way to only to readers who can see that request. Anyone else sees it marked Duplicate and nothing about the other request.
 
 Request numbers run across the whole company, so a gap in the numbers you see can mean requests you cannot see: on a private desk, or deleted. The number never says what they are.
 
@@ -223,4 +281,4 @@ Most of what happens to a request is decided by [desk roles](#intake-desks), not
 | View | Browse other people's requests, within the desk visibility above |
 | Administer | The Demand Management Admin: create and delete desks, change a desk's visibility, name Desk Admins, manage channels, and act as Desk Admin on every desk |
 
-Submitting a request, and reading, editing (while it is proposed) and replying to your own, need no permission. See [Demand Management: desk roles](../settings/permissions.mdx#demand-management-desk-roles).
+Submitting a request, and reading, editing (while it is proposed), withdrawing and replying to your own, need no permission. See [Demand Management: desk roles](../settings/permissions.mdx#demand-management-desk-roles).

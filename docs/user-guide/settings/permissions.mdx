@@ -173,8 +173,8 @@ Viewing sprints needs only `Permissions.Iterations.View`.
 |---|---|---|
 | Anyone signed in with a linked employee record | Submit a request; read, edit (while it is proposed) and reply to their own requests and the requests they participate in | Nothing to grant |
 | `Permissions.IntakeRequests.View` | Browse other people's requests, as far as each desk's [visibility](../demand-management/index.mdx#who-can-see-a-request) allows | A role |
-| **Agent** on a desk | Act on that desk's requests: read them in full, edit, assign, move to another desk, manage participants, and — as later features arrive — change status, score and keep internal notes | Named on the desk |
-| **Desk Admin** on a desk | Everything an agent does, plus run the desk — its details, settings and agents — and delete its requests | Named on the desk by the Demand Management Admin |
+| **Agent** on a desk | Act on that desk's requests: read them in full, edit, change their status, assign, move to another desk, manage participants, and — as later features arrive — score and keep internal notes | Named on the desk |
+| **Desk Admin** on a desk | Everything an agent does, plus run the desk — its details, settings, review workflow and agents — and delete its requests | Named on the desk by the Demand Management Admin |
 | `Permissions.IntakeRequests.Administer` (the Demand Management Admin) | Create and delete desks, change a desk's visibility, name Desk Admins, manage channels, and act as Desk Admin on every desk | A role |
 
 Desk members are a list named on each desk, never derived from teams or departments, and someone whose employee record is inactive is a member of no desk. Working one desk gives you nothing on another: an agent reads the full detail of other desks' requests only where that desk's visibility allows it for everyone. The seeded **Admin** role holds both permissions.

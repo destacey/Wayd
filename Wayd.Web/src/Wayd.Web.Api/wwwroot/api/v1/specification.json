@@ -56339,6 +56339,7 @@
           "canDelete",
           "canReroute",
           "canAddParticipants",
+          "isDeskAgent",
           "canChangeStatus",
           "canWithdraw"
         ],
@@ -56380,6 +56381,10 @@
           "canAddParticipants": {
             "type": "boolean",
             "description": "Whether the reader may give someone access to the request as a participant: an agent on its desk, or\nits requester or submitter unless the desk is private and does not allow it."
+          },
+          "isDeskAgent": {
+            "type": "boolean",
+            "description": "Whether the reader works the request's desk: an agent or Desk Admin on it, or the Demand Management Admin.\nSays who the reader is, not what they may do; the capability flags answer that. A duplicate's agents stay\non it to review it, and everyone else is taken to the request it gives way to."
           },
           "canChangeStatus": {
             "type": "boolean",

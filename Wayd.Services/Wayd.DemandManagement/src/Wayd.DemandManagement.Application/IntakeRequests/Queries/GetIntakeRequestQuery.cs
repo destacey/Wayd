@@ -65,6 +65,7 @@ public sealed class GetIntakeRequestQueryHandler(
             CanReroute = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id)
                 && record.IsOpen,
             CanAddParticipants = !_currentPrincipal.IsReadOnly && await CanAddParticipants(visible, reader, cancellationToken),
+            IsDeskAgent = reader.IsAgentOn(summary.Desk.Id),
             // Both commands need a linked employee, so the flags do too.
             CanChangeStatus = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id),
             CanWithdraw = !_currentPrincipal.IsReadOnly && reader.EmployeeId == record.RequesterId && record.IsOpen,

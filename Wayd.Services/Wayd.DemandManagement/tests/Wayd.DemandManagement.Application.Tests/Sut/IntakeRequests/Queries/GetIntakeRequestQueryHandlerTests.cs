@@ -332,6 +332,25 @@ public sealed class GetIntakeRequestQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_SaysWhetherTheReaderWorksTheDesk_WhateverTheirToken()
+    {
+        // Arrange — who the reader is, not what they may do: a read-only token keeps an agent an agent
+        var agent = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(agentIds: agent.Id), _scenario.Employee());
+
+        // Act
+        _scenario.SignedInAs(agent).WithReadOnlyToken();
+        var asAgent = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.View);
+        var asOutsider = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        asAgent!.IsDeskAgent.Should().BeTrue();
+        asAgent.CanChangeStatus.Should().BeFalse();
+        asOutsider!.IsDeskAgent.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Handle_ReturnsTheStatusInTheSummary()
     {
         // Arrange

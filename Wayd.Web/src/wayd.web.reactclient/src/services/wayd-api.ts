@@ -57138,6 +57138,10 @@ is open. */
     /** Whether the reader may give someone access to the request as a participant: an agent on its desk, or
 its requester or submitter unless the desk is private and does not allow it. */
     canAddParticipants: boolean;
+    /** Whether the reader works the request's desk: an agent or Desk Admin on it, or the Demand Management Admin.
+Says who the reader is, not what they may do; the capability flags answer that. A duplicate's agents stay
+on it to review it, and everyone else is taken to the request it gives way to. */
+    isDeskAgent: boolean;
     /** Whether the reader may move the request to another status: an agent on its desk. */
     canChangeStatus: boolean;
     /** Whether the reader may withdraw the request: its requester, while it is open. */

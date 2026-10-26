@@ -65,7 +65,12 @@ public sealed class GetWorkflowAssignmentsQueryHandler(
                         Name = a.WorkflowName,
                     },
                 })
-                .OrderBy(a => a.Owner.Name, StringComparer.OrdinalIgnoreCase),
+                // The organization's assignment first within an owner type, then each scope's, ending on the id so
+                // the order is the same on every call.
+                .OrderBy(a => a.Owner.Name, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(a => a.ScopeId is not null)
+                .ThenBy(a => a.ScopeId)
+                .ThenBy(a => a.Id),
         ];
     }
 }

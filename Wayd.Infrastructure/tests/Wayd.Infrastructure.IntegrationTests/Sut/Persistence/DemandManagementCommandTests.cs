@@ -33,7 +33,14 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
 {
     private static readonly Instant Now = Instant.FromUtc(2026, 10, 1, 8, 0, 0);
 
-    private readonly SqlServerDbContextFixture _fixture = fixture;
+    // Deleting a desk removes any workflow it chose, which resolves the owner type the host registers at startup.
+    private readonly SqlServerDbContextFixture _fixture = RegisterOwners(fixture);
+
+    private static SqlServerDbContextFixture RegisterOwners(SqlServerDbContextFixture fixture)
+    {
+        DemandManagementWorkflowOwners.Register();
+        return fixture;
+    }
     private readonly IDateTimeProvider _clock = Clock();
 
     [Fact]
@@ -251,7 +258,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         }
 
         // Act — the deleting context still tracks the desk as it read it
-        var result = await new DeleteIntakeDeskCommandHandler(deleting, Principal(administrator.Id), User(), _clock)
+        var result = await new DeleteIntakeDeskCommandHandler(deleting, Principal(administrator.Id), User(), _clock, new ScopedWorkflowAssignments(deleting))
             .Handle(new DeleteIntakeDeskCommand(desk.Id), ct);
 
         // Assert
@@ -325,7 +332,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
 
         // Act
         await using var context = _fixture.CreateContext();
-        var result = await new DeleteIntakeDeskCommandHandler(context, Principal(administrator.Id), User(), _clock)
+        var result = await new DeleteIntakeDeskCommandHandler(context, Principal(administrator.Id), User(), _clock, new ScopedWorkflowAssignments(context))
             .Handle(new DeleteIntakeDeskCommand(desk.Id), ct);
 
         // Assert
@@ -480,7 +487,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         // Assert
         marked.IsSuccess.Should().BeTrue();
         deleted.IsFailure.Should().BeTrue();
-        deleted.Error.Should().Be("Other requests are marked duplicates of this one, so it cannot be deleted.");
+        deleted.Error.Should().Be(IntakeRequest.PartOfARecordError);
         await using var reader = _fixture.CreateContext();
         var details = await new GetIntakeRequestQueryHandler(reader, Principal(agent.Id))
             .Handle(new GetIntakeRequestQuery(new IdOrKey(duplicateId)), ct);
@@ -618,6 +625,69 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         transitions[1].ToStatusName.Should().Be("Submitted");
         (await reader.ActivityLogs.AnyAsync(a => a.AggregateId == created.Value.Id && a.EventType == nameof(StatusWorkflowSwitchedEvent), ct))
             .Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ADesksOwnWorkflow_CanGoBackToTheDefault_AndGoesWithTheDesk_SoTheWorkflowCanBeArchived()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        Employee administrator;
+        IntakeDesk desk;
+        StatusWorkflow copy;
+        Guid defaultWorkflowId;
+        await using (var seeding = _fixture.CreateContext())
+        {
+            await IntakeStatuses.SeededResolver(seeding, ct);
+            administrator = SeedEmployee(seeding);
+            desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true, [],
+                EventActor.System, Now);
+            seeding.IntakeDesks.Add(desk);
+            var seeded = await seeding.StatusWorkflows.Include(w => w.Statuses).Include(w => w.Transitions)
+                .SingleAsync(w => w.OwnerType == DemandManagementWorkflowOwners.IntakeRequest.Key && w.IsSystem, ct);
+            defaultWorkflowId = seeded.Id;
+            copy = seeded.Clone($"Board Review {Guid.NewGuid():N}"[..30], null, EventActor.System, Now);
+            copy.Publish(EventActor.System, Now).IsSuccess.Should().BeTrue();
+            seeding.StatusWorkflows.Add(copy);
+            await seeding.SaveChangesAsync(ct);
+        }
+        var admin = Principal(administrator.Id, IntakeRequestAuthorization.AdministerPermission);
+
+        // Act — choose the copy, go back to the default, choose the copy again, then delete the desk
+        await using (var choosing = _fixture.CreateContext())
+        {
+            var assignments = new ScopedWorkflowAssignments(choosing);
+            (await new ChangeIntakeDeskWorkflowCommandHandler(choosing, admin, User(), _clock, assignments)
+                .Handle(new ChangeIntakeDeskWorkflowCommand(desk.Id, copy.Id), ct)).IsSuccess.Should().BeTrue();
+            (await new ChangeIntakeDeskWorkflowCommandHandler(choosing, admin, User(), _clock, assignments)
+                .Handle(new ChangeIntakeDeskWorkflowCommand(desk.Id, defaultWorkflowId), ct)).IsSuccess.Should().BeTrue();
+        }
+        await using (var reading = _fixture.CreateContext())
+        {
+            var backOnDefault = await new GetIntakeDeskWorkflowQueryHandler(reading, admin, new ScopedWorkflowAssignments(reading))
+                .Handle(new GetIntakeDeskWorkflowQuery(new IdOrKey(desk.Id)), ct);
+            backOnDefault!.FollowsOrganizationDefault.Should().BeTrue();
+            backOnDefault.Workflow.Id.Should().Be(defaultWorkflowId);
+        }
+        await using (var choosingAgain = _fixture.CreateContext())
+        {
+            (await new ChangeIntakeDeskWorkflowCommandHandler(choosingAgain, admin, User(), _clock, new ScopedWorkflowAssignments(choosingAgain))
+                .Handle(new ChangeIntakeDeskWorkflowCommand(desk.Id, copy.Id), ct)).IsSuccess.Should().BeTrue();
+        }
+        await using (var deleting = _fixture.CreateContext())
+        {
+            (await new DeleteIntakeDeskCommandHandler(deleting, admin, User(), _clock, new ScopedWorkflowAssignments(deleting))
+                .Handle(new DeleteIntakeDeskCommand(desk.Id), ct)).IsSuccess.Should().BeTrue();
+        }
+
+        // Assert
+        await using var reader = _fixture.CreateContext();
+        (await reader.WorkflowAssignments.AnyAsync(a => a.ScopeId == desk.Id, ct)).Should().BeFalse();
+        (await reader.ActivityLogs.CountAsync(a => a.EventType == nameof(WorkflowAssignmentRemovedEvent)
+            && (a.AggregateId == copy.Id), ct)).Should().Be(2, "once going back to the default, once with the desk");
+        var archivable = await reader.StatusWorkflows.Include(w => w.Statuses).SingleAsync(w => w.Id == copy.Id, ct);
+        archivable.Archive(isAssigned: await reader.WorkflowAssignments.AnyAsync(a => a.WorkflowId == copy.Id, ct), EventActor.System, Now)
+            .IsSuccess.Should().BeTrue();
     }
 
     private static ICurrentPrincipal Principal(Guid employeeId, params string[] permissions)

@@ -33,10 +33,17 @@ public interface IScopedWorkflowAssignments : IScopedService
     /// of its own. Saves.
     /// </summary>
     /// <remarks>
-    /// The caller guarantees the scope holds no records. A scope already on the workflow is left as it is, so
-    /// choosing the organization's default for a scope that follows it changes nothing.
+    /// The caller guarantees the scope holds no records. Choosing the organization's workflow removes the
+    /// scope's own assignment, so the scope follows the organization's again, and a later change to it reaches
+    /// the scope. A scope already following the workflow is left as it is.
     /// </remarks>
     Task<Result> AssignToEmptyScope(string ownerType, Guid scopeId, Guid workflowId, EventActor actor, Instant timestamp, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Removes a scope's own assignment, when it has one, because the scope itself is being removed. Does not
+    /// save: the caller saves it together with the scope's removal.
+    /// </summary>
+    Task<Result> RemoveScope(string ownerType, Guid scopeId, EventActor actor, Instant timestamp, CancellationToken cancellationToken);
 }
 
 /// <summary>The workflow governing a scope.</summary>
@@ -120,7 +127,16 @@ public sealed class ScopedWorkflowAssignments(IStatusWorkflowDbContext dbContext
         var own = await _dbContext.WorkflowAssignments
             .FirstOrDefaultAsync(a => a.OwnerType == key && a.ScopeId == scopeId, cancellationToken);
 
-        if (own is null)
+        var organizationWorkflowId = await OrganizationWorkflowId(key, cancellationToken);
+        if (own is not null && workflow.Id == organizationWorkflowId)
+        {
+            var removed = own.Remove(organizationWorkflowId, actor, timestamp);
+            if (removed.IsFailure)
+                return removed;
+
+            _dbContext.WorkflowAssignments.Remove(own);
+        }
+        else if (own is null)
         {
             var created = WorkflowAssignment.Create(key, scopeId, workflow, actor, timestamp);
             if (created.IsFailure)
@@ -157,4 +173,32 @@ public sealed class ScopedWorkflowAssignments(IStatusWorkflowDbContext dbContext
 
         return Result.Success();
     }
+
+    public async Task<Result> RemoveScope(string ownerType, Guid scopeId, EventActor actor, Instant timestamp, CancellationToken cancellationToken)
+    {
+        var descriptor = WorkflowOwners.Resolve(ownerType);
+        if (descriptor.IsFailure)
+            return Result.Failure(descriptor.Error);
+
+        var key = descriptor.Value.Key;
+
+        var own = await _dbContext.WorkflowAssignments
+            .FirstOrDefaultAsync(a => a.OwnerType == key && a.ScopeId == scopeId, cancellationToken);
+        if (own is null)
+            return Result.Success();
+
+        var removed = own.Remove(organizationWorkflowId: null, actor, timestamp);
+        if (removed.IsFailure)
+            return removed;
+
+        _dbContext.WorkflowAssignments.Remove(own);
+
+        return Result.Success();
+    }
+
+    private Task<Guid?> OrganizationWorkflowId(string ownerType, CancellationToken cancellationToken) =>
+        _dbContext.WorkflowAssignments
+            .Where(a => a.OwnerType == ownerType && a.ScopeId == null)
+            .Select(a => (Guid?)a.WorkflowId)
+            .FirstOrDefaultAsync(cancellationToken);
 }

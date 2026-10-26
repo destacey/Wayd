@@ -114,7 +114,7 @@ public sealed class DeleteIntakeRequestCommandHandlerTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(IntakeRequest.MovedThroughReviewError);
+        result.Error.Should().Be(IntakeRequest.PartOfARecordError);
         _scenario.DbContext.IntakeRequests.Should().ContainSingle();
         _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
     }

@@ -311,5 +311,42 @@ public sealed class WorkflowAssignmentTests
         workflow.PostPersistenceActions.Should().BeEmpty();
     }
 
+    [Fact]
+    public void Remove_ForAScopesOwnAssignment_ShouldRaiseAnEventCarryingBothWorkflows()
+    {
+        // Arrange
+        var scopeId = Guid.NewGuid();
+        var workflow = Saved(PublishedWidgetWorkflow());
+        var assignment = WorkflowAssignment.Create(Widget.Key, scopeId, workflow, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        assignment.ClearDomainEvents();
+        var organizationWorkflowId = Guid.NewGuid();
+
+        // Act
+        var result = assignment.Remove(organizationWorkflowId, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var removed = assignment.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<WorkflowAssignmentRemovedEvent>().Subject;
+        removed.ScopeId.Should().Be(scopeId);
+        removed.FromWorkflowId.Should().Be(workflow.Id);
+        removed.ToWorkflowId.Should().Be(organizationWorkflowId);
+    }
+
+    [Fact]
+    public void Remove_ForTheOrganizationsAssignment_ShouldFail()
+    {
+        // Arrange — every narrower scope falls back to it
+        var assignment = WorkflowAssignment.Create(Widget.Key, null, Saved(PublishedWidgetWorkflow()), EventActor.System,
+            Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        assignment.ClearDomainEvents();
+
+        // Act
+        var result = assignment.Remove(null, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        assignment.DomainEvents.Should().BeEmpty();
+    }
+
     #endregion Events
 }

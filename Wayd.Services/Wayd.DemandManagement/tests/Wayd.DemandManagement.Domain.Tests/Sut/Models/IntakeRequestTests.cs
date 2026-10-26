@@ -694,7 +694,7 @@ public sealed class IntakeRequestTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(IntakeRequest.MovedThroughReviewError);
+        result.Error.Should().Be(IntakeRequest.PartOfARecordError);
         sut.DomainEvents.Should().BeEmpty();
     }
 
@@ -943,6 +943,36 @@ public sealed class IntakeRequestTests
         sut.DeskId.Should().Be(from.Id);
         sut.StatusId.Should().Be(statusId);
         sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(IntakeRequestStatusAlias.Withdrawn)]
+    [InlineData(IntakeRequestStatusAlias.Duplicate)]
+    public void CanArriveIn_RefusesWithdrawnAndDuplicate_EvenWhenAWorkflowFilesThemAsOpen(IntakeRequestStatusAlias alias)
+    {
+        // Act — the engine lets a company's workflow put any alias in any category
+        var canArrive = IntakeRequest.CanArriveIn(StatusCategory.Proposed, alias);
+
+        // Assert
+        canArrive.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Reroute_OntoAnotherWorkflow_ClearsTheSurvivingRequestOfAnOpenDuplicate()
+    {
+        // Arrange — a company's workflow that files Duplicate as open
+        var from = new IntakeDeskFaker().Generate();
+        var to = new IntakeDeskFaker().Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(from.Id).InStatus(StatusCategory.Proposed, IntakeRequestStatusAlias.Duplicate)
+            .WithDuplicateOfId(Guid.NewGuid()).WithStatusReason("Asked already").Generate();
+
+        // Act
+        var result = sut.Reroute(from, to, IntakeStatusRefFactory.Submitted(), false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DuplicateOfId.Should().BeNull();
+        sut.StatusReason.Should().BeNull();
     }
 
     #endregion Reroute
@@ -1273,7 +1303,7 @@ public sealed class IntakeRequestTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Other requests are marked duplicates of this one, so it cannot be deleted.");
+        result.Error.Should().Be(IntakeRequest.PartOfARecordError);
         sut.DomainEvents.Should().BeEmpty();
     }
 

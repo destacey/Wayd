@@ -363,6 +363,7 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
             if (switched.IsFailure)
                 return switched;
             StatusReason = null;
+            DuplicateOfId = null;
         }
         else if (arrival.StatusId != StatusId)
         {
@@ -387,10 +388,18 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         "A request arrives on another desk in an open status that needs no reason.";
 
     /// <summary>
-    /// Whether a request moved to another desk may arrive in a status: an open one needing no reason.
+    /// Whether a request moved to another desk may arrive in a status: an open one needing no reason, and never
+    /// Withdrawn or Duplicate.
     /// </summary>
+    /// <remarks>
+    /// The engine does not tie an alias to a category, so a company's workflow can file Withdrawn or Duplicate
+    /// under an open one. Neither is a place to arrive: Withdrawn is the requester's alone, and a duplicate needs
+    /// the request it gives way to.
+    /// </remarks>
     public static bool CanArriveIn(StatusCategory category, IntakeRequestStatusAlias alias) =>
-        category is StatusCategory.Proposed or StatusCategory.Active && !NeedsReason(category, alias);
+        category is StatusCategory.Proposed or StatusCategory.Active
+        && alias is not (IntakeRequestStatusAlias.Withdrawn or IntakeRequestStatusAlias.Duplicate)
+        && !NeedsReason(category, alias);
 
     /// <summary>
     /// Whether moving a request into a status needs a reason the requester can read: declining, deferring,
@@ -581,16 +590,14 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// Refused once the request has status history beyond its initial status, because by then it is part of
     /// the record of a decision; withdrawing is the requester's way out and declining the desk's. Requests
     /// with outcomes will be refused too, once outcomes exist. A request others are marked duplicates of is
-    /// refused as well, because their pages point at it.
+    /// refused as well, because their pages point at it. Both refusals read the same, because the duplicates
+    /// may be on desks the deleter cannot see, and saying they exist would disclose them.
     /// </remarks>
-    /// <param name="hasDuplicates">Whether any request is marked a duplicate of this one.</param>
+    /// <param name="hasDuplicates">Whether any request is marked a duplicate of this one, visible to the deleter or not.</param>
     public Result Delete(bool hasDuplicates, EventActor actor, Instant timestamp)
     {
-        if (HasLeftItsInitialStatus)
-            return Result.Failure(MovedThroughReviewError);
-
-        if (hasDuplicates)
-            return Result.Failure("Other requests are marked duplicates of this one, so it cannot be deleted.");
+        if (HasLeftItsInitialStatus || hasDuplicates)
+            return Result.Failure(PartOfARecordError);
 
         AddDomainEvent(new IntakeRequestDeletedEvent(Id, Key, Title, DeskId, actor, timestamp));
 
@@ -598,10 +605,10 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// The failure for deleting a request that has moved through review.
+    /// The failure for deleting a request that has moved through review or that other requests point at.
     /// </summary>
-    public const string MovedThroughReviewError =
-        "This request has moved through review, so it cannot be deleted. Decline it instead.";
+    public const string PartOfARecordError =
+        "This request is part of the record of a review, so it cannot be deleted. Decline it instead.";
 
     /// <summary>
     /// Submits a request to a desk. Refused when the desk is closed to new requests or the channel is archived.

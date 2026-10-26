@@ -37,6 +37,13 @@ public sealed record IntakeRequestDetailsDto
     /// </summary>
     public bool CanAddParticipants { get; init; }
 
+    /// <summary>
+    /// Whether the reader works the request's desk: an agent or Desk Admin on it, or the Demand Management Admin.
+    /// Says who the reader is, not what they may do; the capability flags answer that. A duplicate's agents stay
+    /// on it to review it, and everyone else is taken to the request it gives way to.
+    /// </summary>
+    public bool IsDeskAgent { get; init; }
+
     /// <summary>Whether the reader may move the request to another status: an agent on its desk.</summary>
     public bool CanChangeStatus { get; init; }
 

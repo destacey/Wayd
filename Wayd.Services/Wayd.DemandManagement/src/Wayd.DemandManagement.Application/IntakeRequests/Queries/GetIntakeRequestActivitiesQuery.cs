@@ -3,6 +3,8 @@ using System.Text.Json.Nodes;
 using Wayd.Common.Application.Activities;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.DemandManagement.Domain.Models;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Queries;
@@ -70,24 +72,79 @@ public sealed class GetIntakeRequestActivitiesQueryHandler(
             request.Paging,
             cancellationToken);
 
-        return tiers.Contains(IntakeRequestReadTier.Substance)
-            ? activities
-            : activities with { Items = [.. activities.Items.Select(WithoutActor)] };
+        var visibleSurvivors = await VisibleSurvivors(activities.Items, reader, cancellationToken);
+        var canSeeSubstance = tiers.Contains(IntakeRequestReadTier.Substance);
+
+        return activities with
+        {
+            Items = [.. activities.Items.Select(entry => ForReader(entry, canSeeSubstance, visibleSurvivors))],
+        };
     }
 
+    /// <summary>The payload fields of a status change that name the request a duplicate gives way to.</summary>
+    private static readonly string[] SurvivorFields = ["fromDuplicateOfId", "toDuplicateOfId"];
+
     /// <summary>
-    /// The entry with nothing that names who caused it: the employee, the client, and the actor in its payload.
+    /// Of the requests the page's status changes name as surviving a duplicate, those the reader may see.
     /// </summary>
-    private static ActivityLogDto WithoutActor(ActivityLogDto entry)
+    private async Task<HashSet<Guid>> VisibleSurvivors(IEnumerable<ActivityLogDto> entries, IntakeRequestReader reader, CancellationToken cancellationToken)
     {
-        var payload = JsonNode.Parse(entry.Payload) as JsonObject;
-        payload?.Remove("actor");
+        var named = entries
+            .Where(e => e.EventType == nameof(IntakeRequestStatusChangedEvent))
+            .Select(e => JsonNode.Parse(e.Payload) as JsonObject)
+            .SelectMany(p => SurvivorFields.Select(field => IdIn(p, field)))
+            .OfType<Guid>()
+            .Distinct()
+            .ToArray();
+        if (named.Length == 0)
+            return [];
+
+        return [.. await _dbContext.IntakeRequests
+            .Where(r => named.Contains(r.Id))
+            .Where(reader.CanSeeSummary(_dbContext.IntakeDesks))
+            .Select(r => r.Id)
+            .ToListAsync(cancellationToken)];
+    }
+
+    /// <summary>The id a payload field holds, or null when it holds none.</summary>
+    private static Guid? IdIn(JsonObject? payload, string field) =>
+        payload?[field] is JsonValue value && value.TryGetValue<string>(out var text) && Guid.TryParse(text, out var id) ? id : null;
+
+    /// <summary>
+    /// The entry as the reader may read it. A surviving request they cannot see is left out of a status change,
+    /// so its id never confirms that a hidden request exists. Without the substance, nothing names who caused the
+    /// entry — the employee, the client and the actor in its payload — and a workflow switch loses its reason.
+    /// </summary>
+    private static ActivityLogDto ForReader(ActivityLogDto entry, bool canSeeSubstance, HashSet<Guid> visibleSurvivors)
+    {
+        var hidesSurvivor = entry.EventType == nameof(IntakeRequestStatusChangedEvent);
+        if (canSeeSubstance && !hidesSurvivor)
+            return entry;
+
+        if (JsonNode.Parse(entry.Payload) is not JsonObject payload)
+            return entry;
+
+        if (hidesSurvivor)
+        {
+            foreach (var field in SurvivorFields)
+            {
+                if (IdIn(payload, field) is { } id && !visibleSurvivors.Contains(id))
+                    payload[field] = null;
+            }
+        }
+
+        if (canSeeSubstance)
+            return entry with { Payload = payload.ToJsonString() };
+
+        payload.Remove("actor");
+        if (entry.EventType == nameof(StatusWorkflowSwitchedEvent))
+            payload.Remove("reason");
 
         return entry with
         {
             Employee = null,
             ClientId = null,
-            Payload = payload?.ToJsonString() ?? entry.Payload,
+            Payload = payload.ToJsonString(),
         };
     }
 }

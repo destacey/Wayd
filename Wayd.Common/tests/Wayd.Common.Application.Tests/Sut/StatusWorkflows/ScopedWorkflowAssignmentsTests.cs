@@ -122,6 +122,59 @@ public sealed class ScopedWorkflowAssignmentsTests : StatusWorkflowHandlerTestBa
     }
 
     [Fact]
+    public async Task AssignToEmptyScope_ToTheOrganizationsWorkflow_RemovesTheScopesOwn_SoItFollowsTheDefaultAgain()
+    {
+        // Arrange
+        var organizationDefault = SeedWorkflow("Default", publish: true);
+        Assign(organizationDefault, null);
+        var own = Assign(SeedWorkflow("Own", publish: true), _scopeId);
+
+        // Act
+        var result = await CreateSut().AssignToEmptyScope(Widget.Key, _scopeId, organizationDefault.Id, EventActor.System, Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        DbContext.WorkflowAssignments.Should().NotContain(a => a.ScopeId == _scopeId);
+        var removed = own.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<WorkflowAssignmentRemovedEvent>().Subject;
+        removed.FromWorkflowId.Should().Be(own.WorkflowId);
+        removed.ToWorkflowId.Should().Be(organizationDefault.Id);
+        DbContext.SaveChangesCallCount.Should().Be(1);
+        (await CreateSut().Current(Widget.Key, _scopeId, TestContext.Current.CancellationToken)).Value.IsScopeOwn.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RemoveScope_RemovesTheScopesOwnAssignment_WithoutSaving()
+    {
+        // Arrange — the caller saves it with the scope's own removal
+        Assign(SeedWorkflow("Default", publish: true), null);
+        var own = Assign(SeedWorkflow("Own", publish: true), _scopeId);
+
+        // Act
+        var result = await CreateSut().RemoveScope(Widget.Key, _scopeId, EventActor.System, Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        DbContext.WorkflowAssignments.Should().NotContain(a => a.ScopeId == _scopeId);
+        own.DomainEvents.OfType<WorkflowAssignmentRemovedEvent>().Should().ContainSingle()
+            .Which.ToWorkflowId.Should().BeNull("the scope itself is gone");
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task RemoveScope_ForAScopeFollowingTheDefault_ChangesNothing()
+    {
+        // Arrange
+        var organizationDefault = Assign(SeedWorkflow("Default", publish: true), null);
+
+        // Act
+        var result = await CreateSut().RemoveScope(Widget.Key, _scopeId, EventActor.System, Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        DbContext.WorkflowAssignments.Should().ContainSingle().Which.Should().BeSameAs(organizationDefault);
+    }
+
+    [Fact]
     public async Task AssignToEmptyScope_ToADraftWorkflow_Fails()
     {
         // Arrange

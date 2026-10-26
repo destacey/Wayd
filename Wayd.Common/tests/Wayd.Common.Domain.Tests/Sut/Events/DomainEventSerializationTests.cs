@@ -374,6 +374,20 @@ public sealed class DomainEventSerializationTests
     }
 
     [Fact]
+    public void WorkflowAssignmentRemovedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — the scope gone, so it follows no workflow
+        var original = new WorkflowAssignmentRemovedEvent("demand.intake-request", Guid.NewGuid(), Guid.NewGuid(), null,
+            EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
+    }
+
+    [Fact]
     public void IntakeRequestWithdrawnEvent_RoundTripsThroughDurableSerializer()
     {
         // Arrange

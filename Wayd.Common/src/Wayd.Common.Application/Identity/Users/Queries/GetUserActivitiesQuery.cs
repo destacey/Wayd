@@ -10,8 +10,11 @@ namespace Wayd.Common.Application.Identity.Users.Queries;
 /// Retrieves activity history for a user account, newest first, including the activity of the personal access
 /// tokens it owns. Null when the user does not exist.
 /// </summary>
-public sealed record GetUserActivitiesQuery(string UserId, int Page = 1, int PageSize = 50)
-    : IQuery<Result<PagedResponse<ActivityLogDto>?>>;
+public sealed record GetUserActivitiesQuery(string UserId, PageRequest Paging)
+    : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery;
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetUserActivitiesQueryValidator : PagedQueryValidator<GetUserActivitiesQuery>;
 
 public sealed class GetUserActivitiesQueryHandler(
     IWaydDbContext waydDbContext,
@@ -37,8 +40,7 @@ public sealed class GetUserActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             userId,
             aggregateType: "ApplicationUser",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(await ResolveRaisedOn(activities, cancellationToken));

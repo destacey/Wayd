@@ -27,7 +27,7 @@ public class GetScoringModelActivitiesQueryHandlerTests : IDisposable
     public async Task Handle_ReturnsNull_WhenScoringModelDoesNotExist()
     {
         // Arrange
-        var query = new GetScoringModelActivitiesQuery(new IdOrKey(Guid.NewGuid()));
+        var query = new GetScoringModelActivitiesQuery(new IdOrKey(Guid.NewGuid()), new PageRequest());
 
         // Act
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
@@ -35,7 +35,7 @@ public class GetScoringModelActivitiesQueryHandlerTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeNull();
-        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -64,12 +64,12 @@ public class GetScoringModelActivitiesQueryHandlerTests : IDisposable
         var expectedResponse = new PagedResponse<ActivityLogDto>(expectedActivities, 1, 1, 50);
 
         _activityLogReader
-            .Setup(r => r.Read(model.Id, "ScoringModel", 1, 50, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(model.Id, "ScoringModel", new PageRequest(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
         var result = await _handler.Handle(
-            new GetScoringModelActivitiesQuery(new IdOrKey(model.Key), 1, 50),
+            new GetScoringModelActivitiesQuery(new IdOrKey(model.Key), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert

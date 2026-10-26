@@ -17,19 +17,20 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Queries;
 /// every entry without its actor: whoever submitted a request on someone's behalf is the actor of its creation,
 /// and the submitter is substance.
 /// </remarks>
-public sealed record GetIntakeRequestActivitiesQuery : IQuery<PagedResponse<ActivityLogDto>?>
+public sealed record GetIntakeRequestActivitiesQuery : IQuery<PagedResponse<ActivityLogDto>?>, IPagedQuery
 {
-    public GetIntakeRequestActivitiesQuery(IdOrKey idOrKey, int page = 1, int pageSize = 50)
+    public GetIntakeRequestActivitiesQuery(IdOrKey idOrKey, PageRequest paging)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<IntakeRequest>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<IntakeRequest, bool>> IdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetIntakeRequestActivitiesQueryValidator : PagedQueryValidator<GetIntakeRequestActivitiesQuery>;
 
 public sealed class GetIntakeRequestActivitiesQueryHandler(
     IDemandManagementDbContext dbContext,
@@ -66,8 +67,7 @@ public sealed class GetIntakeRequestActivitiesQueryHandler(
             target.Id,
             nameof(IntakeRequest),
             IntakeRequestEventTiers.EventTypesIn(tiers),
-            request.Page,
-            request.PageSize,
+            request.Paging,
             cancellationToken);
 
         return tiers.Contains(IntakeRequestReadTier.Substance)

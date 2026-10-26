@@ -9,19 +9,20 @@ namespace Wayd.Common.Application.StatusWorkflows.Queries;
 /// <summary>
 /// Retrieves activity history for a status workflow, newest first.
 /// </summary>
-public sealed record GetStatusWorkflowActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>
+public sealed record GetStatusWorkflowActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery
 {
-    public GetStatusWorkflowActivitiesQuery(IdOrKey idOrKey, int page = 1, int pageSize = 50)
+    public GetStatusWorkflowActivitiesQuery(IdOrKey idOrKey, PageRequest paging)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<StatusWorkflow>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<StatusWorkflow, bool>> IdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetStatusWorkflowActivitiesQueryValidator : PagedQueryValidator<GetStatusWorkflowActivitiesQuery>;
 
 public sealed class GetStatusWorkflowActivitiesQueryHandler(
     IStatusWorkflowDbContext statusWorkflowDbContext,
@@ -48,8 +49,7 @@ public sealed class GetStatusWorkflowActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             workflowId.Value,
             aggregateType: "Workflow",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(activities);

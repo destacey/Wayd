@@ -10,19 +10,20 @@ namespace Wayd.ProductManagement.Application.Products.Queries;
 /// <summary>
 /// Retrieves activity history for a product, newest first.
 /// </summary>
-public sealed record GetProductActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>
+public sealed record GetProductActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery
 {
-    public GetProductActivitiesQuery(IdOrKey idOrKey, int page = 1, int pageSize = 50)
+    public GetProductActivitiesQuery(IdOrKey idOrKey, PageRequest paging)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<Product>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<Product, bool>> IdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetProductActivitiesQueryValidator : PagedQueryValidator<GetProductActivitiesQuery>;
 
 public sealed class GetProductActivitiesQueryHandler(
     IProductManagementDbContext productManagementDbContext,
@@ -48,8 +49,7 @@ public sealed class GetProductActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             productId.Value,
             aggregateType: "Product",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(await ResolveRaisedOn(activities, cancellationToken));

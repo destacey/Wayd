@@ -70,11 +70,11 @@ public sealed class FollowQueryTranslationIntegrationTests(SqlServerDbContextFix
         var handler = new GetMyFollowsQueryHandler(context, context, readRules, principal.Object, Clock());
 
         // Act
-        var firstPage = await handler.Handle(new GetMyFollowsQuery(Sort: FollowSort.Followed, PageNumber: 1, PageSize: 1), cancellationToken);
-        var secondPage = await handler.Handle(new GetMyFollowsQuery(Sort: FollowSort.Followed, PageNumber: 2, PageSize: 1), cancellationToken);
-        var unhealthy = await handler.Handle(new GetMyFollowsQuery(View: FollowView.Unhealthy), cancellationToken);
-        var byLastChanged = await handler.Handle(new GetMyFollowsQuery(View: FollowView.ChangedRecently), cancellationToken);
-        var searched = await handler.Handle(new GetMyFollowsQuery(Search: "zzz-no-match"), cancellationToken);
+        var firstPage = await handler.Handle(new GetMyFollowsQuery(new PageRequest(1, 1), Sort: FollowSort.Followed), cancellationToken);
+        var secondPage = await handler.Handle(new GetMyFollowsQuery(new PageRequest(2, 1), Sort: FollowSort.Followed), cancellationToken);
+        var unhealthy = await handler.Handle(new GetMyFollowsQuery(new PageRequest(), View: FollowView.Unhealthy), cancellationToken);
+        var byLastChanged = await handler.Handle(new GetMyFollowsQuery(new PageRequest(), View: FollowView.ChangedRecently), cancellationToken);
+        var searched = await handler.Handle(new GetMyFollowsQuery(new PageRequest(), Search: "zzz-no-match"), cancellationToken);
 
         // Assert
         firstPage.IsSuccess.Should().BeTrue(firstPage.IsFailure ? firstPage.Error : null);
@@ -120,9 +120,9 @@ public sealed class FollowQueryTranslationIntegrationTests(SqlServerDbContextFix
             context, context, ReadRules(context, principal.Object, readable: [shadowed.Id, related.Id], unhealthy: []), principal.Object, Clock());
 
         // Act
-        var changedNewest = await handler.Handle(new GetMyFollowsQuery(), cancellationToken);
-        var changedOldest = await handler.Handle(new GetMyFollowsQuery(Direction: SortDirection.Ascending), cancellationToken);
-        var followedOldest = await handler.Handle(new GetMyFollowsQuery(Sort: FollowSort.Followed, Direction: SortDirection.Ascending), cancellationToken);
+        var changedNewest = await handler.Handle(new GetMyFollowsQuery(new PageRequest()), cancellationToken);
+        var changedOldest = await handler.Handle(new GetMyFollowsQuery(new PageRequest(), Direction: SortDirection.Ascending), cancellationToken);
+        var followedOldest = await handler.Handle(new GetMyFollowsQuery(new PageRequest(), Sort: FollowSort.Followed, Direction: SortDirection.Ascending), cancellationToken);
 
         // Assert
         changedNewest.IsSuccess.Should().BeTrue(changedNewest.IsFailure ? changedNewest.Error : null);

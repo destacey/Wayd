@@ -1,3 +1,4 @@
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Models.Organizations;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,7 +37,7 @@ public sealed class SchedulingSettingsDispatchTests(WaydSqlServerApiFactory fact
         // Act — a change
         var saved = await dispatcher.Send(new UpdateSchedulingSettingsCommand("America/Chicago", 2, WorkingWeek.MondayToFriday.Days, null), ct);
         var afterSave = await dispatcher.Send(new GetSchedulingSettingsQuery(), ct);
-        var activities = await dispatcher.Send(new GetSchedulingSettingsActivitiesQuery(), ct);
+        var activities = await dispatcher.Send(new GetSchedulingSettingsActivitiesQuery(new PageRequest()), ct);
 
         // Assert
         Assert.True(saved.IsSuccess, saved.IsFailure ? saved.Error : null);
@@ -55,7 +56,7 @@ public sealed class SchedulingSettingsDispatchTests(WaydSqlServerApiFactory fact
         var unchanged = await dispatcher.Send(new UpdateSchedulingSettingsCommand("America/Chicago", 2, WorkingWeek.MondayToFriday.Days, null), ct);
         var invalid = await dispatcher.Send(new UpdateSchedulingSettingsCommand("Mars/Olympus_Mons", 2, WorkingWeek.MondayToFriday.Days, null), ct);
         var afterInvalid = await dispatcher.Send(new GetSchedulingSettingsQuery(), ct);
-        var finalActivities = await dispatcher.Send(new GetSchedulingSettingsActivitiesQuery(), ct);
+        var finalActivities = await dispatcher.Send(new GetSchedulingSettingsActivitiesQuery(new PageRequest()), ct);
 
         // Assert
         Assert.True(unchanged.IsSuccess);

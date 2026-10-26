@@ -64,9 +64,10 @@ public class RisksController : ControllerBase
     [McpTool("Risks_GetActivities", "Get risk activity history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = PageRequest.FirstPage, [FromQuery] int pageSize = PageSizes.Default, CancellationToken cancellationToken = default)
     {
-        var result = await _dispatcher.Send(new GetRiskActivitiesQuery(new IdOrKey(idOrKey), page, pageSize), cancellationToken);
+        var result = await _dispatcher.Send(new GetRiskActivitiesQuery(new IdOrKey(idOrKey), new PageRequest(page, pageSize)), cancellationToken);
 
         return result.Value is not null
             ? Ok(result.Value)

@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Notifications.Queries;
 using Wayd.Common.Application.Tests.Infrastructure;
 using Wayd.Common.Domain.Events;
@@ -45,7 +46,7 @@ public sealed class GetMyNotificationsQueryHandlerTests
         Seed(WidgetType, lever.Id, hours: 3, NotificationEvent.TimelineChanged, NotificationReason.Following);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Items.Select(i => i.Record.Key).Should().Equal("G-1", "W-1");
@@ -77,7 +78,7 @@ public sealed class GetMyNotificationsQueryHandlerTests
         _gadgets.Delete(deleted.Id);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Items.Should().ContainSingle().Which.Record.Key.Should().Be("G-1");
@@ -92,7 +93,7 @@ public sealed class GetMyNotificationsQueryHandlerTests
         _gadgets.CanView = false;
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Items.Should().BeEmpty();
@@ -107,7 +108,7 @@ public sealed class GetMyNotificationsQueryHandlerTests
         Seed(GadgetType, sprocket.Id, hours: 1, recipientId: Guid.NewGuid());
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Items.Should().BeEmpty();
@@ -123,7 +124,7 @@ public sealed class GetMyNotificationsQueryHandlerTests
         Seed(GadgetType, unread.Id, hours: 2);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(UnreadOnly: true), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest(), UnreadOnly: true), TestContext.Current.CancellationToken);
 
         // Assert
         result.Items.Should().ContainSingle().Which.Record.Key.Should().Be("G-2");
@@ -140,8 +141,8 @@ public sealed class GetMyNotificationsQueryHandlerTests
         }
 
         // Act
-        var first = await CreateHandler().Handle(new GetMyNotificationsQuery(PageSize: 2), TestContext.Current.CancellationToken);
-        var second = await CreateHandler().Handle(new GetMyNotificationsQuery(Before: first.NextCursor, PageSize: 2), TestContext.Current.CancellationToken);
+        var first = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest(PageSize: 2)), TestContext.Current.CancellationToken);
+        var second = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest(Before: first.NextCursor, PageSize: 2)), TestContext.Current.CancellationToken);
 
         // Assert
         first.Items.Select(i => i.Record.Key).Should().Equal("G-3", "G-2");
@@ -161,7 +162,7 @@ public sealed class GetMyNotificationsQueryHandlerTests
         }
 
         // Act
-        var page = await CreateHandler().Handle(new GetMyNotificationsQuery(PageSize: 2), TestContext.Current.CancellationToken);
+        var page = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest(PageSize: 2)), TestContext.Current.CancellationToken);
 
         // Assert
         page.Items.Should().HaveCount(2);
@@ -178,13 +179,13 @@ public sealed class GetMyNotificationsQueryHandlerTests
             Seed(GadgetType, records[i].Id, hours: i + 1);
         }
 
-        var first = await CreateHandler().Handle(new GetMyNotificationsQuery(PageSize: 2), TestContext.Current.CancellationToken);
+        var first = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest(PageSize: 2)), TestContext.Current.CancellationToken);
 
         // G-1 changes while the first page is on screen, moving to the top of the list.
         Seed(GadgetType, records[0].Id, hours: 10);
 
         // Act
-        var second = await CreateHandler().Handle(new GetMyNotificationsQuery(Before: first.NextCursor, PageSize: 2), TestContext.Current.CancellationToken);
+        var second = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest(Before: first.NextCursor, PageSize: 2)), TestContext.Current.CancellationToken);
 
         // Assert — an offset would now give G-3 again and G-2; the cursor gives G-2 only, and G-1 waits on page one.
         first.Items.Select(i => i.Record.Key).Should().Equal("G-4", "G-3");
@@ -202,7 +203,7 @@ public sealed class GetMyNotificationsQueryHandlerTests
         Seed(GadgetType, sprocket.Id, hours: 1, actorEmployeeId: actor.Id);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         var entry = result.Items.Should().ContainSingle().Subject;
@@ -223,7 +224,7 @@ public sealed class GetMyNotificationsQueryHandlerTests
         Seed(WidgetType, sharedId, hours: 2, NotificationEvent.TimelineChanged, NotificationReason.Following);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Items.Select(i => (i.Record.Key, i.Event, i.Count)).Should().Equal(
@@ -244,7 +245,7 @@ public sealed class GetMyNotificationsQueryHandlerTests
         Seed(GadgetType, gadgetLow.Id, hours: 1);
 
         // Act
-        var keys = await WalkByCursor(new GetMyNotificationsQuery(PageSize: 1));
+        var keys = await WalkByCursor(new GetMyNotificationsQuery(new CursorRequest(PageSize: 1)));
 
         // Assert — owner type, then record id; the order the notifications were written plays no part.
         keys.Should().Equal("G-1", "G-2", "W-1");
@@ -258,13 +259,13 @@ public sealed class GetMyNotificationsQueryHandlerTests
         var second = _gadgets.Add("G-2", "Second", id: Guid.Parse("00000000-0000-0000-0000-000000000002"));
         Seed(GadgetType, first.Id, hours: 5);
         Seed(GadgetType, second.Id, hours: 5);
-        var page1 = await CreateHandler().Handle(new GetMyNotificationsQuery(PageSize: 1), TestContext.Current.CancellationToken);
+        var page1 = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest(PageSize: 1)), TestContext.Current.CancellationToken);
 
         // A notification about an older change to G-2 is written late, with the highest id of all.
         Seed(GadgetType, second.Id, hours: 1);
 
         // Act
-        var page2 = await CreateHandler().Handle(new GetMyNotificationsQuery(Before: page1.NextCursor, PageSize: 1), TestContext.Current.CancellationToken);
+        var page2 = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest(Before: page1.NextCursor, PageSize: 1)), TestContext.Current.CancellationToken);
 
         // Assert
         page1.Items.Should().ContainSingle().Which.Record.Key.Should().Be("G-1");
@@ -277,14 +278,14 @@ public sealed class GetMyNotificationsQueryHandlerTests
         // Arrange — four unread records, newest first G-4..G-1; the first page shows G-4 and G-3.
         var records = Enumerable.Range(1, 4).Select(i => _gadgets.Add($"G-{i}", $"Gadget {i}")).ToList();
         var notifications = records.Select((r, i) => Seed(GadgetType, r.Id, hours: i + 1)).ToList();
-        var page1 = await CreateHandler().Handle(new GetMyNotificationsQuery(UnreadOnly: true, PageSize: 2), TestContext.Current.CancellationToken);
+        var page1 = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest(PageSize: 2), UnreadOnly: true), TestContext.Current.CancellationToken);
 
         // G-4, already shown, is read before the next page is asked for.
         _dbContext.RemoveNotification(notifications[3]);
         Seed(GadgetType, records[3].Id, hours: 4, read: true);
 
         // Act
-        var page2 = await CreateHandler().Handle(new GetMyNotificationsQuery(UnreadOnly: true, Before: page1.NextCursor, PageSize: 2), TestContext.Current.CancellationToken);
+        var page2 = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest(Before: page1.NextCursor, PageSize: 2), UnreadOnly: true), TestContext.Current.CancellationToken);
 
         // Assert — an offset would now start at G-2's neighbour and skip G-2.
         page1.Items.Select(i => i.Record.Key).Should().Equal("G-4", "G-3");
@@ -305,8 +306,8 @@ public sealed class GetMyNotificationsQueryHandlerTests
         _gadgets.DeleteBeforeDescribe(records[1].Id);
 
         // Act
-        var page1 = await CreateHandler().Handle(new GetMyNotificationsQuery(PageSize: 2), TestContext.Current.CancellationToken);
-        var page2 = await CreateHandler().Handle(new GetMyNotificationsQuery(Before: page1.NextCursor, PageSize: 2), TestContext.Current.CancellationToken);
+        var page1 = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest(PageSize: 2)), TestContext.Current.CancellationToken);
+        var page2 = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest(Before: page1.NextCursor, PageSize: 2)), TestContext.Current.CancellationToken);
 
         // Assert — the cursor is G-2's, so the next page starts at G-1 rather than showing G-2's neighbour again.
         page1.Items.Select(i => i.Record.Key).Should().Equal("G-3");
@@ -322,7 +323,7 @@ public sealed class GetMyNotificationsQueryHandlerTests
         Seed(GadgetType, sprocket.Id, hours: 1, NotificationEvent.TimelineChanged);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         var entry = result.Items.Should().ContainSingle().Subject;
@@ -339,7 +340,7 @@ public sealed class GetMyNotificationsQueryHandlerTests
         _currentPrincipal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync((Guid?)null);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Items.Should().BeEmpty();
@@ -360,7 +361,7 @@ public sealed class GetMyNotificationsQueryHandlerTests
                 return keys;
             }
 
-            query = query with { Before = page.NextCursor };
+            query = query with { Paging = query.Paging with { Before = page.NextCursor } };
         }
 
         throw new InvalidOperationException("The cursor never reached the last page.");

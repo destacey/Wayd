@@ -214,9 +214,9 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
 
         // Act
         var asOutsider = await new GetIntakeRequestActivitiesQueryHandler(context, Principal(Guid.NewGuid()), reader)
-            .Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(scenario.OnSummaryOnly.Id)), ct);
+            .Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(scenario.OnSummaryOnly.Id), new PageRequest()), ct);
         var asRequester = await new GetIntakeRequestActivitiesQueryHandler(context, Principal(scenario.Requester.Id), reader)
-            .Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(scenario.OnSummaryOnly.Id)), ct);
+            .Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(scenario.OnSummaryOnly.Id), new PageRequest()), ct);
 
         // Assert
         asOutsider!.Items.Select(a => a.EventType).Should().BeEquivalentTo(

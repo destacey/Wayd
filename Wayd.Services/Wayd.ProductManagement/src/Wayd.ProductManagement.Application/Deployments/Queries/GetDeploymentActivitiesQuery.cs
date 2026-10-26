@@ -9,19 +9,20 @@ namespace Wayd.ProductManagement.Application.Deployments.Queries;
 /// <summary>
 /// Retrieves activity history for a deployment, newest first.
 /// </summary>
-public sealed record GetDeploymentActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>
+public sealed record GetDeploymentActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery
 {
-    public GetDeploymentActivitiesQuery(IdOrKey idOrKey, int page = 1, int pageSize = 50)
+    public GetDeploymentActivitiesQuery(IdOrKey idOrKey, PageRequest paging)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<Deployment>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<Deployment, bool>> IdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetDeploymentActivitiesQueryValidator : PagedQueryValidator<GetDeploymentActivitiesQuery>;
 
 public sealed class GetDeploymentActivitiesQueryHandler(
     IProductManagementDbContext productManagementDbContext,
@@ -47,8 +48,7 @@ public sealed class GetDeploymentActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             deploymentId.Value,
             aggregateType: "Deployment",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(activities);

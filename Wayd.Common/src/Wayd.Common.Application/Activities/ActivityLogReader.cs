@@ -12,32 +12,25 @@ public sealed class ActivityLogReader(IActivityLogDbContext dbContext) : IActivi
     public Task<PagedResponse<ActivityLogDto>> Read(
         Guid aggregateId,
         string? aggregateType = null,
-        int page = 1,
-        int pageSize = 50,
+        PageRequest? paging = null,
         CancellationToken cancellationToken = default) =>
-        Read(aggregateId, aggregateType, eventTypes: null, page, pageSize, cancellationToken);
+        Read(aggregateId, aggregateType, eventTypes: null, paging ?? new(), cancellationToken);
 
     public Task<PagedResponse<ActivityLogDto>> ReadEventTypes(
         Guid aggregateId,
         string aggregateType,
         IReadOnlyCollection<string> eventTypes,
-        int page = 1,
-        int pageSize = 50,
+        PageRequest? paging = null,
         CancellationToken cancellationToken = default) =>
-        Read(aggregateId, aggregateType, eventTypes, page, pageSize, cancellationToken);
+        Read(aggregateId, aggregateType, eventTypes, paging ?? new(), cancellationToken);
 
     private async Task<PagedResponse<ActivityLogDto>> Read(
         Guid aggregateId,
         string? aggregateType,
         IReadOnlyCollection<string>? eventTypes,
-        int page,
-        int pageSize,
+        PageRequest paging,
         CancellationToken cancellationToken)
     {
-        var pageNumber = Math.Max(1, page);
-        var take = Math.Clamp(pageSize, 1, 100);
-        var skip = (pageNumber - 1) * take;
-
         var hasType = !string.IsNullOrWhiteSpace(aggregateType);
 
         var own = _dbContext.ActivityLogs.Where(a => a.AggregateId == aggregateId);
@@ -80,8 +73,8 @@ public sealed class ActivityLogReader(IActivityLogDbContext dbContext) : IActivi
             .OrderByDescending(a => a.Timestamp)
             .ThenByDescending(a => a.Ordinal)
             .ThenByDescending(a => a.Id)
-            .Skip(skip)
-            .Take(take)
+            .Skip(paging.Skip)
+            .Take(paging.PageSize)
             .ToListAsync(cancellationToken);
 
         var dtos = items
@@ -94,6 +87,6 @@ public sealed class ActivityLogReader(IActivityLogDbContext dbContext) : IActivi
             })
             .ToList();
 
-        return new PagedResponse<ActivityLogDto>(dtos, totalCount, pageNumber, take);
+        return new PagedResponse<ActivityLogDto>(dtos, totalCount, paging.Page, paging.PageSize);
     }
 }

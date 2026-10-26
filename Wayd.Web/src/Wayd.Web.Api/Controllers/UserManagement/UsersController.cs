@@ -71,9 +71,10 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
     [EndpointSummary("Get activity history for the user, including their personal access tokens.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string id, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string id, [FromQuery] int page = PageRequest.FirstPage, [FromQuery] int pageSize = PageSizes.Default, CancellationToken cancellationToken = default)
     {
-        var result = await _dispatcher.Send(new GetUserActivitiesQuery(id, page, pageSize), cancellationToken);
+        var result = await _dispatcher.Send(new GetUserActivitiesQuery(id, new PageRequest(page, pageSize)), cancellationToken);
 
         return result.Value is not null
             ? Ok(result.Value)

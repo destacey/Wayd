@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Wayd.Common.Application.Following.Queries;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Following;
@@ -87,7 +88,7 @@ public sealed class PlanningIntervalObjectiveFollowingTests(SqlServerDbContextFi
         var handlerUnderTest = new GetMyFollowsQueryHandler(context, context, [readRule], principal.Object, clock);
 
         // Act
-        var result = await handlerUnderTest.Handle(new GetMyFollowsQuery(ownerType), ct);
+        var result = await handlerUnderTest.Handle(new GetMyFollowsQuery(new PageRequest(), ownerType), ct);
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);

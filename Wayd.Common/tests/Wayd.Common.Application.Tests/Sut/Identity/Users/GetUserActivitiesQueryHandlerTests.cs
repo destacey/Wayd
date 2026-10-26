@@ -34,20 +34,20 @@ public sealed class GetUserActivitiesQueryHandlerTests : IDisposable
     {
         // Act
         var result = await _handler.Handle(
-            new GetUserActivitiesQuery(Guid.NewGuid().ToString()),
+            new GetUserActivitiesQuery(Guid.NewGuid().ToString(), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeNull();
-        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task Handle_ReturnsNull_WhenIdIsNotAGuid()
     {
         // Act
-        var result = await _handler.Handle(new GetUserActivitiesQuery("not-a-guid"), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new GetUserActivitiesQuery("not-a-guid", new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.Should().BeNull();
@@ -59,11 +59,11 @@ public sealed class GetUserActivitiesQueryHandlerTests : IDisposable
         // Arrange
         var expected = new PagedResponse<ActivityLogDto>([Activity(Guid.Parse(UserId), "ApplicationUser", isRelated: false)], 1, 1, 50);
         _activityLogReader
-            .Setup(r => r.Read(Guid.Parse(UserId), "ApplicationUser", 1, 50, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(Guid.Parse(UserId), "ApplicationUser", new PageRequest(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
         // Act
-        var result = await _handler.Handle(new GetUserActivitiesQuery(UserId), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new GetUserActivitiesQuery(UserId, new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.Should().BeEquivalentTo(expected);
@@ -79,11 +79,11 @@ public sealed class GetUserActivitiesQueryHandlerTests : IDisposable
         var fromToken = Activity(token.Id, "PersonalAccessToken", isRelated: true);
         var fromDeletedToken = Activity(Guid.NewGuid(), "PersonalAccessToken", isRelated: true);
         _activityLogReader
-            .Setup(r => r.Read(Guid.Parse(UserId), "ApplicationUser", 1, 50, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(Guid.Parse(UserId), "ApplicationUser", new PageRequest(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PagedResponse<ActivityLogDto>([fromToken, fromDeletedToken], 2, 1, 50));
 
         // Act
-        var result = await _handler.Handle(new GetUserActivitiesQuery(UserId), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new GetUserActivitiesQuery(UserId, new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         var items = result.Value!.Items;

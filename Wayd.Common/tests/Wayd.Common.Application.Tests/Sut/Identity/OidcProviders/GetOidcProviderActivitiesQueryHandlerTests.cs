@@ -25,12 +25,12 @@ public sealed class GetOidcProviderActivitiesQueryHandlerTests : IDisposable
     public async Task Handle_ReturnsNull_WhenProviderDoesNotExist()
     {
         // Act
-        var result = await _handler.Handle(new GetOidcProviderActivitiesQuery(Guid.NewGuid()), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new GetOidcProviderActivitiesQuery(Guid.NewGuid(), new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeNull();
-        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -56,11 +56,11 @@ public sealed class GetOidcProviderActivitiesQueryHandlerTests : IDisposable
             },
         ], 1, 2, 25);
         _activityLogReader
-            .Setup(r => r.Read(provider.Id, "OidcProvider", 2, 25, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(provider.Id, "OidcProvider", new PageRequest(2, 25), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
         // Act
-        var result = await _handler.Handle(new GetOidcProviderActivitiesQuery(provider.Id, 2, 25), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new GetOidcProviderActivitiesQuery(provider.Id, new PageRequest(2, 25)), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.Should().BeEquivalentTo(expected);

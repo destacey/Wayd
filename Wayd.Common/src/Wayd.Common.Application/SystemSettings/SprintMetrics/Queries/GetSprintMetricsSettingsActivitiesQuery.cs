@@ -7,8 +7,11 @@ namespace Wayd.Common.Application.SystemSettings.SprintMetrics.Queries;
 /// <summary>
 /// The sprint metrics settings' change history, newest first. Empty until the section is first saved.
 /// </summary>
-public sealed record GetSprintMetricsSettingsActivitiesQuery(int Page = 1, int PageSize = 50)
-    : IQuery<PagedResponse<ActivityLogDto>>;
+public sealed record GetSprintMetricsSettingsActivitiesQuery(PageRequest Paging)
+    : IQuery<PagedResponse<ActivityLogDto>>, IPagedQuery;
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetSprintMetricsSettingsActivitiesQueryValidator : PagedQueryValidator<GetSprintMetricsSettingsActivitiesQuery>;
 
 public sealed class GetSprintMetricsSettingsActivitiesQueryHandler(IActivityLogReader activityLogReader)
     : IQueryHandler<GetSprintMetricsSettingsActivitiesQuery, PagedResponse<ActivityLogDto>>
@@ -19,7 +22,6 @@ public sealed class GetSprintMetricsSettingsActivitiesQueryHandler(IActivityLogR
         _activityLogReader.Read(
             SystemSettingsSection.IdFor<SprintMetricsSettings>(),
             aggregateType: "SystemSettingsSection",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 }

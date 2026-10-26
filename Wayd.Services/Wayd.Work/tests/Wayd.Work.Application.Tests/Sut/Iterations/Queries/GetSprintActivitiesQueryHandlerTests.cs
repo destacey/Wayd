@@ -30,13 +30,13 @@ public class GetSprintActivitiesQueryHandlerTests : IDisposable
     {
         // Act
         var result = await _handler.Handle(
-            new GetSprintActivitiesQuery(new IdOrKey(Guid.NewGuid())),
+            new GetSprintActivitiesQuery(new IdOrKey(Guid.NewGuid()), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeNull();
-        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -48,13 +48,13 @@ public class GetSprintActivitiesQueryHandlerTests : IDisposable
 
         // Act
         var result = await _handler.Handle(
-            new GetSprintActivitiesQuery(new IdOrKey(iteration.Id)),
+            new GetSprintActivitiesQuery(new IdOrKey(iteration.Id), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeNull();
-        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -83,12 +83,12 @@ public class GetSprintActivitiesQueryHandlerTests : IDisposable
         var expectedResponse = new PagedResponse<ActivityLogDto>(expectedActivities, 1, 1, 50);
 
         _activityLogReader
-            .Setup(r => r.Read(sprint.Id, "Iteration", 1, 50, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(sprint.Id, "Iteration", new PageRequest(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
         var result = await _handler.Handle(
-            new GetSprintActivitiesQuery(new IdOrKey(sprint.Id), 1, 50),
+            new GetSprintActivitiesQuery(new IdOrKey(sprint.Id), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert

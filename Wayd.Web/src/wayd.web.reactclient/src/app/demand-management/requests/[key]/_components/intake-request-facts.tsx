@@ -2,8 +2,12 @@
 
 import { LabeledContent } from '@/src/components/common/content'
 import { RecordFactsGroup } from '@/src/components/common/record'
+import {
+  statusCategoryDescription,
+  WorkflowStatusTag,
+} from '@/src/components/common/status-workflows'
 import { IntakeRequestDetailsDto } from '@/src/services/wayd-api'
-import { Typography } from 'antd'
+import { Tooltip, Typography } from 'antd'
 import NextLink from 'next/link'
 import { FC } from 'react'
 import { deskHref } from '../../../_components/desk-status'
@@ -24,6 +28,16 @@ const IntakeRequestFacts: FC<IntakeRequestFactsProps> = ({ request }) => {
   return (
     <>
       <RecordFactsGroup label="Request">
+        <LabeledContent label="Status">
+          <Tooltip title={statusCategoryDescription(summary.status.category)}>
+            <span>
+              <WorkflowStatusTag
+                name={summary.status.name}
+                category={summary.status.category}
+              />
+            </span>
+          </Tooltip>
+        </LabeledContent>
         <LabeledContent label="Desk">
           <NextLink href={deskHref(summary.desk.key)}>
             {summary.desk.name}

@@ -4,10 +4,15 @@ import { WaydGrid } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import EntityLink from '@/src/components/common/entity-link'
 import {
+  statusCategoryDescription,
+  WorkflowStatusTag,
+} from '@/src/components/common/status-workflows'
+import {
   IntakeRequestSummaryDto,
   NeedByBasisDto,
 } from '@/src/services/wayd-api'
 import { formatCalendarDate } from '@/src/utils'
+import { Tooltip } from 'antd'
 import Link from 'next/link'
 import { FC, ReactNode } from 'react'
 
@@ -62,6 +67,27 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
         <EntityLink href={requestHref(row.original.key)}>
           {row.original.title}
         </EntityLink>
+      ),
+    },
+    {
+      id: 'status',
+      accessorFn: (request) => request.status.name,
+      header: 'Status',
+      size: 150,
+      meta: { filterType: 'set' },
+      // A status name is the desk workflow's own word. The tooltip carries the category, which is the
+      // fixed meaning that decides whether the request is still open.
+      cell: ({ row }) => (
+        <Tooltip
+          title={statusCategoryDescription(row.original.status.category)}
+        >
+          <span>
+            <WorkflowStatusTag
+              name={row.original.status.name}
+              category={row.original.status.category}
+            />
+          </span>
+        </Tooltip>
       ),
     },
     {

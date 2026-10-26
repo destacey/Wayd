@@ -9,11 +9,13 @@ import {
 } from '@/src/services/wayd-api'
 import {
   useGetIntakeDesksQuery,
+  useGetIntakeRequestArrivalStatusesQuery,
   useRerouteIntakeRequestMutation,
 } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { Alert, Checkbox, Form, Modal, Select, Typography } from 'antd'
-import { FC } from 'react'
+import type { FormInstance } from 'antd'
+import { FC, useEffect } from 'react'
 
 const { Item } = Form
 const { Paragraph } = Typography
@@ -57,7 +59,52 @@ export interface RerouteIntakeRequestFormProps {
 
 interface RerouteFormValues {
   deskId: string
+  statusId?: string
   confirmWiderVisibility?: boolean
+}
+
+interface ArrivalStatusFieldProps {
+  requestId: string
+  deskId: string
+  form: FormInstance<RerouteFormValues>
+}
+
+/**
+ * The status the request arrives in on the chosen desk: one of that desk's open statuses that needs no
+ * reason, starting at the one the server matches to the request's own. Required when nothing matches.
+ */
+const ArrivalStatusField: FC<ArrivalStatusFieldProps> = ({
+  requestId,
+  deskId,
+  form,
+}) => {
+  const { data: arrival, isFetching } = useGetIntakeRequestArrivalStatusesQuery(
+    { requestId, deskId },
+  )
+
+  // Prefill once the destination's statuses arrive, without overwriting a choice already made.
+  useEffect(() => {
+    if (arrival?.defaultStatusId && !form.getFieldValue('statusId'))
+      form.setFieldValue('statusId', arrival.defaultStatusId)
+  }, [arrival, form])
+
+  return (
+    <Item
+      name="statusId"
+      label="Arrives As"
+      extra="What the request is on that desk. Deciding it — declining, deferring and the rest — is that desk's call."
+      rules={[{ required: true, message: 'Choose the status it arrives in.' }]}
+    >
+      <Select
+        placeholder="Select a status"
+        loading={isFetching}
+        options={(arrival?.statuses ?? []).map((s) => ({
+          label: s.name,
+          value: s.id,
+        }))}
+      />
+    </Item>
+  )
 }
 
 /**
@@ -89,6 +136,7 @@ const RerouteIntakeRequestForm: FC<RerouteIntakeRequestFormProps> = ({
           await reroute({
             requestId: request.summary.id,
             deskId: values.deskId,
+            statusId: values.statusId,
             confirmWiderVisibility: values.confirmWiderVisibility ?? false,
           }).unwrap()
           messageApi.success('Request moved.')
@@ -132,9 +180,12 @@ const RerouteIntakeRequestForm: FC<RerouteIntakeRequestFormProps> = ({
         layout="vertical"
         name="reroute-intake-request-form"
         onValuesChange={(changed) => {
-          // A confirmation covers what the chosen desk exposes; another desk may expose more.
-          if ('deskId' in changed)
+          // A confirmation covers what the chosen desk exposes; another desk may expose more. The arrival
+          // status belongs to the chosen desk's workflow, so it starts again too.
+          if ('deskId' in changed) {
             form.setFieldValue('confirmWiderVisibility', false)
+            form.setFieldValue('statusId', undefined)
+          }
         }}
       >
         <Item
@@ -167,6 +218,12 @@ const RerouteIntakeRequestForm: FC<RerouteIntakeRequestFormProps> = ({
 
             return (
               <>
+                <ArrivalStatusField
+                  key={to.id}
+                  requestId={request.summary.id}
+                  deskId={to.id}
+                  form={form}
+                />
                 {losesAssignee && (
                   <Alert
                     type="info"

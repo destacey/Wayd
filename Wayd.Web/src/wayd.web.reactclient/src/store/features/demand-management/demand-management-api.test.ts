@@ -9,6 +9,9 @@ const addParticipant = jest.fn()
 const reroute = jest.fn()
 const create = jest.fn()
 const getIntakeDesk = jest.fn()
+const changeStatus = jest.fn()
+const withdraw = jest.fn()
+const getStatusHistory = jest.fn()
 
 jest.mock('@/src/services/clients', () => ({
   getIntakeRequestsClient: () => ({
@@ -18,6 +21,9 @@ jest.mock('@/src/services/clients', () => ({
     addParticipant,
     reroute,
     create,
+    changeStatus,
+    withdraw,
+    getStatusHistory,
   }),
   getIntakeDesksClient: () => ({ getIntakeDesk }),
 }))
@@ -127,12 +133,34 @@ describe('demandManagementApi', () => {
             }),
           ),
       ],
+      [
+        'changing the status of a request',
+        (store: ReturnType<typeof createStore>) =>
+          store.dispatch(
+            demandManagementApi.endpoints.changeIntakeRequestStatus.initiate({
+              requestId: 'r-1',
+              statusId: 's-2',
+              reason: 'Budget went elsewhere',
+            }),
+          ),
+      ],
+      [
+        'withdrawing a request',
+        (store: ReturnType<typeof createStore>) =>
+          store.dispatch(
+            demandManagementApi.endpoints.withdrawIntakeRequest.initiate({
+              requestId: 'r-1',
+            }),
+          ),
+      ],
     ])(
       'refreshes a desk page already open after %s, whose waiting count and delete flag move',
       async (_change, dispatchChange) => {
         // Arrange
         getIntakeDesk.mockResolvedValue({ id: 'd-1', key: 1 })
         reroute.mockResolvedValue(null)
+        changeStatus.mockResolvedValue(null)
+        withdraw.mockResolvedValue(null)
         create.mockResolvedValue({ id: 'r-2', key: 8 })
         const store = createStore()
         const subscription = store.dispatch(
@@ -149,6 +177,35 @@ describe('demandManagementApi', () => {
         subscription.unsubscribe()
       },
     )
+  })
+
+  describe('getIntakeRequestStatusHistory', () => {
+    it('refetches the history once the request moves to another status', async () => {
+      // Arrange
+      getStatusHistory.mockResolvedValue([])
+      changeStatus.mockResolvedValue(null)
+      const store = createStore()
+      const subscription = store.dispatch(
+        demandManagementApi.endpoints.getIntakeRequestStatusHistory.initiate(
+          'r-1',
+        ),
+      )
+      await subscription
+
+      // Act
+      await store.dispatch(
+        demandManagementApi.endpoints.changeIntakeRequestStatus.initiate({
+          requestId: 'r-1',
+          statusId: 's-2',
+        }),
+      )
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      // Assert
+      expect(changeStatus).toHaveBeenCalledWith('r-1', { statusId: 's-2' })
+      expect(getStatusHistory).toHaveBeenCalledTimes(2)
+      subscription.unsubscribe()
+    })
   })
 
   describe('updateIntakeRequest', () => {

@@ -7,11 +7,13 @@ import IntakeRequestDetailsPage from './page'
 jest.unmock('dayjs')
 
 let mockSearchParams = new URLSearchParams()
+const mockReplace = jest.fn()
+const mockRouter = { replace: mockReplace, push: jest.fn() }
 
 jest.mock('next/navigation', () => ({
   notFound: jest.fn(),
   usePathname: () => '/demand-management/requests/42',
-  useRouter: () => ({ replace: jest.fn(), push: jest.fn() }),
+  useRouter: () => mockRouter,
   useSearchParams: () => mockSearchParams,
 }))
 
@@ -77,6 +79,7 @@ const summary = {
   desk: { id: 'd-1', key: 1, name: 'IT' },
   requester: { id: 'e-1', key: 1, name: 'Avery Example' },
   channel: { id: 'c-1', name: 'Security' },
+  status: { id: 's-1', name: 'Submitted', category: 'Proposed', alias: 1 },
 }
 
 const substance = {
@@ -137,6 +140,8 @@ const details = (overrides: Record<string, unknown> = {}) => ({
   canDelete: false,
   canReroute: false,
   canAddParticipants: false,
+  canChangeStatus: false,
+  canWithdraw: false,
   ...overrides,
 })
 
@@ -146,6 +151,7 @@ describe('IntakeRequestDetailsPage', () => {
     mockRequest = details()
     mockError = undefined
     jest.mocked(notFound).mockClear()
+    mockReplace.mockClear()
   })
 
   it('says the detail is limited to the desk when the substance is withheld', async () => {
@@ -200,6 +206,106 @@ describe('IntakeRequestDetailsPage', () => {
     expect(
       screen.queryByRole('button', { name: 'Edit' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('offers Change Status and Withdraw only where the server allows each', async () => {
+    // Arrange
+    mockRequest = details({ canChangeStatus: true })
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(
+      await screen.findByRole('button', { name: 'Change Status' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Withdraw Request' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('offers the requester Withdraw when the server allows it', async () => {
+    // Arrange
+    mockRequest = details({ canWithdraw: true })
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(
+      await screen.findByRole('button', { name: 'Withdraw Request' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Change Status' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows the status and the reason the requester reads', async () => {
+    // Arrange
+    mockRequest = details({
+      summary: {
+        ...summary,
+        status: { id: 's-9', name: 'Declined', category: 'Removed', alias: 6 },
+      },
+      substance: { ...substance, statusReason: 'Budget went elsewhere' },
+    })
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect((await screen.findAllByText('Declined')).length).toBeGreaterThan(0)
+    expect(screen.getByText('Budget went elsewhere')).toBeInTheDocument()
+  })
+
+  it('takes a reader of a duplicate to the request it gives way to', async () => {
+    // Arrange
+    mockRequest = details({
+      duplicateOf: { id: 'r-7', key: 7, title: 'Export invoices' },
+    })
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(mockReplace).toHaveBeenCalledWith(
+      '/demand-management/requests/7?duplicate=42',
+    )
+    expect(
+      screen.queryByText('Rotate the VPN certificates'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('keeps an agent on a duplicate, linking to the request it gives way to', async () => {
+    // Arrange
+    mockRequest = details({
+      canChangeStatus: true,
+      duplicateOf: { id: 'r-7', key: 7, title: 'Export invoices' },
+    })
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(
+      await screen.findByRole('link', { name: '7 · Export invoices' }),
+    ).toHaveAttribute('href', '/demand-management/requests/7')
+    expect(mockReplace).not.toHaveBeenCalled()
+  })
+
+  it('says which duplicate brought the reader here', async () => {
+    // Arrange
+    mockSearchParams = new URLSearchParams('duplicate=12')
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(
+      await screen.findByText(
+        'Request 12 was marked a duplicate of this one, so you were brought here.',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('treats a request the reader cannot see as not found', async () => {

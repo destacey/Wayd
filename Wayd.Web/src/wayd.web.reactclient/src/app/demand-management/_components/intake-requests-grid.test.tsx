@@ -7,6 +7,7 @@ import {
   NeedByBasis,
   NeedByBasisDto,
   NeedByBasisFamily,
+  StatusCategory,
 } from '@/src/services/wayd-api'
 import IntakeRequestsGrid from './intake-requests-grid'
 
@@ -22,6 +23,12 @@ const request = (
     desk: { id: 'd-1', key: 1, name: 'IT' },
     requester: { id: 'e-1', key: 1, name: 'Avery Example' },
     channel: { id: 'c-1', name: 'Security' },
+    status: {
+      id: 's-1',
+      name: 'Waiting on Requester',
+      category: StatusCategory.Proposed,
+      alias: 2,
+    },
     needBy,
   }) as IntakeRequestSummaryDto
 
@@ -49,6 +56,13 @@ const renderGrid = (requests: IntakeRequestSummaryDto[]) =>
   )
 
 describe('IntakeRequestsGrid', () => {
+  it('shows the status of each request as its desk workflow names it', () => {
+    // Arrange / Act
+    renderGrid([request(42, 'Rotate the VPN certificates')])
+
+    // Assert
+    expect(screen.getByText('Waiting on Requester')).toBeInTheDocument()
+  })
   it('links the number and the title to the request page', () => {
     // Arrange / Act
     renderGrid([request(42, 'Rotate the VPN certificates')])

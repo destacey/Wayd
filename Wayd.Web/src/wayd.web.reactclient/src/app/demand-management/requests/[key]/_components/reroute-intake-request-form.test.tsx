@@ -56,6 +56,17 @@ const desk = (
 })
 
 const mockReroute = jest.fn()
+const arrival = (defaultStatusId?: string) => ({
+  data: {
+    statuses: [
+      { id: 's-submitted', name: 'Submitted' },
+      { id: 's-review', name: 'In Review' },
+    ],
+    defaultStatusId,
+  },
+  isFetching: false,
+})
+const mockArrival = jest.fn(() => arrival('s-submitted'))
 const mockDesks = [
   desk('d-private', 'Security', IntakeDeskVisibility.Private),
   desk('d-open', 'Product delivery', IntakeDeskVisibility.Open, {
@@ -72,6 +83,7 @@ jest.mock(
   () => ({
     useRerouteIntakeRequestMutation: () => [mockReroute],
     useGetIntakeDesksQuery: () => ({ data: mockDesks }),
+    useGetIntakeRequestArrivalStatusesQuery: () => mockArrival(),
   }),
 )
 
@@ -97,8 +109,9 @@ const renderForm = async (r = request()) =>
     ),
   )
 
+// The desk is the first choice; the status it arrives in appears once a desk is chosen.
 const chooseDesk = async (name: string) => {
-  await userEvent.click(screen.getByRole('combobox'))
+  await userEvent.click(screen.getAllByRole('combobox')[0])
   await userEvent.click(await screen.findByTitle(name))
 }
 
@@ -163,6 +176,7 @@ describe('RerouteIntakeRequestForm', () => {
   beforeEach(() => {
     mockReroute.mockReset()
     mockReroute.mockReturnValue({ unwrap: () => Promise.resolve() })
+    mockArrival.mockImplementation(() => arrival('s-submitted'))
   })
 
   it('offers only other desks that are open to new requests', async () => {
@@ -191,6 +205,7 @@ describe('RerouteIntakeRequestForm', () => {
     expect(mockReroute).toHaveBeenCalledWith({
       requestId: 'r-42',
       deskId: 'd-other-private',
+      statusId: 's-submitted',
       confirmWiderVisibility: false,
     })
   })
@@ -233,6 +248,7 @@ describe('RerouteIntakeRequestForm', () => {
     expect(mockReroute).toHaveBeenCalledWith({
       requestId: 'r-42',
       deskId: 'd-open',
+      statusId: 's-submitted',
       confirmWiderVisibility: true,
     })
   })
@@ -273,5 +289,41 @@ describe('RerouteIntakeRequestForm', () => {
         'Avery Owner does not work Legal, so the request will be unassigned.',
       ),
     ).toBeInTheDocument()
+  })
+
+  it('sends the status the mover chose for the request to arrive in', async () => {
+    // Arrange
+    await renderForm()
+    await chooseDesk('Legal')
+    await userEvent.click(screen.getAllByRole('combobox')[1])
+    await userEvent.click(await screen.findByTitle('In Review'))
+
+    // Act
+    await submit()
+
+    // Assert
+    expect(mockReroute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        deskId: 'd-other-private',
+        statusId: 's-review',
+      }),
+    )
+  })
+
+  it('asks for the arrival status when nothing on the new desk matches the one it holds', async () => {
+    // Arrange
+    mockArrival.mockImplementation(() => arrival(undefined))
+    await renderForm()
+    await chooseDesk('Legal')
+
+    // Act
+    await submit()
+
+    // Assert
+    expect(mockReroute).not.toHaveBeenCalled()
+    expect(screen.getAllByRole('combobox')[1]).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    )
   })
 })

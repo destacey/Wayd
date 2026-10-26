@@ -269,29 +269,31 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
           undefined,
           menuIcons.demand,
           [
-            // Both are keyed on the employee, so an unlinked account is offered neither.
+            // Submitting and following your own requests need no permission, only an employee: both are
+            // keyed on it, so an unlinked account is offered neither.
             ...(options.hasLinkedEmployee
               ? [
-                  restrictedPermissionMenuItem(
-                    'Permissions.IntakeRequests.Create',
+                  menuItem(
                     'Submit a Request',
                     'demand.submit',
                     '/demand-management/submit',
                   ),
-                  restrictedPermissionMenuItem(
-                    'Permissions.IntakeRequests.View',
+                  menuItem(
                     'My Requests',
                     'demand.my-requests',
                     '/demand-management/my-requests',
                   ),
                 ]
               : []),
-            restrictedPermissionMenuItem(
-              'Permissions.IntakeRequests.View',
+            // Lists what the server lets the reader see: their desks' requests, their own, and with View
+            // everyone else's on desks that are not private. Desk membership is not known here.
+            menuItem(
               'Requests',
               'demand.requests',
               '/demand-management/requests',
             ),
+            // A desk is not hidden, only the requests on a private one; each desk is run from its own page.
+            menuItem('Desks', 'demand.desks', '/demand-management/desks'),
           ],
         ),
       ]

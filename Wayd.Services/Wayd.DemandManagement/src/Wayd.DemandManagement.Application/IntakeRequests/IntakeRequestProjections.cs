@@ -37,7 +37,7 @@ internal static class IntakeRequestProjections
             Channel = channels.Where(c => c.Id == r.ChannelId)
                 .Select(c => new IntakeChannelNavigationDto { Id = c.Id, Name = c.Name })
                 .First(),
-            AssignedReviewer = employees.Where(e => e.Id == r.AssignedReviewerId)
+            Assignee = employees.Where(e => e.Id == r.AssigneeId)
                 .Select(e => new EmployeeNavigationDto { Id = e.Id, Key = e.Key, Name = e.Name.FirstName + " " + e.Name.LastName })
                 .FirstOrDefault(),
             NeedBy = r.NeedBy == null

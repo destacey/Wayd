@@ -14,7 +14,7 @@ public enum IntakeRequestReadTier
 {
     /// <summary>
     /// Enough to recognise that an ask exists: number, title, desk, status, requester, channel,
-    /// assigned reviewer, tags, and the need-by date with its basis and reference.
+    /// assignee, tags, and the need-by date with its basis and reference.
     /// </summary>
     [Display(Name = "Summary", Order = 1)]
     Summary = 1,
@@ -27,7 +27,8 @@ public enum IntakeRequestReadTier
     Substance = 2,
 
     /// <summary>
-    /// Internal notes and triage reasoning. Review only, and never returned, evented or logged without it.
+    /// Internal notes and triage reasoning. The desk's agents only, and never returned, evented or logged
+    /// for anyone else.
     /// </summary>
     [Display(Name = "Internal", Order = 3)]
     Internal = 3,

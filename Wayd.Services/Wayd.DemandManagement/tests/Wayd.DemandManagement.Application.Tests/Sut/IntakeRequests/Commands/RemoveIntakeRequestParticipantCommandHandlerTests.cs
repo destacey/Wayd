@@ -13,13 +13,13 @@ public sealed class RemoveIntakeRequestParticipantCommandHandlerTests
         new(_scenario.DbContext, _scenario.Principal.Object, _scenario.User.Object, _scenario.Clock);
 
     [Fact]
-    public async Task Handle_ByADeskReviewer_RemovesTheParticipant()
+    public async Task Handle_ByAnAgentOnTheDesk_RemovesTheParticipant()
     {
         // Arrange
-        var reviewer = _scenario.Employee();
+        var agent = _scenario.Employee();
         var participant = _scenario.Employee();
-        var request = _scenario.Request(_scenario.Desk(reviewerIds: [reviewer.Id]), _scenario.Employee(), participant.Id);
-        _scenario.SignedInAs(reviewer, IntakeScenario.Review);
+        var request = _scenario.Request(_scenario.Desk(agentIds: [agent.Id]), _scenario.Employee(), participant.Id);
+        _scenario.SignedInAs(agent);
 
         // Act
         var result = await CreateHandler().Handle(new RemoveIntakeRequestParticipantCommand(request.Id, participant.Id), TestContext.Current.CancellationToken);
@@ -33,7 +33,7 @@ public sealed class RemoveIntakeRequestParticipantCommandHandlerTests
     [Fact]
     public async Task Handle_ByTheRequester_Fails()
     {
-        // Arrange — removing a participant needs Review
+        // Arrange — removing a participant needs an agent on the desk, which the requester is not
         var requester = _scenario.Employee();
         var participant = _scenario.Employee();
         var request = _scenario.Request(_scenario.Desk(), requester, participant.Id);
@@ -44,7 +44,8 @@ public sealed class RemoveIntakeRequestParticipantCommandHandlerTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(IntakeRequestAuthorization.NotAReviewerError);
+        result.Error.Should().Be(IntakeRequestAuthorization.NotAnAgentError);
         request.Participants.Should().ContainSingle();
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
     }
 }

@@ -1,6 +1,7 @@
 using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using NodaTime;
+using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -13,8 +14,8 @@ namespace Wayd.DemandManagement.Domain.Models;
 /// </summary>
 /// <remarks>
 /// A request is the ask, not the response: it sits upstream of PPM and Work, and a project does not need
-/// one. It is on exactly one desk from the moment it is created; moving it to another desk is a reviewer's
-/// decision and arrives with desk administration.
+/// one. It is on exactly one desk from the moment it is created; moving it to another desk is an agent's
+/// decision, never automatic (<see cref="Reroute"/>).
 /// <para>
 /// Every field belongs to a read tier (<c>IntakeRequestReadTier</c>), and every event to the tier of the
 /// fields it carries, which is why the title and the details change through separate methods.
@@ -78,8 +79,8 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     /// <remarks>
     /// Named for <c>Project.ExpectedBenefits</c>, which a project created from the request starts from and
-    /// which benefits are later checked against. Prose from the person asking, kept beside the reviewers'
-    /// score rather than replaced by it: return, risk and cost of delay are rated by reviewers in scoring, and
+    /// which benefits are later checked against. Prose from the person asking, kept beside the agents'
+    /// score rather than replaced by it: return, risk and cost of delay are rated by agents in scoring, and
     /// urgency is the need-by basis, so none of them is a field here. Optional, because a requester often
     /// cannot say yet and the review is where it gets shaped.
     /// </remarks>
@@ -103,7 +104,7 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// The desk the request is reviewed on. Summary tier.
     /// </summary>
-    public Guid DeskId { get; private init; }
+    public Guid DeskId { get; private set; }
 
     /// <summary>
     /// Where the request came from. Summary tier.
@@ -123,9 +124,10 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
     public IntakeRequestOrigin? Origin { get; private init; }
 
     /// <summary>
-    /// The reviewer who owns the request, when one is assigned. Ownership, never an approver. Summary tier.
+    /// The member of the request's desk who owns it, when one is assigned. Ownership, never an approver.
+    /// Summary tier.
     /// </summary>
-    public Guid? AssignedReviewerId { get; private set; }
+    public Guid? AssigneeId { get; private set; }
 
     /// <summary>
     /// The people given access to the request beyond its requester and submitter. Substance tier.
@@ -153,13 +155,13 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
     /// Whether the editor may change the request's details as it stands.
     /// </summary>
     /// <remarks>
-    /// Proposed: the requester and Update holders. Active: Update holders. Done and Removed: nobody, until it
-    /// is moved back to an open status.
+    /// Proposed: the requester and the desk's agents. Active: the desk's agents. Done and Removed: nobody,
+    /// until it is moved back to an open status.
     /// </remarks>
     public bool CanEdit(IntakeRequestEditor editor) => StatusCategory switch
     {
-        StatusCategory.Proposed => editor.HoldsUpdate || editor.EmployeeId == RequesterId,
-        StatusCategory.Active => editor.HoldsUpdate,
+        StatusCategory.Proposed => editor.IsDeskAgent || editor.EmployeeId == RequesterId,
+        StatusCategory.Active => editor.IsDeskAgent,
         _ => false,
     };
 
@@ -254,25 +256,74 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Assigns the reviewer who owns the request, or unassigns it with null.
+    /// Gives the request a different assignee, or unassigns it with null.
     /// </summary>
     /// <remarks>
-    /// Needs Review, which the caller checks: whether someone may review on this desk is not something the
-    /// request knows.
+    /// Needs an agent on the request's desk, and the assignee must be a member of it; the caller checks both,
+    /// because who works a desk is not something the request knows.
     /// </remarks>
-    public Result AssignReviewer(Guid? reviewerId, EventActor actor, Instant timestamp)
+    public Result ChangeAssignee(Guid? assigneeId, EventActor actor, Instant timestamp)
     {
-        var toReviewerId = reviewerId == Guid.Empty ? null : reviewerId;
-        if (toReviewerId == AssignedReviewerId)
+        var toAssigneeId = assigneeId == Guid.Empty ? null : assigneeId;
+        if (toAssigneeId == AssigneeId)
             return Result.Success();
 
-        var fromReviewerId = AssignedReviewerId;
-        AssignedReviewerId = toReviewerId;
+        var fromAssigneeId = AssigneeId;
+        AssigneeId = toAssigneeId;
 
-        RaiseWhenKeyed(() => new IntakeRequestReviewerAssignedEvent(Id, Key, fromReviewerId, toReviewerId, actor, timestamp));
+        RaiseWhenKeyed(() => new IntakeRequestAssigneeChangedEvent(Id, Key, fromAssigneeId, toAssigneeId, actor, timestamp));
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// Whether the request is still open — Proposed or Active — which is when it can be moved to another desk.
+    /// </summary>
+    public bool IsOpen => StatusCategory is StatusCategory.Proposed or StatusCategory.Active;
+
+    /// <summary>
+    /// Moves the request to another desk. Needs <paramref name="to"/>'s <see cref="IntakeDesk.Members"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// Needs an agent on the current desk, which the caller checks; the destination need not be a desk they
+    /// work. Refused for a closed request, and for a destination closed to new requests. A move to a less
+    /// private desk publishes words written expecting privacy, so it is refused unless the mover confirmed it;
+    /// a move to a more private desk is silent. An assignee who is not a member of the destination is
+    /// unassigned in the same move, because an assignee is always a member of the request's desk.
+    /// </remarks>
+    public Result Reroute(IntakeDesk from, IntakeDesk to, bool widerVisibilityConfirmed, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(from);
+        Guard.Against.Null(to);
+        if (from.Id != DeskId)
+            throw new ArgumentException("The desk the request is moving from must be its current desk.", nameof(from));
+
+        if (to.Id == DeskId)
+            return Result.Failure("The request is already on this desk.");
+
+        if (!IsOpen)
+            return Result.Failure("A closed request cannot be moved to another desk.");
+
+        if (!to.IsOpen)
+            return Result.Failure("This desk is not accepting new requests.");
+
+        if (to.Visibility.IsLessPrivateThan(from.Visibility) && !widerVisibilityConfirmed)
+            return Result.Failure(WiderVisibilityNotConfirmedError);
+
+        DeskId = to.Id;
+        RaiseWhenKeyed(() => new IntakeRequestReroutedEvent(Id, Key, from.Id, to.Id, from.Visibility, to.Visibility, actor, timestamp));
+
+        if (AssigneeId is { } assigneeId && to.RoleOf(assigneeId) is null)
+            ChangeAssignee(null, actor, timestamp);
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// The failure for a move to a less private desk the mover did not confirm.
+    /// </summary>
+    public const string WiderVisibilityNotConfirmedError =
+        "Moving this request to a less private desk makes it visible to more people. Confirm the move to continue.";
 
     /// <summary>
     /// Gives an employee access to the request as a participant. Needs <see cref="Participants"/> loaded.
@@ -303,7 +354,8 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
     /// Removes a participant's access. Needs <see cref="Participants"/> loaded.
     /// </summary>
     /// <remarks>
-    /// Needs Review, which the caller checks. Forward-only: they have already read what they read.
+    /// Needs an agent on the request's desk, which the caller checks. Forward-only: they have already read
+    /// what they read.
     /// </remarks>
     public Result RemoveParticipant(Guid employeeId, EventActor actor, Instant timestamp)
     {
@@ -339,7 +391,7 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
     /// Submits a request to a desk. Refused when the desk is closed to new requests or the channel is archived.
     /// </summary>
     /// <remarks>
-    /// Which desks a requester may pick is the submit form's rule, not the request's: a reviewer routing and
+    /// Which desks a requester may pick is the submit form's rule, not the request's: an agent routing and
     /// an upstream system naming a desk are allowed desks a requester cannot pick.
     /// </remarks>
     public static Result<IntakeRequest> Create(
@@ -395,7 +447,7 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
             ? null
             : Result.Failure(StatusCategory is StatusCategory.Done or StatusCategory.Removed
                 ? "A closed request cannot be edited until it is moved back to an open status."
-                : "Only the requester or someone who can update requests may edit this request.");
+                : "Only the requester or an agent on the request's desk may edit this request.");
 
     private Guid[] ParticipantIds() => [.. _participants.Select(p => p.EmployeeId)];
 

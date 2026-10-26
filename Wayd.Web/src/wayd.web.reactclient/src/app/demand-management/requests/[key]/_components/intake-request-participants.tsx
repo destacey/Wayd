@@ -29,7 +29,8 @@ interface Person {
 
 /**
  * The request's own people. Says what participation means, because "shared with" is easily read as
- * "assigned to". Removing someone needs Review on the desk, which the server's `canReview` answers.
+ * "assigned to". Removing someone needs an agent on the desk, which the server's `canRemoveParticipants`
+ * answers.
  */
 const IntakeRequestParticipants: FC<IntakeRequestParticipantsProps> = ({
   request,
@@ -62,7 +63,7 @@ const IntakeRequestParticipants: FC<IntakeRequestParticipantsProps> = ({
       name: p.employee.name,
       role: 'Participant',
       detail: `Added ${p.addedBy ? `by ${p.addedBy.name} ` : ''}on ${dayjs(p.addedOn).format('MMM D, YYYY')}`,
-      removable: request.canReview,
+      removable: request.canRemoveParticipants,
     })),
   ]
 

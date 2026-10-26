@@ -1,4 +1,5 @@
 using Ardalis.GuardClauses;
+using CSharpFunctionalExtensions;
 using NodaTime;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
@@ -7,22 +8,24 @@ using Wayd.Common.Domain.Events.DemandManagement;
 namespace Wayd.DemandManagement.Domain.Models;
 
 /// <summary>
-/// A review responsibility: what demand it accepts, who reviews it, and how much of its requests the rest
+/// A review responsibility: what demand it accepts, who works it, and how much of its requests the rest
 /// of the company reads. Every request is on exactly one desk.
 /// </summary>
 /// <remarks>
 /// A desk is not a team and not a department, and nothing on it says who builds the thing. One engineering
-/// team can serve two desks, and one person can review on several.
+/// team can serve two desks, and one person can work on several.
 /// <para>
 /// There is no unassigned state: a requester chooses the desk their request goes to, by its description of
-/// what it takes, so no query, view or permission check downstream carries a null-desk branch. Desks are
-/// created here and read; changing one — its reviewers, visibility and settings — arrives with desk
-/// administration.
+/// what it takes, so no query, view or permission check downstream carries a null-desk branch.
+/// </para>
+/// <para>
+/// Who may make each change — a Desk Admin, or only the Demand Management Admin — is the caller's to decide,
+/// because the desk knows its members but not the claims of whoever is changing it.
 /// </para>
 /// </remarks>
 public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
 {
-    private readonly List<IntakeDeskReviewer> _reviewers = [];
+    private readonly List<IntakeDeskMember> _members = [];
 
     private IntakeDesk() { }
 
@@ -33,7 +36,7 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         bool isRequesterSelectable,
         bool isOpen,
         bool requesterMayAddParticipants,
-        IEnumerable<Guid> reviewerIds)
+        IEnumerable<IntakeDeskMemberDetails> members)
     {
         Name = name;
         Description = description;
@@ -42,10 +45,14 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         IsOpen = isOpen;
         RequesterMayAddParticipants = requesterMayAddParticipants;
 
-        foreach (var employeeId in reviewerIds.Distinct())
+        foreach (var member in members.Distinct())
         {
-            Guard.Against.Default(employeeId, nameof(reviewerIds));
-            _reviewers.Add(new IntakeDeskReviewer(Id, employeeId));
+            Guard.Against.Default(member.EmployeeId, nameof(members));
+            Guard.Against.EnumOutOfRange(member.Role, nameof(members));
+            if (_members.Any(m => m.EmployeeId == member.EmployeeId))
+                throw new ArgumentException("An employee can hold only one role on a desk.", nameof(members));
+
+            _members.Add(new IntakeDeskMember(Id, member.EmployeeId, member.Role));
         }
     }
 
@@ -55,7 +62,7 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     public int Key { get; private init; }
 
     /// <summary>
-    /// What reviewers and administrators call the desk ("Product delivery", "IT").
+    /// What its members and administrators call the desk ("Product delivery", "IT").
     /// </summary>
     public string Name
     {
@@ -79,7 +86,7 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     public IntakeDeskVisibility Visibility { get; private set; }
 
     /// <summary>
-    /// Whether a requester can pick this desk. One they cannot is a destination reviewers route to.
+    /// Whether a requester can pick this desk. One they cannot is a destination agents route to.
     /// </summary>
     public bool IsRequesterSelectable { get; private set; }
 
@@ -89,7 +96,7 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     public bool IsOpen { get; private set; }
 
     /// <summary>
-    /// On a private desk, whether the requester may add participants themselves. Reviewers always can.
+    /// On a private desk, whether the requester may add participants themselves. Agents always can.
     /// </summary>
     /// <remarks>
     /// Defaults to allowed: a private desk protects the request from the company, not from the person whose
@@ -98,14 +105,166 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     public bool RequesterMayAddParticipants { get; private set; }
 
     /// <summary>
-    /// The employees named as reviewers on the desk.
+    /// The employees named on the desk, each with their role.
     /// </summary>
-    public IReadOnlyCollection<IntakeDeskReviewer> Reviewers => _reviewers.AsReadOnly();
+    public IReadOnlyCollection<IntakeDeskMember> Members => _members.AsReadOnly();
 
     /// <summary>
-    /// Whether the employee is named as a reviewer on the desk. Needs <see cref="Reviewers"/> loaded.
+    /// The employee's role on the desk, or null when they are not a member. Needs <see cref="Members"/> loaded.
     /// </summary>
-    public bool IsReviewer(Guid employeeId) => _reviewers.Any(r => r.EmployeeId == employeeId);
+    public IntakeDeskRole? RoleOf(Guid employeeId) => _members.FirstOrDefault(m => m.EmployeeId == employeeId)?.Role;
+
+    /// <summary>
+    /// Renames the desk or changes what it tells requesters to bring to it.
+    /// </summary>
+    public Result UpdateDetails(string name, string description, EventActor actor, Instant timestamp)
+    {
+        var previousName = Name;
+        var previousDescription = Description;
+
+        Name = name;
+        Description = description;
+
+        if (Name == previousName && Description == previousDescription)
+            return Result.Success();
+
+        var currentName = Name;
+        var currentDescription = Description;
+        RaiseWhenKeyed(() => new IntakeDeskDetailsUpdatedEvent(Id, Key, currentName, currentDescription, previousName,
+            previousDescription, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Changes how much of the desk's requests reaches people outside it, from this moment on.
+    /// </summary>
+    public Result ChangeVisibility(IntakeDeskVisibility visibility, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.EnumOutOfRange(visibility, nameof(visibility));
+
+        if (visibility == Visibility)
+            return Result.Success();
+
+        var fromVisibility = Visibility;
+        Visibility = visibility;
+
+        RaiseWhenKeyed(() => new IntakeDeskVisibilityChangedEvent(Id, Key, fromVisibility, visibility, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Starts accepting new requests.
+    /// </summary>
+    public Result Open(EventActor actor, Instant timestamp)
+    {
+        if (IsOpen)
+            return Result.Success();
+
+        IsOpen = true;
+        RaiseWhenKeyed(() => new IntakeDeskOpenedEvent(Id, Key, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Stops accepting new requests. The requests already on the desk stay there, which is why a desk with
+    /// requests is closed rather than deleted.
+    /// </summary>
+    public Result Close(EventActor actor, Instant timestamp)
+    {
+        if (!IsOpen)
+            return Result.Success();
+
+        IsOpen = false;
+        RaiseWhenKeyed(() => new IntakeDeskClosedEvent(Id, Key, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Changes what requesters may do on the desk: whether they can choose it, and whether they may add
+    /// participants while it is private.
+    /// </summary>
+    public Result ChangeRequesterSettings(bool isRequesterSelectable, bool requesterMayAddParticipants, EventActor actor, Instant timestamp)
+    {
+        if (isRequesterSelectable == IsRequesterSelectable && requesterMayAddParticipants == RequesterMayAddParticipants)
+            return Result.Success();
+
+        var previousIsRequesterSelectable = IsRequesterSelectable;
+        var previousRequesterMayAddParticipants = RequesterMayAddParticipants;
+        IsRequesterSelectable = isRequesterSelectable;
+        RequesterMayAddParticipants = requesterMayAddParticipants;
+
+        RaiseWhenKeyed(() => new IntakeDeskRequesterSettingsChangedEvent(Id, Key, isRequesterSelectable, requesterMayAddParticipants,
+            previousIsRequesterSelectable, previousRequesterMayAddParticipants, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Sets who works the desk and in which role, naming, removing and changing roles in one change. Needs
+    /// <see cref="Members"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// Refused when an employee is given two roles. Whether the caller may touch Desk Admins is theirs to
+    /// decide; <see cref="MembershipChange"/> says which roles a change would touch.
+    /// </remarks>
+    public Result ChangeMembers(IEnumerable<IntakeDeskMemberDetails> members, EventActor actor, Instant timestamp)
+    {
+        var target = members.Distinct().ToArray();
+        if (target.Any(m => m.EmployeeId == Guid.Empty || !Enum.IsDefined(m.Role)))
+            return Result.Failure("Every member must be an employee with a role.");
+        if (target.Select(m => m.EmployeeId).Distinct().Count() != target.Length)
+            return Result.Failure("An employee can hold only one role on a desk.");
+
+        var change = MembershipChange(target);
+        if (change.IsEmpty)
+            return Result.Success();
+
+        _members.RemoveAll(m => change.Removed.Any(r => r.EmployeeId == m.EmployeeId));
+        foreach (var roleChange in change.RoleChanges)
+            _members.Single(m => m.EmployeeId == roleChange.EmployeeId).ChangeRole(roleChange.ToRole);
+        _members.AddRange(change.Added.Select(a => new IntakeDeskMember(Id, a.EmployeeId, a.Role)));
+
+        var resulting = _members.Select(m => new IntakeDeskMemberDetails(m.EmployeeId, m.Role)).ToArray();
+        RaiseWhenKeyed(() => new IntakeDeskMembersChangedEvent(Id, Key, change.Added, change.Removed, change.RoleChanges,
+            resulting, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// What setting the desk's members to <paramref name="members"/> would add, remove and re-role, without
+    /// changing anything. Needs <see cref="Members"/> loaded.
+    /// </summary>
+    public IntakeDeskMembershipChange MembershipChange(IEnumerable<IntakeDeskMemberDetails> members)
+    {
+        var target = members.Distinct().ToArray();
+
+        IntakeDeskMemberDetails[] added = [.. target.Where(t => _members.All(m => m.EmployeeId != t.EmployeeId))];
+        IntakeDeskMemberDetails[] removed = [.. _members
+            .Where(m => target.All(t => t.EmployeeId != m.EmployeeId))
+            .Select(m => new IntakeDeskMemberDetails(m.EmployeeId, m.Role))];
+        IntakeDeskRoleChange[] roleChanges = [.. _members
+            .Select(m => (Member: m, Target: target.FirstOrDefault(t => t.EmployeeId == m.EmployeeId)))
+            .Where(x => x.Target is not null && x.Target.Role != x.Member.Role)
+            .Select(x => new IntakeDeskRoleChange(x.Member.EmployeeId, x.Member.Role, x.Target!.Role))];
+
+        return new IntakeDeskMembershipChange(added, removed, roleChanges);
+    }
+
+    /// <summary>
+    /// Records that the desk is being deleted. Removing it, and refusing while requests are on it, is the
+    /// caller's: the desk does not hold its requests.
+    /// </summary>
+    public Result Delete(EventActor actor, Instant timestamp)
+    {
+        AddDomainEvent(new IntakeDeskDeletedEvent(Id, Key, Name, actor, timestamp));
+
+        return Result.Success();
+    }
 
     /// <summary>
     /// Defines a desk.
@@ -117,11 +276,11 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         bool isRequesterSelectable,
         bool isOpen,
         bool requesterMayAddParticipants,
-        IEnumerable<Guid> reviewerIds,
+        IEnumerable<IntakeDeskMemberDetails> members,
         EventActor actor,
         Instant timestamp) =>
         Created(new IntakeDesk(name, description, visibility, isRequesterSelectable, isOpen, requesterMayAddParticipants,
-            reviewerIds), actor, timestamp);
+            members), actor, timestamp);
 
     private static IntakeDesk Created(IntakeDesk desk, EventActor actor, Instant timestamp)
     {
@@ -134,7 +293,7 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         var isRequesterSelectable = desk.IsRequesterSelectable;
         var isOpen = desk.IsOpen;
         var requesterMayAddParticipants = desk.RequesterMayAddParticipants;
-        var reviewerIds = desk._reviewers.Select(r => r.EmployeeId).ToArray();
+        var members = desk._members.Select(m => new IntakeDeskMemberDetails(m.EmployeeId, m.Role)).ToArray();
 
         desk.AddPostPersistenceAction(() => desk.AddDomainEvent(new IntakeDeskCreatedEvent(
             desk.Id,
@@ -145,10 +304,48 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
             isRequesterSelectable,
             isOpen,
             requesterMayAddParticipants,
-            reviewerIds,
+            members,
             actor,
             timestamp)));
 
         return desk;
     }
+    /// <summary>
+    /// Raises the event now, or once the save assigns <see cref="Key"/> when the desk is not yet persisted,
+    /// so no event carries Key 0.
+    /// </summary>
+    private void RaiseWhenKeyed(Func<DomainEvent> createEvent)
+    {
+        if (Key == 0)
+        {
+            AddPostPersistenceAction(() => AddDomainEvent(createEvent()));
+        }
+        else
+        {
+            AddDomainEvent(createEvent());
+        }
+    }
+}
+
+/// <summary>
+/// What setting a desk's members would change.
+/// </summary>
+/// <param name="Added">The employees newly named, with the role they would be given.</param>
+/// <param name="Removed">The members who would leave, with the role they hold.</param>
+/// <param name="RoleChanges">The members who would stay in a different role.</param>
+public sealed record IntakeDeskMembershipChange(
+    IReadOnlyList<IntakeDeskMemberDetails> Added,
+    IReadOnlyList<IntakeDeskMemberDetails> Removed,
+    IReadOnlyList<IntakeDeskRoleChange> RoleChanges)
+{
+    /// <summary>Whether the change changes nothing.</summary>
+    public bool IsEmpty => Added.Count == 0 && Removed.Count == 0 && RoleChanges.Count == 0;
+
+    /// <summary>
+    /// Whether the change names, removes or re-roles a Desk Admin, which only the Demand Management Admin may do.
+    /// </summary>
+    public bool TouchesDeskAdmins =>
+        Added.Any(m => m.Role == IntakeDeskRole.Admin)
+        || Removed.Any(m => m.Role == IntakeDeskRole.Admin)
+        || RoleChanges.Any(c => c.FromRole == IntakeDeskRole.Admin || c.ToRole == IntakeDeskRole.Admin);
 }

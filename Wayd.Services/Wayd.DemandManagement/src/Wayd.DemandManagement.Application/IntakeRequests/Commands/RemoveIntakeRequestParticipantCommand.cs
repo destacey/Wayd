@@ -3,7 +3,7 @@ using Wayd.Common.Domain.Events;
 namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
 
 /// <summary>
-/// Removes a participant's access to an intake request. Needs Review on the request's desk.
+/// Removes a participant's access to an intake request. Needs an agent on the request's desk.
 /// </summary>
 /// <remarks>
 /// Forward-only: they have already read what they read.
@@ -43,8 +43,8 @@ public sealed class RemoveIntakeRequestParticipantCommandHandler(
         if (intakeRequest is null)
             return Result.Failure(IntakeRequestAccess.NotFoundError);
 
-        if (!reader.CanReview(intakeRequest.DeskId))
-            return Result.Failure(IntakeRequestAuthorization.NotAReviewerError);
+        if (!reader.IsAgentOn(intakeRequest.DeskId))
+            return Result.Failure(IntakeRequestAuthorization.NotAnAgentError);
 
         var result = intakeRequest.RemoveParticipant(request.EmployeeId,
             EventActor.User(_currentUser.GetUserId(), reader.EmployeeId), _dateTimeProvider.Now);

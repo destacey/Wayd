@@ -1,6 +1,6 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { IntakeDeskVisibility } from '@/src/services/wayd-api'
+import { IntakeDeskRole, IntakeDeskVisibility } from '@/src/services/wayd-api'
 import CreateIntakeDeskForm from './create-intake-desk-form'
 
 jest.mock('@/src/components/contexts/auth', () => ({
@@ -35,13 +35,36 @@ jest.mock('@/src/hooks', () => {
         isValid: true,
         isSaving: false,
         handleOk: async () => {
-          if (await onSubmit(await form.validateFields(), form)) onComplete()
+          // An invalid form is not submitted, as with the real hook; its errors show on the fields.
+          const values = await form.validateFields().catch(() => null)
+          if (values && (await onSubmit(values, form))) onComplete()
         },
         handleCancel: jest.fn(),
       }
     },
   }
 })
+
+// The employee picker is an antd Select, which jsdom drives poorly; each stand-in picks the employees its
+// test names, keyed by the field it renders for.
+let mockPicks: Record<string, string[]> = {}
+jest.mock('@/src/components/common/organizations', () => ({
+  EmployeeSelect: ({
+    id,
+    onChange,
+  }: {
+    id: string
+    onChange: (value: string[]) => void
+  }) => {
+    // Form.Item prefixes the field name with the form's name.
+    const field = id.split('_').pop() ?? id
+    return (
+      <button type="button" onClick={() => onChange(mockPicks[field] ?? [])}>
+        {`pick ${field}`}
+      </button>
+    )
+  },
+}))
 
 const mockCreate = jest.fn()
 jest.mock(
@@ -84,7 +107,17 @@ const renderForm = async (onFormComplete = jest.fn()) =>
 describe('CreateIntakeDeskForm', () => {
   beforeEach(() => {
     mockCreate.mockReset()
+    mockPicks = {}
   })
+
+  const fillRequired = async () => {
+    await userEvent.type(screen.getByLabelText('Name'), 'IT')
+    await userEvent.type(
+      screen.getByLabelText('What to bring here'),
+      'Laptops, access and software',
+    )
+    await act(() => userEvent.click(screen.getByText('Open')))
+  }
 
   it('offers the visibilities from the lookup, with what each exposes', async () => {
     // Arrange / Act
@@ -122,12 +155,7 @@ describe('CreateIntakeDeskForm', () => {
     })
     const onFormComplete = jest.fn()
     await renderForm(onFormComplete)
-    await userEvent.type(screen.getByLabelText('Name'), 'IT')
-    await userEvent.type(
-      screen.getByLabelText('What to bring here'),
-      'Laptops, access and software',
-    )
-    await act(() => userEvent.click(screen.getByText('Open')))
+    await fillRequired()
 
     // Act
     await act(() =>
@@ -142,8 +170,58 @@ describe('CreateIntakeDeskForm', () => {
       isRequesterSelectable: true,
       isOpen: true,
       requesterMayAddParticipants: true,
-      reviewerIds: [],
+      members: [],
     })
     expect(onFormComplete).toHaveBeenCalled()
+  })
+
+  it('names the chosen Desk Admins and Agents with their roles', async () => {
+    // Arrange
+    mockCreate.mockReturnValue({
+      unwrap: () => Promise.resolve({ id: 'd-1', key: 1 }),
+    })
+    mockPicks = { adminIds: ['e-1'], agentIds: ['e-2', 'e-3'] }
+    await renderForm()
+    await fillRequired()
+    await act(() => userEvent.click(screen.getByText('pick adminIds')))
+    await act(() => userEvent.click(screen.getByText('pick agentIds')))
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Create' })),
+    )
+
+    // Assert
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        members: [
+          { employeeId: 'e-1', role: IntakeDeskRole.Admin },
+          { employeeId: 'e-2', role: IntakeDeskRole.Agent },
+          { employeeId: 'e-3', role: IntakeDeskRole.Agent },
+        ],
+      }),
+    )
+  })
+
+  it('refuses to name someone as both a Desk Admin and an Agent', async () => {
+    // Arrange
+    mockPicks = { adminIds: ['e-1'], agentIds: ['e-1'] }
+    await renderForm()
+    await fillRequired()
+    await act(() => userEvent.click(screen.getByText('pick adminIds')))
+    await act(() => userEvent.click(screen.getByText('pick agentIds')))
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Create' })),
+    )
+
+    // Assert
+    expect(
+      await screen.findByText(
+        'Someone holds one role on a desk: a Desk Admin already does everything an agent does.',
+      ),
+    ).toBeInTheDocument()
+    expect(mockCreate).not.toHaveBeenCalled()
   })
 })

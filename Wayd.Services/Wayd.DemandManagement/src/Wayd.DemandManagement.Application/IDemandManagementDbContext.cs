@@ -24,14 +24,14 @@ public interface IDemandManagementDbContext
     /// <summary>Where requests come from: the company's channel vocabulary.</summary>
     DbSet<IntakeChannel> IntakeChannels { get; }
 
-    /// <summary>The review responsibilities requests are submitted to, with their reviewers.</summary>
+    /// <summary>The review responsibilities requests are submitted to, with their members.</summary>
     DbSet<IntakeDesk> IntakeDesks { get; }
 
     /// <summary>The asks themselves, with their participants.</summary>
     DbSet<IntakeRequest> IntakeRequests { get; }
 
     /// <summary>
-    /// The shared employee table, read-only: requesters, submitters, reviewers and participants are employees.
+    /// The shared employee table, read-only: requesters, submitters, desk members and participants are employees.
     /// </summary>
     /// <remarks>
     /// A query rather than a set, so the module can name and check the people its records point at but can

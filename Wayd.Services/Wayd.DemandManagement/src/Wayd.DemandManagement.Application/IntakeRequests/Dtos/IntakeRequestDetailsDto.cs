@@ -19,11 +19,20 @@ public sealed record IntakeRequestDetailsDto
     /// <summary>Whether the reader may edit the request as it stands.</summary>
     public bool CanEdit { get; init; }
 
-    /// <summary>Whether the reader may review the request: Review on its desk, or Administer.</summary>
-    public bool CanReview { get; init; }
+    /// <summary>Whether the reader may remove the request's participants: an agent on its desk.</summary>
+    public bool CanRemoveParticipants { get; init; }
+
+    /// <summary>Whether the reader may delete the request: a Desk Admin on its desk.</summary>
+    public bool CanDelete { get; init; }
 
     /// <summary>
-    /// Whether the reader may give someone access to the request as a participant: a reviewer on its desk, or
+    /// Whether the reader may move the request to another desk: an agent on its current desk, while the request
+    /// is open.
+    /// </summary>
+    public bool CanReroute { get; init; }
+
+    /// <summary>
+    /// Whether the reader may give someone access to the request as a participant: an agent on its desk, or
     /// its requester or submitter unless the desk is private and does not allow it.
     /// </summary>
     public bool CanAddParticipants { get; init; }

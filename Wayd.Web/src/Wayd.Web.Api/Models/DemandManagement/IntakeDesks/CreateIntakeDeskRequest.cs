@@ -4,12 +4,12 @@ using Wayd.DemandManagement.Application.IntakeDesks.Commands;
 namespace Wayd.Web.Api.Models.DemandManagement.IntakeDesks;
 
 /// <summary>
-/// A new intake desk and its initial reviewers.
+/// A new intake desk and its initial members.
 /// </summary>
 public sealed record CreateIntakeDeskRequest
 {
     /// <summary>
-    /// What reviewers and administrators call the desk. Unique.
+    /// What its members and administrators call the desk. Unique.
     /// </summary>
     public string Name { get; set; } = default!;
 
@@ -24,7 +24,7 @@ public sealed record CreateIntakeDeskRequest
     public IntakeDeskVisibility Visibility { get; set; }
 
     /// <summary>
-    /// Whether a requester can pick the desk. One they cannot is a destination reviewers route to.
+    /// Whether a requester can pick the desk. One they cannot is a destination agents route to.
     /// </summary>
     public bool IsRequesterSelectable { get; set; } = true;
 
@@ -34,17 +34,18 @@ public sealed record CreateIntakeDeskRequest
     public bool IsOpen { get; set; } = true;
 
     /// <summary>
-    /// On a private desk, whether the requester may add participants themselves. Reviewers always can.
+    /// On a private desk, whether the requester may add participants themselves. Agents always can.
     /// </summary>
     public bool RequesterMayAddParticipants { get; set; } = true;
 
     /// <summary>
-    /// The employees named as the desk's reviewers.
+    /// The employees named on the desk, each with their role. An employee holds one role on a desk.
     /// </summary>
-    public List<Guid> ReviewerIds { get; set; } = [];
+    public List<IntakeDeskMemberRequest> Members { get; set; } = [];
 
     public CreateIntakeDeskCommand ToCreateIntakeDeskCommand() =>
-        new(Name, Description, Visibility, IsRequesterSelectable, IsOpen, RequesterMayAddParticipants, ReviewerIds);
+        new(Name, Description, Visibility, IsRequesterSelectable, IsOpen, RequesterMayAddParticipants,
+            [.. Members.Select(m => m.ToMemberDetails())]);
 }
 
 public sealed class CreateIntakeDeskRequestValidator : CustomValidator<CreateIntakeDeskRequest>
@@ -54,7 +55,9 @@ public sealed class CreateIntakeDeskRequestValidator : CustomValidator<CreateInt
         RuleFor(d => d.Name).NotEmpty().MaximumLength(128);
         RuleFor(d => d.Description).NotEmpty().MaximumLength(1024);
         RuleFor(d => d.Visibility).IsInEnum();
-        RuleFor(d => d.ReviewerIds).NotNull();
-        RuleForEach(d => d.ReviewerIds).NotEmpty();
+        RuleFor(d => d.Members).NotNull()
+            .Must(members => members.Select(m => m.EmployeeId).Distinct().Count() == members.Count)
+            .WithMessage("An employee can hold only one role on a desk.");
+        RuleForEach(d => d.Members).SetValidator(new IntakeDeskMemberRequestValidator());
     }
 }

@@ -2,7 +2,6 @@ using FluentAssertions;
 using Moq;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.DemandManagement;
-using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
 using Wayd.DemandManagement.Application.Tests.Infrastructure;
 
@@ -15,12 +14,12 @@ public sealed class GetIntakeRequestQueryHandlerTests
     private GetIntakeRequestQueryHandler CreateHandler() => new(_scenario.DbContext, _scenario.Principal.Object);
 
     [Fact]
-    public async Task Handle_ForAnAdministratorWithNoLinkedEmployee_OffersNeitherEditNorReview()
+    public async Task Handle_ForTheDemandManagementAdminWithNoLinkedEmployee_OffersOnlyDelete()
     {
-        // Arrange — every edit and review command needs a linked employee, so the flags must not offer them
+        // Arrange — the edit and participant commands need a linked employee, so the flags must not offer them;
+        // deleting does not
         var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), _scenario.Employee());
-        _scenario.SignedInAs(_scenario.Employee(), IntakeRequestAuthorization.UpdatePermission,
-            IntakeRequestAuthorization.ReviewPermission, IntakeRequestAuthorization.AdministerPermission);
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);
         _scenario.Principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync((Guid?)null);
 
         // Act
@@ -30,8 +29,33 @@ public sealed class GetIntakeRequestQueryHandlerTests
         result.Should().NotBeNull();
         result!.Substance.Should().NotBeNull();
         result.CanEdit.Should().BeFalse();
-        result.CanReview.Should().BeFalse();
+        result.CanRemoveParticipants.Should().BeFalse();
         result.CanAddParticipants.Should().BeFalse();
+        result.CanDelete.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(IntakeDeskRole.Agent, false)]
+    [InlineData(IntakeDeskRole.Admin, true)]
+    public async Task Handle_ForAMemberOfThePrivateDesk_OffersWhatTheirRoleAllows(IntakeDeskRole role, bool expectedDelete)
+    {
+        // Arrange — membership alone, with no claim, is what grants each action
+        var member = _scenario.Employee();
+        var desk = role == IntakeDeskRole.Admin
+            ? _scenario.DeskAdministeredBy(member.Id)
+            : _scenario.Desk(IntakeDeskVisibility.Private, agentIds: member.Id);
+        var request = _scenario.Request(desk, _scenario.Employee());
+        _scenario.SignedInAs(member);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Substance.Should().NotBeNull();
+        result.CanEdit.Should().BeTrue();
+        result.CanRemoveParticipants.Should().BeTrue();
+        result.CanAddParticipants.Should().BeTrue();
+        result.CanDelete.Should().Be(expectedDelete);
     }
 
     [Fact]
@@ -47,7 +71,8 @@ public sealed class GetIntakeRequestQueryHandlerTests
 
         // Assert
         result!.CanEdit.Should().BeTrue();
-        result.CanReview.Should().BeFalse();
+        result.CanRemoveParticipants.Should().BeFalse();
+        result.CanDelete.Should().BeFalse();
     }
 
     [Theory]
@@ -85,13 +110,13 @@ public sealed class GetIntakeRequestQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ForAReviewerOnAPrivateDeskThatDisallowsRequesters_OffersAddParticipants()
+    public async Task Handle_ForAnAgentOnAPrivateDeskThatDisallowsRequesters_OffersAddParticipants()
     {
         // Arrange
-        var reviewer = _scenario.Employee();
-        var desk = _scenario.Desk(IntakeDeskVisibility.Private, requesterMayAddParticipants: false, reviewerIds: reviewer.Id);
+        var agent = _scenario.Employee();
+        var desk = _scenario.Desk(IntakeDeskVisibility.Private, requesterMayAddParticipants: false, agentIds: agent.Id);
         var request = _scenario.Request(desk, _scenario.Employee());
-        _scenario.SignedInAs(reviewer, IntakeScenario.Review);
+        _scenario.SignedInAs(agent);
 
         // Act
         var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
@@ -105,7 +130,7 @@ public sealed class GetIntakeRequestQueryHandlerTests
     {
         // Arrange
         var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Private), _scenario.Employee());
-        _scenario.SignedInAs(_scenario.Employee());
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.View);
 
         // Act
         var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
@@ -131,13 +156,12 @@ public sealed class GetIntakeRequestQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ForADeskReviewerWithAReadOnlyToken_ShowsThePrivateRequest_WithoutOfferingReview()
+    public async Task Handle_ForADeskAdminWithAReadOnlyToken_ShowsThePrivateRequest_WithoutOfferingAnyChange()
     {
-        // Arrange — Review widens what its holder sees, so a read-only token keeps that and loses only the review
-        var reviewer = _scenario.Employee();
-        var desk = _scenario.Desk(IntakeDeskVisibility.Private, reviewerIds: reviewer.Id);
-        var request = _scenario.Request(desk, _scenario.Employee());
-        _scenario.SignedInAs(reviewer, IntakeScenario.Review).WithReadOnlyToken();
+        // Arrange — membership widens what its holder sees, so a read-only token keeps that and loses only the actions
+        var deskAdmin = _scenario.Employee();
+        var request = _scenario.Request(_scenario.DeskAdministeredBy(deskAdmin.Id), _scenario.Employee());
+        _scenario.SignedInAs(deskAdmin).WithReadOnlyToken();
 
         // Act
         var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
@@ -145,6 +169,27 @@ public sealed class GetIntakeRequestQueryHandlerTests
         // Assert
         result.Should().NotBeNull();
         result!.Substance.Should().NotBeNull();
-        result.CanReview.Should().BeFalse();
+        result.CanEdit.Should().BeFalse();
+        result.CanRemoveParticipants.Should().BeFalse();
+        result.CanDelete.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_OffersRerouteToAnAgentOnTheDeskButNotToTheRequester()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var requester = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(agentIds: agent.Id), requester);
+
+        // Act
+        _scenario.SignedInAs(agent);
+        var asAgent = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+        _scenario.SignedInAs(requester);
+        var asRequester = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        asAgent!.CanReroute.Should().BeTrue();
+        asRequester!.CanReroute.Should().BeFalse();
     }
 }

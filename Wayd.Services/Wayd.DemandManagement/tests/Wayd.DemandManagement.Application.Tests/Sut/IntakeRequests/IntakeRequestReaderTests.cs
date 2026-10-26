@@ -8,7 +8,7 @@ namespace Wayd.DemandManagement.Application.Tests.Sut.IntakeRequests;
 
 /// <summary>
 /// The read rules, one reader and one request at a time: who sees a request's summary, its substance, and
-/// who may review it.
+/// who acts on its desk.
 /// </summary>
 public sealed class IntakeRequestReaderTests
 {
@@ -16,10 +16,17 @@ public sealed class IntakeRequestReaderTests
     private readonly IntakeDesk _summaryOnly = new IntakeDeskFaker().WithVisibility(IntakeDeskVisibility.SummaryOnly).Generate();
     private readonly IntakeDesk _private = new IntakeDeskFaker().WithVisibility(IntakeDeskVisibility.Private).Generate();
 
-    private static IntakeRequestReader Viewer(Guid? employeeId = null) => new(employeeId ?? Guid.NewGuid(), false, false, []);
+    private static IntakeRequestReader Viewer(Guid? employeeId = null) =>
+        new(employeeId ?? Guid.NewGuid(), HoldsView: true, IsDemandManagementAdmin: false, new Dictionary<Guid, IntakeDeskRole>());
 
-    private static IntakeRequestReader Reviewer(Guid deskId, bool holdsReview = true) =>
-        new(Guid.NewGuid(), holdsReview, false, [deskId]);
+    private static IntakeRequestReader NoClaims(Guid? employeeId = null) =>
+        new(employeeId ?? Guid.NewGuid(), HoldsView: false, IsDemandManagementAdmin: false, new Dictionary<Guid, IntakeDeskRole>());
+
+    private static IntakeRequestReader Member(Guid deskId, IntakeDeskRole role = IntakeDeskRole.Agent, bool holdsView = false) =>
+        new(Guid.NewGuid(), holdsView, IsDemandManagementAdmin: false, new Dictionary<Guid, IntakeDeskRole> { [deskId] = role });
+
+    private static IntakeRequestReader DemandManagementAdmin() =>
+        new(Guid.NewGuid(), HoldsView: false, IsDemandManagementAdmin: true, new Dictionary<Guid, IntakeDeskRole>());
 
     private (bool Summary, bool Substance) Sees(IntakeRequestReader reader, IntakeRequest request)
     {
@@ -34,6 +41,8 @@ public sealed class IntakeRequestReaderTests
 
     private static IntakeRequest OnDesk(IntakeDesk desk) =>
         new IntakeRequestFaker().WithDeskId(desk.Id).Generate();
+
+    #region Summary and substance
 
     [Fact]
     public void AViewer_OnAnOpenDesk_SeesTheSummaryAndTheSubstance()
@@ -66,112 +75,104 @@ public sealed class IntakeRequestReaderTests
     }
 
     [Fact]
-    public void TheRequester_OnAPrivateDesk_SeesEverything()
+    public void SomeoneWithoutView_OnAnOpenDesk_SeesNothing()
     {
-        // Arrange
+        // Act — browsing other people's requests is what View grants
+        var sees = Sees(NoClaims(), OnDesk(_open));
+
+        // Assert
+        sees.Should().Be((false, false));
+    }
+
+    [Fact]
+    public void TheRequesterWithoutView_OnAPrivateDesk_SeesEverything()
+    {
+        // Arrange — the request's own people need no claim
         var requesterId = Guid.NewGuid();
         var request = new IntakeRequestFaker().WithDeskId(_private.Id).WithRequesterId(requesterId).Generate();
 
         // Act
-        var sees = Sees(Viewer(requesterId), request);
+        var sees = Sees(NoClaims(requesterId), request);
 
         // Assert
         sees.Should().Be((true, true));
     }
 
     [Fact]
-    public void TheSubmitter_OnAPrivateDesk_SeesEverything()
+    public void TheSubmitterWithoutView_OnAPrivateDesk_SeesEverything()
     {
         // Arrange
         var submittedById = Guid.NewGuid();
         var request = new IntakeRequestFaker().WithDeskId(_private.Id).WithSubmittedById(submittedById).Generate();
 
         // Act
-        var sees = Sees(Viewer(submittedById), request);
+        var sees = Sees(NoClaims(submittedById), request);
 
         // Assert
         sees.Should().Be((true, true));
     }
 
     [Fact]
-    public void AParticipant_OnASummaryOnlyDesk_SeesTheSubstance()
+    public void AParticipantWithoutView_OnASummaryOnlyDesk_SeesTheSubstance()
     {
         // Arrange
         var participantId = Guid.NewGuid();
         var request = new IntakeRequestFaker().WithDeskId(_summaryOnly.Id).WithParticipants(participantId).Generate();
 
         // Act
-        var sees = Sees(Viewer(participantId), request);
+        var sees = Sees(NoClaims(participantId), request);
+
+        // Assert
+        sees.Should().Be((true, true));
+    }
+
+    [Theory]
+    [InlineData(IntakeDeskRole.Agent)]
+    [InlineData(IntakeDeskRole.Admin)]
+    public void AMemberWithoutView_OfThePrivateDesk_SeesEverything(IntakeDeskRole role)
+    {
+        // Act — membership is the grant
+        var sees = Sees(Member(_private.Id, role), OnDesk(_private));
 
         // Assert
         sees.Should().Be((true, true));
     }
 
     [Fact]
-    public void AReviewerOfAnotherDesk_OnASummaryOnlyDesk_SeesTheSubstance()
+    public void AnAgentOfAnotherDesk_OnASummaryOnlyDesk_SeesTheSummaryOnly()
     {
-        // Act — review on any desk grants substance on every desk the reader can see
-        var sees = Sees(Reviewer(_open.Id), OnDesk(_summaryOnly));
+        // Act — working one desk grants nothing on another
+        var sees = Sees(Member(_open.Id, holdsView: true), OnDesk(_summaryOnly));
 
         // Assert
-        sees.Should().Be((true, true));
+        sees.Should().Be((true, false));
     }
 
     [Fact]
-    public void AReviewerOfAnotherDesk_OnAPrivateDesk_SeesNothing()
-    {
-        // Act — a private desk withholds even the summary from reviewers of other desks
-        var sees = Sees(Reviewer(_open.Id), OnDesk(_private));
-
-        // Assert
-        sees.Should().Be((false, false));
-    }
-
-    [Fact]
-    public void AReviewerOfThePrivateDesk_SeesEverything()
+    public void AnAgentOfAnotherDesk_OnAPrivateDesk_SeesNothing()
     {
         // Act
-        var sees = Sees(Reviewer(_private.Id), OnDesk(_private));
-
-        // Assert
-        sees.Should().Be((true, true));
-    }
-
-    [Fact]
-    public void ANamedReviewerWithoutThePermission_OnThePrivateDesk_SeesNothing()
-    {
-        // Act — membership without Review is not review
-        var sees = Sees(Reviewer(_private.Id, holdsReview: false), OnDesk(_private));
+        var sees = Sees(Member(_open.Id, holdsView: true), OnDesk(_private));
 
         // Assert
         sees.Should().Be((false, false));
     }
 
     [Fact]
-    public void ReviewWithAdminister_OnAPrivateDesk_SeesEverything()
+    public void TheDemandManagementAdmin_OnAPrivateDesk_SeesEverything()
     {
         // Act
-        var sees = Sees(new IntakeRequestReader(Guid.NewGuid(), true, true, []), OnDesk(_private));
+        var sees = Sees(DemandManagementAdmin(), OnDesk(_private));
 
         // Assert
         sees.Should().Be((true, true));
-    }
-
-    [Fact]
-    public void AdministerWithoutReview_OnAPrivateDesk_SeesNothing()
-    {
-        // Act — Administer waives the membership, never the permission
-        var sees = Sees(new IntakeRequestReader(Guid.NewGuid(), false, true, []), OnDesk(_private));
-
-        // Assert
-        sees.Should().Be((false, false));
     }
 
     [Fact]
     public void AReaderWithNoEmployee_IsNoRequesterOfAnything()
     {
         // Arrange
-        var reader = new IntakeRequestReader(null, false, false, []);
+        var reader = new IntakeRequestReader(null, true, false, new Dictionary<Guid, IntakeDeskRole>());
 
         // Act
         var sees = Sees(reader, OnDesk(_private));
@@ -180,23 +181,72 @@ public sealed class IntakeRequestReaderTests
         sees.Should().Be((false, false));
     }
 
+    #endregion Summary and substance
+
+    #region Desk roles
+
     [Theory]
-    [InlineData(true, false, true, true)]
-    [InlineData(false, false, true, false)]
-    [InlineData(true, true, false, true)]
-    [InlineData(false, true, false, false)]
-    [InlineData(true, false, false, false)]
-    public void CanReview_IsThePermissionPlusMembership_WaivedByAdminister(
-        bool holdsReview, bool holdsAdminister, bool isMember, bool expected)
+    [InlineData(IntakeDeskRole.Agent, true, false)]
+    [InlineData(IntakeDeskRole.Admin, true, true)]
+    public void AMember_ActsOnTheirDeskByRole(IntakeDeskRole role, bool expectedAgent, bool expectedDeskAdmin)
     {
         // Arrange
         var deskId = Guid.NewGuid();
-        var reader = new IntakeRequestReader(Guid.NewGuid(), holdsReview, holdsAdminister, isMember ? [deskId] : []);
+        var reader = Member(deskId, role);
 
         // Act
-        var result = reader.CanReview(deskId);
+        var agent = reader.IsAgentOn(deskId);
+        var deskAdmin = reader.IsDeskAdminOn(deskId);
 
         // Assert
-        result.Should().Be(expected);
+        agent.Should().Be(expectedAgent);
+        deskAdmin.Should().Be(expectedDeskAdmin);
     }
+
+    [Fact]
+    public void AMember_DoesNotActOnAnotherDesk()
+    {
+        // Arrange
+        var reader = Member(Guid.NewGuid(), IntakeDeskRole.Admin);
+        var otherDeskId = Guid.NewGuid();
+
+        // Act
+        var agent = reader.IsAgentOn(otherDeskId);
+        var deskAdmin = reader.IsDeskAdminOn(otherDeskId);
+
+        // Assert
+        agent.Should().BeFalse();
+        deskAdmin.Should().BeFalse();
+    }
+
+    [Fact]
+    public void TheDemandManagementAdmin_IsDeskAdminOnEveryDesk()
+    {
+        // Arrange
+        var reader = DemandManagementAdmin();
+        var deskId = Guid.NewGuid();
+
+        // Act
+        var agent = reader.IsAgentOn(deskId);
+        var deskAdmin = reader.IsDeskAdminOn(deskId);
+
+        // Assert
+        agent.Should().BeTrue();
+        deskAdmin.Should().BeTrue();
+    }
+
+    [Fact]
+    public void AViewer_ActsOnNoDesk()
+    {
+        // Arrange
+        var reader = Viewer();
+
+        // Act
+        var agent = reader.IsAgentOn(_open.Id);
+
+        // Assert
+        agent.Should().BeFalse();
+    }
+
+    #endregion Desk roles
 }

@@ -8,7 +8,7 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
 /// did not change record nothing.
 /// </summary>
 /// <remarks>
-/// Allowed for the requester and for Update holders while the request is proposed, and for Update holders
+/// Allowed for the requester and the desk's agents while the request is proposed, and for the desk's agents
 /// while it is active. The caller must also be able to read the request's substance, because the command
 /// carries the description: nobody overwrites what they cannot see.
 /// </remarks>
@@ -63,10 +63,10 @@ public sealed class UpdateIntakeRequestCommandHandler(
         if (!await _dbContext.CanSeeSubstance(reader, request.Id, cancellationToken))
             return Result.Failure("Only someone who can read the request's detail can edit it.");
 
-        var holdsUpdate = await _currentPrincipal.HasPermission(IntakeRequestAuthorization.UpdatePermission, cancellationToken);
-        var editor = new IntakeRequestEditor(reader.EmployeeId, holdsUpdate, EventActor.User(_currentUser.GetUserId(), reader.EmployeeId));
+        var editor = new IntakeRequestEditor(reader.EmployeeId, reader.IsAgentOn(intakeRequest.DeskId),
+            EventActor.User(_currentUser.GetUserId(), reader.EmployeeId));
         if (!intakeRequest.CanEdit(editor))
-            return Result.Failure("Only the requester or someone who can update requests may edit this request.");
+            return Result.Failure("Only the requester or an agent on the request's desk may edit this request.");
 
         var channel = await _dbContext.IntakeChannels.FirstOrDefaultAsync(c => c.Id == request.ChannelId, cancellationToken);
         if (channel is null)

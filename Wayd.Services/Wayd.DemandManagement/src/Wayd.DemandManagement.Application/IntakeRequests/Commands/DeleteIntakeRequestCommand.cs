@@ -3,8 +3,12 @@ using Wayd.Common.Domain.Events;
 namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
 
 /// <summary>
-/// Deletes an intake request the caller can see. The Delete permission is checked by the endpoint.
+/// Deletes an intake request: a Desk Admin's last resort, on their own desk.
 /// </summary>
+/// <remarks>
+/// Agents cannot delete. Withdrawing is the requester's way out and declining the desk's, both of which keep
+/// the request on record.
+/// </remarks>
 /// <param name="Id">The request.</param>
 public sealed record DeleteIntakeRequestCommand(Guid Id) : ICommand;
 
@@ -35,6 +39,9 @@ public sealed class DeleteIntakeRequestCommandHandler(
         var intakeRequest = await _dbContext.FindVisible(reader, request.Id, includeParticipants: false, cancellationToken);
         if (intakeRequest is null)
             return Result.Failure(IntakeRequestAccess.NotFoundError);
+
+        if (!reader.IsDeskAdminOn(intakeRequest.DeskId))
+            return Result.Failure(IntakeRequestAuthorization.NotADeskAdminError);
 
         var result = intakeRequest.Delete(EventActor.User(_currentUser.GetUserId(), reader.EmployeeId), _dateTimeProvider.Now);
         if (result.IsFailure)

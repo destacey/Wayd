@@ -375,9 +375,44 @@ public sealed class DomainEventSerializationTests
     [Fact]
     public void IntakeDeskCreatedEvent_RoundTripsThroughDurableSerializer()
     {
-        // Arrange — an enum and a list of reviewer ids
+        // Arrange — an enum, and a list of members each carrying an enum of its own
         var original = new IntakeDeskCreatedEvent(Guid.NewGuid(), 3, "IT", "Internal tools", IntakeDeskVisibility.Private,
-            true, true, false, [Guid.NewGuid(), Guid.NewGuid()], EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+            true, true, false,
+            [new IntakeDeskMemberDetails(Guid.NewGuid(), IntakeDeskRole.Admin), new IntakeDeskMemberDetails(Guid.NewGuid(), IntakeDeskRole.Agent)],
+            EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
+    }
+
+    [Fact]
+    public void IntakeDeskMembersChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — lists of records, each carrying enums
+        var promoted = Guid.NewGuid();
+        var original = new IntakeDeskMembersChangedEvent(Guid.NewGuid(), 3,
+            [new IntakeDeskMemberDetails(Guid.NewGuid(), IntakeDeskRole.Agent)],
+            [new IntakeDeskMemberDetails(Guid.NewGuid(), IntakeDeskRole.Admin)],
+            [new IntakeDeskRoleChange(promoted, IntakeDeskRole.Agent, IntakeDeskRole.Admin)],
+            [new IntakeDeskMemberDetails(promoted, IntakeDeskRole.Admin)],
+            EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
+    }
+
+    [Fact]
+    public void IntakeRequestReroutedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — both desks and both visibilities
+        var original = new IntakeRequestReroutedEvent(Guid.NewGuid(), 42, Guid.NewGuid(), Guid.NewGuid(),
+            IntakeDeskVisibility.Private, IntakeDeskVisibility.Open, EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
 
         // Act
         var roundTripped = RoundTrip(original);

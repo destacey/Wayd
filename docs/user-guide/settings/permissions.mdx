@@ -28,7 +28,6 @@ Permissions are named `Permissions.{Resource}.{Action}` and follow a consistent 
 | `Run` | Trigger an operation — for example running or requeuing a [background job](./index.mdx#background-jobs) |
 | `Manage` | Create, update and delete in one permission — used for planning interval objectives |
 | `Search` / `Export` | Search or export users |
-| `Review` | Review records for a review group, only where you belong to it (see [Intake review](#intake-review-desk-membership)) |
 | `Administer` | Domain-wide administrative standing (see [PPM Administrator](#ppm-administrator)) |
 
 Some resources add specific actions — `Permissions.Projects.ManageProjectWorkItems`, `Permissions.Teams.ManageTeamMemberships` and `Permissions.RateLimits.Elevated`.
@@ -60,7 +59,7 @@ Every permission Wayd defines, as **Settings → Access → Roles** groups them.
 | Integrations | `Connectors` | `View` |
 | Health | `HealthChecks` | `View`, `Create`, `Update` |
 | Links | `Links` | `View`, `Create`, `Update`, `Delete` |
-| Demand Management | `IntakeRequests` | `View`, `Create`, `Update`, `Delete`, `Review`, `Administer` (see [Intake review](#intake-review-desk-membership)) |
+| Demand Management | `IntakeRequests` | `View`, `Administer` (see [Demand Management: desk roles](#demand-management-desk-roles)) |
 | Organization | `Employees` | `View`, `Create`, `Update`, `Delete`, `Import` |
 | Organization | `EmployeeTimeAway` | `Administer` (see [Time away](#time-away-the-person-and-their-managers)) |
 | Organization | `Teams` | `View`, `Create`, `Update`, `Administer`, `ManageTeamMemberships`, `Delete`, `Import` |
@@ -166,13 +165,19 @@ The seeded **Admin** role includes this permission.
 
 Viewing sprints needs only `Permissions.Iterations.View`.
 
-## Intake review: desk membership
+## Demand Management: desk roles
 
-Reviewing an [intake request](../demand-management/index.mdx) — changing its status, assigning its reviewer, moving it to another desk, recording what it became, applying tags, scoring it, and reading or writing internal notes — needs `Permissions.IntakeRequests.Review` **and** being a reviewer on the request's desk. Desk reviewers are a list named on each desk, never derived from teams or departments.
+[Demand Management](../demand-management/index.mdx) works differently from the rest of Wayd: a permission says what you can do anywhere, a role on a desk says what you can do on that desk, and no action needs both. Most of what happens to a request is decided by desk roles, so Demand Management has only two permissions.
 
-`Permissions.IntakeRequests.Administer` waives the desk membership, and also manages desks and channels. It never substitutes for the `Review` permission. The seeded **Admin** role includes both.
+| Who | What they can do | How they get it |
+|---|---|---|
+| Anyone signed in with a linked employee record | Submit a request; read, edit (while it is proposed) and reply to their own requests and the requests they participate in | Nothing to grant |
+| `Permissions.IntakeRequests.View` | Browse other people's requests, as far as each desk's [visibility](../demand-management/index.mdx#who-can-see-a-request) allows | A role |
+| **Agent** on a desk | Act on that desk's requests: read them in full, edit, assign, move to another desk, manage participants, and — as later features arrive — change status, score and keep internal notes | Named on the desk |
+| **Desk Admin** on a desk | Everything an agent does, plus run the desk — its details, settings and agents — and delete its requests | Named on the desk by the Demand Management Admin |
+| `Permissions.IntakeRequests.Administer` (the Demand Management Admin) | Create and delete desks, change a desk's visibility, name Desk Admins, manage channels, and act as Desk Admin on every desk | A role |
 
-Being a reviewer on any desk lets you read the full detail of requests on every desk, because a reviewer cannot judge whether a request belongs on another desk without reading it. Most people need only `View` and `Create`: a requester can edit their own request while it is still proposed without `Update`. What `View` reveals depends on the desk's [visibility](../demand-management/index.mdx#who-can-see-a-request).
+Desk members are a list named on each desk, never derived from teams or departments, and someone whose employee record is inactive is a member of no desk. Working one desk gives you nothing on another: an agent reads the full detail of other desks' requests only where that desk's visibility allows it for everyone. The seeded **Admin** role holds both permissions.
 
 ## Allocations: team membership
 

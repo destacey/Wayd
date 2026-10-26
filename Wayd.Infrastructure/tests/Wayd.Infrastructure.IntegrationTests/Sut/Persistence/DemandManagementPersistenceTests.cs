@@ -22,14 +22,16 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
     private readonly SqlServerDbContextFixture _fixture = fixture;
 
     [Fact]
-    public async Task SaveChanges_PersistsADeskWithItsReviewers_AndRecordsItsCreationWithTheAssignedKey()
+    public async Task SaveChanges_PersistsADeskWithItsMembersInTheirRoles_AndRecordsItsCreationWithTheAssignedKey()
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
         await using var context = _fixture.CreateContext();
-        var reviewer = await SeedEmployee(context);
+        var deskAdmin = await SeedEmployee(context);
+        var agent = await SeedEmployee(context);
         var desk = IntakeDesk.Create(UniqueName("Desk"), "Internal tools", IntakeDeskVisibility.SummaryOnly,
-            isRequesterSelectable: true, isOpen: true, requesterMayAddParticipants: false, [reviewer.Id],
+            isRequesterSelectable: true, isOpen: true, requesterMayAddParticipants: false,
+            [new IntakeDeskMemberDetails(deskAdmin.Id, IntakeDeskRole.Admin), new IntakeDeskMemberDetails(agent.Id, IntakeDeskRole.Agent)],
             EventActor.System, Now);
 
         // Act
@@ -38,12 +40,13 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
 
         // Assert
         await using var reader = _fixture.CreateContext();
-        var saved = await reader.IntakeDesks.AsNoTracking().Include(d => d.Reviewers).SingleAsync(d => d.Id == desk.Id, ct);
+        var saved = await reader.IntakeDesks.AsNoTracking().Include(d => d.Members).SingleAsync(d => d.Id == desk.Id, ct);
         saved.Key.Should().BePositive();
         saved.Visibility.Should().Be(IntakeDeskVisibility.SummaryOnly);
         saved.RequesterMayAddParticipants.Should().BeFalse();
-        saved.Reviewers.Select(r => r.EmployeeId).Should().Equal(reviewer.Id);
-        saved.IsReviewer(reviewer.Id).Should().BeTrue();
+        saved.Members.Should().HaveCount(2);
+        saved.RoleOf(deskAdmin.Id).Should().Be(IntakeDeskRole.Admin);
+        saved.RoleOf(agent.Id).Should().Be(IntakeDeskRole.Agent);
 
         var entry = await reader.ActivityLogs.AsNoTracking().SingleAsync(a => a.AggregateId == desk.Id, ct);
         entry.EventType.Should().Be(nameof(IntakeDeskCreatedEvent));
@@ -202,7 +205,7 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
         return (desk, channel);
     }
 
-    /// <summary>A real employee, because requests and reviewers have foreign keys to one.</summary>
+    /// <summary>A real employee, because requests and desk members have foreign keys to one.</summary>
     private static async Task<Employee> SeedEmployee(WaydDbContext context)
     {
         var employee = Employee.Create(

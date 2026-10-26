@@ -108,9 +108,9 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       meta: { filterType: 'set' },
     },
     {
-      id: 'assignedReviewer',
-      accessorFn: (request) => request.assignedReviewer?.name ?? '',
-      header: 'Assigned Reviewer',
+      id: 'assignee',
+      accessorFn: (request) => request.assignee?.name ?? '',
+      header: 'Assignee',
       size: 180,
       meta: { filterType: 'set', hiddenByDefault: true },
     },

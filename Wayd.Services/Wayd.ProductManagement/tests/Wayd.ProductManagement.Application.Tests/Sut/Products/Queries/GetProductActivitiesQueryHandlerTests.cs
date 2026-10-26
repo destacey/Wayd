@@ -28,13 +28,13 @@ public class GetProductActivitiesQueryHandlerTests : IDisposable
     {
         // Act
         var result = await _handler.Handle(
-            new GetProductActivitiesQuery(new IdOrKey(Guid.NewGuid())),
+            new GetProductActivitiesQuery(new IdOrKey(Guid.NewGuid()), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeNull();
-        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -63,12 +63,12 @@ public class GetProductActivitiesQueryHandlerTests : IDisposable
         var expectedResponse = new PagedResponse<ActivityLogDto>(expectedActivities, 1, 1, 50);
 
         _activityLogReader
-            .Setup(r => r.Read(product.Id, "Product", 1, 50, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(product.Id, "Product", new PageRequest(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
         var result = await _handler.Handle(
-            new GetProductActivitiesQuery(new IdOrKey(product.Id), 1, 50),
+            new GetProductActivitiesQuery(new IdOrKey(product.Id), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -89,12 +89,12 @@ public class GetProductActivitiesQueryHandlerTests : IDisposable
         var moved = Activity(child.Id, isRelated: true);
 
         _activityLogReader
-            .Setup(r => r.Read(parent.Id, "Product", 1, 50, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(parent.Id, "Product", new PageRequest(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PagedResponse<ActivityLogDto>([moved, own], 2, 1, 50));
 
         // Act
         var result = await _handler.Handle(
-            new GetProductActivitiesQuery(new IdOrKey(parent.Id), 1, 50),
+            new GetProductActivitiesQuery(new IdOrKey(parent.Id), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -114,12 +114,12 @@ public class GetProductActivitiesQueryHandlerTests : IDisposable
         var fromRemoved = Activity(Guid.CreateVersion7(), isRelated: true);
 
         _activityLogReader
-            .Setup(r => r.Read(parent.Id, "Product", 1, 50, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(parent.Id, "Product", new PageRequest(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PagedResponse<ActivityLogDto>([fromRemoved], 1, 1, 50));
 
         // Act
         var result = await _handler.Handle(
-            new GetProductActivitiesQuery(new IdOrKey(parent.Id), 1, 50),
+            new GetProductActivitiesQuery(new IdOrKey(parent.Id), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert

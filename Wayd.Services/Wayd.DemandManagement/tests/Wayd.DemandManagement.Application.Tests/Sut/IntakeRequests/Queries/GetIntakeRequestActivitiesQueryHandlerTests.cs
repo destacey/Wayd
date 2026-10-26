@@ -4,8 +4,11 @@ using Wayd.Common.Application.Activities;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Models;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
 using Wayd.DemandManagement.Application.Tests.Infrastructure;
@@ -35,24 +38,33 @@ public sealed class GetIntakeRequestActivitiesQueryHandlerTests
     {
         _activityLogReader
             .Setup(r => r.ReadEventTypes(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
-                It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .Callback<Guid, string, IReadOnlyCollection<string>, int, int, CancellationToken>((_, _, types, _, _, _) => _requestedEventTypes = types)
+                It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()))
+            .Callback<Guid, string, IReadOnlyCollection<string>, PageRequest?, CancellationToken>((_, _, types, _, _) => _requestedEventTypes = types)
             .ReturnsAsync(new PagedResponse<ActivityLogDto>([CreatedEntry], 1, 1, 50));
     }
 
     private GetIntakeRequestActivitiesQueryHandler CreateHandler() =>
         new(_dbContext, _principal.Object, _activityLogReader.Object);
 
-    private void SignedInAs(Guid employeeId, bool holdsReview = false)
+    private void SignedInAs(Guid employeeId, bool holdsView = true)
     {
         _principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
-        _principal.Setup(p => p.HasPermission(IntakeRequestAuthorization.ReviewPermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsReview);
-        _principal.Setup(p => p.HoldsPermission(IntakeRequestAuthorization.ReviewPermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsReview);
+        _principal.Setup(p => p.HasPermission(IntakeRequestAuthorization.ViewPermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsView);
+        _principal.Setup(p => p.HoldsPermission(IntakeRequestAuthorization.ViewPermission, It.IsAny<CancellationToken>())).ReturnsAsync(holdsView);
     }
 
-    private IntakeRequest RequestOn(IntakeDeskVisibility visibility, params Guid[] reviewerIds)
+    private Guid ActiveEmployee()
     {
-        var desk = new IntakeDeskFaker().WithVisibility(visibility).WithReviewers(reviewerIds).Generate();
+        var employee = Employee.Create(new PersonName("Desk", null, "Agent"), Guid.NewGuid().ToString("N")[..12], default,
+            new EmailAddress(Guid.NewGuid().ToString("N")[..12] + "@acme.example"), null, null, null, null, true, null,
+            EventActor.System, default);
+        _dbContext.AddEmployees(employee);
+        return employee.Id;
+    }
+
+    private IntakeRequest RequestOn(IntakeDeskVisibility visibility, params Guid[] agentIds)
+    {
+        var desk = new IntakeDeskFaker().WithVisibility(visibility).WithAgents(agentIds).Generate();
         var request = new IntakeRequestFaker().WithDeskId(desk.Id).Generate();
         _dbContext.AddDesks(desk);
         _dbContext.AddRequests(request);
@@ -68,7 +80,7 @@ public sealed class GetIntakeRequestActivitiesQueryHandlerTests
         SignedInAs(Guid.NewGuid());
 
         // Act
-        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key)), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key), new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().NotBeNull();
@@ -84,7 +96,7 @@ public sealed class GetIntakeRequestActivitiesQueryHandlerTests
         SignedInAs(Guid.NewGuid());
 
         // Act
-        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key)), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key), new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         var entry = result!.Items.Should().ContainSingle().Subject;
@@ -101,7 +113,7 @@ public sealed class GetIntakeRequestActivitiesQueryHandlerTests
         SignedInAs(Guid.NewGuid());
 
         // Act
-        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key)), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key), new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         var entry = result!.Items.Should().ContainSingle().Subject;
@@ -112,16 +124,16 @@ public sealed class GetIntakeRequestActivitiesQueryHandlerTests
     [Fact]
     public async Task Handle_ForTheRequester_ReadsSummaryAndSubstanceEvents()
     {
-        // Arrange
+        // Arrange — the requester needs no claim to follow their own request
         var requesterId = Guid.NewGuid();
         var desk = new IntakeDeskFaker().WithVisibility(IntakeDeskVisibility.SummaryOnly).Generate();
         var request = new IntakeRequestFaker().WithDeskId(desk.Id).WithRequesterId(requesterId).Generate();
         _dbContext.AddDesks(desk);
         _dbContext.AddRequests(request);
-        SignedInAs(requesterId);
+        SignedInAs(requesterId, holdsView: false);
 
         // Act
-        await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key)), TestContext.Current.CancellationToken);
+        await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key), new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         _requestedEventTypes.Should().Contain([nameof(IntakeRequestRetitledEvent), nameof(IntakeRequestDetailsUpdatedEvent)]);
@@ -135,28 +147,28 @@ public sealed class GetIntakeRequestActivitiesQueryHandlerTests
         SignedInAs(Guid.NewGuid());
 
         // Act
-        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key)), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Key), new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeNull();
         _activityLogReader.Verify(r => r.ReadEventTypes(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(),
-            It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task Handle_ForAReviewerOnTheDesk_ReadsTheRequestsOwnHistory()
+    public async Task Handle_ForAnAgentOnTheDesk_ReadsTheRequestsOwnHistoryWithoutAnyClaim()
     {
         // Arrange
-        var reviewerId = Guid.NewGuid();
-        var request = RequestOn(IntakeDeskVisibility.Private, reviewerId);
-        SignedInAs(reviewerId, holdsReview: true);
+        var agentId = ActiveEmployee();
+        var request = RequestOn(IntakeDeskVisibility.Private, agentId);
+        SignedInAs(agentId, holdsView: false);
 
         // Act
-        await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+        await CreateHandler().Handle(new GetIntakeRequestActivitiesQuery(new IdOrKey(request.Id), new PageRequest()), TestContext.Current.CancellationToken);
 
         // Assert
         _activityLogReader.Verify(r => r.ReadEventTypes(request.Id, nameof(IntakeRequest), It.IsAny<IReadOnlyCollection<string>>(),
-            1, 50, It.IsAny<CancellationToken>()), Times.Once);
+            new PageRequest(), It.IsAny<CancellationToken>()), Times.Once);
         _requestedEventTypes.Should().Contain(nameof(IntakeRequestDetailsUpdatedEvent));
     }
 }

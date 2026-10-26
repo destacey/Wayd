@@ -5,24 +5,24 @@ using Wayd.Common.Domain.Enums.DemandManagement;
 namespace Wayd.Common.Domain.Events.DemandManagement;
 
 /// <summary>
-/// An intake request's assigned reviewer changed, or it was assigned or unassigned.
+/// An intake request was given a different assignee, or was assigned or unassigned.
 /// </summary>
 /// <remarks>
 /// Plain ownership, never an approver.
 /// </remarks>
-public sealed record IntakeRequestReviewerAssignedEvent : DomainEvent<IntakeRequestReviewerAssignedEvent>, IDomainEventDescriptor, IIntakeRequestEvent
+public sealed record IntakeRequestAssigneeChangedEvent : DomainEvent<IntakeRequestAssigneeChangedEvent>, IDomainEventDescriptor, IIntakeRequestEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
 
     public static IntakeRequestReadTier ReadTier => IntakeRequestReadTier.Summary;
 
-    public IntakeRequestReviewerAssignedEvent(Guid id, int key, Guid? fromReviewerId, Guid? toReviewerId, EventActor actor, Instant timestamp)
+    public IntakeRequestAssigneeChangedEvent(Guid id, int key, Guid? fromAssigneeId, Guid? toAssigneeId, EventActor actor, Instant timestamp)
         : base(actor, "1.0")
     {
         Id = id;
         Key = key;
-        FromReviewerId = fromReviewerId;
-        ToReviewerId = toReviewerId;
+        FromAssigneeId = fromAssigneeId;
+        ToAssigneeId = toAssigneeId;
 
         Timestamp = timestamp;
     }
@@ -30,9 +30,9 @@ public sealed record IntakeRequestReviewerAssignedEvent : DomainEvent<IntakeRequ
     public Guid Id { get; }
     public int Key { get; }
     /// <summary>The employee assigned before, or null when nobody was.</summary>
-    public Guid? FromReviewerId { get; }
+    public Guid? FromAssigneeId { get; }
     /// <summary>The employee assigned now, or null when it was unassigned.</summary>
-    public Guid? ToReviewerId { get; }
+    public Guid? ToAssigneeId { get; }
 
     [JsonIgnore]
     public string AggregateType => "IntakeRequest";

@@ -27,27 +27,13 @@ namespace Wayd.Common.Application.Notifications.Queries;
 /// an empty page.
 /// </para>
 /// </remarks>
+/// <param name="Paging">The page to read.</param>
 /// <param name="UnreadOnly">Keeps only entries with something unread.</param>
-/// <param name="Before">The previous page's <see cref="CursorPage{T}.NextCursor"/>; null for the first page.</param>
-/// <param name="PageSize">How many entries to return.</param>
-public sealed record GetMyNotificationsQuery(bool UnreadOnly = false, string? Before = null, int PageSize = 25)
-    : IQuery<CursorPage<NotificationDto>>;
+public sealed record GetMyNotificationsQuery(CursorRequest Paging, bool UnreadOnly = false)
+    : IQuery<CursorPage<NotificationDto>>, ICursorQuery;
 
 /// <summary>Bounds the page size and refuses a cursor the API did not hand out.</summary>
-public sealed class GetMyNotificationsQueryValidator : CustomValidator<GetMyNotificationsQuery>
-{
-    /// <summary>The largest page a caller may ask for.</summary>
-    public const int MaxPageSize = 100;
-
-    public GetMyNotificationsQueryValidator()
-    {
-        RuleFor(q => q.PageSize).InclusiveBetween(1, MaxPageSize);
-        RuleFor(q => q.Before)
-            .Must(before => NotificationCursor.TryDecode(before, out _))
-            .When(q => q.Before is not null)
-            .WithMessage("'Before' must be a cursor from a previous page.");
-    }
-}
+public sealed class GetMyNotificationsQueryValidator : CursorQueryValidator<GetMyNotificationsQuery, NotificationCursor>;
 
 /// <summary>Reads one page of the caller's notification list and describes the records on it.</summary>
 public sealed class GetMyNotificationsQueryHandler(
@@ -83,7 +69,7 @@ public sealed class GetMyNotificationsQueryHandler(
             groups = groups.Where(g => g.UnreadCount > 0);
         }
 
-        if (NotificationCursor.TryDecode(request.Before, out var before))
+        if (NotificationCursor.TryDecode(request.Paging.Before, out var before))
         {
             groups = groups.Where(g => g.LatestOn < before.LatestOn
                 || (g.LatestOn == before.LatestOn
@@ -96,10 +82,10 @@ public sealed class GetMyNotificationsQueryHandler(
             .OrderByDescending(g => g.LatestOn)
             .ThenBy(g => g.OwnerType)
             .ThenBy(g => g.OwnerId)
-            .Take(request.PageSize + 1)
+            .Take(request.Paging.PageSize + 1)
             .ToListAsync(cancellationToken);
 
-        var hasMore = page.Count > request.PageSize;
+        var hasMore = page.Count > request.Paging.PageSize;
         if (hasMore)
         {
             page.RemoveAt(page.Count - 1);

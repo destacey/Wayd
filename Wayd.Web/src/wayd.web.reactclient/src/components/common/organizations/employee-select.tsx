@@ -5,6 +5,7 @@ interface EmployeeSelectProps {
   employees: BaseOptionType[]
   allowMultiple?: boolean
   placeholder?: string
+  disabled?: boolean
   id?: string // required by antd for custom form controls
   value?: string | string[] // required by antd for custom form controls
   onChange?: (value: string | string[]) => void // required by antd for custom form controls
@@ -14,6 +15,7 @@ const EmployeeSelect: React.FC<EmployeeSelectProps> = ({
   employees,
   allowMultiple,
   placeholder,
+  disabled,
   id,
   value,
   onChange,
@@ -27,6 +29,7 @@ const EmployeeSelect: React.FC<EmployeeSelectProps> = ({
       <Select
         mode={allowMultiple ? 'multiple' : undefined}
         allowClear
+        disabled={disabled}
         placeholder={selectPlaceholder}
         showSearch={{
           optionFilterProp: 'label',

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Domain.FeatureManagement;
@@ -17,7 +18,7 @@ public class IntakeEmployeeOptionsController(IDispatcher dispatcher) : Controlle
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.IntakeRequests)]
+    [Authorize]
     [EndpointSummary("Get the active employees a request can name, by name only.")]
     [EndpointDescription("For choosing a requester, a participant or whoever made a commitment, without the View permission on employees.")]
     [ProducesResponseType(StatusCodes.Status200OK)]

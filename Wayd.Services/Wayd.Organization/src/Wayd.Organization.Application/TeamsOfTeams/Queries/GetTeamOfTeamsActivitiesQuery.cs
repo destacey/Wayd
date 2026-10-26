@@ -9,19 +9,20 @@ namespace Wayd.Organization.Application.TeamsOfTeams.Queries;
 /// <summary>
 /// Retrieves activity history for a team of teams, newest first.
 /// </summary>
-public sealed record GetTeamOfTeamsActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>
+public sealed record GetTeamOfTeamsActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery
 {
-    public GetTeamOfTeamsActivitiesQuery(IdOrKey idOrKey, int page = 1, int pageSize = 50)
+    public GetTeamOfTeamsActivitiesQuery(IdOrKey idOrKey, PageRequest paging)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<TeamOfTeams>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<TeamOfTeams, bool>> IdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetTeamOfTeamsActivitiesQueryValidator : PagedQueryValidator<GetTeamOfTeamsActivitiesQuery>;
 
 public sealed class GetTeamOfTeamsActivitiesQueryHandler(
     IOrganizationDbContext organizationDbContext,
@@ -49,8 +50,7 @@ public sealed class GetTeamOfTeamsActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             teamOfTeamsId.Value,
             aggregateType: "Team",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(await ResolveRaisedOn(activities, cancellationToken));

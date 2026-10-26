@@ -43,14 +43,10 @@ jest.mock('@/src/components/hoc', () => ({
   requireFeatureFlag: (Component: React.ComponentType<any>) => Component,
 }))
 
-// The grid and the desk form have suites of their own; here only which actions the page offers matters.
+// The grid has a suite of its own; here only which actions the page offers matters.
 jest.mock('../_components/intake-requests-grid', () => ({
   __esModule: true,
   default: () => <div data-testid="requests-grid" />,
-}))
-jest.mock('../_components/create-intake-desk-form', () => ({
-  __esModule: true,
-  default: () => <div data-testid="create-desk-form" />,
 }))
 
 jest.mock(
@@ -67,12 +63,16 @@ jest.mock(
 
 describe('IntakeRequestsPage', () => {
   beforeEach(() => {
-    mockClaims = new Set(['Permissions.IntakeRequests.View'])
+    mockClaims = new Set()
     mockEmployeeId = 'e-1'
   })
 
-  it('offers neither action to someone who can only view requests', () => {
-    // Arrange / Act
+  it('offers no Create Desk, which lives on the Desks page, even to the Demand Management Admin', () => {
+    // Arrange
+    mockClaims.add('Permissions.IntakeRequests.Administer')
+    mockEmployeeId = null
+
+    // Act
     render(<IntakeRequestsPage />)
 
     // Assert
@@ -85,9 +85,8 @@ describe('IntakeRequestsPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('offers Submit a Request to a linked employee who can create requests', () => {
-    // Arrange
-    mockClaims.add('Permissions.IntakeRequests.Create')
+  it('offers Submit a Request to a linked employee holding no permission', () => {
+    // Arrange — submitting needs only an employee to be the submitter
 
     // Act
     render(<IntakeRequestsPage />)
@@ -100,7 +99,6 @@ describe('IntakeRequestsPage', () => {
 
   it('withholds Submit a Request from an account with no linked employee', () => {
     // Arrange
-    mockClaims.add('Permissions.IntakeRequests.Create')
     mockEmployeeId = null
 
     // Act
@@ -110,18 +108,5 @@ describe('IntakeRequestsPage', () => {
     expect(
       screen.queryByRole('button', { name: 'Submit a Request' }),
     ).not.toBeInTheDocument()
-  })
-
-  it('offers Create Desk only to an administrator', () => {
-    // Arrange
-    mockClaims.add('Permissions.IntakeRequests.Administer')
-
-    // Act
-    render(<IntakeRequestsPage />)
-
-    // Assert
-    expect(
-      screen.getByRole('button', { name: 'Create Desk' }),
-    ).toBeInTheDocument()
   })
 })

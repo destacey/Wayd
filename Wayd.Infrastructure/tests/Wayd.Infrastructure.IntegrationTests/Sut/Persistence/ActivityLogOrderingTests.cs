@@ -4,6 +4,7 @@ using Mapster.Utils;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Activities;
 using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
@@ -114,7 +115,7 @@ public sealed class ActivityLogOrderingTests(SqlServerDbContextFixture fixture)
         for (var page = 1; page <= 4; page++)
         {
             var result = await reader.Read(
-                theme.Id, page: page, pageSize: 1, cancellationToken: TestContext.Current.CancellationToken);
+                theme.Id, paging: new PageRequest(page, 1), cancellationToken: TestContext.Current.CancellationToken);
 
             result.Items.Should().ContainSingle();
             paged.Add(result.Items[0]);

@@ -9,19 +9,20 @@ namespace Wayd.StrategicManagement.Application.StrategicThemes.Queries;
 /// <summary>
 /// Retrieves activity history for a strategic theme, newest first.
 /// </summary>
-public sealed record GetStrategicThemeActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>
+public sealed record GetStrategicThemeActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery
 {
-    public GetStrategicThemeActivitiesQuery(IdOrKey idOrKey, int page = 1, int pageSize = 50)
+    public GetStrategicThemeActivitiesQuery(IdOrKey idOrKey, PageRequest paging)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<StrategicTheme>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<StrategicTheme, bool>> IdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetStrategicThemeActivitiesQueryValidator : PagedQueryValidator<GetStrategicThemeActivitiesQuery>;
 
 public sealed class GetStrategicThemeActivitiesQueryHandler(
     IStrategicManagementDbContext strategicManagementDbContext,
@@ -47,8 +48,7 @@ public sealed class GetStrategicThemeActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             strategicThemeId.Value,
             aggregateType: "StrategicTheme",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(activities);

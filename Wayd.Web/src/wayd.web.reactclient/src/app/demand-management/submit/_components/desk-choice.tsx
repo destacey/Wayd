@@ -14,8 +14,8 @@ export interface DeskChoiceProps {
 }
 
 const reviewedBy = (desk: IntakeDeskDto) =>
-  desk.reviewers.length > 0
-    ? `Reviewed by ${desk.reviewers.map((r) => r.name).join(', ')}`
+  desk.members.length > 0
+    ? `Reviewed by ${desk.members.map((m) => m.employee.name).join(', ')}`
     : undefined
 
 /**

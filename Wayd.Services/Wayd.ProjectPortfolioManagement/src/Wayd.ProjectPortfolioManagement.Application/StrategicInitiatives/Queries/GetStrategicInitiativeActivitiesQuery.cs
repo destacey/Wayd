@@ -10,19 +10,20 @@ namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Queri
 /// <summary>
 /// Retrieves activity history for a strategic initiative, newest first.
 /// </summary>
-public sealed record GetStrategicInitiativeActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>
+public sealed record GetStrategicInitiativeActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery
 {
-    public GetStrategicInitiativeActivitiesQuery(IdOrKey idOrKey, int page = 1, int pageSize = 50)
+    public GetStrategicInitiativeActivitiesQuery(IdOrKey idOrKey, PageRequest paging)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<StrategicInitiative>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<StrategicInitiative, bool>> IdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetStrategicInitiativeActivitiesQueryValidator : PagedQueryValidator<GetStrategicInitiativeActivitiesQuery>;
 
 public sealed class GetStrategicInitiativeActivitiesQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
@@ -48,8 +49,7 @@ public sealed class GetStrategicInitiativeActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             initiativeId.Value,
             aggregateType: "StrategicInitiative",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(activities);

@@ -20,8 +20,9 @@ using Wayd.Web.Api.IntegrationTests.Infrastructure;
 namespace Wayd.Web.Api.IntegrationTests.Sut;
 
 /// <summary>
-/// Drives Demand Management through HTTP: the feature gate, the permissions on each endpoint, enum codes
-/// on the wire, and a private desk's requests staying absent for everyone outside it.
+/// Drives Demand Management through HTTP: the feature gate, who may call each endpoint (two claims, with desk
+/// membership and the request's own people granting the rest), enum codes on the wire, and a private desk's
+/// requests staying absent for everyone outside it.
 /// </summary>
 [Collection(SqlServerApiTestCollection.Name)]
 public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factory)
@@ -31,8 +32,6 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
     private const string Channels = "/api/demand-management/intake-channels";
 
     private static readonly string View = Permission(ApplicationAction.View);
-    private static readonly string Create = Permission(ApplicationAction.Create);
-    private static readonly string Review = Permission(ApplicationAction.Review);
     private static readonly string Administer = Permission(ApplicationAction.Administer);
 
     private readonly WaydSqlServerApiFactory _factory = factory;
@@ -54,19 +53,19 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
     }
 
     [Fact]
-    public async Task APrivateDesksRequest_IsAbsentForOutsiders_AndReadableByItsRequesterAndReviewer()
+    public async Task APrivateDesksRequest_IsAbsentForOutsiders_AndReadableByItsRequesterAndAgentWithoutAnyClaim()
     {
-        // Arrange
+        // Arrange — submitting, following your own request and working a desk need no claim
         var ct = TestContext.Current.CancellationToken;
         await SetFlag(true);
         var requester = await SeedEmployee();
-        var reviewer = await SeedEmployee();
-        var admin = await _factory.CreateAuthenticatedClient(Administer, View);
-        var requesterClient = await _factory.CreateAuthenticatedClient(requester, View, Create);
-        var reviewerClient = await _factory.CreateAuthenticatedClient(reviewer, View, Review);
+        var agent = await SeedEmployee();
+        var admin = await _factory.CreateAuthenticatedClient(Administer);
+        var requesterClient = await _factory.CreateAuthenticatedClient(requester);
+        var agentClient = await _factory.CreateAuthenticatedClient(agent);
         var outsider = await _factory.CreateAuthenticatedClient(await SeedEmployee(), View);
 
-        var deskId = await CreateDesk(admin.Client, "Private", [reviewer]);
+        var deskId = await CreateDesk(admin.Client, "Private", agents: [agent]);
         var channelId = await FirstChannel(requesterClient.Client);
         var created = await requesterClient.Client.PostAsJsonAsync(Requests, new
         {
@@ -84,7 +83,7 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
         var outsiderGet = await outsider.Client.GetAsync($"{Requests}/{request.Key}", ct);
         var outsiderHistory = await outsider.Client.GetAsync($"{Requests}/{request.Id}/activities", ct);
         var asRequester = await requesterClient.Client.GetFromJsonAsync<JsonElement>($"{Requests}/{request.Key}", ct);
-        var asReviewer = await reviewerClient.Client.GetFromJsonAsync<JsonElement>($"{Requests}/{request.Key}", ct);
+        var asAgent = await agentClient.Client.GetFromJsonAsync<JsonElement>($"{Requests}/{request.Key}", ct);
 
         // Assert
         outsiderList.GetArrayLength().Should().Be(0);
@@ -95,7 +94,10 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
         asRequester.GetProperty("summary").GetProperty("needBy").GetProperty("basis").GetString().Should().Be("Contractual");
         asRequester.GetProperty("summary").GetProperty("needBy").GetProperty("family").GetString().Should().Be("FixedForUs");
         asRequester.GetProperty("canEdit").GetBoolean().Should().BeTrue();
-        asReviewer.GetProperty("canReview").GetBoolean().Should().BeTrue();
+        asRequester.GetProperty("canDelete").GetBoolean().Should().BeFalse();
+        asAgent.GetProperty("substance").GetProperty("description").GetString().Should().Be("Detail only the desk should read");
+        asAgent.GetProperty("canRemoveParticipants").GetBoolean().Should().BeTrue();
+        asAgent.GetProperty("canDelete").GetBoolean().Should().BeFalse();
     }
 
     [Fact]
@@ -104,10 +106,10 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
         // Arrange
         var ct = TestContext.Current.CancellationToken;
         await SetFlag(true);
-        var admin = await _factory.CreateAuthenticatedClient(Administer, View);
-        var requesterClient = await _factory.CreateAuthenticatedClient(await SeedEmployee(), View, Create);
+        var admin = await _factory.CreateAuthenticatedClient(Administer);
+        var requesterClient = await _factory.CreateAuthenticatedClient(await SeedEmployee());
         var outsider = await _factory.CreateAuthenticatedClient(await SeedEmployee(), View);
-        var deskId = await CreateDesk(admin.Client, "SummaryOnly", []);
+        var deskId = await CreateDesk(admin.Client, "SummaryOnly");
         var created = await requesterClient.Client.PostAsJsonAsync(Requests, new
         {
             title = "Laptop refresh",
@@ -127,6 +129,178 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
     }
 
     [Fact]
+    public async Task ARequestOnAnOpenDesk_IsAbsentForASignedInUserWithoutView()
+    {
+        // Arrange — browsing other people's requests is what View grants
+        var ct = TestContext.Current.CancellationToken;
+        await SetFlag(true);
+        var admin = await _factory.CreateAuthenticatedClient(Administer);
+        var requesterClient = await _factory.CreateAuthenticatedClient(await SeedEmployee());
+        var noClaims = await _factory.CreateAuthenticatedClient(await SeedEmployee());
+        var deskId = await CreateDesk(admin.Client, "Open");
+        var created = await requesterClient.Client.PostAsJsonAsync(Requests, new
+        {
+            title = "Dashboard for churn",
+            description = "Weekly churn by segment",
+            deskId,
+            channelId = await FirstChannel(requesterClient.Client),
+        }, ct);
+        var request = (await created.Content.ReadFromJsonAsync<ObjectIdAndKey>(ct))!;
+
+        // Act
+        var list = await noClaims.Client.GetFromJsonAsync<JsonElement>($"{Requests}?deskId={deskId}", ct);
+        var get = await noClaims.Client.GetAsync($"{Requests}/{request.Key}", ct);
+
+        // Assert
+        list.GetArrayLength().Should().Be(0);
+        get.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task DeleteRequest_IsADeskAdminsAndRefusedToAnAgent()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await SetFlag(true);
+        var deskAdmin = await SeedEmployee();
+        var agent = await SeedEmployee();
+        var admin = await _factory.CreateAuthenticatedClient(Administer);
+        var requesterClient = await _factory.CreateAuthenticatedClient(await SeedEmployee());
+        var deskAdminClient = await _factory.CreateAuthenticatedClient(deskAdmin);
+        var agentClient = await _factory.CreateAuthenticatedClient(agent);
+        var deskId = await CreateDesk(admin.Client, "Open", agents: [agent], admins: [deskAdmin]);
+        var created = await requesterClient.Client.PostAsJsonAsync(Requests, new
+        {
+            title = "Retire the old portal",
+            description = "Nobody uses it",
+            deskId,
+            channelId = await FirstChannel(requesterClient.Client),
+        }, ct);
+        var request = (await created.Content.ReadFromJsonAsync<ObjectIdAndKey>(ct))!;
+
+        // Act
+        var asAgent = await agentClient.Client.DeleteAsync($"{Requests}/{request.Id}", ct);
+        var asDeskAdmin = await deskAdminClient.Client.DeleteAsync($"{Requests}/{request.Id}", ct);
+
+        // Assert
+        asAgent.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        asDeskAdmin.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task UpdateDesk_ByItsDeskAdminSucceeds_ButNotByAnAgentNorForVisibility()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await SetFlag(true);
+        var deskAdmin = await SeedEmployee();
+        var agent = await SeedEmployee();
+        var admin = await _factory.CreateAuthenticatedClient(Administer);
+        var deskAdminClient = await _factory.CreateAuthenticatedClient(deskAdmin);
+        var agentClient = await _factory.CreateAuthenticatedClient(agent);
+        var deskId = await CreateDesk(admin.Client, "Open", agents: [agent], admins: [deskAdmin]);
+        object Body(string name, string visibility) => new
+        {
+            id = deskId,
+            name,
+            description = "Anything you need built",
+            visibility,
+            isRequesterSelectable = true,
+            isOpen = true,
+            requesterMayAddParticipants = true,
+            members = new object[]
+            {
+                new { employeeId = deskAdmin, role = "Admin" },
+                new { employeeId = agent, role = "Agent" },
+            },
+        };
+
+        // Act
+        var renamedByAgent = await agentClient.Client.PutAsJsonAsync($"{Desks}/{deskId}", Body($"Desk {Guid.NewGuid():N}"[..20], "Open"), ct);
+        var madePrivateByDeskAdmin = await deskAdminClient.Client.PutAsJsonAsync($"{Desks}/{deskId}", Body($"Desk {Guid.NewGuid():N}"[..20], "Private"), ct);
+        var renamedByDeskAdmin = await deskAdminClient.Client.PutAsJsonAsync($"{Desks}/{deskId}", Body($"Desk {Guid.NewGuid():N}"[..20], "Open"), ct);
+        var asDeskAdmin = await deskAdminClient.Client.GetFromJsonAsync<JsonElement>($"{Desks}/{deskId}", ct);
+
+        // Assert
+        renamedByAgent.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        madePrivateByDeskAdmin.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        renamedByDeskAdmin.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        asDeskAdmin.GetProperty("canManage").GetBoolean().Should().BeTrue();
+        asDeskAdmin.GetProperty("canAdminister").GetBoolean().Should().BeFalse();
+        asDeskAdmin.GetProperty("waiting").GetProperty("count").GetInt32().Should().Be(0);
+    }
+
+    [Fact]
+    public async Task DeleteDesk_NeedsAdminister_AndRefusesADeskWithRequests()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await SetFlag(true);
+        var deskAdmin = await SeedEmployee();
+        var admin = await _factory.CreateAuthenticatedClient(Administer);
+        var deskAdminClient = await _factory.CreateAuthenticatedClient(deskAdmin);
+        var requesterClient = await _factory.CreateAuthenticatedClient(await SeedEmployee());
+        var emptyDeskId = await CreateDesk(admin.Client, "Open", admins: [deskAdmin]);
+        var busyDeskId = await CreateDesk(admin.Client, "Open");
+        await requesterClient.Client.PostAsJsonAsync(Requests, new
+        {
+            title = "Keep me",
+            description = "A request on the desk",
+            deskId = busyDeskId,
+            channelId = await FirstChannel(requesterClient.Client),
+        }, ct);
+
+        // Act
+        var byDeskAdmin = await deskAdminClient.Client.DeleteAsync($"{Desks}/{emptyDeskId}", ct);
+        var busy = await admin.Client.DeleteAsync($"{Desks}/{busyDeskId}", ct);
+        var empty = await admin.Client.DeleteAsync($"{Desks}/{emptyDeskId}", ct);
+
+        // Assert
+        byDeskAdmin.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        busy.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        empty.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task RerouteRequest_ToALessPrivateDesk_NeedsConfirmation()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await SetFlag(true);
+        var agent = await SeedEmployee();
+        var admin = await _factory.CreateAuthenticatedClient(Administer);
+        var agentClient = await _factory.CreateAuthenticatedClient(agent);
+        var requesterClient = await _factory.CreateAuthenticatedClient(await SeedEmployee());
+        var privateDeskId = await CreateDesk(admin.Client, "Private", agents: [agent]);
+        var openDeskId = await CreateDesk(admin.Client, "Open");
+        var created = await requesterClient.Client.PostAsJsonAsync(Requests, new
+        {
+            title = "Sensitive ask",
+            description = "Written for the private desk",
+            deskId = privateDeskId,
+            channelId = await FirstChannel(requesterClient.Client),
+        }, ct);
+        var request = (await created.Content.ReadFromJsonAsync<ObjectIdAndKey>(ct))!;
+        var asAgent = await agentClient.Client.GetFromJsonAsync<JsonElement>($"{Requests}/{request.Id}", ct);
+
+        // Act
+        var unconfirmed = await agentClient.Client.PostAsJsonAsync($"{Requests}/{request.Id}/reroute",
+            new { deskId = openDeskId, confirmWiderVisibility = false }, ct);
+        var confirmed = await agentClient.Client.PostAsJsonAsync($"{Requests}/{request.Id}/reroute",
+            new { deskId = openDeskId, confirmWiderVisibility = true }, ct);
+        var moved = await requesterClient.Client.GetFromJsonAsync<JsonElement>($"{Requests}/{request.Id}", ct);
+        var toNowhere = await agentClient.Client.PostAsJsonAsync($"{Requests}/{request.Id}/reroute",
+            new { deskId = Guid.NewGuid(), confirmWiderVisibility = true }, ct);
+
+        // Assert
+        asAgent.GetProperty("canReroute").GetBoolean().Should().BeTrue();
+        unconfirmed.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        confirmed.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        moved.GetProperty("summary").GetProperty("desk").GetProperty("id").GetGuid().Should().Be(openDeskId);
+        toNowhere.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
     public async Task CreateDesk_NeedsAdminister()
     {
         // Arrange
@@ -140,7 +314,7 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
             name = $"Desk {Guid.NewGuid():N}"[..20],
             description = "Anything",
             visibility = "Open",
-            reviewerIds = Array.Empty<Guid>(),
+            members = Array.Empty<object>(),
         }, ct);
 
         // Assert
@@ -157,6 +331,7 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
 
         // Act
         var visibilities = await viewer.Client.GetFromJsonAsync<JsonElement>($"{Desks}/visibilities", ct);
+        var roles = await viewer.Client.GetFromJsonAsync<JsonElement>($"{Desks}/roles", ct);
         var bases = await viewer.Client.GetFromJsonAsync<JsonElement>($"{Requests}/need-by-bases", ct);
         var families = await viewer.Client.GetFromJsonAsync<JsonElement>($"{Requests}/need-by-basis-families", ct);
 
@@ -165,18 +340,20 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
             .Should().Equal(("FixedForUs", "Fixed for us"), ("ChosenByUs", "We chose it"));
         visibilities.EnumerateArray().Select(v => v.GetProperty("code").GetString())
             .Should().Equal("Open", "SummaryOnly", "Private");
+        roles.EnumerateArray().Select(v => (v.GetProperty("code").GetString(), v.GetProperty("name").GetString()))
+            .Should().Equal(("Admin", "Desk Admin"), ("Agent", "Agent"));
         bases.EnumerateArray().Single(b => b.GetProperty("code").GetString() == "Commitment")
             .GetProperty("recordsCommitment").GetBoolean().Should().BeTrue();
     }
 
     [Fact]
-    public async Task EmployeeOptions_AreReadableWithOnlyViewOnIntakeRequests()
+    public async Task EmployeeOptions_AreReadableBySignedInUserWithNoClaim()
     {
-        // Arrange — a business user holds the intake permissions but not View on employees
+        // Arrange — submitting on someone's behalf needs the options, and submitting needs no claim
         var ct = TestContext.Current.CancellationToken;
         await SetFlag(true);
         var employeeId = await SeedEmployee();
-        var viewer = await _factory.CreateAuthenticatedClient(View);
+        var viewer = await _factory.CreateAuthenticatedClient(await SeedEmployee());
 
         // Act
         var response = await viewer.Client.GetAsync("/api/demand-management/employee-options", ct);
@@ -193,7 +370,7 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
         // Arrange
         var ct = TestContext.Current.CancellationToken;
         await SetFlag(true);
-        var requester = await _factory.CreateAuthenticatedClient(await SeedEmployee(), View, Create);
+        var requester = await _factory.CreateAuthenticatedClient(await SeedEmployee());
 
         // Act
         var response = await requester.Client.PostAsJsonAsync(Requests, new
@@ -210,15 +387,17 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
 
     private static string Permission(string action) => ApplicationPermission.NameFor(action, ApplicationResource.IntakeRequests);
 
-    private async Task<Guid> CreateDesk(HttpClient admin, string visibility, Guid[] reviewerIds)
+    private async Task<Guid> CreateDesk(HttpClient admin, string visibility, Guid[]? agents = null, Guid[]? admins = null)
     {
         var ct = TestContext.Current.CancellationToken;
+        var members = (agents ?? []).Select(id => new { employeeId = id, role = "Agent" })
+            .Concat((admins ?? []).Select(id => new { employeeId = id, role = "Admin" }));
         var response = await admin.PostAsJsonAsync(Desks, new
         {
             name = $"Desk {Guid.NewGuid():N}"[..20],
             description = "Anything you need built",
             visibility,
-            reviewerIds,
+            members,
         }, ct);
         response.StatusCode.Should().Be(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(ct));
         return (await response.Content.ReadFromJsonAsync<ObjectIdAndKey>(ct))!.Id;

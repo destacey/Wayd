@@ -18,22 +18,24 @@ namespace Wayd.Common.Application.Following.Queries;
 /// empty page.
 /// </para>
 /// </remarks>
+/// <param name="Paging">The page to read.</param>
+/// <param name="OwnerType">Keeps only follows of this owner type; null for every type.</param>
+/// <param name="View">Keeps only follows in this view; null for all.</param>
+/// <param name="Search">Matched against the record's name, or its key exactly; blank for no search.</param>
+/// <param name="Sort">What the page is ordered by.</param>
+/// <param name="Direction">Which way it is ordered.</param>
 public sealed record GetMyFollowsQuery(
+    PageRequest Paging,
     string? OwnerType = null,
     FollowView? View = null,
     string? Search = null,
     FollowSort Sort = FollowSort.LastChanged,
-    int PageNumber = 1,
-    int PageSize = 50,
     SortDirection Direction = SortDirection.Descending)
-    : IQuery<Result<PagedResponse<FollowedRecordDto>>>;
+    : IQuery<Result<PagedResponse<FollowedRecordDto>>>, IPagedQuery;
 
 /// <summary>Bounds the paging and search a caller may ask for.</summary>
-public sealed class GetMyFollowsQueryValidator : CustomValidator<GetMyFollowsQuery>
+public sealed class GetMyFollowsQueryValidator : PagedQueryValidator<GetMyFollowsQuery>
 {
-    /// <summary>The largest page a caller may ask for.</summary>
-    public const int MaxPageSize = 100;
-
     /// <summary>The longest search a caller may send.</summary>
     public const int MaxSearchLength = 128;
 
@@ -44,8 +46,6 @@ public sealed class GetMyFollowsQueryValidator : CustomValidator<GetMyFollowsQue
         RuleFor(q => q.Sort).IsInEnum();
         RuleFor(q => q.Direction).IsInEnum();
         RuleFor(q => q.Search).MaximumLength(MaxSearchLength);
-        RuleFor(q => q.PageNumber).GreaterThanOrEqualTo(1);
-        RuleFor(q => q.PageSize).InclusiveBetween(1, MaxPageSize);
     }
 }
 
@@ -72,7 +72,7 @@ public sealed class GetMyFollowsQueryHandler(
             return Result.Failure<PagedResponse<FollowedRecordDto>>(owners.Error);
         }
 
-        var empty = new PagedResponse<FollowedRecordDto>([], 0, request.PageNumber, request.PageSize);
+        var empty = new PagedResponse<FollowedRecordDto>([], 0, request.Paging.Page, request.Paging.PageSize);
 
         var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (employeeId is null)
@@ -120,8 +120,8 @@ public sealed class GetMyFollowsQueryHandler(
 
         var page = await ordered
             .ThenBy(r => r.OwnerId)
-            .Skip((request.PageNumber - 1) * request.PageSize)
-            .Take(request.PageSize)
+            .Skip(request.Paging.Skip)
+            .Take(request.Paging.PageSize)
             .ToListAsync(cancellationToken);
 
         var summaries = await FollowReadRules.Describe(page.Select(r => (r.OwnerType, r.OwnerId)), owners.Value, cancellationToken);
@@ -139,7 +139,7 @@ public sealed class GetMyFollowsQueryHandler(
                 summaries[(r.OwnerType, r.OwnerId)]))
             .ToList();
 
-        return new PagedResponse<FollowedRecordDto>(items, totalCount, request.PageNumber, request.PageSize);
+        return new PagedResponse<FollowedRecordDto>(items, totalCount, request.Paging.Page, request.Paging.PageSize);
     }
 
     /// <summary>Which of the page's records the caller has muted.</summary>

@@ -1,9 +1,8 @@
 'use client'
 
 import { PageTitle } from '@/src/components/common'
-import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
+import { requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle, useLinkedEmployee } from '@/src/hooks'
 import {
   useGetIntakeRequestsQuery,
@@ -21,9 +20,8 @@ import IntakeRequestsGrid from '../_components/intake-requests-grid'
 const MyIntakeRequestsPage: FC = () => {
   useDocumentTitle('My Requests')
   const messageApi = useMessage()
-  const { hasPermissionClaim } = useAuth()
   const { hasLinkedEmployee } = useLinkedEmployee()
-  const canSubmit = hasPermissionClaim('Permissions.IntakeRequests.Create')
+  const canSubmit = hasLinkedEmployee
 
   const { data, isLoading, error, refetch } = useGetIntakeRequestsQuery(
     { mine: true },
@@ -73,12 +71,9 @@ const MyIntakeRequestsPage: FC = () => {
   )
 }
 
+// Following your own requests needs no permission: the server returns only what is yours.
 const MyIntakeRequestsPageWithAuthorization = requireFeatureFlag(
-  authorizePage(
-    MyIntakeRequestsPage,
-    'Permission',
-    'Permissions.IntakeRequests.View',
-  ),
+  MyIntakeRequestsPage,
   'demand-management',
 )
 

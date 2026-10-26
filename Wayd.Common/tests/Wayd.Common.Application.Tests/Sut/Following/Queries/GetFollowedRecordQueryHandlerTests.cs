@@ -40,7 +40,7 @@ public sealed class GetFollowedRecordQueryHandlerTests
 
     private void ActivityReturns(ActivityLogDto[] newestFirst, bool hasNextPage = false) =>
         _activityLogReader
-            .Setup(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), 1, GetFollowedRecordQueryHandler.ChangeLimit, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), new PageRequest(PageRequest.FirstPage, GetFollowedRecordQueryHandler.ChangeLimit), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PagedResponse<ActivityLogDto>(
                 [.. newestFirst],
                 hasNextPage ? newestFirst.Length + 1 : newestFirst.Length,
@@ -80,7 +80,7 @@ public sealed class GetFollowedRecordQueryHandlerTests
         detail.People.Should().Equal(new Wayd.Common.Application.Records.RecordPerson("Owner", "Avery Chen", null));
         detail.ChangesSinceFollowed.Should().Equal(after, atFollow);
         detail.HasMoreChanges.Should().BeFalse();
-        _activityLogReader.Verify(r => r.Read(gadget.Id, FakeRecordReadRule.ActivityType, 1, GetFollowedRecordQueryHandler.ChangeLimit, It.IsAny<CancellationToken>()), Times.Once);
+        _activityLogReader.Verify(r => r.Read(gadget.Id, FakeRecordReadRule.ActivityType, new PageRequest(PageRequest.FirstPage, GetFollowedRecordQueryHandler.ChangeLimit), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Theory]

@@ -9,7 +9,7 @@ namespace Wayd.DemandManagement.Domain.Models;
 /// When an intake request has to land, and why: the date, its basis, and the reference the date rests on.
 /// </summary>
 /// <remarks>
-/// A date never travels alone, because a date tells a reviewer nothing without what makes it that date.
+/// A date never travels alone, because a date tells an agent nothing without what makes it that date.
 /// The parts change together and a request either has all of them or none, so they are one value rather
 /// than nullable fields on the request that could disagree.
 /// </remarks>

@@ -46,29 +46,34 @@ public class IntakeDeskConfiguration : IEntityTypeConfiguration<IntakeDesk>
         builder.Property(d => d.IsOpen).IsRequired();
         builder.Property(d => d.RequesterMayAddParticipants).IsRequired();
 
-        builder.HasMany(d => d.Reviewers)
+        builder.HasMany(d => d.Members)
             .WithOne()
-            .HasForeignKey(r => r.DeskId)
+            .HasForeignKey(m => m.DeskId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Navigation(d => d.Reviewers).HasField("_reviewers").UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(d => d.Members).HasField("_members").UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }
 
-public class IntakeDeskReviewerConfiguration : IEntityTypeConfiguration<IntakeDeskReviewer>
+public class IntakeDeskMemberConfiguration : IEntityTypeConfiguration<IntakeDeskMember>
 {
-    public void Configure(EntityTypeBuilder<IntakeDeskReviewer> builder)
+    public void Configure(EntityTypeBuilder<IntakeDeskMember> builder)
     {
-        builder.ToTable("IntakeDeskReviewers", SchemaNames.DemandManagement);
+        builder.ToTable("IntakeDeskMembers", SchemaNames.DemandManagement);
 
-        builder.HasKey(r => new { r.DeskId, r.EmployeeId });
+        builder.HasKey(m => new { m.DeskId, m.EmployeeId });
 
-        // "Which desks does this employee review on" — the question every Review check asks.
-        builder.HasIndex(r => r.EmployeeId);
+        // "Which desks is this employee on, and as what" — the question every authorization check asks.
+        builder.HasIndex(m => m.EmployeeId);
+
+        builder.Property(m => m.Role).IsRequired()
+            .HasConversion<EnumConverter<IntakeDeskRole>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
 
         builder.HasOne<Employee>()
             .WithMany()
-            .HasForeignKey(r => r.EmployeeId)
+            .HasForeignKey(m => m.EmployeeId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
@@ -85,7 +90,7 @@ public class IntakeRequestConfiguration : IEntityTypeConfiguration<IntakeRequest
         builder.HasIndex(r => r.DeskId);
         builder.HasIndex(r => r.RequesterId);
         builder.HasIndex(r => r.SubmittedById);
-        builder.HasIndex(r => r.AssignedReviewerId);
+        builder.HasIndex(r => r.AssigneeId);
 
         builder.Property(r => r.Id).ValueGeneratedNever();
         builder.Property(r => r.Key).ValueGeneratedOnAdd();
@@ -95,6 +100,7 @@ public class IntakeRequestConfiguration : IEntityTypeConfiguration<IntakeRequest
 
         // Derived until requests follow their desk's review workflow, which persists a real status.
         builder.Ignore(r => r.StatusCategory);
+        builder.Ignore(r => r.IsOpen);
 
         builder.OwnsOne(r => r.NeedBy, needBy =>
         {
@@ -148,7 +154,7 @@ public class IntakeRequestConfiguration : IEntityTypeConfiguration<IntakeRequest
 
         builder.HasOne<Employee>()
             .WithMany()
-            .HasForeignKey(r => r.AssignedReviewerId)
+            .HasForeignKey(r => r.AssigneeId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(r => r.Participants)

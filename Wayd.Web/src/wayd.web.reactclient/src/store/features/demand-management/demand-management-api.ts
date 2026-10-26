@@ -10,6 +10,7 @@ import {
   EmployeeNavigationDto,
   IntakeChannelDto,
   IntakeDeskDto,
+  IntakeDeskRoleDto,
   IntakeDeskVisibilityDto,
   IntakeRequestDetailsDto,
   IntakeRequestSummaryDto,
@@ -17,6 +18,8 @@ import {
   NeedByBasisFamilyDto,
   ObjectIdAndKey,
   PagedResponseOfActivityLogDto,
+  RerouteIntakeRequestRequest,
+  UpdateIntakeDeskRequest,
   UpdateIntakeRequestRequest,
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
@@ -44,6 +47,12 @@ const requestTags = (requestId: string) => [
 ]
 
 const listTag = { type: QueryTags.IntakeRequest, id: 'LIST' } as const
+
+const deskListTag = { type: QueryTags.IntakeDesk, id: 'LIST' } as const
+
+export interface RerouteIntakeRequestArgs extends RerouteIntakeRequestRequest {
+  requestId: string
+}
 
 /**
  * Rejects with what the generated client threw, unchanged, so pages and forms read it with `toApiError`:
@@ -129,7 +138,8 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           return toError(error)
         }
       },
-      invalidatesTags: [listTag],
+      // A new request changes its desk's waiting count and whether the desk can be deleted.
+      invalidatesTags: [listTag, QueryTags.IntakeDesk],
     }),
 
     updateIntakeRequest: builder.mutation<void, UpdateIntakeRequestRequest>({
@@ -167,6 +177,26 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (_result, _error, { requestId }) =>
         requestTags(requestId),
+    }),
+
+    // A move changes the desk on the request and the waiting counts on both desks.
+    rerouteIntakeRequest: builder.mutation<void, RerouteIntakeRequestArgs>({
+      queryFn: async ({ requestId, ...request }) => {
+        try {
+          const data = await getIntakeRequestsClient().reroute(
+            requestId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: (_result, _error, { requestId }) => [
+        ...requestTags(requestId),
+        listTag,
+        QueryTags.IntakeDesk,
+      ],
     }),
 
     removeIntakeRequestParticipant: builder.mutation<
@@ -226,7 +256,68 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           return toError(error)
         }
       },
-      providesTags: [{ type: QueryTags.IntakeDesk, id: 'LIST' }],
+      providesTags: (result = []) => [
+        deskListTag,
+        ...result.map(({ id }) => ({ type: QueryTags.IntakeDesk, id })),
+      ],
+    }),
+
+    // Fetched by the key in the URL; mutations know only the id, so the entry carries both tags.
+    getIntakeDesk: builder.query<IntakeDeskDto, string>({
+      queryFn: async (idOrKey) => {
+        try {
+          const data = await getIntakeDesksClient().getIntakeDesk(idOrKey)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      providesTags: (result, _error, idOrKey) => [
+        ...(result ? [{ type: QueryTags.IntakeDesk, id: result.id }] : []),
+        { type: QueryTags.IntakeDesk, id: idOrKey },
+      ],
+    }),
+
+    updateIntakeDesk: builder.mutation<void, UpdateIntakeDeskRequest>({
+      queryFn: async (request) => {
+        try {
+          const data = await getIntakeDesksClient().update(request.id, request)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      // Removing a member unassigns them from the desk's requests, and a rename shows on every request
+      // on the desk, so every cached request refreshes too.
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: QueryTags.IntakeDesk, id },
+        deskListTag,
+        QueryTags.IntakeRequest,
+      ],
+    }),
+
+    deleteIntakeDesk: builder.mutation<void, string>({
+      queryFn: async (id) => {
+        try {
+          const data = await getIntakeDesksClient().delete(id)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: [deskListTag],
+    }),
+
+    getIntakeDeskRoles: builder.query<IntakeDeskRoleDto[], void>({
+      queryFn: async () => {
+        try {
+          const data = await getIntakeDesksClient().getRoles()
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      providesTags: [{ type: QueryTags.IntakeLookup, id: 'DESK-ROLES' }],
     }),
 
     createIntakeDesk: builder.mutation<ObjectIdAndKey, CreateIntakeDeskRequest>(
@@ -239,7 +330,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
             return toError(error)
           }
         },
-        invalidatesTags: [{ type: QueryTags.IntakeDesk, id: 'LIST' }],
+        invalidatesTags: [deskListTag],
       },
     ),
 
@@ -299,8 +390,13 @@ export const {
   useGetNeedByBasesQuery,
   useGetNeedByBasisFamiliesQuery,
   useGetIntakeDesksQuery,
+  useGetIntakeDeskQuery,
   useGetIntakeDeskVisibilitiesQuery,
+  useGetIntakeDeskRolesQuery,
   useCreateIntakeDeskMutation,
+  useUpdateIntakeDeskMutation,
+  useDeleteIntakeDeskMutation,
+  useRerouteIntakeRequestMutation,
   useGetIntakeChannelsQuery,
   useGetIntakeEmployeeOptionsQuery,
 } = demandManagementApi

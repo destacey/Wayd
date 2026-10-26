@@ -31,7 +31,7 @@ public class GetStrategicInitiativeActivitiesQueryHandlerTests : IDisposable
     public async Task Handle_ReturnsNull_WhenStrategicInitiativeDoesNotExist()
     {
         // Arrange
-        var query = new GetStrategicInitiativeActivitiesQuery(new IdOrKey(Guid.NewGuid()));
+        var query = new GetStrategicInitiativeActivitiesQuery(new IdOrKey(Guid.NewGuid()), new PageRequest());
 
         // Act
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
@@ -39,7 +39,7 @@ public class GetStrategicInitiativeActivitiesQueryHandlerTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeNull();
-        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -68,12 +68,12 @@ public class GetStrategicInitiativeActivitiesQueryHandlerTests : IDisposable
         var expectedResponse = new PagedResponse<ActivityLogDto>(expectedActivities, 1, 1, 50);
 
         _activityLogReader
-            .Setup(r => r.Read(initiative.Id, "StrategicInitiative", 1, 50, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(initiative.Id, "StrategicInitiative", new PageRequest(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
         var result = await _handler.Handle(
-            new GetStrategicInitiativeActivitiesQuery(new IdOrKey(initiative.Key), 1, 50),
+            new GetStrategicInitiativeActivitiesQuery(new IdOrKey(initiative.Key), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert

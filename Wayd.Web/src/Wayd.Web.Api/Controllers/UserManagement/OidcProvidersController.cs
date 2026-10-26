@@ -50,9 +50,10 @@ public class OidcProvidersController(IDispatcher dispatcher, IUserService userSe
     [EndpointSummary("Get activity history for the OIDC provider.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(Guid id, [FromQuery] int page = PageRequest.FirstPage, [FromQuery] int pageSize = PageSizes.Default, CancellationToken cancellationToken = default)
     {
-        var result = await _dispatcher.Send(new GetOidcProviderActivitiesQuery(id, page, pageSize), cancellationToken);
+        var result = await _dispatcher.Send(new GetOidcProviderActivitiesQuery(id, new PageRequest(page, pageSize)), cancellationToken);
 
         return result.Value is not null
             ? Ok(result.Value)

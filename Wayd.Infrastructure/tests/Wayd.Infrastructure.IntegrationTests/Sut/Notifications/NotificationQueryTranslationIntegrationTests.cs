@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Notifications.Queries;
 using Wayd.Common.Application.Records;
 using Wayd.Common.Domain.Enums;
@@ -75,9 +76,9 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
         var handler = new GetMyNotificationsQueryHandler(context, context, ReadRules(context, principal.Object, readable: [newest.Id, middle.Id]), principal.Object);
 
         // Act
-        var firstPage = await handler.Handle(new GetMyNotificationsQuery(PageSize: 1), cancellationToken);
-        var secondPage = await handler.Handle(new GetMyNotificationsQuery(Before: firstPage.NextCursor, PageSize: 1), cancellationToken);
-        var unreadOnly = await handler.Handle(new GetMyNotificationsQuery(UnreadOnly: true), cancellationToken);
+        var firstPage = await handler.Handle(new GetMyNotificationsQuery(new CursorRequest(PageSize: 1)), cancellationToken);
+        var secondPage = await handler.Handle(new GetMyNotificationsQuery(new CursorRequest(Before: firstPage.NextCursor, PageSize: 1)), cancellationToken);
+        var unreadOnly = await handler.Handle(new GetMyNotificationsQuery(new CursorRequest(), UnreadOnly: true), cancellationToken);
 
         // Assert
         firstPage.Items.Should().ContainSingle().Which.Record.Id.Should().Be(newest.Id);
@@ -131,7 +132,7 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
         string? before = null;
         do
         {
-            var page = await handler.Handle(new GetMyNotificationsQuery(Before: before, PageSize: 1), cancellationToken);
+            var page = await handler.Handle(new GetMyNotificationsQuery(new CursorRequest(Before: before, PageSize: 1)), cancellationToken);
             seen.AddRange(page.Items.Select(i => i.Record.Id));
             before = page.NextCursor;
         }

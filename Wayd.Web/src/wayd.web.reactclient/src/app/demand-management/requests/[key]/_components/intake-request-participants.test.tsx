@@ -36,7 +36,7 @@ const substance = {
   ],
 } as unknown as IntakeRequestSubstanceDto
 
-const request = (canReview: boolean) =>
+const request = (canRemoveParticipants: boolean) =>
   ({
     summary: {
       id: 'r-42',
@@ -44,7 +44,7 @@ const request = (canReview: boolean) =>
       requester: { id: 'e-1', key: 1, name: 'Avery Requester' },
     },
     substance,
-    canReview,
+    canRemoveParticipants,
   }) as unknown as IntakeRequestDetailsDto
 
 describe('IntakeRequestParticipants', () => {

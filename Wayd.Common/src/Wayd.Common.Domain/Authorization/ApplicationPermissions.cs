@@ -15,8 +15,10 @@ public static class ApplicationAction
     /// <summary>
     /// Domain-wide administrative standing. Distinct from <see cref="Manage"/>, which is CRUD shorthand
     /// on a single resource: Administer waives per-record membership requirements across a whole domain.
-    /// It never substitutes for the resource permission itself — a holder still needs e.g.
-    /// Permissions.Projects.Update to reach a project endpoint.
+    /// Where a domain gates a change on a resource permission plus membership, as PPM does, it never
+    /// substitutes for that permission — a holder still needs e.g. Permissions.Projects.Update to reach a
+    /// project endpoint. Where membership alone is the grant, as on Demand Management's desks, it is the top
+    /// role on every container.
     /// </summary>
     public const string Administer = nameof(Administer);
 
@@ -25,13 +27,6 @@ public static class ApplicationAction
     public const string Generate = nameof(Generate);
     public const string Clean = nameof(Clean);
     public const string Run = nameof(Run);
-
-    /// <summary>
-    /// Judging a record on behalf of a review group: deciding, routing and the notes only reviewers see.
-    /// Granted per resource but exercised per group, so a holder reviews only where they are a member,
-    /// unless the domain's <see cref="Administer"/> waives the membership.
-    /// </summary>
-    public const string Review = nameof(Review);
 
     // Specific
     public const string ManageTeamMemberships = nameof(ManageTeamMemberships);
@@ -250,15 +245,12 @@ public static class ApplicationPermissions
     private const string DemandManagementCategory = "Demand Management";
     private static readonly ApplicationPermission[] _demandManagement =
     [
-        // Business users need View and Create. A requester edits their own request while it is still
-        // proposed without Update, and what View reveals is narrowed by the request's desk visibility.
+        // Submitting, and reading and replying to a request one is the requester, submitter or a participant
+        // of, need no claim; acting on a desk's requests is granted by membership of the desk. View browses
+        // requests on desks the holder is not on, narrowed by each desk's visibility.
         new("View Intake Requests", ApplicationAction.View, ApplicationResource.IntakeRequests, DemandManagementCategory),
-        new("Create Intake Requests", ApplicationAction.Create, ApplicationResource.IntakeRequests, DemandManagementCategory),
-        new("Update Intake Requests", ApplicationAction.Update, ApplicationResource.IntakeRequests, DemandManagementCategory),
-        new("Delete Intake Requests", ApplicationAction.Delete, ApplicationResource.IntakeRequests, DemandManagementCategory),
-        // Exercised only on the desks the holder reviews on; Administer waives that membership.
-        new("Review Intake Requests", ApplicationAction.Review, ApplicationResource.IntakeRequests, DemandManagementCategory),
-        // Manages desks, channels and tag axes, and reviews on every desk. Never substitutes for Review.
+        // The Demand Management Admin: creates and deletes desks, sets their visibility, names Desk Admins,
+        // manages channels and tag axes, and acts as Desk Admin on every desk.
         new("Administer Demand Management", ApplicationAction.Administer, ApplicationResource.IntakeRequests, DemandManagementCategory),
     ];
 

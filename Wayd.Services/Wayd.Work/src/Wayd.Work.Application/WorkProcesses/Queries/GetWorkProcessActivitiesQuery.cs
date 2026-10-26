@@ -9,19 +9,20 @@ namespace Wayd.Work.Application.WorkProcesses.Queries;
 /// <summary>
 /// Retrieves activity history for a work process, newest first.
 /// </summary>
-public sealed record GetWorkProcessActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>
+public sealed record GetWorkProcessActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery
 {
-    public GetWorkProcessActivitiesQuery(IdOrKey idOrKey, int page = 1, int pageSize = 50)
+    public GetWorkProcessActivitiesQuery(IdOrKey idOrKey, PageRequest paging)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<WorkProcess>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<WorkProcess, bool>> IdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetWorkProcessActivitiesQueryValidator : PagedQueryValidator<GetWorkProcessActivitiesQuery>;
 
 public sealed class GetWorkProcessActivitiesQueryHandler(
     IWorkDbContext workDbContext,
@@ -47,8 +48,7 @@ public sealed class GetWorkProcessActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             workProcessId.Value,
             aggregateType: "WorkProcess",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(activities);

@@ -23,7 +23,7 @@ const ENTRY_SHAPE =
 
 const PAGING = {
   page: { type: 'integer', description: 'Page number, starting at 1. Defaults to 1.' },
-  pageSize: { type: 'integer', description: 'Entries per page, 1 to 100. Defaults to 50; a larger value is capped at 100.' },
+  pageSize: { type: 'integer', description: 'Entries per page, 1 to 500. Defaults to 50.' },
 } as const;
 
 const PAGING_PARAMETERS = [{ name: 'page', in: 'query' }, { name: 'pageSize', in: 'query' }];

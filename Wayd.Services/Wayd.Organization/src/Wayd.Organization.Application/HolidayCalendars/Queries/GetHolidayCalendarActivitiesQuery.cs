@@ -8,19 +8,20 @@ namespace Wayd.Organization.Application.HolidayCalendars.Queries;
 /// <summary>
 /// A holiday calendar's activity history, newest first; null when there is no such calendar.
 /// </summary>
-public sealed record GetHolidayCalendarActivitiesQuery : IQuery<PagedResponse<ActivityLogDto>?>
+public sealed record GetHolidayCalendarActivitiesQuery : IQuery<PagedResponse<ActivityLogDto>?>, IPagedQuery
 {
-    public GetHolidayCalendarActivitiesQuery(IdOrKey idOrKey, int page = 1, int pageSize = 50)
+    public GetHolidayCalendarActivitiesQuery(IdOrKey idOrKey, PageRequest paging)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<HolidayCalendar>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<HolidayCalendar, bool>> IdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetHolidayCalendarActivitiesQueryValidator : PagedQueryValidator<GetHolidayCalendarActivitiesQuery>;
 
 public sealed class GetHolidayCalendarActivitiesQueryHandler(
     IOrganizationDbContext organizationDbContext,
@@ -42,8 +43,7 @@ public sealed class GetHolidayCalendarActivitiesQueryHandler(
         return await _activityLogReader.Read(
             calendarId.Value,
             aggregateType: "HolidayCalendar",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
     }
 }

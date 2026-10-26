@@ -7,7 +7,6 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Models;
 using Wayd.DemandManagement.Application.IntakeDesks.Commands;
-using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.IntakeRequests.Commands;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
@@ -32,12 +31,12 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        Employee requester, reviewer, colleague;
+        Employee requester, agent, colleague;
         IntakeChannel channel;
         await using (var seeding = _fixture.CreateContext())
         {
             requester = SeedEmployee(seeding);
-            reviewer = SeedEmployee(seeding);
+            agent = SeedEmployee(seeding);
             colleague = SeedEmployee(seeding);
             channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
             seeding.IntakeChannels.Add(channel);
@@ -46,9 +45,9 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
 
         // Act
         await using var context = _fixture.CreateContext();
-        var desk = await new CreateIntakeDeskCommandHandler(context, Principal(reviewer.Id), User(), _clock).Handle(
+        var desk = await new CreateIntakeDeskCommandHandler(context, Principal(agent.Id), User(), _clock).Handle(
             new CreateIntakeDeskCommand($"Desk-{Guid.NewGuid():N}"[..30], "Internal tools", IntakeDeskVisibility.SummaryOnly,
-                true, true, true, [reviewer.Id]), ct);
+                true, true, true, [new IntakeDeskMemberDetails(agent.Id, IntakeDeskRole.Agent)]), ct);
         var created = await new CreateIntakeRequestCommandHandler(context, Principal(requester.Id), User(), _clock).Handle(
             new CreateIntakeRequestCommand("Export invoices", "Finance needs a CSV export", null, desk.Value.Id, channel.Id,
                 null, null), ct);
@@ -57,8 +56,9 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
                 channel.Id, new IntakeRequestNeedByInput(new LocalDate(2026, 12, 31), NeedByBasis.RequesterPreference, "Quarter end", null, null)), ct);
         var shared = await new AddIntakeRequestParticipantCommandHandler(context, Principal(requester.Id), User(), _clock).Handle(
             new AddIntakeRequestParticipantCommand(created.Value.Id, colleague.Id), ct);
-        var assigned = await new AssignIntakeRequestReviewerCommandHandler(context, Principal(reviewer.Id, IntakeRequestAuthorization.ReviewPermission), User(), _clock).Handle(
-            new AssignIntakeRequestReviewerCommand(created.Value.Id, reviewer.Id), ct);
+        // The agent holds no claim: their membership, read from the database, is the grant.
+        var assigned = await new ChangeIntakeRequestAssigneeCommandHandler(context, Principal(agent.Id), User(), _clock).Handle(
+            new ChangeIntakeRequestAssigneeCommand(created.Value.Id, agent.Id), ct);
 
         // Assert
         new[] { desk.IsSuccess, created.IsSuccess, updated.IsSuccess, shared.IsSuccess, assigned.IsSuccess }.Should().AllBeEquivalentTo(true);
@@ -68,7 +68,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         saved.Title.Should().Be("Export invoices to CSV");
         saved.NeedBy!.Basis.Should().Be(NeedByBasis.RequesterPreference);
         saved.Participants.Select(p => p.EmployeeId).Should().Equal(colleague.Id);
-        saved.AssignedReviewerId.Should().Be(reviewer.Id);
+        saved.AssigneeId.Should().Be(agent.Id);
 
         var events = await reader.ActivityLogs.AsNoTracking()
             .Where(a => a.AggregateId == created.Value.Id)
@@ -80,7 +80,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             nameof(IntakeRequestRetitledEvent),
             nameof(IntakeRequestNeedByChangedEvent),
             nameof(IntakeRequestParticipantAddedEvent),
-            nameof(IntakeRequestReviewerAssignedEvent));
+            nameof(IntakeRequestAssigneeChangedEvent));
     }
 
     [Fact]
@@ -89,12 +89,14 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         // Arrange
         var ct = TestContext.Current.CancellationToken;
         Guid requestId;
-        Employee requester;
+        Employee requester, deskAdmin;
         await using (var seeding = _fixture.CreateContext())
         {
             requester = SeedEmployee(seeding);
+            deskAdmin = SeedEmployee(seeding);
             var participant = SeedEmployee(seeding);
-            var desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true, [], EventActor.System, Now);
+            var desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true,
+                [new IntakeDeskMemberDetails(deskAdmin.Id, IntakeDeskRole.Admin)], EventActor.System, Now);
             var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
             seeding.IntakeDesks.Add(desk);
             seeding.IntakeChannels.Add(channel);
@@ -108,7 +110,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
 
         // Act
         await using var context = _fixture.CreateContext();
-        var result = await new DeleteIntakeRequestCommandHandler(context, Principal(requester.Id), User(), _clock)
+        var result = await new DeleteIntakeRequestCommandHandler(context, Principal(deskAdmin.Id), User(), _clock)
             .Handle(new DeleteIntakeRequestCommand(requestId), ct);
 
         // Assert
@@ -116,6 +118,126 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         await using var reader = _fixture.CreateContext();
         (await reader.IntakeRequests.AnyAsync(r => r.Id == requestId, ct)).Should().BeFalse();
         (await reader.ActivityLogs.AnyAsync(a => a.AggregateId == requestId && a.EventType == nameof(IntakeRequestDeletedEvent), ct)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task UpdateIntakeDesk_ByADeskAdmin_ChangesItsAgentsAndUnassignsTheOneRemoved()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        Employee deskAdmin, leaving, joining;
+        IntakeDesk desk;
+        Guid requestId;
+        await using (var seeding = _fixture.CreateContext())
+        {
+            deskAdmin = SeedEmployee(seeding);
+            leaving = SeedEmployee(seeding);
+            joining = SeedEmployee(seeding);
+            desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true,
+                [new IntakeDeskMemberDetails(deskAdmin.Id, IntakeDeskRole.Admin), new IntakeDeskMemberDetails(leaving.Id, IntakeDeskRole.Agent)],
+                EventActor.System, Now);
+            var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
+            seeding.IntakeDesks.Add(desk);
+            seeding.IntakeChannels.Add(channel);
+            await seeding.SaveChangesAsync(ct);
+            var request = IntakeRequest.Create("Title", "Description", null, deskAdmin.Id, deskAdmin.Id, desk, channel, null, null, EventActor.System, Now).Value;
+            seeding.IntakeRequests.Add(request);
+            await seeding.SaveChangesAsync(ct);
+            request.ChangeAssignee(leaving.Id, EventActor.System, Now);
+            await seeding.SaveChangesAsync(ct);
+            requestId = request.Id;
+        }
+
+        // Act — the Desk Admin holds no claim
+        await using var context = _fixture.CreateContext();
+        var result = await new UpdateIntakeDeskCommandHandler(context, Principal(deskAdmin.Id), User(), _clock).Handle(
+            new UpdateIntakeDeskCommand(desk.Id, "Renamed desk", desk.Description, desk.Visibility, false, false, true,
+                [new IntakeDeskMemberDetails(deskAdmin.Id, IntakeDeskRole.Admin), new IntakeDeskMemberDetails(joining.Id, IntakeDeskRole.Agent)]),
+            ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        await using var reader = _fixture.CreateContext();
+        var saved = await reader.IntakeDesks.AsNoTracking().Include(d => d.Members).SingleAsync(d => d.Id == desk.Id, ct);
+        saved.Name.Should().Be("Renamed desk");
+        saved.IsOpen.Should().BeFalse();
+        saved.Members.Select(m => (m.EmployeeId, m.Role)).Should().BeEquivalentTo(
+            [(deskAdmin.Id, IntakeDeskRole.Admin), (joining.Id, IntakeDeskRole.Agent)]);
+        (await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == requestId, ct)).AssigneeId.Should().BeNull();
+        (await reader.ActivityLogs.AsNoTracking().Where(a => a.AggregateId == desk.Id).Select(a => a.EventType).ToListAsync(ct))
+            .Should().Contain([nameof(IntakeDeskDetailsUpdatedEvent), nameof(IntakeDeskClosedEvent), nameof(IntakeDeskMembersChangedEvent)]);
+    }
+
+    [Fact]
+    public async Task DeleteIntakeDesk_RemovesAnEmptyDeskAndItsMembers()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        IntakeDesk desk;
+        Employee administrator;
+        await using (var seeding = _fixture.CreateContext())
+        {
+            administrator = SeedEmployee(seeding);
+            var agent = SeedEmployee(seeding);
+            desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true,
+                [new IntakeDeskMemberDetails(agent.Id, IntakeDeskRole.Agent)], EventActor.System, Now);
+            seeding.IntakeDesks.Add(desk);
+            await seeding.SaveChangesAsync(ct);
+        }
+
+        // Act
+        await using var context = _fixture.CreateContext();
+        var result = await new DeleteIntakeDeskCommandHandler(context, Principal(administrator.Id), User(), _clock)
+            .Handle(new DeleteIntakeDeskCommand(desk.Id), ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        await using var reader = _fixture.CreateContext();
+        (await reader.IntakeDesks.AnyAsync(d => d.Id == desk.Id, ct)).Should().BeFalse();
+        (await reader.ActivityLogs.AnyAsync(a => a.AggregateId == desk.Id && a.EventType == nameof(IntakeDeskDeletedEvent), ct)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RerouteIntakeRequest_MovesItAndUnassignsAnAssigneeNotOnTheDestination()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        Employee agent;
+        IntakeDesk from, to;
+        Guid requestId;
+        await using (var seeding = _fixture.CreateContext())
+        {
+            agent = SeedEmployee(seeding);
+            from = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Private, true, true, true,
+                [new IntakeDeskMemberDetails(agent.Id, IntakeDeskRole.Agent)], EventActor.System, Now);
+            to = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true, [],
+                EventActor.System, Now);
+            var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
+            seeding.IntakeDesks.AddRange(from, to);
+            seeding.IntakeChannels.Add(channel);
+            await seeding.SaveChangesAsync(ct);
+            var request = IntakeRequest.Create("Title", "Description", null, agent.Id, agent.Id, from, channel, null, null, EventActor.System, Now).Value;
+            seeding.IntakeRequests.Add(request);
+            await seeding.SaveChangesAsync(ct);
+            request.ChangeAssignee(agent.Id, EventActor.System, Now);
+            await seeding.SaveChangesAsync(ct);
+            requestId = request.Id;
+        }
+
+        // Act — private to open widens who can read it, so the move is confirmed
+        await using var context = _fixture.CreateContext();
+        var result = await new RerouteIntakeRequestCommandHandler(context, Principal(agent.Id), User(), _clock)
+            .Handle(new RerouteIntakeRequestCommand(requestId, to.Id, ConfirmWiderVisibility: true), ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        await using var reader = _fixture.CreateContext();
+        var saved = await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == requestId, ct);
+        saved.DeskId.Should().Be(to.Id);
+        saved.AssigneeId.Should().BeNull();
+        var rerouted = await reader.ActivityLogs.AsNoTracking()
+            .SingleAsync(a => a.AggregateId == requestId && a.EventType == nameof(IntakeRequestReroutedEvent), ct);
+        rerouted.Payload.Should().Contain($"\"fromDeskId\":\"{from.Id}\"").And.Contain("\"toVisibility\":\"open\"");
     }
 
     private static ICurrentPrincipal Principal(Guid employeeId, params string[] permissions)

@@ -8,8 +8,11 @@ namespace Wayd.Common.Application.Identity.OidcProviders.Queries;
 /// <summary>
 /// Retrieves activity history for an OIDC provider, newest first. Null when the provider does not exist.
 /// </summary>
-public sealed record GetOidcProviderActivitiesQuery(Guid Id, int Page = 1, int PageSize = 50)
-    : IQuery<Result<PagedResponse<ActivityLogDto>?>>;
+public sealed record GetOidcProviderActivitiesQuery(Guid Id, PageRequest Paging)
+    : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery;
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetOidcProviderActivitiesQueryValidator : PagedQueryValidator<GetOidcProviderActivitiesQuery>;
 
 public sealed class GetOidcProviderActivitiesQueryHandler(
     IWaydDbContext waydDbContext,
@@ -33,8 +36,7 @@ public sealed class GetOidcProviderActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             request.Id,
             aggregateType: "OidcProvider",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(activities);

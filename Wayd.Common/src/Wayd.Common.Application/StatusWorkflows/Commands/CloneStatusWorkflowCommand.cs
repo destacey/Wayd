@@ -25,7 +25,8 @@ public sealed class CloneStatusWorkflowCommandHandler(
     IStatusWorkflowDbContext dbContext,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
-    ILogger<CloneStatusWorkflowCommandHandler> logger)
+    ILogger<CloneStatusWorkflowCommandHandler> logger,
+    IWorkflowOwnerAvailability ownerAvailability)
     : ICommandHandler<CloneStatusWorkflowCommand, Guid>
 {
     private const string AppRequestName = nameof(CloneStatusWorkflowCommand);
@@ -34,6 +35,7 @@ public sealed class CloneStatusWorkflowCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<CloneStatusWorkflowCommandHandler> _logger = logger;
+    private readonly IWorkflowOwnerAvailability _ownerAvailability = ownerAvailability;
 
     public async Task<Result<Guid>> Handle(CloneStatusWorkflowCommand request, CancellationToken cancellationToken)
     {
@@ -48,7 +50,7 @@ public sealed class CloneStatusWorkflowCommandHandler(
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(w => w.Id == request.Id, cancellationToken);
 
-            if (workflow is null)
+            if (workflow is null || !await _ownerAvailability.IsAvailable(workflow.OwnerType, cancellationToken))
             {
                 _logger.LogInformation("Status Workflow {WorkflowId} not found.", request.Id);
                 return Result.Failure<Guid>("Status workflow not found.");

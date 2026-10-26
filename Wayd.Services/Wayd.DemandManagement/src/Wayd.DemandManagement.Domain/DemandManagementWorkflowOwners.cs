@@ -1,4 +1,5 @@
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.StatusWorkflows;
 
 namespace Wayd.DemandManagement.Domain;
@@ -51,7 +52,8 @@ public static class DemandManagementWorkflowOwners
             (int)IntakeRequestStatusAlias.Declined,
             (int)IntakeRequestStatusAlias.Duplicate,
             (int)IntakeRequestStatusAlias.Withdrawn,
-        ]);
+        ],
+        featureFlag: FeatureFlags.Names.DemandManagement);
 
     /// <summary>Every owner type this module contributes, for registration at startup.</summary>
     public static WorkflowOwnerDescriptor[] All => [IntakeRequest];

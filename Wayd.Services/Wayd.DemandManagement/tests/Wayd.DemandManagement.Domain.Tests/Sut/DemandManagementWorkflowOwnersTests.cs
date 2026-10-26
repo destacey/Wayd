@@ -2,6 +2,7 @@ using FluentAssertions;
 using NodaTime;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
@@ -69,6 +70,20 @@ public sealed class DemandManagementWorkflowOwnersTests
         // Assert
         required.Should().BeEquivalentTo(RequiredStatuses.Select(s => s.Alias));
         owner.Aliases.Keys.Should().Contain((int)IntakeRequestStatusAlias.Fulfilled);
+    }
+
+    [Fact]
+    public void FeatureFlag_ShouldBeDemandManagement()
+    {
+        // Arrange
+        var owner = DemandManagementWorkflowOwners.IntakeRequest;
+
+        // Act
+        var flag = owner.FeatureFlag;
+
+        // Assert
+        // Settings hides intake workflows while the module is switched off.
+        flag.Should().Be(FeatureFlags.Names.DemandManagement);
     }
 
     [Fact]

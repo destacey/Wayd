@@ -2,7 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NodaTime;
+using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Application.StatusWorkflows.Commands;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Events;
@@ -208,7 +210,7 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
             CurrentUser(),
             CurrentPrincipal(employeeId),
             DateTimeProvider(),
-            NullLogger<ReassignWorkflowCommandHandler>.Instance);
+            NullLogger<ReassignWorkflowCommandHandler>.Instance, new WorkflowOwnerAvailability(Mock.Of<IFeatureFlags>()));
 
     [Fact]
     public async Task Reassign_ShouldMoveEveryRecordOntoTheTargetWorkflow()

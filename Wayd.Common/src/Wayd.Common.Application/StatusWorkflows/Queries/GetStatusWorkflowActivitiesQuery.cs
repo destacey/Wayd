@@ -26,28 +26,30 @@ public sealed class GetStatusWorkflowActivitiesQueryValidator : PagedQueryValida
 
 public sealed class GetStatusWorkflowActivitiesQueryHandler(
     IStatusWorkflowDbContext statusWorkflowDbContext,
-    IActivityLogReader activityLogReader)
+    IActivityLogReader activityLogReader,
+    IWorkflowOwnerAvailability ownerAvailability)
     : IQueryHandler<GetStatusWorkflowActivitiesQuery, Result<PagedResponse<ActivityLogDto>?>>
 {
     private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
     private readonly IActivityLogReader _activityLogReader = activityLogReader;
+    private readonly IWorkflowOwnerAvailability _ownerAvailability = ownerAvailability;
 
     public async Task<Result<PagedResponse<ActivityLogDto>?>> Handle(
         GetStatusWorkflowActivitiesQuery request, CancellationToken cancellationToken)
     {
-        var workflowId = await _statusWorkflowDbContext.StatusWorkflows
+        var workflow = await _statusWorkflowDbContext.StatusWorkflows
             .Where(request.IdOrKeyFilter)
-            .Select(w => (Guid?)w.Id)
+            .Select(w => new { w.Id, w.OwnerType })
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (workflowId is null)
+        if (workflow is null || !await _ownerAvailability.IsAvailable(workflow.OwnerType, cancellationToken))
         {
             return Result.Success<PagedResponse<ActivityLogDto>?>(null);
         }
 
         // The events name the aggregate "Workflow" rather than the entity's own StatusWorkflow.
         var activities = await _activityLogReader.Read(
-            workflowId.Value,
+            workflow.Id,
             aggregateType: "Workflow",
             paging: request.Paging,
             cancellationToken: cancellationToken);

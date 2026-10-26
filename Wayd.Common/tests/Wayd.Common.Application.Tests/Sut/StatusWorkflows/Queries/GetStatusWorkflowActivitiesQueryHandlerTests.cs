@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Activities;
@@ -16,7 +16,7 @@ public class GetStatusWorkflowActivitiesQueryHandlerTests : StatusWorkflowHandle
 
     public GetStatusWorkflowActivitiesQueryHandlerTests()
     {
-        _handler = new GetStatusWorkflowActivitiesQueryHandler(DbContext, _activityLogReader.Object);
+        _handler = new GetStatusWorkflowActivitiesQueryHandler(DbContext, _activityLogReader.Object, OwnerAvailability);
     }
 
     [Fact]
@@ -69,6 +69,23 @@ public class GetStatusWorkflowActivitiesQueryHandlerTests : StatusWorkflowHandle
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeEquivalentTo(expectedResponse);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsNull_WhenTheWorkflowsFeatureIsOff()
+    {
+        // Arrange
+        var workflow = SeedWorkflow("Gadget Workflow", publish: true, owner: Gadget);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetStatusWorkflowActivitiesQuery(new IdOrKey(workflow.Id), new PageRequest()),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeNull();
+        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     public void Dispose() => DbContext.Dispose();

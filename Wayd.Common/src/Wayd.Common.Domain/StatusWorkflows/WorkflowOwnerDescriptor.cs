@@ -50,16 +50,22 @@ public sealed class WorkflowOwnerDescriptor
     /// methods make, each required or optional. Empty for an owner type that moves to any status it is
     /// given. See <see cref="Moves"/>.
     /// </param>
+    /// <param name="featureFlag">
+    /// The feature flag the owning module is released behind, or null when it is always available. See
+    /// <see cref="FeatureFlag"/>.
+    /// </param>
     public WorkflowOwnerDescriptor(
         string key,
         string displayName,
         IReadOnlyDictionary<int, string> aliases,
         IReadOnlyCollection<int> requiredAliases,
         bool supportsRestrictedTransitions = false,
-        IReadOnlyCollection<WorkflowMove>? moves = null)
+        IReadOnlyCollection<WorkflowMove>? moves = null,
+        string? featureFlag = null)
     {
         Key = Guard.Against.NullOrWhiteSpace(key, nameof(key)).Trim();
         DisplayName = Guard.Against.NullOrWhiteSpace(displayName, nameof(displayName)).Trim();
+        FeatureFlag = string.IsNullOrWhiteSpace(featureFlag) ? null : featureFlag.Trim();
         Guard.Against.Null(aliases, nameof(aliases));
         RequiredAliases = Guard.Against.Null(requiredAliases, nameof(requiredAliases));
         SupportsRestrictedTransitions = supportsRestrictedTransitions;
@@ -141,6 +147,17 @@ public sealed class WorkflowOwnerDescriptor
 
     /// <summary>What to call this kind of record in a message or an admin screen.</summary>
     public string DisplayName { get; }
+
+    /// <summary>
+    /// The feature flag the owning module is released behind, or null when it is always available.
+    /// </summary>
+    /// <remarks>
+    /// While the flag is off, workflow administration treats the owner type as absent: its workflows and
+    /// assignments are left out of every list and read as not found, and none can be created, cloned or
+    /// reassigned. The workflows are still seeded and still resolve, so switching the module on needs
+    /// nothing else.
+    /// </remarks>
+    public string? FeatureFlag { get; }
 
     /// <summary>
     /// Every well-known meaning a status of this owner type can carry, value to name.

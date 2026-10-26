@@ -13,15 +13,21 @@ namespace Wayd.Common.Application.StatusWorkflows.Queries;
 /// </remarks>
 public sealed record GetWorkflowAssignmentsQuery(string? OwnerType) : IQuery<List<WorkflowAssignmentDto>>;
 
-public sealed class GetWorkflowAssignmentsQueryHandler(IStatusWorkflowDbContext dbContext)
+public sealed class GetWorkflowAssignmentsQueryHandler(
+    IStatusWorkflowDbContext dbContext,
+    IWorkflowOwnerAvailability ownerAvailability)
     : IQueryHandler<GetWorkflowAssignmentsQuery, List<WorkflowAssignmentDto>>
 {
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
+    private readonly IWorkflowOwnerAvailability _ownerAvailability = ownerAvailability;
 
     public async Task<List<WorkflowAssignmentDto>> Handle(
         GetWorkflowAssignmentsQuery request, CancellationToken cancellationToken)
     {
-        var query = _dbContext.WorkflowAssignments.AsNoTracking();
+        var unavailable = (await _ownerAvailability.Unavailable(cancellationToken)).ToArray();
+
+        var query = _dbContext.WorkflowAssignments.AsNoTracking()
+            .Where(a => !unavailable.Contains(a.OwnerType));
 
         if (!string.IsNullOrWhiteSpace(request.OwnerType))
         {

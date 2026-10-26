@@ -15,7 +15,7 @@ public sealed class StatusWorkflowLifecycleCommandHandlerTests : StatusWorkflowH
     public async Task Create_ShouldAddADraftWorkflow()
     {
         // Arrange
-        var sut = new CreateStatusWorkflowCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<CreateStatusWorkflowCommandHandler>());
+        var sut = new CreateStatusWorkflowCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<CreateStatusWorkflowCommandHandler>(), OwnerAvailability);
 
         // Act
         var result = await sut.Handle(
@@ -32,7 +32,7 @@ public sealed class StatusWorkflowLifecycleCommandHandlerTests : StatusWorkflowH
     {
         // A workflow for an owner type nothing registered could never be resolved at runtime.
         // Arrange
-        var sut = new CreateStatusWorkflowCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<CreateStatusWorkflowCommandHandler>());
+        var sut = new CreateStatusWorkflowCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<CreateStatusWorkflowCommandHandler>(), OwnerAvailability);
 
         // Act
         var result = await sut.Handle(
@@ -139,7 +139,7 @@ public sealed class StatusWorkflowLifecycleCommandHandlerTests : StatusWorkflowH
         // Cloning is how a published or seeded workflow is changed, so the copy has to be complete.
         // Arrange
         var workflow = SeedWorkflow(publish: true);
-        var sut = new CloneStatusWorkflowCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<CloneStatusWorkflowCommandHandler>());
+        var sut = new CloneStatusWorkflowCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<CloneStatusWorkflowCommandHandler>(), OwnerAvailability);
 
         // Act
         var result = await sut.Handle(
@@ -153,6 +153,59 @@ public sealed class StatusWorkflowLifecycleCommandHandlerTests : StatusWorkflowH
         clone.State.Should().Be(StatusWorkflowState.Draft);
         clone.Statuses.Select(s => s.Name).Should().BeEquivalentTo(workflow.Statuses.Select(s => s.Name));
         clone.Statuses.Select(s => s.Id).Should().NotIntersectWith(workflow.Statuses.Select(s => s.Id));
+    }
+
+    [Fact]
+    public async Task Create_ShouldFail_ForAnOwnerTypeWhoseFeatureIsOff()
+    {
+        // An unreleased module's owner type reads as one nothing registered, so Settings never offers it.
+        // Arrange
+        var sut = new CreateStatusWorkflowCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<CreateStatusWorkflowCommandHandler>(), OwnerAvailability);
+
+        // Act
+        var result = await sut.Handle(
+            new CreateStatusWorkflowCommand("Gadget Workflow", null, Gadget.Key),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"'{Gadget.Key}' is not a registered workflow owner type.");
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Create_ShouldAddAWorkflow_OnceTheOwnerTypesFeatureIsOn()
+    {
+        // Arrange
+        EnableGadgets();
+        var sut = new CreateStatusWorkflowCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<CreateStatusWorkflowCommandHandler>(), OwnerAvailability);
+
+        // Act
+        var result = await sut.Handle(
+            new CreateStatusWorkflowCommand("Gadget Workflow", null, Gadget.Key),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Clone_ShouldFail_ForAWorkflowWhoseFeatureIsOff()
+    {
+        // Arrange
+        var workflow = SeedWorkflow("Gadget Workflow", publish: true, owner: Gadget);
+        var sut = new CloneStatusWorkflowCommandHandler(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<CloneStatusWorkflowCommandHandler>(), OwnerAvailability);
+
+        // Act
+        var result = await sut.Handle(
+            new CloneStatusWorkflowCommand(workflow.Id, "Gadget Workflow v2", null),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Status workflow not found.");
+        DbContext.SaveChangesCallCount.Should().Be(0);
     }
 
     private PublishStatusWorkflowCommandHandler CreatePublishSut() =>

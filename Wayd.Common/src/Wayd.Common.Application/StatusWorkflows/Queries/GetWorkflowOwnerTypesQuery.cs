@@ -13,16 +13,21 @@ namespace Wayd.Common.Application.StatusWorkflows.Queries;
 /// </remarks>
 public sealed record GetWorkflowOwnerTypesQuery : IQuery<List<WorkflowOwnerTypeDto>>;
 
-public sealed class GetWorkflowOwnerTypesQueryHandler
+public sealed class GetWorkflowOwnerTypesQueryHandler(IWorkflowOwnerAvailability ownerAvailability)
     : IQueryHandler<GetWorkflowOwnerTypesQuery, List<WorkflowOwnerTypeDto>>
 {
-    public Task<List<WorkflowOwnerTypeDto>> Handle(
+    private readonly IWorkflowOwnerAvailability _ownerAvailability = ownerAvailability;
+
+    public async Task<List<WorkflowOwnerTypeDto>> Handle(
         GetWorkflowOwnerTypesQuery request, CancellationToken cancellationToken)
     {
+        var unavailable = await _ownerAvailability.Unavailable(cancellationToken);
+
         // Read from the in-memory registry rather than the WorkflowAliasNames table: the registry is
         // whatever this build registered at startup, where the table is a snapshot that a downgrade or
         // a failed seed could leave behind.
         var owners = WorkflowOwners.All
+            .Where(descriptor => !unavailable.Contains(descriptor.Key))
             .Select(descriptor => new WorkflowOwnerTypeDto
             {
                 Key = descriptor.Key,
@@ -44,6 +49,6 @@ public sealed class GetWorkflowOwnerTypesQueryHandler
             .OrderBy(o => o.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        return Task.FromResult(owners);
+        return owners;
     }
 }

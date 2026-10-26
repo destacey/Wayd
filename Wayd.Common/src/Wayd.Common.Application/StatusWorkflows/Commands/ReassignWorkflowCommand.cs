@@ -41,7 +41,8 @@ public sealed class ReassignWorkflowCommandHandler(
     ICurrentUser currentUser,
     ICurrentPrincipal currentPrincipal,
     IDateTimeProvider dateTimeProvider,
-    ILogger<ReassignWorkflowCommandHandler> logger)
+    ILogger<ReassignWorkflowCommandHandler> logger,
+    IWorkflowOwnerAvailability ownerAvailability)
     : ICommandHandler<ReassignWorkflowCommand, int>
 {
     private const string AppRequestName = nameof(ReassignWorkflowCommand);
@@ -52,6 +53,7 @@ public sealed class ReassignWorkflowCommandHandler(
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ReassignWorkflowCommandHandler> _logger = logger;
+    private readonly IWorkflowOwnerAvailability _ownerAvailability = ownerAvailability;
 
     public async Task<Result<int>> Handle(ReassignWorkflowCommand request, CancellationToken cancellationToken)
     {
@@ -60,7 +62,9 @@ public sealed class ReassignWorkflowCommandHandler(
             var assignment = await _dbContext.WorkflowAssignments
                 .FirstOrDefaultAsync(a => a.Id == request.AssignmentId, cancellationToken);
 
-            if (assignment is null)
+            // The remap refuses a target of another owner type, so the assignment alone decides whether
+            // the reassignment touches a hidden one.
+            if (assignment is null || !await _ownerAvailability.IsAvailable(assignment.OwnerType, cancellationToken))
             {
                 _logger.LogInformation("Workflow Assignment {AssignmentId} not found.", request.AssignmentId);
                 return Result.Failure<int>("Workflow assignment not found.");

@@ -78,9 +78,11 @@ const ArrivalStatusField: FC<ArrivalStatusFieldProps> = ({
   deskId,
   form,
 }) => {
-  const { data: arrival, isFetching } = useGetIntakeRequestArrivalStatusesQuery(
-    { requestId, deskId },
-  )
+  const {
+    data: arrival,
+    isFetching,
+    isError,
+  } = useGetIntakeRequestArrivalStatusesQuery({ requestId, deskId })
 
   // Prefill once the destination's statuses arrive, without overwriting a choice already made.
   useEffect(() => {
@@ -89,21 +91,33 @@ const ArrivalStatusField: FC<ArrivalStatusFieldProps> = ({
   }, [arrival, form])
 
   return (
-    <Item
-      name="statusId"
-      label="Arrives As"
-      extra="What the request is on that desk. Deciding it — declining, deferring and the rest — is that desk's call."
-      rules={[{ required: true, message: 'Choose the status it arrives in.' }]}
-    >
-      <Select
-        placeholder="Select a status"
-        loading={isFetching}
-        options={(arrival?.statuses ?? []).map((s) => ({
-          label: s.name,
-          value: s.id,
-        }))}
-      />
-    </Item>
+    <>
+      {isError && (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginBottom: 12 }}
+          title="The statuses this request can arrive in on that desk could not be loaded."
+        />
+      )}
+      <Item
+        name="statusId"
+        label="Arrives As"
+        extra="What the request is on that desk. Deciding it — declining, deferring and the rest — is that desk's call."
+        rules={[
+          { required: true, message: 'Choose the status it arrives in.' },
+        ]}
+      >
+        <Select
+          placeholder="Select a status"
+          loading={isFetching}
+          options={(arrival?.statuses ?? []).map((s) => ({
+            label: s.name,
+            value: s.id,
+          }))}
+        />
+      </Item>
+    </>
   )
 }
 

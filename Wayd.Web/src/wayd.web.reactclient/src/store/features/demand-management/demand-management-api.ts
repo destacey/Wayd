@@ -240,8 +240,10 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           return toError(error)
         }
       },
-      providesTags: (_result, _error, { requestId }) => [
+      // Tagged with the destination desk too: its workflow decides the statuses.
+      providesTags: (_result, _error, { requestId, deskId }) => [
         { type: QueryTags.IntakeRequest, id: requestId },
+        { type: QueryTags.IntakeDesk, id: deskId },
       ],
     }),
 
@@ -491,8 +493,12 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           return toError(error)
         }
       },
+      // Settings → Status Workflows lists the assignments and marks the workflows in use, and a request's
+      // arrival statuses on this desk come from its workflow.
       invalidatesTags: (_result, _error, { deskId }) => [
         { type: QueryTags.IntakeDesk, id: deskId },
+        { type: QueryTags.WorkflowAssignment, id: 'LIST' },
+        { type: QueryTags.StatusWorkflow, id: 'LIST' },
       ],
     }),
 

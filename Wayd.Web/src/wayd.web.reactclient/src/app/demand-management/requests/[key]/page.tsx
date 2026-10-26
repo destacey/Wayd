@@ -66,7 +66,7 @@ const IntakeRequestDetailsPage = (props: {
   // A duplicate sends its readers to the request it gives way to. The agents who decide it stay, so they
   // can see why and reopen it; a reader who cannot see the surviving request gets no link and stays too.
   const redirectTo =
-    request?.duplicateOf && !request.canChangeStatus
+    request?.duplicateOf && !request.isDeskAgent
       ? `${requestHref(request.duplicateOf.key)}?${DUPLICATE_PARAM}=${request.summary.key}`
       : null
   useEffect(() => {
@@ -200,7 +200,7 @@ const IntakeRequestDetailsPage = (props: {
                         </NextLink>
                       </>
                     }
-                    description="Its requester and the request's other people are taken to that request when they open this one."
+                    description="Readers who can see that request are taken to it when they open this one. The desk's agents stay here."
                   />
                 )}
                 {arrivedFrom && (

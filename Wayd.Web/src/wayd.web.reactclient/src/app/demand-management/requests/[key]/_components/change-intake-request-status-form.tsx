@@ -3,13 +3,11 @@
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import {
-  IntakeDeskVisibility,
   IntakeRequestDetailsDto,
   IntakeRequestStatusOptionDto,
 } from '@/src/services/wayd-api'
 import {
   useChangeIntakeRequestStatusMutation,
-  useGetIntakeDesksQuery,
   useGetIntakeRequestStatusOptionsQuery,
   useGetIntakeRequestsQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
@@ -51,7 +49,6 @@ const ChangeIntakeRequestStatusForm: FC<ChangeIntakeRequestStatusFormProps> = ({
     isError,
   } = useGetIntakeRequestStatusOptionsQuery(request.summary.id)
   const { data: requests } = useGetIntakeRequestsQuery()
-  const { data: desks } = useGetIntakeDesksQuery()
 
   const option = (statusId: string | undefined) =>
     options?.find((o) => o.id === statusId)
@@ -90,14 +87,6 @@ const ChangeIntakeRequestStatusForm: FC<ChangeIntakeRequestStatusFormProps> = ({
   // Any other request the reader can see may be the one this duplicates; the server refuses one that is
   // itself a duplicate, with the reason.
   const survivors = (requests ?? []).filter((r) => r.id !== request.summary.id)
-  const survivorDeskIsPrivate = (survivorId: string | undefined) => {
-    const survivor = survivors.find((r) => r.id === survivorId)
-    if (!survivor || survivor.desk.id === request.summary.desk.id) return false
-    return (
-      desks?.find((d) => d.id === survivor.desk.id)?.visibility ===
-      IntakeDeskVisibility.Private
-    )
-  }
 
   const renderNeeds = (chosen: IntakeRequestStatusOptionDto | undefined) => (
     <>
@@ -105,7 +94,7 @@ const ChangeIntakeRequestStatusForm: FC<ChangeIntakeRequestStatusFormProps> = ({
         <Item
           name="duplicateOfId"
           label="Duplicate Of"
-          extra="The request this one gives way to. The requester is shown it in place of this one."
+          extra="The request this one gives way to. Whoever can see it is taken there in place of this one; anyone who cannot sees this request marked Duplicate, with your reason, and no link."
           rules={[
             { required: true, message: 'Choose the request this duplicates.' },
           ]}
@@ -120,23 +109,11 @@ const ChangeIntakeRequestStatusForm: FC<ChangeIntakeRequestStatusFormProps> = ({
           />
         </Item>
       )}
-      <Item noStyle shouldUpdate>
-        {({ getFieldValue }) =>
-          chosen?.needsSurvivingRequest &&
-          survivorDeskIsPrivate(getFieldValue('duplicateOfId')) ? (
-            <Alert
-              type="info"
-              showIcon
-              style={{ marginBottom: 12 }}
-              title="That request is on a private desk."
-              description="Its requester may not be able to see it. They will see this request marked as a duplicate, with your reason, and no link."
-            />
-          ) : null
-        }
-      </Item>
+      {/* Revalidated when the status changes, so an error for a status that needed a reason clears with it. */}
       <Item
         name="reason"
         label="Reason"
+        dependencies={['statusId']}
         extra={
           chosen?.needsReason
             ? 'Required for this status. The requester can read it.'

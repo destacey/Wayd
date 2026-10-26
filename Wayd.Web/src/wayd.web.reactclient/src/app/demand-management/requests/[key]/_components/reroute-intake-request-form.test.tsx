@@ -66,7 +66,9 @@ const arrival = (defaultStatusId?: string) => ({
   },
   isFetching: false,
 })
-const mockArrival = jest.fn(() => arrival('s-submitted'))
+const mockArrival = jest.fn((_args?: { deskId: string }): any =>
+  arrival('s-submitted'),
+)
 const mockDesks = [
   desk('d-private', 'Security', IntakeDeskVisibility.Private),
   desk('d-open', 'Product delivery', IntakeDeskVisibility.Open, {
@@ -83,7 +85,8 @@ jest.mock(
   () => ({
     useRerouteIntakeRequestMutation: () => [mockReroute],
     useGetIntakeDesksQuery: () => ({ data: mockDesks }),
-    useGetIntakeRequestArrivalStatusesQuery: () => mockArrival(),
+    useGetIntakeRequestArrivalStatusesQuery: (args: { deskId: string }) =>
+      mockArrival(args),
   }),
 )
 
@@ -325,5 +328,48 @@ describe('RerouteIntakeRequestForm', () => {
       'aria-invalid',
       'true',
     )
+  })
+
+  it('starts the arrival status again from the new desk when the desk changes', async () => {
+    // Arrange — each desk's workflow matches the request to a different status
+    mockArrival.mockImplementation((args) =>
+      arrival(args?.deskId === 'd-open' ? 's-review' : 's-submitted'),
+    )
+    await renderForm()
+    await chooseDesk('Legal')
+
+    // Act
+    await chooseDesk('Product delivery')
+    await userEvent.click(
+      screen.getByRole('checkbox', {
+        name: 'I understand this makes the request visible to more people',
+      }),
+    )
+    await submit()
+
+    // Assert
+    expect(mockReroute).toHaveBeenCalledWith(
+      expect.objectContaining({ deskId: 'd-open', statusId: 's-review' }),
+    )
+  })
+
+  it('says so when the statuses of the new desk cannot be loaded', async () => {
+    // Arrange
+    mockArrival.mockImplementation(() => ({
+      data: undefined,
+      isFetching: false,
+      isError: true,
+    }))
+    await renderForm()
+
+    // Act
+    await chooseDesk('Legal')
+
+    // Assert
+    expect(
+      screen.getByText(
+        'The statuses this request can arrive in on that desk could not be loaded.',
+      ),
+    ).toBeInTheDocument()
   })
 })

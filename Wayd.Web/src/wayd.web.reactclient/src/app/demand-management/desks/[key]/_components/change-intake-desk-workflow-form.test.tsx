@@ -82,12 +82,13 @@ describe('ChangeIntakeDeskWorkflowForm', () => {
     mockChangeWorkflow.mockReturnValue({ unwrap: () => Promise.resolve() })
   })
 
-  it('starts at the workflow the desk follows', async () => {
+  it('starts at the workflow the desk follows, with nothing to change yet', async () => {
     // Act
     await renderForm()
 
     // Assert
     expect(screen.getByTitle('Default Intake Workflow')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Change' })).toBeDisabled()
   })
 
   it('points the desk at the chosen workflow', async () => {

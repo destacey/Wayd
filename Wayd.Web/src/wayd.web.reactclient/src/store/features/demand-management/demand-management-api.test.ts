@@ -12,6 +12,8 @@ const getIntakeDesk = jest.fn()
 const changeStatus = jest.fn()
 const withdraw = jest.fn()
 const getStatusHistory = jest.fn()
+const getArrivalStatuses = jest.fn()
+const changeWorkflow = jest.fn()
 
 jest.mock('@/src/services/clients', () => ({
   getIntakeRequestsClient: () => ({
@@ -24,8 +26,9 @@ jest.mock('@/src/services/clients', () => ({
     changeStatus,
     withdraw,
     getStatusHistory,
+    getArrivalStatuses,
   }),
-  getIntakeDesksClient: () => ({ getIntakeDesk }),
+  getIntakeDesksClient: () => ({ getIntakeDesk, changeWorkflow }),
 }))
 
 const createStore = () =>
@@ -204,6 +207,36 @@ describe('demandManagementApi', () => {
       // Assert
       expect(changeStatus).toHaveBeenCalledWith('r-1', { statusId: 's-2' })
       expect(getStatusHistory).toHaveBeenCalledTimes(2)
+      subscription.unsubscribe()
+    })
+  })
+
+  describe('changeIntakeDeskWorkflow', () => {
+    it('refetches the statuses a request can arrive in on that desk', async () => {
+      // Arrange
+      getArrivalStatuses.mockResolvedValue({ statuses: [] })
+      changeWorkflow.mockResolvedValue(null)
+      const store = createStore()
+      const subscription = store.dispatch(
+        demandManagementApi.endpoints.getIntakeRequestArrivalStatuses.initiate({
+          requestId: 'r-1',
+          deskId: 'd-2',
+        }),
+      )
+      await subscription
+
+      // Act
+      await store.dispatch(
+        demandManagementApi.endpoints.changeIntakeDeskWorkflow.initiate({
+          deskId: 'd-2',
+          workflowId: 'w-2',
+        }),
+      )
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      // Assert
+      expect(changeWorkflow).toHaveBeenCalledWith('d-2', { workflowId: 'w-2' })
+      expect(getArrivalStatuses).toHaveBeenCalledTimes(2)
       subscription.unsubscribe()
     })
   })

@@ -142,6 +142,7 @@ const details = (overrides: Record<string, unknown> = {}) => ({
   canAddParticipants: false,
   canChangeStatus: false,
   canWithdraw: false,
+  isDeskAgent: false,
   ...overrides,
 })
 
@@ -277,9 +278,9 @@ describe('IntakeRequestDetailsPage', () => {
   })
 
   it('keeps an agent on a duplicate, linking to the request it gives way to', async () => {
-    // Arrange
+    // Arrange — the Demand Management Admin with no linked employee works the desk but cannot change status
     mockRequest = details({
-      canChangeStatus: true,
+      isDeskAgent: true,
       duplicateOf: { id: 'r-7', key: 7, title: 'Export invoices' },
     })
 
@@ -290,6 +291,26 @@ describe('IntakeRequestDetailsPage', () => {
     expect(
       await screen.findByRole('link', { name: '7 · Export invoices' }),
     ).toHaveAttribute('href', '/demand-management/requests/7')
+    expect(mockReplace).not.toHaveBeenCalled()
+  })
+
+  it('keeps a reader on a duplicate whose surviving request they cannot see', async () => {
+    // Arrange — the server names no surviving request to such a reader
+    mockRequest = details({
+      summary: {
+        ...summary,
+        status: { id: 's-7', name: 'Duplicate', category: 'Removed', alias: 7 },
+      },
+      duplicateOf: null,
+    })
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(
+      await screen.findByText('Rotate the VPN certificates'),
+    ).toBeInTheDocument()
     expect(mockReplace).not.toHaveBeenCalled()
   })
 

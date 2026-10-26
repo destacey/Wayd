@@ -1,6 +1,6 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { IntakeDeskVisibility, StatusCategory } from '@/src/services/wayd-api'
+import { StatusCategory } from '@/src/services/wayd-api'
 import ChangeIntakeRequestStatusForm from './change-intake-request-status-form'
 
 jest.mock('@/src/components/contexts/messaging', () => ({
@@ -70,10 +70,6 @@ const mockRequests = [
   { id: 'r-7', key: 7, title: 'Export invoices', desk: { id: 'd-it' } },
   { id: 'r-9', key: 9, title: 'Board pack', desk: { id: 'd-secret' } },
 ]
-const mockDesks = [
-  { id: 'd-it', visibility: IntakeDeskVisibility.Open },
-  { id: 'd-secret', visibility: IntakeDeskVisibility.Private },
-]
 jest.mock(
   '@/src/store/features/demand-management/demand-management-api',
   () => ({
@@ -84,7 +80,6 @@ jest.mock(
       isError: false,
     }),
     useGetIntakeRequestsQuery: () => ({ data: mockRequests }),
-    useGetIntakeDesksQuery: () => ({ data: mockDesks }),
   }),
 )
 
@@ -221,22 +216,44 @@ describe('ChangeIntakeRequestStatusForm', () => {
       reason: 'Asked already',
       duplicateOfId: 'r-7',
     })
-    expect(
-      screen.queryByText('That request is on a private desk.'),
-    ).not.toBeInTheDocument()
   })
 
-  it('warns that the requester may not see a surviving request on a private desk', async () => {
+  it('clears the reason error once a status that needs no reason is chosen', async () => {
     // Arrange
     await renderForm()
-    await choose(0, 'Duplicate')
+    await choose(0, 'Declined')
+    await submit()
+    expect(screen.getByRole('textbox', { name: 'Reason' })).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    )
 
     // Act
-    await choose(1, '9 · Board pack')
+    await choose(0, 'In Review')
 
     // Assert
-    expect(
-      screen.getByText('That request is on a private desk.'),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Reason' })).not.toHaveAttribute(
+      'aria-invalid',
+      'true',
+    )
+  })
+
+  it('puts a field error from the server on the field it names', async () => {
+    // Arrange
+    mockChangeStatus.mockReturnValue({
+      unwrap: () =>
+        Promise.reject({ status: 422, errors: { Reason: ['Too long.'] } }),
+    })
+    await renderForm()
+    await choose(0, 'In Review')
+
+    // Act
+    await submit()
+
+    // Assert
+    expect(screen.getByRole('textbox', { name: 'Reason' })).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    )
   })
 })

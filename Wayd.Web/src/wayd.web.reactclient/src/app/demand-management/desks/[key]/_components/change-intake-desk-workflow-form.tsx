@@ -9,7 +9,7 @@ import {
 } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { Form, Modal, Select, Typography } from 'antd'
-import { FC } from 'react'
+import { FC, useState } from 'react'
 
 const { Item } = Form
 const { Paragraph } = Typography
@@ -38,6 +38,8 @@ const ChangeIntakeDeskWorkflowForm: FC<ChangeIntakeDeskWorkflowFormProps> = ({
   onFormCancel,
 }) => {
   const messageApi = useMessage()
+  // Saving the workflow the desk already follows changes nothing, so the change waits for another choice.
+  const [chosenId, setChosenId] = useState<string | undefined>(workflow.workflow.id)
   const [changeWorkflow] = useChangeIntakeDeskWorkflowMutation()
   const { data: choices, isLoading } = useGetIntakeWorkflowChoicesQuery()
 
@@ -74,7 +76,9 @@ const ChangeIntakeDeskWorkflowForm: FC<ChangeIntakeDeskWorkflowFormProps> = ({
       title="Change Workflow"
       open={isOpen}
       onOk={handleOk}
-      okButtonProps={{ disabled: !isValid }}
+      okButtonProps={{
+        disabled: !isValid || chosenId === workflow.workflow.id,
+      }}
       okText="Change"
       confirmLoading={isSaving}
       onCancel={handleCancel}
@@ -93,6 +97,9 @@ const ChangeIntakeDeskWorkflowForm: FC<ChangeIntakeDeskWorkflowFormProps> = ({
         layout="vertical"
         name="change-intake-desk-workflow-form"
         initialValues={{ workflowId: workflow.workflow.id }}
+        onValuesChange={(changed) => {
+          if ('workflowId' in changed) setChosenId(changed.workflowId)
+        }}
       >
         <Item
           name="workflowId"

@@ -12,22 +12,20 @@ namespace Wayd.Common.Application.Activities;
 public interface IActivityLogReader : IScopedService
 {
     /// <summary>
-    /// Reads activity entries for an aggregate, newest first, with pagination.
+    /// Reads one page of an aggregate's activity entries, newest first.
     /// </summary>
     /// <param name="aggregateId">The aggregate root identifier.</param>
-    /// <param name="aggregateType">Optional aggregate type name to filter by.</param>
-    /// <param name="page">1-indexed page number.</param>
-    /// <param name="pageSize">Number of items per page.</param>
+    /// <param name="aggregateType">The aggregate type name to filter by; null for entries of any type.</param>
+    /// <param name="paging">The page to read, already validated by the calling query; null for the first page at the default size.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task<PagedResponse<ActivityLogDto>> Read(
         Guid aggregateId,
         string? aggregateType = null,
-        int page = 1,
-        int pageSize = 50,
+        PageRequest? paging = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Reads the aggregate's activity entries of the given event types only, newest first, with pagination.
+    /// Reads one page of the aggregate's activity entries of the given event types only, newest first.
     /// </summary>
     /// <remarks>
     /// For a record whose history is read in tiers: the filter runs in the query, so the page and the total
@@ -37,14 +35,12 @@ public interface IActivityLogReader : IScopedService
     /// <param name="aggregateId">The aggregate root identifier.</param>
     /// <param name="aggregateType">The aggregate type name.</param>
     /// <param name="eventTypes">The event type names the reader may see.</param>
-    /// <param name="page">1-indexed page number.</param>
-    /// <param name="pageSize">Number of items per page.</param>
+    /// <param name="paging">The page to read, already validated by the calling query; null for the first page at the default size.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task<PagedResponse<ActivityLogDto>> ReadEventTypes(
         Guid aggregateId,
         string aggregateType,
         IReadOnlyCollection<string> eventTypes,
-        int page = 1,
-        int pageSize = 50,
+        PageRequest? paging = null,
         CancellationToken cancellationToken = default);
 }

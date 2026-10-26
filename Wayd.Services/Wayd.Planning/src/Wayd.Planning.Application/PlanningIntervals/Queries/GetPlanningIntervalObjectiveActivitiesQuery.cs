@@ -9,21 +9,22 @@ namespace Wayd.Planning.Application.PlanningIntervals.Queries;
 /// Retrieves activity history for a planning interval objective, newest first. The objective must belong to
 /// the planning interval named alongside it.
 /// </summary>
-public sealed record GetPlanningIntervalObjectiveActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>
+public sealed record GetPlanningIntervalObjectiveActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery
 {
-    public GetPlanningIntervalObjectiveActivitiesQuery(IdOrKey idOrKey, IdOrKey objectiveIdOrKey, int page = 1, int pageSize = 50)
+    public GetPlanningIntervalObjectiveActivitiesQuery(IdOrKey idOrKey, IdOrKey objectiveIdOrKey, PageRequest paging)
     {
         PlanningIntervalIdOrKeyFilter = idOrKey.CreateFilter<PlanningInterval>();
         ObjectiveIdOrKeyFilter = objectiveIdOrKey.CreateFilter<PlanningIntervalObjective>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<PlanningInterval, bool>> PlanningIntervalIdOrKeyFilter { get; }
     public Expression<Func<PlanningIntervalObjective, bool>> ObjectiveIdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetPlanningIntervalObjectiveActivitiesQueryValidator : PagedQueryValidator<GetPlanningIntervalObjectiveActivitiesQuery>;
 
 public sealed class GetPlanningIntervalObjectiveActivitiesQueryHandler(
     IPlanningDbContext planningDbContext,
@@ -60,8 +61,7 @@ public sealed class GetPlanningIntervalObjectiveActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             objectiveId.Value,
             aggregateType: "PlanningIntervalObjective",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(activities);

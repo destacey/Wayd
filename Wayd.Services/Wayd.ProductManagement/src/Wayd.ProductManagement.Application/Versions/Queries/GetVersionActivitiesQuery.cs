@@ -11,19 +11,20 @@ namespace Wayd.ProductManagement.Application.Versions.Queries;
 /// <summary>
 /// Retrieves activity history for a version, newest first.
 /// </summary>
-public sealed record GetVersionActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>
+public sealed record GetVersionActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery
 {
-    public GetVersionActivitiesQuery(IdOrKey idOrKey, int page = 1, int pageSize = 50)
+    public GetVersionActivitiesQuery(IdOrKey idOrKey, PageRequest paging)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<Version>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<Version, bool>> IdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetVersionActivitiesQueryValidator : PagedQueryValidator<GetVersionActivitiesQuery>;
 
 public sealed class GetVersionActivitiesQueryHandler(
     IProductManagementDbContext productManagementDbContext,
@@ -49,8 +50,7 @@ public sealed class GetVersionActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             versionId.Value,
             aggregateType: "Version",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(activities);

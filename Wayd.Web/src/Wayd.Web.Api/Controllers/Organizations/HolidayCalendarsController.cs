@@ -47,9 +47,10 @@ public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase
     [McpTool("HolidayCalendars_GetActivities", "Get holiday calendar activity history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = PageRequest.FirstPage, [FromQuery] int pageSize = PageSizes.Default, CancellationToken cancellationToken = default)
     {
-        var activities = await _dispatcher.Send(new GetHolidayCalendarActivitiesQuery(new IdOrKey(idOrKey), page, pageSize), cancellationToken);
+        var activities = await _dispatcher.Send(new GetHolidayCalendarActivitiesQuery(new IdOrKey(idOrKey), new PageRequest(page, pageSize)), cancellationToken);
         return activities is not null ? Ok(activities) : NotFound();
     }
 

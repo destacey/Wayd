@@ -71,7 +71,8 @@ public class WorkProcessesController(ILogger<WorkProcessesController> logger, ID
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetActivities(string idOrKey, [FromQuery] int page = PageRequest.FirstPage, [FromQuery] int pageSize = PageSizes.Default, CancellationToken cancellationToken = default)
     {
         // Checked here so a malformed idOrKey answers 400, as Get above does; IdOrKey's string
         // constructor would throw NotFoundException, a 404.
@@ -80,7 +81,7 @@ public class WorkProcessesController(ILogger<WorkProcessesController> logger, ID
             return BadRequest(ProblemDetailsExtensions.ForUnknownIdOrKeyType(HttpContext));
         }
 
-        var result = await _dispatcher.Send(new GetWorkProcessActivitiesQuery(new IdOrKey(idOrKey), page, pageSize), cancellationToken);
+        var result = await _dispatcher.Send(new GetWorkProcessActivitiesQuery(new IdOrKey(idOrKey), new PageRequest(page, pageSize)), cancellationToken);
 
         return result.Value is not null
             ? Ok(result.Value)

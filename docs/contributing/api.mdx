@@ -216,21 +216,50 @@ A list either stays whole or pages, and a list that pages does so one of two way
   (null on the last page) out. There is no total and no page number. The notification list is the example
   (`GetMyNotificationsQuery`). Whether the newest-first activity logs move to cursors is decided in [#1146](https://github.com/destacey/Wayd/issues/1146).
 
-`pageSize` defaults to 25 and is at most 100. A list that pages sorts and filters in its query, never in the
-client, since a client cannot sort a page it does not have.
+`pageSize` defaults to 50 and is at most 500 (`PageSizes`). A list that pages sorts and filters in its query,
+never in the client, since a client cannot sort a page it does not have.
+
+The query carries the page as one value rather than loose parameters, and its validator derives from the shared
+one, so no list invents its own default or bounds:
+
+| Shape | The query implements | It takes | Its validator derives from |
+| --- | --- | --- | --- |
+| By page number | `IPagedQuery` | `PageRequest Paging` (`Page`, `PageSize`, and `Skip` for the query) | `PagedQueryValidator<TQuery>` |
+| By cursor | `ICursorQuery` | `CursorRequest Paging` (`Before`, `PageSize`) | `CursorQueryValidator<TQuery, TCursor>` |
+
+The action keeps loose `[FromQuery] int page = PageRequest.FirstPage` and `int pageSize = PageSizes.Default`
+(or `string? before`) and builds the request, so the parameter names in the document stay `page`, `pageSize`
+and `before`. A failure is named after the parameter (`PageSize`, not `Paging.PageSize`). A validator with
+rules of its own adds them in its constructor (`GetMyFollowsQueryValidator`); one with none is a single line
+(`public sealed class GetRiskActivitiesQueryValidator : PagedQueryValidator<GetRiskActivitiesQuery>;`).
+
+The maximum is the same for every caller, whatever their permissions: it bounds what one request costs the
+database and the response, and that cost does not change with who asks. A list whose callers need larger pages
+passes its own maximum to the base (`: PagedQueryValidator<TQuery>(1000)`), states it in its endpoint
+description, and is added with its reason to `LargerPageValidators` in `PagingTests`. Reading more than that at
+once (an export, a bulk sync) belongs in an endpoint built for it, not in a larger page.
 
 A cursor list orders by its moving key, then by keys that never change and are unique together, and its cursor
 holds exactly those keys: a key that can change (a notification id a late write raises, say) would move an item
-the reader has not reached back past the cursor. Each list declares its keys in a small cursor type
-(`NotificationCursor`) and encodes it with `CursorEncoding`, so every cursor is the same opaque string: callers
-hand it back unread, and its format may change. A cursor that cannot be read fails validation (422). In the
-client, a cursor list is an RTK infinite query whose `getNextPageParam` returns `nextCursor`. The hosted MCP
-server's own `offset` paging stands aside for any endpoint that takes `pageSize`, so both kinds reach MCP tools
-unchanged.
+the reader has not reached back past the cursor. Each list declares its keys in a small cursor type that
+implements `ICursor<TSelf>` (`NotificationCursor`) and encodes it with `CursorEncoding`, so every cursor is the
+same opaque string: callers hand it back unread, and its format may change. A cursor that cannot be read fails
+validation (422). In the client, a cursor list is an RTK infinite query whose `getNextPageParam` returns
+`nextCursor`. The hosted MCP server's own `offset` paging stands aside for any endpoint that takes `pageSize`,
+so both kinds reach MCP tools unchanged.
+
+Two tests hold every list to this. `ControllerPagingTests` (`Wayd.Web.Api.Tests`) checks the actions: one
+answering with `PagedResponse<T>` takes `page` and `pageSize`, one answering with `CursorPage<T>` takes `before`
+and `pageSize`, no other action takes `page`, `pageNumber`, `pageSize`, `skip`, `offset` or `take`, and no
+response type but those two carries paging. `PagingTests` (`Wayd.ArchitectureTests`) checks the queries: one
+answering with either shape implements the matching interface, has the matching validator, and carries no
+paging properties of its own.
 
 Some lists predate this rule and page in shapes of their own: imports (`ImportProcessPageDto`), background jobs
-and dead letters (0-based `pageNumber`), and the user list (`PaginationFilter`); activity logs default to 50.
-They move to it under [#1141](https://github.com/destacey/Wayd/issues/1141). Do not copy them.
+and dead letters (0-based `pageNumber`), and recent delivery events (`take`). Each is on an allow-list in those
+tests naming the issue that moves it ([#1144](https://github.com/destacey/Wayd/issues/1144),
+[#1145](https://github.com/destacey/Wayd/issues/1145)); the lists only shrink. `PaginationFilter`, behind the
+user service's search, reaches no endpoint and is retired under #1144. Do not copy any of them.
 
 ### Partial updates
 

@@ -9,19 +9,20 @@ namespace Wayd.ProductManagement.Application.Releases.Queries;
 /// <summary>
 /// Retrieves activity history for a release, newest first.
 /// </summary>
-public sealed record GetReleaseActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>
+public sealed record GetReleaseActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery
 {
-    public GetReleaseActivitiesQuery(IdOrKey idOrKey, int page = 1, int pageSize = 50)
+    public GetReleaseActivitiesQuery(IdOrKey idOrKey, PageRequest paging)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<Release>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<Release, bool>> IdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetReleaseActivitiesQueryValidator : PagedQueryValidator<GetReleaseActivitiesQuery>;
 
 public sealed class GetReleaseActivitiesQueryHandler(
     IProductManagementDbContext productManagementDbContext,
@@ -47,8 +48,7 @@ public sealed class GetReleaseActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             releaseId.Value,
             aggregateType: "Release",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(activities);

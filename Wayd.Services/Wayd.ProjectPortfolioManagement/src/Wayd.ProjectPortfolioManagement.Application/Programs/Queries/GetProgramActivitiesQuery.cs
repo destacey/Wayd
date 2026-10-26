@@ -10,19 +10,20 @@ namespace Wayd.ProjectPortfolioManagement.Application.Programs.Queries;
 /// <summary>
 /// Retrieves activity history for a program, newest first.
 /// </summary>
-public sealed record GetProgramActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>
+public sealed record GetProgramActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery
 {
-    public GetProgramActivitiesQuery(IdOrKey idOrKey, int page = 1, int pageSize = 50)
+    public GetProgramActivitiesQuery(IdOrKey idOrKey, PageRequest paging)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<Program>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<Program, bool>> IdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetProgramActivitiesQueryValidator : PagedQueryValidator<GetProgramActivitiesQuery>;
 
 public sealed class GetProgramActivitiesQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
@@ -48,8 +49,7 @@ public sealed class GetProgramActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             programId.Value,
             aggregateType: "Program",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(activities);

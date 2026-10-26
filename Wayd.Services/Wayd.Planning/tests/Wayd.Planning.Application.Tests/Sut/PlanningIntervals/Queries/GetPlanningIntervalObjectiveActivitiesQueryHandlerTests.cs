@@ -37,13 +37,13 @@ public sealed class GetPlanningIntervalObjectiveActivitiesQueryHandlerTests : ID
 
         // Act
         var result = await _handler.Handle(
-            new GetPlanningIntervalObjectiveActivitiesQuery(new IdOrKey(planningInterval.Id), new IdOrKey(objective.Id)),
+            new GetPlanningIntervalObjectiveActivitiesQuery(new IdOrKey(planningInterval.Id), new IdOrKey(objective.Id), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeNull();
-        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -58,12 +58,12 @@ public sealed class GetPlanningIntervalObjectiveActivitiesQueryHandlerTests : ID
 
         var expected = new PagedResponse<ActivityLogDto>([], 0, 2, 25);
         _activityLogReader
-            .Setup(r => r.Read(objective.Id, "PlanningIntervalObjective", 2, 25, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(objective.Id, "PlanningIntervalObjective", new PageRequest(2, 25), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
         // Act
         var result = await _handler.Handle(
-            new GetPlanningIntervalObjectiveActivitiesQuery(new IdOrKey(planningInterval.Id), new IdOrKey(objective.Id), 2, 25),
+            new GetPlanningIntervalObjectiveActivitiesQuery(new IdOrKey(planningInterval.Id), new IdOrKey(objective.Id), new PageRequest(2, 25)),
             TestContext.Current.CancellationToken);
 
         // Assert

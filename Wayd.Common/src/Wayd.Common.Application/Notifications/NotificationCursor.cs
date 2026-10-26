@@ -14,7 +14,7 @@ namespace Wayd.Common.Application.Notifications;
 /// <param name="LatestOn">When the entry's newest change happened.</param>
 /// <param name="OwnerType">The entry's record's owner type.</param>
 /// <param name="OwnerId">The entry's record's id.</param>
-public readonly record struct NotificationCursor(Instant LatestOn, string OwnerType, Guid OwnerId)
+public readonly record struct NotificationCursor(Instant LatestOn, string OwnerType, Guid OwnerId) : ICursor<NotificationCursor>
 {
     /// <summary>
     /// The earliest and latest instants a cursor may hold: those SQL Server's <c>datetime2</c> can be compared
@@ -27,13 +27,13 @@ public readonly record struct NotificationCursor(Instant LatestOn, string OwnerT
     /// <summary>The longest owner type a cursor may name; registered owner types are far shorter.</summary>
     private const int MaxOwnerTypeLength = 64;
 
-    /// <summary>The cursor as the API hands it out.</summary>
+    /// <inheritdoc />
     public string Encode() => CursorEncoding.Encode(
         LatestOn.ToUnixTimeTicks().ToString(CultureInfo.InvariantCulture),
         OwnerType,
         OwnerId.ToString("N", CultureInfo.InvariantCulture));
 
-    /// <summary>Reads a cursor the API handed out, refusing anything that cannot be one.</summary>
+    /// <inheritdoc />
     public static bool TryDecode(string? value, out NotificationCursor cursor)
     {
         cursor = default;

@@ -24,13 +24,13 @@ public class GetStatusWorkflowActivitiesQueryHandlerTests : StatusWorkflowHandle
     {
         // Act
         var result = await _handler.Handle(
-            new GetStatusWorkflowActivitiesQuery(new IdOrKey(Guid.NewGuid())),
+            new GetStatusWorkflowActivitiesQuery(new IdOrKey(Guid.NewGuid()), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeNull();
-        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _activityLogReader.Verify(r => r.Read(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -58,12 +58,12 @@ public class GetStatusWorkflowActivitiesQueryHandlerTests : StatusWorkflowHandle
         var expectedResponse = new PagedResponse<ActivityLogDto>(expectedActivities, 1, 1, 50);
 
         _activityLogReader
-            .Setup(r => r.Read(workflow.Id, "Workflow", 1, 50, It.IsAny<CancellationToken>()))
+            .Setup(r => r.Read(workflow.Id, "Workflow", new PageRequest(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
         var result = await _handler.Handle(
-            new GetStatusWorkflowActivitiesQuery(new IdOrKey(workflow.Id), 1, 50),
+            new GetStatusWorkflowActivitiesQuery(new IdOrKey(workflow.Id), new PageRequest()),
             TestContext.Current.CancellationToken);
 
         // Assert

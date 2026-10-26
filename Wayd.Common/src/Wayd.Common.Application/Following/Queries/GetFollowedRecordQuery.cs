@@ -83,8 +83,7 @@ public sealed class GetFollowedRecordQueryHandler(
         var activity = await _activityLogReader.Read(
             row.OwnerId,
             resolved.Value.ReadRule.ActivityAggregateType,
-            page: 1,
-            pageSize: ChangeLimit,
+            paging: new PageRequest(PageSize: ChangeLimit),
             cancellationToken: cancellationToken);
         var changes = activity.Items.Where(a => a.Timestamp >= row.FollowedOn).ToList();
 

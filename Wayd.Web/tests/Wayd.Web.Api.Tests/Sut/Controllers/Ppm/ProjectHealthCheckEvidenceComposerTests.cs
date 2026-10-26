@@ -238,7 +238,7 @@ public sealed class ProjectHealthCheckEvidenceComposerTests
         SetupHealthChecks(Instant.FromUtc(2026, 1, 1, 9, 0));
         Dispatcher.Setup(d => d.Send(It.IsAny<GetProjectActivitiesQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((GetProjectActivitiesQuery q, CancellationToken _) => Result.Success<PagedResponse<ActivityLogDto>?>(
-                new PagedResponse<ActivityLogDto>([Entry(Instant.FromUtc(2026, 8, 10, 9, 0).Minus(Duration.FromHours(q.Page)))], 10_000, q.Page, 100)));
+                new PagedResponse<ActivityLogDto>([Entry(Instant.FromUtc(2026, 8, 10, 9, 0).Minus(Duration.FromHours(q.Paging.Page)))], 10_000, q.Paging.Page, 100)));
 
         // Act
         var evidence = await Compose();

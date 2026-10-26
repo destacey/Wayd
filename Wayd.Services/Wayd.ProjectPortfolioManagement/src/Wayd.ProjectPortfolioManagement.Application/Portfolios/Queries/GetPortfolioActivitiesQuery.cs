@@ -10,19 +10,20 @@ namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Queries;
 /// <summary>
 /// Retrieves activity history for a project portfolio, newest first.
 /// </summary>
-public sealed record GetPortfolioActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>
+public sealed record GetPortfolioActivitiesQuery : IQuery<Result<PagedResponse<ActivityLogDto>?>>, IPagedQuery
 {
-    public GetPortfolioActivitiesQuery(IdOrKey idOrKey, int page = 1, int pageSize = 50)
+    public GetPortfolioActivitiesQuery(IdOrKey idOrKey, PageRequest paging)
     {
         IdOrKeyFilter = idOrKey.CreateFilter<ProjectPortfolio>();
-        Page = page;
-        PageSize = pageSize;
+        Paging = paging;
     }
 
     public Expression<Func<ProjectPortfolio, bool>> IdOrKeyFilter { get; }
-    public int Page { get; }
-    public int PageSize { get; }
+    public PageRequest Paging { get; }
 }
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetPortfolioActivitiesQueryValidator : PagedQueryValidator<GetPortfolioActivitiesQuery>;
 
 public sealed class GetPortfolioActivitiesQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
@@ -48,8 +49,7 @@ public sealed class GetPortfolioActivitiesQueryHandler(
         var activities = await _activityLogReader.Read(
             portfolioId.Value,
             aggregateType: "ProjectPortfolio",
-            page: request.Page,
-            pageSize: request.PageSize,
+            paging: request.Paging,
             cancellationToken: cancellationToken);
 
         return Result.Success<PagedResponse<ActivityLogDto>?>(activities);

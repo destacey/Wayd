@@ -5,6 +5,7 @@ using Moq;
 using Wayd.Common.Application.Activities;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Activities;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProductManagement;
@@ -173,7 +174,7 @@ public sealed class ActivityLogRelatedAggregateTests(SqlServerDbContextFixture f
         var paged = new List<ActivityLogDto>();
         for (var page = 1; page <= written.Length; page++)
         {
-            var result = await reader.Read(recordId, "Project", page: page, pageSize: 1, cancellationToken: ct);
+            var result = await reader.Read(recordId, "Project", paging: new PageRequest(page, 1), cancellationToken: ct);
             result.TotalCount.Should().Be(written.Length);
             paged.Add(result.Items.Should().ContainSingle().Subject);
         }

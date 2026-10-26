@@ -218,9 +218,11 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
             .Select(t => t.ProtocolTool.Name)
             .ToHashSet(StringComparer.Ordinal);
 
-        // Assert — a list, an already-paged list, a list the endpoint limits, a single record, and a write
+        // Assert — a list, lists paged by number and by cursor, a list the endpoint limits, a single record, and a write
         Assert.Contains("Projects_GetWorkItems", withOffset);
         Assert.DoesNotContain("Projects_GetActivities", withOffset);
+        Assert.DoesNotContain("Me_GetFollows", withOffset);
+        Assert.DoesNotContain("Me_GetNotifications", withOffset);
         Assert.DoesNotContain("DeliveryOverview_GetRecentDeliveryEvents", withOffset);
         Assert.DoesNotContain("Projects_GetProject", withOffset);
         Assert.DoesNotContain("Projects_Create", withOffset);

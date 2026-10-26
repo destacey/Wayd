@@ -1,0 +1,99 @@
+/* The Muted tab of the Notifications page: reasons, then muted records. */
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin-lg);
+  min-width: 0;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin-xs);
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  color: var(--ant-color-text-heading);
+  font-size: var(--ant-font-size-lg);
+  font-weight: var(--ant-font-weight-strong);
+}
+
+.pane {
+  margin-top: var(--ant-margin-xs);
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-margin-sm);
+  padding: var(--ant-padding-sm);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.title {
+  color: var(--ant-color-text);
+  font-weight: var(--ant-font-weight-strong);
+  overflow-wrap: anywhere;
+}
+
+a.title:hover {
+  color: var(--ant-color-primary);
+}
+
+.secondary,
+.tertiary {
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}
+
+.tertiary {
+  color: var(--ant-color-text-tertiary);
+}
+
+.status {
+  flex: none;
+  margin-inline-end: 0;
+}
+
+.more {
+  padding: var(--ant-padding-sm);
+  border-top: 1px solid var(--ant-color-border-secondary);
+  text-align: center;
+}
+
+.state {
+  padding: var(--ant-padding-lg) var(--ant-padding-sm);
+  text-align: center;
+}
+
+/* On a phone the status tag gives way, so the name keeps the width. */
+@media (max-width: 575px) {
+  .status {
+    display: none;
+  }
+}

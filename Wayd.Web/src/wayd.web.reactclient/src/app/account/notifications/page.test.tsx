@@ -32,6 +32,24 @@ jest.mock('@/src/store/features/common/notifications-api', () => ({
   useMarkRecordNotificationsReadMutation: () => [jest.fn(), {}],
 }))
 
+jest.mock('@/src/store/features/common/notification-mutes-api', () => ({
+  useMuteRecordMutation: () => [jest.fn(), {}],
+  useUnmuteRecordMutation: () => [jest.fn(), {}],
+}))
+
+jest.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({
+    success: jest.fn(),
+    error: jest.fn(),
+    destroy: jest.fn(),
+  }),
+}))
+
+jest.mock('./_components/muted-notifications', () => ({
+  __esModule: true,
+  default: () => <div>Everything you muted</div>,
+}))
+
 const notification = (id: string, name: string): NotificationDto =>
   buildNotification({ record: buildNotifiedRecord({ id, key: id, name }) })
 
@@ -125,6 +143,19 @@ describe('NotificationsPage', () => {
 
     // Assert
     expect(screen.getByText(NoNotificationsMessage)).toBeInTheDocument()
+  })
+
+  it('shows everything muted on the Muted tab', () => {
+    // Arrange
+    mockUseList.mockReturnValue(list([[notification('1', 'Apollo')]]))
+    render(<NotificationsPage />)
+    expect(screen.queryByText('Everything you muted')).toBeNull()
+
+    // Act
+    fireEvent.click(screen.getByRole('tab', { name: 'Muted' }))
+
+    // Assert
+    expect(screen.getByText('Everything you muted')).toBeInTheDocument()
   })
 
   it('asks for a linked employee, and loads nothing, without one', () => {

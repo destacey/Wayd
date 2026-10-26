@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import {
   EventActorKind,
   NotificationDto,
@@ -15,6 +15,27 @@ import {
 const mockMarkRecordRead = jest.fn()
 jest.mock('@/src/store/features/common/notifications-api', () => ({
   useMarkRecordNotificationsReadMutation: () => [mockMarkRecordRead, {}],
+}))
+
+const mockMuteRecord = jest.fn()
+const mockMuting: { current: object } = { current: {} }
+const mockUnmuteRecord = jest.fn()
+jest.mock('@/src/store/features/common/notification-mutes-api', () => ({
+  useMuteRecordMutation: () => [mockMuteRecord, mockMuting.current],
+  useUnmuteRecordMutation: () => [mockUnmuteRecord, {}],
+}))
+
+const mockMessageSuccess = jest.fn()
+const mockMessageInfo = jest.fn()
+const mockMessageError = jest.fn()
+const mockMessageDestroy = jest.fn()
+jest.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({
+    success: mockMessageSuccess,
+    info: mockMessageInfo,
+    error: mockMessageError,
+    destroy: mockMessageDestroy,
+  }),
 }))
 
 const renderList = (
@@ -194,6 +215,135 @@ describe('NotificationList', () => {
       ownerId: 'p-1',
     })
     expect(onNavigate).not.toHaveBeenCalled()
+  })
+
+  it('mutes an entry without opening it, and undoes the mute on request', async () => {
+    // Arrange
+    mockMuteRecord.mockResolvedValue({ data: { wasAlreadyMuted: false } })
+    mockUnmuteRecord.mockResolvedValue({ data: null })
+    const onNavigate = jest.fn()
+    renderList([buildNotification()], { onNavigate })
+
+    // Act
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Mute Apollo' }))
+    })
+
+    // Assert
+    const target = { ownerType: 'ppm.project', ownerId: 'p-1' }
+    expect(mockMuteRecord).toHaveBeenCalledWith(target)
+    expect(onNavigate).not.toHaveBeenCalled()
+    expect(mockMessageSuccess).toHaveBeenCalledTimes(1)
+
+    // Act: Undo from the confirmation
+    const { content, key } = mockMessageSuccess.mock.calls[0][0]
+    render(content)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    })
+
+    // Assert
+    expect(mockUnmuteRecord).toHaveBeenCalledWith(target)
+    expect(mockMessageDestroy).toHaveBeenCalledWith(key)
+  })
+
+  it('keeps the confirmation until dismissed, with focus on Undo, and returns focus on Dismiss', async () => {
+    // Arrange
+    mockMuteRecord.mockResolvedValue({ data: { wasAlreadyMuted: false } })
+    renderList([buildNotification()])
+    const muteButton = screen.getByRole('button', { name: 'Mute Apollo' })
+    muteButton.focus()
+
+    // Act
+    await act(async () => {
+      fireEvent.click(muteButton)
+    })
+    const { content, key, duration } = mockMessageSuccess.mock.calls[0][0]
+    const toast = render(content)
+
+    // Assert
+    expect(duration).toBe(0)
+    expect(
+      within(toast.container).getByRole('button', { name: 'Undo' }),
+    ).toHaveFocus()
+
+    // Act
+    fireEvent.click(
+      within(toast.container).getByRole('button', { name: 'Dismiss' }),
+    )
+
+    // Assert
+    expect(mockMessageDestroy).toHaveBeenCalledWith(key)
+    expect(muteButton).toHaveFocus()
+    expect(mockUnmuteRecord).not.toHaveBeenCalled()
+  })
+
+  it('shows a mute on its way only on that entry', () => {
+    // Arrange
+    mockMuting.current = {
+      isLoading: true,
+      originalArgs: { ownerType: 'ppm.project', ownerId: 'p-1' },
+    }
+
+    // Act
+    renderList([
+      buildNotification(),
+      buildNotification({
+        record: buildNotifiedRecord({ id: 'p-2', key: 'P2', name: 'Gemini' }),
+      }),
+    ])
+
+    // Assert
+    expect(screen.getByRole('button', { name: 'Mute Apollo' })).toHaveClass(
+      'ant-btn-loading',
+    )
+    expect(screen.getByRole('button', { name: 'Mute Gemini' })).not.toHaveClass(
+      'ant-btn-loading',
+    )
+    mockMuting.current = {}
+  })
+
+  it('offers no undo when the record was already muted', async () => {
+    // Arrange
+    mockMuteRecord.mockResolvedValue({ data: { wasAlreadyMuted: true } })
+    renderList([buildReadNotification()])
+
+    // Act
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Mute Apollo' }))
+    })
+
+    // Assert
+    expect(mockMessageInfo).toHaveBeenCalledWith('Apollo is already muted.')
+    expect(mockMessageSuccess).not.toHaveBeenCalled()
+    expect(mockUnmuteRecord).not.toHaveBeenCalled()
+  })
+
+  it('reports a mute that failed, with nothing to undo', async () => {
+    // Arrange
+    mockMuteRecord.mockResolvedValue({
+      error: { status: 500, detail: 'The server is down.' },
+    })
+    renderList([buildNotification()])
+
+    // Act
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Mute Apollo' }))
+    })
+
+    // Assert
+    expect(mockMessageError).toHaveBeenCalledWith('The server is down.')
+    expect(mockMessageSuccess).not.toHaveBeenCalled()
+  })
+
+  it('offers mute on a read entry too', () => {
+    // Act
+    renderList([buildReadNotification()])
+
+    // Assert
+    expect(
+      screen.getByRole('button', { name: 'Mute Apollo' }),
+    ).toBeInTheDocument()
   })
 
   it('offers no mark-read on a read entry', () => {

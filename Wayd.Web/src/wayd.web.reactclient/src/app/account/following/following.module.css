@@ -195,6 +195,10 @@
   margin-inline-end: 0;
 }
 
+.rowMuted {
+  color: var(--ant-color-text-tertiary);
+}
+
 .rowName {
   display: block;
   overflow: hidden;

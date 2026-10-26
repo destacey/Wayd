@@ -1,4 +1,7 @@
+using Wayd.Common.Application.StatusWorkflows;
+using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
+using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
@@ -39,13 +42,15 @@ public sealed class CreateIntakeRequestCommandHandler(
     IDemandManagementDbContext dbContext,
     ICurrentPrincipal currentPrincipal,
     ICurrentUser currentUser,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    IStatusResolver statusResolver)
     : ICommandHandler<CreateIntakeRequestCommand, ObjectIdAndKey>
 {
     private readonly IDemandManagementDbContext _dbContext = dbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly IStatusResolver _statusResolver = statusResolver;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateIntakeRequestCommand request, CancellationToken cancellationToken)
     {
@@ -77,6 +82,12 @@ public sealed class CreateIntakeRequestCommandHandler(
             needBy = needByResult.Value;
         }
 
+        // The desk is the assignment scope; a desk without a workflow of its own follows the organization's.
+        var submitted = await _statusResolver.ForAlias(
+            DemandManagementWorkflowOwners.IntakeRequest.Key, desk.Id, (int)IntakeRequestStatusAlias.Submitted, cancellationToken);
+        if (submitted.IsFailure)
+            return Result.Failure<ObjectIdAndKey>(submitted.Error);
+
         var created = IntakeRequest.Create(
             request.Title,
             request.Description,
@@ -87,6 +98,7 @@ public sealed class CreateIntakeRequestCommandHandler(
             channel,
             needBy,
             origin: null,
+            submitted.Value,
             EventActor.User(_currentUser.GetUserId(), employeeId),
             _dateTimeProvider.Now);
         if (created.IsFailure)

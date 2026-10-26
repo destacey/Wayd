@@ -9,6 +9,7 @@ using Wayd.Common.Models;
 using Wayd.DemandManagement.Application.IntakeDesks;
 using Wayd.DemandManagement.Application.IntakeDesks.Commands;
 using Wayd.DemandManagement.Application.IntakeRequests.Commands;
+using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
 using Wayd.Infrastructure.Persistence.Context;
@@ -49,7 +50,8 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         var desk = await new CreateIntakeDeskCommandHandler(context, Principal(agent.Id), User(), _clock).Handle(
             new CreateIntakeDeskCommand($"Desk-{Guid.NewGuid():N}"[..30], "Internal tools", IntakeDeskVisibility.SummaryOnly,
                 true, true, true, [new IntakeDeskMemberDetails(agent.Id, IntakeDeskRole.Agent)]), ct);
-        var created = await new CreateIntakeRequestCommandHandler(context, Principal(requester.Id), User(), _clock).Handle(
+        var created = await new CreateIntakeRequestCommandHandler(context, Principal(requester.Id), User(), _clock,
+            await IntakeStatuses.SeededResolver(context, ct)).Handle(
             new CreateIntakeRequestCommand("Export invoices", "Finance needs a CSV export", null, desk.Value.Id, channel.Id,
                 null, null), ct);
         var updated = await new UpdateIntakeRequestCommandHandler(context, Principal(requester.Id), User(), _clock).Handle(
@@ -70,6 +72,14 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         saved.NeedBy!.Basis.Should().Be(NeedByBasis.RequesterPreference);
         saved.Participants.Select(p => p.EmployeeId).Should().Equal(colleague.Id);
         saved.AssigneeId.Should().Be(agent.Id);
+        // Started in the default workflow's Submitted, with that first move in the shared history table.
+        saved.StatusAlias.Should().Be(IntakeRequestStatusAlias.Submitted);
+        saved.StatusTransitionCount.Should().Be(1);
+        var transition = await reader.StatusTransitions.AsNoTracking()
+            .SingleAsync(t => t.OwnerType == DemandManagementWorkflowOwners.IntakeRequest.Key && t.RecordId == saved.Id, ct);
+        transition.FromStatusId.Should().BeNull();
+        transition.ToStatusId.Should().Be(saved.StatusId);
+        transition.WorkflowId.Should().Be(saved.StatusWorkflowId);
 
         var events = await reader.ActivityLogs.AsNoTracking()
             .Where(a => a.AggregateId == created.Value.Id)
@@ -102,7 +112,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             seeding.IntakeDesks.Add(desk);
             seeding.IntakeChannels.Add(channel);
             await seeding.SaveChangesAsync(ct);
-            var request = IntakeRequest.Create("Title", "Description", null, requester.Id, requester.Id, desk, channel, null, null, EventActor.System, Now).Value;
+            var request = IntakeRequest.Create("Title", "Description", null, requester.Id, requester.Id, desk, channel, null, null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
             request.AddParticipant(participant.Id, null, EventActor.System, Now);
             seeding.IntakeRequests.Add(request);
             await seeding.SaveChangesAsync(ct);
@@ -141,7 +151,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             seeding.IntakeDesks.Add(desk);
             seeding.IntakeChannels.Add(channel);
             await seeding.SaveChangesAsync(ct);
-            var request = IntakeRequest.Create("Title", "Description", null, deskAdmin.Id, deskAdmin.Id, desk, channel, null, null, EventActor.System, Now).Value;
+            var request = IntakeRequest.Create("Title", "Description", null, deskAdmin.Id, deskAdmin.Id, desk, channel, null, null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
             seeding.IntakeRequests.Add(request);
             await seeding.SaveChangesAsync(ct);
             request.ChangeAssignee(leaving.Id, EventActor.System, Now);
@@ -261,7 +271,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             seeding.IntakeDesks.Add(desk);
             seeding.IntakeChannels.Add(channel);
             await seeding.SaveChangesAsync(ct);
-            var request = IntakeRequest.Create("Title", "Description", null, agent.Id, agent.Id, desk, channel, null, null, EventActor.System, Now).Value;
+            var request = IntakeRequest.Create("Title", "Description", null, agent.Id, agent.Id, desk, channel, null, null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
             seeding.IntakeRequests.Add(request);
             await seeding.SaveChangesAsync(ct);
             requestId = request.Id;
@@ -336,7 +346,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             seeding.IntakeDesks.AddRange(from, to);
             seeding.IntakeChannels.Add(channel);
             await seeding.SaveChangesAsync(ct);
-            var request = IntakeRequest.Create("Title", "Description", null, agent.Id, agent.Id, from, channel, null, null, EventActor.System, Now).Value;
+            var request = IntakeRequest.Create("Title", "Description", null, agent.Id, agent.Id, from, channel, null, null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
             seeding.IntakeRequests.Add(request);
             await seeding.SaveChangesAsync(ct);
             request.ChangeAssignee(agent.Id, EventActor.System, Now);

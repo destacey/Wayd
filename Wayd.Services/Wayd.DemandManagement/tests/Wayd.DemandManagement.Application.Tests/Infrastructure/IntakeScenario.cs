@@ -3,13 +3,18 @@ using Moq;
 using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.Testing;
+using CSharpFunctionalExtensions;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Models;
 using Wayd.DemandManagement.Application.IntakeRequests;
+using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.DemandManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
@@ -34,11 +39,20 @@ public sealed class IntakeScenario
             .ReturnsAsync((string permission, CancellationToken _) => _permissions.Contains(permission));
         Principal.Setup(p => p.IsReadOnly).Returns(() => _readOnly);
         User.Setup(u => u.GetUserId()).Returns("user-1");
+        Statuses.Setup(r => r.ForAlias(DemandManagementWorkflowOwners.IntakeRequest.Key, It.IsAny<Guid?>(),
+                (int)IntakeRequestStatusAlias.Submitted, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(SubmittedStatus));
     }
 
     public FakeDemandManagementDbContext DbContext { get; } = new();
     public Mock<ICurrentPrincipal> Principal { get; } = new();
     public Mock<ICurrentUser> User { get; } = new();
+
+    /// <summary>Resolves statuses from the workflow governing a desk. Hands out <see cref="SubmittedStatus"/> for every desk.</summary>
+    public Mock<IStatusResolver> Statuses { get; } = new();
+
+    /// <summary>The status meaning Submitted, which every desk's workflow resolves to.</summary>
+    public StatusRef SubmittedStatus { get; } = IntakeStatusRefFactory.Submitted();
     public TestingDateTimeProvider Clock { get; } = new(new FakeClock(Instant.FromUtc(2026, 10, 1, 8, 0, 0)));
 
     /// <summary>Signs in as the employee, holding the given permissions.</summary>
@@ -115,15 +129,24 @@ public sealed class IntakeScenario
         return channel;
     }
 
-    public IntakeRequest Request(IntakeDesk desk, Employee requester, params Guid[] participantIds)
-    {
-        var request = new IntakeRequestFaker()
+    public IntakeRequest Request(IntakeDesk desk, Employee requester, params Guid[] participantIds) =>
+        AddRequest(RequestFaker(desk, requester).WithParticipants(participantIds));
+
+    /// <summary>A request moved on from Submitted to a status of the category, with the alias.</summary>
+    public IntakeRequest RequestIn(IntakeDesk desk, Employee requester, StatusCategory category,
+        IntakeRequestStatusAlias alias = IntakeRequestStatusAlias.None) =>
+        AddRequest(RequestFaker(desk, requester).InStatus(category, alias));
+
+    private IntakeRequestFaker RequestFaker(IntakeDesk desk, Employee requester) =>
+        new IntakeRequestFaker()
             .WithDeskId(desk.Id)
             .WithChannelId(Channel().Id)
             .WithRequesterId(requester.Id)
-            .WithSubmittedById(requester.Id)
-            .WithParticipants(participantIds)
-            .Generate();
+            .WithSubmittedById(requester.Id);
+
+    private IntakeRequest AddRequest(IntakeRequestFaker faker)
+    {
+        var request = faker.Generate();
         DbContext.AddRequests(request);
         return request;
     }

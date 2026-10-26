@@ -1905,6 +1905,28 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("RequesterId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("StatusAliasValue")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StatusCategory")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<Guid>("StatusId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("StatusName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("StatusTransitionCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("StatusWorkflowId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("SubmittedById")
                         .HasColumnType("uniqueidentifier");
 
@@ -1938,6 +1960,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasIndex("DeskId");
 
                     b.HasIndex("RequesterId");
+
+                    b.HasIndex("StatusWorkflowId");
 
                     b.HasIndex("SubmittedById");
 

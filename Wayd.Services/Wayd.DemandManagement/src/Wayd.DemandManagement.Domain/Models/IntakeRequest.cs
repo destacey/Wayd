@@ -4,6 +4,7 @@ using NodaTime;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.DemandManagement.Domain.Models;
@@ -20,8 +21,13 @@ namespace Wayd.DemandManagement.Domain.Models;
 /// Every field belongs to a read tier (<c>IntakeRequestReadTier</c>), and every event to the tier of the
 /// fields it carries, which is why the title and the details change through separate methods.
 /// </para>
+/// <para>
+/// Its status comes from the review workflow governing its desk, the desk's own or the organization's
+/// default. Rules bind to the status's category and alias (<see cref="IntakeRequestStatusAlias"/>), never
+/// its name, so they follow whatever stages a desk's workflow has.
+/// </para>
 /// </remarks>
-public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
+public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
 {
     private readonly List<IntakeRequestParticipant> _participants = [];
 
@@ -134,15 +140,23 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     public IReadOnlyCollection<IntakeRequestParticipant> Participants => _participants.AsReadOnly();
 
+    /// <inheritdoc/>
+    public override string StatusOwnerType => DemandManagementWorkflowOwners.IntakeRequest.Key;
+
     /// <summary>
-    /// The category of the request's status, which decides who may edit it.
+    /// The well-known meaning of the request's status, or <see cref="IntakeRequestStatusAlias.None"/> for a
+    /// review stage a company added.
+    /// </summary>
+    public IntakeRequestStatusAlias StatusAlias => (IntakeRequestStatusAlias)StatusAliasValue;
+
+    /// <summary>
+    /// Whether the request has ever left the status it was submitted in, by any route: a status change, a
+    /// move to a desk that changed its status, or a switch to another workflow.
     /// </summary>
     /// <remarks>
-    /// Every request is Proposed until it follows its desk's review workflow, which replaces this with the
-    /// status it tracks. The edit lock is written against the category already, so it follows each desk's
-    /// workflow from then on.
+    /// Once it has, it is part of the record of a review, which is why it can no longer be deleted.
     /// </remarks>
-    public StatusCategory StatusCategory => StatusCategory.Proposed;
+    public bool HasLeftItsInitialStatus => StatusTransitionCount > 1;
 
     /// <summary>
     /// Whether the employee is one of the request's own people: its requester, its submitter, or a
@@ -376,16 +390,25 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
     /// is the caller's.
     /// </summary>
     /// <remarks>
-    /// Refused once the request has outcomes or status history beyond its initial status, because by then
-    /// it is part of the record of a decision; withdrawing is the requester's way out. Neither exists until
-    /// the review workflow and outcomes arrive, so every request can be deleted for now.
+    /// Refused once the request has status history beyond its initial status, because by then it is part of
+    /// the record of a decision; withdrawing is the requester's way out and declining the desk's. Requests
+    /// with outcomes will be refused too, once outcomes exist.
     /// </remarks>
     public Result Delete(EventActor actor, Instant timestamp)
     {
+        if (HasLeftItsInitialStatus)
+            return Result.Failure(MovedThroughReviewError);
+
         AddDomainEvent(new IntakeRequestDeletedEvent(Id, Key, Title, DeskId, actor, timestamp));
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// The failure for deleting a request that has moved through review.
+    /// </summary>
+    public const string MovedThroughReviewError =
+        "This request has moved through review, so it cannot be deleted. Decline it instead.";
 
     /// <summary>
     /// Submits a request to a desk. Refused when the desk is closed to new requests or the channel is archived.
@@ -394,6 +417,10 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
     /// Which desks a requester may pick is the submit form's rule, not the request's: an agent routing and
     /// an upstream system naming a desk are allowed desks a requester cannot pick.
     /// </remarks>
+    /// <param name="initialStatus">
+    /// The status meaning Submitted in the workflow governing <paramref name="desk"/>, resolved by the caller,
+    /// since the domain never loads a workflow.
+    /// </param>
     public static Result<IntakeRequest> Create(
         string title,
         string description,
@@ -404,11 +431,15 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
         IntakeChannel channel,
         IntakeRequestNeedBy? needBy,
         IntakeRequestOrigin? origin,
+        StatusRef initialStatus,
         EventActor actor,
         Instant timestamp)
     {
         Guard.Against.Null(desk);
         Guard.Against.Null(channel);
+        Guard.Against.Null(initialStatus);
+        if (initialStatus.Alias != (int)IntakeRequestStatusAlias.Submitted)
+            throw new ArgumentException("A request starts in the status meaning Submitted.", nameof(initialStatus));
 
         if (!desk.IsOpen)
             return Result.Failure<IntakeRequest>("This desk is not accepting new requests.");
@@ -418,6 +449,7 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
 
         var request = new IntakeRequest(title, description, expectedBenefits, requesterId, submittedById, desk.Id,
             channel.Id, needBy, origin);
+        request.ApplyStatus(initialStatus, actor, timestamp);
 
         // Deferred because Key is database-generated: an event raised here would carry Key 0. Every other
         // value is captured now, so the event records the request as submitted even if it changes before the
@@ -427,6 +459,9 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
         var createdChannelId = request.ChannelId;
         var createdRequesterId = request.RequesterId;
         var createdNeedBy = request.NeedBy?.ToDetails();
+        var createdStatusId = request.StatusId;
+        var createdStatusCategory = request.StatusCategory;
+        var createdStatusAlias = request.StatusAlias;
 
         request.AddPostPersistenceAction(() => request.AddDomainEvent(new IntakeRequestCreatedEvent(
             request.Id,
@@ -436,6 +471,9 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
             createdChannelId,
             createdRequesterId,
             createdNeedBy,
+            createdStatusId,
+            createdStatusCategory,
+            createdStatusAlias,
             actor,
             timestamp)));
 
@@ -445,9 +483,12 @@ public sealed class IntakeRequest : BaseAuditableEntity, IHasIdAndKey
     private Result? EditRefusal(IntakeRequestEditor editor) =>
         CanEdit(editor)
             ? null
-            : Result.Failure(StatusCategory is StatusCategory.Done or StatusCategory.Removed
-                ? "A closed request cannot be edited until it is moved back to an open status."
-                : "Only the requester or an agent on the request's desk may edit this request.");
+            : Result.Failure(StatusCategory switch
+            {
+                StatusCategory.Done or StatusCategory.Removed => "A closed request cannot be edited until it is moved back to an open status.",
+                StatusCategory.Active => "Once a request is accepted, only agents on its desk may edit it.",
+                _ => "Only the requester or an agent on the request's desk may edit this request.",
+            });
 
     private Guid[] ParticipantIds() => [.. _participants.Select(p => p.EmployeeId)];
 

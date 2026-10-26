@@ -1,6 +1,8 @@
 using FluentAssertions;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.DemandManagement.Domain.Models;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.IntakeRequests.Commands;
 using Wayd.DemandManagement.Application.Tests.Infrastructure;
@@ -96,5 +98,24 @@ public sealed class DeleteIntakeRequestCommandHandlerTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(IntakeRequestAccess.NotFoundError);
         _scenario.DbContext.IntakeRequests.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Handle_ForARequestThatHasMovedThroughReview_FailsAndKeepsIt()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var request = _scenario.RequestIn(_scenario.DeskAdministeredBy(deskAdmin.Id), _scenario.Employee(),
+            StatusCategory.Removed, IntakeRequestStatusAlias.Declined);
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(new DeleteIntakeRequestCommand(request.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.MovedThroughReviewError);
+        _scenario.DbContext.IntakeRequests.Should().ContainSingle();
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
     }
 }

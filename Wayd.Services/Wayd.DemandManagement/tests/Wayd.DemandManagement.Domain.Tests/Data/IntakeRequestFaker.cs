@@ -1,5 +1,7 @@
 using System.Reflection;
 using NodaTime;
+using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.TestData.Core;
 
@@ -22,6 +24,13 @@ public sealed class IntakeRequestFaker : PrivateConstructorFaker<IntakeRequest>
         RuleFor(x => x.SubmittedById, (_, r) => r.RequesterId);
         RuleFor(x => x.DeskId, f => f.Random.Guid());
         RuleFor(x => x.ChannelId, f => f.Random.Guid());
+        // As submitted: in the status meaning Submitted, with that one transition recorded.
+        RuleFor(x => x.StatusId, f => f.Random.Guid());
+        RuleFor(x => x.StatusWorkflowId, f => f.Random.Guid());
+        RuleFor(x => x.StatusName, _ => "Submitted");
+        RuleFor(x => x.StatusCategory, _ => StatusCategory.Proposed);
+        RuleFor(x => x.StatusAliasValue, _ => (int)IntakeRequestStatusAlias.Submitted);
+        RuleFor(x => x.StatusTransitionCount, _ => 1);
     }
 }
 
@@ -61,6 +70,49 @@ public static class IntakeRequestFakerExtensions
     public static IntakeRequestFaker WithNeedBy(this IntakeRequestFaker faker, IntakeRequestNeedBy? needBy)
     {
         faker.RuleFor(x => x.NeedBy, needBy);
+
+        return faker;
+    }
+
+    /// <summary>
+    /// Puts the request in a status of the category, with the alias, and one more recorded transition than it
+    /// was submitted with, as if it had been moved there.
+    /// </summary>
+    public static IntakeRequestFaker InStatus(this IntakeRequestFaker faker, StatusCategory category,
+        IntakeRequestStatusAlias alias = IntakeRequestStatusAlias.None) =>
+        faker.WithStatusCategory(category).WithStatusAlias(alias).WithStatusTransitionCount(2);
+
+    public static IntakeRequestFaker WithStatusId(this IntakeRequestFaker faker, Guid statusId)
+    {
+        faker.RuleFor(x => x.StatusId, statusId);
+
+        return faker;
+    }
+
+    public static IntakeRequestFaker WithStatusWorkflowId(this IntakeRequestFaker faker, Guid workflowId)
+    {
+        faker.RuleFor(x => x.StatusWorkflowId, workflowId);
+
+        return faker;
+    }
+
+    public static IntakeRequestFaker WithStatusCategory(this IntakeRequestFaker faker, StatusCategory category)
+    {
+        faker.RuleFor(x => x.StatusCategory, category);
+
+        return faker;
+    }
+
+    public static IntakeRequestFaker WithStatusAlias(this IntakeRequestFaker faker, IntakeRequestStatusAlias alias)
+    {
+        faker.RuleFor(x => x.StatusAliasValue, (int)alias);
+
+        return faker;
+    }
+
+    public static IntakeRequestFaker WithStatusTransitionCount(this IntakeRequestFaker faker, int count)
+    {
+        faker.RuleFor(x => x.StatusTransitionCount, count);
 
         return faker;
     }

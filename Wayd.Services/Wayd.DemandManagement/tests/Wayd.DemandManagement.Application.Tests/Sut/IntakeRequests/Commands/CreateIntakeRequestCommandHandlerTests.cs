@@ -1,6 +1,10 @@
+using CSharpFunctionalExtensions;
 using FluentAssertions;
+using Moq;
 using NodaTime;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Application.IntakeRequests.Commands;
 using Wayd.DemandManagement.Application.Tests.Infrastructure;
 
@@ -11,7 +15,7 @@ public sealed class CreateIntakeRequestCommandHandlerTests
     private readonly IntakeScenario _scenario = new();
 
     private CreateIntakeRequestCommandHandler CreateHandler() =>
-        new(_scenario.DbContext, _scenario.Principal.Object, _scenario.User.Object, _scenario.Clock);
+        new(_scenario.DbContext, _scenario.Principal.Object, _scenario.User.Object, _scenario.Clock, _scenario.Statuses.Object);
 
     private static CreateIntakeRequestCommand Command(Guid deskId, Guid channelId, Guid? requesterId = null,
         IntakeRequestNeedByInput? needBy = null) =>
@@ -36,6 +40,45 @@ public sealed class CreateIntakeRequestCommandHandlerTests
         created.SubmittedById.Should().Be(caller.Id);
         created.DeskId.Should().Be(desk.Id);
         _scenario.DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_StartsTheRequestInSubmitted_FromTheWorkflowGoverningItsDesk()
+    {
+        // Arrange
+        var caller = _scenario.Employee();
+        _scenario.SignedInAs(caller);
+        var desk = _scenario.Desk();
+
+        // Act
+        var result = await CreateHandler().Handle(Command(desk.Id, _scenario.Channel().Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var created = _scenario.DbContext.IntakeRequests.Single();
+        created.StatusId.Should().Be(_scenario.SubmittedStatus.StatusId);
+        created.StatusAlias.Should().Be(IntakeRequestStatusAlias.Submitted);
+        // The desk is the scope, so a desk with a workflow of its own starts its requests there.
+        _scenario.Statuses.Verify(r => r.ForAlias(DemandManagementWorkflowOwners.IntakeRequest.Key, desk.Id,
+            (int)IntakeRequestStatusAlias.Submitted, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheDesksWorkflowCannotBeResolved_FailsAndSavesNothing()
+    {
+        // Arrange
+        _scenario.SignedInAs(_scenario.Employee());
+        _scenario.Statuses.Setup(r => r.ForAlias(It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Failure<StatusRef>("No workflow is assigned for Intake Request. An administrator must assign one."));
+
+        // Act
+        var result = await CreateHandler().Handle(Command(_scenario.Desk().Id, _scenario.Channel().Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("No workflow is assigned for Intake Request. An administrator must assign one.");
+        _scenario.DbContext.IntakeRequests.Should().BeEmpty();
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
     }
 
     [Fact]

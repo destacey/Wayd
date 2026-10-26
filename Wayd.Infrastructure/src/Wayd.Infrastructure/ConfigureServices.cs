@@ -97,12 +97,14 @@ public static class ConfigureServices
         services.AddScoped<IStatusRecordMigrator, ReleaseStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, ReleasePackageStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, DeploymentStatusRecordMigrator>();
+        services.AddScoped<IStatusRecordMigrator, IntakeRequestStatusRecordMigrator>();
 
         services.AddScoped<IStatusRecordCounter, ProductStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, VersionStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, ReleaseStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, ReleasePackageStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, DeploymentStatusRecordMigrator>();
+        services.AddScoped<IStatusRecordCounter, IntakeRequestStatusRecordMigrator>();
 
         services.AddFollowing();
         services.AddNotifications();

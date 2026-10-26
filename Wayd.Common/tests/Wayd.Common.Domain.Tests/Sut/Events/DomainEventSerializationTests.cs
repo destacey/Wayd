@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Nodes;
 using NodaTime.Serialization.SystemTextJson;
 using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Enums;
@@ -345,7 +346,8 @@ public sealed class DomainEventSerializationTests
         var needBy = new IntakeRequestNeedByDetails(new LocalDate(2026, 12, 31), NeedByBasis.Commitment, "Steering committee",
             Guid.NewGuid(), new LocalDate(2026, 9, 3));
         var original = new IntakeRequestCreatedEvent(Guid.NewGuid(), 42, "Export invoices", Guid.NewGuid(), Guid.NewGuid(),
-            Guid.NewGuid(), needBy, EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+            Guid.NewGuid(), needBy, Guid.NewGuid(), StatusCategory.Proposed, IntakeRequestStatusAlias.Submitted,
+            EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
 
         // Act
         var roundTripped = RoundTrip(original);
@@ -353,6 +355,27 @@ public sealed class DomainEventSerializationTests
         // Assert
         roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
         roundTripped.NeedBy.Should().Be(needBy);
+    }
+
+    [Fact]
+    public void IntakeRequestCreatedEvent_WrittenBeforeStatuses_ReadsAsProposedWithNoStatus()
+    {
+        // Arrange — a 1.0 payload, from before requests had a status
+        var original = new IntakeRequestCreatedEvent(Guid.NewGuid(), 42, "Export invoices", Guid.NewGuid(), Guid.NewGuid(),
+            Guid.NewGuid(), null, Guid.NewGuid(), StatusCategory.Proposed, IntakeRequestStatusAlias.Submitted,
+            EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+        var payload = JsonNode.Parse(JsonSerializer.Serialize(original, Options))!.AsObject();
+        payload.Remove(nameof(IntakeRequestCreatedEvent.StatusId)).Should().BeTrue();
+        payload.Remove(nameof(IntakeRequestCreatedEvent.StatusCategory)).Should().BeTrue();
+        payload.Remove(nameof(IntakeRequestCreatedEvent.StatusAlias)).Should().BeTrue();
+
+        // Act
+        var read = JsonSerializer.Deserialize<IntakeRequestCreatedEvent>(payload.ToJsonString(), Options)!;
+
+        // Assert
+        read.StatusId.Should().Be(Guid.Empty);
+        read.StatusCategory.Should().Be(StatusCategory.Proposed);
+        read.StatusAlias.Should().Be(IntakeRequestStatusAlias.None);
     }
 
     [Fact]

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.Infrastructure.Persistence.Converters;
 
@@ -102,9 +103,22 @@ public class IntakeRequestConfiguration : IEntityTypeConfiguration<IntakeRequest
         builder.Property(r => r.Description).IsRequired();
         builder.Property(r => r.ExpectedBenefits);
 
-        // Derived until requests follow their desk's review workflow, which persists a real status.
-        builder.Ignore(r => r.StatusCategory);
+        builder.Property(r => r.StatusId).IsRequired();
+        builder.Property(r => r.StatusWorkflowId).IsRequired();
+        // Indexed for the reassignment migrator, whose only query is "every record on this workflow".
+        builder.HasIndex(r => r.StatusWorkflowId);
+        builder.Property(r => r.StatusName).IsRequired().HasMaxLength(64);
+        builder.Property(r => r.StatusCategory).IsRequired()
+            .HasConversion<EnumConverter<StatusCategory>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+        builder.Property(r => r.StatusAliasValue).IsRequired();
+        builder.Property(r => r.StatusTransitionCount).IsRequired();
+        builder.Ignore(r => r.StatusAlias);
+        builder.Ignore(r => r.HasLeftItsInitialStatus);
         builder.Ignore(r => r.IsOpen);
+
+        builder.ConfigureStatusHistory();
 
         builder.OwnsOne(r => r.NeedBy, needBy =>
         {

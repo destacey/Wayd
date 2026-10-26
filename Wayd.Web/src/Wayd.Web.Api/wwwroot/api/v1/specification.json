@@ -55750,7 +55750,7 @@
           },
           "canDelete": {
             "type": "boolean",
-            "description": "Whether the reader may delete the request: a Desk Admin on its desk."
+            "description": "Whether the reader may delete the request: a Desk Admin on its desk, while it has never left its initial status."
           },
           "canReroute": {
             "type": "boolean",
@@ -55965,6 +55965,7 @@
       "IntakeRequestSummaryDto": {
         "required": [
           "title",
+          "status",
           "desk",
           "requester",
           "channel",
@@ -55986,6 +55987,14 @@
           "title": {
             "type": "string",
             "description": "What is being asked for, in a line."
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusNavigationDto"
+              }
+            ],
+            "description": "Where the request stands in its desk's review workflow, as the status was called when it moved there."
           },
           "desk": {
             "oneOf": [

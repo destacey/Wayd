@@ -68,7 +68,7 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
             committer.Id, new LocalDate(2026, 9, 3)).Value;
         var origin = IntakeRequestOrigin.Create("ServicePortal", UniqueName("REQ"), "https://portal.acme.example/req").Value;
         var request = IntakeRequest.Create("Export invoices", "Finance needs a CSV export", "A day a month back",
-            requester.Id, requester.Id, desk, channel, needBy, origin, EventActor.System, Now).Value;
+            requester.Id, requester.Id, desk, channel, needBy, origin, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
         request.AddParticipant(participant.Id, requester.Id, EventActor.System, Now).IsSuccess.Should().BeTrue();
 
         // Act
@@ -101,7 +101,7 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
         var (desk, channel) = await SeedDeskAndChannel(context);
         var requester = await SeedEmployee(context);
         var request = IntakeRequest.Create("Laptop refresh", "Replace the 2021 laptops", null, requester.Id, requester.Id,
-            desk, channel, null, null, EventActor.System, Now).Value;
+            desk, channel, null, null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
 
         // Act
         context.IntakeRequests.Add(request);
@@ -125,7 +125,7 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
         var requester = await SeedEmployee(context);
         var externalId = UniqueName("REQ");
         IntakeRequest FromOrigin() => IntakeRequest.Create("Title", "Description", null, requester.Id, requester.Id, desk,
-            channel, null, IntakeRequestOrigin.Create("ServicePortal", externalId, null).Value, EventActor.System, Now).Value;
+            channel, null, IntakeRequestOrigin.Create("ServicePortal", externalId, null).Value, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
 
         context.IntakeRequests.Add(FromOrigin());
         await context.SaveChangesAsync(ct);
@@ -149,7 +149,7 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
         var requester = await SeedEmployee(context);
         var from = IntakeRequestNeedBy.Create(new LocalDate(2026, 12, 31), NeedByBasis.Regulatory, "Rule 1", null, null).Value;
         var request = IntakeRequest.Create("Title", "Description", null, requester.Id, requester.Id, desk, channel, from,
-            null, EventActor.System, Now).Value;
+            null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
         context.IntakeRequests.Add(request);
         await context.SaveChangesAsync(ct);
 
@@ -178,7 +178,7 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
         var to = IntakeRequestNeedBy.Create(new LocalDate(2027, 3, 31), NeedByBasis.Commitment, "Steering committee",
             requester.Id, new LocalDate(2026, 9, 3)).Value;
         var request = IntakeRequest.Create("Title", "Description", null, requester.Id, requester.Id, desk, channel, from,
-            null, EventActor.System, Now).Value;
+            null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
         context.IntakeRequests.Add(request);
         await context.SaveChangesAsync(ct);
 

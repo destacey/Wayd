@@ -56487,7 +56487,7 @@ export interface IntakeRequestDetailsDto {
     canEdit: boolean;
     /** Whether the reader may remove the request's participants: an agent on its desk. */
     canRemoveParticipants: boolean;
-    /** Whether the reader may delete the request: a Desk Admin on its desk. */
+    /** Whether the reader may delete the request: a Desk Admin on its desk, while it has never left its initial status. */
     canDelete: boolean;
     /** Whether the reader may move the request to another desk: an agent on its current desk, while the request
 is open. */
@@ -56569,6 +56569,8 @@ export interface IntakeRequestSummaryDto {
     key: number;
     /** What is being asked for, in a line. */
     title: string;
+    /** Where the request stands in its desk's review workflow, as the status was called when it moved there. */
+    status: StatusNavigationDto;
     /** The desk the request is reviewed on. */
     desk: NavigationDto;
     /** The employee the request is for. */

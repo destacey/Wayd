@@ -22,7 +22,7 @@ public sealed record IntakeRequestDetailsDto
     /// <summary>Whether the reader may remove the request's participants: an agent on its desk.</summary>
     public bool CanRemoveParticipants { get; init; }
 
-    /// <summary>Whether the reader may delete the request: a Desk Admin on its desk.</summary>
+    /// <summary>Whether the reader may delete the request: a Desk Admin on its desk, while it has never left its initial status.</summary>
     public bool CanDelete { get; init; }
 
     /// <summary>

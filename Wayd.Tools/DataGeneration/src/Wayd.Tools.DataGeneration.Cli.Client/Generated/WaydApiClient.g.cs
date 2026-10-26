@@ -107441,7 +107441,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool CanRemoveParticipants { get; set; } = default!;
 
         /// <summary>
-        /// Whether the reader may delete the request: a Desk Admin on its desk.
+        /// Whether the reader may delete the request: a Desk Admin on its desk, while it has never left its initial status.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canDelete")]
         public bool CanDelete { get; set; } = default!;
@@ -107685,6 +107685,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("title")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Title { get; set; } = default!;
+
+        /// <summary>
+        /// Where the request stands in its desk's review workflow, as the status was called when it moved there.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
 
         /// <summary>
         /// The desk the request is reviewed on.

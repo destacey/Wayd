@@ -2,6 +2,7 @@ using FluentAssertions;
 using Moq;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
 using Wayd.DemandManagement.Application.Tests.Infrastructure;
 
@@ -191,5 +192,81 @@ public sealed class GetIntakeRequestQueryHandlerTests
         // Assert
         asAgent!.CanReroute.Should().BeTrue();
         asRequester!.CanReroute.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ForTheRequesterOnceAccepted_DoesNotOfferEdit_ButOffersItToAnAgent()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var requester = _scenario.Employee();
+        var request = _scenario.RequestIn(_scenario.Desk(agentIds: agent.Id), requester, StatusCategory.Active, IntakeRequestStatusAlias.Accepted);
+
+        // Act
+        _scenario.SignedInAs(requester);
+        var asRequester = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+        _scenario.SignedInAs(agent);
+        var asAgent = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        asRequester!.CanEdit.Should().BeFalse();
+        asAgent!.CanEdit.Should().BeTrue();
+        asAgent.CanReroute.Should().BeTrue("an accepted request is still open");
+    }
+
+    [Theory]
+    [InlineData(StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled)]
+    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.Declined)]
+    public async Task Handle_ForAClosedRequest_OffersNeitherEditNorReroute_EvenToADeskAdmin(StatusCategory category, IntakeRequestStatusAlias alias)
+    {
+        // Arrange
+        var admin = _scenario.Employee();
+        var request = _scenario.RequestIn(_scenario.DeskAdministeredBy(admin.Id), _scenario.Employee(), category, alias);
+        _scenario.SignedInAs(admin);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.CanEdit.Should().BeFalse();
+        result.CanReroute.Should().BeFalse();
+        result.CanDelete.Should().BeFalse("it has moved through review");
+    }
+
+    [Fact]
+    public async Task Handle_ForADeskAdmin_OffersDeleteOnlyWhileTheRequestHasNotLeftSubmitted()
+    {
+        // Arrange — back in an open status, but with review history behind it
+        var admin = _scenario.Employee();
+        var desk = _scenario.DeskAdministeredBy(admin.Id);
+        var untouched = _scenario.Request(desk, _scenario.Employee());
+        var reviewed = _scenario.RequestIn(desk, _scenario.Employee(), StatusCategory.Proposed, IntakeRequestStatusAlias.Submitted);
+        _scenario.SignedInAs(admin);
+
+        // Act
+        var forUntouched = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(untouched.Id)), TestContext.Current.CancellationToken);
+        var forReviewed = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(reviewed.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        forUntouched!.CanDelete.Should().BeTrue();
+        forReviewed!.CanDelete.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsTheStatusInTheSummary()
+    {
+        // Arrange
+        var requester = _scenario.Employee();
+        var request = _scenario.RequestIn(_scenario.Desk(), requester, StatusCategory.Proposed, IntakeRequestStatusAlias.Deferred);
+        _scenario.SignedInAs(requester);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Summary.Status.Id.Should().Be(request.StatusId);
+        result.Summary.Status.Name.Should().Be(request.StatusName);
+        result.Summary.Status.Category.Should().Be(StatusCategory.Proposed);
+        result.Summary.Status.Alias.Should().Be((int)IntakeRequestStatusAlias.Deferred);
     }
 }

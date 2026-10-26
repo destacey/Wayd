@@ -125,13 +125,37 @@ public sealed class GetMyFollowsQueryHandler(
             .ToListAsync(cancellationToken);
 
         var summaries = await FollowReadRules.Describe(page.Select(r => (r.OwnerType, r.OwnerId)), owners.Value, cancellationToken);
+        var muted = await Muted(employeeId.Value, page, cancellationToken);
 
         // A record deleted between the page query and Describe is dropped rather than shown unnamed.
         var items = page
             .Where(r => summaries.ContainsKey((r.OwnerType, r.OwnerId)))
-            .Select(r => FollowedRecordDto.Create(r.OwnerType, r.OwnerId, r.FollowedOn, r.LastChangedOn, summaries[(r.OwnerType, r.OwnerId)]))
+            .Select(r => FollowedRecordDto.Create(
+                r.OwnerType,
+                r.OwnerId,
+                r.FollowedOn,
+                r.LastChangedOn,
+                muted.Contains((r.OwnerType, r.OwnerId)),
+                summaries[(r.OwnerType, r.OwnerId)]))
             .ToList();
 
         return new PagedResponse<FollowedRecordDto>(items, totalCount, request.PageNumber, request.PageSize);
+    }
+
+    /// <summary>Which of the page's records the caller has muted.</summary>
+    private async Task<HashSet<(string OwnerType, Guid OwnerId)>> Muted(
+        Guid employeeId,
+        List<FollowedRow> page,
+        CancellationToken cancellationToken)
+    {
+        var ownerIds = page.Select(r => r.OwnerId).Distinct().ToList();
+
+        // Owner ids can repeat across owner types, so the read narrows by id and the match is on the full key.
+        var mutes = await _notificationsDbContext.RecordMutes
+            .Where(m => m.EmployeeId == employeeId && ownerIds.Contains(m.OwnerId))
+            .Select(m => new { m.OwnerType, m.OwnerId })
+            .ToListAsync(cancellationToken);
+
+        return mutes.Select(m => (m.OwnerType, m.OwnerId)).ToHashSet();
     }
 }

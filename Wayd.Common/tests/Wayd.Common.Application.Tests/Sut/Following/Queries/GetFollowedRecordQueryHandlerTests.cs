@@ -8,6 +8,7 @@ using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Tests.Infrastructure;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Following;
+using Wayd.Common.Domain.Notifications;
 
 namespace Wayd.Common.Application.Tests.Sut.Following.Queries;
 
@@ -80,6 +81,28 @@ public sealed class GetFollowedRecordQueryHandlerTests
         detail.ChangesSinceFollowed.Should().Equal(after, atFollow);
         detail.HasMoreChanges.Should().BeFalse();
         _activityLogReader.Verify(r => r.Read(gadget.Id, FakeRecordReadRule.ActivityType, 1, GetFollowedRecordQueryHandler.ChangeLimit, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("caller", true)]
+    [InlineData("someone else", false)]
+    [InlineData("nobody", false)]
+    public async Task Handle_ShouldSayWhetherTheCallerMutedTheRecord(string mutedBy, bool expected)
+    {
+        // Arrange
+        var gadget = _gadgets.Add("G-1", "Sprocket");
+        SeedFollow(gadget.Id);
+        if (mutedBy != "nobody")
+        {
+            var muter = mutedBy == "caller" ? _employeeId : Guid.NewGuid();
+            _dbContext.AddRecordMute(RecordMute.Create(GadgetType, gadget.Id, muter, FollowedOn).Value);
+        }
+
+        // Act
+        var result = await CreateHandler().Handle(new GetFollowedRecordQuery(GadgetType, gadget.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value!.Record.IsMuted.Should().Be(expected);
     }
 
     [Fact]

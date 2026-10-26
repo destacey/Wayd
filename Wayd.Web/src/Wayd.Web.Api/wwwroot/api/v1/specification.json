@@ -701,6 +701,448 @@
         ]
       }
     },
+    "/api/me/notification-mutes/records": {
+      "get": {
+        "tags": [
+          "MyNotificationMutes"
+        ],
+        "summary": "List the records you have muted.",
+        "description": "Returns one page of the records you have muted, most recently muted first: each with `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle`, `isFollowing` (muting never stops following) and `mutedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A muted record tells you nothing more, whatever the reason. A record you can no longer read is left out of the page and the total. `page` starts at 1; `pageSize` is at most 100. Requires the following feature flag; returns 404 when it is off.",
+        "operationId": "MyNotificationMutes_GetMutedRecords",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 1
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 25
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfMutedRecordDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/me/notification-mutes/records/{ownerType}/{ownerId}": {
+      "get": {
+        "tags": [
+          "MyNotificationMutes"
+        ],
+        "summary": "Get whether you have muted a record.",
+        "description": "Returns `isMuted` and, when true, `mutedOn`. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.",
+        "operationId": "MyNotificationMutes_GetRecordMuteStatus",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordMuteStatusDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "MyNotificationMutes"
+        ],
+        "summary": "Mute a record.",
+        "description": "Mutes the record for you: you are told nothing more about it, whether you follow it, take part in it, or both, and your unread notifications about it are marked read. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Muting a record you already muted changes nothing and still succeeds; `wasAlreadyMuted` says which happened, so an undo unmutes only a mute this call made. Muting changes nothing else: you keep your access and your roles, and you still follow the record if you did. Unmuting brings back nothing that happened while it was muted. You can mute only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
+        "operationId": "MyNotificationMutes_MuteRecord",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MuteRecordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "MyNotificationMutes"
+        ],
+        "summary": "Unmute a record.",
+        "description": "Removes your mute of the record, so its later changes notify you again. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Succeeds whether or not you had muted it, and works on a record you can no longer read. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
+        "operationId": "MyNotificationMutes_UnmuteRecord",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/me/notification-mutes/reasons": {
+      "get": {
+        "tags": [
+          "MyNotificationMutes"
+        ],
+        "summary": "List the reasons you can mute, and which you have.",
+        "description": "Returns one entry per reason you can be told for: `reason` (`Following`: records you follow; `Participant`: records you hold a role on, or whose team you belong to), `isMuted`, and `mutedOn` when muted. A muted reason stops only that reason, on every record: if you follow a project and also take part in it, muting `Participant` still tells you about it because you follow it. Requires the following feature flag; returns 404 when it is off.",
+        "operationId": "MyNotificationMutes_GetReasonMutes",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReasonMuteDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/me/notification-mutes/reasons/{reason}": {
+      "put": {
+        "tags": [
+          "MyNotificationMutes"
+        ],
+        "summary": "Mute a reason.",
+        "description": "Stops telling you about any record for `reason` (`Following` or `Participant`); you are still told for any other reason that applies. Muting a reason you already muted changes nothing and still succeeds. Muting changes no follow, role or access, and leaves the notifications you already have. Returns 422 for any other reason. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
+        "operationId": "MyNotificationMutes_MuteReason",
+        "parameters": [
+          {
+            "name": "reason",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/NotificationReason"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "MyNotificationMutes"
+        ],
+        "summary": "Unmute a reason.",
+        "description": "Removes your mute of `reason`, so later changes tell you for it again. Succeeds whether or not you had muted it. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
+        "operationId": "MyNotificationMutes_UnmuteReason",
+        "parameters": [
+          {
+            "name": "reason",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/NotificationReason"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/me/notifications": {
       "get": {
         "tags": [
@@ -51659,7 +52101,8 @@
           "name",
           "statusName",
           "lifecycle",
-          "followedOn"
+          "followedOn",
+          "isMuted"
         ],
         "type": "object",
         "properties": {
@@ -51736,6 +52179,10 @@
             "description": "When the record last changed: the newest entry its Activity section lists, its own or one naming it as\nrelated. Null when it has no recorded activity.",
             "format": "date-time",
             "nullable": true
+          },
+          "isMuted": {
+            "type": "boolean",
+            "description": "Whether the caller has muted the record: they still follow it, but are told nothing about it."
           }
         },
         "additionalProperties": false,
@@ -56060,6 +56507,85 @@
         "additionalProperties": false,
         "description": "Moves or clears a version's target date."
       },
+      "MutedRecordDto": {
+        "required": [
+          "ownerType",
+          "id",
+          "key",
+          "name",
+          "statusName",
+          "lifecycle",
+          "isFollowing",
+          "mutedOn"
+        ],
+        "type": "object",
+        "properties": {
+          "ownerType": {
+            "type": "string",
+            "description": "The record's owner type, such as `ppm.project`."
+          },
+          "id": {
+            "type": "string",
+            "description": "The record's id.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string",
+            "description": "The record's human-readable key, as its own pages address it."
+          },
+          "name": {
+            "type": "string",
+            "description": "The record's name or title."
+          },
+          "parentKey": {
+            "type": "string",
+            "description": "The key of the record this one is addressed under, such as a planning interval objective's planning\ninterval. Null when the owner type does not nest.",
+            "nullable": true
+          },
+          "parentName": {
+            "type": "string",
+            "description": "The name of the parent record. Null when there is none.",
+            "nullable": true
+          },
+          "statusName": {
+            "type": "string",
+            "description": "The record's status as its own pages name it."
+          },
+          "lifecycle": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LifecycleCategory"
+              }
+            ],
+            "description": "Where the status sits in the record's lifecycle."
+          },
+          "isFollowing": {
+            "type": "boolean",
+            "description": "Whether the caller also follows the record. Muting a record never stops following it."
+          },
+          "mutedOn": {
+            "type": "string",
+            "description": "When the caller muted the record.",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A record the caller has muted, as the list of their mutes shows it."
+      },
+      "MuteRecordResponse": {
+        "required": [
+          "wasAlreadyMuted"
+        ],
+        "type": "object",
+        "properties": {
+          "wasAlreadyMuted": {
+            "type": "boolean",
+            "description": "Whether the record was already muted before this call, so nothing changed. An \"undo\" of this call\nmust not unmute a record that was muted already."
+          }
+        },
+        "additionalProperties": false,
+        "description": "What muting a record did."
+      },
       "MyProjectsSummaryDto": {
         "required": [
           "totalCount",
@@ -56960,6 +57486,50 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/FollowedRecordDto"
+            }
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPreviousPage": {
+            "type": "boolean"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One page of results, with the paging position and the total across all pages."
+      },
+      "PagedResponseOfMutedRecordDto": {
+        "required": [
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages",
+          "hasPreviousPage",
+          "hasNextPage"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MutedRecordDto"
             }
           },
           "pageNumber": {
@@ -61284,6 +61854,35 @@
         "additionalProperties": false,
         "description": "Represents a team member on a project with their roles, assigned stages, and active workload."
       },
+      "ReasonMuteDto": {
+        "required": [
+          "reason",
+          "isMuted"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NotificationReason"
+              }
+            ],
+            "description": "The reason."
+          },
+          "isMuted": {
+            "type": "boolean",
+            "description": "Whether the caller has muted it, everywhere."
+          },
+          "mutedOn": {
+            "type": "string",
+            "description": "When the caller muted it; null when it is not muted.",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One reason the caller can be told for, and whether they have muted it."
+      },
       "ReassignWorkflowRequest": {
         "required": [
           "targetWorkflowId",
@@ -61405,6 +62004,26 @@
         },
         "additionalProperties": false,
         "description": "A request to change a status's category and well-known meaning, which records carry denormalized."
+      },
+      "RecordMuteStatusDto": {
+        "required": [
+          "isMuted"
+        ],
+        "type": "object",
+        "properties": {
+          "isMuted": {
+            "type": "boolean",
+            "description": "Whether the caller has muted the record."
+          },
+          "mutedOn": {
+            "type": "string",
+            "description": "When the caller muted the record; null when it is not muted.",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Whether the caller has muted a record."
       },
       "RecordPerson": {
         "required": [
@@ -75282,6 +75901,9 @@
     },
     {
       "name": "MyFollows"
+    },
+    {
+      "name": "MyNotificationMutes"
     },
     {
       "name": "MyNotifications"

@@ -10,6 +10,7 @@ using Wayd.Common.Domain.Activities;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Following;
+using Wayd.Common.Domain.Notifications;
 using Wayd.Tests.Shared;
 
 namespace Wayd.Common.Application.Tests.Sut.Following.Queries;
@@ -72,6 +73,26 @@ public sealed class GetMyFollowsQueryHandlerTests
         result.Value.Items.Select(i => i.Key).Should().Equal("W-1", "G-1", "G-2", "W-2");
         result.Value.Items[0].LastChangedOn.Should().Be(Now.Minus(Duration.FromHours(1)));
         result.Value.Items[3].LastChangedOn.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldMarkOnlyTheRecordsTheCallerMuted()
+    {
+        // Arrange
+        var muted = _gadgets.Add("G-1", "Sprocket");
+        var mutedBySomeoneElse = _gadgets.Add("G-2", "Flange");
+        var sameIdOtherType = _widgets.Add("W-1", "Lever", id: muted.Id);
+        SeedFollow(GadgetType, muted.Id, 1);
+        SeedFollow(GadgetType, mutedBySomeoneElse.Id, 2);
+        SeedFollow(WidgetType, sameIdOtherType.Id, 3);
+        _dbContext.AddRecordMute(RecordMute.Create(GadgetType, muted.Id, _employeeId, Start).Value);
+        _dbContext.AddRecordMute(RecordMute.Create(GadgetType, mutedBySomeoneElse.Id, Guid.NewGuid(), Start).Value);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(Sort: FollowSort.Followed), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value.Items.Select(i => (i.Key, i.IsMuted)).Should().Equal(("W-1", false), ("G-2", false), ("G-1", true));
     }
 
     [Fact]

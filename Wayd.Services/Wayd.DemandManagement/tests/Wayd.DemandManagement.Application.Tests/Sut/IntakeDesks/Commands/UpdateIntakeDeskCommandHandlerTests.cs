@@ -18,7 +18,8 @@ public sealed class UpdateIntakeDeskCommandHandlerTests
 
     private static UpdateIntakeDeskCommand Unchanged(IntakeDesk desk) =>
         new(desk.Id, desk.Name, desk.Description, desk.Visibility, desk.IsRequesterSelectable, desk.IsOpen,
-            desk.RequesterMayAddParticipants, [.. desk.Members.Select(m => new IntakeDeskMemberDetails(m.EmployeeId, m.Role))]);
+            desk.RequesterMayAddParticipants, [.. desk.Members.Select(m => new IntakeDeskMemberDetails(m.EmployeeId, m.Role))],
+            desk.Revision);
 
     private static IntakeDeskMemberDetails Agent(Guid employeeId) => new(employeeId, IntakeDeskRole.Agent);
 
@@ -57,6 +58,48 @@ public sealed class UpdateIntakeDeskCommandHandlerTests
             typeof(IntakeDeskMembersChangedEvent),
         ]);
         _scenario.DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_PreparedBeforeAnotherChange_IsRefusedAndUndoesNothing()
+    {
+        // Arrange — another Desk Admin named an agent after this page was loaded
+        var deskAdmin = _scenario.Employee();
+        var agentAddedSince = _scenario.Employee();
+        var desk = _scenario.DeskWithMembers(Admin(deskAdmin.Id));
+        var stale = Unchanged(desk) with { Name = "Renamed" };
+        desk.ChangeMembers([Admin(deskAdmin.Id), Agent(agentAddedSince.Id)], EventActor.System, _scenario.Clock.Now);
+        desk.ClearDomainEvents();
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(stale, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeDeskAccess.StaleError);
+        desk.RoleOf(agentAddedSince.Id).Should().Be(IntakeDeskRole.Agent);
+        desk.Name.Should().NotBe("Renamed");
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheSaveIsRefusedByTheDatabase_ReportsTheDeskAsChanged()
+    {
+        // Arrange — a request was assigned to the removed agent after the requests to unassign were read
+        var deskAdmin = _scenario.Employee();
+        var leaving = _scenario.Employee();
+        var desk = _scenario.DeskWithMembers(Admin(deskAdmin.Id), Agent(leaving.Id));
+        _scenario.SignedInAs(deskAdmin);
+        _scenario.DbContext.FailNextSaveWith = new Microsoft.EntityFrameworkCore.DbUpdateException("FK violation");
+
+        // Act
+        var result = await CreateHandler().Handle(Unchanged(desk) with { Members = [Admin(deskAdmin.Id)] },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeDeskAccess.StaleError);
     }
 
     [Fact]

@@ -6,6 +6,7 @@ using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Models;
+using Wayd.DemandManagement.Application.IntakeDesks;
 using Wayd.DemandManagement.Application.IntakeDesks.Commands;
 using Wayd.DemandManagement.Application.IntakeRequests.Commands;
 using Wayd.DemandManagement.Domain.Models;
@@ -152,7 +153,8 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         await using var context = _fixture.CreateContext();
         var result = await new UpdateIntakeDeskCommandHandler(context, Principal(deskAdmin.Id), User(), _clock).Handle(
             new UpdateIntakeDeskCommand(desk.Id, "Renamed desk", desk.Description, desk.Visibility, false, false, true,
-                [new IntakeDeskMemberDetails(deskAdmin.Id, IntakeDeskRole.Admin), new IntakeDeskMemberDetails(joining.Id, IntakeDeskRole.Agent)]),
+                [new IntakeDeskMemberDetails(deskAdmin.Id, IntakeDeskRole.Admin), new IntakeDeskMemberDetails(joining.Id, IntakeDeskRole.Agent)],
+                desk.Revision),
             ct);
 
         // Assert
@@ -166,6 +168,124 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         (await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == requestId, ct)).AssigneeId.Should().BeNull();
         (await reader.ActivityLogs.AsNoTracking().Where(a => a.AggregateId == desk.Id).Select(a => a.EventType).ToListAsync(ct))
             .Should().Contain([nameof(IntakeDeskDetailsUpdatedEvent), nameof(IntakeDeskClosedEvent), nameof(IntakeDeskMembersChangedEvent)]);
+    }
+
+    [Fact]
+    public async Task UpdateIntakeDesk_TwoSavesReadAtTheSameRevision_TheSecondIsRefused()
+    {
+        // Arrange — both pass the handler's revision check; the database's concurrency check catches the second
+        var ct = TestContext.Current.CancellationToken;
+        Employee deskAdmin;
+        IntakeDesk desk;
+        await using (var seeding = _fixture.CreateContext())
+        {
+            deskAdmin = SeedEmployee(seeding);
+            desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true,
+                [new IntakeDeskMemberDetails(deskAdmin.Id, IntakeDeskRole.Admin)], EventActor.System, Now);
+            seeding.IntakeDesks.Add(desk);
+            await seeding.SaveChangesAsync(ct);
+        }
+
+        UpdateIntakeDeskCommand Renamed(string name) => new(desk.Id, name, desk.Description, desk.Visibility, true, true, true,
+            [new IntakeDeskMemberDetails(deskAdmin.Id, IntakeDeskRole.Admin)], desk.Revision);
+
+        await using var first = _fixture.CreateContext();
+        await using var second = _fixture.CreateContext();
+        var firstDesk = await first.IntakeDesks.Include(d => d.Members).SingleAsync(d => d.Id == desk.Id, ct);
+        var secondDesk = await second.IntakeDesks.Include(d => d.Members).SingleAsync(d => d.Id == desk.Id, ct);
+        firstDesk.UpdateDetails("First rename", desk.Description, EventActor.System, Now);
+        await first.SaveChangesAsync(ct);
+
+        // Act — the second context still holds the desk as it was read, at the old revision
+        var result = await new UpdateIntakeDeskCommandHandler(second, Principal(deskAdmin.Id), User(), _clock)
+            .Handle(Renamed("Second rename"), ct);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeDeskAccess.StaleError);
+        await using var reader = _fixture.CreateContext();
+        (await reader.IntakeDesks.AsNoTracking().SingleAsync(d => d.Id == desk.Id, ct)).Name.Should().Be("First rename");
+    }
+
+    [Fact]
+    public async Task DeleteIntakeDesk_RacingAnUpdate_IsRefusedAndKeepsTheDesk()
+    {
+        // Arrange — the delete reads the desk, then an update commits before the delete saves
+        var ct = TestContext.Current.CancellationToken;
+        Employee administrator;
+        IntakeDesk desk;
+        await using (var seeding = _fixture.CreateContext())
+        {
+            administrator = SeedEmployee(seeding);
+            desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true, [],
+                EventActor.System, Now);
+            seeding.IntakeDesks.Add(desk);
+            await seeding.SaveChangesAsync(ct);
+        }
+
+        await using var deleting = _fixture.CreateContext();
+        await deleting.IntakeDesks.SingleAsync(d => d.Id == desk.Id, ct);
+        await using (var updating = _fixture.CreateContext())
+        {
+            var changed = await updating.IntakeDesks.SingleAsync(d => d.Id == desk.Id, ct);
+            changed.Close(EventActor.System, Now);
+            await updating.SaveChangesAsync(ct);
+        }
+
+        // Act — the deleting context still tracks the desk as it read it
+        var result = await new DeleteIntakeDeskCommandHandler(deleting, Principal(administrator.Id), User(), _clock)
+            .Handle(new DeleteIntakeDeskCommand(desk.Id), ct);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeDeskAccess.StaleError);
+        await using var reader = _fixture.CreateContext();
+        (await reader.IntakeDesks.AnyAsync(d => d.Id == desk.Id, ct)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task TheDatabase_RefusesAnAssigneeWhoDoesNotWorkTheRequestsDesk_EitherWayRound()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        Employee agent, outsider;
+        IntakeDesk desk;
+        Guid requestId;
+        await using (var seeding = _fixture.CreateContext())
+        {
+            agent = SeedEmployee(seeding);
+            outsider = SeedEmployee(seeding);
+            desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true,
+                [new IntakeDeskMemberDetails(agent.Id, IntakeDeskRole.Agent)], EventActor.System, Now);
+            var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
+            seeding.IntakeDesks.Add(desk);
+            seeding.IntakeChannels.Add(channel);
+            await seeding.SaveChangesAsync(ct);
+            var request = IntakeRequest.Create("Title", "Description", null, agent.Id, agent.Id, desk, channel, null, null, EventActor.System, Now).Value;
+            seeding.IntakeRequests.Add(request);
+            await seeding.SaveChangesAsync(ct);
+            requestId = request.Id;
+        }
+
+        // Act — assigning someone not on the desk, as an assignment racing their removal would
+        await using var assigning = _fixture.CreateContext();
+        var toAssign = await assigning.IntakeRequests.SingleAsync(r => r.Id == requestId, ct);
+        toAssign.ChangeAssignee(outsider.Id, EventActor.System, Now);
+        var assignToOutsider = () => assigning.SaveChangesAsync(ct);
+
+        // Act — removing a member who still owns a request on the desk, as a removal racing an assignment would
+        await using var removing = _fixture.CreateContext();
+        var owned = await removing.IntakeRequests.SingleAsync(r => r.Id == requestId, ct);
+        owned.ChangeAssignee(agent.Id, EventActor.System, Now);
+        await removing.SaveChangesAsync(ct);
+        await using var removingMember = _fixture.CreateContext();
+        var deskToChange = await removingMember.IntakeDesks.Include(d => d.Members).SingleAsync(d => d.Id == desk.Id, ct);
+        deskToChange.ChangeMembers([], EventActor.System, Now);
+        var removeOwner = () => removingMember.SaveChangesAsync(ct);
+
+        // Assert
+        await assignToOutsider.Should().ThrowAsync<DbUpdateException>();
+        await removeOwner.Should().ThrowAsync<DbUpdateException>();
     }
 
     [Fact]

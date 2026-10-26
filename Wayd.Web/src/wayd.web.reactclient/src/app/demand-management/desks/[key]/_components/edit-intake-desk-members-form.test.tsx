@@ -97,19 +97,24 @@ const desk = (overrides: Record<string, unknown> = {}) =>
     canManage: true,
     canAdminister: false,
     canDelete: false,
+    revision: 4,
     ...overrides,
   }) as any
 
+let rerenderWith: (d: ReturnType<typeof desk>) => void = () => undefined
+
 const renderForm = async (d = desk()) =>
-  await act(async () =>
-    render(
+  await act(async () => {
+    const element = (next: ReturnType<typeof desk>) => (
       <EditIntakeDeskMembersForm
-        desk={d}
+        desk={next}
         onFormComplete={jest.fn()}
         onFormCancel={jest.fn()}
-      />,
-    ),
-  )
+      />
+    )
+    const view = render(element(d))
+    rerenderWith = (next) => view.rerender(element(next))
+  })
 
 describe('EditIntakeDeskMembersForm', () => {
   beforeEach(() => {
@@ -141,6 +146,7 @@ describe('EditIntakeDeskMembersForm', () => {
     // Assert
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
+        expectedRevision: 4,
         members: [
           { employeeId: 'e-1', role: IntakeDeskRole.Admin },
           { employeeId: 'e-2', role: IntakeDeskRole.Agent },
@@ -168,5 +174,23 @@ describe('EditIntakeDeskMembersForm', () => {
       ),
     ).toBeInTheDocument()
     expect(mockUpdate).not.toHaveBeenCalled()
+  })
+
+  it('keeps the revision it opened with when the page refetches the desk, so a retry stays refused', async () => {
+    // Arrange — a failed save refetches the desk; the form must not adopt the newer revision with older values
+    await renderForm(desk({ revision: 4 }))
+    await act(async () =>
+      rerenderWith(desk({ revision: 5, name: 'Changed by someone else' })),
+    )
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Save' })),
+    )
+
+    // Assert
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ expectedRevision: 4 }),
+    )
   })
 })

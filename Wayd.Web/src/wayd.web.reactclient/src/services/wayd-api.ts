@@ -45737,6 +45737,13 @@ export class IntakeDesksClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -45808,6 +45815,13 @@ export class IntakeDesksClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -55696,6 +55710,8 @@ export interface IntakeDeskDto {
     isOpen: boolean;
     /** On a private desk, whether the requester may add participants themselves. */
     requesterMayAddParticipants: boolean;
+    /** How many changes the desk has recorded; sent back with a change so a stale one is refused. */
+    revision: number;
     /** The employees named on the desk, by name, with their roles. */
     members: IntakeDeskMemberDto[];
     /** What is waiting on the desk, for its members and the Demand Management Admin; null for anyone else,
@@ -60768,6 +60784,9 @@ Demand Management Admin may change it. */
     /** Everyone on the desk after the change, each with their role. Naming, removing or re-roling a Desk Admin
 needs the Demand Management Admin. */
     members: IntakeDeskMemberRequest[];
+    /** The desk's `revision` as it was read before making this change. A desk changed since refuses the
+update with 409, so a stale page never undoes what someone else changed. */
+    expectedRevision: number;
 }
 
 /** An intake request's editable fields, overwritten as a whole. Fields that did not change record nothing. */

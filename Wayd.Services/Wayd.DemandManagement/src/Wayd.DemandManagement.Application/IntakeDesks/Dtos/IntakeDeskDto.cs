@@ -31,6 +31,9 @@ public sealed record IntakeDeskDto
     /// <summary>On a private desk, whether the requester may add participants themselves.</summary>
     public bool RequesterMayAddParticipants { get; init; }
 
+    /// <summary>How many changes the desk has recorded; sent back with a change so a stale one is refused.</summary>
+    public int Revision { get; init; }
+
     /// <summary>The employees named on the desk, by name, with their roles.</summary>
     public required IReadOnlyList<IntakeDeskMemberDto> Members { get; init; }
 

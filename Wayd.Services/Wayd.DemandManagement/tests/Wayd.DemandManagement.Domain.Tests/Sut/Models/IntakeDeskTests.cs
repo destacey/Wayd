@@ -434,6 +434,42 @@ public sealed class IntakeDeskTests
 
     #endregion ChangeMembers
 
+    #region Revision
+
+    [Fact]
+    public void Revision_AdvancesOncePerRecordedChange()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().WithIsOpen(true).WithVisibility(IntakeDeskVisibility.Open).Generate();
+        var start = sut.Revision;
+
+        // Act
+        sut.Close(EventActor.System, _dateTimeProvider.Now);
+        sut.ChangeVisibility(IntakeDeskVisibility.Private, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.Revision.Should().Be(start + 2);
+        sut.IsAtRevision(start).Should().BeFalse();
+        sut.IsAtRevision(start + 2).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Revision_StaysPutWhenNothingChanged()
+    {
+        // Arrange — a save that changes nothing must not make a page loaded beside it stale
+        var sut = new IntakeDeskFaker().WithIsOpen(true).Generate();
+        var start = sut.Revision;
+
+        // Act
+        sut.Open(EventActor.System, _dateTimeProvider.Now);
+        sut.UpdateDetails(sut.Name, sut.Description, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.Revision.Should().Be(start);
+    }
+
+    #endregion Revision
+
     #region Delete
 
     [Fact]

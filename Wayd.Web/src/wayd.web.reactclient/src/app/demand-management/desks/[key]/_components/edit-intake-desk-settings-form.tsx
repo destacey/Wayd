@@ -9,7 +9,7 @@ import {
 } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { Flex, Form, Input, Modal, Radio, Switch, Typography } from 'antd'
-import { FC } from 'react'
+import { FC, useState } from 'react'
 import { toUpdateRequest } from './desk-update'
 
 const { Item } = Form
@@ -35,10 +35,14 @@ interface EditIntakeDeskSettingsFormValues {
  * visibility only the Demand Management Admin changes, which the desk's `canAdminister` answers.
  */
 const EditIntakeDeskSettingsForm: FC<EditIntakeDeskSettingsFormProps> = ({
-  desk,
+  desk: openedDesk,
   onFormComplete,
   onFormCancel,
 }) => {
+  // The desk as it was when the form opened. The page refetches the desk while the form is open — a failed
+  // save does too — and sending its newer revision with values edited from the older one would let a retry
+  // overwrite whatever changed in between. Holding this snapshot keeps every retry refused until a reload.
+  const [desk] = useState(openedDesk)
   const messageApi = useMessage()
   const [updateDesk] = useUpdateIntakeDeskMutation()
   const { data: visibilities } = useGetIntakeDeskVisibilitiesQuery()

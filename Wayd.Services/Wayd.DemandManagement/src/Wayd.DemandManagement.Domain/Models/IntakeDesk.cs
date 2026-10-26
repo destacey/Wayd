@@ -110,6 +110,18 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     public IReadOnlyCollection<IntakeDeskMember> Members => _members.AsReadOnly();
 
     /// <summary>
+    /// How many changes the desk has recorded. A change made from a page loaded before another is refused by
+    /// comparing it, because the desk is saved whole and a stale save would undo what the other changed —
+    /// dropping an agent someone else just named, and unassigning their requests.
+    /// </summary>
+    public int Revision { get; private set; }
+
+    /// <summary>
+    /// Whether the desk is still at the revision a change was prepared against.
+    /// </summary>
+    public bool IsAtRevision(int revision) => Revision == revision;
+
+    /// <summary>
     /// The employee's role on the desk, or null when they are not a member. Needs <see cref="Members"/> loaded.
     /// </summary>
     public IntakeDeskRole? RoleOf(Guid employeeId) => _members.FirstOrDefault(m => m.EmployeeId == employeeId)?.Role;
@@ -311,11 +323,13 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         return desk;
     }
     /// <summary>
-    /// Raises the event now, or once the save assigns <see cref="Key"/> when the desk is not yet persisted,
-    /// so no event carries Key 0.
+    /// Records a change: advances <see cref="Revision"/>, and raises the event now, or once the save assigns
+    /// <see cref="Key"/> when the desk is not yet persisted, so no event carries Key 0.
     /// </summary>
     private void RaiseWhenKeyed(Func<DomainEvent> createEvent)
     {
+        Revision++;
+
         if (Key == 0)
         {
             AddPostPersistenceAction(() => AddDomainEvent(createEvent()));

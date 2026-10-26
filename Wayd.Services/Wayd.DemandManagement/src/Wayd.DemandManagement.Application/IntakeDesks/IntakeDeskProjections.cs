@@ -24,6 +24,7 @@ internal static class IntakeDeskProjections
             IsRequesterSelectable = d.IsRequesterSelectable,
             IsOpen = d.IsOpen,
             RequesterMayAddParticipants = d.RequesterMayAddParticipants,
+            Revision = d.Revision,
             Members = d.Members
                 .Join(employees, m => m.EmployeeId, e => e.Id, (m, e) => new { m.Role, Employee = e })
                 .OrderBy(x => x.Role).ThenBy(x => x.Employee.Name.FirstName).ThenBy(x => x.Employee.Name.LastName).ThenBy(x => x.Employee.Id)

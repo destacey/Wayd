@@ -13,4 +13,7 @@ public static class IntakeDeskAccess
     public const string VisibilityNeedsAdministerError = "Only the Demand Management Admin can change a desk's visibility.";
 
     public const string DeskAdminsNeedAdministerError = "Only the Demand Management Admin can name, remove or change Desk Admins.";
+
+    /// <summary>The failure for a change prepared against a revision the desk has moved past, which an endpoint reports as 409.</summary>
+    public const string StaleError = "This desk was changed since you opened it. Reload it and try again.";
 }

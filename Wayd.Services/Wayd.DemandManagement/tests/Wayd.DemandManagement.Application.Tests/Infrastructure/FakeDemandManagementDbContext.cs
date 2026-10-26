@@ -29,9 +29,21 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
     /// </summary>
     public int SaveChangesCallCount { get; private set; }
 
+    /// <summary>
+    /// Makes the next save fail as the database would when a row it writes breaks a constraint or was changed
+    /// underneath it, which an in-memory save can never do on its own.
+    /// </summary>
+    public DbUpdateException? FailNextSaveWith { get; set; }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken)
     {
         SaveChangesCallCount++;
+        if (FailNextSaveWith is { } failure)
+        {
+            FailNextSaveWith = null;
+            throw failure;
+        }
+
         return Task.FromResult(0);
     }
 

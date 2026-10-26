@@ -15,6 +15,11 @@ namespace Wayd.DemandManagement.Application.IntakeDesks.Commands;
 /// could open their own desk could publish everything on it, and one who could name Desk Admins could raise
 /// anyone's access. A member removed while owning requests on the desk is unassigned from them, because the
 /// assignee of a request is always a member of its desk.
+/// <para>
+/// The desk is saved whole, so a change prepared against an older revision is refused rather than undoing
+/// whatever changed since; two saves racing each other are caught the same way by the revision's
+/// concurrency check.
+/// </para>
 /// </remarks>
 /// <param name="Id">The desk.</param>
 /// <param name="Name">What its members and administrators call the desk.</param>
@@ -24,6 +29,7 @@ namespace Wayd.DemandManagement.Application.IntakeDesks.Commands;
 /// <param name="IsOpen">Whether the desk accepts new requests.</param>
 /// <param name="RequesterMayAddParticipants">On a private desk, whether the requester may add participants themselves.</param>
 /// <param name="Members">Everyone on the desk after the change, each with their role.</param>
+/// <param name="ExpectedRevision">The desk's <c>Revision</c> when the change was prepared; a desk changed since refuses it.</param>
 public sealed record UpdateIntakeDeskCommand(
     Guid Id,
     string Name,
@@ -32,7 +38,8 @@ public sealed record UpdateIntakeDeskCommand(
     bool IsRequesterSelectable,
     bool IsOpen,
     bool RequesterMayAddParticipants,
-    IReadOnlyList<IntakeDeskMemberDetails> Members) : ICommand;
+    IReadOnlyList<IntakeDeskMemberDetails> Members,
+    int ExpectedRevision) : ICommand;
 
 public sealed class UpdateIntakeDeskCommandValidator : CustomValidator<UpdateIntakeDeskCommand>
 {
@@ -78,6 +85,9 @@ public sealed class UpdateIntakeDeskCommandHandler(
         if (!reader.IsDeskAdminOn(desk.Id))
             return Result.Failure(IntakeDeskAccess.NotADeskAdminError);
 
+        if (!desk.IsAtRevision(request.ExpectedRevision))
+            return Result.Failure(IntakeDeskAccess.StaleError);
+
         if (request.Visibility != desk.Visibility && !reader.IsDemandManagementAdmin)
             return Result.Failure(IntakeDeskAccess.VisibilityNeedsAdministerError);
 
@@ -117,7 +127,16 @@ public sealed class UpdateIntakeDeskCommandHandler(
                 intakeRequest.ChangeAssignee(null, actor, now);
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // The desk's revision moved on, or a request was assigned to a member this change removes after
+            // the requests to unassign were read; either way the desk changed underneath this save.
+            return Result.Failure(IntakeDeskAccess.StaleError);
+        }
 
         return Result.Success();
     }

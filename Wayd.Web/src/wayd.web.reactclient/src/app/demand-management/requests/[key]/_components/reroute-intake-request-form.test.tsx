@@ -119,7 +119,7 @@ describe('wideningNotice', () => {
     expect(notice).toBeNull()
   })
 
-  it('names the summary for a private request reaching a summary-only desk', () => {
+  it('names the summary and its history for a private request reaching a summary-only desk', () => {
     // Act
     const notice = wideningNotice(
       IntakeDeskVisibility.Private,
@@ -128,11 +128,11 @@ describe('wideningNotice', () => {
 
     // Assert
     expect(notice).toBe(
-      'Everyone who can view requests will see its title, requester, channel and need-by date.',
+      'Everyone who can view requests will see its title, requester, channel, need-by date and assignee, with earlier titles, past assignees and every desk it has been on, including this one.',
     )
   })
 
-  it('names the summary and the detail for a private request reaching an open desk', () => {
+  it('names the whole request and its full history for a private request reaching an open desk', () => {
     // Act
     const notice = wideningNotice(
       IntakeDeskVisibility.Private,
@@ -141,11 +141,11 @@ describe('wideningNotice', () => {
 
     // Assert
     expect(notice).toBe(
-      'Everyone who can view requests will see its title, requester, channel and need-by date, and its description and expected benefits.',
+      'Everyone who can view requests will see the whole request: its title, requester, channel, need-by date and assignee, with earlier titles, past assignees and every desk it has been on, including this one; and its description, expected benefits and participants, who submitted it and where it came from, earlier versions of the description, and who made each change in its history.',
     )
   })
 
-  it('names only the detail for a summary-only request reaching an open desk', () => {
+  it('names the detail, participants and their history for a summary-only request reaching an open desk', () => {
     // Act
     const notice = wideningNotice(
       IntakeDeskVisibility.SummaryOnly,
@@ -154,7 +154,7 @@ describe('wideningNotice', () => {
 
     // Assert
     expect(notice).toBe(
-      'Everyone who can view requests will see its description and expected benefits.',
+      'Everyone who can view requests will see its description, expected benefits and participants, who submitted it and where it came from, earlier versions of the description, and who made each change in its history.',
     )
   })
 })

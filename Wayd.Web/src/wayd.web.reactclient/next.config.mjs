@@ -16,6 +16,12 @@ const nextConfig = {
     '@opentelemetry/sdk-trace',
     '@opentelemetry/auto-instrumentations-node',
   ],
+  // @opentelemetry/instrumentation-http loads forwarded-parse through a
+  // createRequire wrapper that output tracing cannot follow, so the standalone
+  // build leaves it out and the server crashes loading instrumentation.
+  outputFileTracingIncludes: {
+    '/*': ['./node_modules/forwarded-parse/**/*'],
+  },
   experimental: {
     // Puts the server span's traceparent into the document so browser API
     // calls can continue that trace. Client navigations use the traceresponse

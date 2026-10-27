@@ -1,0 +1,99 @@
+/* Columns sit side by side and the board, not the page, scrolls sideways when they outgrow it. */
+.board {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  align-items: flex-start;
+}
+
+.column {
+  flex: 0 0 272px;
+  width: 272px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-fill-quaternary);
+}
+
+.columnHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 2px 4px;
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  min-height: 44px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-left: 3px solid var(--ant-color-border);
+  border-radius: var(--ant-border-radius);
+  background: var(--ant-color-bg-container);
+  color: inherit;
+}
+
+.card:hover,
+.card:focus-visible {
+  border-color: var(--ant-color-primary-border-hover);
+  color: inherit;
+}
+
+/* A date fixed for us is the one that cannot move, so its card carries the mark at a glance. */
+.fixed,
+.fixed:hover,
+.fixed:focus-visible {
+  border-left-color: var(--ant-color-error);
+}
+
+.number {
+  font-size: var(--ant-font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.title {
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--ant-color-split);
+}
+
+.empty {
+  padding: 8px 2px;
+}
+
+/* On a phone: one stage at a time, full width. */
+.single {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.single .column {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+.stagePicker {
+  width: 100%;
+  min-height: 44px;
+}

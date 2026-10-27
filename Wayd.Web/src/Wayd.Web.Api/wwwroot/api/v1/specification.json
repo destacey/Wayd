@@ -56289,7 +56289,8 @@
           "workflow",
           "followsOrganizationDefault",
           "hasRequests",
-          "canChange"
+          "canChange",
+          "statuses"
         ],
         "type": "object",
         "properties": {
@@ -56312,6 +56313,13 @@
           "canChange": {
             "type": "boolean",
             "description": "Whether the reader may choose the desk's workflow: a Desk Admin on it or the Demand Management Admin,\nwhile no request is on it."
+          },
+          "statuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusNavigationDto"
+            },
+            "description": "The workflow's statuses in its own order: the stages a request on the desk moves through, and the columns\nof the Requests board, so a stage with no request in it still shows."
           }
         },
         "additionalProperties": false,

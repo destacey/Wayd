@@ -1,3 +1,5 @@
+using Wayd.Common.Application.StatusWorkflows.Dtos;
+
 namespace Wayd.DemandManagement.Application.IntakeDesks.Dtos;
 
 /// <summary>
@@ -22,6 +24,12 @@ public sealed record IntakeDeskWorkflowDto
     /// while no request is on it.
     /// </summary>
     public bool CanChange { get; init; }
+
+    /// <summary>
+    /// The workflow's statuses in its own order: the stages a request on the desk moves through, and the columns
+    /// of the Requests board, so a stage with no request in it still shows.
+    /// </summary>
+    public List<StatusNavigationDto> Statuses { get; init; } = [];
 }
 
 /// <summary>A published intake request workflow a desk can follow.</summary>

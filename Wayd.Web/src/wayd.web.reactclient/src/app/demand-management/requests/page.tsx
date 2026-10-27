@@ -10,10 +10,11 @@ import {
   useGetIntakeRequestsQuery,
   useGetNeedByBasesQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
-import { Button } from 'antd'
+import { Button, Segmented } from 'antd'
 import Link from 'next/link'
 import { FC, useEffect, useState } from 'react'
 import IntakeRequestsGrid from '../_components/intake-requests-grid'
+import RequestBoardView from './_components/request-board-view'
 import RequestFilterBar from './_components/request-filter-bar'
 import {
   DEFAULT_REQUEST_FILTERS,
@@ -34,6 +35,7 @@ const IntakeRequestsPage: FC = () => {
   const [filters, setFilters] = useState<RequestFilters>(
     DEFAULT_REQUEST_FILTERS,
   )
+  const [view, setView] = useState<'list' | 'board'>('list')
 
   const { data, isLoading, error, refetch } = useGetIntakeRequestsQuery({
     openOnly: filters.scope === 'open',
@@ -71,16 +73,36 @@ const IntakeRequestsPage: FC = () => {
         desks={desks}
         channels={channels}
         hasLinkedEmployee={hasLinkedEmployee}
+        leading={
+          <Segmented<'list' | 'board'>
+            value={view}
+            onChange={setView}
+            options={[
+              { label: 'List', value: 'list' },
+              { label: 'Board', value: 'board' },
+            ]}
+            aria-label="View"
+          />
+        }
       />
-      <IntakeRequestsGrid
-        requests={visible}
-        isLoading={isLoading}
-        refetch={refetch}
-        needByBases={needByBases}
-        persistStateKey="demand-management-requests"
-        csvFileName="requests"
-        emptyMessage="No requests match these filters"
-      />
+      {view === 'list' ? (
+        <IntakeRequestsGrid
+          requests={visible}
+          isLoading={isLoading}
+          refetch={refetch}
+          needByBases={needByBases}
+          persistStateKey="demand-management-requests"
+          csvFileName="requests"
+          emptyMessage="No requests match these filters"
+        />
+      ) : (
+        <RequestBoardView
+          requests={visible ?? []}
+          filters={filters}
+          desks={desks}
+          onPickDesk={(deskId) => setFilters({ ...filters, deskIds: [deskId] })}
+        />
+      )}
     </div>
   )
 }

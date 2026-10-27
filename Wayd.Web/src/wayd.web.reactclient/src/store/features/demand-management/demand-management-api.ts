@@ -484,6 +484,24 @@ export const demandManagementApi = apiSlice.injectEndpoints({
 
     // Fetched by id, which the change invalidates; tagged with the desk too, since a request arriving on it
     // stops the workflow changing.
+    // The workflow of each desk, for the Requests board, which can draw one only when they agree. Desks are
+    // few, so one call per desk is simpler than a batch endpoint.
+    getIntakeDeskWorkflows: builder.query<IntakeDeskWorkflowDto[], string[]>({
+      queryFn: async (deskIds) => {
+        try {
+          const client = getIntakeDesksClient()
+          const data = await Promise.all(
+            deskIds.map((id) => client.getWorkflow(id)),
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      providesTags: (_result, _error, deskIds) =>
+        deskIds.map((id) => ({ type: QueryTags.IntakeDesk, id })),
+    }),
+
     getIntakeDeskWorkflow: builder.query<IntakeDeskWorkflowDto, string>({
       queryFn: async (deskId) => {
         try {
@@ -625,6 +643,7 @@ export const {
   useUpdateIntakeDeskMutation,
   useDeleteIntakeDeskMutation,
   useRerouteIntakeRequestMutation,
+  useGetIntakeDeskWorkflowsQuery,
   useChangeIntakeRequestAssigneeMutation,
   useGetIntakeRequestArrivalStatusesQuery,
   useGetIntakeRequestStatusOptionsQuery,

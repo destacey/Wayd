@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Wayd.Common.Application.StatusWorkflows;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.DemandManagement.Application.IntakeDesks.Dtos;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Domain;
@@ -27,12 +28,14 @@ public sealed record GetIntakeDeskWorkflowQuery : IQuery<IntakeDeskWorkflowDto?>
 public sealed class GetIntakeDeskWorkflowQueryHandler(
     IDemandManagementDbContext dbContext,
     ICurrentPrincipal currentPrincipal,
-    IScopedWorkflowAssignments workflowAssignments)
+    IScopedWorkflowAssignments workflowAssignments,
+    IStatusResolver statusResolver)
     : IQueryHandler<GetIntakeDeskWorkflowQuery, IntakeDeskWorkflowDto?>
 {
     private readonly IDemandManagementDbContext _dbContext = dbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IScopedWorkflowAssignments _workflowAssignments = workflowAssignments;
+    private readonly IStatusResolver _statusResolver = statusResolver;
 
     public async Task<IntakeDeskWorkflowDto?> Handle(GetIntakeDeskWorkflowQuery request, CancellationToken cancellationToken)
     {
@@ -51,6 +54,10 @@ public sealed class GetIntakeDeskWorkflowQueryHandler(
         var mayChange = !_currentPrincipal.IsReadOnly && reader.IsDeskAdminOn(id);
         var hasRequests = mayChange && await _dbContext.IntakeRequests.AnyAsync(r => r.DeskId == id, cancellationToken);
 
+        var statuses = await _statusResolver.ForScope(DemandManagementWorkflowOwners.IntakeRequest.Key, id, cancellationToken);
+        if (statuses.IsFailure)
+            return null;
+
         var workflow = current.Value.Workflow;
         return new IntakeDeskWorkflowDto
         {
@@ -58,6 +65,13 @@ public sealed class GetIntakeDeskWorkflowQueryHandler(
             FollowsOrganizationDefault = !current.Value.IsScopeOwn,
             HasRequests = hasRequests,
             CanChange = mayChange && !hasRequests,
+            Statuses = [.. statuses.Value.Statuses.Select(s => new StatusNavigationDto
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Category = s.Category,
+                Alias = s.Alias,
+            })],
         };
     }
 }

@@ -611,10 +611,11 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         moved.IsSuccess.Should().BeTrue();
 
         await using var reader = _fixture.CreateContext();
-        var ownView = await new GetIntakeDeskWorkflowQueryHandler(reader, Principal(deskAdmin.Id), new ScopedWorkflowAssignments(reader))
+        var ownView = await new GetIntakeDeskWorkflowQueryHandler(reader, Principal(deskAdmin.Id), new ScopedWorkflowAssignments(reader), new StatusResolver(reader))
             .Handle(new GetIntakeDeskWorkflowQuery(new IdOrKey(ownDesk.Id)), ct);
         ownView!.Workflow.Id.Should().Be(copy.Id);
         ownView.FollowsOrganizationDefault.Should().BeFalse();
+        ownView.Statuses.Should().NotBeEmpty("the board draws its columns from them");
 
         var transitions = await reader.StatusTransitions.AsNoTracking()
             .Where(t => t.OwnerType == DemandManagementWorkflowOwners.IntakeRequest.Key && t.RecordId == created.Value.Id)
@@ -664,7 +665,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         }
         await using (var reading = _fixture.CreateContext())
         {
-            var backOnDefault = await new GetIntakeDeskWorkflowQueryHandler(reading, admin, new ScopedWorkflowAssignments(reading))
+            var backOnDefault = await new GetIntakeDeskWorkflowQueryHandler(reading, admin, new ScopedWorkflowAssignments(reading), new StatusResolver(reading))
                 .Handle(new GetIntakeDeskWorkflowQuery(new IdOrKey(desk.Id)), ct);
             backOnDefault!.FollowsOrganizationDefault.Should().BeTrue();
             backOnDefault.Workflow.Id.Should().Be(defaultWorkflowId);

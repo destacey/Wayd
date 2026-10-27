@@ -8,7 +8,7 @@ import {
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { FilterOutlined } from '@ant-design/icons'
 import { Badge, Button, Drawer, Flex, Grid, Segmented, Select } from 'antd'
-import { FC, useState } from 'react'
+import { FC, ReactNode, useState } from 'react'
 import styles from './request-filter-bar.module.css'
 import {
   AssigneeFilter,
@@ -29,6 +29,8 @@ export interface RequestFilterBarProps {
   channels: IntakeChannelDto[] | undefined
   /** Whether the reader has an employee record, without which nothing is assigned to them. */
   hasLinkedEmployee: boolean
+  /** Shown first in the row on every screen, such as the list and board toggle. */
+  leading?: ReactNode
 }
 
 const countBy = (
@@ -146,6 +148,7 @@ const RequestFilterBar: FC<RequestFilterBarProps> = (props) => {
   if (screens.md !== false) {
     return (
       <Flex wrap gap={8} align="center" className={styles.bar}>
+        {props.leading}
         <FilterControls {...props} stacked={false} />
         {active > 0 && (
           <Button
@@ -160,7 +163,8 @@ const RequestFilterBar: FC<RequestFilterBarProps> = (props) => {
   }
 
   return (
-    <>
+    <Flex gap={8} align="center" className={styles.bar}>
+      {props.leading}
       <Badge count={active} size="small">
         <Button
           icon={<FilterOutlined />}
@@ -191,7 +195,7 @@ const RequestFilterBar: FC<RequestFilterBarProps> = (props) => {
           <FilterControls {...props} stacked />
         </Flex>
       </Drawer>
-    </>
+    </Flex>
   )
 }
 

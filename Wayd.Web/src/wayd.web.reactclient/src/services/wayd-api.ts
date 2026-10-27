@@ -57113,6 +57113,9 @@ to the default reaches it. */
     /** Whether the reader may choose the desk's workflow: a Desk Admin on it or the Demand Management Admin,
 while no request is on it. */
     canChange: boolean;
+    /** The workflow's statuses in its own order: the stages a request on the desk moves through, and the columns
+of the Requests board, so a stage with no request in it still shows. */
+    statuses: StatusNavigationDto[];
 }
 
 /** The statuses an intake request can arrive in when moved to a desk, and the one it arrives in unless the mover chooses. */

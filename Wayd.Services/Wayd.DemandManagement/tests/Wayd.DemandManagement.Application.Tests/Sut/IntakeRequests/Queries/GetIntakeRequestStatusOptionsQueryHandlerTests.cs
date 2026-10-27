@@ -25,8 +25,8 @@ public sealed class GetIntakeRequestStatusOptionsQueryHandlerTests
 
         // Assert — in the workflow's order, without the status it holds
         options!.Select(o => o.Name).Should().Equal(
-            "In Review", "Waiting on Requester", "Deferred", "Accepted", "Fulfilled", "Declined", "Duplicate");
-        options.Where(o => o.NeedsReason).Select(o => o.Name).Should().BeEquivalentTo(["Deferred", "Fulfilled", "Declined", "Duplicate"]);
+            "In Review", "Waiting on Requester", "Accepted", "Fulfilled", "Declined", "Duplicate");
+        options.Where(o => o.NeedsReason).Select(o => o.Name).Should().BeEquivalentTo(["Fulfilled", "Declined", "Duplicate"]);
         options.Where(o => o.NeedsSurvivingRequest).Select(o => o.Name).Should().Equal("Duplicate");
     }
 

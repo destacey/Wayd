@@ -16,9 +16,10 @@ export interface PublishStatusWorkflowFormProps {
 }
 
 /**
- * The server refuses a publish that is missing a required alias or whose
- * restricted transitions would strand a status, so each problem is named here
- * and OK stays disabled rather than surfacing it as an error toast.
+ * The server refuses a publish that is missing a required category or alias,
+ * files an alias under the wrong category, or whose restricted transitions
+ * would strand a status, so each problem is named here and OK stays disabled
+ * rather than surfacing it as an error toast.
  */
 const PublishStatusWorkflowForm = ({
   statusWorkflow,
@@ -33,6 +34,15 @@ const PublishStatusWorkflowForm = ({
   const hasMissingAliases = missingAliases.length > 0
   const transitionIssues = statusWorkflow.transitionIssues ?? []
   const hasTransitionIssues = transitionIssues.length > 0
+  const missingCategories = statusWorkflow.missingRequiredCategories ?? []
+  const hasMissingCategories = missingCategories.length > 0
+  const misfiledAliases = statusWorkflow.misfiledAliases ?? []
+  const hasMisfiledAliases = misfiledAliases.length > 0
+  const isBlocked =
+    hasMissingAliases ||
+    hasTransitionIssues ||
+    hasMissingCategories ||
+    hasMisfiledAliases
 
   const { isOpen, isSaving, handleOk, handleCancel } = useConfirmModal({
     onSubmit: async () => {
@@ -66,7 +76,7 @@ const PublishStatusWorkflowForm = ({
       open={isOpen}
       onOk={handleOk}
       okText="Publish"
-      okButtonProps={{ disabled: hasMissingAliases || hasTransitionIssues }}
+      okButtonProps={{ disabled: isBlocked }}
       confirmLoading={isSaving}
       onCancel={handleCancel}
       keyboard={false}
@@ -76,6 +86,37 @@ const PublishStatusWorkflowForm = ({
         <Text>
           {statusWorkflow.key} - {statusWorkflow.name}
         </Text>
+        {hasMissingCategories && (
+          <Alert
+            type="error"
+            showIcon
+            title="Required categories are not covered"
+            description={
+              <>
+                <div>Add a status in each of these categories:</div>
+                <ul style={{ marginTop: 8, marginBottom: 0 }}>
+                  {missingCategories.map((category) => (
+                    <li key={category}>{category}</li>
+                  ))}
+                </ul>
+              </>
+            }
+          />
+        )}
+        {hasMisfiledAliases && (
+          <Alert
+            type="error"
+            showIcon
+            title="Some meanings need fixing"
+            description={
+              <ul style={{ marginTop: 0, marginBottom: 0 }}>
+                {misfiledAliases.map((issue) => (
+                  <li key={issue}>{issue}</li>
+                ))}
+              </ul>
+            }
+          />
+        )}
         {hasTransitionIssues && (
           <Alert
             type="error"
@@ -97,9 +138,7 @@ const PublishStatusWorkflowForm = ({
             title="Required meanings are not covered"
             description={
               <>
-                <div>
-                  Assign a status to each of these before publishing:
-                </div>
+                <div>Assign a status to each of these before publishing:</div>
                 <ul style={{ marginTop: 8, marginBottom: 0 }}>
                   {missingAliases.map((alias) => (
                     <li key={alias}>{alias}</li>
@@ -108,7 +147,7 @@ const PublishStatusWorkflowForm = ({
               </>
             }
           />
-        ) : hasTransitionIssues ? null : (
+        ) : isBlocked ? null : (
           <Text type="secondary">
             Publishing locks the workflow&apos;s statuses so records can be
             assigned to it. To change it afterwards, clone it into a new draft.

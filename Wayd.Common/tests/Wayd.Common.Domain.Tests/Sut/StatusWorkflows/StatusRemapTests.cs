@@ -13,13 +13,13 @@ public sealed class StatusRemapTests
     private static readonly WorkflowOwnerDescriptor Widget = new(
         "test.remap.widget",
         "Widget",
-        new Dictionary<int, string> { [NotableAlias] = "Notable", [TerminalAlias] = "Terminal" },
+        new Dictionary<int, WorkflowAlias> { [NotableAlias] = new("Notable", StatusCategory.Active), [TerminalAlias] = new("Terminal", StatusCategory.Done) },
         [NotableAlias, TerminalAlias]);
 
     private static readonly WorkflowOwnerDescriptor Gadget = new(
         "test.remap.gadget",
         "Gadget",
-        new Dictionary<int, string> { [NotableAlias] = "Notable" },
+        new Dictionary<int, WorkflowAlias> { [NotableAlias] = new("Notable", StatusCategory.Active) },
         [NotableAlias]);
 
     public StatusRemapTests() => WorkflowOwners.Register(Widget, Gadget);

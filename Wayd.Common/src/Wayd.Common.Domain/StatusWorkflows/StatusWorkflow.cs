@@ -282,6 +282,48 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
+    /// Why a status in <paramref name="category"/> cannot carry <paramref name="alias"/>, or null when it
+    /// can, via the owning module's descriptor.
+    /// </summary>
+    private string? DescribeMisfit(int alias, StatusCategory category) =>
+        WorkflowOwners.Resolve(OwnerType) is { IsSuccess: true } descriptor
+            ? descriptor.Value.DescribeMisfit(alias, category)
+            : null;
+
+    /// <summary>
+    /// The categories this workflow's owner type requires that no status here belongs to, in category order.
+    /// </summary>
+    public IReadOnlyList<StatusCategory> MissingRequiredCategories() =>
+        WorkflowOwners.Resolve(OwnerType) is { IsSuccess: true } descriptor
+            ? [.. descriptor.Value.RequiredCategories.Where(c => _statuses.All(s => s.Category != c))]
+            : [];
+
+    /// <summary>
+    /// Every status whose alias belongs under another category, or is not one its owner type declares, one
+    /// sentence each naming the status and how to fix it, in status order.
+    /// </summary>
+    /// <remarks>
+    /// The editor refuses both, so a draft holds one only when it was cloned from a workflow saved before
+    /// its owner type tied that alias to a category or retired it. Publishing refuses it all the same.
+    /// </remarks>
+    public IReadOnlyList<string> MisfiledAliases()
+    {
+        if (WorkflowOwners.Resolve(OwnerType) is not { IsSuccess: true } resolved)
+        {
+            return [];
+        }
+
+        var descriptor = resolved.Value;
+
+        return [.. _statuses
+            .OrderBy(s => s.Order)
+            .Where(s => !descriptor.Fits(s.Alias, s.Category))
+            .Select(s => descriptor.AliasCategories.TryGetValue(s.Alias, out var expected)
+                ? $"'{s.Name}' means {descriptor.DescribeAlias(s.Alias)}, which belongs under {expected}, not {s.Category}. Move it to {expected} or clear its meaning."
+                : $"'{s.Name}' carries a meaning {descriptor.DisplayName} statuses do not have. Clear its meaning or remove it.")];
+    }
+
+    /// <summary>
     /// Renames the workflow. Safe in any state other than archived.
     /// </summary>
     public Result Update(string name, string? description, EventActor actor, Instant timestamp)
@@ -342,6 +384,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         if (alias != NoAlias && _statuses.Any(s => s.Alias == alias))
         {
             return Result.Failure<WorkflowStatus>($"Another status in this workflow is already the '{DescribeAlias(alias)}' status.");
+        }
+
+        if (DescribeMisfit(alias, category) is { } misfit)
+        {
+            return Result.Failure<WorkflowStatus>(misfit);
         }
 
         var order = _statuses.Count == 0 ? 1 : _statuses.Max(s => s.Order) + 1;
@@ -474,6 +521,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         if (alias != NoAlias && _statuses.Any(s => s.Id != statusId && s.Alias == alias))
         {
             return Result.Failure($"Another status in this workflow is already the '{DescribeAlias(alias)}' status.");
+        }
+
+        if (DescribeMisfit(alias, category) is { } misfit)
+        {
+            return Result.Failure(misfit);
         }
 
         var fromCategory = status.Category;
@@ -668,7 +720,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Publishes the workflow, refusing one that cannot supply its owner type's required
+    /// Publishes the workflow, refusing one that cannot supply its owner type's required categories and
     /// aliases or whose restricted transitions would strand a record — caught here rather than later,
     /// inside an aggregate, on a record already created.
     /// </summary>
@@ -916,10 +968,10 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
 
     private Result GuardPublishable()
     {
-        var aliases = GuardRequiredAliases();
-        if (aliases.IsFailure)
+        var required = GuardOwnerRequirements();
+        if (required.IsFailure)
         {
-            return aliases;
+            return required;
         }
 
         var issues = TransitionIssues();
@@ -1091,9 +1143,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Refuses activation when the workflow cannot answer what its owner type asks of it.
+    /// Refuses activation when the workflow cannot answer what its owner type asks of it: a status in each
+    /// required category, one carrying each required alias, and every alias in its own category. Names
+    /// every problem at once, so fixing one does not uncover the next on the following attempt.
     /// </summary>
-    private Result GuardRequiredAliases()
+    private Result GuardOwnerRequirements()
     {
         var descriptor = WorkflowOwners.Resolve(OwnerType);
         if (descriptor.IsFailure)
@@ -1101,11 +1155,24 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure(descriptor.Error);
         }
 
-        var missing = descriptor.Value.RequiredAliases.Where(a => StatusFor(a) is null).ToList();
+        var owner = OwnerDisplayName();
+        var subject = char.ToUpperInvariant(owner[0]) + owner[1..];
+        var problems = new List<string>();
 
-        return missing.Count == 0
-            ? Result.Success()
-            : Result.Failure(
-                $"A {descriptor.Value.DisplayName} workflow needs a status for each of: {string.Join(", ", missing.Select(descriptor.Value.DescribeAlias))}.");
+        var missingCategories = MissingRequiredCategories();
+        if (missingCategories.Count > 0)
+        {
+            problems.Add($"{subject} workflow needs a status in each of these categories: {string.Join(", ", missingCategories)}.");
+        }
+
+        var missingAliases = descriptor.Value.RequiredAliases.Where(a => StatusFor(a) is null).ToList();
+        if (missingAliases.Count > 0)
+        {
+            problems.Add($"{subject} workflow needs a status for each of: {string.Join(", ", missingAliases.Select(descriptor.Value.DescribeAlias))}.");
+        }
+
+        problems.AddRange(MisfiledAliases());
+
+        return problems.Count == 0 ? Result.Success() : Result.Failure(string.Join(" ", problems));
     }
 }

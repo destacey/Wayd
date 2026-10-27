@@ -349,7 +349,7 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         if (!to.IsOpen)
             return Result.Failure("This desk is not accepting new requests.");
 
-        if (!CanArriveIn(arrival.Category, (IntakeRequestStatusAlias)arrival.Alias))
+        if (!CanArriveIn(arrival.Category))
             return Result.Failure(ArrivalStatusNotOpenError);
 
         if (to.Visibility.IsLessPrivateThan(from.Visibility) && !widerVisibilityConfirmed)
@@ -388,31 +388,28 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         "A request arrives on another desk in an open status that needs no reason.";
 
     /// <summary>
-    /// Whether a request moved to another desk may arrive in a status: an open one needing no reason, and never
-    /// Withdrawn or Duplicate.
+    /// Whether a request moved to another desk may arrive in a status: an open one, which needs no reason.
     /// </summary>
     /// <remarks>
-    /// The engine does not tie an alias to a category, so a company's workflow can file Withdrawn or Duplicate
-    /// under an open one. Neither is a place to arrive: Withdrawn is the requester's alone, and a duplicate needs
-    /// the request it gives way to.
+    /// Withdrawn and Duplicate are never open, since the intake request owner type ties both to the Removed
+    /// category and the workflow editor refuses any other pairing.
     /// </remarks>
-    public static bool CanArriveIn(StatusCategory category, IntakeRequestStatusAlias alias) =>
-        category is StatusCategory.Proposed or StatusCategory.Active
-        && alias is not (IntakeRequestStatusAlias.Withdrawn or IntakeRequestStatusAlias.Duplicate)
-        && !NeedsReason(category, alias);
+    public static bool CanArriveIn(StatusCategory category) =>
+        category is StatusCategory.Proposed or StatusCategory.Active;
 
     /// <summary>
-    /// Whether moving a request into a status needs a reason the requester can read: declining, deferring,
-    /// marking a duplicate, and finishing it.
+    /// Whether moving a request into a status needs a reason the requester can read: closing it in any Removed
+    /// status but Withdrawn, and finishing it.
     /// </summary>
     /// <remarks>
-    /// Finishing is keyed on the Done category rather than the Fulfilled alias, so a company's own finishing
-    /// status needs one too. It needs a reason because a request finished with no outcome to show for it has to
-    /// say why; once outcomes exist, a request with one will not.
+    /// Keyed on the category rather than on meanings, so a company's own "Won't do" or finishing status needs
+    /// one too. Withdrawn is the requester's own decision and keeps its optional note. Finishing needs a reason
+    /// because a request finished with no outcome to show for it has to say why; once outcomes exist, a request
+    /// with one will not.
     /// </remarks>
     public static bool NeedsReason(StatusCategory category, IntakeRequestStatusAlias alias) =>
-        alias is IntakeRequestStatusAlias.Declined or IntakeRequestStatusAlias.Deferred or IntakeRequestStatusAlias.Duplicate
-        || category == StatusCategory.Done;
+        category == StatusCategory.Done
+        || (category == StatusCategory.Removed && alias != IntakeRequestStatusAlias.Withdrawn);
 
     /// <summary>
     /// Moves the request to another status of its desk's workflow: an agent's decision. Needs the surviving

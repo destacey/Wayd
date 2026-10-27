@@ -15,13 +15,13 @@ public sealed class WorkflowAssignmentTests
     private static readonly WorkflowOwnerDescriptor Widget = new(
         "test.assignment.widget",
         "Widget",
-        new Dictionary<int, string> { [NotableAlias] = "Notable", [TerminalAlias] = "Terminal" },
+        new Dictionary<int, WorkflowAlias> { [NotableAlias] = new("Notable", StatusCategory.Active), [TerminalAlias] = new("Terminal", StatusCategory.Done) },
         [NotableAlias, TerminalAlias]);
 
     private static readonly WorkflowOwnerDescriptor Gadget = new(
         "test.assignment.gadget",
         "Gadget",
-        new Dictionary<int, string> { [NotableAlias] = "Notable" },
+        new Dictionary<int, WorkflowAlias> { [NotableAlias] = new("Notable", StatusCategory.Active) },
         [NotableAlias]);
 
     public WorkflowAssignmentTests() => WorkflowOwners.Register(Widget, Gadget);

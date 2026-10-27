@@ -46,11 +46,24 @@ The **category** is how a status rolls up when something counts records rather t
 | Done | Finished successfully |
 | Removed | Finished without succeeding |
 
+Each record type also declares the categories it cannot do without, and a workflow without a status in each cannot be published. An intake request that could never be accepted or finished would be stuck, so its workflow must have all four:
+
+| Record type | Required categories |
+| --- | --- |
+| Product | Proposed, Active, Done |
+| Version | Proposed, Active, Done, Removed |
+| Release | Proposed, Active, Done, Removed |
+| Release Package | Proposed, Done, Removed |
+| Deployment | Active, Done, Removed |
+| Intake Request | Proposed, Active, Done, Removed |
+
+A deployment starts In Progress, so it has no Proposed stage. A release package can go straight from Planned to Released, since its Ready status is optional.
+
 ### Aliases
 
 An **alias** marks the one status that carries a specific meaning for that record type. Wayd's own logic looks for the alias, never the name — so a deployment's change failure rate counts whichever status is aliased **Failed**, whether you call it Failed, Errored or Did Not Ship.
 
-Each record type declares aliases it cannot function without, and a workflow missing one cannot be published:
+Each alias belongs to one category, and the editor offers only the aliases of the category you choose: a Withdrawn filed under Proposed would leave a withdrawn request open. Each record type also declares aliases it cannot function without, and a workflow missing one cannot be published:
 
 | Record type | Required aliases |
 | --- | --- |
@@ -59,9 +72,18 @@ Each record type declares aliases it cannot function without, and a workflow mis
 | Release | Ready, Released, Withdrawn |
 | Release Package | Released, Withdrawn |
 | Deployment | In Progress, Succeeded, Failed, Rolled Back |
-| Intake Request | Submitted, Waiting on Requester, Accepted, Deferred, Declined, Duplicate, Withdrawn |
+| Intake Request | Submitted, Waiting on Requester, Duplicate, Withdrawn |
 
-Intake Request also has an optional **Fulfilled** alias, and its rules otherwise follow the category: any Done status needs a reason, and only Proposed and Active requests are open. Intake Request workflows always allow any move, because a requester must be able to withdraw from any open status.
+The category each alias belongs to:
+
+| Record type | Proposed | Active | Done | Removed |
+| --- | --- | --- | --- | --- |
+| Product | | Active, Sunset | Retired | |
+| Version, Release, Release Package | | Ready | Released | Withdrawn |
+| Deployment | | In Progress | Succeeded | Failed, Rolled Back |
+| Intake Request | Submitted, Waiting on Requester | Accepted | Fulfilled | Duplicate, Withdrawn |
+
+Intake Request's **Accepted** and **Fulfilled** aliases are optional, and its rules otherwise follow the category: any Done status, and any Removed status other than Withdrawn, needs a reason, and only Proposed and Active requests are open. Intake Request workflows always allow any move, because a requester must be able to withdraw from any open status.
 
 An alias can be held by only one status in a workflow — two statuses both meaning Released would make "is it released?" unanswerable.
 
@@ -193,7 +215,7 @@ Renames and reordering apply directly. Anything structural — adding or removin
 
 1. Choose **Clone** from the workflow's row, or from its detail page. The copy carries every status and transition and arrives as a Draft.
 2. Edit the draft — add, rename, reclassify, remove, reorder.
-3. **Publish** it. Wayd refuses if a required alias is missing, or if restricted transitions would strand a status, and names what needs fixing.
+3. **Publish** it. Wayd refuses if a required category or alias is missing, if an alias sits in a category it does not belong to, or if restricted transitions would strand a status, and names what needs fixing.
 4. **Reassign** the record type to it — **Change workflow** on the row of the workflow in use — which is where existing records move across. See [Changing which workflow is used](#changing-which-workflow-is-used).
 
 This is the same shape Jira and Azure DevOps use, and for the same reason: the workflow in use has records depending on it, so changes are staged on a copy rather than applied underneath them.

@@ -86430,11 +86430,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the intake requests you can see, as summaries.
         /// </summary>
         /// <remarks>
-        /// Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf.
+        /// Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf. With `openOnly`, only requests still under review or accepted — in the Proposed or Active status category, whatever the desk's workflow calls the status.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestSummaryDto>> GetIntakeRequestsAsync(System.Guid? deskId = null, bool? mine = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestSummaryDto>> GetIntakeRequestsAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -86666,11 +86666,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the intake requests you can see, as summaries.
         /// </summary>
         /// <remarks>
-        /// Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf.
+        /// Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf. With `openOnly`, only requests still under review or accepted — in the Proposed or Active status category, whatever the desk's workflow calls the status.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestSummaryDto>> GetIntakeRequestsAsync(System.Guid? deskId = null, bool? mine = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestSummaryDto>> GetIntakeRequestsAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -86693,6 +86693,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (mine != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("mine")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(mine, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (openOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("openOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(openOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -108479,6 +108483,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("canChange")]
         public bool CanChange { get; set; } = default!;
 
+        /// <summary>
+        /// The workflow's statuses in its own order: the stages a request on the desk moves through, the columns of
+        /// <br/>the Requests board, so a stage with no request in it still shows, and the path a requester is shown
+        /// <br/>before submitting.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statuses")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IntakeWorkflowStatusDto> Statuses { get; set; } = new System.Collections.ObjectModel.Collection<IntakeWorkflowStatusDto>();
+
     }
 
     /// <summary>
@@ -108571,6 +108584,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canChangeStatus")]
         public bool CanChangeStatus { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the reader may assign the request to a member of its desk, or unassign it: an agent on its desk.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canChangeAssignee")]
+        public bool CanChangeAssignee { get; set; } = default!;
 
         /// <summary>
         /// Whether the reader may withdraw the request: its requester, while it is open.
@@ -108907,6 +108926,20 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("needBy")]
         public IntakeRequestNeedByDto? NeedBy { get; set; } = default!;
 
+        /// <summary>
+        /// When the request was submitted, from which its age is read.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("submittedOn")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset SubmittedOn { get; set; } = default!;
+
+        /// <summary>
+        /// When the request entered its current status, from which its time in that status is read.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusChangedOn")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset StatusChangedOn { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -108938,6 +108971,49 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// What the workflow is for, when its author said.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string? Description { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One status of a desk's review workflow, with what it means in the workflow author's words.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeWorkflowStatusDto
+    {
+
+        /// <summary>
+        /// The status's id, which a request's current status is matched against.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// What the workflow calls the status.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// The status's bucket — Proposed, Active, Done or Removed — which decides whether a request in it is open.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("category")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
+        public StatusCategory Category { get; set; } = default!;
+
+        /// <summary>
+        /// The well-known meaning the status carries, as an intake request status alias value, or 0 for none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("alias")]
+        public int Alias { get; set; } = default!;
+
+        /// <summary>
+        /// What the status means, when the workflow's author said, written for anyone following a request.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
@@ -119564,6 +119640,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Collections.Generic.ICollection<string> MissingRequiredAliases { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
+        /// The categories this workflow's owner type requires that no status here belongs to yet.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("missingRequiredCategories")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<StatusCategory> MissingRequiredCategories { get; set; } = new System.Collections.ObjectModel.Collection<StatusCategory>();
+
+        /// <summary>
+        /// Every status whose alias belongs under a different category, one sentence each, naming the
+        /// <br/>status. Publishing is refused until each is moved or loses its alias.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("misfiledAliases")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> MisfiledAliases { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
         /// Whether the statuses may be restructured — Draft, and not platform-seeded.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canEdit")]
@@ -126853,6 +126945,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A well-known meaning a status of one owner type can carry.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class WorkflowAliasDto
     {
@@ -126866,6 +126961,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("isRequired")]
         public bool IsRequired { get; set; } = default!;
+
+        /// <summary>
+        /// The only category a status carrying this alias may belong to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("category")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
+        public StatusCategory Category { get; set; } = default!;
 
     }
 
@@ -127021,6 +127124,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("requiredAliases")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<int> RequiredAliases { get; set; } = new System.Collections.ObjectModel.Collection<int>();
+
+        /// <summary>
+        /// The categories a workflow must have at least one status in before it can be published.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("requiredCategories")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<StatusCategory> RequiredCategories { get; set; } = new System.Collections.ObjectModel.Collection<StatusCategory>();
 
         /// <summary>
         /// Whether a workflow for this owner type may restrict which moves its records make.

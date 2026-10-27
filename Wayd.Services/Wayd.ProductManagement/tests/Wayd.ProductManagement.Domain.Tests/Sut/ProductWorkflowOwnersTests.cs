@@ -82,6 +82,101 @@ public sealed class ProductWorkflowOwnersTests
         result.IsSuccess.Should().BeTrue();
     }
 
+    #region Categories
+
+    // Pinned to the seeded workflows: each owner type requires exactly the categories its seed has, less
+    // any only an optional alias fills.
+    public static TheoryData<string, StatusCategory[]> RequiredCategoriesByOwner => new()
+    {
+        { ProductWorkflowOwners.Product.Key, [StatusCategory.Proposed, StatusCategory.Active, StatusCategory.Done] },
+        { ProductWorkflowOwners.Version.Key, [StatusCategory.Proposed, StatusCategory.Active, StatusCategory.Done, StatusCategory.Removed] },
+        { ProductWorkflowOwners.Release.Key, [StatusCategory.Proposed, StatusCategory.Active, StatusCategory.Done, StatusCategory.Removed] },
+        { ProductWorkflowOwners.ReleasePackage.Key, [StatusCategory.Proposed, StatusCategory.Done, StatusCategory.Removed] },
+        { ProductWorkflowOwners.Deployment.Key, [StatusCategory.Active, StatusCategory.Done, StatusCategory.Removed] },
+    };
+
+    [Theory]
+    [MemberData(nameof(RequiredCategoriesByOwner))]
+    public void RequiredCategories_ShouldMatchTheSeededWorkflow(string ownerKey, StatusCategory[] expected)
+    {
+        // Arrange
+        var owner = ProductWorkflowOwners.All.Single(o => o.Key == ownerKey);
+
+        // Act
+        var required = owner.RequiredCategories;
+
+        // Assert
+        required.Should().Equal(expected);
+    }
+
+    public static TheoryData<string, ProductStatusAlias, StatusCategory> AliasCategoriesByOwner => new()
+    {
+        { ProductWorkflowOwners.Product.Key, ProductStatusAlias.Active, StatusCategory.Active },
+        { ProductWorkflowOwners.Product.Key, ProductStatusAlias.Sunset, StatusCategory.Active },
+        { ProductWorkflowOwners.Product.Key, ProductStatusAlias.Retired, StatusCategory.Done },
+        { ProductWorkflowOwners.Version.Key, ProductStatusAlias.Ready, StatusCategory.Active },
+        { ProductWorkflowOwners.Version.Key, ProductStatusAlias.Released, StatusCategory.Done },
+        { ProductWorkflowOwners.Version.Key, ProductStatusAlias.Withdrawn, StatusCategory.Removed },
+        { ProductWorkflowOwners.Release.Key, ProductStatusAlias.Ready, StatusCategory.Active },
+        { ProductWorkflowOwners.Release.Key, ProductStatusAlias.Released, StatusCategory.Done },
+        { ProductWorkflowOwners.Release.Key, ProductStatusAlias.Withdrawn, StatusCategory.Removed },
+        { ProductWorkflowOwners.ReleasePackage.Key, ProductStatusAlias.Ready, StatusCategory.Active },
+        { ProductWorkflowOwners.ReleasePackage.Key, ProductStatusAlias.Released, StatusCategory.Done },
+        { ProductWorkflowOwners.ReleasePackage.Key, ProductStatusAlias.Withdrawn, StatusCategory.Removed },
+        { ProductWorkflowOwners.Deployment.Key, ProductStatusAlias.InProgress, StatusCategory.Active },
+        { ProductWorkflowOwners.Deployment.Key, ProductStatusAlias.Succeeded, StatusCategory.Done },
+        { ProductWorkflowOwners.Deployment.Key, ProductStatusAlias.Failed, StatusCategory.Removed },
+        { ProductWorkflowOwners.Deployment.Key, ProductStatusAlias.RolledBack, StatusCategory.Removed },
+    };
+
+    [Theory]
+    [MemberData(nameof(AliasCategoriesByOwner))]
+    public void AliasCategories_ShouldMatchTheSeededWorkflow(string ownerKey, ProductStatusAlias alias, StatusCategory expected)
+    {
+        // Arrange
+        var owner = ProductWorkflowOwners.All.Single(o => o.Key == ownerKey);
+
+        // Act
+        var category = owner.AliasCategories[(int)alias];
+
+        // Assert
+        category.Should().Be(expected);
+    }
+
+    [Fact]
+    public void Publish_ShouldRefuseADeploymentWorkflowWithNoRemovedStatus()
+    {
+        // Arrange
+        // Every deployment alias is required, so the only way to lack Removed is to leave out an outcome,
+        // which the alias check names as well.
+        var workflow = StatusWorkflow.Create("No Failures", null, ProductWorkflowOwners.Deployment.Key, EventActor.System, Timestamp).Value;
+        workflow.AddStatus("In Progress", null, StatusCategory.Active, (int)ProductStatusAlias.InProgress, EventActor.System, Timestamp);
+        workflow.AddStatus("Succeeded", null, StatusCategory.Done, (int)ProductStatusAlias.Succeeded, EventActor.System, Timestamp);
+
+        // Act
+        var result = workflow.Publish(EventActor.System, Timestamp);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().StartWith("A Deployment workflow needs a status in each of these categories: Removed.");
+    }
+
+    [Fact]
+    public void AddStatus_ShouldRefuseAVersionStatusFilingReleasedUnderActive()
+    {
+        // Arrange
+        var workflow = StatusWorkflow.Create("Misfiled", null, ProductWorkflowOwners.Version.Key, EventActor.System, Timestamp).Value;
+
+        // Act
+        var result = workflow.AddStatus("Released", null, StatusCategory.Active, (int)ProductStatusAlias.Released, EventActor.System, Timestamp);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("'Released' belongs under Done, not Active.");
+    }
+
+    #endregion Categories
+
     #region Declared moves
 
     // The required/optional split per owner type, on the seeded statuses. Pinned because it is the

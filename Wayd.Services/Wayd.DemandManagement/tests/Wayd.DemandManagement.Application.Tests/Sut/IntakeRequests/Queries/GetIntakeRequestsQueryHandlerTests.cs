@@ -120,7 +120,7 @@ public sealed class GetIntakeRequestsQueryHandlerTests
         var proposed = _scenario.Request(desk, _scenario.Employee());
         var active = _scenario.RequestIn(desk, _scenario.Employee(), StatusCategory.Active, IntakeRequestStatusAlias.Accepted);
         _scenario.RequestIn(desk, _scenario.Employee(), StatusCategory.Done);
-        _scenario.RequestIn(desk, _scenario.Employee(), StatusCategory.Removed, IntakeRequestStatusAlias.Declined);
+        _scenario.RequestIn(desk, _scenario.Employee(), StatusCategory.Removed);
         _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.View);
 
         // Act

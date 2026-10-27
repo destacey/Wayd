@@ -15,8 +15,9 @@ public static class IntakeWorkflowFactory
     private static readonly Instant Timestamp = Instant.FromUtc(2026, 1, 15, 9, 30, 0);
 
     /// <summary>
-    /// A published workflow with the default's nine statuses: Submitted, In Review, Waiting on Requester and
-    /// Deferred (Proposed); Accepted (Active); Fulfilled (Done); Declined, Duplicate and Withdrawn (Removed).
+    /// A published workflow with the default's eight statuses: Submitted, In Review and Waiting on Requester
+    /// (Proposed); Accepted (Active); Fulfilled (Done); Declined, Duplicate and Withdrawn (Removed). In Review
+    /// and Declined carry no alias.
     /// </summary>
     public static StatusWorkflow Default(string name = "Intake Review")
     {
@@ -28,10 +29,9 @@ public static class IntakeWorkflowFactory
             ("Submitted", StatusCategory.Proposed, IntakeRequestStatusAlias.Submitted),
             ("In Review", StatusCategory.Proposed, IntakeRequestStatusAlias.None),
             ("Waiting on Requester", StatusCategory.Proposed, IntakeRequestStatusAlias.WaitingOnRequester),
-            ("Deferred", StatusCategory.Proposed, IntakeRequestStatusAlias.Deferred),
             ("Accepted", StatusCategory.Active, IntakeRequestStatusAlias.Accepted),
             ("Fulfilled", StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled),
-            ("Declined", StatusCategory.Removed, IntakeRequestStatusAlias.Declined),
+            ("Declined", StatusCategory.Removed, IntakeRequestStatusAlias.None),
             ("Duplicate", StatusCategory.Removed, IntakeRequestStatusAlias.Duplicate),
             ("Withdrawn", StatusCategory.Removed, IntakeRequestStatusAlias.Withdrawn),
         ];

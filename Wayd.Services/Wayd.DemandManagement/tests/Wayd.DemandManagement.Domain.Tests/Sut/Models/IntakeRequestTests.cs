@@ -297,7 +297,7 @@ public sealed class IntakeRequestTests
     public void Retitle_ByADeskAgentWhileClosed_FailsUntilItIsReopened()
     {
         // Arrange
-        var sut = new IntakeRequestFaker().InStatus(StatusCategory.Removed, IntakeRequestStatusAlias.Declined).Generate();
+        var sut = new IntakeRequestFaker().InStatus(StatusCategory.Removed).Generate();
         var title = sut.Title;
 
         // Act
@@ -922,10 +922,10 @@ public sealed class IntakeRequestTests
     }
 
     [Theory]
-    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.Declined)]
+    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.None)]
+    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.Duplicate)]
     [InlineData(StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled)]
-    [InlineData(StatusCategory.Proposed, IntakeRequestStatusAlias.Deferred)]
-    public void Reroute_ArrivingClosedOrInAStatusNeedingAReason_FailsAndChangesNothing(StatusCategory category, IntakeRequestStatusAlias alias)
+    public void Reroute_ArrivingInAClosedStatus_FailsAndChangesNothing(StatusCategory category, IntakeRequestStatusAlias alias)
     {
         // Arrange
         var from = new IntakeDeskFaker().Generate();
@@ -946,25 +946,27 @@ public sealed class IntakeRequestTests
     }
 
     [Theory]
-    [InlineData(IntakeRequestStatusAlias.Withdrawn)]
-    [InlineData(IntakeRequestStatusAlias.Duplicate)]
-    public void CanArriveIn_RefusesWithdrawnAndDuplicate_EvenWhenAWorkflowFilesThemAsOpen(IntakeRequestStatusAlias alias)
+    [InlineData(StatusCategory.Proposed, true)]
+    [InlineData(StatusCategory.Active, true)]
+    [InlineData(StatusCategory.Done, false)]
+    [InlineData(StatusCategory.Removed, false)]
+    public void CanArriveIn_AllowsOnlyAnOpenCategory(StatusCategory category, bool expected)
     {
-        // Act — the engine lets a company's workflow put any alias in any category
-        var canArrive = IntakeRequest.CanArriveIn(StatusCategory.Proposed, alias);
+        // Act — Withdrawn and Duplicate are tied to Removed, so they are refused with it
+        var canArrive = IntakeRequest.CanArriveIn(category);
 
         // Assert
-        canArrive.Should().BeFalse();
+        canArrive.Should().Be(expected);
     }
 
     [Fact]
-    public void Reroute_OntoAnotherWorkflow_ClearsTheSurvivingRequestOfAnOpenDuplicate()
+    public void Reroute_OntoAnotherWorkflow_ClearsTheStatusReason()
     {
-        // Arrange — a company's workflow that files Duplicate as open
+        // Arrange
         var from = new IntakeDeskFaker().Generate();
         var to = new IntakeDeskFaker().Generate();
-        var sut = new IntakeRequestFaker().WithDeskId(from.Id).InStatus(StatusCategory.Proposed, IntakeRequestStatusAlias.Duplicate)
-            .WithDuplicateOfId(Guid.NewGuid()).WithStatusReason("Asked already").Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(from.Id).InStatus(StatusCategory.Proposed, IntakeRequestStatusAlias.WaitingOnRequester)
+            .WithStatusReason("Which quarter?").Generate();
 
         // Act
         var result = sut.Reroute(from, to, IntakeStatusRefFactory.Submitted(), false, EventActor.System, _dateTimeProvider.Now);
@@ -978,6 +980,24 @@ public sealed class IntakeRequestTests
     #endregion Reroute
 
     #region ChangeStatus
+
+    [Theory]
+    [InlineData(StatusCategory.Proposed, IntakeRequestStatusAlias.None, false)]
+    [InlineData(StatusCategory.Proposed, IntakeRequestStatusAlias.WaitingOnRequester, false)]
+    [InlineData(StatusCategory.Active, IntakeRequestStatusAlias.Accepted, false)]
+    [InlineData(StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled, true)]
+    [InlineData(StatusCategory.Done, IntakeRequestStatusAlias.None, true)]
+    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.None, true)]
+    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.Duplicate, true)]
+    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.Withdrawn, false)]
+    public void NeedsReason_FollowsTheCategory_ExceptForWithdrawn(StatusCategory category, IntakeRequestStatusAlias alias, bool expected)
+    {
+        // Act — a company's own "Won't do" needs a reason with no meaning set; Withdrawn is the requester's own
+        var needsReason = IntakeRequest.NeedsReason(category, alias);
+
+        // Assert
+        needsReason.Should().Be(expected);
+    }
 
     private static StatusRef InItsWorkflow(IntakeRequest request, StatusCategory category,
         IntakeRequestStatusAlias alias = IntakeRequestStatusAlias.None) =>
@@ -1010,13 +1030,12 @@ public sealed class IntakeRequestTests
     }
 
     [Theory]
-    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.Declined)]
-    [InlineData(StatusCategory.Proposed, IntakeRequestStatusAlias.Deferred)]
+    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.None)]
     [InlineData(StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled)]
     [InlineData(StatusCategory.Done, IntakeRequestStatusAlias.None)]
     public void ChangeStatus_ToAStatusNeedingAReason_WithoutOne_FailsAndChangesNothing(StatusCategory category, IntakeRequestStatusAlias alias)
     {
-        // Arrange — a company's own finishing status needs one as much as Fulfilled does
+        // Arrange — a company's own closing or finishing status needs one as much as Fulfilled does
         var sut = new IntakeRequestFaker().Generate();
         var statusId = sut.StatusId;
 
@@ -1032,13 +1051,13 @@ public sealed class IntakeRequestTests
     }
 
     [Fact]
-    public void ChangeStatus_ToDeclinedWithAReason_KeepsItOnTheRequestAndTheTransition()
+    public void ChangeStatus_ToAClosingStatusWithAReason_KeepsItOnTheRequestAndTheTransition()
     {
         // Arrange
         var sut = new IntakeRequestFaker().Generate();
 
         // Act
-        var result = sut.ChangeStatus(InItsWorkflow(sut, StatusCategory.Removed, IntakeRequestStatusAlias.Declined),
+        var result = sut.ChangeStatus(InItsWorkflow(sut, StatusCategory.Removed),
             " Budget went to the platform rebuild ", null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
@@ -1249,7 +1268,7 @@ public sealed class IntakeRequestTests
     {
         // Arrange
         var requesterId = Guid.NewGuid();
-        var sut = new IntakeRequestFaker().WithRequesterId(requesterId).InStatus(StatusCategory.Removed, IntakeRequestStatusAlias.Declined).Generate();
+        var sut = new IntakeRequestFaker().WithRequesterId(requesterId).InStatus(StatusCategory.Removed).Generate();
 
         // Act
         var result = sut.Withdraw(requesterId, WithdrawnIn(sut), null, EventActor.System, _dateTimeProvider.Now);
@@ -1281,7 +1300,7 @@ public sealed class IntakeRequestTests
         var sut = new IntakeRequestFaker().WithRequesterId(requesterId).Generate();
 
         // Act
-        Action act = () => sut.Withdraw(requesterId, InItsWorkflow(sut, StatusCategory.Removed, IntakeRequestStatusAlias.Declined), null,
+        Action act = () => sut.Withdraw(requesterId, InItsWorkflow(sut, StatusCategory.Removed), null,
             EventActor.System, _dateTimeProvider.Now);
 
         // Assert

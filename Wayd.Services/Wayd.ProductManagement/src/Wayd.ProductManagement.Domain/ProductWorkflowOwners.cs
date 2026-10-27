@@ -1,5 +1,6 @@
 ﻿using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.ProductManagement.Domain;
 
@@ -26,6 +27,11 @@ namespace Wayd.ProductManagement.Domain;
 /// which refuses the method that makes them. No delivery move accepts a condition: none of these
 /// methods can be given one by the people, imports and deployments that call them.
 /// </para>
+/// <para>
+/// Each owner type's required categories and alias categories match its seeded workflow, so every
+/// seeded workflow satisfies them. A deployment requires no Proposed category, since it starts In
+/// Progress, and a release package no Active one, since its Ready is optional.
+/// </para>
 /// </remarks>
 public static class ProductWorkflowOwners
 {
@@ -35,6 +41,21 @@ public static class ProductWorkflowOwners
     /// </summary>
     private static readonly int? Initial = null;
 
+    /// <summary>
+    /// The aliases versions, releases and release packages share: cut or ready to go (Active), shipped
+    /// (Done), and pulled (Removed).
+    /// </summary>
+    private static readonly Dictionary<int, WorkflowAlias> DeliveryNames = Names(
+        (ProductStatusAlias.Ready, StatusCategory.Active),
+        (ProductStatusAlias.Released, StatusCategory.Done),
+        (ProductStatusAlias.Withdrawn, StatusCategory.Removed));
+
+    /// <summary>
+    /// The categories versions and releases need: planned, ready, shipped and pulled.
+    /// </summary>
+    private static readonly StatusCategory[] DeliveryCategories =
+        [StatusCategory.Proposed, StatusCategory.Active, StatusCategory.Done, StatusCategory.Removed];
+
     /// <summary>A node in the product taxonomy. Governs the product lifecycle.</summary>
     /// <remarks>
     /// Supports restricted transitions: a product changes status through one method that takes any
@@ -43,8 +64,12 @@ public static class ProductWorkflowOwners
     public static readonly WorkflowOwnerDescriptor Product = new(
         "product.product",
         "Product",
-        Names(ProductStatusAlias.Active, ProductStatusAlias.Sunset, ProductStatusAlias.Retired),
+        Names(
+            (ProductStatusAlias.Active, StatusCategory.Active),
+            (ProductStatusAlias.Sunset, StatusCategory.Active),
+            (ProductStatusAlias.Retired, StatusCategory.Done)),
         [(int)ProductStatusAlias.Active, (int)ProductStatusAlias.Retired],
+        [StatusCategory.Proposed, StatusCategory.Active, StatusCategory.Done],
         supportsRestrictedTransitions: true);
 
     /// <summary>A versioned cut of a releasable product node.</summary>
@@ -68,8 +93,9 @@ public static class ProductWorkflowOwners
     public static readonly WorkflowOwnerDescriptor Version = new(
         "delivery.version",
         "Version",
-        Names(ProductStatusAlias.Ready, ProductStatusAlias.Released, ProductStatusAlias.Withdrawn),
+        DeliveryNames,
         [(int)ProductStatusAlias.Ready, (int)ProductStatusAlias.Released, (int)ProductStatusAlias.Withdrawn],
+        DeliveryCategories,
         supportsRestrictedTransitions: true,
         moves:
         [
@@ -97,8 +123,9 @@ public static class ProductWorkflowOwners
     public static readonly WorkflowOwnerDescriptor Release = new(
         "delivery.release",
         "Release",
-        Names(ProductStatusAlias.Ready, ProductStatusAlias.Released, ProductStatusAlias.Withdrawn),
+        DeliveryNames,
         [(int)ProductStatusAlias.Ready, (int)ProductStatusAlias.Released, (int)ProductStatusAlias.Withdrawn],
+        DeliveryCategories,
         supportsRestrictedTransitions: true,
         moves:
         [
@@ -116,12 +143,17 @@ public static class ProductWorkflowOwners
     /// or withdrawing it from there is what the domain allows. Those moves are optional because
     /// <c>Ready</c> is: a workflow that keeps the status must allow at least one of them, or publish
     /// refuses it as a dead end. Withdrawing a released package is optional.
+    /// <para>
+    /// For the same reason Active is not a required category: Ready is the only Active status a package
+    /// workflow can usefully hold, so requiring the category would require Ready.
+    /// </para>
     /// </remarks>
     public static readonly WorkflowOwnerDescriptor ReleasePackage = new(
         "delivery.release-package",
         "Release Package",
-        Names(ProductStatusAlias.Ready, ProductStatusAlias.Released, ProductStatusAlias.Withdrawn),
+        DeliveryNames,
         [(int)ProductStatusAlias.Released, (int)ProductStatusAlias.Withdrawn],
+        [StatusCategory.Proposed, StatusCategory.Done, StatusCategory.Removed],
         supportsRestrictedTransitions: true,
         moves:
         [
@@ -153,13 +185,18 @@ public static class ProductWorkflowOwners
     public static readonly WorkflowOwnerDescriptor Deployment = new(
         "delivery.deployment",
         "Deployment",
-        Names(ProductStatusAlias.InProgress, ProductStatusAlias.Succeeded, ProductStatusAlias.Failed, ProductStatusAlias.RolledBack),
+        Names(
+            (ProductStatusAlias.InProgress, StatusCategory.Active),
+            (ProductStatusAlias.Succeeded, StatusCategory.Done),
+            (ProductStatusAlias.Failed, StatusCategory.Removed),
+            (ProductStatusAlias.RolledBack, StatusCategory.Removed)),
         [
             (int)ProductStatusAlias.InProgress,
             (int)ProductStatusAlias.Succeeded,
             (int)ProductStatusAlias.Failed,
             (int)ProductStatusAlias.RolledBack,
         ],
+        [StatusCategory.Active, StatusCategory.Done, StatusCategory.Removed],
         supportsRestrictedTransitions: true,
         moves:
         [
@@ -179,6 +216,6 @@ public static class ProductWorkflowOwners
     /// </summary>
     public static void Register() => WorkflowOwners.Register(All);
 
-    private static Dictionary<int, string> Names(params ProductStatusAlias[] aliases) =>
-        aliases.ToDictionary(a => (int)a, a => a.ToString());
+    private static Dictionary<int, WorkflowAlias> Names(params (ProductStatusAlias Alias, StatusCategory Category)[] aliases) =>
+        aliases.ToDictionary(a => (int)a.Alias, a => new WorkflowAlias(a.Alias.ToString(), a.Category));
 }

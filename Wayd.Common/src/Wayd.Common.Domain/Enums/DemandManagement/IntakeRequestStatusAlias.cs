@@ -5,9 +5,10 @@ namespace Wayd.Common.Domain.Enums.DemandManagement;
 /// </summary>
 /// <remarks>
 /// Rules bind to these, never to a status name or id, so a desk that renames or adds review stages keeps
-/// them: a declined request needs a reason, a duplicate names the request that survives it, and only the
-/// requester's withdrawal reaches Withdrawn. Values are persisted on every request and status transition —
-/// never renumber one — and <c>0</c> is reserved to match <c>StatusWorkflow.NoAlias</c>.
+/// them: a duplicate names the request that survives it, and only the requester's withdrawal reaches
+/// Withdrawn. Values are persisted on every request and status transition — never renumber one, and never
+/// reuse 5 or 6, which belonged to meanings since removed — and <c>0</c> is reserved to match
+/// <c>StatusWorkflow.NoAlias</c>.
 /// </remarks>
 public enum IntakeRequestStatusAlias
 {
@@ -25,12 +26,6 @@ public enum IntakeRequestStatusAlias
 
     /// <summary>Delivered.</summary>
     Fulfilled = 4,
-
-    /// <summary>Worth doing, but not now. Still open, and needs a reason the requester can read.</summary>
-    Deferred = 5,
-
-    /// <summary>Not going ahead. Needs a reason the requester can read.</summary>
-    Declined = 6,
 
     /// <summary>Already asked for in another request, which it names.</summary>
     Duplicate = 7,

@@ -50,6 +50,8 @@ public sealed class StatusWorkflowDetailsReader(IStatusWorkflowDbContext dbConte
         // than let a user find out by trying. The aggregate stays the authority; these only inform.
         var canEdit = !workflow.IsSystem && workflow.State == StatusWorkflowState.Draft;
         var transitionIssues = workflow.TransitionIssues();
+        var missingCategories = workflow.MissingRequiredCategories();
+        var misfiledAliases = workflow.MisfiledAliases();
         var statusOrder = workflow.Statuses.ToDictionary(s => s.Id, s => s.Order);
 
         return new StatusWorkflowDetailsDto
@@ -63,8 +65,11 @@ public sealed class StatusWorkflowDetailsReader(IStatusWorkflowDbContext dbConte
             IsSystem = workflow.IsSystem,
             IsAssigned = isAssigned,
             MissingRequiredAliases = missing,
+            MissingRequiredCategories = missingCategories,
+            MisfiledAliases = misfiledAliases,
             CanEdit = canEdit,
-            CanPublish = canEdit && missing.Count == 0 && transitionIssues.Count == 0,
+            CanPublish = canEdit && missing.Count == 0 && missingCategories.Count == 0 && misfiledAliases.Count == 0
+                && transitionIssues.Count == 0,
             CanArchive = !workflow.IsSystem && workflow.State == StatusWorkflowState.Published && !isAssigned,
             Statuses =
             [

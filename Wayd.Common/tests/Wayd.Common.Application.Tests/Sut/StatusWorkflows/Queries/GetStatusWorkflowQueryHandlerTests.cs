@@ -44,6 +44,8 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
                 SupportsRestrictedTransitions = false,
                 TransitionIssues = [],
                 MissingRequiredAliases = [],
+                MissingRequiredCategories = [],
+                MisfiledAliases = [],
                 CanEdit = false,
                 CanPublish = false,
                 CanArchive = false,

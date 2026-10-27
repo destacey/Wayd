@@ -105,7 +105,7 @@ public sealed class StatusHistoryReaderTests : StatusWorkflowHandlerTestBase
         Transition(recordId, 0, Ref("Elsewhere", StatusCategory.Active), ownerType: "test.gadget");
 
         WorkflowOwners.Register(new WorkflowOwnerDescriptor(
-            "test.gadget", "Gadget", new Dictionary<int, string>(), []));
+            "test.gadget", "Gadget", new Dictionary<int, WorkflowAlias>(), []));
 
         var sut = CreateSut();
 

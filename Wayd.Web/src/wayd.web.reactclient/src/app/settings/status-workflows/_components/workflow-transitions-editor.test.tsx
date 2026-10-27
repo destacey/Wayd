@@ -69,6 +69,8 @@ const workflow = (
   supportsRestrictedTransitions: true,
   transitionIssues: [],
   missingRequiredAliases: [],
+  missingRequiredCategories: [],
+  misfiledAliases: [],
   canEdit: true,
   canPublish: true,
   canArchive: false,

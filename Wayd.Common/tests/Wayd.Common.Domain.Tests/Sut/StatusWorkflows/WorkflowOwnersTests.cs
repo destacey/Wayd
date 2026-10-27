@@ -1,11 +1,12 @@
 ﻿using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Common.Domain.Tests.Sut.StatusWorkflows;
 
 public sealed class WorkflowOwnersTests
 {
     private static WorkflowOwnerDescriptor Descriptor(string key, params int[] required) =>
-        new(key, "Gadget", required.ToDictionary(a => a, a => $"Alias{a}"), required);
+        new(key, "Gadget", required.ToDictionary(a => a, a => new WorkflowAlias($"Alias{a}", StatusCategory.Active)), required);
 
     #region Register
 
@@ -105,7 +106,7 @@ public sealed class WorkflowOwnersTests
     {
         // Act
         Action act = () => new WorkflowOwnerDescriptor(
-            "test.owners.undeclared", "Gadget", new Dictionary<int, string> { [1] = "One" }, [1, 2]);
+            "test.owners.undeclared", "Gadget", new Dictionary<int, WorkflowAlias> { [1] = new("One", StatusCategory.Active) }, [1, 2]);
 
         // Assert
         // The seeder builds the lookup from Aliases, so a required alias missing from it would be
@@ -119,7 +120,7 @@ public sealed class WorkflowOwnersTests
         // Act
         Action act = () => new WorkflowOwnerDescriptor(
             "test.owners.dupename", "Gadget",
-            new Dictionary<int, string> { [1] = "Done", [2] = "done" }, [1]);
+            new Dictionary<int, WorkflowAlias> { [1] = new("Done", StatusCategory.Active), [2] = new("done", StatusCategory.Active) }, [1]);
 
         // Assert
         // A lookup keyed by name could not distinguish them.
@@ -127,11 +128,90 @@ public sealed class WorkflowOwnersTests
     }
 
     [Fact]
+    public void Descriptor_ShouldTieEachAliasToItsCategory()
+    {
+        // Arrange
+        var descriptor = new WorkflowOwnerDescriptor(
+            "test.owners.categorised", "Gadget",
+            new Dictionary<int, WorkflowAlias> { [1] = new("Open", StatusCategory.Active), [2] = new("Closed", StatusCategory.Removed) }, [1]);
+
+        // Act & Assert
+        descriptor.AliasCategories.Should().BeEquivalentTo(new Dictionary<int, StatusCategory>
+        {
+            [1] = StatusCategory.Active,
+            [2] = StatusCategory.Removed,
+        });
+        descriptor.Fits(2, StatusCategory.Removed).Should().BeTrue();
+        descriptor.Fits(2, StatusCategory.Done).Should().BeFalse();
+        descriptor.Fits(StatusWorkflow.NoAlias, StatusCategory.Done).Should().BeTrue();
+        descriptor.Fits(99, StatusCategory.Done).Should().BeFalse("nothing resolves an alias the owner type does not declare");
+        descriptor.DescribeMisfit(99, StatusCategory.Done).Should().Be("Gadget statuses have no meaning numbered 99.");
+        descriptor.DescribeMisfit(2, StatusCategory.Done).Should().Be("'Closed' belongs under Removed, not Done.");
+    }
+
+    [Fact]
+    public void Descriptor_ShouldReject_AnAliasWithNoCategory()
+    {
+        // Act
+        Action act = () => new WorkflowOwnerDescriptor(
+            "test.owners.uncategorised", "Gadget", new Dictionary<int, WorkflowAlias> { [1] = new("One", (StatusCategory)99) }, [1]);
+
+        // Assert
+        act.Should().Throw<ArgumentException>().WithMessage("*alias with no category*");
+    }
+
+    [Fact]
+    public void Descriptor_ShouldRequireNoCategories_ByDefault()
+    {
+        // Act
+        var descriptor = Descriptor("test.owners.no-categories", 1);
+
+        // Assert
+        descriptor.RequiredCategories.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Descriptor_ShouldKeepItsRequiredCategories_InCategoryOrder()
+    {
+        // Act
+        var descriptor = new WorkflowOwnerDescriptor(
+            "test.owners.categories", "Gadget", new Dictionary<int, WorkflowAlias>(), [],
+            [StatusCategory.Removed, StatusCategory.Proposed, StatusCategory.Done]);
+
+        // Assert
+        descriptor.RequiredCategories.Should().Equal(StatusCategory.Proposed, StatusCategory.Done, StatusCategory.Removed);
+    }
+
+    [Fact]
+    public void Descriptor_ShouldReject_ARequiredCategoryThatDoesNotExist()
+    {
+        // Act
+        Action act = () => new WorkflowOwnerDescriptor(
+            "test.owners.category-unknown", "Gadget", new Dictionary<int, WorkflowAlias>(), [],
+            [(StatusCategory)99]);
+
+        // Assert
+        act.Should().Throw<ArgumentException>().WithMessage("*requires a category that does not exist*");
+    }
+
+    [Fact]
+    public void Descriptor_ShouldReject_TheSameRequiredCategoryTwice()
+    {
+        // Act
+        Action act = () => new WorkflowOwnerDescriptor(
+            "test.owners.category-twice", "Gadget", new Dictionary<int, WorkflowAlias>(), [],
+            [StatusCategory.Done, StatusCategory.Done]);
+
+        // Assert
+        act.Should().Throw<ArgumentException>().WithMessage("*same required category more than once*");
+    }
+
+    [Fact]
     public void Descriptor_ShouldNameItsAliases()
     {
         // Arrange
         var descriptor = new WorkflowOwnerDescriptor(
-            "test.owners.named", "Gadget", new Dictionary<int, string> { [21] = "Succeeded" }, [21]);
+            "test.owners.named", "Gadget", new Dictionary<int, WorkflowAlias> { [21] = new("Succeeded", StatusCategory.Active) }, [21]);
 
         // Act & Assert
         descriptor.DescribeAlias(21).Should().Be("Succeeded");
@@ -143,7 +223,7 @@ public sealed class WorkflowOwnersTests
     {
         // Act
         Action act = () => new WorkflowOwnerDescriptor(
-            "test.owners.move-undeclared", "Gadget", new Dictionary<int, string> { [1] = "One" }, [1],
+            "test.owners.move-undeclared", "Gadget", new Dictionary<int, WorkflowAlias> { [1] = new("One", StatusCategory.Active) }, [1],
             moves: [WorkflowMove.Optional("Jump", 1, 2)]);
 
         // Assert
@@ -155,7 +235,7 @@ public sealed class WorkflowOwnersTests
     {
         // Act
         Action act = () => new WorkflowOwnerDescriptor(
-            "test.owners.move-optional-alias", "Gadget", new Dictionary<int, string> { [1] = "One", [2] = "Two" }, [1],
+            "test.owners.move-optional-alias", "Gadget", new Dictionary<int, WorkflowAlias> { [1] = new("One", StatusCategory.Active), [2] = new("Two", StatusCategory.Active) }, [1],
             moves: [WorkflowMove.Required("Jump", 1, 2)]);
 
         // Assert
@@ -168,7 +248,7 @@ public sealed class WorkflowOwnersTests
     {
         // Act
         var descriptor = new WorkflowOwnerDescriptor(
-            "test.owners.move-optional", "Gadget", new Dictionary<int, string> { [1] = "One", [2] = "Two" }, [1],
+            "test.owners.move-optional", "Gadget", new Dictionary<int, WorkflowAlias> { [1] = new("One", StatusCategory.Active), [2] = new("Two", StatusCategory.Active) }, [1],
             moves: [WorkflowMove.Optional("Jump", 1, 2)]);
 
         // Assert
@@ -181,7 +261,7 @@ public sealed class WorkflowOwnersTests
     {
         // Act
         Action act = () => new WorkflowOwnerDescriptor(
-            "test.owners.move-duplicate", "Gadget", new Dictionary<int, string> { [1] = "One", [2] = "Two" }, [1, 2],
+            "test.owners.move-duplicate", "Gadget", new Dictionary<int, WorkflowAlias> { [1] = new("One", StatusCategory.Active), [2] = new("Two", StatusCategory.Active) }, [1, 2],
             moves: [WorkflowMove.Required("Jump", 1, 2), WorkflowMove.Optional("Leap", 1, 2)]);
 
         // Assert

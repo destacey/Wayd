@@ -1,6 +1,7 @@
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.DemandManagement.Domain;
 
@@ -19,11 +20,16 @@ public static class DemandManagementWorkflowOwners
     /// <remarks>
     /// A desk is the assignment scope, so each desk follows its own workflow or the organization's default.
     /// <para>
-    /// Every alias but Fulfilled is required, because something resolves or checks each one: a request
-    /// starts in Submitted, asking the requester a question moves it to Waiting on Requester, withdrawing
-    /// moves it to Withdrawn, and Accepted, Deferred, Declined and Duplicate carry rules of their own.
-    /// Fulfilled is optional because the rule a finished request follows is written against the Done
-    /// category, so a company's own finishing status keeps it.
+    /// A required alias is one something resolves or checks: a request starts in Submitted, asking the
+    /// requester a question moves it to Waiting on Requester, withdrawing moves it to Withdrawn, and
+    /// marking a duplicate needs Duplicate. Accepted and Fulfilled are optional, kept for approvals and
+    /// automatic fulfilment. Every other rule a request follows is written against its category, so a
+    /// company's own statuses keep them without a meaning: any Removed status but Withdrawn, and any Done
+    /// status, needs a reason.
+    /// </para>
+    /// <para>
+    /// All four categories are required: a request must be able to wait for review, be taken on, be
+    /// finished, and be closed without being done.
     /// </para>
     /// <para>
     /// No restricted transitions: withdrawing must reach Withdrawn from any open status, which a
@@ -33,26 +39,22 @@ public static class DemandManagementWorkflowOwners
     public static readonly WorkflowOwnerDescriptor IntakeRequest = new(
         "demand.intake-request",
         "Intake Request",
-        new Dictionary<int, string>
+        new Dictionary<int, WorkflowAlias>
         {
-            [(int)IntakeRequestStatusAlias.Submitted] = "Submitted",
-            [(int)IntakeRequestStatusAlias.WaitingOnRequester] = "Waiting on Requester",
-            [(int)IntakeRequestStatusAlias.Accepted] = "Accepted",
-            [(int)IntakeRequestStatusAlias.Fulfilled] = "Fulfilled",
-            [(int)IntakeRequestStatusAlias.Deferred] = "Deferred",
-            [(int)IntakeRequestStatusAlias.Declined] = "Declined",
-            [(int)IntakeRequestStatusAlias.Duplicate] = "Duplicate",
-            [(int)IntakeRequestStatusAlias.Withdrawn] = "Withdrawn",
+            [(int)IntakeRequestStatusAlias.Submitted] = new("Submitted", StatusCategory.Proposed),
+            [(int)IntakeRequestStatusAlias.WaitingOnRequester] = new("Waiting on Requester", StatusCategory.Proposed),
+            [(int)IntakeRequestStatusAlias.Accepted] = new("Accepted", StatusCategory.Active),
+            [(int)IntakeRequestStatusAlias.Fulfilled] = new("Fulfilled", StatusCategory.Done),
+            [(int)IntakeRequestStatusAlias.Duplicate] = new("Duplicate", StatusCategory.Removed),
+            [(int)IntakeRequestStatusAlias.Withdrawn] = new("Withdrawn", StatusCategory.Removed),
         },
         [
             (int)IntakeRequestStatusAlias.Submitted,
             (int)IntakeRequestStatusAlias.WaitingOnRequester,
-            (int)IntakeRequestStatusAlias.Accepted,
-            (int)IntakeRequestStatusAlias.Deferred,
-            (int)IntakeRequestStatusAlias.Declined,
             (int)IntakeRequestStatusAlias.Duplicate,
             (int)IntakeRequestStatusAlias.Withdrawn,
         ],
+        [StatusCategory.Proposed, StatusCategory.Active, StatusCategory.Done, StatusCategory.Removed],
         featureFlag: FeatureFlags.Names.DemandManagement);
 
     /// <summary>Every owner type this module contributes, for registration at startup.</summary>

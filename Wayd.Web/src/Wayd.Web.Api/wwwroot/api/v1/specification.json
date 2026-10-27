@@ -68041,6 +68041,8 @@
           "supportsRestrictedTransitions",
           "transitionIssues",
           "missingRequiredAliases",
+          "missingRequiredCategories",
+          "misfiledAliases",
           "canEdit",
           "canPublish",
           "canArchive"
@@ -68126,6 +68128,20 @@
               "type": "string"
             },
             "description": "The required aliases this workflow does not yet carry, named rather than numbered."
+          },
+          "missingRequiredCategories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusCategory"
+            },
+            "description": "The categories this workflow's owner type requires that no status here belongs to yet."
+          },
+          "misfiledAliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Every status whose alias belongs under a different category, one sentence each, naming the\nstatus. Publishing is refused until each is moved or loses its alias."
           },
           "canEdit": {
             "type": "boolean",
@@ -75945,7 +75961,8 @@
         "required": [
           "value",
           "name",
-          "isRequired"
+          "isRequired",
+          "category"
         ],
         "type": "object",
         "properties": {
@@ -75958,9 +75975,18 @@
           },
           "isRequired": {
             "type": "boolean"
+          },
+          "category": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusCategory"
+              }
+            ],
+            "description": "The only category a status carrying this alias may belong to."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "A well-known meaning a status of one owner type can carry."
       },
       "WorkflowAssignmentDto": {
         "required": [
@@ -76101,6 +76127,7 @@
           "displayName",
           "aliases",
           "requiredAliases",
+          "requiredCategories",
           "supportsRestrictedTransitions"
         ],
         "type": "object",
@@ -76125,6 +76152,13 @@
               "format": "int32"
             },
             "description": "The aliases a workflow must carry before it can be published."
+          },
+          "requiredCategories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusCategory"
+            },
+            "description": "The categories a workflow must have at least one status in before it can be published."
           },
           "supportsRestrictedTransitions": {
             "type": "boolean",

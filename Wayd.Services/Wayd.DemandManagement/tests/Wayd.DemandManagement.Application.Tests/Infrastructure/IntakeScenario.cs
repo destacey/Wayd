@@ -144,6 +144,17 @@ public sealed class IntakeScenario
         IntakeRequestStatusAlias alias = IntakeRequestStatusAlias.None) =>
         AddRequest(RequestFaker(desk, requester).InStatus(category, alias));
 
+    /// <summary>
+    /// A request still following another workflow, in an open status named Triage with no meaning, which
+    /// <see cref="Workflow"/> has nothing to match by alias or name.
+    /// </summary>
+    public IntakeRequest RequestOnAnotherWorkflow(IntakeDesk desk, Employee requester) =>
+        AddRequest(RequestFaker(desk, requester)
+            .WithStatusWorkflowId(Guid.CreateVersion7())
+            .WithStatusId(Guid.CreateVersion7())
+            .WithStatusName("Triage")
+            .InStatus(StatusCategory.Proposed));
+
     /// <summary>A request the submitter entered on the requester's behalf.</summary>
     public IntakeRequest RequestOnBehalf(IntakeDesk desk, Employee requester, Employee submitter) =>
         AddRequest(RequestFaker(desk, requester).WithSubmittedById(submitter.Id));

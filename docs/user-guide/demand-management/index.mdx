@@ -79,18 +79,17 @@ Each desk reviews its requests through a **status workflow**: the stages a reque
 | Submitted | Proposed | Received, and waiting for the desk to look at it |
 | In Review | Proposed | Being reviewed by the desk |
 | Waiting on Requester | Proposed | Waiting for the requester to answer a question |
-| Deferred | Proposed | Worth doing, but not now |
 | Accepted | Active | Accepted for delivery |
 | Fulfilled | Done | Delivered |
 | Declined | Removed | Not going ahead |
 | Duplicate | Removed | Already asked for in another request |
 | Withdrawn | Removed | Withdrawn by the requester |
 
-A company shapes its own review — a single triage, staged assessment, a review board — by building workflows in [Settings → Status Workflows](../settings/status-workflows.mdx) and choosing one for each desk. What Wayd does with a status depends on its **category** and its well-known meaning, never its name, so the rules below hold whatever a desk calls its stages:
+A company shapes its own review — a single triage, staged assessment, a review board — by building workflows in [Settings → Status Workflows](../settings/status-workflows.mdx) and choosing one for each desk. What Wayd does with a status depends on its **category** and its well-known meaning, never its name, so the rules below hold whatever a desk calls its stages. An intake workflow must have at least one Proposed, Active, Done and Removed status, and statuses meaning Submitted, Waiting on Requester, Duplicate and Withdrawn; Accepted and Fulfilled are optional meanings. In Review and Declined carry no meaning, so a desk can rename, split or replace them freely:
 
 - **Proposed** and **Active** requests are **open**: they count as waiting on their desk and can be moved to another desk.
 - Who can **edit** follows the category too. While a request is Proposed, its requester and the desk's agents can edit it; once it is Active, only the desk's agents; once it is **Done** or **Removed**, nobody, until an agent moves it back to an open status.
-- **Declined**, **Deferred**, **Duplicate** and any **Done** status need a reason, which the requester reads on the request.
+- Moving a request into any **Removed** status other than Withdrawn — Declined, Duplicate, or a desk's own "Won't do" — needs a reason, which the requester reads on the request. So does finishing it in any **Done** status.
 - A **Duplicate** names the request it gives way to.
 - Only the requester reaches **Withdrawn**, by withdrawing their request.
 

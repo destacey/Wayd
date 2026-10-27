@@ -32,6 +32,8 @@ public sealed class FakeStatusWorkflowDetailsReader(StatusWorkflow workflow) : I
         SupportsRestrictedTransitions = true,
         TransitionIssues = [],
         MissingRequiredAliases = [],
+        MissingRequiredCategories = [],
+        MisfiledAliases = [],
         CanEdit = false,
         CanPublish = false,
         CanArchive = false,

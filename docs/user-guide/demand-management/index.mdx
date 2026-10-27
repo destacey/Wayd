@@ -125,7 +125,7 @@ A *fixed* date moves only if the world moves. A *chosen* date has an owner, so i
 
 The first question is where the request goes, and it is asked only when more than one desk is taking requests: **What kind of request is this?** Each desk is a card worded as the kind of ask it takes, saying which desk reviews it and who works there. Picking one only decides who looks at it first; a reviewer can move it if it belongs somewhere else. When only one desk is open, the form shows which desk the request goes to and asks nothing about it. When none is open, the page says so and nothing can be submitted.
 
-Once a desk is chosen, the top of the form says where the request goes, with **Change** to pick another. The rest of the form is the same for every desk, in three steps:
+The rest of the form is the same for every desk, in three steps. From the first step, **Back** returns to the desk question, and the last step shows which desk the request goes to:
 
 1. **The ask** — What you are asking for. One ask per request; if it is really two things, submit two.
    - **Title** — The form reminds you that everyone who can view requests sees the title, even on a desk that keeps the detail to itself
@@ -149,14 +149,14 @@ Submitting needs your account to be linked to an employee record, because every 
 
 The same filters apply to both layouts, so switching between them never changes what is in scope:
 
-- **View** — A ready-made set of filters: **All open requests**, **Needs triage** (open requests nobody is assigned to), **Assigned to me** and **Fixed dates, open** (open requests whose date something outside the company sets). Each shows how many requests it holds. Changing any filter afterwards leaves the view
+- **View** — A ready-made set of filters: **All open requests**, **Needs triage** (open requests nobody is assigned to), **Assigned to me** and **Fixed dates, open** (open requests whose date something outside the company sets). While the page shows open requests, each view shows how many it holds. Changing any filter afterwards leaves the view
 - **Desk**, **Status** and **Channel** — Pick one or more; status names are matched across desks, so *In Review* means every desk's *In Review*
-- **Assignee** — Anyone, **Assigned to me**, or **Not assigned**
+- **Assignee** — Anyone, **Assigned to me**, or **Not assigned**. **Assigned to me**, as a filter and as a view, is offered only when your account is linked to an employee record
 - **Need by** — Any date, **Fixed for us**, **We chose it**, or **No date given**
 
 The filters and the layout are kept in the page's address, so a view can be bookmarked or sent to someone. On a phone the filters fold behind a **Filters** button.
 
-**List** shows each request's number, title, status, how long it has been in that status, its need-by date with what makes it that date, its age, assignee, desk, requester and channel. Need-by dates are coloured by their basis — red for a date fixed for us, amber for a promise — and time in status and age turn amber after a week and red after three. Sorting on **Need By** puts a fixed date before a chosen one on the same day. Hovering a status shows its category.
+**List** shows each request's number, title, status, how long it has been in that status, its need-by date with what makes it that date, its age, assignee, desk, requester and channel. Need-by dates are coloured by their basis — red for a date fixed for us, amber for a promise — and time in status and age turn amber after a week and red after three. Sorting **Need By** ascending puts the earliest date first, a fixed date before a chosen one on the same day, and requests with no date last; descending reverses that. Hovering a status shows its category.
 
 **Board** shows the same requests as cards in columns, one per stage of the desk's review workflow, in the workflow's order, so a stage with nothing in it still shows. A heading names the desk the board is for. Desks that follow different workflows have no single board, so with more than one such desk in scope the page asks you to pick one. Each card shows the number, title, need-by date, requester and time in its stage, with a red edge when the date is fixed for us; opening it opens the request. Moving a request between stages is done from the request, since some moves ask for a reason. On a phone the board shows one stage at a time, chosen from a list with each stage's count.
 

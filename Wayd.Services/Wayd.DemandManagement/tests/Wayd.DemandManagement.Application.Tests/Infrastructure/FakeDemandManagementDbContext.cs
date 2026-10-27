@@ -52,6 +52,8 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
 
     public void AddChannels(params IntakeChannel[] channels) => _channels.AddRange(channels);
     public void AddDesks(params IntakeDesk[] desks) => _desks.AddRange(desks);
+    public void AddEmployees(params Employee[] employees) => _employees.AddRange(employees);
+
     /// <summary>
     /// Adds requests together with the status history they have recorded so far, as a save would persist it.
     /// </summary>
@@ -61,6 +63,7 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
         foreach (var request in requests)
             _transitions.AddRange(request.DrainStatusTransitions());
     }
+
+    /// <summary>Adds history entries directly, for requests a faker built without recording any.</summary>
     public void AddStatusTransitions(params StatusTransition[] transitions) => _transitions.AddRange(transitions);
-    public void AddEmployees(params Employee[] employees) => _employees.AddRange(employees);
 }

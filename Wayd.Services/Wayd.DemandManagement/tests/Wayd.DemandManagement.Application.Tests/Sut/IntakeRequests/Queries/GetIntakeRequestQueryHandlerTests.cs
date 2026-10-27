@@ -15,6 +15,20 @@ public sealed class GetIntakeRequestQueryHandlerTests
     private GetIntakeRequestQueryHandler CreateHandler() => new(_scenario.DbContext, _scenario.Principal.Object);
 
     [Fact]
+    public async Task Handle_ForTheDemandManagementAdminOffADesk_OffersAssigning()
+    {
+        // Arrange — the admin acts as Desk Admin on every desk, so may assign without being named on it
+        var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), _scenario.Employee());
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.CanChangeAssignee.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task Handle_ForTheDemandManagementAdminWithNoLinkedEmployee_OffersOnlyDelete()
     {
         // Arrange — the edit and participant commands need a linked employee, so the flags must not offer them;

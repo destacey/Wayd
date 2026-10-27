@@ -10,10 +10,10 @@ import {
   useGetIntakeRequestsQuery,
   useGetNeedByBasesQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
-import { Button, Segmented } from 'antd'
+import { Button, Segmented, Skeleton } from 'antd'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { FC, useEffect } from 'react'
+import { FC, Suspense, useEffect } from 'react'
 import IntakeRequestsGrid from '../_components/intake-requests-grid'
 import RequestBoardView from './_components/request-board-view'
 import RequestFilterBar from './_components/request-filter-bar'
@@ -39,7 +39,14 @@ const IntakeRequestsPage: FC = () => {
   const canSubmit = hasLinkedEmployee
   const router = useRouter()
   const pathname = usePathname()
-  const { filters, view } = fromSearchParams(useSearchParams())
+  const fromAddress = fromSearchParams(useSearchParams())
+  const view = fromAddress.view
+  // A shared "Assigned to me" link means nothing to a reader with no employee record, who is assigned
+  // nothing; read it as anyone rather than show an empty list under a filter they cannot choose.
+  const filters: RequestFilters =
+    !employeeId && fromAddress.filters.assignee === 'me'
+      ? { ...fromAddress.filters, assignee: 'anyone' }
+      : fromAddress.filters
   const navigate = (next: RequestFilters, nextView: RequestView) => {
     const query = toSearchParams(next, nextView).toString()
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
@@ -122,9 +129,16 @@ const IntakeRequestsPage: FC = () => {
   )
 }
 
+// The page reads its filters from the address, which a statically rendered route reads only under Suspense.
+const IntakeRequestsPageWithSuspense: FC = () => (
+  <Suspense fallback={<Skeleton active paragraph={{ rows: 8 }} />}>
+    <IntakeRequestsPage />
+  </Suspense>
+)
+
 // No permission gate: the server lists what the reader may see, which View widens but does not decide.
 const IntakeRequestsPageWithAuthorization = requireFeatureFlag(
-  IntakeRequestsPage,
+  IntakeRequestsPageWithSuspense,
   'demand-management',
 )
 

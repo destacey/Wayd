@@ -35,8 +35,9 @@ export interface IntakeRequestsGridProps {
 export const requestHref = (key: number) => `/demand-management/requests/${key}`
 
 /**
- * Orders by need-by date, and on the same date puts a date fixed for us before one we chose, since that is
- * the one that cannot move. Requests with no date come last.
+ * Orders by need-by date, ascending: on the same date a date fixed for us comes before one we chose, since
+ * that is the one that cannot move, and requests with no date come last. The grid reverses the whole order
+ * when sorting descending, as it does for every column's empty values.
  */
 export const compareNeedBy = (
   a: IntakeRequestSummaryDto,

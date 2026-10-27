@@ -253,24 +253,6 @@ const SubmitIntakeRequestPage: FC = () => {
             onFinish={onSubmit}
             disabled={isSaving}
           >
-            <Flex vertical gap={4} className={styles.goesTo}>
-              <Flex gap={8} align="center" wrap>
-                <Tag color="processing" className={styles.deskTag}>
-                  Goes to {deskPhrase(desk.name)}
-                </Tag>
-                {!singleDesk && (
-                  <Button
-                    type="link"
-                    size="small"
-                    onClick={() => setChosenDeskId(undefined)}
-                    disabled={isSaving}
-                  >
-                    Change
-                  </Button>
-                )}
-              </Flex>
-              <Text type="secondary">{desk.description}</Text>
-            </Flex>
             <Steps
               size="small"
               // On a phone the titles sit under the numbers, so the three steps stay one short row.
@@ -336,7 +318,16 @@ const SubmitIntakeRequestPage: FC = () => {
             )}
 
             <Flex gap={8} wrap className={styles.actions}>
-              {step > 0 && <Button onClick={() => goTo(step - 1)}>Back</Button>}
+              {/* From the first step, Back returns to the desk question when there was one. */}
+              {(step > 0 || !singleDesk) && (
+                <Button
+                  onClick={() =>
+                    step > 0 ? goTo(step - 1) : setChosenDeskId(undefined)
+                  }
+                >
+                  Back
+                </Button>
+              )}
               {isLast ? (
                 <Button type="primary" htmlType="submit" loading={isSaving}>
                   Submit request
@@ -371,10 +362,11 @@ const SubmitIntakeRequestPage: FC = () => {
     </div>
   )
 
-  return screens.md === false ? (
-    <ConfigProvider theme={TOUCH_THEME}>{page}</ConfigProvider>
-  ) : (
-    page
+  // Always rendered, with the theme switched, so crossing the breakpoint never remounts the form.
+  return (
+    <ConfigProvider theme={screens.md === false ? TOUCH_THEME : undefined}>
+      {page}
+    </ConfigProvider>
   )
 }
 

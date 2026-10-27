@@ -107,6 +107,35 @@ describe('IntakeRequestsPage', () => {
     )
   })
 
+  it('puts the board layout in the address', async () => {
+    // Arrange
+    render(<IntakeRequestsPage />)
+
+    // Act
+    await act(() => userEvent.click(screen.getByText('Board')))
+
+    // Assert
+    expect(mockReplace).toHaveBeenCalledWith(
+      '/demand-management/requests?view=board',
+      { scroll: false },
+    )
+  })
+
+  it('reads a shared Assigned to me link as anyone for a reader with no employee record', async () => {
+    // Arrange
+    mockEmployeeId = null
+    mockSearch = new URLSearchParams('assignee=me')
+    render(<IntakeRequestsPage />)
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: /Filters/ })),
+    )
+
+    // Assert
+    expect(screen.getByText('Anyone assigned or not')).toBeInTheDocument()
+  })
+
   it('includes closed requests when the address asks for everything', () => {
     // Arrange
     mockSearch = new URLSearchParams('scope=all')

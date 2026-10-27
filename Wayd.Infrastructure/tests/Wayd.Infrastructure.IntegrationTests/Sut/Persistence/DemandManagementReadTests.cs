@@ -86,11 +86,23 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
     }
 
     [Fact]
-    public async Task GetIntakeRequests_OpenOnly_TranslatesTheStatusCategoryFilter()
+    public async Task GetIntakeRequests_OpenOnly_LeavesOutAClosedRequest()
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
         var scenario = await Seed(ct);
+        await using (var arrange = _fixture.CreateContext())
+        {
+            var desk = await arrange.IntakeDesks.SingleAsync(d => d.Id == scenario.Open.Id, ct);
+            var channel = await arrange.IntakeChannels.FirstAsync(ct);
+            var closed = IntakeRequest.Create(UniqueName("Ask"), "Already decided", null, scenario.Requester.Id,
+                scenario.Requester.Id, desk, channel, null, null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
+            var declined = new StatusRef(closed.StatusWorkflowId, Guid.CreateVersion7(), "Declined", StatusCategory.Removed,
+                StatusWorkflow.NoAlias);
+            closed.ChangeStatus(declined, "Not this year", null, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            arrange.IntakeRequests.Add(closed);
+            await arrange.SaveChangesAsync(ct);
+        }
         await using var context = _fixture.CreateContext();
 
         // Act

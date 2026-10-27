@@ -123,11 +123,12 @@ const ChangeIntakeRequestAssigneeForm: FC<
     </Modal>
   )
 
-  // On a phone the dialog is tapped, so its controls are touch-sized.
-  return phone ? (
-    <ConfigProvider theme={TOUCH_THEME}>{dialog}</ConfigProvider>
-  ) : (
-    dialog
+  // On a phone the dialog is tapped, so its controls are touch-sized. Always rendered, with the theme
+  // switched, so crossing the breakpoint never remounts the dialog.
+  return (
+    <ConfigProvider theme={phone ? TOUCH_THEME : undefined}>
+      {dialog}
+    </ConfigProvider>
   )
 }
 

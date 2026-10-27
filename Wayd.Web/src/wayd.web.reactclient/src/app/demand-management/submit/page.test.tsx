@@ -135,7 +135,7 @@ describe('SubmitIntakeRequestPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('asks no desk question when one desk is open, and says where the request goes', async () => {
+  it('asks no desk question when one desk is open, and offers no way back to one', async () => {
     // Arrange
     mockDesks = [desk('d-1', 'IT', 'Laptops, access and software')]
 
@@ -143,13 +143,11 @@ describe('SubmitIntakeRequestPage', () => {
     await renderPage()
 
     // Assert
-    expect(screen.getByText('Goes to the IT desk')).toBeInTheDocument()
-    expect(screen.getByText('Laptops, access and software')).toBeInTheDocument()
     expect(
       screen.queryByText('What kind of request is this?'),
     ).not.toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Change' }),
+      screen.queryByRole('button', { name: 'Back' }),
     ).not.toBeInTheDocument()
     expect(screen.getByLabelText('Title')).toBeInTheDocument()
   })
@@ -179,12 +177,11 @@ describe('SubmitIntakeRequestPage', () => {
       userEvent.click(screen.getByText('Changes to what we sell')),
     )
 
-    // Assert — the form names the desk it goes to
+    // Assert
     expect(await screen.findByLabelText('Title')).toBeInTheDocument()
-    expect(screen.getByText('Goes to the Product desk')).toBeInTheDocument()
   })
 
-  it('goes back to the desk question when the requester changes the desk', async () => {
+  it('goes back to the desk question from the first step', async () => {
     // Arrange
     mockDesks = [
       desk('d-1', 'IT', 'Laptops, access and software'),
@@ -197,7 +194,7 @@ describe('SubmitIntakeRequestPage', () => {
 
     // Act
     await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Change' })),
+      userEvent.click(screen.getByRole('button', { name: 'Back' })),
     )
 
     // Assert

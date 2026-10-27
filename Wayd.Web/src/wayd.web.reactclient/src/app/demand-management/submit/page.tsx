@@ -250,7 +250,8 @@ const SubmitIntakeRequestPage: FC = () => {
             layout="vertical"
             name="submit-intake-request-form"
             initialValues={{ requesterId: employeeId ?? undefined }}
-            onFinish={onSubmit}
+            // Only the last step submits: a submit from earlier (Enter in a field) moves on instead.
+            onFinish={(values) => (isLast ? onSubmit(values) : goTo(step + 1))}
             disabled={isSaving}
           >
             <Steps
@@ -326,12 +327,23 @@ const SubmitIntakeRequestPage: FC = () => {
                   Back
                 </Button>
               )}
+              {/* Keyed apart so Continue is never reused as the submit button: reusing it would let
+                  the click that reaches the last step submit the form as it lands. */}
               {isLast ? (
-                <Button type="primary" htmlType="submit" loading={isSaving}>
+                <Button
+                  key="submit"
+                  type="primary"
+                  htmlType="submit"
+                  loading={isSaving}
+                >
                   Submit request
                 </Button>
               ) : (
-                <Button type="primary" onClick={() => goTo(step + 1)}>
+                <Button
+                  key="continue"
+                  type="primary"
+                  onClick={() => goTo(step + 1)}
+                >
                   Continue
                 </Button>
               )}

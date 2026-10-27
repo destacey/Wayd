@@ -1,6 +1,6 @@
 'use client'
 
-import { Tag } from 'antd'
+import styles from './request-age.module.css'
 import { FC } from 'react'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -28,31 +28,35 @@ export const daysSince = (
 export const formatDays = (days: number): string =>
   days < 1 ? '<1d' : `${days}d`
 
-/** A day count's colour: none while young, warning once old, error once stale. */
-export const ageColor = (days: number): string | undefined =>
+/** How a day count is coloured: plain while young, warning once old, danger once stale. */
+export const ageTone = (days: number): 'warning' | 'danger' | undefined =>
   days >= STALE_AFTER_DAYS
-    ? 'error'
+    ? 'danger'
     : days >= OLD_AFTER_DAYS
       ? 'warning'
       : undefined
 
-export interface AgeTagProps {
+export interface WaitTimeProps {
   /** The instant the wait started: when the request arrived, or when it entered its status. */
   since: Date | string
   /** What the wait is, for the tooltip: "Submitted", "In this status". */
   label: string
 }
 
-/** How long something has waited, coloured once the wait is long. */
-export const AgeTag: FC<AgeTagProps> = ({ since, label }) => {
+/**
+ * How long something has waited, as plain text coloured only once the wait is long, so a column of them
+ * stays quiet and the long waits stand out. A bare span rather than Typography.Text, which sets its own
+ * font size and would outsize the grid's cells.
+ */
+export const WaitTime: FC<WaitTimeProps> = ({ since, label }) => {
   const days = daysSince(since)
+  const tone = ageTone(days)
   return (
-    <Tag
-      color={ageColor(days)}
+    <span
+      className={tone ? styles[tone] : undefined}
       title={`${label} ${new Date(since).toLocaleDateString()}`}
-      variant="filled"
     >
       {formatDays(days)}
-    </Tag>
+    </span>
   )
 }

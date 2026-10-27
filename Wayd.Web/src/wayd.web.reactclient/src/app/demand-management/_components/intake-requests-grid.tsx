@@ -17,7 +17,7 @@ import { Tooltip } from 'antd'
 import Link from 'next/link'
 import { FC, ReactNode } from 'react'
 import { NeedByTag } from './need-by'
-import { AgeTag, daysSince } from './request-age'
+import { WaitTime, daysSince } from './request-age'
 
 export interface IntakeRequestsGridProps {
   requests: IntakeRequestSummaryDto[] | undefined
@@ -116,7 +116,7 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       header: 'In Status',
       size: 100,
       cell: ({ row }) => (
-        <AgeTag
+        <WaitTime
           since={row.original.statusChangedOn}
           label="In this status since"
         />
@@ -143,7 +143,7 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       header: 'Age',
       size: 90,
       cell: ({ row }) => (
-        <AgeTag since={row.original.submittedOn} label="Submitted" />
+        <WaitTime since={row.original.submittedOn} label="Submitted" />
       ),
       meta: { exportFormatter: (value: unknown) => `${value}` },
     },

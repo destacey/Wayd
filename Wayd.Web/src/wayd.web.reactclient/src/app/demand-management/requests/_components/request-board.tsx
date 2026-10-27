@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { FC, useState } from 'react'
 import { requestHref } from '../../_components/intake-requests-grid'
 import { NeedByTag } from '../../_components/need-by'
-import { AgeTag } from '../../_components/request-age'
+import { WaitTime } from '../../_components/request-age'
 import { TOUCH_THEME } from '../../_components/touch-theme'
 import styles from './request-board.module.css'
 import { RequestScope } from './request-filters'
@@ -64,7 +64,10 @@ const RequestCard: FC<{ request: IntakeRequestSummaryDto }> = ({ request }) => {
         <Text type="secondary" ellipsis>
           {request.requester.name}
         </Text>
-        <AgeTag since={request.statusChangedOn} label="In this status since" />
+        <WaitTime
+          since={request.statusChangedOn}
+          label="In this status since"
+        />
       </span>
     </Link>
   )

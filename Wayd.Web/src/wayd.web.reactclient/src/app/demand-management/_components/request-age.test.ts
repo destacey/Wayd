@@ -1,4 +1,4 @@
-import { ageColor, daysSince, formatDays } from './request-age'
+import { ageTone, daysSince, formatDays } from './request-age'
 
 describe('daysSince', () => {
   it('counts whole days and never goes below zero', () => {
@@ -40,17 +40,17 @@ describe('formatDays', () => {
   })
 })
 
-describe('ageColor', () => {
+describe('ageTone', () => {
   it.each([
     [6, undefined],
     [7, 'warning'],
     [20, 'warning'],
-    [21, 'error'],
+    [21, 'danger'],
   ])('colours %i days as %s', (days, expected) => {
     // Act
-    const color = ageColor(days)
+    const tone = ageTone(days)
 
     // Assert
-    expect(color).toBe(expected)
+    expect(tone).toBe(expected)
   })
 })

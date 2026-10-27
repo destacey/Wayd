@@ -30,6 +30,7 @@ namespace Wayd.DemandManagement.Domain.Models;
 public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
 {
     private readonly List<IntakeRequestParticipant> _participants = [];
+    private readonly List<IntakeRequestTagAssignment> _tags = [];
 
     private IntakeRequest() { }
 
@@ -144,6 +145,12 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// The people given access to the request beyond its requester and submitter. Substance tier.
     /// </summary>
     public IReadOnlyCollection<IntakeRequestParticipant> Participants => _participants.AsReadOnly();
+
+    /// <summary>
+    /// The reviewers' filing of the request, across every tag axis. Summary tier: a filing aid nobody can
+    /// slice by finds nothing, so it is shown wherever the title is.
+    /// </summary>
+    public IReadOnlyCollection<IntakeRequestTagAssignment> Tags => _tags.AsReadOnly();
 
     /// <summary>
     /// Why the request is in its current status, as the requester reads it: the desk's reason for declining,
@@ -614,6 +621,69 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
+    /// Files the request under a tag. Needs <see cref="Tags"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// Needs an agent on the request's desk, which the caller checks: tagging is the reviewers' call, and the
+    /// request's own people see tags without changing them. On an axis that takes one tag, this replaces the
+    /// tag the request held there. Allowed whatever the request's status, because filing a closed request is
+    /// still filing.
+    /// </remarks>
+    /// <param name="category">The tag's axis, loaded by the caller; its <see cref="IntakeRequestTagCategory.AllowsMany"/> decides whether this replaces or adds.</param>
+    public Result Tag(IntakeRequestTag tag, IntakeRequestTagCategory category, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(tag);
+        Guard.Against.Null(category);
+        if (tag.CategoryId != category.Id)
+            throw new ArgumentException("The tag must belong to the supplied axis.", nameof(category));
+
+        if (!tag.IsActive || !category.IsActive)
+            return Result.Failure(InactiveTagError);
+
+        if (_tags.Any(t => t.TagId == tag.Id))
+            return Result.Success();
+
+        Guid[] removed = [];
+        if (!category.AllowsMany)
+        {
+            removed = [.. _tags.Where(t => t.CategoryId == category.Id).Select(t => t.TagId)];
+            _tags.RemoveAll(t => t.CategoryId == category.Id);
+        }
+
+        _tags.Add(new IntakeRequestTagAssignment(Id, tag.Id, category.Id));
+
+        Guid[] added = [tag.Id];
+        var tagIds = TagIds();
+        RaiseWhenKeyed(() => new IntakeRequestTagsChangedEvent(Id, Key, added, removed, tagIds, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// The failure for applying a tag, or a tag on an axis, that has been deactivated.
+    /// </summary>
+    public const string InactiveTagError = "An inactive tag cannot be applied.";
+
+    /// <summary>
+    /// Takes a tag off the request, inactive ones included. Succeeds whether or not the request carried it.
+    /// Needs <see cref="Tags"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// Needs an agent on the request's desk, which the caller checks.
+    /// </remarks>
+    public Result Untag(Guid tagId, EventActor actor, Instant timestamp)
+    {
+        if (_tags.RemoveAll(t => t.TagId == tagId) == 0)
+            return Result.Success();
+
+        Guid[] removed = [tagId];
+        var tagIds = TagIds();
+        RaiseWhenKeyed(() => new IntakeRequestTagsChangedEvent(Id, Key, [], removed, tagIds, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Records that the request is being deleted, or refuses when it has moved through review. Removing it
     /// is the caller's.
     /// </summary>
@@ -778,6 +848,8 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     }
 
     private Guid[] ParticipantIds() => [.. _participants.Select(p => p.EmployeeId)];
+
+    private Guid[] TagIds() => [.. _tags.Select(t => t.TagId)];
 
     /// <summary>
     /// Raises the event now, or once the save assigns <see cref="Key"/> when the request is not yet persisted,

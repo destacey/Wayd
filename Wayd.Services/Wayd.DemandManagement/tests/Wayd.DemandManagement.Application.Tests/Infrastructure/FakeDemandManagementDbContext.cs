@@ -18,12 +18,14 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
     private readonly List<IntakeChannel> _channels = [];
     private readonly List<IntakeDesk> _desks = [];
     private readonly List<IntakeRequest> _requests = [];
+    private readonly List<IntakeRequestTagCategory> _tagCategories = [];
     private readonly List<Employee> _employees = [];
     private readonly List<StatusTransition> _transitions = [];
 
     public DbSet<IntakeChannel> IntakeChannels => _channels.AsDbSet();
     public DbSet<IntakeDesk> IntakeDesks => _desks.AsDbSet();
     public DbSet<IntakeRequest> IntakeRequests => _requests.AsDbSet();
+    public DbSet<IntakeRequestTagCategory> IntakeRequestTagCategories => _tagCategories.AsDbSet();
     public IQueryable<Employee> Employees => _employees.AsDbSet();
     public IQueryable<StatusTransition> IntakeRequestStatusTransitions => _transitions.AsDbSet();
 
@@ -53,6 +55,7 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
     public void AddChannels(params IntakeChannel[] channels) => _channels.AddRange(channels);
     public void AddDesks(params IntakeDesk[] desks) => _desks.AddRange(desks);
     public void AddEmployees(params Employee[] employees) => _employees.AddRange(employees);
+    public void AddTagCategories(params IntakeRequestTagCategory[] categories) => _tagCategories.AddRange(categories);
 
     /// <summary>
     /// Adds requests together with the status history they have recorded so far, as a save would persist it.

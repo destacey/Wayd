@@ -84,6 +84,7 @@ public partial class EventCoverageTests
         typeof(IntakeChannel),
         typeof(IntakeDesk),
         typeof(IntakeRequest),
+        typeof(IntakeRequestTagCategory),
 
         // Organization
         typeof(EmployeeCapacity),

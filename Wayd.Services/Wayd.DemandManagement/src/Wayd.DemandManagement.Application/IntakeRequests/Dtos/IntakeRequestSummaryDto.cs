@@ -2,6 +2,7 @@ using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.DemandManagement.Application.IntakeChannels.Dtos;
+using Wayd.DemandManagement.Application.IntakeRequestTagCategories.Dtos;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 
@@ -43,6 +44,12 @@ public sealed record IntakeRequestSummaryDto
 
     /// <summary>When the request has to land and why, when it has a need-by date.</summary>
     public IntakeRequestNeedByDto? NeedBy { get; init; }
+
+    /// <summary>
+    /// The tags reviewers filed the request under, by axis order and then name. Inactive tags the request still
+    /// carries are included.
+    /// </summary>
+    public IReadOnlyList<IntakeRequestTagNavigationDto> Tags { get; init; } = [];
 
     /// <summary>When the request was submitted, from which its age is read.</summary>
     public Instant SubmittedOn { get; init; }

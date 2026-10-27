@@ -227,6 +227,82 @@ public class IntakeRequestConfiguration : IEntityTypeConfiguration<IntakeRequest
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(r => r.Participants).HasField("_participants").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(r => r.Tags)
+            .WithOne()
+            .HasForeignKey(a => a.RequestId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(r => r.Tags).HasField("_tags").UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class IntakeRequestTagCategoryConfiguration : IEntityTypeConfiguration<IntakeRequestTagCategory>
+{
+    public void Configure(EntityTypeBuilder<IntakeRequestTagCategory> builder)
+    {
+        builder.ToTable("IntakeRequestTagCategories", SchemaNames.DemandManagement);
+
+        builder.HasKey(c => c.Id);
+        builder.HasIndex(c => c.Name).IsUnique();
+
+        builder.Property(c => c.Id).ValueGeneratedNever();
+        builder.Property(c => c.Name).IsRequired().HasMaxLength(64);
+        builder.Property(c => c.Description).HasMaxLength(512);
+        builder.Property(c => c.AllowsMany).IsRequired();
+        builder.Property(c => c.Order).IsRequired();
+        builder.Property(c => c.IsSystem).IsRequired();
+        builder.Property(c => c.IsActive).IsRequired();
+
+        builder.HasMany(c => c.Tags)
+            .WithOne()
+            .HasForeignKey(t => t.CategoryId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(c => c.Tags).HasField("_tags").UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class IntakeRequestTagConfiguration : IEntityTypeConfiguration<IntakeRequestTag>
+{
+    public void Configure(EntityTypeBuilder<IntakeRequestTag> builder)
+    {
+        builder.ToTable("IntakeRequestTags", SchemaNames.DemandManagement);
+
+        builder.HasKey(t => t.Id);
+        builder.HasIndex(t => new { t.CategoryId, t.Name }).IsUnique();
+
+        builder.Property(t => t.Id).ValueGeneratedNever();
+        builder.Property(t => t.Name).IsRequired().HasMaxLength(64);
+        builder.Property(t => t.Description).HasMaxLength(512);
+        builder.Property(t => t.IsActive).IsRequired();
+    }
+}
+
+public class IntakeRequestTagAssignmentConfiguration : IEntityTypeConfiguration<IntakeRequestTagAssignment>
+{
+    public void Configure(EntityTypeBuilder<IntakeRequestTagAssignment> builder)
+    {
+        builder.ToTable("IntakeRequestTagAssignments", SchemaNames.DemandManagement);
+
+        builder.HasKey(a => new { a.RequestId, a.TagId });
+
+        // "Which requests carry this tag" and "is anything tagged along this axis": the tag filter, the usage
+        // counts, and the in-use checks before a delete.
+        builder.HasIndex(a => a.TagId);
+        builder.HasIndex(a => a.CategoryId);
+
+        // Restrict, so deleting a tag or an axis a request carries fails rather than silently untagging it; the
+        // handlers refuse first.
+        builder.HasOne<IntakeRequestTag>()
+            .WithMany()
+            .HasForeignKey(a => a.TagId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<IntakeRequestTagCategory>()
+            .WithMany()
+            .HasForeignKey(a => a.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
 

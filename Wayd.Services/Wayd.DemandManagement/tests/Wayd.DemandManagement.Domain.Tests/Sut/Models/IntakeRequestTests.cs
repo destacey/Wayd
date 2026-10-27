@@ -1521,4 +1521,161 @@ public sealed class IntakeRequestTests
     }
 
     #endregion Delete with duplicates
+
+    #region Tags
+
+    [Fact]
+    public void Tag_OnAnAxisTakingMany_AddsBesideTheOthersAndRaises()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+        var area = new IntakeRequestTagCategoryFaker().WithAllowsMany(true).WithTags("Payments", "Onboarding").Generate();
+        var payments = area.Tags.Single(t => t.Name == "Payments");
+        var onboarding = area.Tags.Single(t => t.Name == "Onboarding");
+        sut.Tag(payments, area, EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.Tag(onboarding, area, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Tags.Select(t => t.TagId).Should().BeEquivalentTo([payments.Id, onboarding.Id]);
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestTagsChangedEvent>().Subject;
+        changed.Id.Should().Be(sut.Id);
+        changed.Key.Should().Be(sut.Key);
+        changed.Added.Should().Equal(onboarding.Id);
+        changed.Removed.Should().BeEmpty();
+        changed.TagIds.Should().BeEquivalentTo([payments.Id, onboarding.Id]);
+    }
+
+    [Fact]
+    public void Tag_OnAnAxisTakingOne_ReplacesTheTagItHeld()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+        var segment = new IntakeRequestTagCategoryFaker().WithAllowsMany(false).WithTags("Enterprise", "SMB").Generate();
+        var enterprise = segment.Tags.Single(t => t.Name == "Enterprise");
+        var smb = segment.Tags.Single(t => t.Name == "SMB");
+        var other = new IntakeRequestTagCategoryFaker().WithTags("Payments").Generate();
+        sut.Tag(enterprise, segment, EventActor.System, _dateTimeProvider.Now);
+        sut.Tag(other.Tags.Single(), other, EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.Tag(smb, segment, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Tags.Select(t => t.TagId).Should().BeEquivalentTo([smb.Id, other.Tags.Single().Id]);
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestTagsChangedEvent>().Subject;
+        changed.Added.Should().Equal(smb.Id);
+        changed.Removed.Should().Equal(enterprise.Id);
+    }
+
+    [Fact]
+    public void Tag_WithATagItAlreadyCarries_ChangesNothing()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+        var area = new IntakeRequestTagCategoryFaker().WithTags("Payments").Generate();
+        sut.Tag(area.Tags.Single(), area, EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.Tag(area.Tags.Single(), area, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Tags.Should().ContainSingle();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Tag_WithAnInactiveTag_Fails()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+        var area = new IntakeRequestTagCategoryFaker().WithTags("Payments").Generate();
+        area.DeactivateTag(area.Tags.Single().Id, EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var result = sut.Tag(area.Tags.Single(), area, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.InactiveTagError);
+        sut.Tags.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Tag_OnAnInactiveAxis_Fails()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+        var area = new IntakeRequestTagCategoryFaker().WithIsActive(false).WithTags("Payments").Generate();
+
+        // Act
+        var result = sut.Tag(area.Tags.Single(), area, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.InactiveTagError);
+    }
+
+    [Fact]
+    public void Tag_WithAnAxisTheTagIsNotOn_Throws()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+        var area = new IntakeRequestTagCategoryFaker().WithTags("Payments").Generate();
+        var other = new IntakeRequestTagCategoryFaker().Generate();
+
+        // Act
+        Action act = () => sut.Tag(area.Tags.Single(), other, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Untag_WhenCarried_RemovesItAndRaises()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+        var area = new IntakeRequestTagCategoryFaker().WithTags("Payments", "Onboarding").Generate();
+        var payments = area.Tags.Single(t => t.Name == "Payments");
+        var onboarding = area.Tags.Single(t => t.Name == "Onboarding");
+        sut.Tag(payments, area, EventActor.System, _dateTimeProvider.Now);
+        sut.Tag(onboarding, area, EventActor.System, _dateTimeProvider.Now);
+        area.DeactivateTag(payments.Id, EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.Untag(payments.Id, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Tags.Select(t => t.TagId).Should().Equal(onboarding.Id);
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestTagsChangedEvent>().Subject;
+        changed.Added.Should().BeEmpty();
+        changed.Removed.Should().Equal(payments.Id);
+        changed.TagIds.Should().Equal(onboarding.Id);
+    }
+
+    [Fact]
+    public void Untag_WhenNotCarried_ChangesNothing()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+
+        // Act
+        var result = sut.Untag(Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    #endregion Tags
 }

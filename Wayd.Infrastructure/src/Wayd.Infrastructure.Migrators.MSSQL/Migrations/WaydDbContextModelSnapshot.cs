@@ -2020,6 +2020,116 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("IntakeRequestParticipants", "DemandManagement");
                 });
 
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestTag", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("IntakeRequestTags", "DemandManagement");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestTagAssignment", b =>
+                {
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TagId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("RequestId", "TagId");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("TagId");
+
+                    b.ToTable("IntakeRequestTagAssignments", "DemandManagement");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestTagCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("AllowsMany")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("IntakeRequestTagCategories", "DemandManagement");
+                });
+
             modelBuilder.Entity("Wayd.Infrastructure.Auditing.Trail", b =>
                 {
                     b.Property<long>("Id")
@@ -8753,6 +8863,36 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestTag", b =>
+                {
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeRequestTagCategory", null)
+                        .WithMany("Tags")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestTagAssignment", b =>
+                {
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeRequestTagCategory", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeRequest", null)
+                        .WithMany("Tags")
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeRequestTag", null)
+                        .WithMany()
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Wayd.Infrastructure.Identity.ApplicationRoleClaim", b =>
                 {
                     b.HasOne("Wayd.Infrastructure.Identity.ApplicationRole", null)
@@ -10524,6 +10664,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequest", b =>
                 {
                     b.Navigation("Participants");
+
+                    b.Navigation("Tags");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestTagCategory", b =>
+                {
+                    b.Navigation("Tags");
                 });
 
             modelBuilder.Entity("Wayd.Infrastructure.Identity.ApplicationRole", b =>

@@ -28,8 +28,11 @@ public interface IDemandManagementDbContext
     /// <summary>The review responsibilities requests are submitted to, with their members.</summary>
     DbSet<IntakeDesk> IntakeDesks { get; }
 
-    /// <summary>The asks themselves, with their participants.</summary>
+    /// <summary>The asks themselves, with their participants and tags.</summary>
     DbSet<IntakeRequest> IntakeRequests { get; }
+
+    /// <summary>The axes reviewers file requests along, with their tags.</summary>
+    DbSet<IntakeRequestTagCategory> IntakeRequestTagCategories { get; }
 
     /// <summary>
     /// The shared employee table, read-only: requesters, submitters, desk members and participants are employees.

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using FluentAssertions;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
@@ -11,11 +12,17 @@ namespace Wayd.DemandManagement.Domain.Tests.Sut.Events;
 /// </summary>
 public sealed class IntakeRequestEventTierTests
 {
+    /// <summary>
+    /// Events about a request, by the aggregate they declare. Tag axis events share the name prefix but are about
+    /// the axis, which has no read tiers. An event that declares no aggregate is kept, so it cannot slip past.
+    /// </summary>
     public static TheoryData<string> IntakeRequestEventNames => [.. typeof(IDemandManagementEvent).Assembly
         .GetTypes()
         .Where(t => t is { IsClass: true, IsAbstract: false }
             && typeof(DomainEvent).IsAssignableFrom(t)
-            && t.Name.StartsWith("IntakeRequest"))
+            && t.Name.StartsWith("IntakeRequest")
+            && (!typeof(IAggregateEvent).IsAssignableFrom(t)
+                || ((IAggregateEvent)RuntimeHelpers.GetUninitializedObject(t)).AggregateType == "IntakeRequest"))
         .Select(t => t.Name)];
 
     [Theory]

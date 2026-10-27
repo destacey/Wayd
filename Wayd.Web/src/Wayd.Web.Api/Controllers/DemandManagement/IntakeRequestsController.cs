@@ -10,6 +10,7 @@ using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.IntakeRequests.Commands;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
+using Wayd.DemandManagement.Application.IntakeRequestTagCategories;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.DemandManagement.IntakeRequests;
 
@@ -223,6 +224,26 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult> RemoveParticipant(Guid id, Guid employeeId, CancellationToken cancellationToken) =>
         NoContentOrError(await _dispatcher.Send(new RemoveIntakeRequestParticipantCommand(id, employeeId), cancellationToken));
 
+    [HttpPut("{id}/tags/{tagId}")]
+    [Authorize]
+    [EndpointSummary("File an intake request under a tag.")]
+    [EndpointDescription("Needs an agent on the request's desk. The tag must be active, on an active axis. On an axis that takes one tag, this replaces the tag the request held there. Applying a tag the request already carries changes nothing.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> Tag(Guid id, Guid tagId, CancellationToken cancellationToken) =>
+        NoContentOrError(await _dispatcher.Send(new TagIntakeRequestCommand(id, tagId), cancellationToken));
+
+    [HttpDelete("{id}/tags/{tagId}")]
+    [Authorize]
+    [EndpointSummary("Take a tag off an intake request.")]
+    [EndpointDescription("Needs an agent on the request's desk. Works for an inactive tag too. Removing a tag the request does not carry changes nothing.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> Untag(Guid id, Guid tagId, CancellationToken cancellationToken) =>
+        NoContentOrError(await _dispatcher.Send(new UntagIntakeRequestCommand(id, tagId), cancellationToken));
+
     [HttpDelete("{id}")]
     [Authorize]
     [EndpointSummary("Delete an intake request.")]
@@ -257,6 +278,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
         result.IsSuccess
             ? NoContent()
             : result.Error is IntakeRequestAuthorization.NotFoundError or IntakeDeskAccess.NotFoundError
+                or IntakeRequestTagCategoryErrors.TagNotFoundError
                 ? NotFound()
                 : BadRequest(result.ToBadRequestObject(HttpContext));
 }

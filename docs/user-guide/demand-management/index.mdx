@@ -123,17 +123,21 @@ A *fixed* date moves only if the world moves. A *chosen* date has an owner, so i
 
 ### Submitting a request
 
-The first question is where the request goes, and it is asked only when more than one desk is taking requests. Each desk is offered by its own description of what kind of ask it takes, with its name and its members beneath. When only one desk is open, the form shows which desk the request goes to and asks nothing about it. When none is open, the page says so and nothing can be submitted.
+The first question is where the request goes, and it is asked only when more than one desk is taking requests: **What kind of request is this?** Each desk is a card worded as the kind of ask it takes, saying which desk reviews it and who works there. Picking one only decides who looks at it first; a reviewer can move it if it belongs somewhere else. When only one desk is open, the form shows which desk the request goes to and asks nothing about it. When none is open, the page says so and nothing can be submitted.
 
-The rest of the form is the same for every desk:
+Once a desk is chosen, the top of the form says where the request goes, with **Change** to pick another. The rest of the form is the same for every desk, in three steps:
 
-- **Who is this request for?** — You, unless you are submitting it on someone else's behalf. Either way, both of you can follow it
-- **Title** — The form reminds you that everyone who can view requests sees the title, even on a desk that keeps the detail to itself
-- **Description** and **Expected benefits** — The ask in full, and what gets better if it is delivered
-- **Where did this come from?** — The [channel](#channels)
-- **Need by** — Optional. Once you give a date, the form asks what makes it that date, with the bases grouped as *Fixed for us* and *We chose it*. Choosing a basis asks only what that basis needs: what the date rests on, and for a commitment, who made it and when. A preview shows the date as the desk will see it. Clearing the date clears the rest
+1. **The ask** — What you are asking for. One ask per request; if it is really two things, submit two.
+   - **Title** — The form reminds you that everyone who can view requests sees the title, even on a desk that keeps the detail to itself
+   - **Describe it in your own words** — The ask in full
+   - **Where did this come from?** — The [channel](#channels)
+   - **Requested by** — You, unless you are submitting it on someone else's behalf. Either way, both of you can follow it
+2. **Why and when** — What reviewers weigh it on when capacity is short.
+   - **What is it worth?** — Optional. What gets better, and for whom, if it is delivered
+   - **Does it have to land by a date?** — Optional; **No particular date** clears it. Once you give a date, the form asks **What makes it that date?**, with the choices in two groups: *Fixed for us*, where something outside the company sets it (a regulation or standard, a contract, an event outside us), and *We chose it*, where a person here set it (a promise to someone, or when the requester would like it). Each choice asks the one follow-up it needs, such as which contract and clause, and for a promise, who made it and when. **Reviewers will see** previews the date as the desk will read it, and how it will be treated: a fixed date as immovable, a promise as movable by talking to whoever made it
+3. **Check and submit** — The request as it will be sent. **Submit request** sends it and opens it.
 
-Submitting opens the new request.
+**Continue** checks the step you are leaving; **Back** and the step names take you back without losing anything. Beside the form, **What happens next** describes the usual path from submission to a decision, and **Why we ask about the date** explains the question.
 
 :::note
 Submitting needs your account to be linked to an employee record, because every request names employees as its requester and submitter. If yours is not linked, the page says so; ask an administrator to link it.
@@ -141,9 +145,22 @@ Submitting needs your account to be linked to an employee record, because every 
 
 ### Finding requests
 
-**Requests** lists every request you can see, across desks, with its number, title, status, desk, requester, channel and need-by date and basis. Hovering a status shows its category. Search and filter it to check whether someone has already asked for the same thing before you submit. Requests on a private desk you are not part of never appear, so the list and its count cover only what you can see.
+**Requests** is where reviewers work from, and where anyone checks whether an ask already exists before raising it. It opens on the requests still open — those in a proposed or active status, whatever their desk calls it; **Everything** adds the closed ones. Requests on a private desk you are not part of never appear, so every list, count and total on the page covers only what you can see.
 
-**My Requests** shows the same columns, limited to requests you asked for or submitted.
+The same filters apply to both layouts, so switching between them never changes what is in scope:
+
+- **View** — A ready-made set of filters: **All open requests**, **Needs triage** (open requests nobody is assigned to), **Assigned to me** and **Fixed dates, open** (open requests whose date something outside the company sets). Each shows how many requests it holds. Changing any filter afterwards leaves the view
+- **Desk**, **Status** and **Channel** — Pick one or more; status names are matched across desks, so *In Review* means every desk's *In Review*
+- **Assignee** — Anyone, **Assigned to me**, or **Not assigned**
+- **Need by** — Any date, **Fixed for us**, **We chose it**, or **No date given**
+
+The filters and the layout are kept in the page's address, so a view can be bookmarked or sent to someone. On a phone the filters fold behind a **Filters** button.
+
+**List** shows each request's number, title, status, how long it has been in that status, its need-by date with what makes it that date, its age, assignee, desk, requester and channel. Need-by dates are coloured by their basis — red for a date fixed for us, amber for a promise — and time in status and age turn amber after a week and red after three. Sorting on **Need By** puts a fixed date before a chosen one on the same day. Hovering a status shows its category.
+
+**Board** shows the same requests as cards in columns, one per stage of the desk's review workflow, in the workflow's order, so a stage with nothing in it still shows. A heading names the desk the board is for. Desks that follow different workflows have no single board, so with more than one such desk in scope the page asks you to pick one. Each card shows the number, title, need-by date, requester and time in its stage, with a red edge when the date is fixed for us; opening it opens the request. Moving a request between stages is done from the request, since some moves ask for a reason. On a phone the board shows one stage at a time, chosen from a list with each stage's count.
+
+**My Requests** shows the list's columns, limited to requests you asked for or submitted.
 
 ### The request page
 
@@ -155,6 +172,8 @@ Opening a request shows its number and title. The panel opened from the header l
 - **Activity** — The request's history, limited to what you can read
 
 **Edit** appears in the actions menu when you can change the request: the requester while it is proposed, or an agent on its desk while it is open. The desk cannot be changed here.
+
+**Change Assignee** appears for an agent on the request's desk. The assignee owns the next move on the request; assigning someone does not make them its approver. Anyone who works the desk can be assigned, **Assign to me** fills in yourself when you work it, and clearing the field unassigns the request.
 
 ### Changing a request's status
 

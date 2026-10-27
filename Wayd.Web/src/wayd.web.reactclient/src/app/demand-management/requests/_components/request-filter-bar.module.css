@@ -1,0 +1,13 @@
+.bar {
+  margin-bottom: 12px;
+}
+
+.control {
+  min-width: 180px;
+  flex: 0 1 220px;
+}
+
+/* In the phone drawer each control takes the full width. */
+.stackedControl {
+  width: 100%;
+}

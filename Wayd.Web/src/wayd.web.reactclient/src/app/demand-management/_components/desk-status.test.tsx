@@ -1,6 +1,20 @@
 import { render, screen } from '@testing-library/react'
 import { IntakeDeskDto } from '@/src/services/wayd-api'
-import { UnownedDeskAlert, describeWaiting } from './desk-status'
+import { UnownedDeskAlert, describeWaiting, deskPhrase } from './desk-status'
+
+describe('deskPhrase', () => {
+  it.each([
+    ['IT', 'the IT desk'],
+    ['Product delivery desk', 'the Product delivery desk'],
+    ['Security Desk', 'the Security Desk'],
+  ])('names %s as %s', (name, expected) => {
+    // Act
+    const phrase = deskPhrase(name)
+
+    // Assert
+    expect(phrase).toBe(expected)
+  })
+})
 
 const desk = (overrides: Partial<IntakeDeskDto> = {}) =>
   ({

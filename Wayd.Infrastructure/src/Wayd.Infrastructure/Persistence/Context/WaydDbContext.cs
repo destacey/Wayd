@@ -32,6 +32,7 @@ using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using Wayd.ProductManagement.Application;
 using Wayd.StrategicManagement.Application;
 using Wayd.DemandManagement.Application;
+using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.StrategicManagement.Domain.Models;
 using Wayd.Work.Application.Persistence;
@@ -196,6 +197,9 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<IntakeRequest> IntakeRequests => Set<IntakeRequest>();
 
     IQueryable<Employee> IDemandManagementDbContext.Employees => Employees.AsNoTracking();
+
+    IQueryable<StatusTransition> IDemandManagementDbContext.IntakeRequestStatusTransitions =>
+        StatusTransitions.AsNoTracking().Where(t => t.OwnerType == DemandManagementWorkflowOwners.IntakeRequest.Key);
 
     #endregion IDemandManagementDbContext
 

@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react'
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import { notFound } from 'next/navigation'
 import IntakeRequestDetailsPage from './page'
 
@@ -119,6 +119,14 @@ jest.mock(
     useUpdateIntakeRequestMutation: () => [jest.fn()],
     useGetIntakeEmployeeOptionsQuery: () => ({ data: [] }),
     useGetIntakeChannelsQuery: () => ({ data: [] }),
+    useGetIntakeRequestStatusOptionsQuery: () => ({
+      data: [],
+      isFetching: false,
+    }),
+    useChangeIntakeRequestStatusMutation: () => [
+      jest.fn(),
+      { isLoading: false },
+    ],
   }),
 )
 
@@ -141,6 +149,7 @@ const details = (overrides: Record<string, unknown> = {}) => ({
   canReroute: false,
   canAddParticipants: false,
   canChangeStatus: false,
+  canChangeAssignee: false,
   canWithdraw: false,
   isDeskAgent: false,
   ...overrides,
@@ -209,7 +218,7 @@ describe('IntakeRequestDetailsPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('offers Change Status and Withdraw only where the server allows each', async () => {
+  it('offers Move to and Withdraw only where the server allows each', async () => {
     // Arrange
     mockRequest = details({ canChangeStatus: true })
 
@@ -218,10 +227,37 @@ describe('IntakeRequestDetailsPage', () => {
 
     // Assert
     expect(
-      await screen.findByRole('button', { name: 'Change Status' }),
+      await screen.findByRole('button', { name: /Move to/ }),
     ).toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: 'Withdraw Request' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('offers Change Assignee only when the server allows it', async () => {
+    // Arrange
+    mockRequest = details({ canChangeAssignee: true })
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(
+      await screen.findByRole('button', { name: 'Change Assignee' }),
+    ).toBeInTheDocument()
+  })
+
+  it('offers no Change Assignee when the server does not allow it', async () => {
+    // Arrange
+    mockRequest = details({ canChangeStatus: true })
+
+    // Act
+    await renderPage()
+
+    // Assert
+    await screen.findByRole('button', { name: /Move to/ })
+    expect(
+      screen.queryByRole('button', { name: 'Change Assignee' }),
     ).not.toBeInTheDocument()
   })
 
@@ -237,8 +273,22 @@ describe('IntakeRequestDetailsPage', () => {
       await screen.findByRole('button', { name: 'Withdraw Request' }),
     ).toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Change Status' }),
+      screen.queryByRole('button', { name: /Move to/ }),
     ).not.toBeInTheDocument()
+  })
+
+  it('leads back through the request’s desk, between Requests and the request', async () => {
+    // Act
+    await renderPage()
+
+    // Assert
+    const trail = (await screen.findAllByRole('navigation')).find((nav) =>
+      within(nav).queryByRole('link', { name: 'Requests' }),
+    )!
+    expect(within(trail).getByRole('link', { name: 'IT' })).toHaveAttribute(
+      'href',
+      '/demand-management/desks/1',
+    )
   })
 
   it('shows the status and the reason the requester reads', async () => {

@@ -23,7 +23,9 @@ internal static class IntakeRequestProjections
         var desks = dbContext.IntakeDesks;
         var channels = dbContext.IntakeChannels;
         var employees = dbContext.Employees;
+        var transitions = dbContext.IntakeRequestStatusTransitions;
 
+        // Every request records its initial status as its first transition, so both reads always find a row.
         return r => new IntakeRequestSummaryDto
         {
             Id = r.Id,
@@ -54,6 +56,14 @@ internal static class IntakeRequestProjections
                         .FirstOrDefault(),
                     CommittedOn = r.NeedBy.CommittedOn,
                 },
+            SubmittedOn = transitions.Where(t => t.RecordId == r.Id)
+                .OrderBy(t => t.Sequence)
+                .Select(t => t.ChangedOn)
+                .First(),
+            StatusChangedOn = transitions.Where(t => t.RecordId == r.Id)
+                .OrderByDescending(t => t.Sequence)
+                .Select(t => t.ChangedOn)
+                .First(),
         };
     }
 

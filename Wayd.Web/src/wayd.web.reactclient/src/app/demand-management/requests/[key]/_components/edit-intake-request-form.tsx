@@ -16,8 +16,8 @@ import {
 import { toApiError, toFormErrors } from '@/src/utils'
 import { Form, Modal } from 'antd'
 import { FC, useEffect } from 'react'
+import { NeedByFields } from '../../../_components/need-by-fields'
 import {
-  NeedByFields,
   NeedByFormValues,
   needByFieldFor,
   toNeedByFormValues,

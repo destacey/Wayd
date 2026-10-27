@@ -8,6 +8,8 @@ using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Models;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.DemandManagement.Application.IntakeDesks.Queries;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
@@ -54,6 +56,61 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         // Assert
         var ids = result.Select(r => r.Id).ToList();
         ids.Should().Contain([scenario.OnOpen.Id, scenario.OnSummaryOnly.Id]).And.NotContain(scenario.OnPrivate.Id);
+    }
+
+    [Fact]
+    public async Task GetIntakeRequests_ReadsArrivalAndTimeInStatusFromTheRequestsHistory()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        var movedOn = Now.Plus(Duration.FromDays(3));
+        await using (var arrange = _fixture.CreateContext())
+        {
+            var request = await arrange.IntakeRequests.SingleAsync(r => r.Id == scenario.OnOpen.Id, ct);
+            var inReview = new StatusRef(request.StatusWorkflowId, Guid.CreateVersion7(), "In Review", StatusCategory.Proposed,
+                StatusWorkflow.NoAlias);
+            request.ChangeStatus(inReview, null, null, EventActor.System, movedOn).IsSuccess.Should().BeTrue();
+            await arrange.SaveChangesAsync(ct);
+        }
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var result = await new GetIntakeRequestsQueryHandler(context, Principal(scenario.Agent.Id))
+            .Handle(new GetIntakeRequestsQuery(scenario.Open.Id), ct);
+
+        // Assert
+        var summary = result.Should().ContainSingle().Subject;
+        summary.SubmittedOn.Should().Be(Now);
+        summary.StatusChangedOn.Should().Be(movedOn);
+    }
+
+    [Fact]
+    public async Task GetIntakeRequests_OpenOnly_LeavesOutAClosedRequest()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        await using (var arrange = _fixture.CreateContext())
+        {
+            var desk = await arrange.IntakeDesks.SingleAsync(d => d.Id == scenario.Open.Id, ct);
+            var channel = await arrange.IntakeChannels.FirstAsync(ct);
+            var closed = IntakeRequest.Create(UniqueName("Ask"), "Already decided", null, scenario.Requester.Id,
+                scenario.Requester.Id, desk, channel, null, null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
+            var declined = new StatusRef(closed.StatusWorkflowId, Guid.CreateVersion7(), "Declined", StatusCategory.Removed,
+                StatusWorkflow.NoAlias);
+            closed.ChangeStatus(declined, "Not this year", null, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            arrange.IntakeRequests.Add(closed);
+            await arrange.SaveChangesAsync(ct);
+        }
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var result = await new GetIntakeRequestsQueryHandler(context, Principal(scenario.Agent.Id))
+            .Handle(new GetIntakeRequestsQuery(scenario.Open.Id, OpenOnly: true), ct);
+
+        // Assert
+        result.Select(r => r.Id).Should().Equal(scenario.OnOpen.Id);
     }
 
     [Fact]

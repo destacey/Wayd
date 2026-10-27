@@ -1,4 +1,5 @@
 import { act, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { Form, FormInstance } from 'antd'
 import dayjs from 'dayjs'
 import {
@@ -8,7 +9,7 @@ import {
   NeedByBasisFamilyDto,
 } from '@/src/services/wayd-api'
 import { useEffect } from 'react'
-import { NeedByFields } from './need-by'
+import { NeedByFields } from './need-by-fields'
 
 // jest.setup stubs dayjs down to formatting; the date pickers need the real module.
 jest.unmock('dayjs')
@@ -59,34 +60,40 @@ describe('NeedByFields', () => {
     render(<Harness />)
 
     // Assert
-    expect(screen.getByText('Need by')).toBeInTheDocument()
+    expect(
+      screen.getByText('Does it have to land by a date?'),
+    ).toBeInTheDocument()
     expect(
       screen.queryByText('What makes it that date?'),
     ).not.toBeInTheDocument()
   })
 
-  it('asks what makes it that date once there is a date, and the follow-up once a basis is chosen', async () => {
-    // Arrange
+  it('asks what makes the date in two groups, fixed for us and we chose it', () => {
+    // Arrange / Act
     render(<Harness initial={{ needBy: { date: dayjs('2026-12-31') } }} />)
+
+    // Assert
     expect(screen.getByText('What makes it that date?')).toBeInTheDocument()
     expect(
-      screen.queryByText('What does the date rest on?'),
-    ).not.toBeInTheDocument()
-
-    // Act
-    await act(async () =>
-      formRef.current!.setFieldValue(
-        ['needBy', 'basis'],
-        NeedByBasis.Contractual,
-      ),
-    )
-
-    // Assert — the basis's own description says what to give, and no commitment is asked for
-    expect(
-      await screen.findByText('What does the date rest on?'),
+      screen.getByText('Fixed for us — something outside this company sets it'),
     ).toBeInTheDocument()
     expect(
-      screen.getByText('A contract clause sets the date.'),
+      screen.getByText('We chose it — a person here set the date'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('A contract names it')).toBeInTheDocument()
+    expect(screen.getByText('We promised it to someone')).toBeInTheDocument()
+  })
+
+  it('asks the one follow-up the chosen basis needs, and no commitment for a contract', async () => {
+    // Arrange
+    render(<Harness initial={{ needBy: { date: dayjs('2026-12-31') } }} />)
+
+    // Act
+    await act(() => userEvent.click(screen.getByText('A contract names it')))
+
+    // Assert
+    expect(
+      await screen.findByText('Which contract and clause?'),
     ).toBeInTheDocument()
     expect(
       screen.queryByText('Who made the commitment?'),
@@ -112,8 +119,8 @@ describe('NeedByFields', () => {
     expect(screen.getByText('When was it made?')).toBeInTheDocument()
   })
 
-  it('previews what reviewers will see, with the family named from the lookup', async () => {
-    // Arrange
+  it('previews what reviewers will see, and how the date will be treated', async () => {
+    // Arrange / Act
     render(
       <Harness
         initial={{
@@ -128,7 +135,67 @@ describe('NeedByFields', () => {
 
     // Assert
     expect(await screen.findByText('Reviewers will see')).toBeInTheDocument()
-    expect(screen.getByText('Dec 31, 2026')).toBeInTheDocument()
-    expect(screen.getByText('Fixed for us')).toBeInTheDocument()
+    expect(
+      screen.getByText('By Dec 31, 2026 · a contract names it'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('treated as immovable')).toBeInTheDocument()
+  })
+
+  it('clears the date and everything resting on it for No particular date', async () => {
+    // Arrange
+    render(
+      <Harness
+        initial={{
+          needBy: {
+            date: dayjs('2026-12-31'),
+            basis: NeedByBasis.Contractual,
+            reference: 'MSA clause 12',
+          },
+        }}
+      />,
+    )
+
+    // Act
+    await act(() =>
+      userEvent.click(
+        screen.getByRole('button', { name: 'No particular date' }),
+      ),
+    )
+
+    // Assert
+    expect(formRef.current!.getFieldValue('needBy')).toEqual({})
+    expect(
+      screen.queryByText('What makes it that date?'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('drops the last answer when the basis changes, since each asks its own question', async () => {
+    // Arrange
+    render(
+      <Harness
+        initial={{
+          needBy: {
+            date: dayjs('2026-12-31'),
+            basis: NeedByBasis.Commitment,
+            reference: 'Northwind Group',
+            committedById: 'e-1',
+          },
+        }}
+      />,
+    )
+
+    // Act
+    await act(() => userEvent.click(screen.getByText('A contract names it')))
+
+    // Assert
+    expect(formRef.current!.getFieldValue(['needBy', 'basis'])).toBe(
+      NeedByBasis.Contractual,
+    )
+    expect(
+      formRef.current!.getFieldValue(['needBy', 'reference']),
+    ).toBeUndefined()
+    expect(
+      formRef.current!.getFieldValue(['needBy', 'committedById']),
+    ).toBeUndefined()
   })
 })

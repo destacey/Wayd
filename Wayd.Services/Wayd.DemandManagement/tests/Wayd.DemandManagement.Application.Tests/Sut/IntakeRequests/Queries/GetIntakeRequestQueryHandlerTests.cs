@@ -15,6 +15,20 @@ public sealed class GetIntakeRequestQueryHandlerTests
     private GetIntakeRequestQueryHandler CreateHandler() => new(_scenario.DbContext, _scenario.Principal.Object);
 
     [Fact]
+    public async Task Handle_ForTheDemandManagementAdminOffADesk_OffersAssigning()
+    {
+        // Arrange — the admin acts as Desk Admin on every desk, so may assign without being named on it
+        var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), _scenario.Employee());
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.CanChangeAssignee.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task Handle_ForTheDemandManagementAdminWithNoLinkedEmployee_OffersOnlyDelete()
     {
         // Arrange — the edit and participant commands need a linked employee, so the flags must not offer them;
@@ -253,7 +267,7 @@ public sealed class GetIntakeRequestQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_OffersStatusChangesToAnAgentAndWithdrawingToTheRequester()
+    public async Task Handle_OffersStatusAndAssigneeChangesToAnAgentAndWithdrawingToTheRequester()
     {
         // Arrange
         var agent = _scenario.Employee();
@@ -268,8 +282,10 @@ public sealed class GetIntakeRequestQueryHandlerTests
 
         // Assert
         asAgent!.CanChangeStatus.Should().BeTrue();
+        asAgent.CanChangeAssignee.Should().BeTrue();
         asAgent.CanWithdraw.Should().BeFalse();
         asRequester!.CanChangeStatus.Should().BeFalse();
+        asRequester.CanChangeAssignee.Should().BeFalse();
         asRequester.CanWithdraw.Should().BeTrue();
     }
 
@@ -294,7 +310,7 @@ public sealed class GetIntakeRequestQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ForAReadOnlyToken_OffersNeitherStatusChangeNorWithdraw()
+    public async Task Handle_ForAReadOnlyToken_OffersNoStatusOrAssigneeChangeNorWithdraw()
     {
         // Arrange
         var requester = _scenario.Employee();
@@ -306,6 +322,7 @@ public sealed class GetIntakeRequestQueryHandlerTests
 
         // Assert
         result!.CanChangeStatus.Should().BeFalse();
+        result.CanChangeAssignee.Should().BeFalse();
         result.CanWithdraw.Should().BeFalse();
     }
 
@@ -347,6 +364,7 @@ public sealed class GetIntakeRequestQueryHandlerTests
         // Assert
         asAgent!.IsDeskAgent.Should().BeTrue();
         asAgent.CanChangeStatus.Should().BeFalse();
+        asAgent.CanChangeAssignee.Should().BeFalse();
         asOutsider!.IsDeskAgent.Should().BeFalse();
     }
 

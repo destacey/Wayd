@@ -33,11 +33,11 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     [HttpGet]
     [Authorize]
     [EndpointSummary("Get the intake requests you can see, as summaries.")]
-    [EndpointDescription("Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf.")]
+    [EndpointDescription("Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf. With `openOnly`, only requests still under review or accepted — in the Proposed or Active status category, whatever the desk's workflow calls the status.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<IntakeRequestSummaryDto>>> GetIntakeRequests([FromQuery] Guid? deskId, [FromQuery] bool mine = false, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<IEnumerable<IntakeRequestSummaryDto>>> GetIntakeRequests([FromQuery] Guid? deskId, [FromQuery] bool mine = false, [FromQuery] bool openOnly = false, CancellationToken cancellationToken = default)
     {
-        var requests = await _dispatcher.Send(new GetIntakeRequestsQuery(deskId, mine), cancellationToken);
+        var requests = await _dispatcher.Send(new GetIntakeRequestsQuery(deskId, mine, openOnly), cancellationToken);
         return Ok(requests);
     }
 

@@ -11,10 +11,22 @@ import {
 } from '@/src/services/wayd-api'
 import IntakeRequestsGrid from './intake-requests-grid'
 
+let mockClaims = new Set<string>()
+jest.mock('@/src/components/contexts/auth', () => ({
+  __esModule: true,
+  default: () => ({
+    hasPermissionClaim: (claim: string) => mockClaims.has(claim),
+  }),
+}))
+
+const DAY_MS = 24 * 60 * 60 * 1000
+const daysAgo = (days: number) => new Date(Date.now() - days * DAY_MS - 1000)
+
 const request = (
   key: number,
   title: string,
   needBy?: IntakeRequestSummaryDto['needBy'],
+  ages: { submitted?: number; inStatus?: number } = {},
 ): IntakeRequestSummaryDto =>
   ({
     id: `r-${key}`,
@@ -30,6 +42,8 @@ const request = (
       alias: 2,
     },
     needBy,
+    submittedOn: daysAgo(ages.submitted ?? 0),
+    statusChangedOn: daysAgo(ages.inStatus ?? 0),
   }) as IntakeRequestSummaryDto
 
 const BASES: NeedByBasisDto[] = [
@@ -56,6 +70,46 @@ const renderGrid = (requests: IntakeRequestSummaryDto[]) =>
   )
 
 describe('IntakeRequestsGrid', () => {
+  beforeEach(() => {
+    mockClaims = new Set()
+  })
+
+  it('links the desk to its page for every reader', () => {
+    // Arrange / Act
+    renderGrid([request(42, 'Rotate the VPN certificates')])
+
+    // Assert
+    expect(screen.getByRole('link', { name: 'IT' })).toHaveAttribute(
+      'href',
+      '/demand-management/desks/1',
+    )
+  })
+
+  it('links the requester to their page only for a reader who can open employee pages', () => {
+    // Arrange
+    mockClaims.add('Permissions.Employees.View')
+
+    // Act
+    renderGrid([request(42, 'Rotate the VPN certificates')])
+
+    // Assert
+    expect(screen.getByRole('link', { name: 'Avery Example' })).toHaveAttribute(
+      'href',
+      '/organizations/employees/1',
+    )
+  })
+
+  it('shows the requester as a plain name to a reader who cannot open employee pages', () => {
+    // Arrange / Act
+    renderGrid([request(42, 'Rotate the VPN certificates')])
+
+    // Assert
+    expect(screen.getByText('Avery Example')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: 'Avery Example' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('shows the status of each request as its desk workflow names it', () => {
     // Arrange / Act
     renderGrid([request(42, 'Rotate the VPN certificates')])
@@ -77,7 +131,7 @@ describe('IntakeRequestsGrid', () => {
     ).toHaveAttribute('href', '/demand-management/requests/42')
   })
 
-  it('shows the need-by date as written and names the basis from the lookup', () => {
+  it('shows the need-by date with what makes it that date', () => {
     // Arrange / Act
     renderGrid([
       request(7, 'Renew the support contract', {
@@ -88,8 +142,20 @@ describe('IntakeRequestsGrid', () => {
       }),
     ])
 
-    // Assert — the label comes from the lookup, never from the code
-    expect(screen.getByText('Dec 31, 2026')).toBeInTheDocument()
-    expect(screen.getByText('Contract term')).toBeInTheDocument()
+    // Assert
+    expect(
+      screen.getByText('By Dec 31, 2026 · a contract names it'),
+    ).toBeInTheDocument()
+  })
+
+  it('shows how long a request has waited, and how long in its status', () => {
+    // Arrange / Act
+    renderGrid([
+      request(9, 'Laptop refresh', undefined, { submitted: 12, inStatus: 3 }),
+    ])
+
+    // Assert
+    expect(screen.getByText('12d')).toBeInTheDocument()
+    expect(screen.getByText('3d')).toBeInTheDocument()
   })
 })

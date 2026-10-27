@@ -1,0 +1,7 @@
+.warning {
+  color: var(--ant-color-warning-text);
+}
+
+.danger {
+  color: var(--ant-color-error-text);
+}

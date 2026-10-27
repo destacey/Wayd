@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.Tests.Shared.Infrastructure;
 
@@ -18,11 +19,13 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
     private readonly List<IntakeDesk> _desks = [];
     private readonly List<IntakeRequest> _requests = [];
     private readonly List<Employee> _employees = [];
+    private readonly List<StatusTransition> _transitions = [];
 
     public DbSet<IntakeChannel> IntakeChannels => _channels.AsDbSet();
     public DbSet<IntakeDesk> IntakeDesks => _desks.AsDbSet();
     public DbSet<IntakeRequest> IntakeRequests => _requests.AsDbSet();
     public IQueryable<Employee> Employees => _employees.AsDbSet();
+    public IQueryable<StatusTransition> IntakeRequestStatusTransitions => _transitions.AsDbSet();
 
     /// <summary>
     /// The number of times <see cref="SaveChangesAsync"/> has been called.
@@ -49,6 +52,18 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
 
     public void AddChannels(params IntakeChannel[] channels) => _channels.AddRange(channels);
     public void AddDesks(params IntakeDesk[] desks) => _desks.AddRange(desks);
-    public void AddRequests(params IntakeRequest[] requests) => _requests.AddRange(requests);
     public void AddEmployees(params Employee[] employees) => _employees.AddRange(employees);
+
+    /// <summary>
+    /// Adds requests together with the status history they have recorded so far, as a save would persist it.
+    /// </summary>
+    public void AddRequests(params IntakeRequest[] requests)
+    {
+        _requests.AddRange(requests);
+        foreach (var request in requests)
+            _transitions.AddRange(request.DrainStatusTransitions());
+    }
+
+    /// <summary>Adds history entries directly, for requests a faker built without recording any.</summary>
+    public void AddStatusTransitions(params StatusTransition[] transitions) => _transitions.AddRange(transitions);
 }

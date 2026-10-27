@@ -1,45 +1,30 @@
 'use client'
 
-import { MarkdownRenderer } from '@/src/components/common/markdown'
 import {
-  IntakeRequestDetailsDto,
-  NeedByBasisDto,
-  NeedByBasisFamilyDto,
-} from '@/src/services/wayd-api'
-import { Alert, Flex, Typography } from 'antd'
+  ExpandableContent,
+  LabeledContent,
+} from '@/src/components/common/content'
+import { MarkdownRenderer } from '@/src/components/common/markdown'
+import { IntakeRequestDetailsDto } from '@/src/services/wayd-api'
+import { Alert, Card, Flex, Typography } from 'antd'
 import { FC, ReactNode } from 'react'
-import { RequestNeedBy } from '../../../_components/need-by'
+import { NeedByCallout } from '../../../_components/need-by'
 
 const { Text } = Typography
 
 export interface IntakeRequestDetailsProps {
   request: IntakeRequestDetailsDto
-  needByBases: NeedByBasisDto[] | undefined
-  needByFamilies: NeedByBasisFamilyDto[] | undefined
   /** What the page has to say about the request before its detail, such as where a duplicate leads. */
   notices?: ReactNode
 }
 
-const Block: FC<{ title: string; children: ReactNode }> = ({
-  title,
-  children,
-}) => (
-  <Flex vertical gap={4}>
-    <Text strong style={{ fontSize: 14 }}>
-      {title}
-    </Text>
-    {children}
-  </Flex>
-)
-
 /**
- * The ask itself. When the reader may see only the summary, the section says so plainly instead of
- * showing empty fields: the detail exists, and is kept to the desk.
+ * The ask itself, on a card like a project's definition, with what the page has to say about the request
+ * above it. When the reader may see only the summary, the section says so plainly instead of showing empty
+ * fields: the detail exists, and is kept to the desk.
  */
 const IntakeRequestDetails: FC<IntakeRequestDetailsProps> = ({
   request,
-  needByBases,
-  needByFamilies,
   notices,
 }) => {
   const { summary, substance } = request
@@ -63,31 +48,35 @@ const IntakeRequestDetails: FC<IntakeRequestDetailsProps> = ({
           description="You can see what is being asked for and where it stands. Its description, expected benefits and the people involved are visible to the desk's reviewers and the request's own people."
         />
       )}
-      {substance && (
-        <>
-          <Block title="Description">
-            <MarkdownRenderer markdown={substance.description} />
-          </Block>
-          <Block title="Expected Benefits">
-            {substance.expectedBenefits ? (
-              <MarkdownRenderer markdown={substance.expectedBenefits} />
+      <Card size="small">
+        <Flex vertical gap={10}>
+          {substance && (
+            <>
+              <LabeledContent label="Description">
+                <ExpandableContent lines={8}>
+                  <MarkdownRenderer markdown={substance.description} />
+                </ExpandableContent>
+              </LabeledContent>
+              <LabeledContent label="Expected Benefits">
+                {substance.expectedBenefits ? (
+                  <ExpandableContent lines={8}>
+                    <MarkdownRenderer markdown={substance.expectedBenefits} />
+                  </ExpandableContent>
+                ) : (
+                  <Text type="secondary">None given</Text>
+                )}
+              </LabeledContent>
+            </>
+          )}
+          <LabeledContent label="Need By">
+            {summary.needBy ? (
+              <NeedByCallout needBy={summary.needBy} />
             ) : (
-              <Text type="secondary">None given</Text>
+              <Text type="secondary">No date</Text>
             )}
-          </Block>
-        </>
-      )}
-      <Block title="Need By">
-        {summary.needBy ? (
-          <RequestNeedBy
-            needBy={summary.needBy}
-            bases={needByBases}
-            families={needByFamilies}
-          />
-        ) : (
-          <Text type="secondary">No date</Text>
-        )}
-      </Block>
+          </LabeledContent>
+        </Flex>
+      </Card>
     </Flex>
   )
 }

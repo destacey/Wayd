@@ -38,6 +38,8 @@ export interface IntakeRequestListArgs {
   deskId?: string
   /** Only requests the caller requested or submitted. */
   mine?: boolean
+  /** Only requests still open: in the Proposed or Active status category. */
+  openOnly?: boolean
 }
 
 export interface IntakeRequestParticipantArgs {
@@ -68,6 +70,12 @@ const statusMoveTags = (requestId: string) => [
 const listTag = { type: QueryTags.IntakeRequest, id: 'LIST' } as const
 
 const deskListTag = { type: QueryTags.IntakeDesk, id: 'LIST' } as const
+
+export interface ChangeIntakeRequestAssigneeArgs {
+  requestId: string
+  /** The desk member to assign, or undefined to unassign. */
+  assigneeId?: string
+}
 
 export interface RerouteIntakeRequestArgs extends RerouteIntakeRequestRequest {
   requestId: string
@@ -101,6 +109,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           const data = await getIntakeRequestsClient().getIntakeRequests(
             args?.deskId,
             args?.mine,
+            args?.openOnly,
           )
           return { data }
         } catch (error) {
@@ -204,6 +213,28 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (_result, _error, { requestId }) =>
         requestTags(requestId),
+    }),
+
+    // The assignee shows in every list the request appears in, so lists refetch too.
+    changeIntakeRequestAssignee: builder.mutation<
+      void,
+      ChangeIntakeRequestAssigneeArgs
+    >({
+      queryFn: async ({ requestId, assigneeId }) => {
+        try {
+          const data = await getIntakeRequestsClient().changeAssignee(
+            requestId,
+            { assigneeId },
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: (_result, _error, { requestId }) => [
+        ...requestTags(requestId),
+        listTag,
+      ],
     }),
 
     // A move changes the desk on the request and the waiting counts on both desks.
@@ -451,8 +482,33 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       invalidatesTags: [deskListTag],
     }),
 
+    // The workflow of each desk, for the Requests board, which draws one only when they agree. Tagged by
+    // workflow rather than by desk: its columns change when a workflow is edited or a desk is pointed at
+    // another, never when a request moves, and status moves invalidate every desk.
+    getIntakeDeskWorkflows: builder.query<IntakeDeskWorkflowDto[], string[]>({
+      queryFn: async (deskIds) => {
+        try {
+          const client = getIntakeDesksClient()
+          const data = await Promise.all(
+            deskIds.map((id) => client.getWorkflow(id)),
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      providesTags: (result = []) => [
+        { type: QueryTags.StatusWorkflow, id: 'LIST' },
+        { type: QueryTags.WorkflowAssignment, id: 'LIST' },
+        ...result.map((w) => ({
+          type: QueryTags.StatusWorkflow,
+          id: w.workflow.id,
+        })),
+      ],
+    }),
+
     // Fetched by id, which the change invalidates; tagged with the desk too, since a request arriving on it
-    // stops the workflow changing.
+    // stops the workflow changing, and with the workflow, whose statuses it lists.
     getIntakeDeskWorkflow: builder.query<IntakeDeskWorkflowDto, string>({
       queryFn: async (deskId) => {
         try {
@@ -462,8 +518,11 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           return toError(error)
         }
       },
-      providesTags: (_result, _error, deskId) => [
+      providesTags: (result, _error, deskId) => [
         { type: QueryTags.IntakeDesk, id: deskId },
+        ...(result
+          ? [{ type: QueryTags.StatusWorkflow, id: result.workflow.id }]
+          : []),
       ],
     }),
 
@@ -594,6 +653,8 @@ export const {
   useUpdateIntakeDeskMutation,
   useDeleteIntakeDeskMutation,
   useRerouteIntakeRequestMutation,
+  useGetIntakeDeskWorkflowsQuery,
+  useChangeIntakeRequestAssigneeMutation,
   useGetIntakeRequestArrivalStatusesQuery,
   useGetIntakeRequestStatusOptionsQuery,
   useChangeIntakeRequestStatusMutation,

@@ -10,11 +10,16 @@ import {
 import {
   IntakeRequestSummaryDto,
   NeedByBasisDto,
+  NeedByBasisFamily,
 } from '@/src/services/wayd-api'
 import { formatCalendarDate } from '@/src/utils'
 import { Tooltip } from 'antd'
 import Link from 'next/link'
 import { FC, ReactNode } from 'react'
+import { NeedByTag } from './need-by'
+import { deskHref } from './desk-status'
+import EmployeeName from './employee-name'
+import { WaitTime, daysSince } from './request-age'
 
 export interface IntakeRequestsGridProps {
   requests: IntakeRequestSummaryDto[] | undefined
@@ -27,13 +32,33 @@ export interface IntakeRequestsGridProps {
   csvFileName: string
   emptyMessage?: string
   leftSlot?: ReactNode
+  /** Shown at the right of the grid's toolbar, such as a layout switcher. */
+  rightSlot?: ReactNode
 }
 
 export const requestHref = (key: number) => `/demand-management/requests/${key}`
 
 /**
+ * Orders by need-by date, ascending: on the same date a date fixed for us comes before one we chose, since
+ * that is the one that cannot move, and requests with no date come last. The grid reverses the whole order
+ * when sorting descending, as it does for every column's empty values.
+ */
+export const compareNeedBy = (
+  a: IntakeRequestSummaryDto,
+  b: IntakeRequestSummaryDto,
+): number => {
+  if (!a.needBy || !b.needBy) return a.needBy ? -1 : b.needBy ? 1 : 0
+  if (a.needBy.date !== b.needBy.date)
+    return a.needBy.date < b.needBy.date ? -1 : 1
+  const fixed = (r: IntakeRequestSummaryDto) =>
+    r.needBy?.family === NeedByBasisFamily.FixedForUs ? 0 : 1
+  return fixed(a) - fixed(b)
+}
+
+/**
  * Intake requests as their summaries: the columns are the summary tier and nothing more, because that is
- * all a list returns. People are plain names, not links, since most requesters cannot open employee pages.
+ * all a list returns. The desk links to its page, which everyone can open; people link to theirs only for a
+ * reader who can open employee pages, and are plain names for everyone else, as most requesters cannot.
  */
 const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
   requests,
@@ -44,6 +69,7 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
   csvFileName,
   emptyMessage,
   leftSlot,
+  rightSlot,
 }) => {
   const basisName = (code: string | undefined) =>
     code ? (needByBases?.find((b) => b.code === code)?.name ?? code) : ''
@@ -91,10 +117,60 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       ),
     },
     {
+      id: 'timeInStatus',
+      accessorFn: (request) => daysSince(request.statusChangedOn),
+      header: 'In Status',
+      size: 100,
+      cell: ({ row }) => (
+        <WaitTime
+          since={row.original.statusChangedOn}
+          label="In this status since"
+        />
+      ),
+      meta: { exportFormatter: (value: unknown) => `${value}` },
+    },
+    {
+      id: 'needBy',
+      accessorFn: (request) => request.needBy?.date ?? null,
+      header: 'Need By',
+      size: 260,
+      sortFn: (a, b) => compareNeedBy(a.original, b.original),
+      cell: ({ row }) =>
+        row.original.needBy ? <NeedByTag needBy={row.original.needBy} /> : null,
+      meta: {
+        filterType: 'date',
+        exportFormatter: (value: unknown) =>
+          typeof value === 'string' ? formatCalendarDate(value) : '',
+      },
+    },
+    {
+      id: 'age',
+      accessorFn: (request) => daysSince(request.submittedOn),
+      header: 'Age',
+      size: 90,
+      cell: ({ row }) => (
+        <WaitTime since={row.original.submittedOn} label="Submitted" />
+      ),
+      meta: { exportFormatter: (value: unknown) => `${value}` },
+    },
+    {
+      id: 'assignee',
+      accessorFn: (request) => request.assignee?.name ?? '',
+      header: 'Assignee',
+      size: 180,
+      cell: ({ row }) => <EmployeeName employee={row.original.assignee} />,
+      meta: { filterType: 'set' },
+    },
+    {
       id: 'desk',
       accessorKey: 'desk.name',
       header: 'Desk',
       size: 180,
+      cell: ({ row }) => (
+        <Link href={deskHref(row.original.desk.key)} prefetch={false}>
+          {row.original.desk.name}
+        </Link>
+      ),
       meta: { filterType: 'set' },
     },
     {
@@ -102,6 +178,7 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       accessorKey: 'requester.name',
       header: 'Requester',
       size: 180,
+      cell: ({ row }) => <EmployeeName employee={row.original.requester} />,
       meta: { filterType: 'set' },
     },
     {
@@ -112,32 +189,10 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       meta: { filterType: 'set' },
     },
     {
-      id: 'needBy',
-      accessorFn: (request) => request.needBy?.date ?? null,
-      header: 'Need By',
-      size: 130,
-      cell: ({ row }) =>
-        row.original.needBy
-          ? formatCalendarDate(row.original.needBy.date)
-          : null,
-      meta: {
-        filterType: 'date',
-        exportFormatter: (value: unknown) =>
-          typeof value === 'string' ? formatCalendarDate(value) : '',
-      },
-    },
-    {
       id: 'needByBasis',
       accessorFn: (request) => basisName(request.needBy?.basis),
       header: 'Basis',
       size: 170,
-      meta: { filterType: 'set' },
-    },
-    {
-      id: 'assignee',
-      accessorFn: (request) => request.assignee?.name ?? '',
-      header: 'Assignee',
-      size: 180,
       meta: { filterType: 'set', hiddenByDefault: true },
     },
   ]
@@ -152,6 +207,7 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       csvFileName={csvFileName}
       emptyMessage={emptyMessage}
       leftSlot={leftSlot}
+      rightSlot={rightSlot}
       initialSorting={[{ id: 'key', desc: true }]}
     />
   )

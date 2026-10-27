@@ -56,6 +56,11 @@ export interface RecordHeaderProps {
   parent?: RecordParentLink | RecordParentLink[]
   /** What kind of page this is, closing the trail. */
   subtitle?: string
+  /**
+   * A line about the record, secondary, beneath the trail — who raised it and when, say. For facts that
+   * place the record in time; what the record *is* belongs in `descriptor`.
+   */
+  caption?: ReactNode
   /** Status and other qualifiers, beside the name. */
   tags?: ReactNode
   /**
@@ -90,6 +95,7 @@ const RecordHeader = ({
   avatar,
   parent,
   subtitle,
+  caption,
   tags,
   descriptor,
   actions,
@@ -105,6 +111,7 @@ const RecordHeader = ({
   ]
 
   return (
+  <>
   <Flex align="center" gap={12} wrap className={styles.headerBar}>
     <Flex align="center" gap={10} style={{ minWidth: 0 }}>
       {avatar && <RecordAvatar {...avatar} />}
@@ -165,6 +172,13 @@ const RecordHeader = ({
       </>
     )}
     </Flex>
+    {/* Its own line under the whole bar, so the key, tags and actions stay level with the name. */}
+    {caption && (
+      <Text type="secondary" className={styles.caption} ellipsis>
+        {caption}
+      </Text>
+    )}
+  </>
   )
 }
 

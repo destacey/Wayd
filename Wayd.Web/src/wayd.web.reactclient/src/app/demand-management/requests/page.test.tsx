@@ -1,5 +1,6 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import IntakeRequestsPage from './page'
 
 jest.mock('@/src/components/common', () => ({
@@ -15,6 +16,7 @@ jest.mock('@/src/components/common', () => ({
       {actions}
     </header>
   ),
+  WaydTooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
 let mockClaims = new Set<string>()
@@ -46,18 +48,32 @@ jest.mock('@/src/components/hoc', () => ({
 // The grid has a suite of its own; here only which actions the page offers matters.
 jest.mock('../_components/intake-requests-grid', () => ({
   __esModule: true,
-  default: () => <div data-testid="requests-grid" />,
+  default: ({ rightSlot }: { rightSlot?: React.ReactNode }) => (
+    <div data-testid="requests-grid">{rightSlot}</div>
+  ),
 }))
 
+let mockSearch = new URLSearchParams()
+const mockReplace = jest.fn()
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: mockReplace }),
+  usePathname: () => '/demand-management/requests',
+  useSearchParams: () => mockSearch,
+}))
+
+let mockDesks: any[] = []
+const mockRequestsQuery = jest.fn((_args?: unknown) => ({
+  currentData: [],
+  isFetching: false,
+  refetch: jest.fn(),
+}))
 jest.mock(
   '@/src/store/features/demand-management/demand-management-api',
   () => ({
-    useGetIntakeRequestsQuery: () => ({
-      data: [],
-      isLoading: false,
-      refetch: jest.fn(),
-    }),
+    useGetIntakeRequestsQuery: (args: unknown) => mockRequestsQuery(args),
     useGetNeedByBasesQuery: () => ({ data: [] }),
+    useGetIntakeDesksQuery: () => ({ data: mockDesks }),
+    useGetIntakeChannelsQuery: () => ({ data: [] }),
   }),
 )
 
@@ -65,6 +81,129 @@ describe('IntakeRequestsPage', () => {
   beforeEach(() => {
     mockClaims = new Set()
     mockEmployeeId = 'e-1'
+    mockRequestsQuery.mockClear()
+    mockReplace.mockClear()
+    mockSearch = new URLSearchParams()
+    mockDesks = []
+  })
+
+  it('opens on the desks the reader works when the address names no filters', () => {
+    // Arrange
+    mockDesks = [
+      {
+        id: 'd-1',
+        key: 1,
+        name: 'IT',
+        members: [
+          { employee: { id: 'e-1', key: 1, name: 'Me' }, role: 'Agent' },
+        ],
+      },
+    ]
+
+    // Act
+    render(<IntakeRequestsPage />)
+
+    // Assert
+    expect(mockReplace).toHaveBeenCalledWith(
+      '/demand-management/requests?desk=mine',
+      { scroll: false },
+    )
+  })
+
+  it('keeps the filters an address names, and opens everyone else on every open request', () => {
+    // Arrange
+    mockDesks = [{ id: 'd-1', key: 1, name: 'IT', members: [] }]
+
+    // Act
+    render(<IntakeRequestsPage />)
+
+    // Assert
+    expect(mockReplace).not.toHaveBeenCalled()
+  })
+
+  it('opens on the requests still open', () => {
+    // Act
+    render(<IntakeRequestsPage />)
+
+    // Assert
+    expect(mockRequestsQuery).toHaveBeenLastCalledWith({ openOnly: true })
+  })
+
+  it('puts a change of filter in the address', async () => {
+    // Arrange
+    render(<IntakeRequestsPage />)
+
+    // Act — jsdom matches no breakpoint, so the filters are behind the phone layout's button
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: /Filters/ })),
+    )
+    await act(() => userEvent.click(screen.getByText('Everything')))
+
+    // Assert
+    expect(mockReplace).toHaveBeenCalledWith(
+      '/demand-management/requests?scope=all',
+      { scroll: false },
+    )
+  })
+
+  it('puts the board layout in the address', async () => {
+    // Arrange
+    render(<IntakeRequestsPage />)
+
+    // Act
+    await act(() => userEvent.click(screen.getByTitle('Board')))
+
+    // Assert
+    expect(mockReplace).toHaveBeenCalledWith(
+      '/demand-management/requests?view=board',
+      { scroll: false },
+    )
+  })
+
+  it('reads a shared Assigned to me link as anyone for a reader with no employee record', async () => {
+    // Arrange
+    mockEmployeeId = null
+    mockSearch = new URLSearchParams('assignee=me')
+    render(<IntakeRequestsPage />)
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: /Filters/ })),
+    )
+
+    // Assert
+    expect(screen.getByText('Anyone assigned or not')).toBeInTheDocument()
+  })
+
+  it('resets every filter from the reset button', async () => {
+    // Arrange
+    mockSearch = new URLSearchParams('scope=all&assignee=unassigned')
+    render(<IntakeRequestsPage />)
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: /Filters/ })),
+    )
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Reset filters' })),
+    )
+
+    // Assert
+    expect(mockReplace).toHaveBeenLastCalledWith(
+      '/demand-management/requests',
+      { scroll: false },
+    )
+  })
+
+  it('includes closed requests when the address asks for everything', () => {
+    // Arrange
+    mockSearch = new URLSearchParams('scope=all')
+
+    // Act
+    render(<IntakeRequestsPage />)
+
+    // Assert
+    expect(mockRequestsQuery).toHaveBeenLastCalledWith({ openOnly: false })
   })
 
   it('offers no Create Desk, which lives on the Desks page, even to the Demand Management Admin', () => {

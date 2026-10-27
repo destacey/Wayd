@@ -1,0 +1,68 @@
+/* The form and the "what happens next" panel share a row while there is room, and stack when there is not. */
+.layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-start;
+  max-width: 1200px;
+}
+
+.main {
+  flex: 999 1 560px;
+  min-width: 0;
+}
+
+.aside {
+  flex: 1 1 270px;
+  min-width: 250px;
+}
+
+.steps {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--ant-color-split);
+}
+
+.stepHeading {
+  margin-bottom: 20px;
+}
+
+.stepTitle {
+  margin: 0 0 4px;
+}
+
+.review {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 24px;
+}
+
+.factWide {
+  grid-column: 1 / -1;
+}
+
+.factLabel {
+  display: block;
+  margin-bottom: 4px;
+  font-size: var(--ant-font-size-sm);
+}
+
+.actions {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--ant-color-split);
+}
+
+.cancel {
+  margin-left: auto;
+}
+
+@media (max-width: 575px) {
+  .review {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .main :global(.ant-card-body) {
+    padding: 16px;
+  }
+}

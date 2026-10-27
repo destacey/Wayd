@@ -86,11 +86,25 @@ jest.mock(
     useGetNeedByBasesQuery: () => ({ data: [] }),
     useGetNeedByBasisFamiliesQuery: () => ({ data: [] }),
     useCreateIntakeRequestMutation: () => [mockCreate],
+    useGetIntakeDeskWorkflowQuery: () => ({
+      data: undefined,
+      isLoading: false,
+    }),
   }),
 )
 
 const renderPage = async () =>
   await act(async () => render(<SubmitIntakeRequestPage />))
+
+const clickButton = (name: string) =>
+  act(() => userEvent.click(screen.getByRole('button', { name })))
+
+/** Continues past the ask and the why-and-when steps, then submits from the check. */
+const submitThroughSteps = async () => {
+  await clickButton('Continue')
+  await clickButton('Continue')
+  await clickButton('Submit request')
+}
 
 describe('SubmitIntakeRequestPage', () => {
   beforeEach(() => {
@@ -125,7 +139,7 @@ describe('SubmitIntakeRequestPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('asks no desk question when one desk is open, and says where the request goes', async () => {
+  it('asks no desk question when one desk is open, and offers no way back to one', async () => {
     // Arrange
     mockDesks = [desk('d-1', 'IT', 'Laptops, access and software')]
 
@@ -133,9 +147,15 @@ describe('SubmitIntakeRequestPage', () => {
     await renderPage()
 
     // Assert
-    expect(screen.getByText('Where this request goes')).toBeInTheDocument()
-    expect(screen.getByText('Laptops, access and software')).toBeInTheDocument()
-    expect(screen.queryByRole('radio')).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Submit a Request – IT' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText('What kind of request is this?'),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Back' }),
+    ).not.toBeInTheDocument()
     expect(screen.getByLabelText('Title')).toBeInTheDocument()
   })
 
@@ -150,20 +170,50 @@ describe('SubmitIntakeRequestPage', () => {
     await renderPage()
 
     // Assert — the rest of the form waits for the answer
-    expect(screen.getAllByRole('radio')).toHaveLength(2)
+    expect(
+      screen.getByText('What kind of request is this?'),
+    ).toBeInTheDocument()
     expect(screen.getByText('Changes to what we sell')).toBeInTheDocument()
-    expect(screen.getAllByText('IT · Reviewed by Riley Reviewer')).toHaveLength(
-      1,
-    )
+    expect(
+      screen.getByText('Reviewed by the IT desk · Riley Reviewer'),
+    ).toBeInTheDocument()
     expect(screen.queryByLabelText('Title')).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Submit a Request' }),
+    ).toBeInTheDocument()
 
     // Act
     await act(() =>
       userEvent.click(screen.getByText('Changes to what we sell')),
     )
 
-    // Assert
+    // Assert — the title names the chosen desk for the rest of the form
     expect(await screen.findByLabelText('Title')).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Submit a Request – Product' }),
+    ).toBeInTheDocument()
+  })
+
+  it('goes back to the desk question from the first step', async () => {
+    // Arrange
+    mockDesks = [
+      desk('d-1', 'IT', 'Laptops, access and software'),
+      desk('d-2', 'Product', 'Changes to what we sell'),
+    ]
+    await renderPage()
+    await act(() =>
+      userEvent.click(screen.getByText('Changes to what we sell')),
+    )
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Back' })),
+    )
+
+    // Assert
+    expect(
+      screen.getByText('What kind of request is this?'),
+    ).toBeInTheDocument()
   })
 
   it('tells the requester the title is visible to everyone', async () => {
@@ -199,9 +249,7 @@ describe('SubmitIntakeRequestPage', () => {
     await act(() => userEvent.click(screen.getByTitle('Security')))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Submit Request' })),
-    )
+    await submitThroughSteps()
 
     // Assert
     expect(mockCreate).toHaveBeenCalledWith(
@@ -237,20 +285,86 @@ describe('SubmitIntakeRequestPage', () => {
     )
     await act(() => userEvent.click(screen.getByTitle('Security')))
     const requester = screen
-      .getByText('Who is this request for?')
+      .getByText('Requested by')
       .closest('.ant-form-item')!
       .querySelector('.ant-select')!
     await act(() => userEvent.click(requester.querySelector('input')!))
     await act(() => userEvent.click(screen.getByTitle('Blake Sample')))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Submit Request' })),
-    )
+    await submitThroughSteps()
 
     // Assert
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({ deskId: 'd-2', requesterId: 'e-2' }),
     )
+  })
+
+  it('keeps the requester on the ask until it is complete', async () => {
+    // Arrange
+    mockDesks = [desk('d-1', 'IT', 'Laptops, access and software')]
+    await renderPage()
+
+    // Act
+    await clickButton('Continue')
+
+    // Assert
+    expect(screen.getByText('What are you asking for?')).toBeVisible()
+    expect(
+      screen.getByText('Why does it matter, and by when?'),
+    ).not.toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: 'Submit request' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows what will be sent before it is submitted', async () => {
+    // Arrange
+    mockDesks = [desk('d-1', 'IT', 'Laptops, access and software')]
+    await renderPage()
+    await userEvent.type(screen.getByLabelText('Title'), 'New laptop')
+    await userEvent.type(screen.getAllByLabelText('markdown')[0], 'Old one')
+    await act(() =>
+      userEvent.click(screen.getByLabelText('Where did this come from?')),
+    )
+    await act(() => userEvent.click(screen.getByTitle('Security')))
+
+    // Act
+    await clickButton('Continue')
+    await clickButton('Continue')
+
+    // Assert
+    expect(
+      screen.getByRole('heading', { name: 'Check and submit' }),
+    ).toBeInTheDocument()
+    expect(screen.getAllByText('New laptop').length).toBeGreaterThan(0)
+    expect(screen.getByText('No date given')).toBeInTheDocument()
+    expect(mockCreate).not.toHaveBeenCalled()
+  })
+
+  it('takes the requester back to the step a rejected field is on', async () => {
+    // Arrange
+    mockDesks = [desk('d-1', 'IT', 'Laptops, access and software')]
+    mockCreate.mockReturnValue({
+      unwrap: () =>
+        Promise.reject({
+          status: 422,
+          errors: { Title: ['A request with this title is already open.'] },
+        }),
+    })
+    await renderPage()
+    await userEvent.type(screen.getByLabelText('Title'), 'New laptop')
+    await userEvent.type(screen.getAllByLabelText('markdown')[0], 'Old one')
+    await act(() =>
+      userEvent.click(screen.getByLabelText('Where did this come from?')),
+    )
+    await act(() => userEvent.click(screen.getByTitle('Security')))
+
+    // Act
+    await submitThroughSteps()
+
+    // Assert
+    expect(mockCreate).toHaveBeenCalled()
+    expect(screen.getByText('What are you asking for?')).toBeVisible()
   })
 })

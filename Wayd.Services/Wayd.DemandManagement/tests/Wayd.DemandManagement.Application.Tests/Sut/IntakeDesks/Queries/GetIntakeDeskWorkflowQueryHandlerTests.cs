@@ -22,7 +22,23 @@ public sealed class GetIntakeDeskWorkflowQueryHandlerTests
     }
 
     private GetIntakeDeskWorkflowQueryHandler CreateHandler() =>
-        new(_scenario.DbContext, _scenario.Principal.Object, _assignments.Object);
+        new(_scenario.DbContext, _scenario.Principal.Object, _assignments.Object, _scenario.Statuses.Object);
+
+    [Fact]
+    public async Task Handle_ListsTheWorkflowsStatusesInItsOrder()
+    {
+        // Arrange — the board's columns, so a stage nobody is in still shows
+        var desk = _scenario.Desk();
+        _scenario.SignedInAs(_scenario.Employee());
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeDeskWorkflowQuery(new IdOrKey(desk.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Statuses.Select(s => s.Name).Should().Equal(_scenario.Workflow.Statuses.Select(s => s.Name));
+        result.Statuses.Select(s => s.Description).Should().Equal(_scenario.Workflow.Statuses.Select(s => s.Description));
+        result.Statuses.Should().Contain(s => s.Name == "In Review");
+    }
 
     [Fact]
     public async Task Handle_ForADeskAdminOnAnEmptyDesk_OffersTheChange()

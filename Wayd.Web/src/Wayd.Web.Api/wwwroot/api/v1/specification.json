@@ -40458,7 +40458,7 @@
           "IntakeRequests"
         ],
         "summary": "Get the intake requests you can see, as summaries.",
-        "description": "Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf.",
+        "description": "Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf. With `openOnly`, only requests still under review or accepted — in the Proposed or Active status category, whatever the desk's workflow calls the status.",
         "operationId": "IntakeRequests_GetIntakeRequests",
         "parameters": [
           {
@@ -40479,6 +40479,15 @@
               "default": false
             },
             "x-position": 2
+          },
+          {
+            "name": "openOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 3
           }
         ],
         "responses": {
@@ -56280,7 +56289,8 @@
           "workflow",
           "followsOrganizationDefault",
           "hasRequests",
-          "canChange"
+          "canChange",
+          "statuses"
         ],
         "type": "object",
         "properties": {
@@ -56303,6 +56313,13 @@
           "canChange": {
             "type": "boolean",
             "description": "Whether the reader may choose the desk's workflow: a Desk Admin on it or the Demand Management Admin,\nwhile no request is on it."
+          },
+          "statuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntakeWorkflowStatusDto"
+            },
+            "description": "The workflow's statuses in its own order: the stages a request on the desk moves through, the columns of\nthe Requests board, so a stage with no request in it still shows, and the path a requester is shown\nbefore submitting."
           }
         },
         "additionalProperties": false,
@@ -56341,6 +56358,7 @@
           "canAddParticipants",
           "isDeskAgent",
           "canChangeStatus",
+          "canChangeAssignee",
           "canWithdraw"
         ],
         "type": "object",
@@ -56389,6 +56407,10 @@
           "canChangeStatus": {
             "type": "boolean",
             "description": "Whether the reader may move the request to another status: an agent on its desk."
+          },
+          "canChangeAssignee": {
+            "type": "boolean",
+            "description": "Whether the reader may assign the request to a member of its desk, or unassign it: an agent on its desk."
           },
           "canWithdraw": {
             "type": "boolean",
@@ -56670,7 +56692,9 @@
           "requester",
           "channel",
           "id",
-          "key"
+          "key",
+          "submittedOn",
+          "statusChangedOn"
         ],
         "type": "object",
         "properties": {
@@ -56737,6 +56761,16 @@
             ],
             "description": "When the request has to land and why, when it has a need-by date.",
             "nullable": true
+          },
+          "submittedOn": {
+            "type": "string",
+            "description": "When the request was submitted, from which its age is read.",
+            "format": "date-time"
+          },
+          "statusChangedOn": {
+            "type": "string",
+            "description": "When the request entered its current status, from which its time in that status is read.",
+            "format": "date-time"
           }
         },
         "additionalProperties": false,
@@ -56772,6 +56806,46 @@
         },
         "additionalProperties": false,
         "description": "A published intake request workflow a desk can follow."
+      },
+      "IntakeWorkflowStatusDto": {
+        "required": [
+          "name",
+          "id",
+          "category",
+          "alias"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The status's id, which a request's current status is matched against.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "What the workflow calls the status."
+          },
+          "category": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusCategory"
+              }
+            ],
+            "description": "The status's bucket — Proposed, Active, Done or Removed — which decides whether a request in it is open."
+          },
+          "alias": {
+            "type": "integer",
+            "description": "The well-known meaning the status carries, as an intake request status alias value, or 0 for none.",
+            "format": "int32"
+          },
+          "description": {
+            "type": "string",
+            "description": "What the status means, when the workflow's author said, written for anyone following a request.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One status of a desk's review workflow, with what it means in the workflow author's words."
       },
       "IntegrationStateDto": {
         "required": [

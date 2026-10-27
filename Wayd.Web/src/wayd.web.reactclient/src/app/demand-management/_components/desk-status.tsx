@@ -7,6 +7,10 @@ import { FC } from 'react'
 
 export const deskHref = (key: number) => `/demand-management/desks/${key}`
 
+/** "the Product delivery desk", without doubling a name that already ends in "desk". */
+export const deskPhrase = (name: string): string =>
+  /\bdesk$/i.test(name.trim()) ? `the ${name}` : `the ${name} desk`
+
 /**
  * What is waiting on a desk, in words: "3 waiting, the oldest submitted 2 weeks ago".
  */

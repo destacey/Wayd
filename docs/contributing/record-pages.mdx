@@ -62,9 +62,10 @@ Pages do not render it directly — `RecordLayout` takes a `record` prop and ren
 | `subtitle` | What kind of page this is (`'Team Details'`), closing the breadcrumb trail |
 | `descriptor` | What the record *is*, in its own words — a job title. Secondary, inline after the tags |
 | `tags` | Status and other qualifiers beside the name |
+| `caption` | A secondary line on its own beneath the whole bar — who raised the record and when. Kept off the bar so the key, tags and actions stay level with the name |
 | `actions` | Record-level actions, aligned right — usually `PageActions` |
 
-`subtitle` names the page and `descriptor` describes the record; do not put a job title in `subtitle`. The facts toggle in the bar is supplied by `RecordLayout` when the page passes `facts`.
+`subtitle` names the page, `descriptor` describes the record and `caption` places it in time; do not put a job title in `subtitle`. The facts toggle in the bar is supplied by `RecordLayout` when the page passes `facts`.
 
 A record whose content is one interactive surface rather than sections — a story map board, a live poker session — uses **`RecordShell`** (`record` plus `children`): the same identity bar over a padded content area, with no rail or facts panel. Anything with sections or facts uses `RecordLayout`.
 

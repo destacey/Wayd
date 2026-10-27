@@ -1,0 +1,56 @@
+import { ageTone, daysSince, formatDays } from './request-age'
+
+describe('daysSince', () => {
+  it('counts whole days and never goes below zero', () => {
+    // Arrange
+    const now = new Date('2026-10-13T12:00:00Z')
+
+    // Act
+    const elapsed = daysSince(new Date('2026-10-01T13:00:00Z'), now)
+    const future = daysSince(new Date('2026-10-14T00:00:00Z'), now)
+
+    // Assert
+    expect(elapsed).toBe(11)
+    expect(future).toBe(0)
+  })
+
+  it('reads the ISO string an instant arrives as from the API', () => {
+    // Act
+    const elapsed = daysSince(
+      '2026-10-01T13:00:00Z',
+      new Date('2026-10-13T12:00:00Z'),
+    )
+
+    // Assert
+    expect(elapsed).toBe(11)
+  })
+})
+
+describe('formatDays', () => {
+  it.each([
+    [0, '<1d'],
+    [1, '1d'],
+    [12, '12d'],
+  ])('shows %i days as %s', (days, expected) => {
+    // Act
+    const text = formatDays(days)
+
+    // Assert
+    expect(text).toBe(expected)
+  })
+})
+
+describe('ageTone', () => {
+  it.each([
+    [6, undefined],
+    [7, 'warning'],
+    [20, 'warning'],
+    [21, 'danger'],
+  ])('colours %i days as %s', (days, expected) => {
+    // Act
+    const tone = ageTone(days)
+
+    // Assert
+    expect(tone).toBe(expected)
+  })
+})

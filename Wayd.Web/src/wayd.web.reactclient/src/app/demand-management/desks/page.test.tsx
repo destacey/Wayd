@@ -37,18 +37,22 @@ jest.mock('@/src/components/hoc', () => ({
   requireFeatureFlag: (Component: React.ComponentType<any>) => Component,
 }))
 
-// The grid has a suite of its own; render the name column's cells so the flags beside a name show.
+// The grid has a suite of its own; render the key and name cells and the waiting text, found by id.
 jest.mock('@/src/components/common/wayd-grid', () => ({
-  WaydGrid: ({ columns, data }: { columns: any[]; data: any[] }) => (
-    <div data-testid="desks-grid">
-      {(data ?? []).map((row) => (
-        <div key={row.id}>
-          {columns[0].cell({ row: { original: row } })}
-          <span>{columns[3].accessorFn(row)}</span>
-        </div>
-      ))}
-    </div>
-  ),
+  WaydGrid: ({ columns, data }: { columns: any[]; data: any[] }) => {
+    const column = (id: string) => columns.find((c) => c.id === id)
+    return (
+      <div data-testid="desks-grid">
+        {(data ?? []).map((row) => (
+          <div key={row.id}>
+            {column('key').cell({ row: { original: row } })}
+            {column('name').cell({ row: { original: row } })}
+            <span>{column('waiting').accessorFn(row)}</span>
+          </div>
+        ))}
+      </div>
+    )
+  },
 }))
 
 jest.mock('../_components/create-intake-desk-form', () => ({
@@ -115,6 +119,20 @@ describe('IntakeDesksPage', () => {
     expect(
       screen.queryByRole('button', { name: 'Create Desk' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('links each desk key to its page', () => {
+    // Arrange
+    mockDesks = [desk({ id: 'd-7', key: 7, name: 'Security' })]
+
+    // Act
+    render(<IntakeDesksPage />)
+
+    // Assert
+    expect(screen.getByRole('link', { name: '7' })).toHaveAttribute(
+      'href',
+      '/demand-management/desks/7',
+    )
   })
 
   it('flags a desk with no members and shows what waits on it where the server sent it', () => {

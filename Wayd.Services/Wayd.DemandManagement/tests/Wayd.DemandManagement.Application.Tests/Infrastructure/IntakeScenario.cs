@@ -175,10 +175,26 @@ public sealed class IntakeScenario
             .WithStatusWorkflowId(Workflow.Id)
             .WithStatusId(Workflow.Status("Submitted").Id);
 
+    /// <summary>
+    /// Records that the request moved into the named status of <see cref="Workflow"/> at the instant, as the next
+    /// entry in its history. The request's own status fields are not changed.
+    /// </summary>
+    public void RecordMove(IntakeRequest request, string statusName, Instant changedOn)
+    {
+        var sequence = DbContext.IntakeRequestStatusTransitions.Count(t => t.RecordId == request.Id) + 1;
+        DbContext.AddStatusTransitions(new StatusTransition(DemandManagementWorkflowOwners.IntakeRequest.Key, request.Id,
+            from: null, Workflow.Ref(statusName), EventActor.System, changedOn, sequence));
+    }
+
+    /// <summary>
+    /// Adds the request with the first entry every saved request has in its history: submitted, now. A faker
+    /// sets the status fields directly and so records none; <see cref="RecordMove"/> adds later moves.
+    /// </summary>
     private IntakeRequest AddRequest(IntakeRequestFaker faker)
     {
         var request = faker.Generate();
         DbContext.AddRequests(request);
+        RecordMove(request, "Submitted", Clock.Now);
         return request;
     }
 }

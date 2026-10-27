@@ -253,7 +253,7 @@ public sealed class GetIntakeRequestQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_OffersStatusChangesToAnAgentAndWithdrawingToTheRequester()
+    public async Task Handle_OffersStatusAndAssigneeChangesToAnAgentAndWithdrawingToTheRequester()
     {
         // Arrange
         var agent = _scenario.Employee();
@@ -268,8 +268,10 @@ public sealed class GetIntakeRequestQueryHandlerTests
 
         // Assert
         asAgent!.CanChangeStatus.Should().BeTrue();
+        asAgent.CanChangeAssignee.Should().BeTrue();
         asAgent.CanWithdraw.Should().BeFalse();
         asRequester!.CanChangeStatus.Should().BeFalse();
+        asRequester.CanChangeAssignee.Should().BeFalse();
         asRequester.CanWithdraw.Should().BeTrue();
     }
 
@@ -294,7 +296,7 @@ public sealed class GetIntakeRequestQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ForAReadOnlyToken_OffersNeitherStatusChangeNorWithdraw()
+    public async Task Handle_ForAReadOnlyToken_OffersNoStatusOrAssigneeChangeNorWithdraw()
     {
         // Arrange
         var requester = _scenario.Employee();
@@ -306,6 +308,7 @@ public sealed class GetIntakeRequestQueryHandlerTests
 
         // Assert
         result!.CanChangeStatus.Should().BeFalse();
+        result.CanChangeAssignee.Should().BeFalse();
         result.CanWithdraw.Should().BeFalse();
     }
 
@@ -347,6 +350,7 @@ public sealed class GetIntakeRequestQueryHandlerTests
         // Assert
         asAgent!.IsDeskAgent.Should().BeTrue();
         asAgent.CanChangeStatus.Should().BeFalse();
+        asAgent.CanChangeAssignee.Should().BeFalse();
         asOutsider!.IsDeskAgent.Should().BeFalse();
     }
 

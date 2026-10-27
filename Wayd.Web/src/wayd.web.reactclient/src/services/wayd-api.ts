@@ -57149,6 +57149,8 @@ on it to review it, and everyone else is taken to the request it gives way to. *
     isDeskAgent: boolean;
     /** Whether the reader may move the request to another status: an agent on its desk. */
     canChangeStatus: boolean;
+    /** Whether the reader may assign the request to a member of its desk, or unassign it: an agent on its desk. */
+    canChangeAssignee: boolean;
     /** Whether the reader may withdraw the request: its requester, while it is open. */
     canWithdraw: boolean;
     /** The request this one is a duplicate of, while its status means Duplicate and the reader can see that

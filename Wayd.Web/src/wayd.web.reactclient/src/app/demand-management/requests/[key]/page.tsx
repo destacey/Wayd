@@ -25,6 +25,7 @@ import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import { requestHref } from '../../_components/intake-requests-grid'
 import AddIntakeRequestParticipantForm from './_components/add-intake-request-participant-form'
+import ChangeIntakeRequestAssigneeForm from './_components/change-intake-request-assignee-form'
 import ChangeIntakeRequestStatusForm from './_components/change-intake-request-status-form'
 import EditIntakeRequestForm from './_components/edit-intake-request-form'
 import IntakeRequestDetails from './_components/intake-request-details'
@@ -43,7 +44,12 @@ enum RequestSection {
 }
 
 type RequestDialog =
-  'edit' | 'add-participant' | 'reroute' | 'change-status' | 'withdraw'
+  | 'edit'
+  | 'add-participant'
+  | 'reroute'
+  | 'change-status'
+  | 'change-assignee'
+  | 'withdraw'
 
 /** The query parameter a redirected duplicate's number arrives in, so its surviving request can say why. */
 const DUPLICATE_PARAM = 'duplicate'
@@ -141,6 +147,15 @@ const IntakeRequestDetailsPage = (props: {
             key: 'change-status',
             label: 'Change Status',
             onClick: () => setDialog('change-status'),
+          },
+        ]
+      : []),
+    ...(request.canChangeAssignee
+      ? [
+          {
+            key: 'change-assignee',
+            label: 'Change Assignee',
+            onClick: () => setDialog('change-assignee'),
           },
         ]
       : []),
@@ -261,6 +276,13 @@ const IntakeRequestDetailsPage = (props: {
       )}
       {dialog === 'change-status' && request.canChangeStatus && (
         <ChangeIntakeRequestStatusForm
+          request={request}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'change-assignee' && request.canChangeAssignee && (
+        <ChangeIntakeRequestAssigneeForm
           request={request}
           onFormComplete={() => setDialog(null)}
           onFormCancel={() => setDialog(null)}

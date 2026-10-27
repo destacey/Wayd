@@ -56350,6 +56350,7 @@
           "canAddParticipants",
           "isDeskAgent",
           "canChangeStatus",
+          "canChangeAssignee",
           "canWithdraw"
         ],
         "type": "object",
@@ -56398,6 +56399,10 @@
           "canChangeStatus": {
             "type": "boolean",
             "description": "Whether the reader may move the request to another status: an agent on its desk."
+          },
+          "canChangeAssignee": {
+            "type": "boolean",
+            "description": "Whether the reader may assign the request to a member of its desk, or unassign it: an agent on its desk."
           },
           "canWithdraw": {
             "type": "boolean",

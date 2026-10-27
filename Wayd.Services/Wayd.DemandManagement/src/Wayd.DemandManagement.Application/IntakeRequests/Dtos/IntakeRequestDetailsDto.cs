@@ -47,6 +47,9 @@ public sealed record IntakeRequestDetailsDto
     /// <summary>Whether the reader may move the request to another status: an agent on its desk.</summary>
     public bool CanChangeStatus { get; init; }
 
+    /// <summary>Whether the reader may assign the request to a member of its desk, or unassign it: an agent on its desk.</summary>
+    public bool CanChangeAssignee { get; init; }
+
     /// <summary>Whether the reader may withdraw the request: its requester, while it is open.</summary>
     public bool CanWithdraw { get; init; }
 

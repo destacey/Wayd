@@ -69,6 +69,12 @@ const listTag = { type: QueryTags.IntakeRequest, id: 'LIST' } as const
 
 const deskListTag = { type: QueryTags.IntakeDesk, id: 'LIST' } as const
 
+export interface ChangeIntakeRequestAssigneeArgs {
+  requestId: string
+  /** The desk member to assign, or undefined to unassign. */
+  assigneeId?: string
+}
+
 export interface RerouteIntakeRequestArgs extends RerouteIntakeRequestRequest {
   requestId: string
 }
@@ -204,6 +210,28 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (_result, _error, { requestId }) =>
         requestTags(requestId),
+    }),
+
+    // The assignee shows in every list the request appears in, so lists refetch too.
+    changeIntakeRequestAssignee: builder.mutation<
+      void,
+      ChangeIntakeRequestAssigneeArgs
+    >({
+      queryFn: async ({ requestId, assigneeId }) => {
+        try {
+          const data = await getIntakeRequestsClient().changeAssignee(
+            requestId,
+            { assigneeId },
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: (_result, _error, { requestId }) => [
+        ...requestTags(requestId),
+        listTag,
+      ],
     }),
 
     // A move changes the desk on the request and the waiting counts on both desks.
@@ -594,6 +622,7 @@ export const {
   useUpdateIntakeDeskMutation,
   useDeleteIntakeDeskMutation,
   useRerouteIntakeRequestMutation,
+  useChangeIntakeRequestAssigneeMutation,
   useGetIntakeRequestArrivalStatusesQuery,
   useGetIntakeRequestStatusOptionsQuery,
   useChangeIntakeRequestStatusMutation,

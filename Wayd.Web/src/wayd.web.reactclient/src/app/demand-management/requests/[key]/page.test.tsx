@@ -141,6 +141,7 @@ const details = (overrides: Record<string, unknown> = {}) => ({
   canReroute: false,
   canAddParticipants: false,
   canChangeStatus: false,
+  canChangeAssignee: false,
   canWithdraw: false,
   isDeskAgent: false,
   ...overrides,
@@ -222,6 +223,33 @@ describe('IntakeRequestDetailsPage', () => {
     ).toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: 'Withdraw Request' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('offers Change Assignee only when the server allows it', async () => {
+    // Arrange
+    mockRequest = details({ canChangeAssignee: true })
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(
+      await screen.findByRole('button', { name: 'Change Assignee' }),
+    ).toBeInTheDocument()
+  })
+
+  it('offers no Change Assignee when the server does not allow it', async () => {
+    // Arrange
+    mockRequest = details({ canChangeStatus: true })
+
+    // Act
+    await renderPage()
+
+    // Assert
+    await screen.findByRole('button', { name: 'Change Status' })
+    expect(
+      screen.queryByRole('button', { name: 'Change Assignee' }),
     ).not.toBeInTheDocument()
   })
 

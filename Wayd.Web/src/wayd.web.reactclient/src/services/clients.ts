@@ -65,6 +65,7 @@ import {
   SearchClient,
   TokenResponse,
   IntakeChannelsClient,
+  IntakeRequestTagCategoriesClient,
   IntakeDesksClient,
   IntakeEmployeeOptionsClient,
   IntakeRequestsClient,
@@ -508,6 +509,8 @@ export const getIntakeEmployeeOptionsClient = () =>
   new IntakeEmployeeOptionsClient('', axiosClient)
 export const getIntakeRequestsClient = () =>
   new IntakeRequestsClient('', axiosClient)
+export const getIntakeRequestTagCategoriesClient = () =>
+  new IntakeRequestTagCategoriesClient('', axiosClient)
 
 // PPM
 export const getExpenditureCategoriesClient = () =>

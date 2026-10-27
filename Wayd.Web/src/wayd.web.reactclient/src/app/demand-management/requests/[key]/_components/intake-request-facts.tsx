@@ -7,6 +7,7 @@ import { Typography } from 'antd'
 import NextLink from 'next/link'
 import { FC } from 'react'
 import { deskHref } from '../../../_components/desk-status'
+import EmployeeName from '../../../_components/employee-name'
 
 const { Text, Link } = Typography
 
@@ -15,8 +16,8 @@ export interface IntakeRequestFactsProps {
 }
 
 /**
- * The request's stable facts. People are names rather than links, since most requesters cannot open
- * employee pages. Who submitted it and where it came from are substance, so they appear only with it.
+ * The request's stable facts. People link to their pages only for a reader who can open them. Who
+ * submitted it and where it came from are substance, so they appear only with it.
  */
 const IntakeRequestFacts: FC<IntakeRequestFactsProps> = ({ request }) => {
   const { summary, substance } = request
@@ -33,15 +34,19 @@ const IntakeRequestFacts: FC<IntakeRequestFactsProps> = ({ request }) => {
       </RecordFactsGroup>
       <RecordFactsGroup label="People">
         <LabeledContent label="Requester">
-          {summary.requester.name}
+          <EmployeeName employee={summary.requester} />
         </LabeledContent>
         {substance && (
           <LabeledContent label="Submitted By">
-            {substance.submittedBy.name}
+            <EmployeeName employee={substance.submittedBy} />
           </LabeledContent>
         )}
         <LabeledContent label="Assignee">
-          {summary.assignee?.name ?? <Text type="secondary">Not assigned</Text>}
+          {summary.assignee ? (
+            <EmployeeName employee={summary.assignee} />
+          ) : (
+            <Text type="secondary">Not assigned</Text>
+          )}
         </LabeledContent>
       </RecordFactsGroup>
       {substance?.origin && (

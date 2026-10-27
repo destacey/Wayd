@@ -1,18 +1,13 @@
 'use client'
 
-import {
-  WaydGrid,
-  renderAssignedToLink,
-} from '@/src/components/common/wayd-grid'
+import { WaydGrid } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
-import useAuth from '@/src/components/contexts/auth'
 import EntityLink from '@/src/components/common/entity-link'
 import {
   statusCategoryDescription,
   WorkflowStatusTag,
 } from '@/src/components/common/status-workflows'
 import {
-  EmployeeNavigationDto,
   IntakeRequestSummaryDto,
   NeedByBasisDto,
   NeedByBasisFamily,
@@ -23,6 +18,7 @@ import Link from 'next/link'
 import { FC, ReactNode } from 'react'
 import { NeedByTag } from './need-by'
 import { deskHref } from './desk-status'
+import EmployeeName from './employee-name'
 import { WaitTime, daysSince } from './request-age'
 
 export interface IntakeRequestsGridProps {
@@ -75,15 +71,6 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
   leftSlot,
   rightSlot,
 }) => {
-  const { hasPermissionClaim } = useAuth()
-  const canOpenEmployees = hasPermissionClaim('Permissions.Employees.View')
-  const person = (employee: EmployeeNavigationDto | undefined) =>
-    !employee
-      ? null
-      : canOpenEmployees
-        ? renderAssignedToLink(employee)
-        : employee.name
-
   const basisName = (code: string | undefined) =>
     code ? (needByBases?.find((b) => b.code === code)?.name ?? code) : ''
 
@@ -171,7 +158,7 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       accessorFn: (request) => request.assignee?.name ?? '',
       header: 'Assignee',
       size: 180,
-      cell: ({ row }) => person(row.original.assignee),
+      cell: ({ row }) => <EmployeeName employee={row.original.assignee} />,
       meta: { filterType: 'set' },
     },
     {
@@ -191,7 +178,7 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       accessorKey: 'requester.name',
       header: 'Requester',
       size: 180,
-      cell: ({ row }) => person(row.original.requester),
+      cell: ({ row }) => <EmployeeName employee={row.original.requester} />,
       meta: { filterType: 'set' },
     },
     {

@@ -14,6 +14,8 @@ import {
   useGetIntakeDesksQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
 import { Button, Flex } from 'antd'
+import Link from 'next/link'
+
 import { FC, useEffect, useState } from 'react'
 import CreateIntakeDeskForm from '../_components/create-intake-desk-form'
 import {
@@ -50,6 +52,15 @@ const IntakeDesksPage: FC = () => {
     visibilities?.find((v) => v.code === code)?.name ?? code
 
   const columns: ColumnDef<IntakeDeskDto, any>[] = [
+    {
+      id: 'key',
+      accessorKey: 'key',
+      header: 'Key',
+      size: 90,
+      cell: ({ row }) => (
+        <Link href={deskHref(row.original.key)}>{row.original.key}</Link>
+      ),
+    },
     {
       id: 'name',
       accessorKey: 'name',

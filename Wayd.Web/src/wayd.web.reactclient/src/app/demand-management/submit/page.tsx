@@ -66,7 +66,7 @@ interface SubmitRequestFormValues {
   needBy?: NeedByFormValues
 }
 
-const StepHeading: FC<{ title: string; children: ReactNode }> = ({
+const StepHeading: FC<{ title: string; children?: ReactNode }> = ({
   title,
   children,
 }) => (
@@ -74,7 +74,7 @@ const StepHeading: FC<{ title: string; children: ReactNode }> = ({
     <Title level={5} className={styles.stepTitle}>
       {title}
     </Title>
-    <Text type="secondary">{children}</Text>
+    {children && <Text type="secondary">{children}</Text>}
   </div>
 )
 
@@ -266,9 +266,7 @@ const SubmitIntakeRequestPage: FC = () => {
 
             {/* Every step stays mounted so its answers survive moving between steps. */}
             <div hidden={step !== 0}>
-              <StepHeading title="What are you asking for?">
-                One ask per request. If it is really two things, submit two.
-              </StepHeading>
+              <StepHeading title="What are you asking for?" />
               <RequestAskFields
                 channels={channels}
                 descriptionLabel="Describe it in your own words"
@@ -357,7 +355,14 @@ const SubmitIntakeRequestPage: FC = () => {
 
   const page = (
     <div className="page-gutters">
-      <PageTitle title="Submit a Request" />
+      {/* Once there is a desk, the title names it, so it stays in view through every step. */}
+      <PageTitle
+        title={
+          desk && hasLinkedEmployee
+            ? `Submit a Request – ${desk.name}`
+            : 'Submit a Request'
+        }
+      />
       {content()}
     </div>
   )

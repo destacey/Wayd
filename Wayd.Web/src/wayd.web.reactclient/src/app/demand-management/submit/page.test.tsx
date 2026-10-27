@@ -144,6 +144,9 @@ describe('SubmitIntakeRequestPage', () => {
 
     // Assert
     expect(
+      screen.getByRole('heading', { name: 'Submit a Request – IT' }),
+    ).toBeInTheDocument()
+    expect(
       screen.queryByText('What kind of request is this?'),
     ).not.toBeInTheDocument()
     expect(
@@ -171,14 +174,20 @@ describe('SubmitIntakeRequestPage', () => {
       screen.getByText('Reviewed by the IT desk · Riley Reviewer'),
     ).toBeInTheDocument()
     expect(screen.queryByLabelText('Title')).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Submit a Request' }),
+    ).toBeInTheDocument()
 
     // Act
     await act(() =>
       userEvent.click(screen.getByText('Changes to what we sell')),
     )
 
-    // Assert
+    // Assert — the title names the chosen desk for the rest of the form
     expect(await screen.findByLabelText('Title')).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Submit a Request – Product' }),
+    ).toBeInTheDocument()
   })
 
   it('goes back to the desk question from the first step', async () => {

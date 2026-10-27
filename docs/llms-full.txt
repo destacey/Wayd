@@ -544,7 +544,9 @@ Authorization is by desk role alone — no claim is needed beside it, and endpoi
 
 ### Intake Channels
 
-Where a request came from; a company-defined vocabulary referenced by id with an active/archived state. Eight are seeded once (business stakeholder, customer feedback, support, sales and account management, innovation program, regulatory and compliance, security, engineering). Administering channels arrives with #1120.
+Where a request came from: one company list, referenced by id, with an order and an active/archived state. Eight are seeded once (business stakeholder, customer feedback, support, sales and account management, innovation program, regulatory and compliance, security, engineering). The Demand Management Admin (`Permissions.IntakeRequests.Administer`) creates, renames, describes, reorders and archives or restores them (`POST`/`PUT intake-channels`, `POST intake-channels/{id}/archive` and `/restore`, `PUT intake-channels/order` with every channel); channels are never deleted. Events: `IntakeChannelCreated`, `DetailsUpdated`, `Reordered` (one per channel moved), `Archived`, `Restored`; channels that predate them have a baseline.
+
+Each desk offers a subset: `IntakeDesk.OffersAllChannels` (true for a new desk, and it then offers channels added later) or its chosen `Channels`, possibly none; archived channels are offered by no desk. Desk Admins set it through `PUT intake-desks/{id}` (`offersAllChannels`, `channelIds`), raising `IntakeDeskChannelsChangedEvent`. `GET intake-channels?deskId=` returns what a desk offers. A request's `ChannelId` is optional: `IntakeRequest.Submit` (Wayd's form) requires a channel the desk offers when it offers any and allows none when it offers none; `IntakeRequest.Create` (upstream systems and imports) takes any active channel or none. An edit may keep the request's channel or choose one the desk offers, and clears it only on a desk offering none. A reroute never changes the channel. Lists show a request with no channel as "Not recorded". `IntakeRequestCreatedEventV2` and `IntakeRequestChannelChangedEventV2` carry the nullable channel; their 1.x types are frozen.
 
 ---
 

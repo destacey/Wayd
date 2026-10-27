@@ -6,6 +6,11 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle, useLinkedEmployee } from '@/src/hooks'
 import {
+  IntakeChannelDto,
+  IntakeDeskDto,
+  NeedByBasisDto,
+} from '@/src/services/wayd-api'
+import {
   useCreateIntakeRequestMutation,
   useGetIntakeChannelsQuery,
   useGetIntakeDesksQuery,
@@ -18,26 +23,39 @@ import {
   Alert,
   Button,
   Card,
+  ConfigProvider,
   Flex,
   Form,
+  Grid,
   Skeleton,
+  Steps,
   Tag,
   Typography,
 } from 'antd'
+import type { NamePath } from 'antd/es/form/interface'
 import { useRouter } from 'next/navigation'
-import { FC, useState } from 'react'
+import { FC, ReactNode, useState } from 'react'
 import {
   NeedByFields,
   NeedByFormValues,
+  NeedByTag,
   needByFieldFor,
   toNeedByRequest,
 } from '../_components/need-by'
-import RequestTextFields from '../_components/request-text-fields'
+import {
+  ExpectedBenefitsField,
+  RequestAskFields,
+} from '../_components/request-text-fields'
 import DeskChoice, { deskPhrase } from './_components/desk-choice'
+import WhatHappensNext from './_components/what-happens-next'
 import styles from './page.module.css'
 
 const { Item } = Form
-const { Text } = Typography
+const { Text, Title } = Typography
+const { useBreakpoint } = Grid
+
+/** On a phone every control is tapped, so each is at least a 44px touch target. */
+const TOUCH_THEME = { token: { controlHeight: 44 } }
 
 interface SubmitRequestFormValues {
   requesterId?: string
@@ -48,16 +66,104 @@ interface SubmitRequestFormValues {
   needBy?: NeedByFormValues
 }
 
+/** The steps, and the fields each must have right before the requester moves on. */
+const STEPS: { title: string; fields: NamePath[] }[] = [
+  {
+    title: 'The ask',
+    fields: ['requesterId', 'title', 'description', 'channelId'],
+  },
+  {
+    title: 'Why and when',
+    fields: [
+      'expectedBenefits',
+      ['needBy', 'date'],
+      ['needBy', 'basis'],
+      ['needBy', 'reference'],
+      ['needBy', 'committedById'],
+      ['needBy', 'committedOn'],
+    ],
+  },
+  { title: 'Check and submit', fields: [] },
+]
+
+const StepHeading: FC<{ title: string; children: ReactNode }> = ({
+  title,
+  children,
+}) => (
+  <div className={styles.stepHeading}>
+    <Title level={5} className={styles.stepTitle}>
+      {title}
+    </Title>
+    <Text type="secondary">{children}</Text>
+  </div>
+)
+
+const Fact: FC<{ label: string; children: ReactNode; wide?: boolean }> = ({
+  label,
+  children,
+  wide,
+}) => (
+  <div className={wide ? styles.factWide : undefined}>
+    <Text type="secondary" className={styles.factLabel}>
+      {label}
+    </Text>
+    <div>{children}</div>
+  </div>
+)
+
+/** The request as it will be sent, for the requester to check before submitting. */
+const RequestReview: FC<{
+  values: SubmitRequestFormValues
+  desk: IntakeDeskDto
+  channels: IntakeChannelDto[] | undefined
+  requesterName: string | undefined
+  bases: NeedByBasisDto[] | undefined
+}> = ({ values, desk, channels, requesterName, bases }) => {
+  const needBy = toNeedByRequest(values.needBy, bases)
+  const family = bases?.find((b) => b.code === needBy?.basis)?.family
+  return (
+    <div className={styles.review}>
+      <Fact label="Title" wide>
+        <Text strong>{values.title}</Text>
+      </Fact>
+      <Fact label="Goes to">
+        <Tag color="processing">{deskPhrase(desk.name)}</Tag>
+      </Fact>
+      <Fact label="Channel">
+        {channels?.find((c) => c.id === values.channelId)?.name}
+      </Fact>
+      <Fact label="Requested by">{requesterName}</Fact>
+      <Fact label="Needed by">
+        <NeedByTag
+          needBy={
+            needBy && family
+              ? {
+                  date: needBy.date,
+                  basis: needBy.basis,
+                  family,
+                  reference: needBy.reference,
+                }
+              : undefined
+          }
+        />
+      </Fact>
+    </div>
+  )
+}
+
 /**
  * Submits a request. The desk is the first question only when more than one desk takes requests; with
  * one, the form says where the request goes, so a company with one review group never meets the concept.
+ * The form itself is the same for every desk, in three steps: the ask, why and by when, and a check.
  */
 const SubmitIntakeRequestPage: FC = () => {
   useDocumentTitle('Submit a Request')
   const router = useRouter()
   const messageApi = useMessage()
+  const screens = useBreakpoint()
   const [form] = Form.useForm<SubmitRequestFormValues>()
   const [isSaving, setIsSaving] = useState(false)
+  const [step, setStep] = useState(0)
   const [createRequest] = useCreateIntakeRequestMutation()
 
   const { employeeId, hasLinkedEmployee } = useLinkedEmployee()
@@ -73,6 +179,19 @@ const SubmitIntakeRequestPage: FC = () => {
   const singleDesk = desks?.length === 1 ? desks[0] : undefined
   const deskId = singleDesk?.id ?? chosenDeskId
   const desk = desks?.find((d) => d.id === deskId)
+
+  const goTo = async (target: number) => {
+    // Moving on checks the steps being left; going back never does.
+    if (target > step) {
+      const fields = STEPS.slice(step, target).flatMap((s) => s.fields)
+      try {
+        await form.validateFields(fields)
+      } catch {
+        return
+      }
+    }
+    setStep(target)
+  }
 
   const onSubmit = async (values: SubmitRequestFormValues) => {
     if (!deskId) return
@@ -107,6 +226,7 @@ const SubmitIntakeRequestPage: FC = () => {
       setIsSaving(false)
     }
   }
+
   const content = () => {
     if (!hasLinkedEmployee) {
       return (
@@ -132,39 +252,61 @@ const SubmitIntakeRequestPage: FC = () => {
 
     if (!desk) return <DeskChoice desks={desks} onPick={setChosenDeskId} />
 
+    const values = form.getFieldsValue(true) as SubmitRequestFormValues
+    const isLast = step === STEPS.length - 1
+
     return (
-      <Card style={{ maxWidth: 800 }}>
-        <Form
-          form={form}
-          layout="vertical"
-          name="submit-intake-request-form"
-          initialValues={{ requesterId: employeeId ?? undefined }}
-          onFinish={onSubmit}
-          disabled={isSaving}
-        >
-          <Flex vertical gap={4} className={styles.goesTo}>
-            <Flex gap={8} align="center" wrap>
-              <Tag color="processing" className={styles.deskTag}>
-                Goes to {deskPhrase(desk.name)}
-              </Tag>
-              {!singleDesk && (
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={() => setChosenDeskId(undefined)}
-                  disabled={isSaving}
-                >
-                  Change
-                </Button>
-              )}
+      <div className={styles.layout}>
+        <Card className={styles.main}>
+          <Form
+            form={form}
+            layout="vertical"
+            name="submit-intake-request-form"
+            initialValues={{ requesterId: employeeId ?? undefined }}
+            onFinish={onSubmit}
+            disabled={isSaving}
+          >
+            <Flex vertical gap={4} className={styles.goesTo}>
+              <Flex gap={8} align="center" wrap>
+                <Tag color="processing" className={styles.deskTag}>
+                  Goes to {deskPhrase(desk.name)}
+                </Tag>
+                {!singleDesk && (
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() => setChosenDeskId(undefined)}
+                    disabled={isSaving}
+                  >
+                    Change
+                  </Button>
+                )}
+              </Flex>
+              <Text type="secondary">{desk.description}</Text>
             </Flex>
-            <Text type="secondary">{desk.description}</Text>
-          </Flex>
-          {deskId && (
-            <>
+            <Steps
+              size="small"
+              // On a phone the titles sit under the numbers, so the three steps stay one short row.
+              responsive={false}
+              titlePlacement={screens.md === false ? 'vertical' : 'horizontal'}
+              current={step}
+              onChange={goTo}
+              className={styles.steps}
+              items={STEPS.map((s) => ({ title: s.title }))}
+            />
+
+            {/* Every step stays mounted so its answers survive moving between steps. */}
+            <div hidden={step !== 0}>
+              <StepHeading title="What are you asking for?">
+                One ask per request. If it is really two things, submit two.
+              </StepHeading>
+              <RequestAskFields
+                channels={channels}
+                descriptionLabel="Describe it in your own words"
+              />
               <Item
                 name="requesterId"
-                label="Who is this request for?"
+                label="Requested by"
                 extra="You, unless you are submitting it on someone else's behalf."
                 rules={[{ required: true, message: 'Choose who this is for.' }]}
               >
@@ -175,35 +317,77 @@ const SubmitIntakeRequestPage: FC = () => {
                   }))}
                 />
               </Item>
-              <RequestTextFields channels={channels} />
+            </div>
+
+            <div hidden={step !== 1}>
+              <StepHeading title="Why does it matter, and by when?">
+                This is what reviewers weigh it on when capacity is short.
+              </StepHeading>
+              <ExpectedBenefitsField label="What is it worth?" />
               <NeedByFields
                 bases={bases}
                 families={families}
                 employees={employees}
               />
-              <Flex gap={8}>
+            </div>
+
+            {isLast && (
+              <div>
+                <StepHeading title="Check and submit">
+                  You can edit it while it is under review.
+                </StepHeading>
+                <RequestReview
+                  values={values}
+                  desk={desk}
+                  channels={channels}
+                  requesterName={
+                    employees?.find((e) => e.id === values.requesterId)?.name
+                  }
+                  bases={bases}
+                />
+              </div>
+            )}
+
+            <Flex gap={8} wrap className={styles.actions}>
+              {step > 0 && <Button onClick={() => goTo(step - 1)}>Back</Button>}
+              {isLast ? (
                 <Button type="primary" htmlType="submit" loading={isSaving}>
-                  Submit Request
+                  Submit request
                 </Button>
-                <Button
-                  onClick={() => router.push('/demand-management/my-requests')}
-                  disabled={isSaving}
-                >
-                  Cancel
+              ) : (
+                <Button type="primary" onClick={() => goTo(step + 1)}>
+                  Continue
                 </Button>
-              </Flex>
-            </>
-          )}
-        </Form>
-      </Card>
+              )}
+              <Button
+                type="text"
+                className={styles.cancel}
+                onClick={() => router.push('/demand-management/my-requests')}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+            </Flex>
+          </Form>
+        </Card>
+        <aside className={styles.aside}>
+          <WhatHappensNext />
+        </aside>
+      </div>
     )
   }
 
-  return (
+  const page = (
     <div className="page-gutters">
       <PageTitle title="Submit a Request" />
       {content()}
     </div>
+  )
+
+  return screens.md === false ? (
+    <ConfigProvider theme={TOUCH_THEME}>{page}</ConfigProvider>
+  ) : (
+    page
   )
 }
 

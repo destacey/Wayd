@@ -24,8 +24,13 @@ export interface RequestTextFieldsProps {
   channels: IntakeChannelDto[] | undefined
 }
 
-/** The fields every desk asks for, shared by submit and edit so the two never drift. */
-const RequestTextFields: FC<RequestTextFieldsProps> = ({ channels }) => (
+/**
+ * What the request asks for: its title, its description and where it came from. The submit form words the
+ * description as a question to the requester; the edit form names the field.
+ */
+export const RequestAskFields: FC<
+  RequestTextFieldsProps & { descriptionLabel?: string }
+> = ({ channels, descriptionLabel = 'Description' }) => (
   <>
     <Item
       name="title"
@@ -44,7 +49,7 @@ const RequestTextFields: FC<RequestTextFieldsProps> = ({ channels }) => (
     </Item>
     <Item
       name="description"
-      label="Description"
+      label={descriptionLabel}
       rules={[
         {
           required: true,
@@ -52,13 +57,6 @@ const RequestTextFields: FC<RequestTextFieldsProps> = ({ channels }) => (
           message: 'Describe what you are asking for.',
         },
       ]}
-    >
-      <MarkdownEditor maxLength={TEXT_MAX_LENGTH} />
-    </Item>
-    <Item
-      name="expectedBenefits"
-      label="Expected benefits"
-      extra="Optional. What gets better, and for whom, if this is delivered."
     >
       <MarkdownEditor maxLength={TEXT_MAX_LENGTH} />
     </Item>
@@ -76,6 +74,27 @@ const RequestTextFields: FC<RequestTextFieldsProps> = ({ channels }) => (
         }))}
       />
     </Item>
+  </>
+)
+
+/** What the requester expects to get better. Optional, and worded as a question on the submit form. */
+export const ExpectedBenefitsField: FC<{ label?: string }> = ({
+  label = 'Expected benefits',
+}) => (
+  <Item
+    name="expectedBenefits"
+    label={label}
+    extra="Optional. What gets better, and for whom, if this is delivered."
+  >
+    <MarkdownEditor maxLength={TEXT_MAX_LENGTH} />
+  </Item>
+)
+
+/** The fields every desk asks for, shared by submit and edit so the two never drift. */
+const RequestTextFields: FC<RequestTextFieldsProps> = ({ channels }) => (
+  <>
+    <RequestAskFields channels={channels} />
+    <ExpectedBenefitsField />
   </>
 )
 

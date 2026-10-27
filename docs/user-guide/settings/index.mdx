@@ -17,7 +17,7 @@ The Administration area provides tools for configuring Wayd, managing users, con
 | **Organization** | Holiday Calendars, Team Member Roles |
 | **Planning** | Estimation Scales (with the `planning-poker` flag) |
 | **Product Management** | Product Tags (with the `product-management` flag) |
-| **Demand Management** | Channels (with the `demand-management` flag) |
+| **Demand Management** | Channels, Tag Axes (with the `demand-management` flag) |
 | **PPM** | Expenditure Categories, Project Lifecycles, Scoring Models |
 | **Work Management** | Work Types, Work Statuses, Work Processes |
 | **System** | Scheduling, Sprint Metrics, Feature Flags, Status Workflows, Connections, Imports, Background Jobs, Messaging |
@@ -360,6 +360,10 @@ Tags themselves carry no order — they display alphabetically wherever they app
 ### Channels
 
 **Channels** is the company's list of where intake requests come from, managed by the Demand Management Admin (`Permissions.IntakeRequests.Administer`). Add, rename, describe, reorder and archive channels here; each desk then chooses which of them it offers. See [Demand Management: managing channels](../demand-management/index.mdx#managing-channels).
+
+### Tag Axes
+
+**Tag Axes** are the axes reviewers tag intake requests along, such as Area, and the tags on each, managed by the Demand Management Admin (`Permissions.IntakeRequests.Administer`). Add, rename, reorder, deactivate and delete axes and their tags here; an axis or tag that requests carry is deactivated rather than deleted. See [Demand Management: managing tag axes](../demand-management/index.mdx#managing-tag-axes).
 
 ## PPM Settings
 

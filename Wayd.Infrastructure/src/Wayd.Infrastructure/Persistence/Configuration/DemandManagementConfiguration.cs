@@ -46,6 +46,7 @@ public class IntakeDeskConfiguration : IEntityTypeConfiguration<IntakeDesk>
         builder.Property(d => d.IsRequesterSelectable).IsRequired();
         builder.Property(d => d.IsOpen).IsRequired();
         builder.Property(d => d.RequesterMayAddParticipants).IsRequired();
+        builder.Property(d => d.OffersAllChannels).IsRequired();
 
         // The desk is saved whole; without this, two saves read at the same revision would both pass the
         // handler's check and the second would undo the first.
@@ -57,6 +58,30 @@ public class IntakeDeskConfiguration : IEntityTypeConfiguration<IntakeDesk>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(d => d.Members).HasField("_members").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(d => d.Channels)
+            .WithOne()
+            .HasForeignKey(c => c.DeskId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(d => d.Channels).HasField("_channels").UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class IntakeDeskChannelConfiguration : IEntityTypeConfiguration<IntakeDeskChannel>
+{
+    public void Configure(EntityTypeBuilder<IntakeDeskChannel> builder)
+    {
+        builder.ToTable("IntakeDeskChannels", SchemaNames.DemandManagement);
+
+        builder.HasKey(c => new { c.DeskId, c.ChannelId });
+
+        builder.HasIndex(c => c.ChannelId);
+
+        builder.HasOne<IntakeChannel>()
+            .WithMany()
+            .HasForeignKey(c => c.ChannelId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
 
@@ -164,9 +189,11 @@ public class IntakeRequestConfiguration : IEntityTypeConfiguration<IntakeRequest
             .HasForeignKey(r => r.DeskId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Optional: a request submitted to a desk that offers no channel has none.
         builder.HasOne<IntakeChannel>()
             .WithMany()
             .HasForeignKey(r => r.ChannelId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne<Employee>()

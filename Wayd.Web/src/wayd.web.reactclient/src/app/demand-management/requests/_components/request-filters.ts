@@ -2,6 +2,7 @@ import {
   IntakeRequestSummaryDto,
   NeedByBasisFamily,
 } from '@/src/services/wayd-api'
+import { NOT_RECORDED_CHANNEL } from '../../_components/channel'
 
 /** Who a request is assigned to, as the Requests page filters it. */
 export type AssigneeFilter = 'anyone' | 'me' | 'unassigned'
@@ -29,7 +30,7 @@ export interface RequestFilters {
    */
   statusNames: string[]
   assignee: AssigneeFilter
-  /** Empty for every channel. */
+  /** Empty for every channel; {@link NOT_RECORDED_CHANNEL} stands for requests with none. */
   channelIds: string[]
   needBy: NeedByFilter
 }
@@ -91,7 +92,7 @@ export const applyRequestFilters = (
       (filters.statusNames.length === 0 ||
         filters.statusNames.includes(r.status.name)) &&
       (filters.channelIds.length === 0 ||
-        filters.channelIds.includes(r.channel.id)) &&
+        filters.channelIds.includes(r.channel?.id ?? NOT_RECORDED_CHANNEL)) &&
       (filters.assignee === 'anyone' ||
         (filters.assignee === 'unassigned' && !r.assignee) ||
         (filters.assignee === 'me' &&

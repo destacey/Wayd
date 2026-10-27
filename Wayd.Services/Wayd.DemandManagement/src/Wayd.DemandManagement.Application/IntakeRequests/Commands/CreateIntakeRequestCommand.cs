@@ -13,7 +13,10 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
 /// <param name="Description">The ask in full.</param>
 /// <param name="ExpectedBenefits">What gets better, and for whom, if the ask is delivered.</param>
 /// <param name="DeskId">The desk to submit to: one that is open and that requesters can pick.</param>
-/// <param name="ChannelId">Where the request came from: an active channel.</param>
+/// <param name="ChannelId">
+/// Where the request came from: a channel the desk offers. Required when the desk offers any; left out when it
+/// offers none.
+/// </param>
 /// <param name="RequesterId">The employee the request is for, when it is not the caller.</param>
 /// <param name="NeedBy">When the request has to land, and why.</param>
 public sealed record CreateIntakeRequestCommand(
@@ -21,7 +24,7 @@ public sealed record CreateIntakeRequestCommand(
     string Description,
     string? ExpectedBenefits,
     Guid DeskId,
-    Guid ChannelId,
+    Guid? ChannelId,
     Guid? RequesterId,
     IntakeRequestNeedByInput? NeedBy) : ICommand<ObjectIdAndKey>, IRequireLinkedEmployee;
 
@@ -32,7 +35,7 @@ public sealed class CreateIntakeRequestCommandValidator : CustomValidator<Create
         RuleFor(c => c.Title).NotEmpty().MaximumLength(256);
         RuleFor(c => c.Description).NotEmpty();
         RuleFor(c => c.DeskId).NotEmpty();
-        RuleFor(c => c.ChannelId).NotEmpty();
+        RuleFor(c => c.ChannelId).NotEqual(Guid.Empty);
         RuleFor(c => c.RequesterId).NotEqual(Guid.Empty);
         RuleFor(c => c.NeedBy!).SetValidator(new IntakeRequestNeedByInputValidator()).When(c => c.NeedBy is not null);
     }
@@ -58,13 +61,20 @@ public sealed class CreateIntakeRequestCommandHandler(
         if (employeeId is null)
             LinkedEmployeeRequired.Throw();
 
-        var desk = await _dbContext.IntakeDesks.FirstOrDefaultAsync(d => d.Id == request.DeskId, cancellationToken);
+        var desk = await _dbContext.IntakeDesks
+            .Include(d => d.Channels)
+            .FirstOrDefaultAsync(d => d.Id == request.DeskId, cancellationToken);
         if (desk is null || !desk.IsRequesterSelectable)
             return Result.Failure<ObjectIdAndKey>("Choose a desk that requesters can submit to.");
 
-        var channel = await _dbContext.IntakeChannels.FirstOrDefaultAsync(c => c.Id == request.ChannelId, cancellationToken);
-        if (channel is null)
-            return Result.Failure<ObjectIdAndKey>("Intake channel not found.");
+        var channels = await _dbContext.IntakeChannels.ToListAsync(cancellationToken);
+        IntakeChannel? channel = null;
+        if (request.ChannelId is { } channelId)
+        {
+            channel = channels.FirstOrDefault(c => c.Id == channelId);
+            if (channel is null)
+                return Result.Failure<ObjectIdAndKey>("Intake channel not found.");
+        }
 
         if (!await _dbContext.IsActiveEmployee(employeeId.Value, cancellationToken))
             return Result.Failure<ObjectIdAndKey>("Only an active employee can submit a request.");
@@ -88,16 +98,16 @@ public sealed class CreateIntakeRequestCommandHandler(
         if (submitted.IsFailure)
             return Result.Failure<ObjectIdAndKey>(submitted.Error);
 
-        var created = IntakeRequest.Create(
+        var created = IntakeRequest.Submit(
             request.Title,
             request.Description,
             request.ExpectedBenefits,
             requesterId,
             employeeId.Value,
             desk,
+            channels,
             channel,
             needBy,
-            origin: null,
             submitted.Value,
             EventActor.User(_currentUser.GetUserId(), employeeId),
             _dateTimeProvider.Now);

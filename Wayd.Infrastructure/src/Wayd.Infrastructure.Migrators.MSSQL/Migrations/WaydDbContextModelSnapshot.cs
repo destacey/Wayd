@@ -1819,6 +1819,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<bool>("OffersAllChannels")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("RequesterMayAddParticipants")
                         .HasColumnType("bit");
 
@@ -1855,6 +1858,21 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("IntakeDesks", "DemandManagement");
                 });
 
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDeskChannel", b =>
+                {
+                    b.Property<Guid>("DeskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ChannelId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("DeskId", "ChannelId");
+
+                    b.HasIndex("ChannelId");
+
+                    b.ToTable("IntakeDeskChannels", "DemandManagement");
+                });
+
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDeskMember", b =>
                 {
                     b.Property<Guid>("DeskId")
@@ -1883,7 +1901,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid?>("AssigneeId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("ChannelId")
+                    b.Property<Guid?>("ChannelId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
@@ -8562,6 +8580,21 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDeskChannel", b =>
+                {
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeChannel", null)
+                        .WithMany()
+                        .HasForeignKey("ChannelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeDesk", null)
+                        .WithMany("Channels")
+                        .HasForeignKey("DeskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDeskMember", b =>
                 {
                     b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeDesk", null)
@@ -8587,8 +8620,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeChannel", null)
                         .WithMany()
                         .HasForeignKey("ChannelId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeDesk", null)
                         .WithMany()
@@ -10484,6 +10516,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDesk", b =>
                 {
+                    b.Navigation("Channels");
+
                     b.Navigation("Members");
                 });
 

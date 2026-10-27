@@ -339,6 +339,7 @@ public sealed class DomainEventSerializationTests
         roundTripped.Timestamp.Should().Be(original.Timestamp);
     }
 
+#pragma warning disable CS0618 // retired, but payloads written as it must still round-trip
     [Fact]
     public void IntakeRequestCreatedEvent_RoundTripsThroughDurableSerializer()
     {
@@ -356,6 +357,72 @@ public sealed class DomainEventSerializationTests
         roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
         roundTripped.NeedBy.Should().Be(needBy);
     }
+#pragma warning restore CS0618
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void IntakeRequestCreatedEventV2_RoundTripsThroughDurableSerializer(bool withChannel)
+    {
+        // Arrange — a request submitted to a desk that offers no channel carries none
+        var needBy = new IntakeRequestNeedByDetails(new LocalDate(2026, 12, 31), NeedByBasis.Commitment, "Steering committee",
+            Guid.NewGuid(), new LocalDate(2026, 9, 3));
+        var original = new IntakeRequestCreatedEventV2(Guid.NewGuid(), 42, "Export invoices", Guid.NewGuid(),
+            withChannel ? Guid.NewGuid() : null, Guid.NewGuid(), needBy, Guid.NewGuid(), StatusCategory.Proposed,
+            IntakeRequestStatusAlias.Submitted, EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
+    }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void IntakeRequestChannelChangedEventV2_RoundTripsThroughDurableSerializer(bool hadChannel, bool hasChannel)
+    {
+        // Arrange — a channel set, changed or cleared
+        var original = new IntakeRequestChannelChangedEventV2(Guid.NewGuid(), 42, hadChannel ? Guid.NewGuid() : null,
+            hasChannel ? Guid.NewGuid() : null, EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
+    }
+
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+    [Fact]
+    public void IntakeRequestChannelChangedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
+    {
+        // Arrange — the frozen 1.0 contract, from when every request had a channel. Nothing raises it any more,
+        // so only a stored payload can prove the retired type still reads what it once wrote.
+        const string payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000011",
+              "Key": 42,
+              "FromChannelId": "019f2a10-0000-7000-8000-000000000012",
+              "ToChannelId": "019f2a10-0000-7000-8000-000000000013",
+              "Timestamp": "2026-10-01T08:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000014",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+        var read = JsonSerializer.Deserialize<IntakeRequestChannelChangedEvent>(payload, Options)!;
+
+        // Assert
+        read.FromChannelId.Should().Be(Guid.Parse("019f2a10-0000-7000-8000-000000000012"));
+        read.ToChannelId.Should().Be(Guid.Parse("019f2a10-0000-7000-8000-000000000013"));
+        read.EventVersion.Should().Be("1.0");
+    }
+#pragma warning restore CS0618
 
     [Fact]
     public void IntakeRequestStatusChangedEvent_RoundTripsThroughDurableSerializer()
@@ -402,6 +469,7 @@ public sealed class DomainEventSerializationTests
         roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
     }
 
+#pragma warning disable CS0618 // retired, but payloads written as it must still be read
     [Fact]
     public void IntakeRequestCreatedEvent_WrittenBeforeStatuses_ReadsAsProposedWithNoStatus()
     {
@@ -422,6 +490,7 @@ public sealed class DomainEventSerializationTests
         read.StatusCategory.Should().Be(StatusCategory.Proposed);
         read.StatusAlias.Should().Be(IntakeRequestStatusAlias.None);
     }
+#pragma warning restore CS0618
 
     [Fact]
     public void IntakeRequestNeedByChangedEvent_RoundTripsThroughDurableSerializer()

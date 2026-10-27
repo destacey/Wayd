@@ -10,7 +10,8 @@ namespace Wayd.DemandManagement.Application.IntakeDesks.Commands;
 /// not change record nothing.
 /// </summary>
 /// <remarks>
-/// A Desk Admin on the desk changes its details, whether it is open, its requester settings and its agents.
+/// A Desk Admin on the desk changes its details, whether it is open, its requester settings, the channels it
+/// offers and its agents.
 /// Its visibility, and who its Desk Admins are, only the Demand Management Admin changes: a Desk Admin who
 /// could open their own desk could publish everything on it, and one who could name Desk Admins could raise
 /// anyone's access. A member removed while owning requests on the desk is unassigned from them, because the
@@ -28,6 +29,15 @@ namespace Wayd.DemandManagement.Application.IntakeDesks.Commands;
 /// <param name="IsRequesterSelectable">Whether a requester can pick the desk.</param>
 /// <param name="IsOpen">Whether the desk accepts new requests.</param>
 /// <param name="RequesterMayAddParticipants">On a private desk, whether the requester may add participants themselves.</param>
+/// <param name="OffersAllChannels">
+/// Whether the desk offers every active company channel, including ones added later; null keeps the desk's
+/// channels as they are, so a caller that does not know about them never resets a desk's choice.
+/// </param>
+/// <param name="ChannelIds">
+/// The company channels the desk offers when it does not offer them all; empty means it offers no channel, and
+/// null keeps the ones it has. Ignored unless <paramref name="OffersAllChannels"/> is false. A newly chosen
+/// channel must be active.
+/// </param>
 /// <param name="Members">Everyone on the desk after the change, each with their role.</param>
 /// <param name="ExpectedRevision">The desk's <c>Revision</c> when the change was prepared; a desk changed since refuses it.</param>
 public sealed record UpdateIntakeDeskCommand(
@@ -38,6 +48,8 @@ public sealed record UpdateIntakeDeskCommand(
     bool IsRequesterSelectable,
     bool IsOpen,
     bool RequesterMayAddParticipants,
+    bool? OffersAllChannels,
+    IReadOnlyList<Guid>? ChannelIds,
     IReadOnlyList<IntakeDeskMemberDetails> Members,
     int ExpectedRevision) : ICommand;
 
@@ -49,6 +61,7 @@ public sealed class UpdateIntakeDeskCommandValidator : CustomValidator<UpdateInt
         RuleFor(c => c.Name).NotEmpty().MaximumLength(128);
         RuleFor(c => c.Description).NotEmpty().MaximumLength(1024);
         RuleFor(c => c.Visibility).IsInEnum();
+        RuleForEach(c => c.ChannelIds).NotEmpty();
         RuleFor(c => c.Members).NotNull()
             .Must(members => members.Select(m => m.EmployeeId).Distinct().Count() == members.Count)
             .WithMessage("An employee can hold only one role on a desk.");
@@ -78,6 +91,7 @@ public sealed class UpdateIntakeDeskCommandHandler(
 
         var desk = await _dbContext.IntakeDesks
             .Include(d => d.Members)
+            .Include(d => d.Channels)
             .FirstOrDefaultAsync(d => d.Id == request.Id, cancellationToken);
         if (desk is null)
             return Result.Failure(IntakeDeskAccess.NotFoundError);
@@ -106,6 +120,22 @@ public sealed class UpdateIntakeDeskCommandHandler(
         if (activeAdded != addedIds.Length)
             return Result.Failure("Every member must be an active employee.");
 
+        var offersAllChannels = request.OffersAllChannels ?? desk.OffersAllChannels;
+        Guid[] channelIds = [.. (request.ChannelIds ?? [.. desk.Channels.Select(c => c.ChannelId)]).Distinct()];
+        if (!offersAllChannels)
+        {
+            // A channel already chosen may stay after it is archived; only one newly chosen must be active.
+            var newlyChosen = channelIds.Where(id => desk.Channels.All(c => c.ChannelId != id)).ToArray();
+            var known = await _dbContext.IntakeChannels
+                .Where(c => channelIds.Contains(c.Id))
+                .Select(c => new { c.Id, c.IsActive })
+                .ToListAsync(cancellationToken);
+            if (known.Count != channelIds.Length)
+                return Result.Failure("Every channel must be a company channel.");
+            if (known.Any(c => !c.IsActive && newlyChosen.Contains(c.Id)))
+                return Result.Failure("An archived channel cannot be offered.");
+        }
+
         var actor = EventActor.User(_currentUser.GetUserId(), reader.EmployeeId);
         var now = _dateTimeProvider.Now;
         var result = Result.Combine(
@@ -113,6 +143,7 @@ public sealed class UpdateIntakeDeskCommandHandler(
             desk.ChangeVisibility(request.Visibility, actor, now),
             request.IsOpen ? desk.Open(actor, now) : desk.Close(actor, now),
             desk.ChangeRequesterSettings(request.IsRequesterSelectable, request.RequesterMayAddParticipants, actor, now),
+            desk.ChangeChannels(offersAllChannels, channelIds, actor, now),
             desk.ChangeMembers(request.Members, actor, now));
         if (result.IsFailure)
             return result;

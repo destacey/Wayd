@@ -31,6 +31,16 @@ public sealed record IntakeDeskDto
     /// <summary>On a private desk, whether the requester may add participants themselves.</summary>
     public bool RequesterMayAddParticipants { get; init; }
 
+    /// <summary>Whether the desk offers every active company channel, including channels added later.</summary>
+    public bool OffersAllChannels { get; init; }
+
+    /// <summary>
+    /// The company channels the desk chose, in the company's order, while it does not offer them all; an
+    /// archived one stays chosen but is not offered. Empty with <see cref="OffersAllChannels"/> false means the
+    /// desk offers none.
+    /// </summary>
+    public required IReadOnlyList<Guid> ChannelIds { get; init; }
+
     /// <summary>How many changes the desk has recorded; sent back with a change so a stale one is refused.</summary>
     public int Revision { get; init; }
 

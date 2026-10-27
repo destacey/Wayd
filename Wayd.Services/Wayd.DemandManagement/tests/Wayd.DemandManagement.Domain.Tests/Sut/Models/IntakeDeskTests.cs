@@ -488,4 +488,116 @@ public sealed class IntakeDeskTests
     }
 
     #endregion Delete
+
+    #region Channels
+
+    [Fact]
+    public void Create_OffersEveryActiveChannel()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().Generate();
+        var active = new IntakeChannelFaker().Generate();
+        var archived = new IntakeChannelFaker().AsArchived().Generate();
+
+        // Act
+        var offered = sut.OfferedFrom([active, archived]);
+
+        // Assert
+        sut.OffersAllChannels.Should().BeTrue();
+        offered.Should().Equal(active);
+    }
+
+    [Fact]
+    public void ChangeChannels_ToChosenOnes_OffersOnlyThose()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().Generate();
+        var chosen = new IntakeChannelFaker().Generate();
+        var other = new IntakeChannelFaker().Generate();
+
+        // Act
+        var result = sut.ChangeChannels(false, [chosen.Id], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Offers(chosen).Should().BeTrue();
+        sut.Offers(other).Should().BeFalse();
+        sut.Revision.Should().Be(1);
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskChannelsChangedEvent>().Subject;
+        changed.OffersAllChannels.Should().BeFalse();
+        changed.PreviousOffersAllChannels.Should().BeTrue();
+        changed.AddedChannelIds.Should().Equal(chosen.Id);
+        changed.RemovedChannelIds.Should().BeEmpty();
+        changed.ChannelIds.Should().Equal(chosen.Id);
+    }
+
+    [Fact]
+    public void ChangeChannels_ToNone_OffersNoChannel()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().Generate();
+
+        // Act
+        sut.ChangeChannels(false, [], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.OfferedFrom([new IntakeChannelFaker().Generate()]).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeChannels_ChosenChannelArchived_IsNotOffered()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().Generate();
+        var archived = new IntakeChannelFaker().AsArchived().Generate();
+        sut.ChangeChannels(false, [archived.Id], EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var offers = sut.Offers(archived);
+
+        // Assert
+        offers.Should().BeFalse();
+        sut.Channels.Should().ContainSingle(c => c.ChannelId == archived.Id);
+    }
+
+    [Fact]
+    public void ChangeChannels_BackToAll_ClearsTheChosenListWithBothEnds()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().Generate();
+        var chosen = Guid.NewGuid();
+        sut.ChangeChannels(false, [chosen], EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        sut.ChangeChannels(true, [Guid.NewGuid()], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.OffersAllChannels.Should().BeTrue();
+        sut.Channels.Should().BeEmpty();
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskChannelsChangedEvent>().Subject;
+        changed.PreviousOffersAllChannels.Should().BeFalse();
+        changed.RemovedChannelIds.Should().Equal(chosen);
+        changed.ChannelIds.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeChannels_ToTheSameChoice_RaisesNothing()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().Generate();
+        var chosen = Guid.NewGuid();
+        sut.ChangeChannels(false, [chosen], EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.ChangeChannels(false, [chosen, chosen], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+        sut.Revision.Should().Be(1);
+    }
+
+    #endregion Channels
 }

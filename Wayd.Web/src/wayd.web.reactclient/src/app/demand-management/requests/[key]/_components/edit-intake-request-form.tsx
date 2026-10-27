@@ -3,6 +3,7 @@
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import {
+  IntakeChannelDto,
   IntakeRequestDetailsDto,
   IntakeRequestSubstanceDto,
 } from '@/src/services/wayd-api'
@@ -37,7 +38,7 @@ interface EditIntakeRequestFormValues {
   title: string
   description: string
   expectedBenefits?: string
-  channelId: string
+  channelId?: string
   needBy?: NeedByFormValues
 }
 
@@ -63,13 +64,33 @@ const EditIntakeRequestForm: FC<EditIntakeRequestFormProps> = ({
     committedBy && !activeEmployees?.some((e) => e.id === committedBy.id)
       ? [...(activeEmployees ?? []), committedBy]
       : activeEmployees
-  // Archived channels too, so a request still on one shows it rather than an empty field.
-  const { data: allChannels } = useGetIntakeChannelsQuery({
-    includeArchived: true,
+  // The channels the desk offers, plus the one the request already has: it keeps a channel after the
+  // channel is archived or the request moves to a desk that does not offer it.
+  const currentChannel = request.summary.channel
+  const { data: deskChannels } = useGetIntakeChannelsQuery({
+    deskId: request.summary.desk.id,
   })
-  const channels = allChannels?.filter(
-    (c) => c.isActive || c.id === request.summary.channel.id,
+  const { data: allChannels } = useGetIntakeChannelsQuery(
+    { includeArchived: true },
+    { skip: !currentChannel },
   )
+  // The summary already names the channel, so it is offered before the full list loads, or if that fails:
+  // without it the field would hide on a desk offering none, and saving would clear the channel. The full
+  // list only adds whether it is archived.
+  const current: IntakeChannelDto | undefined = currentChannel
+    ? (allChannels?.find((c) => c.id === currentChannel.id) ?? {
+        id: currentChannel.id,
+        name: currentChannel.name,
+        order: 0,
+        isActive: true,
+      })
+    : undefined
+  const channels =
+    deskChannels && current && !deskChannels.some((c) => c.id === current.id)
+      ? [...deskChannels, current]
+      : deskChannels
+  // A recorded channel can be changed but not removed, unless the desk offers none.
+  const channelRequired = (deskChannels?.length ?? 0) > 0
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditIntakeRequestFormValues>({
@@ -80,7 +101,7 @@ const EditIntakeRequestForm: FC<EditIntakeRequestFormProps> = ({
             title: values.title.trim(),
             description: values.description,
             expectedBenefits: values.expectedBenefits || undefined,
-            channelId: values.channelId,
+            channelId: values.channelId ?? undefined,
             needBy: toNeedByRequest(values.needBy, bases),
           }).unwrap()
           messageApi.success('Request updated.')
@@ -108,7 +129,7 @@ const EditIntakeRequestForm: FC<EditIntakeRequestFormProps> = ({
       title: request.summary.title,
       description: substance.description,
       expectedBenefits: substance.expectedBenefits,
-      channelId: request.summary.channel.id,
+      channelId: request.summary.channel?.id,
       needBy: toNeedByFormValues(request.summary.needBy),
     })
   }, [form, request, substance])
@@ -134,7 +155,10 @@ const EditIntakeRequestForm: FC<EditIntakeRequestFormProps> = ({
         layout="vertical"
         name="edit-intake-request-form"
       >
-        <RequestTextFields channels={channels} />
+        <RequestTextFields
+          channels={channels}
+          channelRequired={channelRequired}
+        />
         <NeedByFields bases={bases} families={families} employees={employees} />
       </Form>
     </Modal>

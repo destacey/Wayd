@@ -17,6 +17,7 @@ import {
 interface SettingsMenuOptions {
   planningPoker: boolean
   productManagement: boolean
+  demandManagement: boolean
   imports: boolean
 }
 
@@ -57,43 +58,31 @@ const buildSettingsMenuItems = (
     ),
   ]),
 
-  restrictedMenuSection(
-    'Organization',
-    'organization',
-    undefined,
-    undefined,
-    [
-      restrictedPermissionMenuItem(
-        'Permissions.HolidayCalendars.View',
-        'Holiday Calendars',
-        'organization.holiday-calendars',
-        '/settings/organization/holiday-calendars',
-      ),
-      restrictedPermissionMenuItem(
-        'Permissions.TeamMemberRoles.View',
-        'Team Member Roles',
-        'organization.team-member-roles',
-        '/settings/organization/team-member-roles',
-      ),
-    ],
-  ),
+  restrictedMenuSection('Organization', 'organization', undefined, undefined, [
+    restrictedPermissionMenuItem(
+      'Permissions.HolidayCalendars.View',
+      'Holiday Calendars',
+      'organization.holiday-calendars',
+      '/settings/organization/holiday-calendars',
+    ),
+    restrictedPermissionMenuItem(
+      'Permissions.TeamMemberRoles.View',
+      'Team Member Roles',
+      'organization.team-member-roles',
+      '/settings/organization/team-member-roles',
+    ),
+  ]),
 
   ...(options.planningPoker
     ? [
-        restrictedMenuSection(
-          'Planning',
-          'planning',
-          undefined,
-          undefined,
-          [
-            restrictedPermissionMenuItem(
-              'Permissions.EstimationScales.View',
-              'Estimation Scales',
-              'planning.estimation-scales',
-              '/settings/planning/estimation-scales',
-            ),
-          ],
-        ),
+        restrictedMenuSection('Planning', 'planning', undefined, undefined, [
+          restrictedPermissionMenuItem(
+            'Permissions.EstimationScales.View',
+            'Estimation Scales',
+            'planning.estimation-scales',
+            '/settings/planning/estimation-scales',
+          ),
+        ]),
       ]
     : []),
 
@@ -110,6 +99,25 @@ const buildSettingsMenuItems = (
               'Product Tags',
               'product-management.product-tags',
               '/settings/product-management/product-tags',
+            ),
+          ],
+        ),
+      ]
+    : []),
+
+  ...(options.demandManagement
+    ? [
+        restrictedMenuSection(
+          'Demand Management',
+          'demand-management',
+          undefined,
+          undefined,
+          [
+            restrictedPermissionMenuItem(
+              'Permissions.IntakeRequests.Administer',
+              'Channels',
+              'demand-management.channels',
+              '/settings/demand-management/channels',
             ),
           ],
         ),
@@ -140,29 +148,23 @@ const buildSettingsMenuItems = (
   // Work types, statuses and processes carry no View permission of their own,
   // so they are plain items — the group is reachable by anyone who can open
   // settings at all.
-  menuItem(
-    'Work Management',
-    'work-management',
-    undefined,
-    undefined,
-    [
-      menuItem(
-        'Work Types',
-        'work-management.work-types',
-        '/settings/work-management/work-types',
-      ),
-      menuItem(
-        'Work Statuses',
-        'work-management.work-statuses',
-        '/settings/work-management/work-statuses',
-      ),
-      menuItem(
-        'Work Processes',
-        'work-management.work-processes',
-        '/settings/work-management/work-processes',
-      ),
-    ],
-  ),
+  menuItem('Work Management', 'work-management', undefined, undefined, [
+    menuItem(
+      'Work Types',
+      'work-management.work-types',
+      '/settings/work-management/work-types',
+    ),
+    menuItem(
+      'Work Statuses',
+      'work-management.work-statuses',
+      '/settings/work-management/work-statuses',
+    ),
+    menuItem(
+      'Work Processes',
+      'work-management.work-processes',
+      '/settings/work-management/work-processes',
+    ),
+  ]),
 
   restrictedMenuSection('System', 'system', undefined, undefined, [
     restrictedPermissionMenuItem(
@@ -225,9 +227,7 @@ const buildSettingsMenuItems = (
  * saves a click on every move between groups, which is the common case here.
  * The filter box covers the rare long-list moment that collapsing was for.
  */
-const asGroups = (
-  items: ItemType<MenuItemType>[],
-): ItemType<MenuItemType>[] =>
+const asGroups = (items: ItemType<MenuItemType>[]): ItemType<MenuItemType>[] =>
   items.map((item) =>
     item != null && 'children' in item
       ? ({ ...item, type: 'group' } as ItemType<MenuItemType>)
@@ -268,6 +268,7 @@ export const useSettingsMenuItems = () => {
   const { hasClaim } = useAuth()
   const { isEnabled: planningPoker } = useFeatureFlag('planning-poker')
   const { isEnabled: productManagement } = useFeatureFlag('product-management')
+  const { isEnabled: demandManagement } = useFeatureFlag('demand-management')
 
   // Cheap and cached: the same query the Imports page uses, so opening it costs nothing extra.
   const { data: importDefinitions } = useGetImportDefinitionsQuery()
@@ -275,6 +276,7 @@ export const useSettingsMenuItems = () => {
   const items = buildSettingsMenuItems({
     planningPoker,
     productManagement,
+    demandManagement,
     imports: (importDefinitions?.length ?? 0) > 0,
   })
 

@@ -46082,14 +46082,17 @@ export class IntakeChannelsClient {
     /**
      * Get the intake channels in the order requesters see them.
      * @param includeArchived (optional) 
+     * @param deskId (optional) 
      * @return OK
      */
-    getIntakeChannels(includeArchived?: boolean | undefined, cancelToken?: CancelToken): Promise<IntakeChannelDto[]> {
+    getIntakeChannels(includeArchived?: boolean | undefined, deskId?: string | null | undefined, cancelToken?: CancelToken): Promise<IntakeChannelDto[]> {
         let url_ = this.baseUrl + "/api/demand-management/intake-channels?";
         if (includeArchived === null)
             throw new globalThis.Error("The parameter 'includeArchived' cannot be null.");
         else if (includeArchived !== undefined)
             url_ += "includeArchived=" + encodeURIComponent("" + includeArchived) + "&";
+        if (deskId !== undefined && deskId !== null)
+            url_ += "deskId=" + encodeURIComponent("" + deskId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -46134,6 +46137,341 @@ export class IntakeChannelsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<IntakeChannelDto[]>(null as any);
+    }
+
+    /**
+     * Add an intake channel to the end of the list.
+     * @return Created
+     */
+    create(request: CreateIntakeChannelRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-channels";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreate(_response);
+        });
+    }
+
+    protected processCreate(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Rename an intake channel or change its description.
+     * @return No Content
+     */
+    update(id: string, request: UpdateIntakeChannelRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-channels/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdate(_response);
+        });
+    }
+
+    protected processUpdate(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Archive an intake channel.
+     * @return No Content
+     */
+    archive(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-channels/{id}/archive";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processArchive(_response);
+        });
+    }
+
+    protected processArchive(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Restore an archived intake channel.
+     * @return No Content
+     */
+    restore(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-channels/{id}/restore";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRestore(_response);
+        });
+    }
+
+    protected processRestore(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Put the intake channels in the order requesters see them.
+     * @return No Content
+     */
+    reorder(request: ReorderIntakeChannelsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-channels/order";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processReorder(_response);
+        });
+    }
+
+    protected processReorder(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
     }
 }
 
@@ -54835,6 +55173,14 @@ export interface CreateHolidayCalendarRequest {
     description?: string | undefined;
 }
 
+/** A channel to add to the end of the company's list of where requests come from. */
+export interface CreateIntakeChannelRequest {
+    /** What the company calls the channel. Unique among active and archived channels. */
+    name: string;
+    /** What belongs in the channel, shown to whoever picks one. */
+    description?: string | undefined;
+}
+
 /** A new intake desk and its initial members. */
 export interface CreateIntakeDeskRequest {
     /** What its members and administrators call the desk. Unique. */
@@ -54863,8 +55209,9 @@ export interface CreateIntakeRequestRequest {
     expectedBenefits?: string | undefined;
     /** The desk to submit to: one that is open and that requesters can pick. */
     deskId: string;
-    /** Where the request came from: an active channel. */
-    channelId: string;
+    /** Where the request came from: a channel the desk offers (see the channels lookup with `deskId`). Required
+when the desk offers any channel; leave it out for a desk that offers none. */
+    channelId?: string | undefined;
     /** The employee the request is for, when it is not the caller. The caller is recorded as the submitter. */
     requesterId?: string | undefined;
     /** When the request has to land, and why. */
@@ -57043,6 +57390,12 @@ export interface IntakeDeskDto {
     isOpen: boolean;
     /** On a private desk, whether the requester may add participants themselves. */
     requesterMayAddParticipants: boolean;
+    /** Whether the desk offers every active company channel, including channels added later. */
+    offersAllChannels: boolean;
+    /** The company channels the desk chose, in the company's order, while it does not offer them all; an
+archived one stays chosen but is not offered. Empty with bool IntakeDeskDto.OffersAllChannels false means the
+desk offers none. */
+    channelIds: string[];
     /** How many changes the desk has recorded; sent back with a change so a stale one is refused. */
     revision: number;
     /** The employees named on the desk, by name, with their roles. */
@@ -57275,8 +57628,9 @@ export interface IntakeRequestSummaryDto {
     desk: NavigationDto;
     /** The employee the request is for. */
     requester: EmployeeNavigationDto;
-    /** Where the request came from. */
-    channel: IntakeChannelNavigationDto;
+    /** Where the request came from, or null when it was not recorded: the request was submitted to a desk that
+offers no channel. */
+    channel?: IntakeChannelNavigationDto | undefined;
     /** The member of the request's desk who owns it, when one is assigned. */
     assignee?: EmployeeNavigationDto | undefined;
     /** When the request has to land and why, when it has a need-by date. */
@@ -59562,6 +59916,12 @@ export interface RenameWorkflowStatusRequest {
 
 export interface ReorderGoalRequest {
     newOrder: number;
+}
+
+/** The order requesters see the channels in. */
+export interface ReorderIntakeChannelsRequest {
+    /** Every channel, archived ones included, in the order they should be presented. A partial list is refused. */
+    orderedChannelIds: string[];
 }
 
 export interface ReorderPersonaRequest {
@@ -62251,6 +62611,16 @@ export interface UpdateHolidayCalendarRequest {
     description?: string | undefined;
 }
 
+/** A channel's new name and description. Every request carrying the channel reads the new name. */
+export interface UpdateIntakeChannelRequest {
+    /** The channel being changed; must match the route. */
+    id: string;
+    /** What the company calls the channel. Unique among active and archived channels. */
+    name: string;
+    /** What belongs in the channel, or null for no description. */
+    description?: string | undefined;
+}
+
 /** An intake desk's settings and members, overwriting what it has. Settings that do not change record nothing. */
 export interface UpdateIntakeDeskRequest {
     /** The desk being changed; must match the route. */
@@ -62268,6 +62638,14 @@ Demand Management Admin may change it. */
     isOpen: boolean;
     /** On a private desk, whether the requester may add participants themselves. Agents always can. */
     requesterMayAddParticipants: boolean;
+    /** Whether the desk offers every active company channel, including channels added later. A new desk does.
+Leave it out to keep the desk's channels as they are. */
+    offersAllChannels?: boolean | undefined;
+    /** The company channels the desk offers when `offersAllChannels` is false; empty means the desk offers
+none, and its submit form does not ask where a request came from. Leave it out to keep the ones it has.
+Ignored unless `offersAllChannels` is false. A channel already chosen may stay after it is archived;
+a newly chosen one must be active. */
+    channelIds: string[] | undefined;
     /** Everyone on the desk after the change, each with their role. Naming, removing or re-roling a Desk Admin
 needs the Demand Management Admin. */
     members: IntakeDeskMemberRequest[];
@@ -62286,8 +62664,9 @@ export interface UpdateIntakeRequestRequest {
     description: string;
     /** What gets better, and for whom, if the ask is delivered. */
     expectedBenefits?: string | undefined;
-    /** Where the request came from. */
-    channelId: string;
+    /** Where the request came from: a channel the request's desk offers, or the one it already has. Null keeps a
+request with no channel without one, and clears a channel only while the desk offers none. */
+    channelId?: string | undefined;
     /** When the request has to land and why. Null clears the date, its basis and its reference together. */
     needBy?: IntakeRequestNeedByRequest | undefined;
 }

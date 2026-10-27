@@ -34,7 +34,7 @@ import {
 } from 'antd'
 import type { NamePath } from 'antd/es/form/interface'
 import { useRouter } from 'next/navigation'
-import { FC, ReactNode, useState } from 'react'
+import { FC, ReactNode, useEffect, useState } from 'react'
 import { NeedByFields } from '../_components/need-by-fields'
 import {
   NeedByFormValues,
@@ -62,7 +62,7 @@ interface SubmitRequestFormValues {
   title: string
   description: string
   expectedBenefits?: string
-  channelId: string
+  channelId?: string
   needBy?: NeedByFormValues
 }
 
@@ -109,9 +109,11 @@ const RequestReview: FC<{
       <Fact label="Goes to">
         <Tag color="processing">{deskPhrase(desk.name)}</Tag>
       </Fact>
-      <Fact label="Channel">
-        {channels?.find((c) => c.id === values.channelId)?.name}
-      </Fact>
+      {values.channelId && (
+        <Fact label="Channel">
+          {channels?.find((c) => c.id === values.channelId)?.name}
+        </Fact>
+      )}
       <Fact label="Requested by">{requesterName}</Fact>
       <Fact label="Needed by">
         <NeedByTag
@@ -150,7 +152,6 @@ const SubmitIntakeRequestPage: FC = () => {
   const { data: desks, isLoading: desksLoading } = useGetIntakeDesksQuery({
     submittableOnly: true,
   })
-  const { data: channels } = useGetIntakeChannelsQuery()
   const { data: employees } = useGetIntakeEmployeeOptionsQuery()
   const { data: bases } = useGetNeedByBasesQuery()
   const { data: families } = useGetNeedByBasisFamiliesQuery()
@@ -159,6 +160,21 @@ const SubmitIntakeRequestPage: FC = () => {
   const singleDesk = desks?.length === 1 ? desks[0] : undefined
   const deskId = singleDesk?.id ?? chosenDeskId
   const desk = desks?.find((d) => d.id === deskId)
+  // Only the channels the chosen desk offers. A desk offering none asks nothing.
+  const { data: channels } = useGetIntakeChannelsQuery(
+    { deskId },
+    { skip: !deskId },
+  )
+
+  // A safety net for a channel the chosen desk does not offer; going back to the desk question clears the
+  // channel already. Checked only once the desk's channels are in, by when the form is mounted.
+  useEffect(() => {
+    if (!channels) return
+    const chosen = form.getFieldValue('channelId') as string | undefined
+    if (chosen && !channels.some((c) => c.id === chosen)) {
+      form.setFieldValue('channelId', undefined)
+    }
+  }, [channels, form])
 
   const goTo = async (target: number) => {
     // Moving on checks the steps being left; going back never does.
@@ -320,9 +336,15 @@ const SubmitIntakeRequestPage: FC = () => {
               {/* From the first step, Back returns to the desk question when there was one. */}
               {(step > 0 || !singleDesk) && (
                 <Button
-                  onClick={() =>
-                    step > 0 ? goTo(step - 1) : setChosenDeskId(undefined)
-                  }
+                  onClick={() => {
+                    if (step > 0) {
+                      goTo(step - 1)
+                      return
+                    }
+                    // The channels on offer are the desk's, so a channel chosen for this one goes with it.
+                    form.setFieldValue('channelId', undefined)
+                    setChosenDeskId(undefined)
+                  }}
                 >
                   Back
                 </Button>

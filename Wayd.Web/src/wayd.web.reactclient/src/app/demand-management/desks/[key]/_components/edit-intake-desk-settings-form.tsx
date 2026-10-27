@@ -4,11 +4,21 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { IntakeDeskDto, IntakeDeskVisibility } from '@/src/services/wayd-api'
 import {
+  useGetIntakeChannelsQuery,
   useGetIntakeDeskVisibilitiesQuery,
   useUpdateIntakeDeskMutation,
 } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError, toFormErrors } from '@/src/utils'
-import { Flex, Form, Input, Modal, Radio, Switch, Typography } from 'antd'
+import {
+  Checkbox,
+  Flex,
+  Form,
+  Input,
+  Modal,
+  Radio,
+  Switch,
+  Typography,
+} from 'antd'
 import { FC, useState } from 'react'
 import { toUpdateRequest } from './desk-update'
 
@@ -28,6 +38,8 @@ interface EditIntakeDeskSettingsFormValues {
   isRequesterSelectable: boolean
   isOpen: boolean
   requesterMayAddParticipants?: boolean
+  offersAllChannels: boolean
+  channelIds?: string[]
 }
 
 /**
@@ -46,6 +58,17 @@ const EditIntakeDeskSettingsForm: FC<EditIntakeDeskSettingsFormProps> = ({
   const messageApi = useMessage()
   const [updateDesk] = useUpdateIntakeDeskMutation()
   const { data: visibilities } = useGetIntakeDeskVisibilitiesQuery()
+  const { data: channels } = useGetIntakeChannelsQuery({
+    includeArchived: true,
+  })
+  // Active channels, plus any archived one the desk already chose: it may stay
+  // chosen, and is offered again if restored, but cannot be newly chosen.
+  const channelOptions = (channels ?? [])
+    .filter((c) => c.isActive || desk.channelIds.includes(c.id))
+    .map((c) => ({
+      value: c.id,
+      label: c.isActive ? c.name : `${c.name} (Archived)`,
+    }))
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditIntakeDeskSettingsFormValues>({
@@ -62,6 +85,11 @@ const EditIntakeDeskSettingsForm: FC<EditIntakeDeskSettingsFormProps> = ({
               requesterMayAddParticipants:
                 values.requesterMayAddParticipants ??
                 desk.requesterMayAddParticipants,
+              offersAllChannels: values.offersAllChannels,
+              // Asked only when the desk chooses its channels.
+              channelIds: values.offersAllChannels
+                ? []
+                : (values.channelIds ?? desk.channelIds),
             }),
           ).unwrap()
           messageApi.success('Desk updated.')
@@ -107,6 +135,8 @@ const EditIntakeDeskSettingsForm: FC<EditIntakeDeskSettingsFormProps> = ({
           isRequesterSelectable: desk.isRequesterSelectable,
           isOpen: desk.isOpen,
           requesterMayAddParticipants: desk.requesterMayAddParticipants,
+          offersAllChannels: desk.offersAllChannels,
+          channelIds: desk.channelIds,
         }}
       >
         <Item
@@ -181,6 +211,38 @@ const EditIntakeDeskSettingsForm: FC<EditIntakeDeskSettingsFormProps> = ({
                 extra="Agents can always add people. A private desk keeps its requests from the company, not from the person asking."
               >
                 <Switch />
+              </Item>
+            )
+          }
+        </Item>
+        <Item
+          name="offersAllChannels"
+          label="Channels offered"
+          extra="Where a request came from, as requesters choose it when submitting to this desk."
+        >
+          <Radio.Group>
+            <Flex vertical gap={8}>
+              <Radio value={true}>
+                Every channel, including ones added later
+              </Radio>
+              <Radio value={false}>Only the channels chosen here</Radio>
+            </Flex>
+          </Radio.Group>
+        </Item>
+        <Item
+          noStyle
+          shouldUpdate={(previous, current) =>
+            previous.offersAllChannels !== current.offersAllChannels
+          }
+        >
+          {({ getFieldValue }) =>
+            getFieldValue('offersAllChannels') === false && (
+              <Item
+                name="channelIds"
+                label="Channels this desk offers"
+                extra="Choose none and requesters are not asked where a request came from. A request moved here keeps the channel it has."
+              >
+                <Checkbox.Group options={channelOptions} />
               </Item>
             )
           }

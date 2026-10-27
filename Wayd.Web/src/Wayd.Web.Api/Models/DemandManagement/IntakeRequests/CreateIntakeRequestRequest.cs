@@ -28,9 +28,10 @@ public sealed record CreateIntakeRequestRequest
     public Guid DeskId { get; set; }
 
     /// <summary>
-    /// Where the request came from: an active channel.
+    /// Where the request came from: a channel the desk offers (see the channels lookup with `deskId`). Required
+    /// when the desk offers any channel; leave it out for a desk that offers none.
     /// </summary>
-    public Guid ChannelId { get; set; }
+    public Guid? ChannelId { get; set; }
 
     /// <summary>
     /// The employee the request is for, when it is not the caller. The caller is recorded as the submitter.
@@ -53,7 +54,7 @@ public sealed class CreateIntakeRequestRequestValidator : CustomValidator<Create
         RuleFor(r => r.Title).NotEmpty().MaximumLength(256);
         RuleFor(r => r.Description).NotEmpty();
         RuleFor(r => r.DeskId).NotEmpty();
-        RuleFor(r => r.ChannelId).NotEmpty();
+        RuleFor(r => r.ChannelId).NotEqual(Guid.Empty);
         RuleFor(r => r.RequesterId).NotEqual(Guid.Empty);
         RuleFor(r => r.NeedBy!).SetValidator(new IntakeRequestNeedByRequestValidator()).When(r => r.NeedBy is not null);
     }

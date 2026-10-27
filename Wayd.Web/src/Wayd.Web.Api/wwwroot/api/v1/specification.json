@@ -39901,6 +39901,7 @@
           "IntakeChannels"
         ],
         "summary": "Get the intake channels in the order requesters see them.",
+        "description": "With `deskId`, only the active channels that desk offers, which may be none; `includeArchived` is then ignored.",
         "operationId": "IntakeChannels_GetIntakeChannels",
         "parameters": [
           {
@@ -39911,6 +39912,16 @@
               "default": false
             },
             "x-position": 1
+          },
+          {
+            "name": "deskId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "x-position": 2
           }
         ],
         "responses": {
@@ -39923,6 +39934,284 @@
                   "items": {
                     "$ref": "#/components/schemas/IntakeChannelDto"
                   }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "IntakeChannels"
+        ],
+        "summary": "Add an intake channel to the end of the list.",
+        "description": "Desks that offer every channel offer it at once; desks that chose their channels do not until a Desk Admin adds it.",
+        "operationId": "IntakeChannels_Create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIntakeChannelRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-channels/{id}": {
+      "put": {
+        "tags": [
+          "IntakeChannels"
+        ],
+        "summary": "Rename an intake channel or change its description.",
+        "description": "Every request carrying the channel reads the new name.",
+        "operationId": "IntakeChannels_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIntakeChannelRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-channels/{id}/archive": {
+      "post": {
+        "tags": [
+          "IntakeChannels"
+        ],
+        "summary": "Archive an intake channel.",
+        "description": "No new request can be given an archived channel and no desk offers it; requests already carrying it keep it. Channels are archived, never deleted.",
+        "operationId": "IntakeChannels_Archive",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-channels/{id}/restore": {
+      "post": {
+        "tags": [
+          "IntakeChannels"
+        ],
+        "summary": "Restore an archived intake channel.",
+        "description": "Desks that offer every channel offer it again, as do desks that had chosen it before it was archived.",
+        "operationId": "IntakeChannels_Restore",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-channels/order": {
+      "put": {
+        "tags": [
+          "IntakeChannels"
+        ],
+        "summary": "Put the intake channels in the order requesters see them.",
+        "description": "The list must name every channel, archived ones included, exactly once; a partial list is refused.",
+        "operationId": "IntakeChannels_Reorder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderIntakeChannelsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -40074,7 +40363,7 @@
           "IntakeDesks"
         ],
         "summary": "Update an intake desk's settings and members.",
-        "description": "Needs a Desk Admin on the desk. Changing its visibility, or naming, removing or re-roling a Desk Admin, needs the Demand Management Admin. A member removed while owning requests on the desk is unassigned from them. Send the desk's `revision` as `expectedRevision`: a desk changed since answers 409.",
+        "description": "Needs a Desk Admin on the desk, who also chooses which company channels it offers. Changing its visibility, or naming, removing or re-roling a Desk Admin, needs the Demand Management Admin. A member removed while owning requests on the desk is unassigned from them. Send the desk's `revision` as `expectedRevision`: a desk changed since answers 409.",
         "operationId": "IntakeDesks_Update",
         "parameters": [
           {
@@ -49350,6 +49639,28 @@
         },
         "additionalProperties": false
       },
+      "CreateIntakeChannelRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the company calls the channel. Unique among active and archived channels."
+          },
+          "description": {
+            "maxLength": 512,
+            "type": "string",
+            "description": "What belongs in the channel, shown to whoever picks one.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A channel to add to the end of the company's list of where requests come from."
+      },
       "CreateIntakeDeskRequest": {
         "required": [
           "name",
@@ -49409,8 +49720,7 @@
         "required": [
           "title",
           "description",
-          "deskId",
-          "channelId"
+          "deskId"
         ],
         "type": "object",
         "properties": {
@@ -49437,10 +49747,10 @@
             "format": "uuid"
           },
           "channelId": {
-            "minLength": 1,
             "type": "string",
-            "description": "Where the request came from: an active channel.",
-            "format": "uuid"
+            "description": "Where the request came from: a channel the desk offers (see the channels lookup with `deskId`). Required\nwhen the desk offers any channel; leave it out for a desk that offers none.",
+            "format": "uuid",
+            "nullable": true
           },
           "requesterId": {
             "type": "string",
@@ -56083,6 +56393,7 @@
         "required": [
           "name",
           "description",
+          "channelIds",
           "members",
           "id",
           "key",
@@ -56090,6 +56401,7 @@
           "isRequesterSelectable",
           "isOpen",
           "requesterMayAddParticipants",
+          "offersAllChannels",
           "revision",
           "canManage",
           "canAdminister",
@@ -56134,6 +56446,18 @@
           "requesterMayAddParticipants": {
             "type": "boolean",
             "description": "On a private desk, whether the requester may add participants themselves."
+          },
+          "offersAllChannels": {
+            "type": "boolean",
+            "description": "Whether the desk offers every active company channel, including channels added later."
+          },
+          "channelIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The company channels the desk chose, in the company's order, while it does not offer them all; an\narchived one stays chosen but is not offered. Empty with bool IntakeDeskDto.OffersAllChannels false means the\ndesk offers none."
           },
           "revision": {
             "type": "integer",
@@ -56690,7 +57014,6 @@
           "status",
           "desk",
           "requester",
-          "channel",
           "id",
           "key",
           "submittedOn",
@@ -56742,7 +57065,8 @@
                 "$ref": "#/components/schemas/IntakeChannelNavigationDto"
               }
             ],
-            "description": "Where the request came from."
+            "description": "Where the request came from, or null when it was not recorded: the request was submitted to a desk that\noffers no channel.",
+            "nullable": true
           },
           "assignee": {
             "oneOf": [
@@ -64011,6 +64335,25 @@
           }
         },
         "additionalProperties": false
+      },
+      "ReorderIntakeChannelsRequest": {
+        "required": [
+          "orderedChannelIds"
+        ],
+        "type": "object",
+        "properties": {
+          "orderedChannelIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Every channel, archived ones included, in the order they should be presented. A partial list is refused."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The order requesters see the channels in."
       },
       "ReorderPersonaRequest": {
         "required": [
@@ -72432,6 +72775,35 @@
         },
         "additionalProperties": false
       },
+      "UpdateIntakeChannelRequest": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The channel being changed; must match the route.",
+            "format": "uuid"
+          },
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the company calls the channel. Unique among active and archived channels."
+          },
+          "description": {
+            "maxLength": 512,
+            "type": "string",
+            "description": "What belongs in the channel, or null for no description.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A channel's new name and description. Every request carrying the channel reads the new name."
+      },
       "UpdateIntakeDeskRequest": {
         "required": [
           "id",
@@ -72442,7 +72814,8 @@
           "isOpen",
           "requesterMayAddParticipants",
           "members",
-          "expectedRevision"
+          "expectedRevision",
+          "channelIds"
         ],
         "type": "object",
         "properties": {
@@ -72484,6 +72857,21 @@
             "type": "boolean",
             "description": "On a private desk, whether the requester may add participants themselves. Agents always can."
           },
+          "offersAllChannels": {
+            "type": "boolean",
+            "description": "Whether the desk offers every active company channel, including channels added later. A new desk does.\nLeave it out to keep the desk's channels as they are.",
+            "nullable": true
+          },
+          "channelIds": {
+            "type": "array",
+            "items": {
+              "minLength": 1,
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The company channels the desk offers when `offersAllChannels` is false; empty means the desk offers\nnone, and its submit form does not ask where a request came from. Leave it out to keep the ones it has.\nIgnored unless `offersAllChannels` is false. A channel already chosen may stay after it is archived;\na newly chosen one must be active.",
+            "nullable": true
+          },
           "members": {
             "type": "array",
             "items": {
@@ -72504,8 +72892,7 @@
         "required": [
           "id",
           "title",
-          "description",
-          "channelId"
+          "description"
         ],
         "type": "object",
         "properties": {
@@ -72532,10 +72919,10 @@
             "nullable": true
           },
           "channelId": {
-            "minLength": 1,
             "type": "string",
-            "description": "Where the request came from.",
-            "format": "uuid"
+            "description": "Where the request came from: a channel the request's desk offers, or the one it already has. Null keeps a\nrequest with no channel without one, and clears a channel only while the desk offers none.",
+            "format": "uuid",
+            "nullable": true
           },
           "needBy": {
             "oneOf": [

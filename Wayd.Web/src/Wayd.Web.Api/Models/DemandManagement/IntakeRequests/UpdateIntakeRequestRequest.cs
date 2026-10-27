@@ -28,9 +28,10 @@ public sealed record UpdateIntakeRequestRequest
     public string? ExpectedBenefits { get; set; }
 
     /// <summary>
-    /// Where the request came from.
+    /// Where the request came from: a channel the request's desk offers, or the one it already has. Null keeps a
+    /// request with no channel without one, and clears a channel only while the desk offers none.
     /// </summary>
-    public Guid ChannelId { get; set; }
+    public Guid? ChannelId { get; set; }
 
     /// <summary>
     /// When the request has to land and why. Null clears the date, its basis and its reference together.
@@ -48,7 +49,7 @@ public sealed class UpdateIntakeRequestRequestValidator : CustomValidator<Update
         RuleFor(r => r.Id).NotEmpty();
         RuleFor(r => r.Title).NotEmpty().MaximumLength(256);
         RuleFor(r => r.Description).NotEmpty();
-        RuleFor(r => r.ChannelId).NotEmpty();
+        RuleFor(r => r.ChannelId).NotEqual(Guid.Empty);
         RuleFor(r => r.NeedBy!).SetValidator(new IntakeRequestNeedByRequestValidator()).When(r => r.NeedBy is not null);
     }
 }

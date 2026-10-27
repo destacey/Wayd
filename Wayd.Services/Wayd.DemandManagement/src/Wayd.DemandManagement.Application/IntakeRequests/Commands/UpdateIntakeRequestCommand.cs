@@ -16,14 +16,17 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
 /// <param name="Title">What is being asked for, in a line.</param>
 /// <param name="Description">The ask in full.</param>
 /// <param name="ExpectedBenefits">What gets better, and for whom, if the ask is delivered.</param>
-/// <param name="ChannelId">Where the request came from.</param>
+/// <param name="ChannelId">
+/// Where the request came from: a channel the request's desk offers, or the one it already has. Null keeps no
+/// channel, and clears one only while the desk offers none.
+/// </param>
 /// <param name="NeedBy">When the request has to land and why, or null to clear it.</param>
 public sealed record UpdateIntakeRequestCommand(
     Guid Id,
     string Title,
     string Description,
     string? ExpectedBenefits,
-    Guid ChannelId,
+    Guid? ChannelId,
     IntakeRequestNeedByInput? NeedBy) : ICommand, IRequireLinkedEmployee;
 
 public sealed class UpdateIntakeRequestCommandValidator : CustomValidator<UpdateIntakeRequestCommand>
@@ -33,7 +36,7 @@ public sealed class UpdateIntakeRequestCommandValidator : CustomValidator<Update
         RuleFor(c => c.Id).NotEmpty();
         RuleFor(c => c.Title).NotEmpty().MaximumLength(256);
         RuleFor(c => c.Description).NotEmpty();
-        RuleFor(c => c.ChannelId).NotEmpty();
+        RuleFor(c => c.ChannelId).NotEqual(Guid.Empty);
         RuleFor(c => c.NeedBy!).SetValidator(new IntakeRequestNeedByInputValidator()).When(c => c.NeedBy is not null);
     }
 }
@@ -68,13 +71,17 @@ public sealed class UpdateIntakeRequestCommandHandler(
         if (!intakeRequest.CanEdit(editor))
             return Result.Failure("Only the requester or an agent on the request's desk may edit this request.");
 
-        var channel = await _dbContext.IntakeChannels.FirstOrDefaultAsync(c => c.Id == request.ChannelId, cancellationToken);
-        if (channel is null)
-            return Result.Failure("Intake channel not found.");
-
-        // Refused before anything changes, so a failed update never leaves the tracked request half-edited.
-        if (channel.Id != intakeRequest.ChannelId && !channel.IsActive)
-            return Result.Failure("An archived channel cannot be given to a request.");
+        var desk = await _dbContext.IntakeDesks
+            .Include(d => d.Channels)
+            .SingleAsync(d => d.Id == intakeRequest.DeskId, cancellationToken);
+        var channels = await _dbContext.IntakeChannels.ToListAsync(cancellationToken);
+        IntakeChannel? channel = null;
+        if (request.ChannelId is { } channelId)
+        {
+            channel = channels.FirstOrDefault(c => c.Id == channelId);
+            if (channel is null)
+                return Result.Failure("Intake channel not found.");
+        }
 
         IntakeRequestNeedBy? needBy = null;
         if (request.NeedBy is not null)
@@ -86,10 +93,16 @@ public sealed class UpdateIntakeRequestCommandHandler(
         }
 
         var now = _dateTimeProvider.Now;
+
+        // The only change that can still be refused goes first, so a refused update leaves the tracked request
+        // untouched.
+        var channelChanged = intakeRequest.ChangeChannel(channel, desk, channels, editor, now);
+        if (channelChanged.IsFailure)
+            return channelChanged;
+
         var result = Result.Combine(
             intakeRequest.Retitle(request.Title, editor, now),
             intakeRequest.UpdateDetails(request.Description, request.ExpectedBenefits, editor, now),
-            intakeRequest.ChangeChannel(channel, editor, now),
             intakeRequest.ChangeNeedBy(needBy, editor, now));
         if (result.IsFailure)
             return result;

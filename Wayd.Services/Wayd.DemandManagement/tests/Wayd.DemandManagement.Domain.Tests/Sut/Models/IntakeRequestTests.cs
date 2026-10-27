@@ -92,6 +92,105 @@ public sealed class IntakeRequestTests
     }
 
     [Fact]
+    public void Create_WithoutAChannel_HasNone()
+    {
+        // Act
+        var result = IntakeRequest.Create("Title", "Description", null, Guid.NewGuid(), Guid.NewGuid(),
+            new IntakeDeskFaker().Generate(), null, null, null, IntakeStatusRefFactory.Submitted(), EventActor.System,
+            _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.ChannelId.Should().BeNull();
+    }
+
+    [Fact]
+    public void Create_WithAChannelTheDeskDoesNotOffer_Succeeds()
+    {
+        // Arrange — an upstream system or an import records where the ask came from
+        var desk = new IntakeDeskFaker().Generate();
+        desk.ChangeChannels(false, [], EventActor.System, _dateTimeProvider.Now);
+        var channel = new IntakeChannelFaker().Generate();
+
+        // Act
+        var result = IntakeRequest.Create("Title", "Description", null, Guid.NewGuid(), Guid.NewGuid(), desk, channel,
+            null, IntakeRequestOrigin.Create("ServicePortal", "REQ-7", null).Value, IntakeStatusRefFactory.Submitted(),
+            EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.ChannelId.Should().Be(channel.Id);
+    }
+
+    [Fact]
+    public void Submit_WithAChannelTheDeskOffers_IsCreated()
+    {
+        // Arrange
+        var desk = new IntakeDeskFaker().Generate();
+        var channel = new IntakeChannelFaker().Generate();
+
+        // Act
+        var result = IntakeRequest.Submit("Title", "Description", null, Guid.NewGuid(), Guid.NewGuid(), desk, [channel],
+            channel, null, IntakeStatusRefFactory.Submitted(), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.ChannelId.Should().Be(channel.Id);
+        result.Value.Origin.Should().BeNull();
+    }
+
+    [Fact]
+    public void Submit_WithAChannelTheDeskDoesNotOffer_Fails()
+    {
+        // Arrange
+        var offered = new IntakeChannelFaker().Generate();
+        var other = new IntakeChannelFaker().Generate();
+        var desk = new IntakeDeskFaker().Generate();
+        desk.ChangeChannels(false, [offered.Id], EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var result = IntakeRequest.Submit("Title", "Description", null, Guid.NewGuid(), Guid.NewGuid(), desk,
+            [offered, other], other, null, IntakeStatusRefFactory.Submitted(), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.ChannelNotOfferedError);
+    }
+
+    [Fact]
+    public void Submit_WithoutAChannelToADeskOfferingSome_Fails()
+    {
+        // Arrange
+        var desk = new IntakeDeskFaker().Generate();
+
+        // Act
+        var result = IntakeRequest.Submit("Title", "Description", null, Guid.NewGuid(), Guid.NewGuid(), desk,
+            [new IntakeChannelFaker().Generate()], null, null, IntakeStatusRefFactory.Submitted(), EventActor.System,
+            _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.ChannelRequiredError);
+    }
+
+    [Fact]
+    public void Submit_WithoutAChannelToADeskOfferingNone_HasNone()
+    {
+        // Arrange
+        var desk = new IntakeDeskFaker().Generate();
+        desk.ChangeChannels(false, [], EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var result = IntakeRequest.Submit("Title", "Description", null, Guid.NewGuid(), Guid.NewGuid(), desk,
+            [new IntakeChannelFaker().Generate()], null, null, IntakeStatusRefFactory.Submitted(), EventActor.System,
+            _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.ChannelId.Should().BeNull();
+    }
+
+    [Fact]
     public void Create_WithoutARequester_Throws()
     {
         // Act
@@ -115,14 +214,15 @@ public sealed class IntakeRequestTests
             channel, needBy, null, IntakeStatusRefFactory.Submitted(), EventActor.System, _dateTimeProvider.Now).Value;
 
         // Act — retitled and given another channel before the first save, as an import could
+        var other = new IntakeChannelFaker().Generate();
         sut.Retitle("Renamed", IntakeRequestEditor.System, _dateTimeProvider.Now);
-        sut.ChangeChannel(new IntakeChannelFaker().Generate(), IntakeRequestEditor.System, _dateTimeProvider.Now);
+        sut.ChangeChannel(other, desk, [channel, other], IntakeRequestEditor.System, _dateTimeProvider.Now);
         sut.DomainEvents.Should().BeEmpty();
         foreach (var action in sut.PostPersistenceActions.ToList())
             action();
 
         // Assert
-        var created = sut.DomainEvents.OfType<IntakeRequestCreatedEvent>().Should().ContainSingle().Subject;
+        var created = sut.DomainEvents.OfType<IntakeRequestCreatedEventV2>().Should().ContainSingle().Subject;
         created.Title.Should().Be("Export invoices");
         created.DeskId.Should().Be(desk.Id);
         created.ChannelId.Should().Be(channel.Id);
@@ -473,20 +573,21 @@ public sealed class IntakeRequestTests
     #region ChangeChannel
 
     [Fact]
-    public void ChangeChannel_ToAnActiveChannel_RaisesWithBothEnds()
+    public void ChangeChannel_ToOneTheDeskOffers_RaisesWithBothEnds()
     {
         // Arrange
+        var desk = new IntakeDeskFaker().Generate();
         var fromChannelId = Guid.NewGuid();
-        var sut = new IntakeRequestFaker().WithChannelId(fromChannelId).Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(desk.Id).WithChannelId(fromChannelId).Generate();
         var channel = new IntakeChannelFaker().Generate();
 
         // Act
-        var result = sut.ChangeChannel(channel, ADeskAgent(), _dateTimeProvider.Now);
+        var result = sut.ChangeChannel(channel, desk, [channel], ADeskAgent(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         sut.ChannelId.Should().Be(channel.Id);
-        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestChannelChangedEvent>().Subject;
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestChannelChangedEventV2>().Subject;
         changed.FromChannelId.Should().Be(fromChannelId);
         changed.ToChannelId.Should().Be(channel.Id);
     }
@@ -495,29 +596,104 @@ public sealed class IntakeRequestTests
     public void ChangeChannel_ToAnArchivedChannel_Fails()
     {
         // Arrange
-        var sut = new IntakeRequestFaker().Generate();
+        var desk = new IntakeDeskFaker().Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(desk.Id).Generate();
+        var archived = new IntakeChannelFaker().AsArchived().Generate();
 
         // Act
-        var result = sut.ChangeChannel(new IntakeChannelFaker().AsArchived().Generate(), ADeskAgent(), _dateTimeProvider.Now);
+        var result = sut.ChangeChannel(archived, desk, [archived], ADeskAgent(), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.ChannelNotOfferedError);
         sut.DomainEvents.Should().BeEmpty();
     }
 
     [Fact]
-    public void ChangeChannel_ToItsCurrentChannel_RaisesNothingEvenIfArchived()
+    public void ChangeChannel_ToOneTheDeskDoesNotOffer_Fails()
     {
-        // Arrange — a request keeps the channel it has after the channel is archived
-        var channel = new IntakeChannelFaker().AsArchived().Generate();
-        var sut = new IntakeRequestFaker().WithChannelId(channel.Id).Generate();
+        // Arrange
+        var offered = new IntakeChannelFaker().Generate();
+        var other = new IntakeChannelFaker().Generate();
+        var desk = new IntakeDeskFaker().Generate();
+        desk.ChangeChannels(false, [offered.Id], EventActor.System, _dateTimeProvider.Now);
+        var sut = new IntakeRequestFaker().WithDeskId(desk.Id).WithChannelId(offered.Id).Generate();
 
         // Act
-        var result = sut.ChangeChannel(channel, ADeskAgent(), _dateTimeProvider.Now);
+        var result = sut.ChangeChannel(other, desk, [offered, other], ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.ChannelNotOfferedError);
+        sut.ChannelId.Should().Be(offered.Id);
+    }
+
+    [Fact]
+    public void ChangeChannel_ToItsCurrentChannel_RaisesNothingEvenIfTheDeskNoLongerOffersIt()
+    {
+        // Arrange — a request keeps its channel after the channel is archived or the request is moved
+        var channel = new IntakeChannelFaker().AsArchived().Generate();
+        var desk = new IntakeDeskFaker().Generate();
+        desk.ChangeChannels(false, [], EventActor.System, _dateTimeProvider.Now);
+        var sut = new IntakeRequestFaker().WithDeskId(desk.Id).WithChannelId(channel.Id).Generate();
+
+        // Act
+        var result = sut.ChangeChannel(channel, desk, [channel], ADeskAgent(), _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeChannel_ClearingOnADeskOfferingChannels_Fails()
+    {
+        // Arrange
+        var channel = new IntakeChannelFaker().Generate();
+        var desk = new IntakeDeskFaker().Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(desk.Id).WithChannelId(channel.Id).Generate();
+
+        // Act
+        var result = sut.ChangeChannel(null, desk, [channel], ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.ChannelRequiredError);
+        sut.ChannelId.Should().Be(channel.Id);
+    }
+
+    [Fact]
+    public void ChangeChannel_ClearingOnADeskOfferingNone_RaisesWithBothEnds()
+    {
+        // Arrange
+        var channel = new IntakeChannelFaker().Generate();
+        var desk = new IntakeDeskFaker().Generate();
+        desk.ChangeChannels(false, [], EventActor.System, _dateTimeProvider.Now);
+        var sut = new IntakeRequestFaker().WithDeskId(desk.Id).WithChannelId(channel.Id).Generate();
+
+        // Act
+        var result = sut.ChangeChannel(null, desk, [channel], ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.ChannelId.Should().BeNull();
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestChannelChangedEventV2>().Subject;
+        changed.FromChannelId.Should().Be(channel.Id);
+        changed.ToChannelId.Should().BeNull();
+    }
+
+    [Fact]
+    public void ChangeChannel_ForAnotherDesk_Throws()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().Generate();
+        var channel = new IntakeChannelFaker().Generate();
+
+        // Act
+        Action act = () => sut.ChangeChannel(channel, new IntakeDeskFaker().Generate(), [channel], ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
     }
 
     #endregion ChangeChannel
@@ -728,6 +904,24 @@ public sealed class IntakeRequestTests
         rerouted.ToDeskId.Should().Be(to.Id);
         rerouted.FromVisibility.Should().Be(IntakeDeskVisibility.Open);
         rerouted.ToVisibility.Should().Be(IntakeDeskVisibility.Private);
+    }
+
+    [Fact]
+    public void Reroute_ToADeskOfferingNoChannel_KeepsTheChannel()
+    {
+        // Arrange — where the ask came from does not change with who reviews it
+        var (from, to, sut) = RerouteScenario(IntakeDeskVisibility.Open, IntakeDeskVisibility.Open);
+        to.ChangeChannels(false, [], EventActor.System, _dateTimeProvider.Now);
+        var channelId = sut.ChannelId;
+
+        // Act
+        var result = sut.Reroute(from, to, StayingPut(sut), widerVisibilityConfirmed: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        channelId.Should().NotBeNull();
+        sut.ChannelId.Should().Be(channelId);
+        sut.DomainEvents.OfType<IntakeRequestChannelChangedEventV2>().Should().BeEmpty();
     }
 
     [Theory]

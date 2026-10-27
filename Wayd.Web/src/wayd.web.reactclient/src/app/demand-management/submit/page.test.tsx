@@ -68,15 +68,15 @@ const desk = (id: string, name: string, description: string) => ({
 })
 
 let mockDesks: any[] = []
+// The channels the chosen desk offers.
+let mockChannels: any[] = []
 const mockCreate = jest.fn()
 
 jest.mock(
   '@/src/store/features/demand-management/demand-management-api',
   () => ({
     useGetIntakeDesksQuery: () => ({ data: mockDesks, isLoading: false }),
-    useGetIntakeChannelsQuery: () => ({
-      data: [{ id: 'c-1', name: 'Security', order: 1, isActive: true }],
-    }),
+    useGetIntakeChannelsQuery: () => ({ data: mockChannels }),
     useGetIntakeEmployeeOptionsQuery: () => ({
       data: [
         { id: 'e-1', key: 1, name: 'Avery Example' },
@@ -110,6 +110,7 @@ describe('SubmitIntakeRequestPage', () => {
   beforeEach(() => {
     mockEmployeeId = 'e-1'
     mockDesks = []
+    mockChannels = [{ id: 'c-1', name: 'Security', order: 1, isActive: true }]
     mockCreate.mockReset()
     mockPush.mockReset()
   })
@@ -216,6 +217,45 @@ describe('SubmitIntakeRequestPage', () => {
     ).toBeInTheDocument()
   })
 
+  it('drops a channel chosen for one desk when the requester goes back for another', async () => {
+    // Arrange
+    mockDesks = [
+      desk('d-1', 'IT', 'Laptops, access and software'),
+      desk('d-2', 'Product', 'Changes to what we sell'),
+    ]
+    mockCreate.mockReturnValue({
+      unwrap: () => Promise.resolve({ id: 'r-1', key: 42 }),
+    })
+    await renderPage()
+    await act(() =>
+      userEvent.click(screen.getByText('Laptops, access and software')),
+    )
+    await act(() =>
+      userEvent.click(screen.getByLabelText('Where did this come from?')),
+    )
+    await act(() => userEvent.click(screen.getByTitle('Security')))
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Back' })),
+    )
+
+    // Act — the other desk offers no channel
+    mockChannels = []
+    await act(() =>
+      userEvent.click(screen.getByText('Changes to what we sell')),
+    )
+    await userEvent.type(screen.getByLabelText('Title'), 'Export invoices')
+    await userEvent.type(
+      screen.getAllByLabelText('markdown')[0],
+      'Finance needs a CSV export',
+    )
+    await submitThroughSteps()
+
+    // Assert
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ deskId: 'd-2', channelId: undefined }),
+    )
+  })
+
   it('tells the requester the title is visible to everyone', async () => {
     // Arrange
     mockDesks = [desk('d-1', 'IT', 'Laptops, access and software')]
@@ -263,6 +303,32 @@ describe('SubmitIntakeRequestPage', () => {
       }),
     )
     expect(mockPush).toHaveBeenCalledWith('/demand-management/requests/42')
+  })
+
+  it('asks nothing about the channel for a desk offering none, and sends none', async () => {
+    // Arrange
+    mockDesks = [desk('d-1', 'IT', 'Laptops, access and software')]
+    mockChannels = []
+    mockCreate.mockReturnValue({
+      unwrap: () => Promise.resolve({ id: 'r-1', key: 42 }),
+    })
+    await renderPage()
+    await userEvent.type(screen.getByLabelText('Title'), 'New laptop')
+    await userEvent.type(
+      screen.getAllByLabelText('markdown')[0],
+      'Mine is five years old',
+    )
+
+    // Act
+    await submitThroughSteps()
+
+    // Assert
+    expect(
+      screen.queryByLabelText('Where did this come from?'),
+    ).not.toBeInTheDocument()
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ deskId: 'd-1', channelId: undefined }),
+    )
   })
 
   it('sends the chosen desk and the person it is for when submitting on their behalf', async () => {

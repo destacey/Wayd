@@ -95,7 +95,12 @@ A company shapes its own review — a single triage, staged assessment, a review
 
 ### Channels
 
-A **channel** records where a request came from: business stakeholder, customer feedback, support, sales and account management, innovation program, regulatory and compliance, security, or engineering. A channel is not the desk, so a request raised by support can be reviewed on any desk.
+A **channel** records where a request came from: business stakeholder, customer feedback, support, and so on. A channel is not the desk, so a request raised by support can be reviewed on any desk.
+
+- **One company list.** The Demand Management Admin keeps the list in [Settings → Demand Management → Channels](#managing-channels). Every desk draws from it, so requests can be compared by channel across desks.
+- **Each desk offers the channels that apply to it.** A new desk offers every channel, including ones added later, until a Desk Admin chooses its channels in the desk's [Settings](#running-a-desk). A channel added to the list later is not offered by a desk that chose its own.
+- **A desk can offer none.** Its submit form then does not ask where a request came from, and its requests have no channel, shown as **Not recorded**.
+- **A request keeps its channel.** Moving it to another desk never changes or clears its channel, even when the new desk does not offer it, because it records where the ask came from. An agent can change it to one the new desk offers. A request also keeps a channel after the channel is archived.
 
 ### Need-by date and its basis
 
@@ -129,7 +134,7 @@ The rest of the form is the same for every desk, in three steps. From the first 
 1. **The ask** — What you are asking for.
    - **Title** — The form reminds you that everyone who can view requests sees the title, even on a desk that keeps the detail to itself
    - **Describe it in your own words** — The ask in full
-   - **Where did this come from?** — The [channel](#channels)
+   - **Where did this come from?** — The [channel](#channels), from those the desk offers. Not asked when the desk offers none
    - **Requested by** — You, unless you are submitting it on someone else's behalf. Either way, both of you can follow it
 2. **Why and when** — What reviewers weigh it on when capacity is short.
    - **What is it worth?** — Optional. What gets better, and for whom, if it is delivered
@@ -149,13 +154,13 @@ Submitting needs your account to be linked to an employee record, because every 
 The same filters apply to both layouts, so switching between them never changes what is in scope:
 
 - **View** — A ready-made set of filters: **My desks** (open requests on the desks you work, offered only if you work one), **All open requests**, **Needs triage** (open requests nobody is assigned to), **Assigned to me** and **Fixed dates, open** (open requests whose date something outside the company sets). While the page shows open requests, each view shows how many it holds. Changing any filter afterwards leaves the view
-- **Desk**, **Status** and **Channel** — Pick one or more. **Desks I work** stands for your own desks, so a shared link with it shows each reader their own; status names are matched across desks, so *In Review* means every desk's *In Review*
+- **Desk**, **Status** and **Channel** — Pick one or more. **Desks I work** stands for your own desks, so a shared link with it shows each reader their own; status names are matched across desks, so *In Review* means every desk's *In Review*. **Channel** lists archived channels too, and **Not recorded** for requests with no channel
 - **Assignee** — Anyone, **Assigned to me**, or **Not assigned**. **Assigned to me**, as a filter and as a view, is offered only when your account is linked to an employee record
 - **Need by** — Any date, **Fixed for us**, **We chose it**, or **No date given**
 
 The filters and the layout are kept in the page's address, so a view can be bookmarked or sent to someone. If you work a desk, the page opens on **My desks**; otherwise it opens on every open request. Switch between **List** and **Board** with the icons at the right of the toolbar. **Reset filters**, the clear icon at the end of the filters, puts them all back to every open request. On a phone the filters fold behind a **Filters** button.
 
-**List** shows each request's number, title, status, how long it has been in that status, its need-by date with what makes it that date, its age, assignee, desk, requester and channel. Need-by dates are coloured by their basis — red for a date fixed for us, amber for a promise — and time in status and age turn amber after a week and red after three. Sorting **Need By** ascending puts the earliest date first, a fixed date before a chosen one on the same day, and requests with no date last; descending reverses that. Hovering a status shows its category. The desk links to its page, and the requester and assignee link to theirs if you can view employees; otherwise they are plain names.
+**List** shows each request's number, title, status, how long it has been in that status, its need-by date with what makes it that date, its age, assignee, desk, requester and channel, or **Not recorded** for a request with none. Need-by dates are coloured by their basis — red for a date fixed for us, amber for a promise — and time in status and age turn amber after a week and red after three. Sorting **Need By** ascending puts the earliest date first, a fixed date before a chosen one on the same day, and requests with no date last; descending reverses that. Hovering a status shows its category. The desk links to its page, and the requester and assignee link to theirs if you can view employees; otherwise they are plain names.
 
 **Board** shows the same requests as cards in columns, one per stage of the desk's review workflow, in the workflow's order, so a stage with nothing in it still shows. A heading names the desk the board is for. Desks that follow different workflows have no single board, so with more than one such desk in scope the page asks you to pick one. Each card shows the number, title, need-by date, requester and time in its stage, with a red edge when the date is fixed for us; opening it opens the request. Moving a request between stages is done from the request, since some moves ask for a reason. On a phone the board shows one stage at a time, chosen from a list with each stage's count.
 
@@ -163,7 +168,7 @@ The filters and the layout are kept in the page's address, so a view can be book
 
 ### The request page
 
-Opening a request shows its number and title, with its status beside the title; clicking the status opens its history. The trail beneath the title leads back to **Requests** through the desk the request is on, and beneath that a line says who raised it, when, and where it came from. The panel opened from the header lists its desk, channel, requester and assignee and, where you can read them, who submitted it and where it came from.
+Opening a request shows its number and title, with its status beside the title; clicking the status opens its history. The trail beneath the title leads back to **Requests** through the desk the request is on, and beneath that a line says who raised it, when, and where it came from when that was recorded. The panel opened from the header lists its desk, channel, requester and assignee and, where you can read them, who submitted it and where it came from.
 
 - **Details** — The reason for its current status, when it has one, then the description, the expected benefits and the need-by date, which says what makes it that date and whether it can move. On a desk that keeps its detail to itself, people outside it see a message saying the detail is limited to that desk, rather than empty fields
 - **People** — The requester, the submitter when it is someone else, and the request's participants. Participants can read the request and reply to it, but cannot change it, and being one does not assign them any work. Shown only to people who can read the request's detail
@@ -199,7 +204,7 @@ Deleting a request is a Desk Admin's last resort, and the request page does not 
 
 ### Moving a request to another desk
 
-A requester picks the desk they think fits, and an agent confirms it or moves the request to the desk that should own the decision. **Move to Another Desk** in the request's actions menu is offered to an agent on the desk the request is on now. The new desk does not have to be one you work: it can be any desk open to new requests, including one requesters cannot choose. Nothing moves a request automatically — editing its channel, for example, never changes its desk.
+A requester picks the desk they think fits, and an agent confirms it or moves the request to the desk that should own the decision. **Move to Another Desk** in the request's actions menu is offered to an agent on the desk the request is on now. The new desk does not have to be one you work: it can be any desk open to new requests, including one requesters cannot choose. Nothing moves a request automatically — editing its channel, for example, never changes its desk. Moving a request never changes its channel either, even when the new desk does not offer it.
 
 When you choose a desk, the form asks what the request **arrives as** there: one of that desk's open statuses that needs no reason and is neither Withdrawn nor Duplicate, since what to decide about it is the new desk's call. It starts at the status the request holds when both desks follow the same workflow, or the one with the same meaning or name when they do not; when nothing matches, you choose. A move onto a desk with a different workflow is recorded in the request's status history as a switch onto that workflow.
 
@@ -238,7 +243,7 @@ A desk is run from its own page, opened from **Desks** or from the desk named on
 
 - **Requests** — The requests on the desk that you can see
 - **Members** — Who works the desk, and in which role
-- **Settings** — Its name, what to bring here, its review workflow, who can see its requests (with what that exposes, in plain words), whether it is open, and what requesters may do on it
+- **Settings** — Its name, what to bring here, its review workflow, who can see its requests (with what that exposes, in plain words), the channels it offers, whether it is open, and what requesters may do on it
 
 What you can change depends on your role:
 
@@ -246,6 +251,7 @@ What you can change depends on your role:
 |---|---|---|
 | Name and what to bring here | Yes | Yes |
 | Open to new requests, requesters can choose it, requesters may add participants | Yes | Yes |
+| **Channels offered** | Yes | Yes |
 | Name or remove **Agents** | Yes | Yes |
 | **Review workflow** | Yes, while no request is on it | Yes, while no request is on it |
 | Name or remove **Desk Admins** | No | Yes |
@@ -253,6 +259,12 @@ What you can change depends on your role:
 | **Delete** the desk | No | Yes, while no request is on it |
 
 Removing someone from a desk unassigns them from the requests they own there.
+
+#### Choosing the channels a desk offers
+
+**Channels offered** in the desk's Settings is either **Every channel, including ones added later** — what a new desk starts with — or **Only the channels chosen here**, with the channels ticked. Ticking none means the desk offers no channel: its submit form does not ask where a request came from. An archived channel stays ticked on a desk that chose it, but no desk offers it until it is restored, and it cannot be newly ticked.
+
+Changing what a desk offers changes only what new requests and edits can choose. Requests already on the desk keep their channels, and editing one offers the desk's channels plus the one it has.
 
 #### Choosing a desk's review workflow
 
@@ -263,6 +275,17 @@ Choosing a workflow other than the default gives the desk its own, so a later ch
 If someone else changes the desk while you have its settings or members open, your save is refused with a message to reload, rather than quietly undoing their change — and saving again from the same form is refused too. Close the form, reopen it to see their change, and make yours again.
 
 A desk with requests on it cannot be deleted, because every request is always on exactly one desk. To retire one, **close** it to new requests and turn off **Requesters can choose it**; the requests already there stay put.
+
+### Managing channels
+
+The Demand Management Admin keeps the company's list of channels in **Settings → Demand Management → Channels**:
+
+- **Add Channel** adds one to the end of the list. Desks offering every channel offer it at once; desks that chose their channels offer it once a Desk Admin ticks it.
+- **Edit** renames a channel or changes its description. Every request from it shows the new name.
+- **Drag a row by its grab handle** to reorder the list, which is the order requesters see.
+- **Archive** takes a channel out of use: no desk offers it and no new request can be given it, while requests already from it keep it. **Restore** brings it back. Channels are archived rather than deleted, because requests refer to them.
+
+Every change is recorded in the activity log.
 
 ## Who Can See a Request
 

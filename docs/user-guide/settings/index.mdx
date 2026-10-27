@@ -17,6 +17,7 @@ The Administration area provides tools for configuring Wayd, managing users, con
 | **Organization** | Holiday Calendars, Team Member Roles |
 | **Planning** | Estimation Scales (with the `planning-poker` flag) |
 | **Product Management** | Product Tags (with the `product-management` flag) |
+| **Demand Management** | Channels (with the `demand-management` flag) |
 | **PPM** | Expenditure Categories, Project Lifecycles, Scoring Models |
 | **Work Management** | Work Types, Work Statuses, Work Processes |
 | **System** | Scheduling, Sprint Metrics, Feature Flags, Status Workflows, Connections, Imports, Background Jobs, Messaging |
@@ -225,7 +226,7 @@ The flags Wayd defines:
 | Delivery Forecasting | `delivery-forecasting` | Monte Carlo delivery forecasts |
 | MCP Server | `mcp-server` | The hosted MCP endpoint (`/mcp`) that exposes the API as agent tools |
 | Team Capacity Management | `team-capacity-management` | Employee allocation to teams and team capacity planning |
-| Demand Management | `demand-management` | The Demand Management module: intake requests and the desks that review them |
+| Demand Management | `demand-management` | The Demand Management module: intake requests and the desks that review them, including **Settings → Demand Management** |
 | Following | `following` | [Following](../following.mdx) projects, programs and PI objectives, the Following list, and in-app notifications about changes to them |
 
 Feature flags gate both backend API endpoints and frontend UI elements. When a flag is disabled:
@@ -351,6 +352,14 @@ Tags themselves carry no order — they display alphabetically wherever they app
 | Create a category | `Permissions.ProductTagCategories.Create` |
 | Edit a category, activate or deactivate it, add or change its tags | `Permissions.ProductTagCategories.Update` |
 | Delete a category or a tag | `Permissions.ProductTagCategories.Delete` |
+
+## Demand Management Settings
+
+> This area is behind the `demand-management` feature flag.
+
+### Channels
+
+**Channels** is the company's list of where intake requests come from, managed by the Demand Management Admin (`Permissions.IntakeRequests.Administer`). Add, rename, describe, reorder and archive channels here; each desk then chooses which of them it offers. See [Demand Management: managing channels](../demand-management/index.mdx#managing-channels).
 
 ## PPM Settings
 

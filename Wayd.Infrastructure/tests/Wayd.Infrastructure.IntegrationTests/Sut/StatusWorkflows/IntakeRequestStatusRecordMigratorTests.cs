@@ -66,7 +66,7 @@ public sealed class IntakeRequestStatusRecordMigratorTests(SqlServerDbContextFix
                 new EmailAddress($"{Guid.NewGuid():N}"[..12] + "@acme.example"), null, null, null, null, true, null, EventActor.System, Now);
             var desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true, [],
                 EventActor.System, Now);
-            var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
+            var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1, EventActor.System, Now);
             seeding.Employees.Add(requester);
             seeding.IntakeDesks.Add(desk);
             seeding.IntakeChannels.Add(channel);

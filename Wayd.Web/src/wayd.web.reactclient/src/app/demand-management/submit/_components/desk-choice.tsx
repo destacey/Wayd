@@ -4,13 +4,10 @@ import { IntakeDeskDto } from '@/src/services/wayd-api'
 import { RightOutlined } from '@ant-design/icons'
 import { Avatar, Flex, Typography } from 'antd'
 import { FC } from 'react'
+import { deskPhrase } from '../../_components/desk-status'
 import styles from './desk-choice.module.css'
 
 const { Title, Text, Paragraph } = Typography
-
-/** "the Product delivery desk", without doubling a name that already ends in "desk". */
-export const deskPhrase = (name: string): string =>
-  /\bdesk$/i.test(name.trim()) ? `the ${name}` : `the ${name} desk`
 
 export interface DeskChoiceProps {
   desks: IntakeDeskDto[]

@@ -13,6 +13,7 @@ import { FC, useState } from 'react'
 import { requestHref } from '../../_components/intake-requests-grid'
 import { NeedByTag } from '../../_components/need-by'
 import { AgeTag } from '../../_components/request-age'
+import { TOUCH_THEME } from '../../_components/touch-theme'
 import styles from './request-board.module.css'
 import { RequestScope } from './request-filters'
 
@@ -25,9 +26,6 @@ export interface BoardColumn {
 }
 
 const OPEN_CATEGORIES = [StatusCategory.Proposed, StatusCategory.Active]
-
-/** On a phone the stage picker is tapped, so it is a 44px touch target. */
-const TOUCH_THEME = { token: { controlHeight: 44 } }
 
 /**
  * The board's columns: every status of the workflow, in its order, holding the requests in it. A stage

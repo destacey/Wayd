@@ -65,7 +65,23 @@ describe('demandManagementApi', () => {
       )
 
       // Assert
-      expect(getIntakeRequests).toHaveBeenCalledWith(undefined, true)
+      expect(getIntakeRequests).toHaveBeenCalledWith(undefined, true, undefined)
+    })
+
+    it('asks the server for open requests only, rather than filtering the summaries', async () => {
+      // Arrange
+      getIntakeRequests.mockResolvedValue([])
+      const store = createStore()
+
+      // Act
+      await store.dispatch(
+        demandManagementApi.endpoints.getIntakeRequests.initiate({
+          openOnly: true,
+        }),
+      )
+
+      // Assert
+      expect(getIntakeRequests).toHaveBeenCalledWith(undefined, undefined, true)
     })
   })
 

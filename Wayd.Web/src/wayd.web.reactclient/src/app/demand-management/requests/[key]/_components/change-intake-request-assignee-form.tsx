@@ -9,11 +9,14 @@ import {
   useGetIntakeDeskQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError } from '@/src/utils'
-import { Button, Form, Modal, Typography } from 'antd'
+import { Button, ConfigProvider, Form, Grid, Modal, Typography } from 'antd'
 import { FC } from 'react'
+import { deskPhrase } from '../../../_components/desk-status'
+import { TOUCH_THEME } from '../../../_components/touch-theme'
 
 const { Item } = Form
 const { Paragraph } = Typography
+const { useBreakpoint } = Grid
 
 export interface ChangeIntakeRequestAssigneeFormProps {
   request: IntakeRequestDetailsDto
@@ -34,6 +37,7 @@ const ChangeIntakeRequestAssigneeForm: FC<
   ChangeIntakeRequestAssigneeFormProps
 > = ({ request, onFormComplete, onFormCancel }) => {
   const messageApi = useMessage()
+  const phone = useBreakpoint().md === false
   const { employeeId } = useLinkedEmployee()
   const [changeAssignee] = useChangeIntakeRequestAssigneeMutation()
   const { summary } = request
@@ -71,7 +75,7 @@ const ChangeIntakeRequestAssigneeForm: FC<
       errorMessage: 'Failed to change the assignee.',
     })
 
-  return (
+  const dialog = (
     <Modal
       title="Change Assignee"
       open={isOpen}
@@ -84,13 +88,13 @@ const ChangeIntakeRequestAssigneeForm: FC<
       destroyOnHidden
     >
       <Paragraph type="secondary">
-        The assignee owns the next move on this request. Anyone who works the{' '}
-        {summary.desk.name} desk can be assigned. Assigning someone does not
-        make them its approver.
+        The assignee owns the next move on this request. Anyone who works{' '}
+        {deskPhrase(summary.desk.name)} can be assigned. Assigning someone does
+        not make them its approver.
       </Paragraph>
       <Form
         form={form}
-        size="small"
+        size={phone ? undefined : 'small'}
         layout="vertical"
         name="change-intake-request-assignee-form"
         initialValues={{ assigneeId: summary.assignee?.id }}
@@ -108,7 +112,7 @@ const ChangeIntakeRequestAssigneeForm: FC<
         {readerIsMember && (
           <Button
             type="link"
-            size="small"
+            size={phone ? undefined : 'small'}
             style={{ paddingInline: 0 }}
             onClick={() => form.setFieldValue('assigneeId', employeeId)}
           >
@@ -117,6 +121,13 @@ const ChangeIntakeRequestAssigneeForm: FC<
         )}
       </Form>
     </Modal>
+  )
+
+  // On a phone the dialog is tapped, so its controls are touch-sized.
+  return phone ? (
+    <ConfigProvider theme={TOUCH_THEME}>{dialog}</ConfigProvider>
+  ) : (
+    dialog
   )
 }
 

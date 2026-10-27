@@ -46,16 +46,15 @@ import {
   ExpectedBenefitsField,
   RequestAskFields,
 } from '../_components/request-text-fields'
-import DeskChoice, { deskPhrase } from './_components/desk-choice'
+import { deskPhrase } from '../_components/desk-status'
+import DeskChoice from './_components/desk-choice'
 import WhatHappensNext from './_components/what-happens-next'
+import { TOUCH_THEME } from '../_components/touch-theme'
 import styles from './page.module.css'
 
 const { Item } = Form
 const { Text, Title } = Typography
 const { useBreakpoint } = Grid
-
-/** On a phone every control is tapped, so each is at least a 44px touch target. */
-const TOUCH_THEME = { token: { controlHeight: 44 } }
 
 interface SubmitRequestFormValues {
   requesterId?: string

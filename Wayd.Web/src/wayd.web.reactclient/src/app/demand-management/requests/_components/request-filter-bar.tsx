@@ -18,6 +18,7 @@ import {
   Select,
 } from 'antd'
 import { FC, ReactNode, useState } from 'react'
+import { TOUCH_THEME } from '../../_components/touch-theme'
 import styles from './request-filter-bar.module.css'
 import {
   AssigneeFilter,
@@ -32,15 +33,6 @@ import {
 } from './request-filters'
 
 const { useBreakpoint } = Grid
-
-/**
- * On a phone the filters are tapped, so every control is at least a 44px touch target. A segmented
- * control's track pads its segments by 2px each side, so its own height is 48.
- */
-const TOUCH_THEME = {
-  token: { controlHeight: 44 },
-  components: { Segmented: { controlHeight: 48 } },
-}
 
 export interface RequestFilterBarProps {
   filters: RequestFilters

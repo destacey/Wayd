@@ -60,17 +60,34 @@ const keepsNeedBy = (
 }
 
 /**
+ * Stands in a desk filter for "the desks the reader works", so a view or a shared link means each reader's
+ * own desks rather than the sender's.
+ */
+export const MY_DESKS = 'mine'
+
+/** The desk ids a desk filter names, with {@link MY_DESKS} expanded to the reader's desks. */
+export const resolveDeskIds = (
+  deskIds: string[],
+  myDeskIds: string[],
+): string[] => [
+  ...new Set(deskIds.flatMap((id) => (id === MY_DESKS ? myDeskIds : [id]))),
+]
+
+/**
  * The requests the filters keep. The scope is applied by the server, so it is not repeated here.
  * `employeeId` is the signed-in reader's, for "Assigned to me"; without one, that filter keeps nothing.
+ * `myDeskIds` are the desks the reader works, for "My desks"; without any, that filter keeps nothing.
  */
 export const applyRequestFilters = (
   requests: IntakeRequestSummaryDto[],
   filters: RequestFilters,
   employeeId: string | null | undefined,
-): IntakeRequestSummaryDto[] =>
-  requests.filter(
+  myDeskIds: string[] = [],
+): IntakeRequestSummaryDto[] => {
+  const deskIds = resolveDeskIds(filters.deskIds, myDeskIds)
+  return requests.filter(
     (r) =>
-      (filters.deskIds.length === 0 || filters.deskIds.includes(r.desk.id)) &&
+      (filters.deskIds.length === 0 || deskIds.includes(r.desk.id)) &&
       (filters.statusNames.length === 0 ||
         filters.statusNames.includes(r.status.name)) &&
       (filters.channelIds.length === 0 ||
@@ -82,6 +99,7 @@ export const applyRequestFilters = (
           r.assignee?.id === employeeId)) &&
       keepsNeedBy(filters.needBy, r),
   )
+}
 
 /** How many filters differ from the defaults, for the compact "Filters (2)" control. */
 export const activeFilterCount = (filters: RequestFilters): number =>
@@ -108,6 +126,12 @@ export interface BuiltInView {
  * filter simply leaves the view. Personal saved views are a separate feature.
  */
 export const BUILT_IN_VIEWS: BuiltInView[] = [
+  {
+    id: 'my-desks',
+    name: 'My desks',
+    description: 'Open requests on the desks you work.',
+    filters: { ...DEFAULT_REQUEST_FILTERS, deskIds: [MY_DESKS] },
+  },
   {
     id: 'open',
     name: 'All open requests',

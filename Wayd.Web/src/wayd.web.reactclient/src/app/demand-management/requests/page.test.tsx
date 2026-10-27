@@ -47,7 +47,9 @@ jest.mock('@/src/components/hoc', () => ({
 // The grid has a suite of its own; here only which actions the page offers matters.
 jest.mock('../_components/intake-requests-grid', () => ({
   __esModule: true,
-  default: () => <div data-testid="requests-grid" />,
+  default: ({ rightSlot }: { rightSlot?: React.ReactNode }) => (
+    <div data-testid="requests-grid">{rightSlot}</div>
+  ),
 }))
 
 let mockSearch = new URLSearchParams()
@@ -58,6 +60,7 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => mockSearch,
 }))
 
+let mockDesks: any[] = []
 const mockRequestsQuery = jest.fn((_args?: unknown) => ({
   currentData: [],
   isFetching: false,
@@ -68,7 +71,7 @@ jest.mock(
   () => ({
     useGetIntakeRequestsQuery: (args: unknown) => mockRequestsQuery(args),
     useGetNeedByBasesQuery: () => ({ data: [] }),
-    useGetIntakeDesksQuery: () => ({ data: [] }),
+    useGetIntakeDesksQuery: () => ({ data: mockDesks }),
     useGetIntakeChannelsQuery: () => ({ data: [] }),
   }),
 )
@@ -80,6 +83,41 @@ describe('IntakeRequestsPage', () => {
     mockRequestsQuery.mockClear()
     mockReplace.mockClear()
     mockSearch = new URLSearchParams()
+    mockDesks = []
+  })
+
+  it('opens on the desks the reader works when the address names no filters', () => {
+    // Arrange
+    mockDesks = [
+      {
+        id: 'd-1',
+        key: 1,
+        name: 'IT',
+        members: [
+          { employee: { id: 'e-1', key: 1, name: 'Me' }, role: 'Agent' },
+        ],
+      },
+    ]
+
+    // Act
+    render(<IntakeRequestsPage />)
+
+    // Assert
+    expect(mockReplace).toHaveBeenCalledWith(
+      '/demand-management/requests?desk=mine',
+      { scroll: false },
+    )
+  })
+
+  it('keeps the filters an address names, and opens everyone else on every open request', () => {
+    // Arrange
+    mockDesks = [{ id: 'd-1', key: 1, name: 'IT', members: [] }]
+
+    // Act
+    render(<IntakeRequestsPage />)
+
+    // Assert
+    expect(mockReplace).not.toHaveBeenCalled()
   })
 
   it('opens on the requests still open', () => {
@@ -112,7 +150,7 @@ describe('IntakeRequestsPage', () => {
     render(<IntakeRequestsPage />)
 
     // Act
-    await act(() => userEvent.click(screen.getByText('Board')))
+    await act(() => userEvent.click(screen.getByTitle('Board')))
 
     // Assert
     expect(mockReplace).toHaveBeenCalledWith(

@@ -2,11 +2,13 @@ import { IntakeRequestSummaryDto } from '@/src/services/wayd-api'
 import {
   BUILT_IN_VIEWS,
   DEFAULT_REQUEST_FILTERS,
+  MY_DESKS,
   RequestFilters,
   activeFilterCount,
   applyRequestFilters,
   fromSearchParams,
   matchingView,
+  resolveDeskIds,
   toSearchParams,
 } from './request-filters'
 import { NeedByBasis, NeedByBasisFamily } from '@/src/services/wayd-api'
@@ -110,6 +112,53 @@ describe('applyRequestFilters', () => {
 
     // Assert
     expect(result.map((r) => r.id)).toEqual(['nobodys'])
+  })
+})
+
+describe('My desks', () => {
+  it('keeps the requests on the desks the reader works', () => {
+    // Act
+    const result = applyRequestFilters(
+      requests,
+      { ...DEFAULT_REQUEST_FILTERS, deskIds: [MY_DESKS] },
+      'e-me',
+      ['d-it'],
+    )
+
+    // Assert
+    expect(result.map((r) => r.id)).toEqual(['theirs'])
+  })
+
+  it('keeps nothing for a reader who works no desk', () => {
+    // Act
+    const result = applyRequestFilters(
+      requests,
+      { ...DEFAULT_REQUEST_FILTERS, deskIds: [MY_DESKS] },
+      'e-me',
+      [],
+    )
+
+    // Assert
+    expect(result).toEqual([])
+  })
+
+  it('expands to the reader’s desks alongside any desk named outright', () => {
+    // Act
+    const ids = resolveDeskIds([MY_DESKS, 'd-other', 'd-it'], ['d-it', 'd-hr'])
+
+    // Assert
+    expect(ids).toEqual(['d-it', 'd-hr', 'd-other'])
+  })
+
+  it('travels in the address as "mine", so a shared link means each reader’s own desks', () => {
+    // Act
+    const query = toSearchParams(
+      { ...DEFAULT_REQUEST_FILTERS, deskIds: [MY_DESKS] },
+      'list',
+    ).toString()
+
+    // Assert
+    expect(query).toBe('desk=mine')
   })
 })
 

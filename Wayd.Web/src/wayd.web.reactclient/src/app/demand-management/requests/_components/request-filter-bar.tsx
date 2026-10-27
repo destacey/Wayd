@@ -17,13 +17,14 @@ import {
   Segmented,
   Select,
 } from 'antd'
-import { FC, ReactNode, useState } from 'react'
+import { FC, useState } from 'react'
 import { TOUCH_THEME } from '../../_components/touch-theme'
 import styles from './request-filter-bar.module.css'
 import {
   AssigneeFilter,
   BUILT_IN_VIEWS,
   DEFAULT_REQUEST_FILTERS,
+  MY_DESKS,
   NeedByFilter,
   RequestFilters,
   RequestScope,
@@ -43,8 +44,8 @@ export interface RequestFilterBarProps {
   channels: IntakeChannelDto[] | undefined
   /** The reader's employee record, without which nothing is assigned to them. */
   employeeId: string | null | undefined
-  /** Shown first in the row on every screen, such as the list and board toggle. */
-  leading?: ReactNode
+  /** The desks the reader works, for "My desks"; empty for someone who works none. */
+  myDeskIds: string[]
 }
 
 const countBy = (
@@ -64,6 +65,7 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
   desks,
   channels,
   employeeId,
+  myDeskIds,
   stacked,
 }) => {
   const set = (patch: Partial<RequestFilters>) =>
@@ -87,13 +89,15 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
           if (view) onChange(view.filters)
         }}
         options={BUILT_IN_VIEWS.filter(
-          (v) => employeeId || v.filters.assignee !== 'me',
+          (v) =>
+            (employeeId || v.filters.assignee !== 'me') &&
+            (myDeskIds.length > 0 || !v.filters.deskIds.includes(MY_DESKS)),
         ).map((v) => ({
           value: v.id,
           // Every built-in view is of open requests, so it can be counted only from the open set.
           label:
             filters.scope === 'open' && requests
-              ? `${v.name} (${applyRequestFilters(requests, v.filters, employeeId).length})`
+              ? `${v.name} (${applyRequestFilters(requests, v.filters, employeeId, myDeskIds).length})`
               : v.name,
           title: v.description,
         }))}
@@ -119,12 +123,22 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
         value={filters.deskIds}
         onChange={(deskIds) => set({ deskIds })}
         optionFilterProp="label"
-        options={[...(desks ?? [])]
-          .sort((a, b) => caseInsensitiveCompare(a.name, b.name))
-          .map((d) => ({
-            value: d.id,
-            label: `${d.name} (${perDesk.get(d.id) ?? 0})`,
-          }))}
+        options={[
+          ...(myDeskIds.length > 0
+            ? [
+                {
+                  value: MY_DESKS,
+                  label: `Desks I work (${myDeskIds.reduce((n, id) => n + (perDesk.get(id) ?? 0), 0)})`,
+                },
+              ]
+            : []),
+          ...[...(desks ?? [])]
+            .sort((a, b) => caseInsensitiveCompare(a.name, b.name))
+            .map((d) => ({
+              value: d.id,
+              label: `${d.name} (${perDesk.get(d.id) ?? 0})`,
+            })),
+        ]}
       />
       <Select
         className={controlClass}
@@ -196,7 +210,6 @@ const RequestFilterBar: FC<RequestFilterBarProps> = (props) => {
   if (screens.md !== false) {
     return (
       <Flex wrap gap={8} align="center" className={styles.bar}>
-        {props.leading}
         <FilterControls {...props} stacked={false} />
         {active > 0 && (
           <Button
@@ -213,7 +226,6 @@ const RequestFilterBar: FC<RequestFilterBarProps> = (props) => {
   return (
     <ConfigProvider theme={TOUCH_THEME}>
       <Flex gap={8} align="center" className={styles.bar}>
-        {props.leading}
         <Badge count={active} size="small">
           <Button icon={<FilterOutlined />} onClick={() => setOpen(true)}>
             Filters

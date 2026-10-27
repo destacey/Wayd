@@ -30,6 +30,8 @@ export interface IntakeRequestsGridProps {
   csvFileName: string
   emptyMessage?: string
   leftSlot?: ReactNode
+  /** Shown at the right of the grid's toolbar, such as a layout switcher. */
+  rightSlot?: ReactNode
 }
 
 export const requestHref = (key: number) => `/demand-management/requests/${key}`
@@ -64,6 +66,7 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
   csvFileName,
   emptyMessage,
   leftSlot,
+  rightSlot,
 }) => {
   const basisName = (code: string | undefined) =>
     code ? (needByBases?.find((b) => b.code === code)?.name ?? code) : ''
@@ -194,6 +197,7 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       csvFileName={csvFileName}
       emptyMessage={emptyMessage}
       leftSlot={leftSlot}
+      rightSlot={rightSlot}
       initialSorting={[{ id: 'key', desc: true }]}
     />
   )

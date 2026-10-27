@@ -26,6 +26,7 @@ namespace Wayd.DemandManagement.Domain.Models;
 public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
 {
     private readonly List<IntakeDeskMember> _members = [];
+    private readonly List<IntakeDeskChannel> _channels = [];
 
     private IntakeDesk() { }
 
@@ -108,6 +109,37 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     /// The employees named on the desk, each with their role.
     /// </summary>
     public IReadOnlyCollection<IntakeDeskMember> Members => _members.AsReadOnly();
+
+    /// <summary>
+    /// Whether the desk offers every active company channel, including channels added later. A new desk does,
+    /// until a Desk Admin chooses its channels.
+    /// </summary>
+    public bool OffersAllChannels { get; private set; } = true;
+
+    /// <summary>
+    /// The company channels the desk chose, while it does not offer them all. Empty with
+    /// <see cref="OffersAllChannels"/> false means the desk offers none.
+    /// </summary>
+    public IReadOnlyCollection<IntakeDeskChannel> Channels => _channels.AsReadOnly();
+
+    /// <summary>
+    /// Whether the desk offers the channel to its requesters. Needs <see cref="Channels"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// An archived channel is offered by no desk. Only Wayd's own submit form and edits are held to what a desk
+    /// offers: a request from an upstream system or an import may carry any active channel.
+    /// </remarks>
+    public bool Offers(IntakeChannel channel)
+    {
+        Guard.Against.Null(channel);
+
+        return channel.IsActive && (OffersAllChannels || _channels.Any(c => c.ChannelId == channel.Id));
+    }
+
+    /// <summary>
+    /// The channels, of those given, that the desk offers. Needs <see cref="Channels"/> loaded.
+    /// </summary>
+    public IEnumerable<IntakeChannel> OfferedFrom(IEnumerable<IntakeChannel> channels) => channels.Where(Offers);
 
     /// <summary>
     /// How many changes the desk has recorded. A change made from a page loaded before another is refused by
@@ -243,6 +275,38 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         var resulting = _members.Select(m => new IntakeDeskMemberDetails(m.EmployeeId, m.Role)).ToArray();
         RaiseWhenKeyed(() => new IntakeDeskMembersChangedEvent(Id, Key, change.Added, change.Removed, change.RoleChanges,
             resulting, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Sets which company channels the desk offers: every active one, including channels added later, or only
+    /// those chosen, which may be none. Needs <see cref="Channels"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// Whether the chosen ids are channels, and whether a newly chosen one is active, is the caller's to check:
+    /// the desk does not hold the company list. Offering every channel clears the chosen list.
+    /// </remarks>
+    public Result ChangeChannels(bool offersAllChannels, IEnumerable<Guid> channelIds, EventActor actor, Instant timestamp)
+    {
+        Guid[] target = offersAllChannels ? [] : [.. channelIds.Distinct()];
+        if (target.Any(id => id == Guid.Empty))
+            return Result.Failure("A channel id cannot be empty.");
+
+        Guid[] added = [.. target.Where(id => _channels.All(c => c.ChannelId != id))];
+        Guid[] removed = [.. _channels.Select(c => c.ChannelId).Where(id => !target.Contains(id))];
+
+        if (offersAllChannels == OffersAllChannels && added.Length == 0 && removed.Length == 0)
+            return Result.Success();
+
+        var previousOffersAllChannels = OffersAllChannels;
+        OffersAllChannels = offersAllChannels;
+        _channels.RemoveAll(c => removed.Contains(c.ChannelId));
+        _channels.AddRange(added.Select(id => new IntakeDeskChannel(Id, id)));
+
+        Guid[] resulting = [.. _channels.Select(c => c.ChannelId)];
+        RaiseWhenKeyed(() => new IntakeDeskChannelsChangedEvent(Id, Key, offersAllChannels, previousOffersAllChannels,
+            added, removed, resulting, actor, timestamp));
 
         return Result.Success();
     }

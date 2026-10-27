@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NodaTime;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.IntakeRequests.Commands;
@@ -169,5 +170,64 @@ public sealed class UpdateIntakeRequestCommandHandlerTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(IntakeRequestAccess.NotFoundError);
+    }
+
+    [Fact]
+    public async Task Handle_KeepingAChannelTheDeskNoLongerOffers_Saves()
+    {
+        // Arrange — the request was moved here, or its desk narrowed its channels, after it was given one
+        var requester = _scenario.Employee();
+        var desk = _scenario.Desk();
+        var request = _scenario.Request(desk, requester);
+        var kept = _scenario.DbContext.IntakeChannels.Single(c => c.Id == request.ChannelId);
+        desk.ChangeChannels(false, [], EventActor.System, _scenario.Clock.Now);
+        _scenario.SignedInAs(requester);
+
+        // Act
+        var result = await CreateHandler().Handle(Retitled(request), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        request.ChannelId.Should().Be(kept.Id);
+    }
+
+    [Fact]
+    public async Task Handle_ToAChannelTheDeskDoesNotOffer_FailsWithoutChangingAnything()
+    {
+        // Arrange
+        var requester = _scenario.Employee();
+        var desk = _scenario.Desk();
+        var request = _scenario.Request(desk, requester);
+        var other = _scenario.Channel();
+        desk.ChangeChannels(false, [request.ChannelId!.Value], EventActor.System, _scenario.Clock.Now);
+        var title = request.Title;
+        _scenario.SignedInAs(requester);
+
+        // Act
+        var result = await CreateHandler().Handle(Retitled(request) with { ChannelId = other.Id },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.ChannelNotOfferedError);
+        request.Title.Should().Be(title);
+        request.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ClearingTheChannelOnADeskOfferingChannels_Fails()
+    {
+        // Arrange
+        var requester = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(), requester);
+        _scenario.SignedInAs(requester);
+
+        // Act
+        var result = await CreateHandler().Handle(Retitled(request) with { ChannelId = null },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.ChannelRequiredError);
     }
 }

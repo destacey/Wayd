@@ -45,6 +45,20 @@ public sealed record UpdateIntakeDeskRequest
     public bool RequesterMayAddParticipants { get; set; }
 
     /// <summary>
+    /// Whether the desk offers every active company channel, including channels added later. A new desk does.
+    /// Leave it out to keep the desk's channels as they are.
+    /// </summary>
+    public bool? OffersAllChannels { get; set; }
+
+    /// <summary>
+    /// The company channels the desk offers when <c>offersAllChannels</c> is false; empty means the desk offers
+    /// none, and its submit form does not ask where a request came from. Leave it out to keep the ones it has.
+    /// Ignored unless <c>offersAllChannels</c> is false. A channel already chosen may stay after it is archived;
+    /// a newly chosen one must be active.
+    /// </summary>
+    public List<Guid>? ChannelIds { get; set; }
+
+    /// <summary>
     /// Everyone on the desk after the change, each with their role. Naming, removing or re-roling a Desk Admin
     /// needs the Demand Management Admin.
     /// </summary>
@@ -58,7 +72,7 @@ public sealed record UpdateIntakeDeskRequest
 
     public UpdateIntakeDeskCommand ToUpdateIntakeDeskCommand() =>
         new(Id, Name, Description, Visibility, IsRequesterSelectable, IsOpen, RequesterMayAddParticipants,
-            [.. Members.Select(m => m.ToMemberDetails())], ExpectedRevision);
+            OffersAllChannels, ChannelIds, [.. Members.Select(m => m.ToMemberDetails())], ExpectedRevision);
 }
 
 public sealed class UpdateIntakeDeskRequestValidator : CustomValidator<UpdateIntakeDeskRequest>
@@ -69,6 +83,7 @@ public sealed class UpdateIntakeDeskRequestValidator : CustomValidator<UpdateInt
         RuleFor(d => d.Name).NotEmpty().MaximumLength(128);
         RuleFor(d => d.Description).NotEmpty().MaximumLength(1024);
         RuleFor(d => d.Visibility).IsInEnum();
+        RuleForEach(d => d.ChannelIds).NotEmpty();
         RuleFor(d => d.Members).NotNull()
             .Must(members => members.Select(m => m.EmployeeId).Distinct().Count() == members.Count)
             .WithMessage("An employee can hold only one role on a desk.");

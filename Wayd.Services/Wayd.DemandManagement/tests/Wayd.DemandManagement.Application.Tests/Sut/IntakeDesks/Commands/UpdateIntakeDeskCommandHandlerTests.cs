@@ -18,8 +18,8 @@ public sealed class UpdateIntakeDeskCommandHandlerTests
 
     private static UpdateIntakeDeskCommand Unchanged(IntakeDesk desk) =>
         new(desk.Id, desk.Name, desk.Description, desk.Visibility, desk.IsRequesterSelectable, desk.IsOpen,
-            desk.RequesterMayAddParticipants, [.. desk.Members.Select(m => new IntakeDeskMemberDetails(m.EmployeeId, m.Role))],
-            desk.Revision);
+            desk.RequesterMayAddParticipants, desk.OffersAllChannels, [.. desk.Channels.Select(c => c.ChannelId)],
+            [.. desk.Members.Select(m => new IntakeDeskMemberDetails(m.EmployeeId, m.Role))], desk.Revision);
 
     private static IntakeDeskMemberDetails Agent(Guid employeeId) => new(employeeId, IntakeDeskRole.Agent);
 
@@ -253,5 +253,114 @@ public sealed class UpdateIntakeDeskCommandHandlerTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(IntakeDeskAccess.NotFoundError);
+    }
+
+    [Fact]
+    public async Task Handle_ByADeskAdminChoosingChannels_OffersOnlyThose()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var desk = _scenario.DeskWithMembers(Admin(deskAdmin.Id));
+        var chosen = _scenario.Channel();
+        var other = _scenario.Channel();
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            Unchanged(desk) with { OffersAllChannels = false, ChannelIds = [chosen.Id] },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        desk.Offers(chosen).Should().BeTrue();
+        desk.Offers(other).Should().BeFalse();
+        desk.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskChannelsChangedEvent>();
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_NewlyChoosingAnArchivedChannel_FailsWithoutChangingTheDesk()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var desk = _scenario.DeskWithMembers(Admin(deskAdmin.Id));
+        var archived = _scenario.Channel();
+        archived.Archive(EventActor.System, _scenario.Clock.Now);
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            Unchanged(desk) with { OffersAllChannels = false, ChannelIds = [archived.Id] },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("An archived channel cannot be offered.");
+        desk.OffersAllChannels.Should().BeTrue();
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_KeepingAChosenChannelThatWasArchived_Succeeds()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var desk = _scenario.DeskWithMembers(Admin(deskAdmin.Id));
+        var archived = _scenario.Channel();
+        var added = _scenario.Channel();
+        desk.ChangeChannels(false, [archived.Id], EventActor.System, _scenario.Clock.Now);
+        desk.ClearDomainEvents();
+        archived.Archive(EventActor.System, _scenario.Clock.Now);
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            Unchanged(desk) with { ChannelIds = [archived.Id, added.Id] },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        desk.Channels.Select(c => c.ChannelId).Should().BeEquivalentTo([archived.Id, added.Id]);
+    }
+
+    [Fact]
+    public async Task Handle_LeavingTheChannelsOut_KeepsTheDesksChoice()
+    {
+        // Arrange — a caller that predates channels sends neither field
+        var deskAdmin = _scenario.Employee();
+        var desk = _scenario.DeskWithMembers(Admin(deskAdmin.Id));
+        var chosen = _scenario.Channel();
+        desk.ChangeChannels(false, [chosen.Id], EventActor.System, _scenario.Clock.Now);
+        desk.ClearDomainEvents();
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            Unchanged(desk) with { Name = "Renamed", OffersAllChannels = null, ChannelIds = null },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        desk.OffersAllChannels.Should().BeFalse();
+        desk.Channels.Select(c => c.ChannelId).Should().Equal(chosen.Id);
+        desk.DomainEvents.OfType<IntakeDeskChannelsChangedEvent>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ChoosingAnUnknownChannel_Fails()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var desk = _scenario.DeskWithMembers(Admin(deskAdmin.Id));
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            Unchanged(desk) with { OffersAllChannels = false, ChannelIds = [Guid.NewGuid()] },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Every channel must be a company channel.");
     }
 }

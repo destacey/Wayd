@@ -81,6 +81,7 @@ public partial class EventCoverageTests
         typeof(WorkflowAssignment),
 
         // Demand Management
+        typeof(IntakeChannel),
         typeof(IntakeDesk),
         typeof(IntakeRequest),
 
@@ -228,7 +229,6 @@ public partial class EventCoverageTests
         [typeof(EstimationScale)] = "#952.",
         [typeof(ExpenditureCategory)] = "#952.",
         [typeof(FeatureFlag)] = "#952.",
-        [typeof(IntakeChannel)] = "#1120, which adds the first changes to a channel.",
         [typeof(Link)] = "#952.",
         [typeof(ProductTagCategory)] = "#952.",
         [typeof(ProductType)] = "#952.",

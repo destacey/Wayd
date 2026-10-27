@@ -40,7 +40,7 @@ internal static class IntakeRequestProjections
                 .First(),
             Channel = channels.Where(c => c.Id == r.ChannelId)
                 .Select(c => new IntakeChannelNavigationDto { Id = c.Id, Name = c.Name })
-                .First(),
+                .FirstOrDefault(),
             Assignee = employees.Where(e => e.Id == r.AssigneeId)
                 .Select(e => new EmployeeNavigationDto { Id = e.Id, Key = e.Key, Name = e.Name.FirstName + " " + e.Name.LastName })
                 .FirstOrDefault(),

@@ -9,14 +9,21 @@ namespace Wayd.Common.Domain.Events.DemandManagement;
 /// An intake request was submitted to a desk.
 /// </summary>
 /// <remarks>
+/// Frozen at its published shape and never raised; <see cref="IntakeRequestCreatedEventV2"/> replaced it when a
+/// request's channel became optional. Kept so every payload written as this type still deserializes into it —
+/// its name and members are the contract those payloads were written against, so neither may change.
+/// <para>
 /// Carries the summary tier only, because the activity log is filtered by tier: the description, expected benefits, submitter and origin are substance. The submitter and origin never change, so the record holds them; the description as submitted is the first <see cref="IntakeRequestDetailsUpdatedEvent"/>'s previous value.
+/// </para>
 /// </remarks>
+[Obsolete("Superseded by IntakeRequestCreatedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record IntakeRequestCreatedEvent : DomainEvent<IntakeRequestCreatedEvent>, IDomainEventDescriptor, IIntakeRequestEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Created;
 
     public static IntakeRequestReadTier ReadTier => IntakeRequestReadTier.Summary;
 
+    [JsonConstructor]
     public IntakeRequestCreatedEvent(Guid id, int key, string title, Guid deskId, Guid channelId, Guid requesterId, IntakeRequestNeedByDetails? needBy,
         Guid statusId, StatusCategory statusCategory, IntakeRequestStatusAlias statusAlias, EventActor actor, Instant timestamp)
         : base(actor, "1.1")

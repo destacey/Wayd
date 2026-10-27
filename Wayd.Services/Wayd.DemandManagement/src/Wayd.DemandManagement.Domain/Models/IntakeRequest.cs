@@ -40,7 +40,7 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         Guid requesterId,
         Guid submittedById,
         Guid deskId,
-        Guid channelId,
+        Guid? channelId,
         IntakeRequestNeedBy? needBy,
         IntakeRequestOrigin? origin)
     {
@@ -50,7 +50,7 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         RequesterId = Guard.Against.Default(requesterId, nameof(requesterId));
         SubmittedById = Guard.Against.Default(submittedById, nameof(submittedById));
         DeskId = Guard.Against.Default(deskId, nameof(deskId));
-        ChannelId = Guard.Against.Default(channelId, nameof(channelId));
+        ChannelId = channelId == Guid.Empty ? null : channelId;
         NeedBy = needBy;
         Origin = origin;
     }
@@ -113,9 +113,14 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     public Guid DeskId { get; private set; }
 
     /// <summary>
-    /// Where the request came from. Summary tier.
+    /// Where the request came from, or null when it was not recorded: the request was submitted to a desk that
+    /// offers no channel. Summary tier.
     /// </summary>
-    public Guid ChannelId { get; private set; }
+    /// <remarks>
+    /// A fact about where the ask came from, not about who reviews it, so moving the request to another desk
+    /// keeps it even when the new desk does not offer it.
+    /// </remarks>
+    public Guid? ChannelId { get; private set; }
 
     /// <summary>
     /// When the request has to land, and why. Summary tier, reference included, because the parts change
@@ -266,28 +271,57 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Gives the request a different channel. An archived channel cannot be given.
+    /// Gives the request a different channel, or clears it with null, as an edit in Wayd. Needs
+    /// <paramref name="desk"/>'s <see cref="IntakeDesk.Channels"/> loaded.
     /// </summary>
-    public Result ChangeChannel(IntakeChannel channel, IntakeRequestEditor editor, Instant timestamp)
+    /// <remarks>
+    /// The channel must be one the request's desk offers, or the one it already has, which it keeps even after
+    /// moving to a desk that does not offer it. Clearing is allowed only while the desk offers no channel:
+    /// otherwise a recorded channel can be changed but not removed.
+    /// </remarks>
+    /// <param name="desk">The request's desk.</param>
+    /// <param name="companyChannels">The company's channels, from which the desk's offered ones are read.</param>
+    public Result ChangeChannel(IntakeChannel? channel, IntakeDesk desk, IEnumerable<IntakeChannel> companyChannels,
+        IntakeRequestEditor editor, Instant timestamp)
     {
-        Guard.Against.Null(channel);
+        Guard.Against.Null(desk);
+        if (desk.Id != DeskId)
+            throw new ArgumentException("The desk must be the request's own.", nameof(desk));
 
         if (EditRefusal(editor) is { } refusal)
             return refusal;
 
-        if (channel.Id == ChannelId)
+        var toChannelId = channel?.Id;
+        if (toChannelId == ChannelId)
             return Result.Success();
 
-        if (!channel.IsActive)
-            return Result.Failure("An archived channel cannot be given to a request.");
+        if (channel is null)
+        {
+            if (desk.OfferedFrom(companyChannels).Any())
+                return Result.Failure(ChannelRequiredError);
+        }
+        else if (!desk.Offers(channel))
+        {
+            return Result.Failure(ChannelNotOfferedError);
+        }
 
         var fromChannelId = ChannelId;
-        ChannelId = channel.Id;
+        ChannelId = toChannelId;
 
-        RaiseWhenKeyed(() => new IntakeRequestChannelChangedEvent(Id, Key, fromChannelId, channel.Id, editor.Actor, timestamp));
+        RaiseWhenKeyed(() => new IntakeRequestChannelChangedEventV2(Id, Key, fromChannelId, toChannelId, editor.Actor, timestamp));
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// The failure for a channel the request's desk does not offer.
+    /// </summary>
+    public const string ChannelNotOfferedError = "Choose a channel this desk offers.";
+
+    /// <summary>
+    /// The failure for no channel, on a desk that offers channels.
+    /// </summary>
+    public const string ChannelRequiredError = "Choose where this request came from.";
 
     /// <summary>
     /// Gives the request a different assignee, or unassigns it with null.
@@ -608,11 +642,58 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         "This request is part of the record of a review, so it cannot be deleted. Decline it instead.";
 
     /// <summary>
-    /// Submits a request to a desk. Refused when the desk is closed to new requests or the channel is archived.
+    /// Submits a request to a desk through Wayd's own form. Refused when the desk is closed to new requests, or
+    /// the channel is not one the desk offers. Needs <paramref name="desk"/>'s <see cref="IntakeDesk.Channels"/>
+    /// loaded.
     /// </summary>
     /// <remarks>
-    /// Which desks a requester may pick is the submit form's rule, not the request's: an agent routing and
-    /// an upstream system naming a desk are allowed desks a requester cannot pick.
+    /// A desk offering channels requires one; a desk offering none takes the request without one. Which desks a
+    /// requester may pick is the submit form's rule, not the request's.
+    /// </remarks>
+    /// <param name="companyChannels">The company's channels, from which the desk's offered ones are read.</param>
+    /// <param name="initialStatus">
+    /// The status meaning Submitted in the workflow governing <paramref name="desk"/>, resolved by the caller,
+    /// since the domain never loads a workflow.
+    /// </param>
+    public static Result<IntakeRequest> Submit(
+        string title,
+        string description,
+        string? expectedBenefits,
+        Guid requesterId,
+        Guid submittedById,
+        IntakeDesk desk,
+        IEnumerable<IntakeChannel> companyChannels,
+        IntakeChannel? channel,
+        IntakeRequestNeedBy? needBy,
+        StatusRef initialStatus,
+        EventActor actor,
+        Instant timestamp)
+    {
+        Guard.Against.Null(desk);
+
+        if (channel is null)
+        {
+            if (desk.OfferedFrom(companyChannels).Any())
+                return Result.Failure<IntakeRequest>(ChannelRequiredError);
+        }
+        else if (!desk.Offers(channel))
+        {
+            return Result.Failure<IntakeRequest>(ChannelNotOfferedError);
+        }
+
+        return Create(title, description, expectedBenefits, requesterId, submittedById, desk, channel, needBy,
+            origin: null, initialStatus, actor, timestamp);
+    }
+
+    /// <summary>
+    /// Creates a request on a desk from outside Wayd's submit form: an upstream system or an import. Refused when
+    /// the desk is closed to new requests or the channel is archived.
+    /// </summary>
+    /// <remarks>
+    /// The channel records where the ask came from, so it may be any active company channel whether or not the
+    /// desk offers it, or none. An agent routing and an upstream system naming a desk are allowed desks a
+    /// requester cannot pick. <see cref="Submit"/> is the form's way in, holding the request to the desk's
+    /// channels.
     /// </remarks>
     /// <param name="initialStatus">
     /// The status meaning Submitted in the workflow governing <paramref name="desk"/>, resolved by the caller,
@@ -625,7 +706,7 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         Guid requesterId,
         Guid submittedById,
         IntakeDesk desk,
-        IntakeChannel channel,
+        IntakeChannel? channel,
         IntakeRequestNeedBy? needBy,
         IntakeRequestOrigin? origin,
         StatusRef initialStatus,
@@ -633,7 +714,6 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         Instant timestamp)
     {
         Guard.Against.Null(desk);
-        Guard.Against.Null(channel);
         Guard.Against.Null(initialStatus);
         if (initialStatus.Alias != (int)IntakeRequestStatusAlias.Submitted)
             throw new ArgumentException("A request starts in the status meaning Submitted.", nameof(initialStatus));
@@ -641,11 +721,11 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         if (!desk.IsOpen)
             return Result.Failure<IntakeRequest>("This desk is not accepting new requests.");
 
-        if (!channel.IsActive)
+        if (channel is { IsActive: false })
             return Result.Failure<IntakeRequest>("An archived channel cannot be given to a request.");
 
         var request = new IntakeRequest(title, description, expectedBenefits, requesterId, submittedById, desk.Id,
-            channel.Id, needBy, origin);
+            channel?.Id, needBy, origin);
         request.ApplyStatus(initialStatus, actor, timestamp);
 
         // Deferred because Key is database-generated: an event raised here would carry Key 0. Every other
@@ -660,7 +740,7 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         var createdStatusCategory = request.StatusCategory;
         var createdStatusAlias = request.StatusAlias;
 
-        request.AddPostPersistenceAction(() => request.AddDomainEvent(new IntakeRequestCreatedEvent(
+        request.AddPostPersistenceAction(() => request.AddDomainEvent(new IntakeRequestCreatedEventV2(
             request.Id,
             request.Key,
             createdTitle,

@@ -55,7 +55,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             requester = SeedEmployee(seeding);
             agent = SeedEmployee(seeding);
             colleague = SeedEmployee(seeding);
-            channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
+            channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1, EventActor.System, Now);
             seeding.IntakeChannels.Add(channel);
             await seeding.SaveChangesAsync(ct);
         }
@@ -102,7 +102,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             .Select(a => a.EventType)
             .ToListAsync(ct);
         events.Should().Equal(
-            nameof(IntakeRequestCreatedEvent),
+            nameof(IntakeRequestCreatedEventV2),
             nameof(IntakeRequestRetitledEvent),
             nameof(IntakeRequestNeedByChangedEvent),
             nameof(IntakeRequestParticipantAddedEvent),
@@ -123,7 +123,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             var participant = SeedEmployee(seeding);
             var desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true,
                 [new IntakeDeskMemberDetails(deskAdmin.Id, IntakeDeskRole.Admin)], EventActor.System, Now);
-            var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
+            var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1, EventActor.System, Now);
             seeding.IntakeDesks.Add(desk);
             seeding.IntakeChannels.Add(channel);
             await seeding.SaveChangesAsync(ct);
@@ -162,7 +162,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true,
                 [new IntakeDeskMemberDetails(deskAdmin.Id, IntakeDeskRole.Admin), new IntakeDeskMemberDetails(leaving.Id, IntakeDeskRole.Agent)],
                 EventActor.System, Now);
-            var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
+            var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1, EventActor.System, Now);
             seeding.IntakeDesks.Add(desk);
             seeding.IntakeChannels.Add(channel);
             await seeding.SaveChangesAsync(ct);
@@ -177,7 +177,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         // Act — the Desk Admin holds no claim
         await using var context = _fixture.CreateContext();
         var result = await new UpdateIntakeDeskCommandHandler(context, Principal(deskAdmin.Id), User(), _clock).Handle(
-            new UpdateIntakeDeskCommand(desk.Id, "Renamed desk", desk.Description, desk.Visibility, false, false, true,
+            new UpdateIntakeDeskCommand(desk.Id, "Renamed desk", desk.Description, desk.Visibility, false, false, true, true, [],
                 [new IntakeDeskMemberDetails(deskAdmin.Id, IntakeDeskRole.Admin), new IntakeDeskMemberDetails(joining.Id, IntakeDeskRole.Agent)],
                 desk.Revision),
             ct);
@@ -211,7 +211,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             await seeding.SaveChangesAsync(ct);
         }
 
-        UpdateIntakeDeskCommand Renamed(string name) => new(desk.Id, name, desk.Description, desk.Visibility, true, true, true,
+        UpdateIntakeDeskCommand Renamed(string name) => new(desk.Id, name, desk.Description, desk.Visibility, true, true, true, true, [],
             [new IntakeDeskMemberDetails(deskAdmin.Id, IntakeDeskRole.Admin)], desk.Revision);
 
         await using var first = _fixture.CreateContext();
@@ -282,7 +282,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             outsider = SeedEmployee(seeding);
             desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true,
                 [new IntakeDeskMemberDetails(agent.Id, IntakeDeskRole.Agent)], EventActor.System, Now);
-            var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
+            var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1, EventActor.System, Now);
             seeding.IntakeDesks.Add(desk);
             seeding.IntakeChannels.Add(channel);
             await seeding.SaveChangesAsync(ct);
@@ -357,7 +357,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
                 [new IntakeDeskMemberDetails(agent.Id, IntakeDeskRole.Agent)], EventActor.System, Now);
             to = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true, [],
                 EventActor.System, Now);
-            var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
+            var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1, EventActor.System, Now);
             seeding.IntakeDesks.AddRange(from, to);
             seeding.IntakeChannels.Add(channel);
             await seeding.SaveChangesAsync(ct);
@@ -399,7 +399,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         var agent = SeedEmployee(seeding);
         var desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true,
             [new IntakeDeskMemberDetails(agent.Id, agentRole)], EventActor.System, Now);
-        var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
+        var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1, EventActor.System, Now);
         seeding.IntakeDesks.Add(desk);
         seeding.IntakeChannels.Add(channel);
         await seeding.SaveChangesAsync(ct);
@@ -557,7 +557,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             .Select(a => a.EventType)
             .ToListAsync(ct);
         // The request was created at the same test instant in an earlier save, so only the move's own events are ordered.
-        events.Where(e => e != nameof(IntakeRequestCreatedEvent))
+        events.Where(e => e != nameof(IntakeRequestCreatedEventV2))
             .Should().Equal(nameof(IntakeRequestStatusChangedEvent), nameof(IntakeRequestReroutedEvent));
     }
 
@@ -579,7 +579,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
                 [new IntakeDeskMemberDetails(deskAdmin.Id, IntakeDeskRole.Admin)], EventActor.System, Now);
             defaultDesk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.Open, true, true, true, [],
                 EventActor.System, Now);
-            channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1);
+            channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1, EventActor.System, Now);
             seeding.IntakeDesks.AddRange(ownDesk, defaultDesk);
             seeding.IntakeChannels.Add(channel);
 

@@ -32,8 +32,11 @@ public sealed record IntakeRequestSummaryDto
     /// <summary>The employee the request is for.</summary>
     public required EmployeeNavigationDto Requester { get; init; }
 
-    /// <summary>Where the request came from.</summary>
-    public required IntakeChannelNavigationDto Channel { get; init; }
+    /// <summary>
+    /// Where the request came from, or null when it was not recorded: the request was submitted to a desk that
+    /// offers no channel.
+    /// </summary>
+    public IntakeChannelNavigationDto? Channel { get; init; }
 
     /// <summary>The member of the request's desk who owns it, when one is assigned.</summary>
     public EmployeeNavigationDto? Assignee { get; init; }

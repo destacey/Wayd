@@ -89,7 +89,7 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
             .OrderBy(a => a.Ordinal)
             .Select(a => a.EventType)
             .ToListAsync(ct);
-        eventTypes.Should().Equal(nameof(IntakeRequestCreatedEvent), nameof(IntakeRequestParticipantAddedEvent));
+        eventTypes.Should().Equal(nameof(IntakeRequestCreatedEventV2), nameof(IntakeRequestParticipantAddedEvent));
     }
 
     [Fact]
@@ -191,13 +191,69 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
         (await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == request.Id, ct)).NeedBy.Should().Be(to);
     }
 
+    [Fact]
+    public async Task SaveChanges_PersistsARequestWithNoChannel_AndRecordsItsCreationWithoutOne()
+    {
+        // Arrange — submitted to a desk that offers no channel
+        var ct = TestContext.Current.CancellationToken;
+        await using var context = _fixture.CreateContext();
+        var (desk, _) = await SeedDeskAndChannel(context);
+        var requester = await SeedEmployee(context);
+        var request = IntakeRequest.Create("Title", "Description", null, requester.Id, requester.Id, desk, null, null,
+            null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
+
+        // Act
+        context.IntakeRequests.Add(request);
+        await context.SaveChangesAsync(ct);
+
+        // Assert
+        await using var reader = _fixture.CreateContext();
+        var saved = await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == request.Id, ct);
+        saved.ChannelId.Should().BeNull();
+        var entry = await reader.ActivityLogs.AsNoTracking()
+            .SingleAsync(a => a.AggregateId == request.Id && a.EventType == nameof(IntakeRequestCreatedEventV2), ct);
+        entry.Payload.Should().Contain("\"channelId\":null");
+    }
+
+    [Fact]
+    public async Task SaveChanges_ChoosingADesksChannels_PersistsThemAndRecordsTheChange()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        Guid deskId;
+        Guid channelId;
+        await using (var context = _fixture.CreateContext())
+        {
+            var (desk, channel) = await SeedDeskAndChannel(context);
+            deskId = desk.Id;
+            channelId = channel.Id;
+        }
+
+        // Act
+        await using (var context = _fixture.CreateContext())
+        {
+            var desk = await context.IntakeDesks.Include(d => d.Channels).SingleAsync(d => d.Id == deskId, ct);
+            desk.ChangeChannels(false, [channelId], EventActor.System, Now).IsSuccess.Should().BeTrue();
+            await context.SaveChangesAsync(ct);
+        }
+
+        // Assert
+        await using var reader = _fixture.CreateContext();
+        var saved = await reader.IntakeDesks.AsNoTracking().Include(d => d.Channels).SingleAsync(d => d.Id == deskId, ct);
+        saved.OffersAllChannels.Should().BeFalse();
+        saved.Channels.Select(c => c.ChannelId).Should().Equal(channelId);
+        (await reader.ActivityLogs.AsNoTracking()
+            .AnyAsync(a => a.AggregateId == deskId && a.EventType == nameof(IntakeDeskChannelsChangedEvent), ct))
+            .Should().BeTrue();
+    }
+
     private static string UniqueName(string prefix) => $"{prefix}-{Guid.NewGuid():N}"[..30];
 
     private static async Task<(IntakeDesk Desk, IntakeChannel Channel)> SeedDeskAndChannel(WaydDbContext context)
     {
         var desk = IntakeDesk.Create(UniqueName("Desk"), "Anything", IntakeDeskVisibility.Open, true, true, true, [],
             EventActor.System, Now);
-        var channel = IntakeChannel.Create(UniqueName("Channel"), null, 1);
+        var channel = IntakeChannel.Create(UniqueName("Channel"), null, 1, EventActor.System, Now);
         context.IntakeDesks.Add(desk);
         context.IntakeChannels.Add(channel);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);

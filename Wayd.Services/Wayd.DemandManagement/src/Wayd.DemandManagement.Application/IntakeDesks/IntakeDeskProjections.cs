@@ -13,6 +13,7 @@ internal static class IntakeDeskProjections
     public static Expression<Func<IntakeDesk, IntakeDeskDto>> Desk(IDemandManagementDbContext dbContext)
     {
         var employees = dbContext.Employees;
+        var channels = dbContext.IntakeChannels;
 
         return d => new IntakeDeskDto
         {
@@ -24,6 +25,12 @@ internal static class IntakeDeskProjections
             IsRequesterSelectable = d.IsRequesterSelectable,
             IsOpen = d.IsOpen,
             RequesterMayAddParticipants = d.RequesterMayAddParticipants,
+            OffersAllChannels = d.OffersAllChannels,
+            ChannelIds = d.Channels
+                .Join(channels, dc => dc.ChannelId, c => c.Id, (dc, c) => c)
+                .OrderBy(c => c.Order).ThenBy(c => c.Name).ThenBy(c => c.Id)
+                .Select(c => c.Id)
+                .ToList(),
             Revision = d.Revision,
             Members = d.Members
                 .Join(employees, m => m.EmployeeId, e => e.Id, (m, e) => new { m.Role, Employee = e })

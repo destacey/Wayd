@@ -23,6 +23,27 @@ public static class IntakeChannelFakerExtensions
         return faker;
     }
 
+    public static IntakeChannelFaker WithName(this IntakeChannelFaker faker, string name)
+    {
+        faker.RuleFor(x => x.Name, name);
+
+        return faker;
+    }
+
+    public static IntakeChannelFaker WithDescription(this IntakeChannelFaker faker, string? description)
+    {
+        faker.RuleFor(x => x.Description, description);
+
+        return faker;
+    }
+
+    public static IntakeChannelFaker WithOrder(this IntakeChannelFaker faker, int order)
+    {
+        faker.RuleFor(x => x.Order, order);
+
+        return faker;
+    }
+
     public static IntakeChannelFaker AsArchived(this IntakeChannelFaker faker)
     {
         faker.RuleFor(x => x.IsActive, false);

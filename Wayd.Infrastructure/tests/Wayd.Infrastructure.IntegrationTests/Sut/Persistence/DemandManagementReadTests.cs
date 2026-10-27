@@ -183,7 +183,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         summary.Desk.Id.Should().Be(scenario.Open.Id);
         summary.Requester.Id.Should().Be(scenario.Requester.Id);
         summary.Requester.Name.Should().Be("Intake Probe");
-        summary.Channel.Id.Should().Be(scenario.OnOpen.ChannelId);
+        summary.Channel!.Id.Should().Be(scenario.OnOpen.ChannelId!.Value);
         summary.NeedBy.Should().NotBeNull();
         summary.NeedBy!.Basis.Should().Be(NeedByBasis.Commitment);
         summary.NeedBy.Family.Should().Be(NeedByBasisFamily.ChosenByUs);
@@ -278,7 +278,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
 
         // Assert
         asOutsider!.Items.Select(a => a.EventType).Should().BeEquivalentTo(
-            [nameof(IntakeRequestCreatedEvent), nameof(IntakeRequestRetitledEvent)]);
+            [nameof(IntakeRequestCreatedEventV2), nameof(IntakeRequestRetitledEvent)]);
         asOutsider.TotalCount.Should().Be(2);
         asOutsider.Items.Should().OnlyContain(a => a.Employee == null && a.ClientId == null && !a.Payload.Contains("\"actor\""));
         asRequester!.Items.Select(a => a.EventType).Should().Contain(nameof(IntakeRequestDetailsUpdatedEvent));
@@ -378,7 +378,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         var open = Desk(IntakeDeskVisibility.Open);
         var summaryOnly = Desk(IntakeDeskVisibility.SummaryOnly);
         var @private = Desk(IntakeDeskVisibility.Private, agent.Id);
-        var channel = IntakeChannel.Create(UniqueName("Channel"), null, 1);
+        var channel = IntakeChannel.Create(UniqueName("Channel"), null, 1, EventActor.System, Now);
         context.IntakeDesks.AddRange(open, summaryOnly, @private);
         context.IntakeChannels.Add(channel);
         await context.SaveChangesAsync(ct);

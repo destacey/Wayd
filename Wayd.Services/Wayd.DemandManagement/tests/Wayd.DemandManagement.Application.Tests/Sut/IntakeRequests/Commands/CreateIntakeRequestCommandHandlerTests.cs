@@ -3,10 +3,12 @@ using FluentAssertions;
 using Moq;
 using NodaTime;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Application.IntakeRequests.Commands;
 using Wayd.DemandManagement.Application.Tests.Infrastructure;
+using Wayd.DemandManagement.Domain.Models;
 
 namespace Wayd.DemandManagement.Application.Tests.Sut.IntakeRequests.Commands;
 
@@ -196,5 +198,61 @@ public sealed class CreateIntakeRequestCommandHandlerTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         _scenario.DbContext.IntakeRequests.Single().NeedBy!.Reference.Should().Be("PCI DSS 4.0");
+    }
+
+    [Fact]
+    public async Task Handle_WithAChannelTheDeskDoesNotOffer_FailsAndSavesNothing()
+    {
+        // Arrange
+        _scenario.SignedInAs(_scenario.Employee());
+        var desk = _scenario.Desk();
+        var offered = _scenario.Channel();
+        var other = _scenario.Channel();
+        desk.ChangeChannels(false, [offered.Id], EventActor.System, _scenario.Clock.Now);
+
+        // Act
+        var result = await CreateHandler().Handle(Command(desk.Id, other.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.ChannelNotOfferedError);
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_WithoutAChannelToADeskOfferingNone_SubmitsWithNoChannel()
+    {
+        // Arrange
+        _scenario.SignedInAs(_scenario.Employee());
+        var desk = _scenario.Desk();
+        _scenario.Channel();
+        desk.ChangeChannels(false, [], EventActor.System, _scenario.Clock.Now);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new CreateIntakeRequestCommand("Export invoices", "Finance needs a CSV export", null, desk.Id, null, null, null),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _scenario.DbContext.IntakeRequests.Single().ChannelId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_WithoutAChannelToADeskOfferingSome_Fails()
+    {
+        // Arrange
+        _scenario.SignedInAs(_scenario.Employee());
+        var desk = _scenario.Desk();
+        _scenario.Channel();
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new CreateIntakeRequestCommand("Export invoices", "Finance needs a CSV export", null, desk.Id, null, null, null),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.ChannelRequiredError);
     }
 }

@@ -86,6 +86,10 @@ jest.mock(
     useGetNeedByBasesQuery: () => ({ data: [] }),
     useGetNeedByBasisFamiliesQuery: () => ({ data: [] }),
     useCreateIntakeRequestMutation: () => [mockCreate],
+    useGetIntakeDeskWorkflowQuery: () => ({
+      data: undefined,
+      isLoading: false,
+    }),
   }),
 )
 

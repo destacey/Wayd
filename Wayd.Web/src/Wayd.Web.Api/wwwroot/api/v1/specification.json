@@ -56317,9 +56317,9 @@
           "statuses": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/StatusNavigationDto"
+              "$ref": "#/components/schemas/IntakeWorkflowStatusDto"
             },
-            "description": "The workflow's statuses in its own order: the stages a request on the desk moves through, and the columns\nof the Requests board, so a stage with no request in it still shows."
+            "description": "The workflow's statuses in its own order: the stages a request on the desk moves through, the columns of\nthe Requests board, so a stage with no request in it still shows, and the path a requester is shown\nbefore submitting."
           }
         },
         "additionalProperties": false,
@@ -56806,6 +56806,46 @@
         },
         "additionalProperties": false,
         "description": "A published intake request workflow a desk can follow."
+      },
+      "IntakeWorkflowStatusDto": {
+        "required": [
+          "name",
+          "id",
+          "category",
+          "alias"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The status's id, which a request's current status is matched against.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "What the workflow calls the status."
+          },
+          "category": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusCategory"
+              }
+            ],
+            "description": "The status's bucket — Proposed, Active, Done or Removed — which decides whether a request in it is open."
+          },
+          "alias": {
+            "type": "integer",
+            "description": "The well-known meaning the status carries, as an intake request status alias value, or 0 for none.",
+            "format": "int32"
+          },
+          "description": {
+            "type": "string",
+            "description": "What the status means, when the workflow's author said, written for anyone following a request.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One status of a desk's review workflow, with what it means in the workflow author's words."
       },
       "IntegrationStateDto": {
         "required": [

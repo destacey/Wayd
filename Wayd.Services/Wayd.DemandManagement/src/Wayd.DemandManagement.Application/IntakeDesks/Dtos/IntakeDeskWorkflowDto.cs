@@ -1,4 +1,4 @@
-using Wayd.Common.Application.StatusWorkflows.Dtos;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.DemandManagement.Application.IntakeDesks.Dtos;
 
@@ -26,10 +26,30 @@ public sealed record IntakeDeskWorkflowDto
     public bool CanChange { get; init; }
 
     /// <summary>
-    /// The workflow's statuses in its own order: the stages a request on the desk moves through, and the columns
-    /// of the Requests board, so a stage with no request in it still shows.
+    /// The workflow's statuses in its own order: the stages a request on the desk moves through, the columns of
+    /// the Requests board, so a stage with no request in it still shows, and the path a requester is shown
+    /// before submitting.
     /// </summary>
-    public List<StatusNavigationDto> Statuses { get; init; } = [];
+    public List<IntakeWorkflowStatusDto> Statuses { get; init; } = [];
+}
+
+/// <summary>One status of a desk's review workflow, with what it means in the workflow author's words.</summary>
+public sealed record IntakeWorkflowStatusDto
+{
+    /// <summary>The status's id, which a request's current status is matched against.</summary>
+    public Guid Id { get; init; }
+
+    /// <summary>What the workflow calls the status.</summary>
+    public required string Name { get; init; }
+
+    /// <summary>The status's bucket — Proposed, Active, Done or Removed — which decides whether a request in it is open.</summary>
+    public StatusCategory Category { get; init; }
+
+    /// <summary>The well-known meaning the status carries, as an intake request status alias value, or 0 for none.</summary>
+    public int Alias { get; init; }
+
+    /// <summary>What the status means, when the workflow's author said, written for anyone following a request.</summary>
+    public string? Description { get; init; }
 }
 
 /// <summary>A published intake request workflow a desk can follow.</summary>

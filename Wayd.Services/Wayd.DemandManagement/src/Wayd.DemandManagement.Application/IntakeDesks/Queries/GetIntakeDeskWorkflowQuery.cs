@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
 using Wayd.Common.Application.StatusWorkflows;
-using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.DemandManagement.Application.IntakeDesks.Dtos;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Domain;
@@ -65,12 +64,13 @@ public sealed class GetIntakeDeskWorkflowQueryHandler(
             FollowsOrganizationDefault = !current.Value.IsScopeOwn,
             HasRequests = hasRequests,
             CanChange = mayChange && !hasRequests,
-            Statuses = [.. statuses.Value.Statuses.Select(s => new StatusNavigationDto
+            Statuses = [.. statuses.Value.Statuses.Select(s => new IntakeWorkflowStatusDto
             {
                 Id = s.Id,
                 Name = s.Name,
                 Category = s.Category,
                 Alias = s.Alias,
+                Description = s.Description,
             })],
         };
     }

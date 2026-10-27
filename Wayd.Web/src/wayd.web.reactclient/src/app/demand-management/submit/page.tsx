@@ -347,7 +347,7 @@ const SubmitIntakeRequestPage: FC = () => {
           </Form>
         </Card>
         <aside className={styles.aside}>
-          <WhatHappensNext />
+          <WhatHappensNext deskId={desk.id} />
         </aside>
       </div>
     )

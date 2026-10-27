@@ -36,6 +36,7 @@ public sealed class GetIntakeDeskWorkflowQueryHandlerTests
 
         // Assert
         result!.Statuses.Select(s => s.Name).Should().Equal(_scenario.Workflow.Statuses.Select(s => s.Name));
+        result.Statuses.Select(s => s.Description).Should().Equal(_scenario.Workflow.Statuses.Select(s => s.Description));
         result.Statuses.Should().Contain(s => s.Name == "In Review");
     }
 

@@ -57113,9 +57113,10 @@ to the default reaches it. */
     /** Whether the reader may choose the desk's workflow: a Desk Admin on it or the Demand Management Admin,
 while no request is on it. */
     canChange: boolean;
-    /** The workflow's statuses in its own order: the stages a request on the desk moves through, and the columns
-of the Requests board, so a stage with no request in it still shows. */
-    statuses: StatusNavigationDto[];
+    /** The workflow's statuses in its own order: the stages a request on the desk moves through, the columns of
+the Requests board, so a stage with no request in it still shows, and the path a requester is shown
+before submitting. */
+    statuses: IntakeWorkflowStatusDto[];
 }
 
 /** The statuses an intake request can arrive in when moved to a desk, and the one it arrives in unless the mover chooses. */
@@ -57295,6 +57296,20 @@ export interface IntakeWorkflowChoiceDto {
     /** The workflow's name. */
     name: string;
     /** What the workflow is for, when its author said. */
+    description?: string | undefined;
+}
+
+/** One status of a desk's review workflow, with what it means in the workflow author's words. */
+export interface IntakeWorkflowStatusDto {
+    /** The status's id, which a request's current status is matched against. */
+    id: string;
+    /** What the workflow calls the status. */
+    name: string;
+    /** The status's bucket — Proposed, Active, Done or Removed — which decides whether a request in it is open. */
+    category: StatusCategory;
+    /** The well-known meaning the status carries, as an intake request status alias value, or 0 for none. */
+    alias: number;
+    /** What the status means, when the workflow's author said, written for anyone following a request. */
     description?: string | undefined;
 }
 

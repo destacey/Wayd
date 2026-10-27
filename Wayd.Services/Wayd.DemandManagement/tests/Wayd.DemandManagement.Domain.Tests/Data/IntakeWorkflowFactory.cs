@@ -36,7 +36,7 @@ public static class IntakeWorkflowFactory
             ("Withdrawn", StatusCategory.Removed, IntakeRequestStatusAlias.Withdrawn),
         ];
         foreach (var (statusName, category, alias) in statuses)
-            workflow.AddStatus(statusName, null, category, (int)alias, EventActor.System, Timestamp);
+            workflow.AddStatus(statusName, $"What {statusName} means.", category, (int)alias, EventActor.System, Timestamp);
 
         workflow.Publish(EventActor.System, Timestamp);
         workflow.ClearDomainEvents();

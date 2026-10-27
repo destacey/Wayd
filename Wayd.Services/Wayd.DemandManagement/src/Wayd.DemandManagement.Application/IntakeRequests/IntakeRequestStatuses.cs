@@ -37,7 +37,7 @@ internal static class IntakeRequestStatuses
         StatusWorkflow destination, IntakeRequest request)
     {
         var statuses = destination.Statuses
-            .Where(s => IntakeRequest.CanArriveIn(s.Category, (IntakeRequestStatusAlias)s.Alias))
+            .Where(s => IntakeRequest.CanArriveIn(s.Category))
             .OrderBy(s => s.Order)
             .ToList();
 

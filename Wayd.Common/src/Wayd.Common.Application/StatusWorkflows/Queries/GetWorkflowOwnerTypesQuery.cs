@@ -33,6 +33,7 @@ public sealed class GetWorkflowOwnerTypesQueryHandler(IWorkflowOwnerAvailability
                 Key = descriptor.Key,
                 DisplayName = descriptor.DisplayName,
                 RequiredAliases = [.. descriptor.RequiredAliases],
+                RequiredCategories = [.. descriptor.RequiredCategories],
                 SupportsRestrictedTransitions = descriptor.SupportsRestrictedTransitions,
                 Aliases =
                 [
@@ -43,6 +44,7 @@ public sealed class GetWorkflowOwnerTypesQueryHandler(IWorkflowOwnerAvailability
                             Value = a.Key,
                             Name = a.Value,
                             IsRequired = descriptor.RequiredAliases.Contains(a.Key),
+                            Category = descriptor.AliasCategories[a.Key],
                         }),
                 ],
             })

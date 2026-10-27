@@ -106,7 +106,7 @@ public sealed class DeleteIntakeRequestCommandHandlerTests
         // Arrange
         var deskAdmin = _scenario.Employee();
         var request = _scenario.RequestIn(_scenario.DeskAdministeredBy(deskAdmin.Id), _scenario.Employee(),
-            StatusCategory.Removed, IntakeRequestStatusAlias.Declined);
+            StatusCategory.Removed);
         _scenario.SignedInAs(deskAdmin);
 
         // Act

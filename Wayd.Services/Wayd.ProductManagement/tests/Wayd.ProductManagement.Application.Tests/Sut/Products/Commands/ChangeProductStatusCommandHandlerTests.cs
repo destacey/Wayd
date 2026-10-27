@@ -32,9 +32,10 @@ public sealed class ChangeProductStatusCommandHandlerTests : ProductCommandTestB
         ProductWorkflowOwners.Register();
 
         _workflow = StatusWorkflow.CreateSystem("Product Lifecycle", null, ProductWorkflowOwners.Product.Key, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        _workflow.AddSystemStatus("Concept", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
         _active = _workflow.AddSystemStatus("Active", null, StatusCategory.Active, (int)ProductStatusAlias.Active, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
         _retired = _workflow.AddSystemStatus("Retired", null, StatusCategory.Done, (int)ProductStatusAlias.Retired, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
-        _workflow.PublishSystem(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        _workflow.PublishSystem(EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).IsSuccess.Should().BeTrue();
 
         _statusResolver
             .Setup(r => r.ForScope(ProductWorkflowOwners.Product.Key, null, It.IsAny<CancellationToken>()))

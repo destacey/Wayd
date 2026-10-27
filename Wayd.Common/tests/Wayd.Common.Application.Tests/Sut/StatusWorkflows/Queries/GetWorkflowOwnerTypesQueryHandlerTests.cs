@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Wayd.Common.Application.StatusWorkflows.Queries;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Common.Application.Tests.Sut.StatusWorkflows.Queries;
 
@@ -19,6 +20,22 @@ public sealed class GetWorkflowOwnerTypesQueryHandlerTests : StatusWorkflowHandl
 
         // Assert
         owners.Select(o => o.Key).Should().Contain(Widget.Key).And.NotContain(Gadget.Key);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldDescribeEachAliasWithItsCategory_AndTheRequiredCategories()
+    {
+        // Arrange
+        var sut = new GetWorkflowOwnerTypesQueryHandler(OwnerAvailability);
+
+        // Act
+        var owners = await sut.Handle(new GetWorkflowOwnerTypesQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var widget = owners.Single(o => o.Key == Widget.Key);
+        widget.Aliases.Select(a => (a.Name, a.Category)).Should().Equal(
+            ("Notable", StatusCategory.Active), ("Terminal", StatusCategory.Done));
+        widget.RequiredCategories.Should().BeEmpty();
     }
 
     [Fact]

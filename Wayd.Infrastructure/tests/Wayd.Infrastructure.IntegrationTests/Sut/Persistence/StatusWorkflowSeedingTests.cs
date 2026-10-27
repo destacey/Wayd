@@ -229,7 +229,8 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
         await SeedAll(context);
 
         // Assert
-        // The default #1040 settles: four open stages, one active, one done and three ways out.
+        // Three open stages, one active, one done and three ways out.
+        // Declined carries no meaning: its reason comes from the Removed category.
         var workflow = await context.StatusWorkflows
             .Include(w => w.Statuses)
             .SingleAsync(w => w.OwnerType == DemandManagementWorkflowOwners.IntakeRequest.Key && w.IsSystem, TestContext.Current.CancellationToken);
@@ -240,10 +241,9 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
                 ("Submitted", StatusCategory.Proposed, IntakeRequestStatusAlias.Submitted),
                 ("In Review", StatusCategory.Proposed, IntakeRequestStatusAlias.None),
                 ("Waiting on Requester", StatusCategory.Proposed, IntakeRequestStatusAlias.WaitingOnRequester),
-                ("Deferred", StatusCategory.Proposed, IntakeRequestStatusAlias.Deferred),
                 ("Accepted", StatusCategory.Active, IntakeRequestStatusAlias.Accepted),
                 ("Fulfilled", StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled),
-                ("Declined", StatusCategory.Removed, IntakeRequestStatusAlias.Declined),
+                ("Declined", StatusCategory.Removed, IntakeRequestStatusAlias.None),
                 ("Duplicate", StatusCategory.Removed, IntakeRequestStatusAlias.Duplicate),
                 ("Withdrawn", StatusCategory.Removed, IntakeRequestStatusAlias.Withdrawn));
     }

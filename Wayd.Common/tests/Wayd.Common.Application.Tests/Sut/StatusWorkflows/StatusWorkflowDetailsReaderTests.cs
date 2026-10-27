@@ -27,7 +27,7 @@ public sealed class StatusWorkflowDetailsReaderTests : StatusWorkflowHandlerTest
     private static readonly WorkflowOwnerDescriptor Gadget = new(
         "test.query-gadget",
         "Gadget",
-        new Dictionary<int, string> { [21] = "Ready", [22] = "Shipped" },
+        new Dictionary<int, WorkflowAlias> { [21] = new("Ready", StatusCategory.Active), [22] = new("Shipped", StatusCategory.Done) },
         [21, 22],
         supportsRestrictedTransitions: true,
         moves:
@@ -36,7 +36,52 @@ public sealed class StatusWorkflowDetailsReaderTests : StatusWorkflowHandlerTest
             WorkflowMove.Optional("Ship", 21, 22, TransitionConditionKind.RequiresReason, TransitionConditionKind.RequiresPassedApproval),
         ]);
 
-    public StatusWorkflowDetailsReaderTests() => WorkflowOwners.Register(Gadget);
+    // An owner type that requires every category, as well as Widget's aliases.
+    private static readonly WorkflowOwnerDescriptor Staged = new(
+        "test.query-staged",
+        "Staged",
+        new Dictionary<int, WorkflowAlias>
+        {
+            [NotableAlias] = new("Notable", StatusCategory.Active),
+            [TerminalAlias] = new("Terminal", StatusCategory.Done),
+        },
+        [NotableAlias, TerminalAlias],
+        [StatusCategory.Proposed, StatusCategory.Active, StatusCategory.Done, StatusCategory.Removed]);
+
+    public StatusWorkflowDetailsReaderTests() => WorkflowOwners.Register(Gadget, Staged);
+
+    [Fact]
+    public async Task Handle_ShouldNotOfferPublish_WhenARequiredCategoryIsMissing()
+    {
+        // Arrange
+        var workflow = SeedWorkflow(owner: Staged);
+
+        // Act
+        var result = await Read(workflow);
+
+        // Assert
+        result!.MissingRequiredCategories.Should().Equal(StatusCategory.Removed);
+        result.MissingRequiredAliases.Should().BeEmpty();
+        result.CanPublish.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNameEachMisfiledAlias()
+    {
+        // Arrange
+        var workflow = StatusWorkflow.CreateSystem("Seeded", null, Widget.Key, EventActor.System, Now).Value;
+        workflow.AddSystemStatus("Proposed", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, Now);
+        workflow.AddSystemStatus("Notable", null, StatusCategory.Done, NotableAlias, EventActor.System, Now);
+        DbContext.AddStatusWorkflow(workflow);
+
+        // Act
+        var result = await Read(workflow);
+
+        // Assert
+        result!.MisfiledAliases.Should().Equal(
+            "'Notable' means Notable, which belongs under Active, not Done. Move it to Active or clear its meaning.");
+        result.MissingRequiredCategories.Should().BeEmpty();
+    }
 
     [Fact]
     public async Task Handle_ShouldDescribeTheDeclaredMoves_WithTheConditionsSomethingCanCheck()

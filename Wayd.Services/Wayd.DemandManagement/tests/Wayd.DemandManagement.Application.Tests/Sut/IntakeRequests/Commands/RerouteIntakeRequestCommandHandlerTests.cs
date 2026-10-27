@@ -151,10 +151,10 @@ public sealed class RerouteIntakeRequestCommandHandlerTests
 
     [Theory]
     [InlineData("Declined")]
-    [InlineData("Deferred")]
+    [InlineData("Fulfilled")]
     public async Task Handle_WithAStatusItCannotArriveIn_FailsAndStays(string statusName)
     {
-        // Arrange — a closed status, or one needing a reason, is the new desk's call
+        // Arrange — a closed status, which needs a reason, is the new desk's call
         var agent = _scenario.Employee();
         var current = _scenario.Desk(agentIds: agent.Id);
         var request = _scenario.Request(current, _scenario.Employee());
@@ -175,10 +175,10 @@ public sealed class RerouteIntakeRequestCommandHandlerTests
     [Fact]
     public async Task Handle_WithoutAStatus_WhenItsOwnCannotArrive_AsksForOne()
     {
-        // Arrange — deferred needs a reason, so it cannot be kept on the move
+        // Arrange — the new desk's workflow has no status matching the one it holds
         var agent = _scenario.Employee();
         var current = _scenario.Desk(agentIds: agent.Id);
-        var request = _scenario.RequestInStatus(current, _scenario.Employee(), "Deferred");
+        var request = _scenario.RequestOnAnotherWorkflow(current, _scenario.Employee());
         _scenario.SignedInAs(agent);
 
         // Act

@@ -124,6 +124,13 @@ public static class IntakeRequestFakerExtensions
         return faker;
     }
 
+    public static IntakeRequestFaker WithStatusName(this IntakeRequestFaker faker, string statusName)
+    {
+        faker.RuleFor(x => x.StatusName, statusName);
+
+        return faker;
+    }
+
     public static IntakeRequestFaker WithStatusReason(this IntakeRequestFaker faker, string? reason)
     {
         faker.RuleFor(x => x.StatusReason, reason);

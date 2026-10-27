@@ -31,7 +31,7 @@ public sealed class IntakeRequestStatusRecordMigratorTests(SqlServerDbContextFix
         {
             var workflow = StatusWorkflow.Create(name, null, DemandManagementWorkflowOwners.IntakeRequest.Key, EventActor.System, Now).Value;
             workflow.AddStatus("Submitted", null, StatusCategory.Proposed, (int)IntakeRequestStatusAlias.Submitted, EventActor.System, Now);
-            workflow.AddStatus("Declined", null, StatusCategory.Removed, (int)IntakeRequestStatusAlias.Declined, EventActor.System, Now);
+            workflow.AddStatus("Withdrawn", null, StatusCategory.Removed, (int)IntakeRequestStatusAlias.Withdrawn, EventActor.System, Now);
             return workflow;
         }
 

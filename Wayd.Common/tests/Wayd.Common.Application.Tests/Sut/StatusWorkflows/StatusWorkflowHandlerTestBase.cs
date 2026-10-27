@@ -31,7 +31,7 @@ public abstract class StatusWorkflowHandlerTestBase
     protected static readonly WorkflowOwnerDescriptor Widget = new(
         "test.widget",
         "Widget",
-        new Dictionary<int, string> { [NotableAlias] = "Notable", [TerminalAlias] = "Terminal" },
+        new Dictionary<int, WorkflowAlias> { [NotableAlias] = new("Notable", StatusCategory.Active), [TerminalAlias] = new("Terminal", StatusCategory.Done) },
         [NotableAlias, TerminalAlias],
         supportsRestrictedTransitions: true);
 
@@ -42,7 +42,7 @@ public abstract class StatusWorkflowHandlerTestBase
     protected static readonly WorkflowOwnerDescriptor Gadget = new(
         "test.flagged-gadget",
         "Gadget",
-        new Dictionary<int, string> { [NotableAlias] = "Notable", [TerminalAlias] = "Terminal" },
+        new Dictionary<int, WorkflowAlias> { [NotableAlias] = new("Notable", StatusCategory.Active), [TerminalAlias] = new("Terminal", StatusCategory.Done) },
         [NotableAlias, TerminalAlias],
         featureFlag: GadgetFeature);
 

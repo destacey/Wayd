@@ -1,11 +1,12 @@
 using Ardalis.GuardClauses;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Common.Domain.StatusWorkflows;
 
 /// <summary>
 /// What a module declares about one kind of record it wants workflows for: how the record is
-/// identified, what it is called, the well-known meanings its statuses can carry, and which of those
-/// its aggregates cannot function without.
+/// identified, what it is called, the well-known meanings its statuses can carry and the category each
+/// belongs to, and which meanings and categories its aggregates cannot function without.
 /// </summary>
 /// <remarks>
 /// The seam that keeps the engine free of any module's vocabulary. A module declares its descriptors in
@@ -24,6 +25,7 @@ namespace Wayd.Common.Domain.StatusWorkflows;
 public sealed class WorkflowOwnerDescriptor
 {
     private readonly Dictionary<int, string> _aliases;
+    private readonly Dictionary<int, StatusCategory> _aliasCategories;
 
     /// <param name="key">
     /// Stable identifier, persisted on every workflow row. Namespaced by module — <c>product.release</c>
@@ -32,13 +34,18 @@ public sealed class WorkflowOwnerDescriptor
     /// </param>
     /// <param name="displayName">What to call this kind of record in a message or an admin screen.</param>
     /// <param name="aliases">
-    /// Every well-known meaning a status of this owner type can carry, as value-to-name pairs. Names the
-    /// engine's error messages and seeds the alias lookup that makes an <c>int</c> column readable in a
-    /// query; the values themselves are persisted, so <strong>never renumber one</strong>.
+    /// Every well-known meaning a status of this owner type can carry, keyed by value, each with its name
+    /// and the one category a status carrying it belongs to. The names make the engine's error messages
+    /// and an <c>int</c> column in a query readable; the values are persisted, so <strong>never renumber
+    /// one</strong>.
     /// </param>
     /// <param name="requiredAliases">
     /// The subset of <paramref name="aliases"/> this owner type's aggregates resolve by alias, and
     /// therefore cannot function without. A workflow missing any of them is refused at activation.
+    /// </param>
+    /// <param name="requiredCategories">
+    /// The categories a workflow for this owner type must have at least one status in. See
+    /// <see cref="RequiredCategories"/>.
     /// </param>
     /// <param name="supportsRestrictedTransitions">
     /// Whether this owner type's records may be governed by a restricted transition set. Declare it only
@@ -57,8 +64,9 @@ public sealed class WorkflowOwnerDescriptor
     public WorkflowOwnerDescriptor(
         string key,
         string displayName,
-        IReadOnlyDictionary<int, string> aliases,
+        IReadOnlyDictionary<int, WorkflowAlias> aliases,
         IReadOnlyCollection<int> requiredAliases,
+        IReadOnlyCollection<StatusCategory>? requiredCategories = null,
         bool supportsRestrictedTransitions = false,
         IReadOnlyCollection<WorkflowMove>? moves = null,
         string? featureFlag = null)
@@ -77,12 +85,18 @@ public sealed class WorkflowOwnerDescriptor
                 nameof(aliases));
         }
 
-        if (aliases.Values.Any(string.IsNullOrWhiteSpace))
+        if (aliases.Values.Any(a => a is null || string.IsNullOrWhiteSpace(a.Name)))
         {
             throw new ArgumentException($"'{key}' declares an alias with no name.", nameof(aliases));
         }
 
+        if (aliases.Values.Any(a => !Enum.IsDefined(a.Category)))
+        {
+            throw new ArgumentException($"'{key}' declares an alias with no category.", nameof(aliases));
+        }
+
         var duplicateName = aliases.Values
+            .Select(a => a.Name)
             .GroupBy(v => v.Trim(), StringComparer.OrdinalIgnoreCase)
             .FirstOrDefault(g => g.Count() > 1);
 
@@ -106,8 +120,26 @@ public sealed class WorkflowOwnerDescriptor
             throw new ArgumentException($"'{key}' lists the same required alias more than once.", nameof(requiredAliases));
         }
 
-        _aliases = aliases.ToDictionary(a => a.Key, a => a.Value.Trim());
-        Moves = ValidateMoves(key, aliases, requiredAliases, moves ?? []);
+        RequiredCategories = ValidateRequiredCategories(key, requiredCategories ?? []);
+
+        _aliases = aliases.ToDictionary(a => a.Key, a => a.Value.Name.Trim());
+        _aliasCategories = aliases.ToDictionary(a => a.Key, a => a.Value.Category);
+        Moves = ValidateMoves(key, _aliases, requiredAliases, moves ?? []);
+    }
+
+    private static List<StatusCategory> ValidateRequiredCategories(string key, IReadOnlyCollection<StatusCategory> requiredCategories)
+    {
+        if (requiredCategories.Any(c => !Enum.IsDefined(c)))
+        {
+            throw new ArgumentException($"'{key}' requires a category that does not exist.", nameof(requiredCategories));
+        }
+
+        if (requiredCategories.Distinct().Count() != requiredCategories.Count)
+        {
+            throw new ArgumentException($"'{key}' lists the same required category more than once.", nameof(requiredCategories));
+        }
+
+        return [.. requiredCategories.Order()];
     }
 
     private static List<WorkflowMove> ValidateMoves(
@@ -172,6 +204,52 @@ public sealed class WorkflowOwnerDescriptor
     /// would otherwise fail later, inside a domain method, on a record an administrator already created.
     /// </remarks>
     public IReadOnlyCollection<int> RequiredAliases { get; }
+
+    /// <summary>
+    /// The categories a workflow for this owner type must have at least one status in before it can be
+    /// published, in category order.
+    /// </summary>
+    /// <remarks>
+    /// A category carries most of the rules a status follows — whether a record is open, editable, or
+    /// finished — so an owner type whose records must be able to get done declares Done here, and its
+    /// workflows cannot leave it out. Declared per owner type rather than engine-wide because record
+    /// types differ: one that needs only two steps declares two.
+    /// </remarks>
+    public IReadOnlyCollection<StatusCategory> RequiredCategories { get; }
+
+    /// <summary>
+    /// The category each alias belongs to, by alias value. A status carrying an alias must be in that
+    /// category; see <see cref="WorkflowAlias"/>.
+    /// </summary>
+    public IReadOnlyDictionary<int, StatusCategory> AliasCategories => _aliasCategories;
+
+    /// <summary>
+    /// Whether a status in <paramref name="category"/> may carry <paramref name="alias"/>: always for
+    /// <see cref="StatusWorkflow.NoAlias"/>, never for an alias this owner type does not declare, and
+    /// otherwise only in the alias's own category.
+    /// </summary>
+    /// <remarks>
+    /// An undeclared alias is refused because nothing resolves it, yet the alias lookup would still name
+    /// it — a value retired from the vocabulary would go on labelling reports.
+    /// </remarks>
+    public bool Fits(int alias, StatusCategory category) =>
+        alias == StatusWorkflow.NoAlias
+        || (_aliasCategories.TryGetValue(alias, out var expected) && expected == category);
+
+    /// <summary>
+    /// Why a status in <paramref name="category"/> cannot carry <paramref name="alias"/>, or null when it can.
+    /// </summary>
+    public string? DescribeMisfit(int alias, StatusCategory category)
+    {
+        if (Fits(alias, category))
+        {
+            return null;
+        }
+
+        return _aliasCategories.TryGetValue(alias, out var expected)
+            ? $"'{DescribeAlias(alias)}' belongs under {expected}, not {category}."
+            : $"{DisplayName} statuses have no meaning numbered {alias}.";
+    }
 
     /// <summary>
     /// Whether a workflow for this owner type may restrict which moves its records make.

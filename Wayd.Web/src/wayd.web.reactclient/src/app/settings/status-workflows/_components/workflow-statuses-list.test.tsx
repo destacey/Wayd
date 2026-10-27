@@ -64,6 +64,8 @@ const workflow = (
   isAssigned: false,
   statuses: [NEW, IN_FLIGHT, SHIPPED],
   missingRequiredAliases: [],
+  missingRequiredCategories: [],
+  misfiledAliases: [],
   transitionMode: TransitionMode.AnyToAny,
   transitions: [],
   availableConditions: [],

@@ -18,23 +18,25 @@ public sealed class StatusWorkflowTests
     private static readonly WorkflowOwnerDescriptor Widget = new(
         "test.widget",
         "Widget",
-        new Dictionary<int, string> { [NotableAlias] = "Notable", [TerminalAlias] = "Terminal" },
+        new Dictionary<int, WorkflowAlias> { [NotableAlias] = new("Notable", StatusCategory.Active), [TerminalAlias] = new("Terminal", StatusCategory.Done) },
         [NotableAlias, TerminalAlias],
         supportsRestrictedTransitions: true);
 
     // An owner type whose records cannot be held to a restricted transition set.
-    private static readonly WorkflowOwnerDescriptor Locked = new("test.locked", "Locked", new Dictionary<int, string>(), []);
+    private static readonly WorkflowOwnerDescriptor Locked = new("test.locked", "Locked", new Dictionary<int, WorkflowAlias>(), []);
 
     private const int ReadyAlias = 21;
     private const int ShippedAlias = 22;
     private const int PulledAlias = 23;
+    private const int HeldAlias = 24;
 
     // An owner type that moves only through named methods and declares the moves they make, as delivery
-    // records do. Only pulling a shipped gadget accepts a condition.
+    // records do. Only pulling a shipped gadget accepts a condition. Held is optional, and so is its only
+    // move out.
     private static readonly WorkflowOwnerDescriptor Gadget = new(
         "test.gadget",
         "Gadget",
-        new Dictionary<int, string> { [ReadyAlias] = "Ready", [ShippedAlias] = "Shipped", [PulledAlias] = "Pulled" },
+        new Dictionary<int, WorkflowAlias> { [ReadyAlias] = new("Ready", StatusCategory.Active), [ShippedAlias] = new("Shipped", StatusCategory.Done), [PulledAlias] = new("Pulled", StatusCategory.Removed), [HeldAlias] = new("Held", StatusCategory.Active) },
         [ReadyAlias, ShippedAlias, PulledAlias],
         supportsRestrictedTransitions: true,
         moves:
@@ -44,9 +46,18 @@ public sealed class StatusWorkflowTests
             WorkflowMove.Optional("Dispatch", fromAlias: null, ShippedAlias),
             WorkflowMove.Required("Pull", ReadyAlias, PulledAlias),
             WorkflowMove.Optional("Pull", ShippedAlias, PulledAlias, TransitionConditionKind.RequiresReason),
+            WorkflowMove.Optional("Release", HeldAlias, ShippedAlias),
         ]);
 
-    public StatusWorkflowTests() => WorkflowOwners.Register(Widget, Gadget);
+    // An owner type that requires categories as well as an alias.
+    private static readonly WorkflowOwnerDescriptor Staged = new(
+        "test.staged",
+        "Staged",
+        new Dictionary<int, WorkflowAlias> { [NotableAlias] = new("Notable", StatusCategory.Active) },
+        [NotableAlias],
+        [StatusCategory.Done, StatusCategory.Proposed, StatusCategory.Active]);
+
+    public StatusWorkflowTests() => WorkflowOwners.Register(Widget, Gadget, Staged);
 
     private static StatusWorkflow WidgetWorkflow()
     {
@@ -215,6 +226,49 @@ public sealed class StatusWorkflowTests
         result.Error.Should().Be("Only draft workflows can be restructured.");
     }
 
+    [Fact]
+    public void AddStatus_ShouldFail_WhenTheAliasBelongsUnderAnotherCategory()
+    {
+        // Arrange
+        var workflow = StatusWorkflow.Create("Widget Workflow", null, Widget.Key, EventActor.System, At).Value;
+
+        // Act
+        var result = workflow.AddStatus("Terminal", null, StatusCategory.Proposed, TerminalAlias, EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("'Terminal' belongs under Done, not Proposed.");
+        workflow.Statuses.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddStatus_ShouldFail_ForAnAliasTheOwnerTypeDoesNotDeclare()
+    {
+        // Arrange — the API takes any number, including one retired from the vocabulary
+        var workflow = StatusWorkflow.Create("Widget Workflow", null, Widget.Key, EventActor.System, At).Value;
+
+        // Act
+        var result = workflow.AddStatus("Archived", null, StatusCategory.Done, 99, EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Widget statuses have no meaning numbered 99.");
+        workflow.Statuses.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddStatus_ShouldAcceptAnyCategory_ForAStatusWithNoAlias()
+    {
+        // Arrange
+        var workflow = StatusWorkflow.Create("Widget Workflow", null, Widget.Key, EventActor.System, At).Value;
+
+        // Act
+        var result = workflow.AddStatus("Abandoned", null, StatusCategory.Removed, StatusWorkflow.NoAlias, EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
     #endregion AddStatus
 
     #region Publish
@@ -280,6 +334,104 @@ public sealed class StatusWorkflowTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("The workflow is already published.");
+    }
+
+    [Fact]
+    public void Publish_ShouldFail_WhenARequiredCategoryIsMissing()
+    {
+        // Arrange
+        var workflow = StatusWorkflow.Create("Staged Workflow", null, Staged.Key, EventActor.System, At).Value;
+        workflow.AddStatus("Proposed", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, At);
+        workflow.AddStatus("Notable", null, StatusCategory.Active, NotableAlias, EventActor.System, At);
+
+        // Act
+        var result = workflow.Publish(EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A Staged workflow needs a status in each of these categories: Done.");
+        workflow.State.Should().Be(StatusWorkflowState.Draft);
+    }
+
+    [Fact]
+    public void Publish_ShouldFail_NamingEveryMissingCategoryAndAliasAtOnce()
+    {
+        // Arrange
+        var workflow = StatusWorkflow.Create("Staged Workflow", null, Staged.Key, EventActor.System, At).Value;
+        workflow.AddStatus("Wrapped Up", null, StatusCategory.Done, StatusWorkflow.NoAlias, EventActor.System, At);
+
+        // Act
+        var result = workflow.Publish(EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(
+            "A Staged workflow needs a status in each of these categories: Proposed, Active. A Staged workflow needs a status for each of: Notable.");
+    }
+
+    [Fact]
+    public void Publish_ShouldSucceed_WhenEveryRequiredCategoryAndAliasIsPresent()
+    {
+        // Arrange
+        var workflow = StatusWorkflow.Create("Staged Workflow", null, Staged.Key, EventActor.System, At).Value;
+        workflow.AddStatus("Proposed", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, At);
+        workflow.AddStatus("Notable", null, StatusCategory.Active, NotableAlias, EventActor.System, At);
+        workflow.AddStatus("Wrapped Up", null, StatusCategory.Done, StatusWorkflow.NoAlias, EventActor.System, At);
+
+        // Act
+        var result = workflow.Publish(EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        workflow.MissingRequiredCategories().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void MissingRequiredCategories_ShouldListThem_InCategoryOrder()
+    {
+        // Arrange
+        var workflow = StatusWorkflow.Create("Staged Workflow", null, Staged.Key, EventActor.System, At).Value;
+        workflow.AddStatus("Notable", null, StatusCategory.Active, NotableAlias, EventActor.System, At);
+
+        // Act
+        var missing = workflow.MissingRequiredCategories();
+
+        // Assert
+        missing.Should().Equal(StatusCategory.Proposed, StatusCategory.Done);
+    }
+
+    [Fact]
+    public void MissingRequiredCategories_ShouldBeEmpty_ForAnOwnerTypeThatRequiresNone()
+    {
+        // Arrange
+        var workflow = StatusWorkflow.Create("Widget Workflow", null, Widget.Key, EventActor.System, At).Value;
+
+        // Act
+        var missing = workflow.MissingRequiredCategories();
+
+        // Assert
+        missing.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void PublishSystem_ShouldFail_WhenAStatusFilesItsAliasUnderAnotherCategory()
+    {
+        // Arrange
+        // A seeder adds statuses without the editor's check, as a clone copies them; publishing is what
+        // catches the pairing.
+        var workflow = StatusWorkflow.CreateSystem("Widget Workflow", null, Widget.Key, EventActor.System, At).Value;
+        workflow.AddSystemStatus("Proposed", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, At);
+        workflow.AddSystemStatus("Notable", null, StatusCategory.Active, NotableAlias, EventActor.System, At);
+        workflow.AddSystemStatus("Closed", null, StatusCategory.Removed, TerminalAlias, EventActor.System, At);
+
+        // Act
+        var result = workflow.PublishSystem(EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        const string expected = "'Closed' means Terminal, which belongs under Done, not Removed. Move it to Done or clear its meaning.";
+        result.Error.Should().Be(expected);
+        workflow.MisfiledAliases().Should().Equal(expected);
     }
 
     #endregion Publish
@@ -446,6 +598,23 @@ public sealed class StatusWorkflowTests
     }
 
     [Fact]
+    public void ReclassifyStatus_ShouldFail_WhenTheAliasBelongsUnderAnotherCategory()
+    {
+        // Arrange
+        var workflow = WidgetWorkflow();
+        var terminal = workflow.Statuses.Single(s => s.Name == "Terminal");
+
+        // Act
+        var result = workflow.ReclassifyStatus(terminal.Id, StatusCategory.Removed, TerminalAlias, EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("'Terminal' belongs under Done, not Removed.");
+        workflow.Statuses.Single(s => s.Id == terminal.Id).Category.Should().Be(StatusCategory.Done);
+        workflow.DomainEvents.Should().NotContain(e => e is WorkflowStatusReclassifiedEvent);
+    }
+
+    [Fact]
     public void ReclassifyStatus_ShouldAllowAStatusToKeepItsOwnAlias()
     {
         // The uniqueness check must exclude the status being changed, or recategorising it without
@@ -455,11 +624,11 @@ public sealed class StatusWorkflowTests
         var terminal = workflow.Statuses.Single(s => s.Name == "Terminal");
 
         // Act
-        var result = workflow.ReclassifyStatus(terminal.Id, StatusCategory.Removed, TerminalAlias, EventActor.System, At);
+        var result = workflow.ReclassifyStatus(terminal.Id, StatusCategory.Done, TerminalAlias, EventActor.System, At);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        workflow.Statuses.Single(s => s.Id == terminal.Id).Category.Should().Be(StatusCategory.Removed);
+        workflow.Statuses.Single(s => s.Id == terminal.Id).Alias.Should().Be(TerminalAlias);
     }
 
     [Fact]
@@ -1757,17 +1926,27 @@ public sealed class StatusWorkflowTests
     public void Publish_ShouldRefuse_AStatusWithAnAliasTheOwnerTypeDoesNotDeclare()
     {
         // Arrange
-        // Reachable only through the API, which takes any alias number. Even a final status is refused:
-        // a record mapped into it could not be withdrawn or pulled.
-        var workflow = RestrictedGadgetWorkflow();
-        workflow.AddStatus("Archived", null, StatusCategory.Done, 99, EventActor.System, At);
+        // The editor refuses an undeclared alias, so only a clone of an older workflow can hold one. Even a
+        // final status is refused: a record mapped into it could not be withdrawn or pulled.
+        var seeded = StatusWorkflow.CreateSystem("Seeded Gadget", null, Gadget.Key, EventActor.System, At).Value;
+        seeded.AddSystemStatus("Planned", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, At);
+        seeded.AddSystemStatus("Ready", null, StatusCategory.Active, ReadyAlias, EventActor.System, At);
+        seeded.AddSystemStatus("Shipped", null, StatusCategory.Done, ShippedAlias, EventActor.System, At);
+        seeded.AddSystemStatus("Pulled", null, StatusCategory.Removed, PulledAlias, EventActor.System, At);
+        seeded.AddSystemStatus("Archived", null, StatusCategory.Done, 99, EventActor.System, At);
+        var workflow = seeded.Clone("Gadget Workflow", null, EventActor.System, At);
+        workflow.SetTransitionMode(TransitionMode.Restricted, EventActor.System, At);
+        workflow.SetTransitions(
+            [Move(workflow, "Planned", "Ready"), Move(workflow, "Ready", "Shipped"), Move(workflow, "Ready", "Pulled")],
+            EventActor.System, At).IsSuccess.Should().BeTrue();
 
         // Act
         var result = workflow.Publish(EventActor.System, At);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(
+        result.Error.Should().Be("'Archived' carries a meaning Gadget statuses do not have. Clear its meaning or remove it.");
+        workflow.TransitionIssues().Should().Contain(
             "'Archived' carries an alias Gadget records do not have, so no Gadget action can move a record out of it. Give it one of theirs, remove it, or allow any move.");
     }
 
@@ -1778,14 +1957,14 @@ public sealed class StatusWorkflowTests
     public void Publish_ShouldRefuse_AnUnfinishedStatusWithNoDeclaredMoveOut(bool undeclaredMoveOut, bool declaredMoveOut)
     {
         // Arrange
-        // Shipped made Active: its only declared move out, Pull, is optional. A move no action makes
-        // (Shipped → Ready) does not count as a way out.
+        // Held's only declared move out, Release, is optional. A move no action makes (Held → Ready) does
+        // not count as a way out.
         var workflow = RestrictedGadgetWorkflow();
-        workflow.ReclassifyStatus(StatusId(workflow, "Shipped"), StatusCategory.Active, ShippedAlias, EventActor.System, At);
+        workflow.AddStatus("Held", null, StatusCategory.Active, HeldAlias, EventActor.System, At);
         List<WorkflowTransitionDefinition> moves =
             [Move(workflow, "Planned", "Ready"), Move(workflow, "Ready", "Shipped"), Move(workflow, "Ready", "Pulled")];
-        if (undeclaredMoveOut) moves.Add(Move(workflow, "Shipped", "Ready"));
-        if (declaredMoveOut) moves.Add(Move(workflow, "Shipped", "Pulled"));
+        if (undeclaredMoveOut) moves.Add(Move(workflow, "Held", "Ready"));
+        if (declaredMoveOut) moves.Add(Move(workflow, "Held", "Shipped"));
         workflow.SetTransitions(moves, EventActor.System, At).IsSuccess.Should().BeTrue();
 
         // Act
@@ -1800,7 +1979,7 @@ public sealed class StatusWorkflowTests
         {
             result.IsFailure.Should().BeTrue();
             result.Error.Should().Be(
-                "'Shipped' has no move out of it that a Gadget action makes, so a record in it could not move on. Allow 'Shipped' to 'Pulled'.");
+                "'Held' has no move out of it that a Gadget action makes, so a record in it could not move on. Allow 'Held' to 'Shipped'.");
         }
     }
 
@@ -1880,10 +2059,10 @@ public sealed class StatusWorkflowTests
     public void DeclaredMoves_ShouldLocateEachMove_SkippingOneThatDoesNotMove_AndMergingOnesThatShareAPair()
     {
         // Arrange
-        // Ready is the initial status, so Prepare (initial → Ready) does not move, and Dispatch
-        // (initial → Shipped) lands on Ship's pair.
+        // With no Proposed status, Ready is the initial status as the first, so Prepare (initial → Ready)
+        // does not move, and Dispatch (initial → Shipped) lands on Ship's pair.
         var workflow = StatusWorkflow.Create("Gadget Workflow", null, Gadget.Key, EventActor.System, At).Value;
-        workflow.AddStatus("Ready", null, StatusCategory.Proposed, ReadyAlias, EventActor.System, At);
+        workflow.AddStatus("Ready", null, StatusCategory.Active, ReadyAlias, EventActor.System, At);
         workflow.AddStatus("Shipped", null, StatusCategory.Done, ShippedAlias, EventActor.System, At);
         workflow.AddStatus("Pulled", null, StatusCategory.Removed, PulledAlias, EventActor.System, At);
         var (ready, shipped, pulled) = (StatusId(workflow, "Ready"), StatusId(workflow, "Shipped"), StatusId(workflow, "Pulled"));

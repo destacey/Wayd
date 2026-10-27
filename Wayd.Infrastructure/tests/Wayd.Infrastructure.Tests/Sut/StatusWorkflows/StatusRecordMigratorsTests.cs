@@ -34,9 +34,10 @@ public sealed class StatusRecordMigratorsTests
     private static StatusWorkflow Workflow(string name)
     {
         var workflow = StatusWorkflow.Create(name, null, ProductWorkflowOwners.Product.Key, EventActor.System, Timestamp).Value;
+        workflow.AddStatus("Concept", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, Timestamp);
         workflow.AddStatus("Active", null, StatusCategory.Active, (int)ProductStatusAlias.Active, EventActor.System, Timestamp);
         workflow.AddStatus("Retired", null, StatusCategory.Done, (int)ProductStatusAlias.Retired, EventActor.System, Timestamp);
-        workflow.Publish(EventActor.System, Timestamp);
+        workflow.Publish(EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
 
         return workflow;
     }

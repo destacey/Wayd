@@ -13,7 +13,7 @@ public sealed class GetIntakeRequestArrivalStatusesQueryHandlerTests
         new(_scenario.DbContext, _scenario.Principal.Object, _scenario.Statuses.Object);
 
     [Fact]
-    public async Task Handle_ForAnAgent_OffersTheOpenStatusesNeedingNoReason_DefaultingToTheOneItHolds()
+    public async Task Handle_ForAnAgent_OffersTheOpenStatuses_DefaultingToTheOneItHolds()
     {
         // Arrange
         var agent = _scenario.Employee();
@@ -24,17 +24,17 @@ public sealed class GetIntakeRequestArrivalStatusesQueryHandlerTests
         var arrival = await CreateHandler().Handle(new GetIntakeRequestArrivalStatusesQuery(request.Id, _scenario.Desk().Id),
             TestContext.Current.CancellationToken);
 
-        // Assert — Deferred is open but needs a reason, so it is the new desk's call
+        // Assert
         arrival!.Statuses.Select(s => s.Name).Should().Equal("Submitted", "In Review", "Waiting on Requester", "Accepted");
         arrival.DefaultStatusId.Should().Be(_scenario.Workflow.Status("Waiting on Requester").Id);
     }
 
     [Fact]
-    public async Task Handle_WhenTheStatusItHoldsCannotArrive_HasNoDefault()
+    public async Task Handle_WhenNothingMatchesTheStatusItHolds_HasNoDefault()
     {
         // Arrange
         var agent = _scenario.Employee();
-        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Deferred");
+        var request = _scenario.RequestOnAnotherWorkflow(_scenario.Desk(agentIds: agent.Id), _scenario.Employee());
         _scenario.SignedInAs(agent);
 
         // Act

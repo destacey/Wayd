@@ -60873,6 +60873,11 @@ the status at fault. Empty when the workflow allows any move. */
     transitionIssues: string[];
     /** The required aliases this workflow does not yet carry, named rather than numbered. */
     missingRequiredAliases: string[];
+    /** The categories this workflow's owner type requires that no status here belongs to yet. */
+    missingRequiredCategories: StatusCategory[];
+    /** Every status whose alias belongs under a different category, one sentence each, naming the
+status. Publishing is refused until each is moved or loses its alias. */
+    misfiledAliases: string[];
     /** Whether the statuses may be restructured — Draft, and not platform-seeded. */
     canEdit: boolean;
     canPublish: boolean;
@@ -63305,10 +63310,13 @@ export interface WorkDistributionTeamRowDto {
     noProjectShare?: number | undefined;
 }
 
+/** A well-known meaning a status of one owner type can carry. */
 export interface WorkflowAliasDto {
     value: number;
     name: string;
     isRequired: boolean;
+    /** The only category a status carrying this alias may belong to. */
+    category: StatusCategory;
 }
 
 /** Which workflow a scope's records currently use. */
@@ -63362,6 +63370,8 @@ export interface WorkflowOwnerTypeDto {
     aliases: WorkflowAliasDto[];
     /** The aliases a workflow must carry before it can be published. */
     requiredAliases: number[];
+    /** The categories a workflow must have at least one status in before it can be published. */
+    requiredCategories: StatusCategory[];
     /** Whether a workflow for this owner type may restrict which moves its records make. */
     supportsRestrictedTransitions: boolean;
 }

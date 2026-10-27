@@ -433,7 +433,8 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         result.IsSuccess.Should().BeTrue();
         await using var reader = _fixture.CreateContext();
         var saved = await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == requestId, ct);
-        saved.StatusAlias.Should().Be(IntakeRequestStatusAlias.Declined);
+        saved.StatusAlias.Should().Be(IntakeRequestStatusAlias.None);
+        saved.StatusCategory.Should().Be(StatusCategory.Removed);
         saved.StatusReason.Should().Be("Budget went elsewhere");
         saved.StatusTransitionCount.Should().Be(2);
         var transitions = await reader.StatusTransitions.AsNoTracking()

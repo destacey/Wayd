@@ -230,7 +230,7 @@ public sealed class GetIntakeRequestQueryHandlerTests
 
     [Theory]
     [InlineData(StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled)]
-    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.Declined)]
+    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.None)]
     public async Task Handle_ForAClosedRequest_OffersNeitherEditNorReroute_EvenToADeskAdmin(StatusCategory category, IntakeRequestStatusAlias alias)
     {
         // Arrange
@@ -373,7 +373,7 @@ public sealed class GetIntakeRequestQueryHandlerTests
     {
         // Arrange
         var requester = _scenario.Employee();
-        var request = _scenario.RequestIn(_scenario.Desk(), requester, StatusCategory.Proposed, IntakeRequestStatusAlias.Deferred);
+        var request = _scenario.RequestIn(_scenario.Desk(), requester, StatusCategory.Proposed, IntakeRequestStatusAlias.WaitingOnRequester);
         _scenario.SignedInAs(requester);
 
         // Act
@@ -383,6 +383,6 @@ public sealed class GetIntakeRequestQueryHandlerTests
         result!.Summary.Status.Id.Should().Be(request.StatusId);
         result.Summary.Status.Name.Should().Be(request.StatusName);
         result.Summary.Status.Category.Should().Be(StatusCategory.Proposed);
-        result.Summary.Status.Alias.Should().Be((int)IntakeRequestStatusAlias.Deferred);
+        result.Summary.Status.Alias.Should().Be((int)IntakeRequestStatusAlias.WaitingOnRequester);
     }
 }

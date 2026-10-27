@@ -150,6 +150,17 @@ public sealed record StatusWorkflowDetailsDto
     public required IReadOnlyCollection<string> MissingRequiredAliases { get; init; }
 
     /// <summary>
+    /// The categories this workflow's owner type requires that no status here belongs to yet.
+    /// </summary>
+    public required IReadOnlyCollection<StatusCategory> MissingRequiredCategories { get; init; }
+
+    /// <summary>
+    /// Every status whose alias belongs under a different category, one sentence each, naming the
+    /// status. Publishing is refused until each is moved or loses its alias.
+    /// </summary>
+    public required IReadOnlyCollection<string> MisfiledAliases { get; init; }
+
+    /// <summary>
     /// Whether the statuses may be restructured — Draft, and not platform-seeded.
     /// </summary>
     /// <remarks>
@@ -187,15 +198,22 @@ public sealed record WorkflowOwnerTypeDto
     /// <summary>The aliases a workflow must carry before it can be published.</summary>
     public required IReadOnlyCollection<int> RequiredAliases { get; init; }
 
+    /// <summary>The categories a workflow must have at least one status in before it can be published.</summary>
+    public required IReadOnlyCollection<StatusCategory> RequiredCategories { get; init; }
+
     /// <summary>Whether a workflow for this owner type may restrict which moves its records make.</summary>
     public required bool SupportsRestrictedTransitions { get; init; }
 }
 
+/// <summary>A well-known meaning a status of one owner type can carry.</summary>
 public sealed record WorkflowAliasDto
 {
     public required int Value { get; init; }
     public required string Name { get; init; }
     public required bool IsRequired { get; init; }
+
+    /// <summary>The only category a status carrying this alias may belong to.</summary>
+    public required StatusCategory Category { get; init; }
 }
 
 /// <summary>Which workflow a scope's records currently use.</summary>

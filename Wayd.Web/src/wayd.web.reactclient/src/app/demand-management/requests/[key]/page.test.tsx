@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react'
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import { notFound } from 'next/navigation'
 import IntakeRequestDetailsPage from './page'
 
@@ -267,6 +267,20 @@ describe('IntakeRequestDetailsPage', () => {
     expect(
       screen.queryByRole('button', { name: 'Change Status' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('leads back through the request’s desk, between Requests and the request', async () => {
+    // Act
+    await renderPage()
+
+    // Assert
+    const trail = (await screen.findAllByRole('navigation')).find((nav) =>
+      within(nav).queryByRole('link', { name: 'Requests' }),
+    )!
+    expect(within(trail).getByRole('link', { name: 'IT' })).toHaveAttribute(
+      'href',
+      '/demand-management/desks/1',
+    )
   })
 
   it('shows the status and the reason the requester reads', async () => {

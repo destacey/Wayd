@@ -23,6 +23,8 @@ import type { ItemType } from 'antd/es/menu/interface'
 import NextLink from 'next/link'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
+import { StatusHistoryTag } from '@/src/components/common/status-workflows'
+import { deskHref } from '../../_components/desk-status'
 import { requestHref } from '../../_components/intake-requests-grid'
 import AddIntakeRequestParticipantForm from './_components/add-intake-request-participant-form'
 import ChangeIntakeRequestAssigneeForm from './_components/change-intake-request-assignee-form'
@@ -250,8 +252,22 @@ const IntakeRequestDetailsPage = (props: {
         record={{
           name: summary.title,
           recordKey: String(summary.key),
-          parent: { label: 'Requests', href: '/demand-management/requests' },
+          // Outermost first: the list, then the desk the request is on.
+          parent: [
+            { label: 'Requests', href: '/demand-management/requests' },
+            { label: summary.desk.name, href: deskHref(summary.desk.key) },
+          ],
           subtitle: 'Request Details',
+          tags: (
+            <StatusHistoryTag
+              status={summary.status}
+              onOpenHistory={() =>
+                router.replace(`?section=${RequestSection.StatusHistory}`, {
+                  scroll: false,
+                })
+              }
+            />
+          ),
           actions: <PageActions actionItems={actionItems} />,
         }}
         facts={<IntakeRequestFacts request={request} />}

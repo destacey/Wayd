@@ -17,12 +17,27 @@ const CATEGORY_COLOR: Partial<Record<StatusCategory, string>> = {
 }
 
 /**
- * The stages a request on the desk can pass through on its way to being done, in the workflow's order.
- * The closing stages — declined, a duplicate, withdrawn — are left to one line after them, since a
- * requester reading the path wants where it is meant to go.
+ * The intake status aliases that are detours rather than steps: open, but off the path to done. Values of
+ * the server's `IntakeRequestStatusAlias`, which the generated client carries only as a number; matched by
+ * meaning so a desk that renames them still has them set aside.
+ */
+const WAITING_ON_REQUESTER = 2
+const DEFERRED = 5
+
+/**
+ * The stages a request on the desk passes through on its way to being done, in the workflow's order. The
+ * detours (waiting on the requester, deferred) and the closing stages (declined, a duplicate, withdrawn)
+ * are left to lines after them, since a requester reading the path wants where it is meant to go.
  */
 export const journeyOf = (statuses: IntakeWorkflowStatusDto[]) => ({
-  stages: statuses.filter((s) => s.category !== StatusCategory.Removed),
+  stages: statuses.filter(
+    (s) =>
+      s.category !== StatusCategory.Removed &&
+      s.alias !== WAITING_ON_REQUESTER &&
+      s.alias !== DEFERRED,
+  ),
+  canAskRequester: statuses.some((s) => s.alias === WAITING_ON_REQUESTER),
+  canDefer: statuses.some((s) => s.alias === DEFERRED),
   canClose: statuses.some((s) => s.category === StatusCategory.Removed),
 })
 
@@ -58,11 +73,24 @@ const WhatHappensNext: FC<WhatHappensNextProps> = ({ deskId }) => {
               ),
             }))}
           />
-          {journey.canClose && (
-            <Text type="secondary">
-              It can also be declined, with a reason you will see.
-            </Text>
-          )}
+          <Flex vertical gap={4}>
+            {journey.canAskRequester && (
+              <Text type="secondary">
+                The desk may ask you a question along the way, and waits for
+                your answer.
+              </Text>
+            )}
+            {journey.canDefer && (
+              <Text type="secondary">
+                It can be deferred: worth doing, but not now.
+              </Text>
+            )}
+            {journey.canClose && (
+              <Text type="secondary">
+                It can also be declined, with a reason you will see.
+              </Text>
+            )}
+          </Flex>
         </Card>
       )}
       <Card size="small" title="Why we ask about the date">

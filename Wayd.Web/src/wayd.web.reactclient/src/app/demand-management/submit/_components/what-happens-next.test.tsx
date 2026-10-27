@@ -9,17 +9,20 @@ const status = (
   name: string,
   category: StatusCategory,
   description?: string,
+  alias = 0,
 ): IntakeWorkflowStatusDto => ({
   id: `s-${name}`,
   name,
   category,
-  alias: 0,
+  alias,
   description,
 })
 
 const STATUSES = [
   status('Submitted', StatusCategory.Proposed, 'Waiting for the desk.'),
   status('Board Review', StatusCategory.Proposed),
+  status('Questions for you', StatusCategory.Proposed, 'Waiting on you.', 2),
+  status('Later', StatusCategory.Proposed, 'Worth doing, but not now.', 5),
   status('Accepted', StatusCategory.Active, 'Accepted for delivery.'),
   status('Fulfilled', StatusCategory.Done, 'Delivered.'),
   status('Declined', StatusCategory.Removed, 'Not going ahead.'),
@@ -37,7 +40,7 @@ jest.mock(
 )
 
 describe('journeyOf', () => {
-  it('keeps the stages on the way to done, in order, and notes that a request can be closed', () => {
+  it('keeps the stages on the way to done, in order, setting the detours and closings aside by meaning', () => {
     // Act
     const journey = journeyOf(STATUSES)
 
@@ -48,6 +51,8 @@ describe('journeyOf', () => {
       'Accepted',
       'Fulfilled',
     ])
+    expect(journey.canAskRequester).toBe(true)
+    expect(journey.canDefer).toBe(true)
     expect(journey.canClose).toBe(true)
   })
 })
@@ -64,6 +69,10 @@ describe('WhatHappensNext', () => {
     expect(screen.getByText('Board Review')).toBeInTheDocument()
     expect(screen.getByText('Accepted for delivery.')).toBeInTheDocument()
     expect(screen.queryByText('Not going ahead.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Questions for you')).not.toBeInTheDocument()
+    expect(
+      screen.getByText('It can be deferred: worth doing, but not now.'),
+    ).toBeInTheDocument()
     expect(
       screen.getByText('It can also be declined, with a reason you will see.'),
     ).toBeInTheDocument()

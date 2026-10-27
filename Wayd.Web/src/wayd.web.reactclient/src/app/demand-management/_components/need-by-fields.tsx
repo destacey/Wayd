@@ -89,6 +89,8 @@ interface BasisChoiceProps {
   families: NeedByBasisFamilyDto[] | undefined
   value?: NeedByBasis
   onChange?: (basis: NeedByBasis) => void
+  /** Called after the basis changes to a different one. */
+  onSwitched?: () => void
   id?: string
 }
 
@@ -101,12 +103,17 @@ const BasisChoice: FC<BasisChoiceProps> = ({
   families,
   value,
   onChange,
+  onSwitched,
   id,
 }) => (
   <Radio.Group
     id={id}
+    aria-label="What makes it that date?"
     value={value}
-    onChange={(e) => onChange?.(e.target.value)}
+    onChange={(e) => {
+      onChange?.(e.target.value)
+      if (value && e.target.value !== value) onSwitched?.()
+    }}
     className={styles.group}
   >
     <Flex vertical gap={16}>
@@ -199,7 +206,17 @@ export const NeedByFields: FC<NeedByFieldsProps> = ({
                   { required: true, message: 'Choose what sets the date.' },
                 ]}
               >
-                <BasisChoice bases={bases} families={families} />
+                <BasisChoice
+                  bases={bases}
+                  families={families}
+                  // Each basis asks its own follow-up, so an answer to the last one would read as an
+                  // answer to this one: "Northwind Group" is not a regulation.
+                  onSwitched={() => {
+                    form.setFieldValue(['needBy', 'reference'], undefined)
+                    form.setFieldValue(['needBy', 'committedById'], undefined)
+                    form.setFieldValue(['needBy', 'committedOn'], undefined)
+                  }}
+                />
               </Item>
               {basis && copy && (
                 <div className={styles.followUp}>

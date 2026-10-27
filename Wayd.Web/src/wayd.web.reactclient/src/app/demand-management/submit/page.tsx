@@ -50,6 +50,7 @@ import { deskPhrase } from '../_components/desk-status'
 import DeskChoice from './_components/desk-choice'
 import WhatHappensNext from './_components/what-happens-next'
 import { TOUCH_THEME } from '../_components/touch-theme'
+import { STEPS, stepWithError } from './_components/submit-steps'
 import styles from './page.module.css'
 
 const { Item } = Form
@@ -64,26 +65,6 @@ interface SubmitRequestFormValues {
   channelId: string
   needBy?: NeedByFormValues
 }
-
-/** The steps, and the fields each must have right before the requester moves on. */
-const STEPS: { title: string; fields: NamePath[] }[] = [
-  {
-    title: 'The ask',
-    fields: ['requesterId', 'title', 'description', 'channelId'],
-  },
-  {
-    title: 'Why and when',
-    fields: [
-      'expectedBenefits',
-      ['needBy', 'date'],
-      ['needBy', 'basis'],
-      ['needBy', 'reference'],
-      ['needBy', 'committedById'],
-      ['needBy', 'committedOn'],
-    ],
-  },
-  { title: 'Check and submit', fields: [] },
-]
 
 const StepHeading: FC<{ title: string; children: ReactNode }> = ({
   title,
@@ -182,10 +163,14 @@ const SubmitIntakeRequestPage: FC = () => {
   const goTo = async (target: number) => {
     // Moving on checks the steps being left; going back never does.
     if (target > step) {
-      const fields = STEPS.slice(step, target).flatMap((s) => s.fields)
+      const fields = STEPS.slice(0, target).flatMap((s) => s.fields)
       try {
         await form.validateFields(fields)
-      } catch {
+      } catch (error) {
+        const names = (
+          (error as { errorFields?: { name: NamePath }[] }).errorFields ?? []
+        ).map((f) => f.name)
+        setStep(stepWithError(names) ?? step)
         return
       }
     }
@@ -214,9 +199,12 @@ const SubmitIntakeRequestPage: FC = () => {
     } catch (error) {
       const apiError = toApiError(error)
       if (apiError.status === 422 && apiError.errors) {
-        form.setFields(
-          toFormErrors(apiError.errors, { fieldFor: needByFieldFor }),
-        )
+        const fieldErrors = toFormErrors(apiError.errors, {
+          fieldFor: needByFieldFor,
+        })
+        form.setFields(fieldErrors)
+        const errorStep = stepWithError(fieldErrors.map((f) => f.name))
+        if (errorStep !== undefined) setStep(errorStep)
         messageApi.error('Correct the validation error(s) to continue.')
       } else {
         messageApi.error(apiError.detail ?? 'Failed to submit the request.')

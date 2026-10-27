@@ -331,4 +331,30 @@ describe('SubmitIntakeRequestPage', () => {
     expect(screen.getByText('No date given')).toBeInTheDocument()
     expect(mockCreate).not.toHaveBeenCalled()
   })
+
+  it('takes the requester back to the step a rejected field is on', async () => {
+    // Arrange
+    mockDesks = [desk('d-1', 'IT', 'Laptops, access and software')]
+    mockCreate.mockReturnValue({
+      unwrap: () =>
+        Promise.reject({
+          status: 422,
+          errors: { Title: ['A request with this title is already open.'] },
+        }),
+    })
+    await renderPage()
+    await userEvent.type(screen.getByLabelText('Title'), 'New laptop')
+    await userEvent.type(screen.getAllByLabelText('markdown')[0], 'Old one')
+    await act(() =>
+      userEvent.click(screen.getByLabelText('Where did this come from?')),
+    )
+    await act(() => userEvent.click(screen.getByTitle('Security')))
+
+    // Act
+    await submitThroughSteps()
+
+    // Assert
+    expect(mockCreate).toHaveBeenCalled()
+    expect(screen.getByText('What are you asking for?')).toBeVisible()
+  })
 })

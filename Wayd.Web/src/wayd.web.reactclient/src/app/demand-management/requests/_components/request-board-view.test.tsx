@@ -5,7 +5,10 @@ import {
   IntakeDeskWorkflowDto,
   StatusCategory,
 } from '@/src/services/wayd-api'
-import RequestBoardView, { boardTitle } from './request-board-view'
+import RequestBoardView, {
+  boardDeskIds,
+  boardTitle,
+} from './request-board-view'
 import { DEFAULT_REQUEST_FILTERS } from './request-filters'
 
 const workflow = (id: string, name: string): IntakeDeskWorkflowDto =>
@@ -24,8 +27,8 @@ const workflow = (id: string, name: string): IntakeDeskWorkflowDto =>
     ],
   }) as IntakeDeskWorkflowDto
 
-const desk = (id: string, name: string) =>
-  ({ id, key: 1, name, members: [] }) as unknown as IntakeDeskDto
+const desk = (id: string, name: string, isOpen = true) =>
+  ({ id, key: 1, name, isOpen, members: [] }) as unknown as IntakeDeskDto
 
 const DESKS = [desk('d-product', 'Product delivery'), desk('d-it', 'IT')]
 
@@ -36,7 +39,11 @@ jest.mock(
   () => ({
     useGetIntakeDeskWorkflowsQuery: (deskIds: string[]) => {
       mockWorkflowsQuery(deskIds)
-      return { data: mockWorkflows, isLoading: false, isError: false }
+      return {
+        currentData: mockWorkflows,
+        isFetching: false,
+        isError: false,
+      }
     },
   }),
 )
@@ -60,6 +67,31 @@ describe('boardTitle', () => {
 
     // Assert
     expect(title).toBe('All desks, which share one workflow: Intake review')
+  })
+})
+
+describe('boardDeskIds', () => {
+  it('covers the desks the requests in scope are on, so an idle desk does not block the board', () => {
+    // Arrange
+    const desks = [desk('d-product', 'Product'), desk('d-idle', 'Idle')]
+    const requests = [{ desk: { id: 'd-product' } }] as any
+
+    // Act
+    const ids = boardDeskIds(DEFAULT_REQUEST_FILTERS, desks, requests)
+
+    // Assert
+    expect(ids).toEqual(['d-product'])
+  })
+
+  it('falls back to the desks open to new requests when nothing is in scope', () => {
+    // Arrange
+    const desks = [desk('d-open', 'Open'), desk('d-closed', 'Closed', false)]
+
+    // Act
+    const ids = boardDeskIds(DEFAULT_REQUEST_FILTERS, desks, [])
+
+    // Assert
+    expect(ids).toEqual(['d-open'])
   })
 })
 
@@ -102,6 +134,27 @@ describe('RequestBoardView', () => {
     )
 
     // Assert
+    expect(
+      screen.queryByText('There are no desks to show a board for.'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('waits for the requests rather than drawing empty columns', () => {
+    // Arrange
+    mockWorkflows = [workflow('w-1', 'Intake review')]
+
+    // Act
+    render(
+      <RequestBoardView
+        requests={undefined}
+        filters={DEFAULT_REQUEST_FILTERS}
+        desks={DESKS}
+        onPickDesk={jest.fn()}
+      />,
+    )
+
+    // Assert
+    expect(screen.queryByText(/share one workflow/)).not.toBeInTheDocument()
     expect(
       screen.queryByText('There are no desks to show a board for.'),
     ).not.toBeInTheDocument()

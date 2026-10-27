@@ -168,4 +168,34 @@ describe('NeedByFields', () => {
       screen.queryByText('What makes it that date?'),
     ).not.toBeInTheDocument()
   })
+
+  it('drops the last answer when the basis changes, since each asks its own question', async () => {
+    // Arrange
+    render(
+      <Harness
+        initial={{
+          needBy: {
+            date: dayjs('2026-12-31'),
+            basis: NeedByBasis.Commitment,
+            reference: 'Northwind Group',
+            committedById: 'e-1',
+          },
+        }}
+      />,
+    )
+
+    // Act
+    await act(() => userEvent.click(screen.getByText('A contract names it')))
+
+    // Assert
+    expect(formRef.current!.getFieldValue(['needBy', 'basis'])).toBe(
+      NeedByBasis.Contractual,
+    )
+    expect(
+      formRef.current!.getFieldValue(['needBy', 'reference']),
+    ).toBeUndefined()
+    expect(
+      formRef.current!.getFieldValue(['needBy', 'committedById']),
+    ).toBeUndefined()
+  })
 })

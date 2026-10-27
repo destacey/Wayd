@@ -59,8 +59,8 @@ jest.mock('next/navigation', () => ({
 }))
 
 const mockRequestsQuery = jest.fn((_args?: unknown) => ({
-  data: [],
-  isLoading: false,
+  currentData: [],
+  isFetching: false,
   refetch: jest.fn(),
 }))
 jest.mock(

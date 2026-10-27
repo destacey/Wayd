@@ -482,10 +482,9 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       invalidatesTags: [deskListTag],
     }),
 
-    // Fetched by id, which the change invalidates; tagged with the desk too, since a request arriving on it
-    // stops the workflow changing.
-    // The workflow of each desk, for the Requests board, which can draw one only when they agree. Desks are
-    // few, so one call per desk is simpler than a batch endpoint.
+    // The workflow of each desk, for the Requests board, which draws one only when they agree. Tagged by
+    // workflow rather than by desk: its columns change when a workflow is edited or a desk is pointed at
+    // another, never when a request moves, and status moves invalidate every desk.
     getIntakeDeskWorkflows: builder.query<IntakeDeskWorkflowDto[], string[]>({
       queryFn: async (deskIds) => {
         try {
@@ -498,10 +497,18 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           return toError(error)
         }
       },
-      providesTags: (_result, _error, deskIds) =>
-        deskIds.map((id) => ({ type: QueryTags.IntakeDesk, id })),
+      providesTags: (result = []) => [
+        { type: QueryTags.StatusWorkflow, id: 'LIST' },
+        { type: QueryTags.WorkflowAssignment, id: 'LIST' },
+        ...result.map((w) => ({
+          type: QueryTags.StatusWorkflow,
+          id: w.workflow.id,
+        })),
+      ],
     }),
 
+    // Fetched by id, which the change invalidates; tagged with the desk too, since a request arriving on it
+    // stops the workflow changing, and with the workflow, whose statuses it lists.
     getIntakeDeskWorkflow: builder.query<IntakeDeskWorkflowDto, string>({
       queryFn: async (deskId) => {
         try {
@@ -511,8 +518,11 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           return toError(error)
         }
       },
-      providesTags: (_result, _error, deskId) => [
+      providesTags: (result, _error, deskId) => [
         { type: QueryTags.IntakeDesk, id: deskId },
+        ...(result
+          ? [{ type: QueryTags.StatusWorkflow, id: result.workflow.id }]
+          : []),
       ],
     }),
 

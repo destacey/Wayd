@@ -46,9 +46,15 @@ const IntakeRequestsPage: FC = () => {
   }
   const setFilters = (next: RequestFilters) => navigate(next, view)
 
-  const { data, isLoading, error, refetch } = useGetIntakeRequestsQuery({
-    openOnly: filters.scope === 'open',
-  })
+  // `currentData` rather than `data`: switching scope must not show, or count, the previous scope's set
+  // while the new one loads.
+  const {
+    currentData: data,
+    isFetching,
+    error,
+    refetch,
+  } = useGetIntakeRequestsQuery({ openOnly: filters.scope === 'open' })
+  const isLoading = isFetching && !data
   const { data: needByBases } = useGetNeedByBasesQuery()
   const { data: desks } = useGetIntakeDesksQuery()
   const { data: channels } = useGetIntakeChannelsQuery()
@@ -106,7 +112,7 @@ const IntakeRequestsPage: FC = () => {
         />
       ) : (
         <RequestBoardView
-          requests={visible ?? []}
+          requests={visible}
           filters={filters}
           desks={desks}
           onPickDesk={(deskId) => setFilters({ ...filters, deskIds: [deskId] })}

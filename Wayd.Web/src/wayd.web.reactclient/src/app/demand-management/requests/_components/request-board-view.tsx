@@ -14,16 +14,24 @@ import { RequestFilters } from './request-filters'
 
 const { Text } = Typography
 
-/** The desks the board covers: those the filter names, or every desk when it names none. */
+/**
+ * The desks the board covers: those the filter names, or, when it names none, the desks the requests in
+ * scope are on, so an idle desk on another workflow does not stop the board being drawn. With no requests
+ * at all, every desk open to new requests.
+ */
 export const boardDeskIds = (
   filters: RequestFilters,
   desks: IntakeDeskDto[] | undefined,
-): string[] =>
-  [
-    ...(filters.deskIds.length > 0
-      ? filters.deskIds
-      : (desks ?? []).map((d) => d.id)),
-  ].sort()
+  requests: IntakeRequestSummaryDto[],
+): string[] => {
+  if (filters.deskIds.length > 0) return [...filters.deskIds].sort()
+  const withRequests = new Set(requests.map((r) => r.desk.id))
+  const ids =
+    withRequests.size > 0
+      ? [...withRequests]
+      : (desks ?? []).filter((d) => d.isOpen).map((d) => d.id)
+  return ids.sort()
+}
 
 /** The one workflow the desks follow, or null when they follow different ones. */
 export const sharedWorkflow = (
@@ -55,7 +63,8 @@ export const boardTitle = (
 }
 
 export interface RequestBoardViewProps {
-  requests: IntakeRequestSummaryDto[]
+  /** The requests in scope, or undefined while they load. */
+  requests: IntakeRequestSummaryDto[] | undefined
   filters: RequestFilters
   desks: IntakeDeskDto[] | undefined
   /** Narrows the filters to one desk, offered when the desks in scope have no single board. */
@@ -73,14 +82,17 @@ const RequestBoardView: FC<RequestBoardViewProps> = ({
   desks,
   onPickDesk,
 }) => {
-  const deskIds = boardDeskIds(filters, desks)
+  const deskIds = boardDeskIds(filters, desks, requests ?? [])
+  // `currentData`, so a change of desks never draws the previous desks' columns or hides a failure.
   const {
-    data: workflows,
-    isLoading,
+    currentData: workflows,
+    isFetching,
     isError,
-  } = useGetIntakeDeskWorkflowsQuery(deskIds, { skip: deskIds.length === 0 })
+  } = useGetIntakeDeskWorkflowsQuery(deskIds, {
+    skip: !requests || deskIds.length === 0,
+  })
 
-  if (!desks) return <Skeleton active paragraph={{ rows: 6 }} />
+  if (!desks || !requests) return <Skeleton active paragraph={{ rows: 6 }} />
   if (deskIds.length === 0)
     return (
       <Alert
@@ -89,8 +101,8 @@ const RequestBoardView: FC<RequestBoardViewProps> = ({
         title="There are no desks to show a board for."
       />
     )
-  if (isLoading || !workflows) {
-    if (isError)
+  if (isFetching || !workflows) {
+    if (isError && !isFetching)
       return (
         <Alert
           type="error"

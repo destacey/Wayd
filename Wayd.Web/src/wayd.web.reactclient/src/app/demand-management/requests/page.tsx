@@ -12,30 +12,39 @@ import {
 } from '@/src/store/features/demand-management/demand-management-api'
 import { Button, Segmented } from 'antd'
 import Link from 'next/link'
-import { FC, useEffect, useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { FC, useEffect } from 'react'
 import IntakeRequestsGrid from '../_components/intake-requests-grid'
 import RequestBoardView from './_components/request-board-view'
 import RequestFilterBar from './_components/request-filter-bar'
 import {
-  DEFAULT_REQUEST_FILTERS,
   RequestFilters,
+  RequestView,
   applyRequestFilters,
+  fromSearchParams,
+  toSearchParams,
 } from './_components/request-filters'
 
 /**
  * Where reviewers work from, and where anyone checks whether an ask already exists before raising it. It
  * opens on the requests still open; "Everything" adds the closed ones. Lists carry only the summary, which
  * is what lets them span summary-only desks, and a private desk's requests are absent for anyone outside it.
+ *
+ * The filters and the layout live in the address, so any view can be bookmarked or sent to someone.
  */
 const IntakeRequestsPage: FC = () => {
   useDocumentTitle('Requests')
   const messageApi = useMessage()
   const { employeeId, hasLinkedEmployee } = useLinkedEmployee()
   const canSubmit = hasLinkedEmployee
-  const [filters, setFilters] = useState<RequestFilters>(
-    DEFAULT_REQUEST_FILTERS,
-  )
-  const [view, setView] = useState<'list' | 'board'>('list')
+  const router = useRouter()
+  const pathname = usePathname()
+  const { filters, view } = fromSearchParams(useSearchParams())
+  const navigate = (next: RequestFilters, nextView: RequestView) => {
+    const query = toSearchParams(next, nextView).toString()
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+  }
+  const setFilters = (next: RequestFilters) => navigate(next, view)
 
   const { data, isLoading, error, refetch } = useGetIntakeRequestsQuery({
     openOnly: filters.scope === 'open',
@@ -72,16 +81,16 @@ const IntakeRequestsPage: FC = () => {
         requests={data}
         desks={desks}
         channels={channels}
-        hasLinkedEmployee={hasLinkedEmployee}
+        employeeId={employeeId}
         leading={
-          <Segmented<'list' | 'board'>
+          <Segmented<RequestView>
             value={view}
-            onChange={setView}
+            onChange={(next) => navigate(filters, next)}
             options={[
               { label: 'List', value: 'list' },
               { label: 'Board', value: 'board' },
             ]}
-            aria-label="View"
+            aria-label="Layout"
           />
         }
       />

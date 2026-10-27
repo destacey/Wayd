@@ -50,6 +50,14 @@ jest.mock('../_components/intake-requests-grid', () => ({
   default: () => <div data-testid="requests-grid" />,
 }))
 
+let mockSearch = new URLSearchParams()
+const mockReplace = jest.fn()
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: mockReplace }),
+  usePathname: () => '/demand-management/requests',
+  useSearchParams: () => mockSearch,
+}))
+
 const mockRequestsQuery = jest.fn((_args?: unknown) => ({
   data: [],
   isLoading: false,
@@ -70,6 +78,8 @@ describe('IntakeRequestsPage', () => {
     mockClaims = new Set()
     mockEmployeeId = 'e-1'
     mockRequestsQuery.mockClear()
+    mockReplace.mockClear()
+    mockSearch = new URLSearchParams()
   })
 
   it('opens on the requests still open', () => {
@@ -80,7 +90,7 @@ describe('IntakeRequestsPage', () => {
     expect(mockRequestsQuery).toHaveBeenLastCalledWith({ openOnly: true })
   })
 
-  it('includes closed requests once the reader asks for everything', async () => {
+  it('puts a change of filter in the address', async () => {
     // Arrange
     render(<IntakeRequestsPage />)
 
@@ -89,6 +99,20 @@ describe('IntakeRequestsPage', () => {
       userEvent.click(screen.getByRole('button', { name: /Filters/ })),
     )
     await act(() => userEvent.click(screen.getByText('Everything')))
+
+    // Assert
+    expect(mockReplace).toHaveBeenCalledWith(
+      '/demand-management/requests?scope=all',
+      { scroll: false },
+    )
+  })
+
+  it('includes closed requests when the address asks for everything', () => {
+    // Arrange
+    mockSearch = new URLSearchParams('scope=all')
+
+    // Act
+    render(<IntakeRequestsPage />)
 
     // Assert
     expect(mockRequestsQuery).toHaveBeenLastCalledWith({ openOnly: false })

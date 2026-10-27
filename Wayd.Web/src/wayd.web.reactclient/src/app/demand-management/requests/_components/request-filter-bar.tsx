@@ -21,10 +21,14 @@ import { FC, ReactNode, useState } from 'react'
 import styles from './request-filter-bar.module.css'
 import {
   AssigneeFilter,
+  BUILT_IN_VIEWS,
   DEFAULT_REQUEST_FILTERS,
+  NeedByFilter,
   RequestFilters,
   RequestScope,
   activeFilterCount,
+  applyRequestFilters,
+  matchingView,
 } from './request-filters'
 
 const { useBreakpoint } = Grid
@@ -45,8 +49,8 @@ export interface RequestFilterBarProps {
   requests: IntakeRequestSummaryDto[] | undefined
   desks: IntakeDeskDto[] | undefined
   channels: IntakeChannelDto[] | undefined
-  /** Whether the reader has an employee record, without which nothing is assigned to them. */
-  hasLinkedEmployee: boolean
+  /** The reader's employee record, without which nothing is assigned to them. */
+  employeeId: string | null | undefined
   /** Shown first in the row on every screen, such as the list and board toggle. */
   leading?: ReactNode
 }
@@ -67,7 +71,7 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
   requests,
   desks,
   channels,
-  hasLinkedEmployee,
+  employeeId,
   stacked,
 }) => {
   const set = (patch: Partial<RequestFilters>) =>
@@ -77,9 +81,31 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
   const perDesk = countBy(requests, (r) => r.desk.id)
   const perStatus = countBy(requests, (r) => r.status.name)
   const controlClass = stacked ? styles.stackedControl : styles.control
+  const current = matchingView(filters)
 
   return (
     <>
+      <Select
+        className={controlClass}
+        aria-label="View"
+        placeholder="Custom view"
+        value={current?.id}
+        onChange={(id) => {
+          const view = BUILT_IN_VIEWS.find((v) => v.id === id)
+          if (view) onChange(view.filters)
+        }}
+        options={BUILT_IN_VIEWS.filter(
+          (v) => employeeId || v.filters.assignee !== 'me',
+        ).map((v) => ({
+          value: v.id,
+          // Every built-in view is of open requests, so it can be counted only from the open set.
+          label:
+            filters.scope === 'open' && requests
+              ? `${v.name} (${applyRequestFilters(requests, v.filters, employeeId).length})`
+              : v.name,
+          title: v.description,
+        }))}
+      />
       <Segmented<RequestScope>
         className={stacked ? styles.stackedControl : undefined}
         block={stacked}
@@ -131,10 +157,22 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
         onChange={(assignee) => set({ assignee })}
         options={[
           { value: 'anyone', label: 'Anyone assigned or not' },
-          ...(hasLinkedEmployee
+          ...(employeeId
             ? [{ value: 'me' as const, label: 'Assigned to me' }]
             : []),
           { value: 'unassigned', label: 'Not assigned' },
+        ]}
+      />
+      <Select<NeedByFilter>
+        className={controlClass}
+        aria-label="Need by"
+        value={filters.needBy}
+        onChange={(needBy) => set({ needBy })}
+        options={[
+          { value: 'any', label: 'Any need-by date' },
+          { value: 'fixed', label: 'Fixed for us' },
+          { value: 'chosen', label: 'We chose it' },
+          { value: 'none', label: 'No date given' },
         ]}
       />
       <Select

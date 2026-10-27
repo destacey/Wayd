@@ -90,6 +90,23 @@ describe('RequestBoardView', () => {
     ).toBeInTheDocument()
   })
 
+  it('waits for the desks rather than saying there are none', () => {
+    // Act
+    render(
+      <RequestBoardView
+        requests={[]}
+        filters={DEFAULT_REQUEST_FILTERS}
+        desks={undefined}
+        onPickDesk={jest.fn()}
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.queryByText('There are no desks to show a board for.'),
+    ).not.toBeInTheDocument()
+  })
+
   it('asks for a desk instead of guessing when the desks follow different workflows', async () => {
     // Arrange
     mockWorkflows = [

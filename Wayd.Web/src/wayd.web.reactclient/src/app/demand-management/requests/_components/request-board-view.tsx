@@ -80,6 +80,7 @@ const RequestBoardView: FC<RequestBoardViewProps> = ({
     isError,
   } = useGetIntakeDeskWorkflowsQuery(deskIds, { skip: deskIds.length === 0 })
 
+  if (!desks) return <Skeleton active paragraph={{ rows: 6 }} />
   if (deskIds.length === 0)
     return (
       <Alert

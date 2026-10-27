@@ -5,26 +5,42 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle, useLinkedEmployee } from '@/src/hooks'
 import {
+  useGetIntakeChannelsQuery,
+  useGetIntakeDesksQuery,
   useGetIntakeRequestsQuery,
   useGetNeedByBasesQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
 import { Button } from 'antd'
 import Link from 'next/link'
-import { FC, useEffect } from 'react'
+import { FC, useEffect, useState } from 'react'
 import IntakeRequestsGrid from '../_components/intake-requests-grid'
+import RequestFilterBar from './_components/request-filter-bar'
+import {
+  DEFAULT_REQUEST_FILTERS,
+  RequestFilters,
+  applyRequestFilters,
+} from './_components/request-filters'
 
 /**
- * Every request the reader may see, across desks, so a requester can check whether an ask already exists
- * before raising it. Lists carry only the summary, which is what lets them span summary-only desks.
+ * Where reviewers work from, and where anyone checks whether an ask already exists before raising it. It
+ * opens on the requests still open; "Everything" adds the closed ones. Lists carry only the summary, which
+ * is what lets them span summary-only desks, and a private desk's requests are absent for anyone outside it.
  */
 const IntakeRequestsPage: FC = () => {
   useDocumentTitle('Requests')
   const messageApi = useMessage()
-  const { hasLinkedEmployee } = useLinkedEmployee()
+  const { employeeId, hasLinkedEmployee } = useLinkedEmployee()
   const canSubmit = hasLinkedEmployee
+  const [filters, setFilters] = useState<RequestFilters>(
+    DEFAULT_REQUEST_FILTERS,
+  )
 
-  const { data, isLoading, error, refetch } = useGetIntakeRequestsQuery()
+  const { data, isLoading, error, refetch } = useGetIntakeRequestsQuery({
+    openOnly: filters.scope === 'open',
+  })
   const { data: needByBases } = useGetNeedByBasesQuery()
+  const { data: desks } = useGetIntakeDesksQuery()
+  const { data: channels } = useGetIntakeChannelsQuery()
 
   useEffect(() => {
     if (error) {
@@ -32,6 +48,8 @@ const IntakeRequestsPage: FC = () => {
       messageApi.error('Failed to load requests.')
     }
   }, [error, messageApi])
+
+  const visible = data ? applyRequestFilters(data, filters, employeeId) : data
 
   return (
     <div className="page-gutters">
@@ -46,14 +64,22 @@ const IntakeRequestsPage: FC = () => {
           ) : null
         }
       />
-      <IntakeRequestsGrid
+      <RequestFilterBar
+        filters={filters}
+        onChange={setFilters}
         requests={data}
+        desks={desks}
+        channels={channels}
+        hasLinkedEmployee={hasLinkedEmployee}
+      />
+      <IntakeRequestsGrid
+        requests={visible}
         isLoading={isLoading}
         refetch={refetch}
         needByBases={needByBases}
         persistStateKey="demand-management-requests"
         csvFileName="requests"
-        emptyMessage="No requests found"
+        emptyMessage="No requests match these filters"
       />
     </div>
   )

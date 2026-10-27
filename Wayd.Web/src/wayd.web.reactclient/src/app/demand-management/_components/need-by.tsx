@@ -7,6 +7,7 @@ import {
   IntakeRequestNeedByRequest,
   NeedByBasis,
   NeedByBasisDto,
+  NeedByBasisFamily,
   NeedByBasisFamilyDto,
 } from '@/src/services/wayd-api'
 import {
@@ -129,6 +130,43 @@ export const NeedBySummary: FC<NeedBySummaryProps> = ({
     </Flex>
   )
 }
+
+/**
+ * What makes the date, in the few words a list or card has room for. A fixed date reads as a fact and a
+ * chosen one names who chose it, so a reviewer scanning a column can tell which dates will not move.
+ */
+export const NEED_BY_SHORT: Record<NeedByBasis, string> = {
+  [NeedByBasis.Regulatory]: 'a regulation sets it',
+  [NeedByBasis.Contractual]: 'a contract names it',
+  [NeedByBasis.ExternalEvent]: 'fixed by an event',
+  [NeedByBasis.Commitment]: 'we promised it',
+  [NeedByBasis.RequesterPreference]: 'requester would like it',
+}
+
+/**
+ * The colour a need-by is shown in: a date fixed for us is the one that cannot move, a commitment can move
+ * only by talking to whoever made it, and a preference is weighed with everything else.
+ */
+export const needByColor = (
+  needBy: IntakeRequestNeedByDto,
+): string | undefined =>
+  needBy.family === NeedByBasisFamily.FixedForUs
+    ? 'error'
+    : needBy.basis === NeedByBasis.Commitment
+      ? 'warning'
+      : undefined
+
+/** A need-by in a list or on a card: "By Mar 31, 2027 · we promised it", or that no date was given. */
+export const NeedByTag: FC<{ needBy: IntakeRequestNeedByDto | undefined }> = ({
+  needBy,
+}) =>
+  needBy ? (
+    <Tag color={needByColor(needBy)} title={needBy.reference || undefined}>
+      By {formatCalendarDate(needBy.date)} · {NEED_BY_SHORT[needBy.basis]}
+    </Tag>
+  ) : (
+    <Tag>No date given</Tag>
+  )
 
 /** The need-by of a request, read from its summary. */
 export const RequestNeedBy: FC<{

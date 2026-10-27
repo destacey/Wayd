@@ -38,6 +38,8 @@ export interface IntakeRequestListArgs {
   deskId?: string
   /** Only requests the caller requested or submitted. */
   mine?: boolean
+  /** Only requests still open: in the Proposed or Active status category. */
+  openOnly?: boolean
 }
 
 export interface IntakeRequestParticipantArgs {
@@ -107,6 +109,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           const data = await getIntakeRequestsClient().getIntakeRequests(
             args?.deskId,
             args?.mine,
+            args?.openOnly,
           )
           return { data }
         } catch (error) {

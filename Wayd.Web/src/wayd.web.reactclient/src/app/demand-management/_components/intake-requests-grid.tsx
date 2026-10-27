@@ -10,11 +10,14 @@ import {
 import {
   IntakeRequestSummaryDto,
   NeedByBasisDto,
+  NeedByBasisFamily,
 } from '@/src/services/wayd-api'
 import { formatCalendarDate } from '@/src/utils'
 import { Tooltip } from 'antd'
 import Link from 'next/link'
 import { FC, ReactNode } from 'react'
+import { NeedByTag } from './need-by'
+import { AgeTag, daysSince } from './request-age'
 
 export interface IntakeRequestsGridProps {
   requests: IntakeRequestSummaryDto[] | undefined
@@ -30,6 +33,22 @@ export interface IntakeRequestsGridProps {
 }
 
 export const requestHref = (key: number) => `/demand-management/requests/${key}`
+
+/**
+ * Orders by need-by date, and on the same date puts a date fixed for us before one we chose, since that is
+ * the one that cannot move. Requests with no date come last.
+ */
+export const compareNeedBy = (
+  a: IntakeRequestSummaryDto,
+  b: IntakeRequestSummaryDto,
+): number => {
+  if (!a.needBy || !b.needBy) return a.needBy ? -1 : b.needBy ? 1 : 0
+  if (a.needBy.date !== b.needBy.date)
+    return a.needBy.date < b.needBy.date ? -1 : 1
+  const fixed = (r: IntakeRequestSummaryDto) =>
+    r.needBy?.family === NeedByBasisFamily.FixedForUs ? 0 : 1
+  return fixed(a) - fixed(b)
+}
 
 /**
  * Intake requests as their summaries: the columns are the summary tier and nothing more, because that is
@@ -115,11 +134,10 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       id: 'needBy',
       accessorFn: (request) => request.needBy?.date ?? null,
       header: 'Need By',
-      size: 130,
+      size: 260,
+      sortFn: (a, b) => compareNeedBy(a.original, b.original),
       cell: ({ row }) =>
-        row.original.needBy
-          ? formatCalendarDate(row.original.needBy.date)
-          : null,
+        row.original.needBy ? <NeedByTag needBy={row.original.needBy} /> : null,
       meta: {
         filterType: 'date',
         exportFormatter: (value: unknown) =>
@@ -131,7 +149,30 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       accessorFn: (request) => basisName(request.needBy?.basis),
       header: 'Basis',
       size: 170,
-      meta: { filterType: 'set' },
+      meta: { filterType: 'set', hiddenByDefault: true },
+    },
+    {
+      id: 'age',
+      accessorFn: (request) => daysSince(request.submittedOn),
+      header: 'Age',
+      size: 90,
+      cell: ({ row }) => (
+        <AgeTag since={row.original.submittedOn} label="Submitted" />
+      ),
+      meta: { exportFormatter: (value: unknown) => `${value}` },
+    },
+    {
+      id: 'timeInStatus',
+      accessorFn: (request) => daysSince(request.statusChangedOn),
+      header: 'In Status',
+      size: 100,
+      cell: ({ row }) => (
+        <AgeTag
+          since={row.original.statusChangedOn}
+          label="In this status since"
+        />
+      ),
+      meta: { exportFormatter: (value: unknown) => `${value}` },
     },
     {
       id: 'assignee',

@@ -1,5 +1,6 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import IntakeRequestsPage from './page'
 
 jest.mock('@/src/components/common', () => ({
@@ -49,15 +50,18 @@ jest.mock('../_components/intake-requests-grid', () => ({
   default: () => <div data-testid="requests-grid" />,
 }))
 
+const mockRequestsQuery = jest.fn((_args?: unknown) => ({
+  data: [],
+  isLoading: false,
+  refetch: jest.fn(),
+}))
 jest.mock(
   '@/src/store/features/demand-management/demand-management-api',
   () => ({
-    useGetIntakeRequestsQuery: () => ({
-      data: [],
-      isLoading: false,
-      refetch: jest.fn(),
-    }),
+    useGetIntakeRequestsQuery: (args: unknown) => mockRequestsQuery(args),
     useGetNeedByBasesQuery: () => ({ data: [] }),
+    useGetIntakeDesksQuery: () => ({ data: [] }),
+    useGetIntakeChannelsQuery: () => ({ data: [] }),
   }),
 )
 
@@ -65,6 +69,29 @@ describe('IntakeRequestsPage', () => {
   beforeEach(() => {
     mockClaims = new Set()
     mockEmployeeId = 'e-1'
+    mockRequestsQuery.mockClear()
+  })
+
+  it('opens on the requests still open', () => {
+    // Act
+    render(<IntakeRequestsPage />)
+
+    // Assert
+    expect(mockRequestsQuery).toHaveBeenLastCalledWith({ openOnly: true })
+  })
+
+  it('includes closed requests once the reader asks for everything', async () => {
+    // Arrange
+    render(<IntakeRequestsPage />)
+
+    // Act — jsdom matches no breakpoint, so the filters are behind the phone layout's button
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: /Filters/ })),
+    )
+    await act(() => userEvent.click(screen.getByText('Everything')))
+
+    // Assert
+    expect(mockRequestsQuery).toHaveBeenLastCalledWith({ openOnly: false })
   })
 
   it('offers no Create Desk, which lives on the Desks page, even to the Demand Management Admin', () => {

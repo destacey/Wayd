@@ -115,7 +115,7 @@ public sealed class GetIntakeRequestsQueryHandlerTests
     [Fact]
     public async Task Handle_OpenOnly_LeavesOutDoneAndRemovedRequests()
     {
-        // Arrange — open is the Proposed and Active categories, whatever the desk's workflow names the status
+        // Arrange â€” open is the Proposed and Active categories, whatever the desk's workflow names the status
         var desk = _scenario.Desk(IntakeDeskVisibility.Open);
         var proposed = _scenario.Request(desk, _scenario.Employee());
         var active = _scenario.RequestIn(desk, _scenario.Employee(), StatusCategory.Active, IntakeRequestStatusAlias.Accepted);

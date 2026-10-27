@@ -110,6 +110,50 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       ),
     },
     {
+      id: 'timeInStatus',
+      accessorFn: (request) => daysSince(request.statusChangedOn),
+      header: 'In Status',
+      size: 100,
+      cell: ({ row }) => (
+        <AgeTag
+          since={row.original.statusChangedOn}
+          label="In this status since"
+        />
+      ),
+      meta: { exportFormatter: (value: unknown) => `${value}` },
+    },
+    {
+      id: 'needBy',
+      accessorFn: (request) => request.needBy?.date ?? null,
+      header: 'Need By',
+      size: 260,
+      sortFn: (a, b) => compareNeedBy(a.original, b.original),
+      cell: ({ row }) =>
+        row.original.needBy ? <NeedByTag needBy={row.original.needBy} /> : null,
+      meta: {
+        filterType: 'date',
+        exportFormatter: (value: unknown) =>
+          typeof value === 'string' ? formatCalendarDate(value) : '',
+      },
+    },
+    {
+      id: 'age',
+      accessorFn: (request) => daysSince(request.submittedOn),
+      header: 'Age',
+      size: 90,
+      cell: ({ row }) => (
+        <AgeTag since={row.original.submittedOn} label="Submitted" />
+      ),
+      meta: { exportFormatter: (value: unknown) => `${value}` },
+    },
+    {
+      id: 'assignee',
+      accessorFn: (request) => request.assignee?.name ?? '',
+      header: 'Assignee',
+      size: 180,
+      meta: { filterType: 'set' },
+    },
+    {
       id: 'desk',
       accessorKey: 'desk.name',
       header: 'Desk',
@@ -131,54 +175,10 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       meta: { filterType: 'set' },
     },
     {
-      id: 'needBy',
-      accessorFn: (request) => request.needBy?.date ?? null,
-      header: 'Need By',
-      size: 260,
-      sortFn: (a, b) => compareNeedBy(a.original, b.original),
-      cell: ({ row }) =>
-        row.original.needBy ? <NeedByTag needBy={row.original.needBy} /> : null,
-      meta: {
-        filterType: 'date',
-        exportFormatter: (value: unknown) =>
-          typeof value === 'string' ? formatCalendarDate(value) : '',
-      },
-    },
-    {
       id: 'needByBasis',
       accessorFn: (request) => basisName(request.needBy?.basis),
       header: 'Basis',
       size: 170,
-      meta: { filterType: 'set', hiddenByDefault: true },
-    },
-    {
-      id: 'age',
-      accessorFn: (request) => daysSince(request.submittedOn),
-      header: 'Age',
-      size: 90,
-      cell: ({ row }) => (
-        <AgeTag since={row.original.submittedOn} label="Submitted" />
-      ),
-      meta: { exportFormatter: (value: unknown) => `${value}` },
-    },
-    {
-      id: 'timeInStatus',
-      accessorFn: (request) => daysSince(request.statusChangedOn),
-      header: 'In Status',
-      size: 100,
-      cell: ({ row }) => (
-        <AgeTag
-          since={row.original.statusChangedOn}
-          label="In this status since"
-        />
-      ),
-      meta: { exportFormatter: (value: unknown) => `${value}` },
-    },
-    {
-      id: 'assignee',
-      accessorFn: (request) => request.assignee?.name ?? '',
-      header: 'Assignee',
-      size: 180,
       meta: { filterType: 'set', hiddenByDefault: true },
     },
   ]

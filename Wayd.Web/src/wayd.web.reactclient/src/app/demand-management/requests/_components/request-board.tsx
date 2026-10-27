@@ -7,7 +7,7 @@ import {
   StatusCategory,
   StatusNavigationDto,
 } from '@/src/services/wayd-api'
-import { Empty, Grid, Select, Typography } from 'antd'
+import { ConfigProvider, Empty, Grid, Select, Typography } from 'antd'
 import Link from 'next/link'
 import { FC, useState } from 'react'
 import { requestHref } from '../../_components/intake-requests-grid'
@@ -25,6 +25,9 @@ export interface BoardColumn {
 }
 
 const OPEN_CATEGORIES = [StatusCategory.Proposed, StatusCategory.Active]
+
+/** On a phone the stage picker is tapped, so it is a 44px touch target. */
+const TOUCH_THEME = { token: { controlHeight: 44 } }
 
 /**
  * The board's columns: every status of the workflow, in its order, holding the requests in it. A stage
@@ -62,7 +65,6 @@ const RequestCard: FC<{ request: IntakeRequestSummaryDto }> = ({ request }) => {
       <span className={styles.footer}>
         <Text type="secondary" ellipsis>
           {request.requester.name}
-          {request.assignee ? ` · ${request.assignee.name}` : ''}
         </Text>
         <AgeTag since={request.statusChangedOn} label="In this status since" />
       </span>
@@ -123,16 +125,18 @@ const RequestBoard: FC<RequestBoardProps> = ({ columns }) => {
       columns.find((c) => c.status.id === chosenId) ?? firstWithRequests
     return (
       <div className={styles.single}>
-        <Select
-          className={styles.stagePicker}
-          aria-label="Stage"
-          value={shown.status.id}
-          onChange={setChosenId}
-          options={columns.map((c) => ({
-            value: c.status.id,
-            label: `${c.status.name} (${c.requests.length})`,
-          }))}
-        />
+        <ConfigProvider theme={TOUCH_THEME}>
+          <Select
+            className={styles.stagePicker}
+            aria-label="Stage"
+            value={shown.status.id}
+            onChange={setChosenId}
+            options={columns.map((c) => ({
+              value: c.status.id,
+              label: `${c.status.name} (${c.requests.length})`,
+            }))}
+          />
+        </ConfigProvider>
         <ColumnView column={shown} showHeader={false} />
       </div>
     )

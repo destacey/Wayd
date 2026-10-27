@@ -36,7 +36,7 @@ export const sharedWorkflow = (
 
 /**
  * Which desks the board is for, always in words, so nobody reads one desk's stages as another's:
- * "the Product delivery desk", or "all desks, on the Intake review workflow".
+ * "The Product delivery desk", or "All desks, which share one workflow: Intake review".
  */
 export const boardTitle = (
   filters: RequestFilters,
@@ -44,14 +44,14 @@ export const boardTitle = (
   workflowName: string,
 ): string => {
   if (filters.deskIds.length === 0)
-    return `All desks, on the ${workflowName} workflow`
+    return `All desks, which share one workflow: ${workflowName}`
   const names = filters.deskIds
     .map((id) => desks?.find((d) => d.id === id)?.name)
     .filter((n): n is string => !!n)
     .sort(caseInsensitiveCompare)
   return names.length === 1
     ? `The ${names[0]} desk`
-    : `${names.join(', ')}, on the ${workflowName} workflow`
+    : `${names.join(', ')}, which share one workflow: ${workflowName}`
 }
 
 export interface RequestBoardViewProps {

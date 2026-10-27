@@ -13,6 +13,17 @@ describe('daysSince', () => {
     expect(elapsed).toBe(11)
     expect(future).toBe(0)
   })
+
+  it('reads the ISO string an instant arrives as from the API', () => {
+    // Act
+    const elapsed = daysSince(
+      '2026-10-01T13:00:00Z',
+      new Date('2026-10-13T12:00:00Z'),
+    )
+
+    // Assert
+    expect(elapsed).toBe(11)
+  })
 })
 
 describe('formatDays', () => {

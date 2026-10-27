@@ -7,7 +7,16 @@ import {
 } from '@/src/services/wayd-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { FilterOutlined } from '@ant-design/icons'
-import { Badge, Button, Drawer, Flex, Grid, Segmented, Select } from 'antd'
+import {
+  Badge,
+  Button,
+  ConfigProvider,
+  Drawer,
+  Flex,
+  Grid,
+  Segmented,
+  Select,
+} from 'antd'
 import { FC, ReactNode, useState } from 'react'
 import styles from './request-filter-bar.module.css'
 import {
@@ -19,6 +28,15 @@ import {
 } from './request-filters'
 
 const { useBreakpoint } = Grid
+
+/**
+ * On a phone the filters are tapped, so every control is at least a 44px touch target. A segmented
+ * control's track pads its segments by 2px each side, so its own height is 48.
+ */
+const TOUCH_THEME = {
+  token: { controlHeight: 44 },
+  components: { Segmented: { controlHeight: 48 } },
+}
 
 export interface RequestFilterBarProps {
   filters: RequestFilters
@@ -163,39 +181,37 @@ const RequestFilterBar: FC<RequestFilterBarProps> = (props) => {
   }
 
   return (
-    <Flex gap={8} align="center" className={styles.bar}>
-      {props.leading}
-      <Badge count={active} size="small">
-        <Button
-          icon={<FilterOutlined />}
-          className={styles.touch}
-          onClick={() => setOpen(true)}
+    <ConfigProvider theme={TOUCH_THEME}>
+      <Flex gap={8} align="center" className={styles.bar}>
+        {props.leading}
+        <Badge count={active} size="small">
+          <Button icon={<FilterOutlined />} onClick={() => setOpen(true)}>
+            Filters
+          </Button>
+        </Badge>
+        <Drawer
+          title="Filter requests"
+          placement="bottom"
+          size="auto"
+          open={open}
+          onClose={() => setOpen(false)}
+          extra={
+            active > 0 ? (
+              <Button
+                type="link"
+                onClick={() => props.onChange(DEFAULT_REQUEST_FILTERS)}
+              >
+                Clear
+              </Button>
+            ) : null
+          }
         >
-          Filters
-        </Button>
-      </Badge>
-      <Drawer
-        title="Filter requests"
-        placement="bottom"
-        size="auto"
-        open={open}
-        onClose={() => setOpen(false)}
-        extra={
-          active > 0 ? (
-            <Button
-              type="link"
-              onClick={() => props.onChange(DEFAULT_REQUEST_FILTERS)}
-            >
-              Clear
-            </Button>
-          ) : null
-        }
-      >
-        <Flex vertical gap={12}>
-          <FilterControls {...props} stacked />
-        </Flex>
-      </Drawer>
-    </Flex>
+          <Flex vertical gap={12}>
+            <FilterControls {...props} stacked />
+          </Flex>
+        </Drawer>
+      </Flex>
+    </ConfigProvider>
   )
 }
 

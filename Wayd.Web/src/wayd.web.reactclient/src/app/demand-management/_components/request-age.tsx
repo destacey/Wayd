@@ -12,9 +12,20 @@ const DAY_MS = 24 * 60 * 60 * 1000
 export const OLD_AFTER_DAYS = 7
 export const STALE_AFTER_DAYS = 21
 
-/** Whole days from the instant to now, never negative. */
-export const daysSince = (from: Date, now: Date = new Date()): number =>
-  Math.max(0, Math.floor((now.getTime() - from.getTime()) / DAY_MS))
+/**
+ * Whole days from the instant to now, never negative.
+ *
+ * Takes a string too: the generated client types an Instant as `Date`, but the response is parsed as plain
+ * JSON, so at runtime it is the ISO string.
+ */
+export const daysSince = (
+  from: Date | string,
+  now: Date = new Date(),
+): number =>
+  Math.max(
+    0,
+    Math.floor((now.getTime() - new Date(from).getTime()) / DAY_MS),
+  )
 
 /** A day count as a reviewer reads it at a glance: "<1d", "12d". */
 export const formatDays = (days: number): string =>
@@ -30,7 +41,7 @@ export const ageColor = (days: number): string | undefined =>
 
 export interface AgeTagProps {
   /** The instant the wait started: when the request arrived, or when it entered its status. */
-  since: Date
+  since: Date | string
   /** What the wait is, for the tooltip: "Submitted", "In this status". */
   label: string
 }
@@ -41,7 +52,7 @@ export const AgeTag: FC<AgeTagProps> = ({ since, label }) => {
   return (
     <Tag
       color={ageColor(days)}
-      title={`${label} ${since.toLocaleDateString()}`}
+      title={`${label} ${new Date(since).toLocaleDateString()}`}
       variant="filled"
     >
       {formatDays(days)}

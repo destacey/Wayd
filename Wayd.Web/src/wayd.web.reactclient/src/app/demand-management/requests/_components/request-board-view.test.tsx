@@ -59,7 +59,7 @@ describe('boardTitle', () => {
     const title = boardTitle(DEFAULT_REQUEST_FILTERS, DESKS, 'Intake review')
 
     // Assert
-    expect(title).toBe('All desks, on the Intake review workflow')
+    expect(title).toBe('All desks, which share one workflow: Intake review')
   })
 })
 
@@ -86,7 +86,7 @@ describe('RequestBoardView', () => {
     // Assert
     expect(mockWorkflowsQuery).toHaveBeenCalledWith(['d-it', 'd-product'])
     expect(
-      screen.getByText('All desks, on the Intake review workflow'),
+      screen.getByText('All desks, which share one workflow: Intake review'),
     ).toBeInTheDocument()
   })
 

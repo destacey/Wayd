@@ -16,6 +16,7 @@ jest.mock('@/src/components/common', () => ({
       {actions}
     </header>
   ),
+  WaydTooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
 let mockClaims = new Set<string>()
@@ -172,6 +173,26 @@ describe('IntakeRequestsPage', () => {
 
     // Assert
     expect(screen.getByText('Anyone assigned or not')).toBeInTheDocument()
+  })
+
+  it('resets every filter from the reset button', async () => {
+    // Arrange
+    mockSearch = new URLSearchParams('scope=all&assignee=unassigned')
+    render(<IntakeRequestsPage />)
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: /Filters/ })),
+    )
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Reset filters' })),
+    )
+
+    // Assert
+    expect(mockReplace).toHaveBeenLastCalledWith(
+      '/demand-management/requests',
+      { scroll: false },
+    )
   })
 
   it('includes closed requests when the address asks for everything', () => {

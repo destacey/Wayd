@@ -6,7 +6,8 @@ import {
   IntakeRequestSummaryDto,
 } from '@/src/services/wayd-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { FilterOutlined } from '@ant-design/icons'
+import { WaydTooltip } from '@/src/components/common'
+import { ClearOutlined, FilterOutlined } from '@ant-design/icons'
 import {
   Badge,
   Button,
@@ -57,6 +58,19 @@ const countBy = (
     counts.set(key(r), (counts.get(key(r)) ?? 0) + 1)
   return counts
 }
+
+/** Puts every filter back to its default, the same control the other filter bars use. */
+const ResetFilters: FC<{ onReset: () => void }> = ({ onReset }) => (
+  <WaydTooltip title="Reset Filters">
+    <Button
+      type="text"
+      shape="circle"
+      icon={<ClearOutlined />}
+      aria-label="Reset filters"
+      onClick={onReset}
+    />
+  </WaydTooltip>
+)
 
 const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
   filters,
@@ -212,12 +226,9 @@ const RequestFilterBar: FC<RequestFilterBarProps> = (props) => {
       <Flex wrap gap={8} align="center" className={styles.bar}>
         <FilterControls {...props} stacked={false} />
         {active > 0 && (
-          <Button
-            type="link"
-            onClick={() => props.onChange(DEFAULT_REQUEST_FILTERS)}
-          >
-            Clear filters
-          </Button>
+          <ResetFilters
+            onReset={() => props.onChange(DEFAULT_REQUEST_FILTERS)}
+          />
         )}
       </Flex>
     )
@@ -239,12 +250,9 @@ const RequestFilterBar: FC<RequestFilterBarProps> = (props) => {
           onClose={() => setOpen(false)}
           extra={
             active > 0 ? (
-              <Button
-                type="link"
-                onClick={() => props.onChange(DEFAULT_REQUEST_FILTERS)}
-              >
-                Clear
-              </Button>
+              <ResetFilters
+                onReset={() => props.onChange(DEFAULT_REQUEST_FILTERS)}
+              />
             ) : null
           }
         >

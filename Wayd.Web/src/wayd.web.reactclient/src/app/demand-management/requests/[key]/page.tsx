@@ -13,12 +13,11 @@ import { useDocumentTitle } from '@/src/hooks'
 import {
   useGetIntakeRequestActivitiesQuery,
   useGetIntakeRequestQuery,
-  useGetNeedByBasesQuery,
-  useGetNeedByBasisFamiliesQuery,
   useLazyGetIntakeRequestActivitiesQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError } from '@/src/utils'
-import { Alert, Button } from 'antd'
+import { Alert, Button, Flex } from 'antd'
+import dayjs from 'dayjs'
 import type { ItemType } from 'antd/es/menu/interface'
 import NextLink from 'next/link'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
@@ -36,6 +35,7 @@ import IntakeRequestParticipants from './_components/intake-request-participants
 import IntakeRequestStatusHistory from './_components/intake-request-status-history'
 import RerouteIntakeRequestForm from './_components/reroute-intake-request-form'
 import WithdrawIntakeRequestForm from './_components/withdraw-intake-request-form'
+import MoveIntakeRequestButton from './_components/move-intake-request-button'
 import IntakeRequestDetailsLoading from './loading'
 
 enum RequestSection {
@@ -67,6 +67,8 @@ const IntakeRequestDetailsPage = (props: {
   const activeSection = searchParams.get('section') ?? RequestSection.Details
 
   const [dialog, setDialog] = useState<RequestDialog | null>(null)
+  // The status the form opens on, when a move picked from the header needs a reason or the original.
+  const [statusToOpen, setStatusToOpen] = useState<string>()
   const router = useRouter()
 
   const { data: request, error, refetch } = useGetIntakeRequestQuery(key)
@@ -84,8 +86,6 @@ const IntakeRequestDetailsPage = (props: {
   // The number of a duplicate that redirected here. Taken from the address, so it says nothing the reader
   // was not already shown.
   const arrivedFrom = Number(searchParams.get(DUPLICATE_PARAM)) || null
-  const { data: needByBases } = useGetNeedByBasesQuery()
-  const { data: needByFamilies } = useGetNeedByBasisFamiliesQuery()
 
   const requestId = request?.summary.id
   const activitiesQuery = useGetIntakeRequestActivitiesQuery(
@@ -142,15 +142,14 @@ const IntakeRequestDetailsPage = (props: {
     { id: RequestSection.Activity, label: 'Activity' },
   ]
 
+  const openStatusForm = (statusId?: string) => {
+    setStatusToOpen(statusId)
+    setDialog('change-status')
+  }
+
   const actionItems: ItemType[] = [
-    ...(request.canChangeStatus
-      ? [
-          {
-            key: 'change-status',
-            label: 'Change Status',
-            onClick: () => setDialog('change-status'),
-          },
-        ]
+    ...(request.canEdit && substance
+      ? [{ key: 'edit', label: 'Edit', onClick: () => setDialog('edit') }]
       : []),
     ...(request.canChangeAssignee
       ? [
@@ -160,9 +159,6 @@ const IntakeRequestDetailsPage = (props: {
             onClick: () => setDialog('change-assignee'),
           },
         ]
-      : []),
-    ...(request.canEdit && substance
-      ? [{ key: 'edit', label: 'Edit', onClick: () => setDialog('edit') }]
       : []),
     ...(request.canWithdraw
       ? [
@@ -200,8 +196,6 @@ const IntakeRequestDetailsPage = (props: {
         return (
           <IntakeRequestDetails
             request={request}
-            needByBases={needByBases}
-            needByFamilies={needByFamilies}
             notices={
               <>
                 {request.duplicateOf && (
@@ -258,6 +252,7 @@ const IntakeRequestDetailsPage = (props: {
             { label: summary.desk.name, href: deskHref(summary.desk.key) },
           ],
           subtitle: 'Request Details',
+          caption: `Raised by ${summary.requester.name} on ${dayjs(summary.submittedOn).format('MMM D, YYYY')} · from ${summary.channel.name}`,
           tags: (
             <StatusHistoryTag
               status={summary.status}
@@ -268,7 +263,17 @@ const IntakeRequestDetailsPage = (props: {
               }
             />
           ),
-          actions: <PageActions actionItems={actionItems} />,
+          actions: (
+            <Flex gap="small" align="center">
+              {request.canChangeStatus && (
+                <MoveIntakeRequestButton
+                  request={request}
+                  onNeedsDetail={openStatusForm}
+                />
+              )}
+              <PageActions actionItems={actionItems} />
+            </Flex>
+          ),
         }}
         facts={<IntakeRequestFacts request={request} />}
         sectionActions={sectionActions}
@@ -293,6 +298,7 @@ const IntakeRequestDetailsPage = (props: {
       {dialog === 'change-status' && request.canChangeStatus && (
         <ChangeIntakeRequestStatusForm
           request={request}
+          initialStatusId={statusToOpen}
           onFormComplete={() => setDialog(null)}
           onFormCancel={() => setDialog(null)}
         />

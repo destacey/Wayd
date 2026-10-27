@@ -136,4 +136,18 @@ describe('RecordHeader', () => {
     expect(screen.getByText('Active')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Actions' })).toBeInTheDocument()
   })
+
+  it('renders a caption on its own line beneath the bar', () => {
+    // Arrange / Act
+    const { container } = render(
+      <RecordHeader
+        name="Rotate the VPN certificates"
+        caption="Raised by Avery Example on Oct 1, 2026"
+      />,
+    )
+
+    // Assert — outside the bar, so the bar's items stay level with the name
+    const caption = screen.getByText('Raised by Avery Example on Oct 1, 2026')
+    expect(container.firstElementChild).not.toContainElement(caption)
+  })
 })

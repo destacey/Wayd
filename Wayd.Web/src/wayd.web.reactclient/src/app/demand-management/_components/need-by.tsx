@@ -6,7 +6,6 @@ import {
   NeedByBasis,
   NeedByBasisDto,
   NeedByBasisFamily,
-  NeedByBasisFamilyDto,
 } from '@/src/services/wayd-api'
 import {
   formatCalendarDate,
@@ -17,6 +16,7 @@ import { Flex, Tag, Typography } from 'antd'
 import type { Dayjs } from 'dayjs'
 import type { NamePath } from 'antd/es/form/interface'
 import { FC } from 'react'
+import styles from './need-by.module.css'
 
 const { Text } = Typography
 
@@ -75,58 +75,6 @@ export const needByFieldFor = (key: string): NamePath | undefined =>
     ? ['needBy', key.slice('needBy.'.length)]
     : undefined
 
-const basisNamed = (
-  bases: NeedByBasisDto[] | undefined,
-  code: NeedByBasis | undefined,
-) => bases?.find((b) => b.code === code)
-
-export interface NeedBySummaryProps {
-  date: string
-  basis: NeedByBasis
-  reference: string
-  committedByName?: string
-  committedOn?: string
-  bases: NeedByBasisDto[] | undefined
-  families: NeedByBasisFamilyDto[] | undefined
-}
-
-/**
- * A need-by as reviewers read it: the date, what makes it that date, and what the date rests on. The basis
- * is named from the lookup, never from its code.
- */
-export const NeedBySummary: FC<NeedBySummaryProps> = ({
-  date,
-  basis,
-  reference,
-  committedByName,
-  committedOn,
-  bases,
-  families,
-}) => {
-  const basisDto = basisNamed(bases, basis)
-  const family = families?.find((f) => f.code === basisDto?.family)
-  const commitment = [
-    committedByName && `made by ${committedByName}`,
-    committedOn && `on ${formatCalendarDate(committedOn)}`,
-  ]
-    .filter(Boolean)
-    .join(' ')
-
-  return (
-    <Flex vertical gap={2}>
-      <Flex gap={8} align="center">
-        <Text strong>{formatCalendarDate(date)}</Text>
-        {family && <Tag title={family.description}>{family.name}</Tag>}
-      </Flex>
-      <Text>
-        {basisDto?.name ?? basis}
-        {reference && <Text type="secondary"> — {reference}</Text>}
-      </Text>
-      {commitment && <Text type="secondary">Commitment {commitment}</Text>}
-    </Flex>
-  )
-}
-
 /**
  * What makes the date, in the few words a list or card has room for. A fixed date reads as a fact and a
  * chosen one names who chose it, so a reviewer scanning a column can tell which dates will not move.
@@ -164,19 +112,78 @@ export const NeedByTag: FC<{ needBy: IntakeRequestNeedByDto | undefined }> = ({
     <Tag>No date given</Tag>
   )
 
-/** The need-by of a request, read from its summary. */
-export const RequestNeedBy: FC<{
-  needBy: IntakeRequestNeedByDto
-  bases: NeedByBasisDto[] | undefined
-  families: NeedByBasisFamilyDto[] | undefined
-}> = ({ needBy, bases, families }) => (
-  <NeedBySummary
-    date={needBy.date}
-    basis={needBy.basis}
-    reference={needBy.reference}
-    committedByName={needBy.committedBy?.name}
-    committedOn={needBy.committedOn}
-    bases={bases}
-    families={families}
-  />
-)
+/**
+ * A need-by in a sentence, as the request page tells it: what makes the date, and what it rests on. A
+ * commitment also says who made it and when, since that is who could renegotiate it.
+ */
+export const needByExplanation = (needBy: IntakeRequestNeedByDto): string => {
+  const ref = needBy.reference.trim()
+  const rest = ref ? ` — ${ref}.` : '.'
+  switch (needBy.basis) {
+    case NeedByBasis.Regulatory:
+      return `A regulation or standard sets it${rest}`
+    case NeedByBasis.Contractual:
+      return `A contract names it${rest}`
+    case NeedByBasis.ExternalEvent:
+      return `Something outside us happens then${rest}`
+    case NeedByBasis.Commitment: {
+      const who = needBy.committedBy?.name ?? 'someone here'
+      const to = ref ? ` to ${ref}` : ''
+      const when = needBy.committedOn
+        ? ` on ${formatCalendarDate(needBy.committedOn)}`
+        : ''
+      return `A commitment we made — ${who} promised it${to}${when}.`
+    }
+    default:
+      return `When the requester would like it${rest}`
+  }
+}
+
+/** Whether the date can move, and how: the answer a reviewer planning around it most needs. */
+export const needByCanMove = (needBy: IntakeRequestNeedByDto): string => {
+  switch (needBy.basis) {
+    case NeedByBasis.Regulatory:
+      return 'Only if the regulation changes'
+    case NeedByBasis.Contractual:
+      return 'Only if the contract changes'
+    case NeedByBasis.ExternalEvent:
+      return 'Only if the event moves'
+    case NeedByBasis.Commitment:
+      return needBy.committedBy
+        ? `Yes, by talking to ${needBy.committedBy.name}`
+        : 'Yes, by talking to whoever promised it'
+    default:
+      return 'Yes, it is a preference'
+  }
+}
+
+/**
+ * The need-by on the request page: the date, what makes it that date, and whether it can move, coloured as
+ * the list colours it so a fixed date reads as one at a glance.
+ */
+export const NeedByCallout: FC<{ needBy: IntakeRequestNeedByDto }> = ({
+  needBy,
+}) => {
+  const tone =
+    needBy.family === NeedByBasisFamily.FixedForUs
+      ? styles.fixed
+      : needBy.basis === NeedByBasis.Commitment
+        ? styles.promised
+        : ''
+  return (
+    <div className={`${styles.callout} ${tone}`}>
+      <Flex vertical gap={2} className={styles.what}>
+        <Text strong className={styles.date}>
+          {formatCalendarDate(needBy.date, 'MMMM D, YYYY')}
+        </Text>
+        <Text type="secondary">{needByExplanation(needBy)}</Text>
+      </Flex>
+      <Flex vertical gap={2} className={styles.move}>
+        <Text type="secondary" className={styles.question}>
+          Can it move?
+        </Text>
+        <Text>{needByCanMove(needBy)}</Text>
+      </Flex>
+    </div>
+  )
+}

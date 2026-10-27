@@ -243,3 +243,9 @@
     justify-content: flex-end;
   }
 }
+
+/* The record header's caption: a quiet line under the trail. */
+.caption {
+  display: block;
+  font-size: var(--ant-font-size-sm);
+}

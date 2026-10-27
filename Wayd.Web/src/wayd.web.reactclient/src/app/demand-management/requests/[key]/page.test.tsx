@@ -119,6 +119,14 @@ jest.mock(
     useUpdateIntakeRequestMutation: () => [jest.fn()],
     useGetIntakeEmployeeOptionsQuery: () => ({ data: [] }),
     useGetIntakeChannelsQuery: () => ({ data: [] }),
+    useGetIntakeRequestStatusOptionsQuery: () => ({
+      data: [],
+      isFetching: false,
+    }),
+    useChangeIntakeRequestStatusMutation: () => [
+      jest.fn(),
+      { isLoading: false },
+    ],
   }),
 )
 
@@ -210,7 +218,7 @@ describe('IntakeRequestDetailsPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('offers Change Status and Withdraw only where the server allows each', async () => {
+  it('offers Move to and Withdraw only where the server allows each', async () => {
     // Arrange
     mockRequest = details({ canChangeStatus: true })
 
@@ -219,7 +227,7 @@ describe('IntakeRequestDetailsPage', () => {
 
     // Assert
     expect(
-      await screen.findByRole('button', { name: 'Change Status' }),
+      await screen.findByRole('button', { name: /Move to/ }),
     ).toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: 'Withdraw Request' }),
@@ -247,7 +255,7 @@ describe('IntakeRequestDetailsPage', () => {
     await renderPage()
 
     // Assert
-    await screen.findByRole('button', { name: 'Change Status' })
+    await screen.findByRole('button', { name: /Move to/ })
     expect(
       screen.queryByRole('button', { name: 'Change Assignee' }),
     ).not.toBeInTheDocument()
@@ -265,7 +273,7 @@ describe('IntakeRequestDetailsPage', () => {
       await screen.findByRole('button', { name: 'Withdraw Request' }),
     ).toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Change Status' }),
+      screen.queryByRole('button', { name: /Move to/ }),
     ).not.toBeInTheDocument()
   })
 

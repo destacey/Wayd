@@ -20,6 +20,8 @@ const { TextArea } = Input
 
 export interface ChangeIntakeRequestStatusFormProps {
   request: IntakeRequestDetailsDto
+  /** The status to start on, when the move was picked before the form opened. */
+  initialStatusId?: string
   onFormComplete: () => void
   onFormCancel: () => void
 }
@@ -38,6 +40,7 @@ interface ChangeStatusFormValues {
  */
 const ChangeIntakeRequestStatusForm: FC<ChangeIntakeRequestStatusFormProps> = ({
   request,
+  initialStatusId,
   onFormComplete,
   onFormCancel,
 }) => {
@@ -158,6 +161,7 @@ const ChangeIntakeRequestStatusForm: FC<ChangeIntakeRequestStatusFormProps> = ({
         size="small"
         layout="vertical"
         name="change-intake-request-status-form"
+        initialValues={{ statusId: initialStatusId }}
       >
         <Item
           name="statusId"

@@ -1,0 +1,46 @@
+/* The need-by on the request page: the date and its story on the left, whether it can move on the right. */
+.callout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-fill-quaternary);
+}
+
+.fixed {
+  border-color: var(--ant-color-error-border);
+  background: var(--ant-color-error-bg);
+}
+
+.promised {
+  border-color: var(--ant-color-warning-border);
+  background: var(--ant-color-warning-bg);
+}
+
+.what {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.date {
+  font-size: var(--ant-font-size-lg);
+}
+
+.move {
+  flex: 0 1 auto;
+  text-align: right;
+}
+
+.question {
+  font-size: var(--ant-font-size-sm);
+}
+
+/* When the two halves stack, the answer reads under the date rather than off to the side. */
+@media (max-width: 575px) {
+  .move {
+    text-align: left;
+  }
+}

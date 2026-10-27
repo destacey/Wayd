@@ -5,21 +5,15 @@ import {
   LabeledContent,
 } from '@/src/components/common/content'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
-import {
-  IntakeRequestDetailsDto,
-  NeedByBasisDto,
-  NeedByBasisFamilyDto,
-} from '@/src/services/wayd-api'
+import { IntakeRequestDetailsDto } from '@/src/services/wayd-api'
 import { Alert, Card, Flex, Typography } from 'antd'
 import { FC, ReactNode } from 'react'
-import { RequestNeedBy } from '../../../_components/need-by'
+import { NeedByCallout } from '../../../_components/need-by'
 
 const { Text } = Typography
 
 export interface IntakeRequestDetailsProps {
   request: IntakeRequestDetailsDto
-  needByBases: NeedByBasisDto[] | undefined
-  needByFamilies: NeedByBasisFamilyDto[] | undefined
   /** What the page has to say about the request before its detail, such as where a duplicate leads. */
   notices?: ReactNode
 }
@@ -31,8 +25,6 @@ export interface IntakeRequestDetailsProps {
  */
 const IntakeRequestDetails: FC<IntakeRequestDetailsProps> = ({
   request,
-  needByBases,
-  needByFamilies,
   notices,
 }) => {
   const { summary, substance } = request
@@ -78,11 +70,7 @@ const IntakeRequestDetails: FC<IntakeRequestDetailsProps> = ({
           )}
           <LabeledContent label="Need By">
             {summary.needBy ? (
-              <RequestNeedBy
-                needBy={summary.needBy}
-                bases={needByBases}
-                families={needByFamilies}
-              />
+              <NeedByCallout needBy={summary.needBy} />
             ) : (
               <Text type="secondary">No date</Text>
             )}

@@ -43,6 +43,13 @@ jest.mock(
   '@/src/store/features/demand-management/demand-management-api',
   () => ({
     useUpdateIntakeDeskMutation: () => [mockUpdate],
+    useGetIntakeChannelsQuery: () => ({
+      data: [
+        { id: 'c-1', name: 'Support', order: 1, isActive: true },
+        { id: 'c-2', name: 'Security', order: 2, isActive: true },
+        { id: 'c-3', name: 'Engineering', order: 3, isActive: false },
+      ],
+    }),
     useGetIntakeDeskVisibilitiesQuery: () => ({
       data: [
         {
@@ -74,6 +81,8 @@ const desk = (overrides: Record<string, unknown> = {}) =>
     isOpen: true,
     isRequesterSelectable: true,
     requesterMayAddParticipants: true,
+    offersAllChannels: true,
+    channelIds: [],
     members: [
       {
         employee: { id: 'e-1', key: 1, name: 'Avery' },
@@ -155,11 +164,58 @@ describe('EditIntakeDeskSettingsForm', () => {
       isRequesterSelectable: true,
       isOpen: true,
       requesterMayAddParticipants: true,
+      offersAllChannels: true,
+      channelIds: [],
       members: [
         { employeeId: 'e-1', role: IntakeDeskRole.Admin },
         { employeeId: 'e-2', role: IntakeDeskRole.Agent },
       ],
     })
+  })
+
+  it('saves the channels a desk chooses to offer', async () => {
+    // Arrange
+    await renderForm()
+    await act(() =>
+      userEvent.click(
+        screen.getByRole('radio', { name: 'Only the channels chosen here' }),
+      ),
+    )
+    await act(() =>
+      userEvent.click(screen.getByRole('checkbox', { name: 'Security' })),
+    )
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Save' })),
+    )
+
+    // Assert
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        offersAllChannels: false,
+        channelIds: ['c-2'],
+      }),
+    )
+  })
+
+  it('offers an archived channel only where the desk already chose it', async () => {
+    // Arrange / Act
+    await renderForm(desk({ offersAllChannels: false, channelIds: ['c-3'] }))
+
+    // Assert
+    expect(
+      screen.getByRole('checkbox', { name: 'Engineering (Archived)' }),
+    ).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Support' })).not.toBeChecked()
+  })
+
+  it('leaves out an archived channel the desk never chose', async () => {
+    // Arrange / Act
+    await renderForm(desk({ offersAllChannels: false, channelIds: [] }))
+
+    // Assert
+    expect(screen.queryByText(/Engineering/)).not.toBeInTheDocument()
   })
 
   it('keeps the revision it opened with when the page refetches the desk, so a retry stays refused', async () => {

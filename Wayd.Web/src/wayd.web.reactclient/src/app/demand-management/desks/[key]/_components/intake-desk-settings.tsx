@@ -6,7 +6,8 @@ import {
   IntakeDeskVisibility,
   IntakeDeskVisibilityDto,
 } from '@/src/services/wayd-api'
-import { Flex, Typography } from 'antd'
+import { useGetIntakeChannelsQuery } from '@/src/store/features/demand-management/demand-management-api'
+import { Flex, Skeleton, Typography } from 'antd'
 import { FC } from 'react'
 import IntakeDeskWorkflow from './intake-desk-workflow'
 
@@ -27,6 +28,13 @@ const IntakeDeskSettings: FC<IntakeDeskSettingsProps> = ({
   visibilities,
 }) => {
   const visibility = visibilities?.find((v) => v.code === desk.visibility)
+  const { data: channels } = useGetIntakeChannelsQuery({
+    includeArchived: true,
+  })
+  // An archived channel stays chosen but is offered by no desk.
+  const offered = (channels ?? []).filter(
+    (c) => c.isActive && desk.channelIds.includes(c.id),
+  )
 
   return (
     <Flex vertical gap={16} style={{ maxWidth: 720 }}>
@@ -44,6 +52,23 @@ const IntakeDeskSettings: FC<IntakeDeskSettingsProps> = ({
             <Text type="secondary">{visibility.description}</Text>
           )}
         </Flex>
+      </LabeledContent>
+      <LabeledContent label="Channels Offered">
+        {desk.offersAllChannels ? (
+          'Every channel, including ones added later'
+        ) : !channels ? (
+          // Saying "None" before the names arrive would be wrong for a desk that chose some.
+          <Skeleton.Input active size="small" />
+        ) : offered.length > 0 ? (
+          offered.map((c) => c.name).join(', ')
+        ) : (
+          <Flex vertical>
+            <Text>None</Text>
+            <Text type="secondary">
+              Requesters are not asked where a request came from.
+            </Text>
+          </Flex>
+        )}
       </LabeledContent>
       <LabeledContent label="Open to New Requests">
         {yesNo(desk.isOpen)}

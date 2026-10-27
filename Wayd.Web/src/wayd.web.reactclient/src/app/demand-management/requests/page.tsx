@@ -75,7 +75,10 @@ const IntakeRequestsPage: FC = () => {
   const isLoading = isFetching && !data
   const { data: needByBases } = useGetNeedByBasesQuery()
   const { data: desks } = useGetIntakeDesksQuery()
-  const { data: channels } = useGetIntakeChannelsQuery()
+  // Archived channels too: requests keep them, so they can still be filtered on.
+  const { data: channels } = useGetIntakeChannelsQuery({
+    includeArchived: true,
+  })
   const myDeskIds = (desks ?? [])
     .filter((d) => d.members.some((m) => m.employee.id === employeeId))
     .map((d) => d.id)

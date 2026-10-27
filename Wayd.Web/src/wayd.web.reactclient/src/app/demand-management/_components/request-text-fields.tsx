@@ -2,10 +2,11 @@
 
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { IntakeChannelDto } from '@/src/services/wayd-api'
-import { Form, Input, Select } from 'antd'
+import { Flex, Form, Input, Select, Typography } from 'antd'
 import { FC } from 'react'
 
 const { Item } = Form
+const { Text } = Typography
 
 /**
  * Said where the title is typed. Titles are written by requesters and nothing sanitises them, so the
@@ -21,7 +22,16 @@ export const TITLE_VISIBILITY_NOTE =
 const TEXT_MAX_LENGTH = 20000
 
 export interface RequestTextFieldsProps {
+  /**
+   * The channels to choose from: those the desk offers, plus on edit the one the request already has. An
+   * empty list asks nothing, because the desk offers no channel.
+   */
   channels: IntakeChannelDto[] | undefined
+  /**
+   * Whether a channel must be chosen: true when the desk offers any. When false the field can be cleared,
+   * which only a request on a desk offering none may do.
+   */
+  channelRequired?: boolean
 }
 
 /**
@@ -30,7 +40,11 @@ export interface RequestTextFieldsProps {
  */
 export const RequestAskFields: FC<
   RequestTextFieldsProps & { descriptionLabel?: string }
-> = ({ channels, descriptionLabel = 'Description' }) => (
+> = ({
+  channels,
+  channelRequired = true,
+  descriptionLabel = 'Description',
+}) => (
   <>
     <Item
       name="title"
@@ -60,20 +74,36 @@ export const RequestAskFields: FC<
     >
       <MarkdownEditor maxLength={TEXT_MAX_LENGTH} />
     </Item>
-    <Item
-      name="channelId"
-      label="Where did this come from?"
-      rules={[{ required: true, message: 'Choose a channel.' }]}
-    >
-      <Select
-        placeholder="Choose a channel"
-        options={(channels ?? []).map((c) => ({
-          value: c.id,
-          label: c.isActive ? c.name : `${c.name} (Archived)`,
-          disabled: !c.isActive,
-        }))}
-      />
-    </Item>
+    {channels?.length !== 0 && (
+      <Item
+        name="channelId"
+        label="Where did this come from?"
+        rules={[{ required: channelRequired, message: 'Choose a channel.' }]}
+      >
+        <Select
+          placeholder="Choose a channel"
+          allowClear={!channelRequired}
+          loading={channels === undefined}
+          options={(channels ?? []).map((c) => ({
+            value: c.id,
+            label: c.isActive ? c.name : `${c.name} (Archived)`,
+            description: c.description,
+          }))}
+          // The description says what belongs in the channel, which is what a requester chooses by; the
+          // chosen value shows the name alone.
+          optionRender={(option) => (
+            <Flex vertical>
+              <Text>{option.label}</Text>
+              {option.data.description && (
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {option.data.description}
+                </Text>
+              )}
+            </Flex>
+          )}
+        />
+      </Item>
+    )}
   </>
 )
 
@@ -91,9 +121,12 @@ export const ExpectedBenefitsField: FC<{ label?: string }> = ({
 )
 
 /** The fields every desk asks for, shared by submit and edit so the two never drift. */
-const RequestTextFields: FC<RequestTextFieldsProps> = ({ channels }) => (
+const RequestTextFields: FC<RequestTextFieldsProps> = ({
+  channels,
+  channelRequired,
+}) => (
   <>
-    <RequestAskFields channels={channels} />
+    <RequestAskFields channels={channels} channelRequired={channelRequired} />
     <ExpectedBenefitsField />
   </>
 )

@@ -1,5 +1,6 @@
 'use client'
 
+import { NOT_RECORDED_CHANNEL_LABEL } from './channel'
 import { WaydGrid } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import EntityLink from '@/src/components/common/entity-link'
@@ -183,7 +184,7 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
     },
     {
       id: 'channel',
-      accessorKey: 'channel.name',
+      accessorFn: (r) => r.channel?.name ?? NOT_RECORDED_CHANNEL_LABEL,
       header: 'Channel',
       size: 180,
       meta: { filterType: 'set' },

@@ -11,6 +11,7 @@ import {
   resolveDeskIds,
   toSearchParams,
 } from './request-filters'
+import { NOT_RECORDED_CHANNEL } from '../../_components/channel'
 import { NeedByBasis, NeedByBasisFamily } from '@/src/services/wayd-api'
 
 const request = (
@@ -112,6 +113,24 @@ describe('applyRequestFilters', () => {
 
     // Assert
     expect(result.map((r) => r.id)).toEqual(['nobodys'])
+  })
+
+  it('keeps requests with no channel for Not recorded', () => {
+    // Arrange
+    const unrecorded = request('unrecorded', { channel: undefined })
+
+    // Act
+    const result = applyRequestFilters(
+      [...requests, unrecorded],
+      {
+        ...DEFAULT_REQUEST_FILTERS,
+        channelIds: [NOT_RECORDED_CHANNEL, 'c-sales'],
+      },
+      'e-me',
+    )
+
+    // Assert
+    expect(result.map((r) => r.id)).toEqual(['nobodys', 'unrecorded'])
   })
 })
 
@@ -227,6 +246,22 @@ describe('the address', () => {
 
     // Assert
     expect(read).toEqual({ filters, view: 'board' })
+  })
+
+  it('round-trips Not recorded alongside a channel', () => {
+    // Arrange
+    const filters: RequestFilters = {
+      ...DEFAULT_REQUEST_FILTERS,
+      channelIds: [NOT_RECORDED_CHANNEL, 'c-1'],
+    }
+
+    // Act
+    const query = toSearchParams(filters, 'list')
+    const read = fromSearchParams(query)
+
+    // Assert
+    expect(query.getAll('channel')).toEqual(['none', 'c-1'])
+    expect(read.filters.channelIds).toEqual([NOT_RECORDED_CHANNEL, 'c-1'])
   })
 
   it('leaves defaults out of the address', () => {

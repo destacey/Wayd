@@ -6,6 +6,7 @@ import {
 } from '@/src/services/clients'
 import {
   ChangeIntakeRequestStatusRequest,
+  CreateIntakeChannelRequest,
   CreateIntakeDeskRequest,
   CreateIntakeRequestRequest,
   IntakeDeskWorkflowDto,
@@ -26,7 +27,9 @@ import {
   NeedByBasisFamilyDto,
   ObjectIdAndKey,
   PagedResponseOfActivityLogDto,
+  ReorderIntakeChannelsRequest,
   RerouteIntakeRequestRequest,
+  UpdateIntakeChannelRequest,
   UpdateIntakeDeskRequest,
   UpdateIntakeRequestRequest,
 } from '@/src/services/wayd-api'
@@ -70,6 +73,8 @@ const statusMoveTags = (requestId: string) => [
 const listTag = { type: QueryTags.IntakeRequest, id: 'LIST' } as const
 
 const deskListTag = { type: QueryTags.IntakeDesk, id: 'LIST' } as const
+
+const channelListTag = { type: QueryTags.IntakeChannel, id: 'LIST' } as const
 
 export interface ChangeIntakeRequestAssigneeArgs {
   requestId: string
@@ -462,11 +467,12 @@ export const demandManagementApi = apiSlice.injectEndpoints({
         }
       },
       // Removing a member unassigns them from the desk's requests, and a rename shows on every request
-      // on the desk, so every cached request refreshes too.
+      // on the desk, so every cached request refreshes too. The channels it offers may have changed.
       invalidatesTags: (_result, _error, { id }) => [
         { type: QueryTags.IntakeDesk, id },
         deskListTag,
         QueryTags.IntakeRequest,
+        channelListTag,
       ],
     }),
 
@@ -599,22 +605,90 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       providesTags: [{ type: QueryTags.IntakeLookup, id: 'VISIBILITIES' }],
     }),
 
+    // With a desk, only the active channels it offers; otherwise the company list.
     getIntakeChannels: builder.query<
       IntakeChannelDto[],
-      { includeArchived?: boolean } | void
+      { includeArchived?: boolean; deskId?: string } | void
     >({
       queryFn: async (args) => {
         try {
           const data = await getIntakeChannelsClient().getIntakeChannels(
             args?.includeArchived,
+            args?.deskId,
           )
           return { data }
         } catch (error) {
           return toError(error)
         }
       },
-      providesTags: [{ type: QueryTags.IntakeChannel, id: 'LIST' }],
+      providesTags: [channelListTag],
     }),
+
+    createIntakeChannel: builder.mutation<string, CreateIntakeChannelRequest>({
+      queryFn: async (request) => {
+        try {
+          const data = await getIntakeChannelsClient().create(request)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: [channelListTag],
+    }),
+
+    // A rename shows on every request carrying the channel.
+    updateIntakeChannel: builder.mutation<void, UpdateIntakeChannelRequest>({
+      queryFn: async (request) => {
+        try {
+          const data = await getIntakeChannelsClient().update(
+            request.id,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: [channelListTag, QueryTags.IntakeRequest],
+    }),
+
+    archiveIntakeChannel: builder.mutation<void, string>({
+      queryFn: async (id) => {
+        try {
+          const data = await getIntakeChannelsClient().archive(id)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: [channelListTag],
+    }),
+
+    restoreIntakeChannel: builder.mutation<void, string>({
+      queryFn: async (id) => {
+        try {
+          const data = await getIntakeChannelsClient().restore(id)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: [channelListTag],
+    }),
+
+    reorderIntakeChannels: builder.mutation<void, ReorderIntakeChannelsRequest>(
+      {
+        queryFn: async (request) => {
+          try {
+            const data = await getIntakeChannelsClient().reorder(request)
+            return { data }
+          } catch (error) {
+            return toError(error)
+          }
+        },
+        invalidatesTags: [channelListTag],
+      },
+    ),
 
     getIntakeEmployeeOptions: builder.query<EmployeeNavigationDto[], void>({
       queryFn: async () => {
@@ -662,5 +736,10 @@ export const {
   useGetIntakeRequestStatusHistoryQuery,
   useGetIntakeRequestStatusWorkflowQuery,
   useGetIntakeChannelsQuery,
+  useCreateIntakeChannelMutation,
+  useUpdateIntakeChannelMutation,
+  useArchiveIntakeChannelMutation,
+  useRestoreIntakeChannelMutation,
+  useReorderIntakeChannelsMutation,
   useGetIntakeEmployeeOptionsQuery,
 } = demandManagementApi

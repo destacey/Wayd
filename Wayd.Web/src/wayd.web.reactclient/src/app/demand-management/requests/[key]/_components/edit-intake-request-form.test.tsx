@@ -62,6 +62,16 @@ jest.mock('@/src/hooks', () => {
 })
 
 const mockUpdate = jest.fn()
+// What the request's desk offers; the request's own channel is looked up among every channel.
+let mockDeskChannels: {
+  id: string
+  name: string
+  order: number
+  isActive: boolean
+}[] = [{ id: 'c-1', name: 'Security', order: 1, isActive: true }]
+// Every channel, archived ones included; undefined while it loads.
+let mockAllChannels:
+  { id: string; name: string; order: number; isActive: boolean }[] | undefined
 jest.mock(
   '@/src/store/features/demand-management/demand-management-api',
   () => ({
@@ -86,8 +96,8 @@ jest.mock(
     useGetIntakeEmployeeOptionsQuery: () => ({
       data: [{ id: 'e-1', key: 1, name: 'Avery Example' }],
     }),
-    useGetIntakeChannelsQuery: () => ({
-      data: [{ id: 'c-1', name: 'Security', order: 1, isActive: true }],
+    useGetIntakeChannelsQuery: (args?: { deskId?: string }) => ({
+      data: args?.deskId ? mockDeskChannels : mockAllChannels,
     }),
   }),
 )
@@ -122,11 +132,11 @@ const substance = {
   participants: [],
 } as unknown as IntakeRequestSubstanceDto
 
-const renderForm = async () =>
+const renderForm = async (r: IntakeRequestDetailsDto = request) =>
   await act(async () =>
     render(
       <EditIntakeRequestForm
-        request={request}
+        request={r}
         substance={substance}
         onFormComplete={jest.fn()}
         onFormCancel={jest.fn()}
@@ -137,6 +147,13 @@ const renderForm = async () =>
 describe('EditIntakeRequestForm', () => {
   beforeEach(() => {
     mockUpdate.mockReset()
+    mockDeskChannels = [
+      { id: 'c-1', name: 'Security', order: 1, isActive: true },
+    ]
+    mockAllChannels = [
+      { id: 'c-1', name: 'Security', order: 1, isActive: true },
+      { id: 'c-2', name: 'Support', order: 2, isActive: true },
+    ]
   })
 
   it('opens on a saved commitment with every follow-up shown and filled', async () => {
@@ -199,5 +216,103 @@ describe('EditIntakeRequestForm', () => {
     expect(formHolder.current!.getFieldError(['needBy', 'reference'])).toEqual([
       'Reference is too long.',
     ])
+  })
+
+  it('keeps a channel the desk no longer offers', async () => {
+    // Arrange — the request moved to a desk that offers only Support
+    mockDeskChannels = [
+      { id: 'c-2', name: 'Support', order: 2, isActive: true },
+    ]
+    mockUpdate.mockReturnValue({ unwrap: () => Promise.resolve(null) })
+    await renderForm()
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Save' })),
+    )
+
+    // Assert
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ channelId: 'c-1' }),
+    )
+  })
+
+  it('asks nothing about the channel on a desk offering none, for a request with none', async () => {
+    // Arrange
+    mockDeskChannels = []
+    mockUpdate.mockReturnValue({ unwrap: () => Promise.resolve(null) })
+    await renderForm({
+      ...request,
+      summary: { ...request.summary, channel: undefined },
+    } as unknown as IntakeRequestDetailsDto)
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Save' })),
+    )
+
+    // Assert
+    expect(
+      screen.queryByText('Where did this come from?'),
+    ).not.toBeInTheDocument()
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ channelId: undefined }),
+    )
+  })
+
+  it('keeps the channel on a desk offering none while the full list has not loaded', async () => {
+    // Arrange — without the request's own channel in the options, the field would hide and saving would clear it
+    mockDeskChannels = []
+    mockAllChannels = undefined
+    mockUpdate.mockReturnValue({ unwrap: () => Promise.resolve(null) })
+    await renderForm()
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Save' })),
+    )
+
+    // Assert
+    expect(screen.getByText('Where did this come from?')).toBeInTheDocument()
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ channelId: 'c-1' }),
+    )
+  })
+
+  it('lets a channel be cleared on a desk offering none', async () => {
+    // Arrange
+    mockDeskChannels = []
+    mockUpdate.mockReturnValue({ unwrap: () => Promise.resolve(null) })
+    await renderForm()
+
+    // Act
+    await act(async () =>
+      formHolder.current!.setFieldValue('channelId', undefined),
+    )
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Save' })),
+    )
+
+    // Assert
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ channelId: undefined }),
+    )
+  })
+
+  it('requires a channel on a desk offering some', async () => {
+    // Arrange
+    await renderForm()
+
+    await act(async () =>
+      formHolder.current!.setFieldValue('channelId', undefined),
+    )
+
+    // Act
+    const validation = act(() => formHolder.current!.validateFields())
+
+    // Assert
+    await expect(validation).rejects.toMatchObject({
+      errorFields: [{ name: ['channelId'], errors: ['Choose a channel.'] }],
+    })
   })
 })

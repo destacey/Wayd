@@ -1,5 +1,6 @@
 'use client'
 
+import { NOT_RECORDED_CHANNEL_LABEL } from '../../../_components/channel'
 import { LabeledContent } from '@/src/components/common/content'
 import { RecordFactsGroup } from '@/src/components/common/record'
 import { IntakeRequestDetailsDto } from '@/src/services/wayd-api'
@@ -30,7 +31,9 @@ const IntakeRequestFacts: FC<IntakeRequestFactsProps> = ({ request }) => {
             {summary.desk.name}
           </NextLink>
         </LabeledContent>
-        <LabeledContent label="Channel">{summary.channel.name}</LabeledContent>
+        <LabeledContent label="Channel">
+          {summary.channel?.name ?? NOT_RECORDED_CHANNEL_LABEL}
+        </LabeledContent>
       </RecordFactsGroup>
       <RecordFactsGroup label="People">
         <LabeledContent label="Requester">

@@ -252,7 +252,7 @@ const IntakeRequestDetailsPage = (props: {
             { label: summary.desk.name, href: deskHref(summary.desk.key) },
           ],
           subtitle: 'Request Details',
-          caption: `Raised by ${summary.requester.name} on ${dayjs(summary.submittedOn).format('MMM D, YYYY')} · from ${summary.channel.name}`,
+          caption: `Raised by ${summary.requester.name} on ${dayjs(summary.submittedOn).format('MMM D, YYYY')}${summary.channel ? ` · from ${summary.channel.name}` : ''}`,
           tags: (
             <StatusHistoryTag
               status={summary.status}

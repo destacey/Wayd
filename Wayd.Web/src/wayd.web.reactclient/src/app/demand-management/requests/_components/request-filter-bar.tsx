@@ -1,6 +1,10 @@
 'use client'
 
 import {
+  NOT_RECORDED_CHANNEL,
+  NOT_RECORDED_CHANNEL_LABEL,
+} from '../../_components/channel'
+import {
   IntakeChannelDto,
   IntakeDeskDto,
   IntakeRequestSummaryDto,
@@ -205,7 +209,13 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
         value={filters.channelIds}
         onChange={(channelIds) => set({ channelIds })}
         optionFilterProp="label"
-        options={(channels ?? []).map((c) => ({ value: c.id, label: c.name }))}
+        options={[
+          ...(channels ?? []).map((c) => ({
+            value: c.id,
+            label: c.isActive ? c.name : `${c.name} (Archived)`,
+          })),
+          { value: NOT_RECORDED_CHANNEL, label: NOT_RECORDED_CHANNEL_LABEL },
+        ]}
       />
     </>
   )

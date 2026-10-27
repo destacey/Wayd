@@ -23,6 +23,8 @@ export const toUpdateRequest = (
   isRequesterSelectable: desk.isRequesterSelectable,
   isOpen: desk.isOpen,
   requesterMayAddParticipants: desk.requesterMayAddParticipants,
+  offersAllChannels: desk.offersAllChannels,
+  channelIds: desk.channelIds,
   members: desk.members.map((m) => ({
     employeeId: m.employee.id,
     role: m.role,

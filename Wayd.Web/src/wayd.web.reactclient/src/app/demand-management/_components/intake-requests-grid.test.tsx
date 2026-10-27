@@ -110,6 +110,19 @@ describe('IntakeRequestsGrid', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('shows a request with no channel as Not recorded', () => {
+    // Arrange / Act
+    renderGrid([
+      {
+        ...request(42, 'Rotate the VPN certificates'),
+        channel: undefined,
+      } as IntakeRequestSummaryDto,
+    ])
+
+    // Assert
+    expect(screen.getByText('Not recorded')).toBeInTheDocument()
+  })
+
   it('shows the status of each request as its desk workflow names it', () => {
     // Arrange / Act
     renderGrid([request(42, 'Rotate the VPN certificates')])

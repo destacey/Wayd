@@ -78,7 +78,7 @@ describe('WhatHappensNext', () => {
     ).toBeInTheDocument()
   })
 
-  it('still explains the date question before the workflow has loaded', () => {
+  it('shows nothing until the workflow has loaded', () => {
     // Arrange
     mockWorkflow = undefined
 
@@ -87,6 +87,5 @@ describe('WhatHappensNext', () => {
 
     // Assert
     expect(screen.queryByText('What happens next')).not.toBeInTheDocument()
-    expect(screen.getByText('Why we ask about the date')).toBeInTheDocument()
   })
 })

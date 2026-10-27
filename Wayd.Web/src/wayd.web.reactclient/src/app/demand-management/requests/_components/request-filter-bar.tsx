@@ -8,6 +8,7 @@ import {
   IntakeChannelDto,
   IntakeDeskDto,
   IntakeRequestSummaryDto,
+  IntakeRequestTagCategoryDto,
 } from '@/src/services/wayd-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { WaydTooltip } from '@/src/components/common'
@@ -47,6 +48,8 @@ export interface RequestFilterBarProps {
   requests: IntakeRequestSummaryDto[] | undefined
   desks: IntakeDeskDto[] | undefined
   channels: IntakeChannelDto[] | undefined
+  /** The tag axes, inactive tags included, since requests keep them. */
+  tagCategories: IntakeRequestTagCategoryDto[] | undefined
   /** The reader's employee record, without which nothing is assigned to them. */
   employeeId: string | null | undefined
   /** The desks the reader works, for "My desks"; empty for someone who works none. */
@@ -82,6 +85,7 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
   requests,
   desks,
   channels,
+  tagCategories,
   employeeId,
   myDeskIds,
   stacked,
@@ -92,6 +96,9 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
   // Counts are of the requests the reader can see, so no number hints at a request kept from them.
   const perDesk = countBy(requests, (r) => r.desk.id)
   const perStatus = countBy(requests, (r) => r.status.name)
+  const perTag = new Map<string, number>()
+  for (const r of requests ?? [])
+    for (const t of r.tags) perTag.set(t.id, (perTag.get(t.id) ?? 0) + 1)
   const controlClass = stacked ? styles.stackedControl : styles.control
   const current = matchingView(filters)
 
@@ -217,6 +224,30 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
           { value: NOT_RECORDED_CHANNEL, label: NOT_RECORDED_CHANNEL_LABEL },
         ]}
       />
+      {(tagCategories?.length ?? 0) > 0 && (
+        <Select
+          className={controlClass}
+          mode="multiple"
+          allowClear
+          maxTagCount="responsive"
+          placeholder="Any tags"
+          aria-label="Tags"
+          value={filters.tagIds}
+          onChange={(tagIds) => set({ tagIds })}
+          optionFilterProp="label"
+          // Grouped by axis, since the same label can sit on two axes.
+          options={(tagCategories ?? [])
+            .filter((c) => c.tags.length > 0)
+            .map((c) => ({
+              label: c.name,
+              title: c.name,
+              options: c.tags.map((t) => ({
+                value: t.id,
+                label: `${t.isActive ? t.name : `${t.name} (Inactive)`} (${perTag.get(t.id) ?? 0})`,
+              })),
+            }))}
+        />
+      )}
     </>
   )
 }

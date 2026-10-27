@@ -6,6 +6,7 @@ import { requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle, useLinkedEmployee } from '@/src/hooks'
 import {
   useGetIntakeChannelsQuery,
+  useGetIntakeRequestTagCategoriesQuery,
   useGetIntakeDesksQuery,
   useGetIntakeRequestsQuery,
   useGetNeedByBasesQuery,
@@ -79,6 +80,10 @@ const IntakeRequestsPage: FC = () => {
   const { data: channels } = useGetIntakeChannelsQuery({
     includeArchived: true,
   })
+  // Inactive axes too: requests keep the tags they were given, so they can still be filtered on.
+  const { data: tagCategories } = useGetIntakeRequestTagCategoriesQuery({
+    includeInactive: true,
+  })
   const myDeskIds = (desks ?? [])
     .filter((d) => d.members.some((m) => m.employee.id === employeeId))
     .map((d) => d.id)
@@ -144,6 +149,7 @@ const IntakeRequestsPage: FC = () => {
         requests={data}
         desks={desks}
         channels={channels}
+        tagCategories={tagCategories}
         employeeId={employeeId}
         myDeskIds={myDeskIds}
       />

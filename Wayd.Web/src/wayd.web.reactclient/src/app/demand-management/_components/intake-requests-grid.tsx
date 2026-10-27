@@ -1,13 +1,18 @@
 'use client'
 
-import { WaydGrid } from '@/src/components/common/wayd-grid'
+import {
+  WaydGrid,
+  renderAssignedToLink,
+} from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
+import useAuth from '@/src/components/contexts/auth'
 import EntityLink from '@/src/components/common/entity-link'
 import {
   statusCategoryDescription,
   WorkflowStatusTag,
 } from '@/src/components/common/status-workflows'
 import {
+  EmployeeNavigationDto,
   IntakeRequestSummaryDto,
   NeedByBasisDto,
   NeedByBasisFamily,
@@ -17,6 +22,7 @@ import { Tooltip } from 'antd'
 import Link from 'next/link'
 import { FC, ReactNode } from 'react'
 import { NeedByTag } from './need-by'
+import { deskHref } from './desk-status'
 import { WaitTime, daysSince } from './request-age'
 
 export interface IntakeRequestsGridProps {
@@ -55,7 +61,8 @@ export const compareNeedBy = (
 
 /**
  * Intake requests as their summaries: the columns are the summary tier and nothing more, because that is
- * all a list returns. People are plain names, not links, since most requesters cannot open employee pages.
+ * all a list returns. The desk links to its page, which everyone can open; people link to theirs only for a
+ * reader who can open employee pages, and are plain names for everyone else, as most requesters cannot.
  */
 const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
   requests,
@@ -68,6 +75,15 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
   leftSlot,
   rightSlot,
 }) => {
+  const { hasPermissionClaim } = useAuth()
+  const canOpenEmployees = hasPermissionClaim('Permissions.Employees.View')
+  const person = (employee: EmployeeNavigationDto | undefined) =>
+    !employee
+      ? null
+      : canOpenEmployees
+        ? renderAssignedToLink(employee)
+        : employee.name
+
   const basisName = (code: string | undefined) =>
     code ? (needByBases?.find((b) => b.code === code)?.name ?? code) : ''
 
@@ -155,6 +171,7 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       accessorFn: (request) => request.assignee?.name ?? '',
       header: 'Assignee',
       size: 180,
+      cell: ({ row }) => person(row.original.assignee),
       meta: { filterType: 'set' },
     },
     {
@@ -162,6 +179,11 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       accessorKey: 'desk.name',
       header: 'Desk',
       size: 180,
+      cell: ({ row }) => (
+        <Link href={deskHref(row.original.desk.key)} prefetch={false}>
+          {row.original.desk.name}
+        </Link>
+      ),
       meta: { filterType: 'set' },
     },
     {
@@ -169,6 +191,7 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       accessorKey: 'requester.name',
       header: 'Requester',
       size: 180,
+      cell: ({ row }) => person(row.original.requester),
       meta: { filterType: 'set' },
     },
     {

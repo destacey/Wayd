@@ -11,6 +11,14 @@ import {
 } from '@/src/services/wayd-api'
 import IntakeRequestsGrid from './intake-requests-grid'
 
+let mockClaims = new Set<string>()
+jest.mock('@/src/components/contexts/auth', () => ({
+  __esModule: true,
+  default: () => ({
+    hasPermissionClaim: (claim: string) => mockClaims.has(claim),
+  }),
+}))
+
 const DAY_MS = 24 * 60 * 60 * 1000
 const daysAgo = (days: number) => new Date(Date.now() - days * DAY_MS - 1000)
 
@@ -62,6 +70,46 @@ const renderGrid = (requests: IntakeRequestSummaryDto[]) =>
   )
 
 describe('IntakeRequestsGrid', () => {
+  beforeEach(() => {
+    mockClaims = new Set()
+  })
+
+  it('links the desk to its page for every reader', () => {
+    // Arrange / Act
+    renderGrid([request(42, 'Rotate the VPN certificates')])
+
+    // Assert
+    expect(screen.getByRole('link', { name: 'IT' })).toHaveAttribute(
+      'href',
+      '/demand-management/desks/1',
+    )
+  })
+
+  it('links the requester to their page only for a reader who can open employee pages', () => {
+    // Arrange
+    mockClaims.add('Permissions.Employees.View')
+
+    // Act
+    renderGrid([request(42, 'Rotate the VPN certificates')])
+
+    // Assert
+    expect(screen.getByRole('link', { name: 'Avery Example' })).toHaveAttribute(
+      'href',
+      '/organizations/employees/1',
+    )
+  })
+
+  it('shows the requester as a plain name to a reader who cannot open employee pages', () => {
+    // Arrange / Act
+    renderGrid([request(42, 'Rotate the VPN certificates')])
+
+    // Assert
+    expect(screen.getByText('Avery Example')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: 'Avery Example' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('shows the status of each request as its desk workflow names it', () => {
     // Arrange / Act
     renderGrid([request(42, 'Rotate the VPN certificates')])

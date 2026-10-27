@@ -14,7 +14,11 @@ import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal, Select } from 'antd'
 import { useEffect } from 'react'
 import { useModalForm } from '@/src/hooks'
-import { buildAliasOptions, NO_ALIAS } from './workflow-status-alias-options'
+import {
+  aliasFitsCategory,
+  buildAliasOptions,
+  NO_ALIAS,
+} from './workflow-status-alias-options'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -56,8 +60,6 @@ const EditWorkflowStatusForm = ({
 
   const [renameWorkflowStatus] = useRenameWorkflowStatusMutation()
   const [reclassifyWorkflowStatus] = useReclassifyWorkflowStatusMutation()
-
-  const aliasOptions = buildAliasOptions(aliases, statuses, status.id)
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditWorkflowStatusFormValues>({
@@ -120,6 +122,41 @@ const EditWorkflowStatusForm = ({
       permission: 'Permissions.StatusWorkflows.Update',
     })
 
+  // The watch reports nothing until the form inside the modal has mounted and
+  // been filled, so the saved values stand in until then.
+  const category =
+    (Form.useWatch('category', form) as StatusCategory | undefined) ??
+    (status.category?.name as StatusCategory | undefined)
+  const alias =
+    (Form.useWatch('alias', form) as number | undefined) ?? status.alias
+  const aliasOptions = buildAliasOptions(aliases, statuses, category, status.id)
+  const isMisfiled = !aliasFitsCategory(aliases, alias, category)
+  const isUnknown =
+    isMisfiled && !(aliases ?? []).some((a) => a.value === alias)
+
+  // A meaning belongs to one category, so changing the category drops a
+  // meaning that does not belong to the new one, and moving to a category the
+  // status's saved meaning belongs to brings that meaning back.
+  const handleValuesChange = (
+    changed: Partial<EditWorkflowStatusFormValues>,
+  ) => {
+    if (!changed.category) return
+
+    const current = form.getFieldValue('alias') as number | undefined
+    if (!aliasFitsCategory(aliases, current, changed.category)) {
+      form.setFieldValue('alias', NO_ALIAS)
+    }
+
+    const saved = status.alias ?? NO_ALIAS
+    if (
+      form.getFieldValue('alias') === NO_ALIAS &&
+      saved !== NO_ALIAS &&
+      aliasFitsCategory(aliases, saved, changed.category)
+    ) {
+      form.setFieldValue('alias', saved)
+    }
+  }
+
   useEffect(() => {
     form.setFieldsValue({
       name: status.name,
@@ -145,12 +182,16 @@ const EditWorkflowStatusForm = ({
         form={form}
         size="small"
         layout="vertical"
+        onValuesChange={handleValuesChange}
         name="edit-workflow-status-form"
       >
         <Item
           label="Name"
           name="name"
-          rules={[{ required: true, message: 'Name is required' }, { max: 128 }]}
+          rules={[
+            { required: true, message: 'Name is required' },
+            { max: 128 },
+          ]}
         >
           <Input showCount maxLength={128} />
         </Item>
@@ -165,7 +206,15 @@ const EditWorkflowStatusForm = ({
         <Item
           label="Meaning"
           name="alias"
-          tooltip="The well-known meaning this status carries for its owner type. Only one status can hold each meaning, so meanings already taken are not listed."
+          tooltip="The well-known meaning this status carries for its owner type. Each meaning belongs to one category, and only one status can hold it, so only the chosen category's untaken meanings are listed."
+          validateStatus={isMisfiled ? 'warning' : undefined}
+          help={
+            isMisfiled
+              ? isUnknown
+                ? 'This meaning no longer exists. Choose None or another meaning.'
+                : 'This meaning belongs under another category. Move the status there, or choose another meaning.'
+              : undefined
+          }
         >
           <Select options={aliasOptions} />
         </Item>

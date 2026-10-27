@@ -11,7 +11,11 @@ import { useAddWorkflowStatusMutation } from '@/src/store/features/common/status
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal, Select } from 'antd'
 import { useModalForm } from '@/src/hooks'
-import { buildAliasOptions, NO_ALIAS } from './workflow-status-alias-options'
+import {
+  aliasFitsCategory,
+  buildAliasOptions,
+  NO_ALIAS,
+} from './workflow-status-alias-options'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -58,8 +62,6 @@ const AddWorkflowStatusForm = ({
 
   const [addWorkflowStatus] = useAddWorkflowStatusMutation()
 
-  const aliasOptions = buildAliasOptions(aliases, statuses)
-
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<AddWorkflowStatusFormValues>({
       onSubmit: async (values: AddWorkflowStatusFormValues, form) => {
@@ -93,6 +95,22 @@ const AddWorkflowStatusForm = ({
       permission: 'Permissions.StatusWorkflows.Update',
     })
 
+  const category = Form.useWatch('category', form) as StatusCategory | undefined
+  const aliasOptions = buildAliasOptions(aliases, statuses, category)
+
+  // A meaning belongs to one category, so changing the category drops a
+  // meaning that does not belong to the new one.
+  const handleValuesChange = (
+    changed: Partial<AddWorkflowStatusFormValues>,
+  ) => {
+    if (
+      changed.category &&
+      !aliasFitsCategory(aliases, form.getFieldValue('alias'), changed.category)
+    ) {
+      form.setFieldValue('alias', NO_ALIAS)
+    }
+  }
+
   return (
     <Modal
       title="Add Status"
@@ -109,13 +127,17 @@ const AddWorkflowStatusForm = ({
         form={form}
         size="small"
         layout="vertical"
+        onValuesChange={handleValuesChange}
         name="add-workflow-status-form"
         initialValues={{ alias: NO_ALIAS }}
       >
         <Item
           label="Name"
           name="name"
-          rules={[{ required: true, message: 'Name is required' }, { max: 128 }]}
+          rules={[
+            { required: true, message: 'Name is required' },
+            { max: 128 },
+          ]}
         >
           <Input showCount maxLength={128} />
         </Item>
@@ -130,9 +152,9 @@ const AddWorkflowStatusForm = ({
         <Item
           label="Meaning"
           name="alias"
-          tooltip="The well-known meaning this status carries for its owner type. Only one status can hold each meaning, so meanings already taken are not listed."
+          tooltip="The well-known meaning this status carries for its owner type. Each meaning belongs to one category, and only one status can hold it, so only the chosen category's untaken meanings are listed."
         >
-          <Select options={aliasOptions} />
+          <Select options={aliasOptions} disabled={!category} />
         </Item>
         <Item name="description" label="Description" rules={[{ max: 1024 }]}>
           <TextArea

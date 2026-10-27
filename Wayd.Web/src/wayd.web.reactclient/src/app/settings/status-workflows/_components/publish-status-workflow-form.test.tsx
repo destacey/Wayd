@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
+  StatusCategory,
   StatusWorkflowDetailsDto,
   TransitionMode,
 } from '@/src/services/wayd-api'
@@ -45,6 +46,8 @@ const workflow = (
   isAssigned: false,
   statuses: [],
   missingRequiredAliases: [],
+  missingRequiredCategories: [],
+  misfiledAliases: [],
   transitionMode: TransitionMode.AnyToAny,
   transitions: [],
   availableConditions: [],
@@ -114,6 +117,56 @@ describe('PublishStatusWorkflowForm', () => {
       screen.getByText(
         "'Sunset' has no transition out of it, so a record that reaches it could not move on.",
       ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Publish' })).toBeDisabled()
+  })
+
+  it('names each missing required category and disables Publish', () => {
+    // Arrange
+    const draft = workflow({
+      missingRequiredCategories: [StatusCategory.Done],
+      canPublish: false,
+    })
+
+    // Act
+    render(
+      <PublishStatusWorkflowForm
+        statusWorkflow={draft}
+        onFormComplete={jest.fn()}
+        onFormCancel={jest.fn()}
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.getByText('Required categories are not covered'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Done')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Publish' })).toBeDisabled()
+  })
+
+  it('names each meaning that needs fixing and disables Publish', () => {
+    // Arrange
+    const draft = workflow({
+      misfiledAliases: [
+        "'Shipped': 'Released' belongs under Done, not Active.",
+      ],
+      canPublish: false,
+    })
+
+    // Act
+    render(
+      <PublishStatusWorkflowForm
+        statusWorkflow={draft}
+        onFormComplete={jest.fn()}
+        onFormCancel={jest.fn()}
+      />,
+    )
+
+    // Assert
+    expect(screen.getByText('Some meanings need fixing')).toBeInTheDocument()
+    expect(
+      screen.getByText("'Shipped': 'Released' belongs under Done, not Active."),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Publish' })).toBeDisabled()
   })

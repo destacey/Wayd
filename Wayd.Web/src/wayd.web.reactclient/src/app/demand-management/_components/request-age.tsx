@@ -22,10 +22,7 @@ export const daysSince = (
   from: Date | string,
   now: Date = new Date(),
 ): number =>
-  Math.max(
-    0,
-    Math.floor((now.getTime() - new Date(from).getTime()) / DAY_MS),
-  )
+  Math.max(0, Math.floor((now.getTime() - new Date(from).getTime()) / DAY_MS))
 
 /** A day count as a reviewer reads it at a glance: "<1d", "12d". */
 export const formatDays = (days: number): string =>

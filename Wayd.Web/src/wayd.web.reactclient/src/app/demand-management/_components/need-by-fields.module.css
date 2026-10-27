@@ -1,0 +1,81 @@
+/* The whole need-by question sits in one panel, so the date and what makes it read as one answer. */
+.box {
+  margin-bottom: 24px;
+  padding: 18px 20px 4px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-fill-quaternary);
+}
+
+.dateRow {
+  margin-bottom: 8px;
+}
+
+.dateItem {
+  margin-bottom: 0;
+}
+
+.noDate {
+  margin-bottom: 0;
+}
+
+.group {
+  width: 100%;
+}
+
+.familyHeading {
+  font-size: var(--ant-font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.choice {
+  width: 100%;
+  margin: 0;
+  padding: 12px 14px;
+  min-height: 44px;
+  align-items: flex-start;
+  border: 1px solid var(--ant-color-border);
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-bg-container);
+}
+
+.choice:has(:global(.ant-radio-checked)) {
+  border-color: var(--ant-color-primary);
+  background: var(--ant-color-primary-bg);
+}
+
+.note {
+  font-size: var(--ant-font-size-sm);
+  font-weight: normal;
+}
+
+.followUp {
+  margin-bottom: 16px;
+  padding: 16px 16px 0;
+  border: 1px solid var(--ant-color-primary-border);
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-primary-bg);
+}
+
+.half {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.preview {
+  margin-bottom: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ant-color-split);
+}
+
+/* On a phone the panel sits inside the form's card, so it gives back most of its padding. */
+@media (max-width: 575px) {
+  .box {
+    padding: 14px 12px 2px;
+  }
+
+  .followUp {
+    padding: 12px 12px 0;
+  }
+}

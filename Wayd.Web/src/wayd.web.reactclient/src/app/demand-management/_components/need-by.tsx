@@ -1,8 +1,6 @@
 'use client'
 
-import { EmployeeSelect } from '@/src/components/common/organizations'
 import {
-  EmployeeNavigationDto,
   IntakeRequestNeedByDto,
   IntakeRequestNeedByRequest,
   NeedByBasis,
@@ -15,13 +13,11 @@ import {
   parseCalendarDate,
   toCalendarDate,
 } from '@/src/utils'
-import { DatePicker, Flex, Form, Input, Select, Tag, Typography } from 'antd'
+import { Flex, Tag, Typography } from 'antd'
 import type { Dayjs } from 'dayjs'
-import type { SelectProps } from 'antd'
 import type { NamePath } from 'antd/es/form/interface'
 import { FC } from 'react'
 
-const { Item } = Form
 const { Text } = Typography
 
 /** The need-by fields as a form holds them, nested under `needBy`. */
@@ -184,159 +180,3 @@ export const RequestNeedBy: FC<{
     families={families}
   />
 )
-
-export interface NeedByFieldsProps {
-  bases: NeedByBasisDto[] | undefined
-  families: NeedByBasisFamilyDto[] | undefined
-  employees: EmployeeNavigationDto[] | undefined
-}
-
-/**
- * The need-by question: a date, and once there is one, what makes it that date. Choosing a basis asks only
- * the follow-up that basis needs, and the preview shows the requester what reviewers will read.
- *
- * The follow-ups render from `shouldUpdate` rather than `Form.useWatch`: a watch on a field whose item
- * mounts later reads undefined, so an edit form opening on a saved basis would hide its own reference.
- */
-export const NeedByFields: FC<NeedByFieldsProps> = ({
-  bases,
-  families,
-  employees,
-}) => {
-  const basisOption = (b: NeedByBasisDto) => ({
-    value: b.code,
-    label: b.name,
-    title: b.description,
-  })
-  // Grouped by family, so the requester answers "is this fixed for us or did we choose it?" in passing.
-  const basisOptions: SelectProps['options'] = families?.length
-    ? [...families]
-        .sort((a, b) => a.order - b.order)
-        .map((f) => ({
-          label: f.name,
-          title: f.description,
-          options: (bases ?? [])
-            .filter((b) => b.family === f.code)
-            .map(basisOption),
-        }))
-    : (bases ?? []).map(basisOption)
-
-  const employeeOptions = (employees ?? []).map((e) => ({
-    label: e.name,
-    value: e.id,
-  }))
-
-  return (
-    <>
-      <Item
-        name={['needBy', 'date']}
-        label="Need by"
-        extra="Optional. Leave it empty if nothing sets a date."
-      >
-        <DatePicker allowClear />
-      </Item>
-      <Item
-        noStyle
-        shouldUpdate={(previous, current) => previous.needBy !== current.needBy}
-      >
-        {({ getFieldValue }) => {
-          const needBy = (getFieldValue('needBy') ?? {}) as NeedByFormValues
-          const basisDto = basisNamed(bases, needBy.basis)
-          if (!needBy.date) return null
-
-          return (
-            <>
-              <Item
-                name={['needBy', 'basis']}
-                label="What makes it that date?"
-                rules={[
-                  { required: true, message: 'Choose what sets the date.' },
-                ]}
-              >
-                <Select
-                  placeholder="Choose a basis"
-                  options={basisOptions}
-                  optionRender={(option) => (
-                    <Flex vertical>
-                      <Text>{option.data.label}</Text>
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        {option.data.title}
-                      </Text>
-                    </Flex>
-                  )}
-                />
-              </Item>
-              {basisDto && (
-                <Item
-                  name={['needBy', 'reference']}
-                  label="What does the date rest on?"
-                  extra={basisDto.description}
-                  rules={[
-                    {
-                      required: true,
-                      whitespace: true,
-                      message: 'Say what the date rests on.',
-                    },
-                    { max: 1024 },
-                  ]}
-                >
-                  <Input.TextArea
-                    autoSize={{ minRows: 1, maxRows: 4 }}
-                    maxLength={1024}
-                  />
-                </Item>
-              )}
-              {basisDto?.recordsCommitment && (
-                <>
-                  <Item
-                    name={['needBy', 'committedById']}
-                    label="Who made the commitment?"
-                    rules={[
-                      {
-                        required: true,
-                        message: 'Name who made the commitment.',
-                      },
-                    ]}
-                  >
-                    <EmployeeSelect employees={employeeOptions} />
-                  </Item>
-                  <Item
-                    name={['needBy', 'committedOn']}
-                    label="When was it made?"
-                    rules={[
-                      { required: true, message: 'Give the date it was made.' },
-                    ]}
-                  >
-                    <DatePicker />
-                  </Item>
-                </>
-              )}
-              {basisDto && (
-                <Item label="Reviewers will see">
-                  <NeedBySummary
-                    date={toCalendarDate(needBy.date)}
-                    basis={basisDto.code}
-                    reference={needBy.reference?.trim() ?? ''}
-                    committedByName={
-                      basisDto.recordsCommitment
-                        ? employees?.find((e) => e.id === needBy.committedById)
-                            ?.name
-                        : undefined
-                    }
-                    committedOn={
-                      basisDto.recordsCommitment && needBy.committedOn
-                        ? toCalendarDate(needBy.committedOn)
-                        : undefined
-                    }
-                    bases={bases}
-                    families={families}
-                  />
-                </Item>
-              )}
-            </>
-          )
-        }}
-      </Item>
-    </>
-  )
-}

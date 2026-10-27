@@ -70,4 +70,8 @@
   .review {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  .main :global(.ant-card-body) {
+    padding: 16px;
+  }
 }

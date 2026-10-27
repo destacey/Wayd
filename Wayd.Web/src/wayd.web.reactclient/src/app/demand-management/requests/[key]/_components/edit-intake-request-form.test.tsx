@@ -145,7 +145,7 @@ describe('EditIntakeRequestForm', () => {
 
     // Assert
     expect(
-      await screen.findByText('What does the date rest on?'),
+      await screen.findByText('Who did we promise it to?'),
     ).toBeInTheDocument()
     expect(screen.getByDisplayValue('Steering committee')).toBeInTheDocument()
     expect(screen.getByText('Who made the commitment?')).toBeInTheDocument()
@@ -155,8 +155,8 @@ describe('EditIntakeRequestForm', () => {
     // Arrange / Act
     await renderForm()
 
-    // Assert — once in the select and once in the reviewers' preview
-    expect(await screen.findAllByText(/Morgan Former/)).toHaveLength(2)
+    // Assert
+    expect(await screen.findAllByText(/Morgan Former/)).toHaveLength(1)
     expect(screen.queryByText('e-9')).not.toBeInTheDocument()
   })
 

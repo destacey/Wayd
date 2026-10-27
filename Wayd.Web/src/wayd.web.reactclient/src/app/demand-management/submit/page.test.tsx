@@ -133,9 +133,14 @@ describe('SubmitIntakeRequestPage', () => {
     await renderPage()
 
     // Assert
-    expect(screen.getByText('Where this request goes')).toBeInTheDocument()
+    expect(screen.getByText('Goes to the IT desk')).toBeInTheDocument()
     expect(screen.getByText('Laptops, access and software')).toBeInTheDocument()
-    expect(screen.queryByRole('radio')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('What kind of request is this?'),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Change' }),
+    ).not.toBeInTheDocument()
     expect(screen.getByLabelText('Title')).toBeInTheDocument()
   })
 
@@ -150,11 +155,13 @@ describe('SubmitIntakeRequestPage', () => {
     await renderPage()
 
     // Assert — the rest of the form waits for the answer
-    expect(screen.getAllByRole('radio')).toHaveLength(2)
+    expect(
+      screen.getByText('What kind of request is this?'),
+    ).toBeInTheDocument()
     expect(screen.getByText('Changes to what we sell')).toBeInTheDocument()
-    expect(screen.getAllByText('IT · Reviewed by Riley Reviewer')).toHaveLength(
-      1,
-    )
+    expect(
+      screen.getByText('Reviewed by the IT desk · Riley Reviewer'),
+    ).toBeInTheDocument()
     expect(screen.queryByLabelText('Title')).not.toBeInTheDocument()
 
     // Act
@@ -162,8 +169,31 @@ describe('SubmitIntakeRequestPage', () => {
       userEvent.click(screen.getByText('Changes to what we sell')),
     )
 
-    // Assert
+    // Assert — the form names the desk it goes to
     expect(await screen.findByLabelText('Title')).toBeInTheDocument()
+    expect(screen.getByText('Goes to the Product desk')).toBeInTheDocument()
+  })
+
+  it('goes back to the desk question when the requester changes the desk', async () => {
+    // Arrange
+    mockDesks = [
+      desk('d-1', 'IT', 'Laptops, access and software'),
+      desk('d-2', 'Product', 'Changes to what we sell'),
+    ]
+    await renderPage()
+    await act(() =>
+      userEvent.click(screen.getByText('Changes to what we sell')),
+    )
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Change' })),
+    )
+
+    // Assert
+    expect(
+      screen.getByText('What kind of request is this?'),
+    ).toBeInTheDocument()
   })
 
   it('tells the requester the title is visible to everyone', async () => {

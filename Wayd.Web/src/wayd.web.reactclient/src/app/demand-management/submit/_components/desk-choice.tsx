@@ -1,47 +1,62 @@
 'use client'
 
 import { IntakeDeskDto } from '@/src/services/wayd-api'
-import { Flex, Radio, Typography } from 'antd'
+import { RightOutlined } from '@ant-design/icons'
+import { Avatar, Flex, Typography } from 'antd'
 import { FC } from 'react'
 import styles from './desk-choice.module.css'
 
-const { Text } = Typography
+const { Title, Text, Paragraph } = Typography
+
+/** "the Product delivery desk", without doubling a name that already ends in "desk". */
+export const deskPhrase = (name: string): string =>
+  /\bdesk$/i.test(name.trim()) ? `the ${name}` : `the ${name} desk`
 
 export interface DeskChoiceProps {
   desks: IntakeDeskDto[]
-  value?: string
-  onChange?: (deskId: string) => void
+  onPick: (deskId: string) => void
 }
 
-const reviewedBy = (desk: IntakeDeskDto) =>
-  desk.members.length > 0
-    ? `Reviewed by ${desk.members.map((m) => m.employee.name).join(', ')}`
-    : undefined
-
 /**
- * The first question on the form when more than one desk takes requests. Each option is worded as the kind
- * of ask the desk takes, in the desk's own requester-facing description, with who reviews it; the group's
- * internal name is secondary.
+ * The first question when more than one desk takes requests. Each desk is offered in its own
+ * requester-facing words, and says who reviews it, so the requester knows exactly where the request is
+ * going. There is no "not sure" choice in v1: every request is on a desk from the moment it exists.
  */
-const DeskChoice: FC<DeskChoiceProps> = ({ desks, value, onChange }) => (
-  <Radio.Group
-    value={value}
-    onChange={(e) => onChange?.(e.target.value)}
-    className={styles.group}
-  >
-    <Flex vertical gap={8}>
-      {desks.map((desk) => (
-        <Radio key={desk.id} value={desk.id} className={styles.option}>
-          <Flex vertical gap={2}>
-            <Text>{desk.description}</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {[desk.name, reviewedBy(desk)].filter(Boolean).join(' · ')}
-            </Text>
-          </Flex>
-        </Radio>
-      ))}
-    </Flex>
-  </Radio.Group>
+const DeskChoice: FC<DeskChoiceProps> = ({ desks, onPick }) => (
+  <Flex vertical gap={12} className={styles.chooser}>
+    <div>
+      <Title level={4} className={styles.question}>
+        What kind of request is this?
+      </Title>
+      <Paragraph type="secondary">
+        This only decides who looks at it first. Everything you write next is
+        the same whichever you pick, and a reviewer can pass it on if it belongs
+        somewhere else.
+      </Paragraph>
+    </div>
+    {desks.map((desk) => (
+      <button
+        key={desk.id}
+        type="button"
+        className={styles.card}
+        onClick={() => onPick(desk.id)}
+      >
+        <Avatar shape="square" className={styles.letter}>
+          {desk.name.trim().charAt(0).toUpperCase()}
+        </Avatar>
+        <Flex vertical gap={4} className={styles.text}>
+          <Text strong>{desk.description}</Text>
+          <Text type="secondary" className={styles.reviewedBy}>
+            Reviewed by {deskPhrase(desk.name)}
+            {desk.members.length > 0
+              ? ` · ${desk.members.map((m) => m.employee.name).join(', ')}`
+              : ''}
+          </Text>
+        </Flex>
+        <RightOutlined className={styles.chevron} aria-hidden />
+      </button>
+    ))}
+  </Flex>
 )
 
 export default DeskChoice

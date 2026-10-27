@@ -14,7 +14,16 @@ import {
   useGetNeedByBasisFamiliesQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError, toFormErrors } from '@/src/utils'
-import { Alert, Button, Card, Flex, Form, Skeleton, Typography } from 'antd'
+import {
+  Alert,
+  Button,
+  Card,
+  Flex,
+  Form,
+  Skeleton,
+  Tag,
+  Typography,
+} from 'antd'
 import { useRouter } from 'next/navigation'
 import { FC, useState } from 'react'
 import {
@@ -24,13 +33,13 @@ import {
   toNeedByRequest,
 } from '../_components/need-by'
 import RequestTextFields from '../_components/request-text-fields'
-import DeskChoice from './_components/desk-choice'
+import DeskChoice, { deskPhrase } from './_components/desk-choice'
+import styles from './page.module.css'
 
 const { Item } = Form
 const { Text } = Typography
 
 interface SubmitRequestFormValues {
-  deskId?: string
   requesterId?: string
   title: string
   description: string
@@ -63,6 +72,7 @@ const SubmitIntakeRequestPage: FC = () => {
   const [chosenDeskId, setChosenDeskId] = useState<string>()
   const singleDesk = desks?.length === 1 ? desks[0] : undefined
   const deskId = singleDesk?.id ?? chosenDeskId
+  const desk = desks?.find((d) => d.id === deskId)
 
   const onSubmit = async (values: SubmitRequestFormValues) => {
     if (!deskId) return
@@ -120,78 +130,79 @@ const SubmitIntakeRequestPage: FC = () => {
       )
     }
 
+    if (!desk) return <DeskChoice desks={desks} onPick={setChosenDeskId} />
+
     return (
-      <Form
-        form={form}
-        layout="vertical"
-        name="submit-intake-request-form"
-        initialValues={{ requesterId: employeeId ?? undefined }}
-        onFinish={onSubmit}
-        onValuesChange={(changed: Partial<SubmitRequestFormValues>) => {
-          if ('deskId' in changed) setChosenDeskId(changed.deskId)
-        }}
-        disabled={isSaving}
-      >
-        {singleDesk ? (
-          <Item label="Where this request goes">
-            <Flex vertical gap={2}>
-              <Text>{singleDesk.description}</Text>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                {singleDesk.name}
-              </Text>
+      <Card style={{ maxWidth: 800 }}>
+        <Form
+          form={form}
+          layout="vertical"
+          name="submit-intake-request-form"
+          initialValues={{ requesterId: employeeId ?? undefined }}
+          onFinish={onSubmit}
+          disabled={isSaving}
+        >
+          <Flex vertical gap={4} className={styles.goesTo}>
+            <Flex gap={8} align="center" wrap>
+              <Tag color="processing" className={styles.deskTag}>
+                Goes to {deskPhrase(desk.name)}
+              </Tag>
+              {!singleDesk && (
+                <Button
+                  type="link"
+                  size="small"
+                  onClick={() => setChosenDeskId(undefined)}
+                  disabled={isSaving}
+                >
+                  Change
+                </Button>
+              )}
             </Flex>
-          </Item>
-        ) : (
-          <Item
-            name="deskId"
-            label="What kind of request is this?"
-            rules={[{ required: true, message: 'Choose where this goes.' }]}
-          >
-            <DeskChoice desks={desks} />
-          </Item>
-        )}
-        {deskId && (
-          <>
-            <Item
-              name="requesterId"
-              label="Who is this request for?"
-              extra="You, unless you are submitting it on someone else's behalf."
-              rules={[{ required: true, message: 'Choose who this is for.' }]}
-            >
-              <EmployeeSelect
-                employees={(employees ?? []).map((e) => ({
-                  label: e.name,
-                  value: e.id,
-                }))}
-              />
-            </Item>
-            <RequestTextFields channels={channels} />
-            <NeedByFields
-              bases={bases}
-              families={families}
-              employees={employees}
-            />
-            <Flex gap={8}>
-              <Button type="primary" htmlType="submit" loading={isSaving}>
-                Submit Request
-              </Button>
-              <Button
-                onClick={() => router.push('/demand-management/my-requests')}
-                disabled={isSaving}
+            <Text type="secondary">{desk.description}</Text>
+          </Flex>
+          {deskId && (
+            <>
+              <Item
+                name="requesterId"
+                label="Who is this request for?"
+                extra="You, unless you are submitting it on someone else's behalf."
+                rules={[{ required: true, message: 'Choose who this is for.' }]}
               >
-                Cancel
-              </Button>
-            </Flex>
-          </>
-        )}
-      </Form>
+                <EmployeeSelect
+                  employees={(employees ?? []).map((e) => ({
+                    label: e.name,
+                    value: e.id,
+                  }))}
+                />
+              </Item>
+              <RequestTextFields channels={channels} />
+              <NeedByFields
+                bases={bases}
+                families={families}
+                employees={employees}
+              />
+              <Flex gap={8}>
+                <Button type="primary" htmlType="submit" loading={isSaving}>
+                  Submit Request
+                </Button>
+                <Button
+                  onClick={() => router.push('/demand-management/my-requests')}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </Button>
+              </Flex>
+            </>
+          )}
+        </Form>
+      </Card>
     )
   }
 
   return (
     <div className="page-gutters">
       <PageTitle title="Submit a Request" />
-      <Card style={{ maxWidth: 800 }}>{content()}</Card>
+      {content()}
     </div>
   )
 }

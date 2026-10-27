@@ -1,17 +1,51 @@
-.group {
-  width: 100%;
+.chooser {
+  max-width: 760px;
+  margin: 0 auto;
 }
 
-.option {
+.question {
+  margin: 0 0 6px;
+}
+
+.card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
   width: 100%;
-  margin: 0;
-  padding: 12px;
+  min-height: 44px;
+  padding: 18px 20px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
   border: 1px solid var(--ant-color-border);
   border-radius: var(--ant-border-radius-lg);
-  align-items: flex-start;
+  background: var(--ant-color-bg-container);
 }
 
-.option:has(:global(.ant-radio-checked)) {
+.card:hover,
+.card:focus-visible {
   border-color: var(--ant-color-primary);
+  box-shadow: var(--ant-box-shadow-tertiary);
+}
+
+.letter {
+  flex: 0 0 auto;
+  font-weight: 600;
+  color: var(--ant-color-primary);
   background: var(--ant-color-primary-bg);
+}
+
+.text {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.reviewedBy {
+  font-size: var(--ant-font-size-sm);
+}
+
+.chevron {
+  align-self: center;
+  color: var(--ant-color-text-tertiary);
 }

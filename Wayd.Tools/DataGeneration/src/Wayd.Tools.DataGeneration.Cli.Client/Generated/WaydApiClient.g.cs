@@ -112877,6 +112877,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Runtime.Serialization.EnumMember(Value = @"ScoreRecorded")]
         ScoreRecorded = 7,
 
+        [System.Runtime.Serialization.EnumMember(Value = @"Withdrawn")]
+        Withdrawn = 8,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Retitled")]
+        Retitled = 9,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"DetailsChanged")]
+        DetailsChanged = 10,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"AssigneeChanged")]
+        AssigneeChanged = 11,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"ParticipantsChanged")]
+        ParticipantsChanged = 12,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"ChannelChanged")]
+        ChannelChanged = 13,
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]

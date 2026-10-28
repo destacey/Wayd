@@ -17,7 +17,7 @@ import {
   useSelectIncidentSeveritySetMutation,
 } from '@/src/store/features/product-management/incident-severity-sets-api'
 import { isApiError } from '@/src/utils'
-import { Button, Space, Tag } from 'antd'
+import { Button, Tag } from 'antd'
 import { useEffect, useState } from 'react'
 import {
   CreateIncidentSeveritySetForm,
@@ -59,20 +59,34 @@ const IncidentSeveritySetsPage = () => {
       id: 'name',
       accessorKey: 'name',
       header: 'Name',
-      size: 340,
-      cell: ({ row }) => (
-        <Space wrap>
-          <span>{row.original.name}</span>
-          {row.original.isSelected ? <Tag color="blue">Selected</Tag> : null}
-          {row.original.isSystem ? <Tag>System</Tag> : null}
-          {!row.original.isActive ? <Tag>Inactive</Tag> : null}
-        </Space>
-      ),
+      size: 280,
+      cell: ({ row }) =>
+        row.original.isActive ? (
+          row.original.name
+        ) : (
+          <>
+            {row.original.name}{' '}
+            <Tag>Inactive</Tag>
+          </>
+        ),
+    },
+    {
+      id: 'source',
+      header: 'Source',
+      accessorFn: (row) => (row.isSystem ? 'System' : 'Custom'),
+      size: 110,
+    },
+    {
+      id: 'isSelected',
+      accessorKey: 'isSelected',
+      header: 'Selected',
+      size: 110,
+      meta: { columnType: 'yesNo' },
     },
     {
       id: 'levels',
       header: 'Levels',
-      size: 420,
+      size: 400,
       cell: ({ row }) =>
         row.original.levels.map((l) => l.name).join(' → '),
     },

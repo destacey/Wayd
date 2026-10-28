@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervalObjectives;
@@ -124,6 +125,16 @@ public static class DurableEventRoutes
         typeof(PlanningIntervalObjectiveStatusChangedEvent),
         typeof(PlanningIntervalObjectiveHealthCheckAddedEvent),
         typeof(PlanningIntervalObjectiveTimelineChangedEvent),
+        typeof(IntakeRequestStatusChangedEvent),
+        typeof(IntakeRequestWithdrawnEvent),
+        typeof(IntakeRequestRetitledEvent),
+        typeof(IntakeRequestDetailsUpdatedEvent),
+        typeof(IntakeRequestNeedByChangedEvent),
+        typeof(IntakeRequestAssigneeChangedEvent),
+        typeof(IntakeRequestReroutedEvent),
+        typeof(IntakeRequestParticipantAddedEvent),
+        typeof(IntakeRequestParticipantRemovedEvent),
+        typeof(IntakeRequestChannelChangedEventV2),
 
         // Superseded by TeamDetailsUpdatedEvent; routed durably for envelopes written before the switch.
 #pragma warning disable CS0618

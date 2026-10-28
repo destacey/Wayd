@@ -61,7 +61,7 @@ public sealed class PlanningIntervalObjectiveNotificationEventHandlerTests : IDi
         // Assert
         _writer.Verify(w => w.Notify(
             It.Is<RecordChange>(c => c.Event == expected && c.OwnerId == objective.Id && c.Source == @event),
-            It.IsAny<IReadOnlyCollection<Guid>>(),
+            It.IsAny<IReadOnlyCollection<NotificationRecipient>>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -77,7 +77,7 @@ public sealed class PlanningIntervalObjectiveNotificationEventHandlerTests : IDi
 
         // Assert
         _dispatcher.Verify(d => d.Send(It.IsAny<GetTeamMemberIdsQuery>(), It.IsAny<CancellationToken>()), Times.Never);
-        _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<NotificationRecipient>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public sealed class PlanningIntervalObjectiveNotificationEventHandlerTests : IDi
                 && c.OwnerId == objective.Id
                 && c.Event == NotificationEvent.StatusChanged
                 && c.Source == @event),
-            members,
+            It.Is<IReadOnlyCollection<NotificationRecipient>>(r => AreRoleHolders(r, members.ToArray())),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -112,7 +112,7 @@ public sealed class PlanningIntervalObjectiveNotificationEventHandlerTests : IDi
 
         // Assert
         _dispatcher.Verify(d => d.Send(It.IsAny<GetTeamMemberIdsQuery>(), It.IsAny<CancellationToken>()), Times.Never);
-        _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<NotificationRecipient>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     public void Dispose() => _dbContext.Dispose();
@@ -139,4 +139,8 @@ public sealed class PlanningIntervalObjectiveNotificationEventHandlerTests : IDi
 
     private static PlanningIntervalObjectiveStatusChangedEvent StatusChanged(Guid objectiveId) =>
         new(objectiveId, 7, ObjectiveStatus.NotStarted, ObjectiveStatus.InProgress, null, null, Actor, Now);
+
+    private static bool AreRoleHolders(IReadOnlyCollection<NotificationRecipient> involved, params Guid[] employeeIds) =>
+        involved.All(r => r.Reason == NotificationReason.Role)
+        && involved.Select(r => r.EmployeeId).ToHashSet().SetEquals(employeeIds);
 }

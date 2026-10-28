@@ -56,7 +56,7 @@ public sealed class ProjectNotificationEventHandlerTests : IDisposable
         // Assert
         _writer.Verify(w => w.Notify(
             It.Is<RecordChange>(c => c.Event == expected && c.OwnerId == project.Id && c.Source == @event),
-            It.IsAny<IReadOnlyCollection<Guid>>(),
+            It.IsAny<IReadOnlyCollection<NotificationRecipient>>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -73,7 +73,7 @@ public sealed class ProjectNotificationEventHandlerTests : IDisposable
         await HandleAny(@event);
 
         // Assert
-        _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<NotificationRecipient>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public sealed class ProjectNotificationEventHandlerTests : IDisposable
                 && c.Event == NotificationEvent.StatusChanged
                 && c.Source == @event),
             // A person holding two roles may appear twice; the writer merges them into one notification.
-            It.Is<IReadOnlyCollection<Guid>>(ids => ids.ToHashSet().SetEquals(new[] { sponsor, manager, member })),
+            It.Is<IReadOnlyCollection<NotificationRecipient>>(r => AreRoleHolders(r, sponsor, manager, member)),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -115,7 +115,7 @@ public sealed class ProjectNotificationEventHandlerTests : IDisposable
         await CreateHandler().Handle(StatusChanged(project, fromStatus: null), TestContext.Current.CancellationToken);
 
         // Assert
-        _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<NotificationRecipient>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public sealed class ProjectNotificationEventHandlerTests : IDisposable
         // Assert
         _writer.Verify(w => w.Notify(
             It.Is<RecordChange>(c => c.Event == NotificationEvent.TimelineChanged && c.OwnerId == project.Id),
-            It.Is<IReadOnlyCollection<Guid>>(ids => ids.SequenceEqual(new[] { owner })),
+            It.Is<IReadOnlyCollection<NotificationRecipient>>(r => AreRoleHolders(r, owner)),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -149,7 +149,7 @@ public sealed class ProjectNotificationEventHandlerTests : IDisposable
         // Its followers are still told; the writer finds them.
         _writer.Verify(w => w.Notify(
             It.IsAny<RecordChange>(),
-            It.Is<IReadOnlyCollection<Guid>>(ids => ids.Count == 0),
+            It.Is<IReadOnlyCollection<NotificationRecipient>>(r => r.Count == 0),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -163,7 +163,7 @@ public sealed class ProjectNotificationEventHandlerTests : IDisposable
         await CreateHandler().Handle(StatusChanged(project, fromStatus: "Proposed"), TestContext.Current.CancellationToken);
 
         // Assert
-        _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<NotificationRecipient>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     public void Dispose() => _dbContext.Dispose();
@@ -200,4 +200,8 @@ public sealed class ProjectNotificationEventHandlerTests : IDisposable
             fromStatus, fromStatus is null ? null : LifecycleCategory.NotStarted,
             "Active", LifecycleCategory.Active,
             isBackward: false, reason: null, sequence: 1, Actor, Now);
+
+    private static bool AreRoleHolders(IReadOnlyCollection<NotificationRecipient> involved, params Guid[] employeeIds) =>
+        involved.All(r => r.Reason == NotificationReason.Role)
+        && involved.Select(r => r.EmployeeId).ToHashSet().SetEquals(employeeIds);
 }

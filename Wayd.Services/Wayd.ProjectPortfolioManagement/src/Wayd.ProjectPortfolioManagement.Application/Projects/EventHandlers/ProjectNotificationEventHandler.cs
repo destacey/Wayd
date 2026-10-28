@@ -10,7 +10,7 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.EventHandlers;
 /// Tells a project's followers and role holders about the changes to it worth hearing about.
 /// </summary>
 /// <remarks>
-/// Every role holder — sponsor, owner, manager and member — is a participant, read as the project is when the
+/// Every role holder — sponsor, owner, manager and member — is told for their role, read as the project is when the
 /// event is handled. For a roles change that includes the people just added; someone just removed hears of
 /// it only if they follow the project.
 /// <para>
@@ -29,7 +29,7 @@ public sealed class ProjectNotificationEventHandler(
     private readonly IProjectPortfolioManagementDbContext _dbContext = dbContext;
     private readonly INotificationWriter _notificationWriter = notificationWriter;
 
-    /// <summary>Tells the project's participants it was created with them in it.</summary>
+    /// <summary>Tells the project's role holders it was created with them in it.</summary>
     public Task Handle(ProjectCreatedEvent @event, CancellationToken cancellationToken) =>
         Notify(@event.Id, NotificationEvent.Created, @event, cancellationToken);
 
@@ -80,7 +80,7 @@ public sealed class ProjectNotificationEventHandler(
 
         await _notificationWriter.Notify(
             new RecordChange(PpmFollowOwners.Project.Key, projectId, notificationEvent, @event),
-            roleHolderIds,
+            NotificationRecipient.For(NotificationReason.Role, roleHolderIds).ToList(),
             cancellationToken);
     }
 }

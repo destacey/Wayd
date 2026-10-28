@@ -25,6 +25,9 @@ export interface FollowButtonProps {
  * employee, since a follow belongs to an employee. Following grants nothing:
  * the button appears only on a record the person can already read, and the
  * server refuses a follow of anything else.
+ *
+ * Rendered by `RecordHeader` from its `follow` prop, at the end of the header
+ * beside the details toggle, so every record places it the same way.
  */
 const FollowButton = ({ ownerType, ownerId }: FollowButtonProps) => {
   const { isEnabled } = useFeatureFlag('following')
@@ -79,9 +82,17 @@ const FollowButton = ({ ownerType, ownerId }: FollowButtonProps) => {
       }
     >
       {/* Icon only: a toggle keeps one name, and aria-pressed says whether
-          it is on. */}
+          it is on. Borderless, and tinted primary while on, like the details
+          toggle beside it: it marks a state rather than offering an action. */}
       <Button
-        icon={isFollowed ? <EyeFilled /> : <EyeOutlined />}
+        type="text"
+        icon={
+          isFollowed ? (
+            <EyeFilled style={{ color: 'var(--ant-color-primary)' }} />
+          ) : (
+            <EyeOutlined />
+          )
+        }
         aria-label="Follow"
         aria-pressed={isFollowed}
         disabled={isUnavailable || isPending}

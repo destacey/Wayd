@@ -99,6 +99,12 @@ describe('notificationReasonText', () => {
       'You follow this · You were mentioned',
     ],
     [[NotificationReason.Assigned], 'It is assigned to you'],
+    [[NotificationReason.Role], 'You work on this'],
+    [
+      [NotificationReason.Following, NotificationReason.Role],
+      'You follow and work on this',
+    ],
+    [[NotificationReason.Desk], 'It is waiting on your desk'],
   ])('words %j', (reasons, expected) => {
     // Act & Assert
     expect(notificationReasonText(reasons)).toBe(expected)

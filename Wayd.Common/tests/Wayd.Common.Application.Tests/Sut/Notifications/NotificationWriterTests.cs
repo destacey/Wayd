@@ -58,18 +58,18 @@ public sealed class NotificationWriterTests
     }
 
     [Fact]
-    public async Task Notify_ShouldTellParticipants_BecauseTheyTakePart()
+    public async Task Notify_ShouldTellEachInvolvedPerson_ForTheReasonTheModuleGives()
     {
         // Arrange
-        var participant = AddEmployee();
+        var roleHolder = AddEmployee();
 
         // Act
-        await CreateWriter().Notify(Change(), [participant], TestContext.Current.CancellationToken);
+        await CreateWriter().Notify(Change(), Role(roleHolder), TestContext.Current.CancellationToken);
 
         // Assert
         var notification = _dbContext.Notifications.Should().ContainSingle().Subject;
-        notification.RecipientEmployeeId.Should().Be(participant);
-        notification.Reasons.Should().Be(NotificationReason.Participant);
+        notification.RecipientEmployeeId.Should().Be(roleHolder);
+        notification.Reasons.Should().Be(NotificationReason.Role);
     }
 
     [Fact]
@@ -80,11 +80,54 @@ public sealed class NotificationWriterTests
         Follow(person);
 
         // Act
-        await CreateWriter().Notify(Change(), [person, person], TestContext.Current.CancellationToken);
+        await CreateWriter().Notify(Change(), Role(person, person), TestContext.Current.CancellationToken);
 
         // Assert
         _dbContext.Notifications.Should().ContainSingle()
-            .Which.Reasons.Should().Be(NotificationReason.Following | NotificationReason.Participant);
+            .Which.Reasons.Should().Be(NotificationReason.Following | NotificationReason.Role);
+    }
+
+    [Fact]
+    public async Task Notify_ShouldMergeTheReasonsOfSomeoneTheModuleNamesTwice()
+    {
+        // Arrange
+        var person = AddEmployee();
+        var other = AddEmployee();
+        NotificationRecipient[] involved =
+        [
+            new(person, NotificationReason.Role),
+            new(other, NotificationReason.Role),
+            new(person, NotificationReason.Following),
+        ];
+
+        // Act
+        var added = await CreateWriter().Notify(Change(), involved, TestContext.Current.CancellationToken);
+
+        // Assert
+        added.Should().Be(2);
+        _dbContext.Notifications.Single(n => n.RecipientEmployeeId == person)
+            .Reasons.Should().Be(NotificationReason.Following | NotificationReason.Role);
+        _dbContext.Notifications.Single(n => n.RecipientEmployeeId == other)
+            .Reasons.Should().Be(NotificationReason.Role);
+    }
+
+    [Theory]
+    [InlineData(NotificationReason.Participant)]
+    [InlineData(NotificationReason.Desk)]
+    [InlineData(NotificationReason.Role | NotificationReason.Assigned)]
+    [InlineData((NotificationReason)0)]
+    [InlineData((NotificationReason)128)]
+    public async Task Notify_ShouldThrow_ForAReasonNothingProducesYet(NotificationReason reason)
+    {
+        // Arrange
+        var person = AddEmployee();
+
+        // Act
+        var act = () => CreateWriter().Notify(Change(), [new(person, reason)], TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentException>();
+        _dbContext.Notifications.Should().BeEmpty();
     }
 
     [Fact]
@@ -120,7 +163,7 @@ public sealed class NotificationWriterTests
         Follow(actor);
 
         // Act
-        await CreateWriter().Notify(Change(EventActor.User("actor-user", actor)), [actor, other], TestContext.Current.CancellationToken);
+        await CreateWriter().Notify(Change(EventActor.User("actor-user", actor)), Role(actor, other), TestContext.Current.CancellationToken);
 
         // Assert
         _dbContext.Notifications.Should().ContainSingle()
@@ -155,7 +198,7 @@ public sealed class NotificationWriterTests
         Follow(deleted);
 
         // Act
-        await CreateWriter().Notify(Change(), [current, inactive, deleted], TestContext.Current.CancellationToken);
+        await CreateWriter().Notify(Change(), Role(current, inactive, deleted), TestContext.Current.CancellationToken);
 
         // Assert
         _dbContext.Notifications.Should().ContainSingle()
@@ -188,7 +231,7 @@ public sealed class NotificationWriterTests
         Follow(follower);
 
         // Act
-        var added = await CreateWriter().Notify(Change(new EventActor(kind, "someone")), [follower], TestContext.Current.CancellationToken);
+        var added = await CreateWriter().Notify(Change(new EventActor(kind, "someone")), Role(follower), TestContext.Current.CancellationToken);
 
         // Assert
         added.Should().Be(0);
@@ -256,7 +299,7 @@ public sealed class NotificationWriterTests
         _featureFlags.Setup(f => f.IsEnabled(FeatureFlags.Names.Following, It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
         // Act
-        var added = await CreateWriter().Notify(Change(), [follower], TestContext.Current.CancellationToken);
+        var added = await CreateWriter().Notify(Change(), Role(follower), TestContext.Current.CancellationToken);
 
         // Assert
         added.Should().Be(0);
@@ -291,7 +334,7 @@ public sealed class NotificationWriterTests
         _dbContext.AddRecordMute(RecordMute.Create(GadgetType, _gadgetId, muter, Now).Value);
 
         // Act
-        var added = await CreateWriter().Notify(Change(), [muter, other], TestContext.Current.CancellationToken);
+        var added = await CreateWriter().Notify(Change(), Role(muter, other), TestContext.Current.CancellationToken);
 
         // Assert
         added.Should().Be(1);
@@ -321,10 +364,10 @@ public sealed class NotificationWriterTests
         // Arrange
         var person = AddEmployee();
         Follow(person);
-        _dbContext.AddReasonMute(ReasonMute.Create(person, NotificationReason.Participant, Now).Value);
+        _dbContext.AddReasonMute(ReasonMute.Create(person, NotificationReason.Role, Now).Value);
 
         // Act
-        await CreateWriter().Notify(Change(), [person], TestContext.Current.CancellationToken);
+        await CreateWriter().Notify(Change(), Role(person), TestContext.Current.CancellationToken);
 
         // Assert
         _dbContext.Notifications.Should().ContainSingle()
@@ -333,7 +376,7 @@ public sealed class NotificationWriterTests
 
     [Theory]
     [InlineData(NotificationReason.Following)]
-    [InlineData(NotificationReason.Participant)]
+    [InlineData(NotificationReason.Role)]
     public async Task Notify_ShouldNotTellSomeone_WhoMutedTheirOnlyReason(NotificationReason muted)
     {
         // Arrange
@@ -346,10 +389,10 @@ public sealed class NotificationWriterTests
         }
 
         _dbContext.AddReasonMute(ReasonMute.Create(muter, muted, Now).Value);
-        IReadOnlyCollection<Guid> participants = muted == NotificationReason.Participant ? [muter, other] : [];
+        NotificationRecipient[] involved = muted == NotificationReason.Role ? Role(muter, other) : [];
 
         // Act
-        await CreateWriter().Notify(Change(), participants, TestContext.Current.CancellationToken);
+        await CreateWriter().Notify(Change(), involved, TestContext.Current.CancellationToken);
 
         // Assert
         var notification = _dbContext.Notifications.Should().ContainSingle().Subject;
@@ -364,10 +407,10 @@ public sealed class NotificationWriterTests
         var person = AddEmployee();
         Follow(person);
         _dbContext.AddReasonMute(ReasonMute.Create(person, NotificationReason.Following, Now).Value);
-        _dbContext.AddReasonMute(ReasonMute.Create(person, NotificationReason.Participant, Now).Value);
+        _dbContext.AddReasonMute(ReasonMute.Create(person, NotificationReason.Role, Now).Value);
 
         // Act
-        var added = await CreateWriter().Notify(Change(), [person], TestContext.Current.CancellationToken);
+        var added = await CreateWriter().Notify(Change(), Role(person), TestContext.Current.CancellationToken);
 
         // Assert
         added.Should().Be(0);
@@ -381,6 +424,9 @@ public sealed class NotificationWriterTests
         _dbContext.AddEmployee(employee);
         return employee.Id;
     }
+
+    private static NotificationRecipient[] Role(params Guid[] employeeIds) =>
+        [.. NotificationRecipient.For(NotificationReason.Role, employeeIds)];
 
     private void Follow(Guid employeeId) =>
         _dbContext.AddFollow(Domain.Following.Follow.Create(GadgetType, _gadgetId, employeeId, Now).Value);

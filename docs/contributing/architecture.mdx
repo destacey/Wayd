@@ -366,11 +366,13 @@ set, and when it was read. The wording is produced when the list is read, from t
 
 - **Written only from domain events.** No module calls anything to notify. Each owning module has one Wolverine
   handler per owner type (`ProjectNotificationEventHandler`, `ProgramNotificationEventHandler`,
-  `PlanningIntervalObjectiveNotificationEventHandler`) that picks which of its events notify, reads the
-  record's participants as it is now, and hands both to `INotificationWriter`. The notifying events are routed
+  `PlanningIntervalObjectiveNotificationEventHandler`) that picks which of its events notify, reads who is
+  involved in the record as it is now, each with a reason (a `NotificationRecipient`), and hands both to
+  `INotificationWriter`. The notifying events are routed
   durably in `DurableEventRoutes`, so a failure to notify never fails the change. Making a new owner type
   notify is a handler in its module and its events in that list.
-- **The writer decides the audience.** Followers (`Following`) plus the module's participants (`Participant`),
+- **The writer decides the audience.** Followers (`Following`) plus the people the module names as involved,
+  each with their own reason — `Role` for a project's or program's role holders and an objective's team —
   merged so each person gets one notification carrying every reason; minus the actor; minus deleted and
   inactive employees, whose follows and roles outlive them. It writes nothing for a change no person made
   directly — an import, a sync or the platform's own work — and nothing while the `following` flag is off.
@@ -389,9 +391,10 @@ set, and when it was read. The wording is produced when the list is read, from t
 - **Not an audit trail.** A nightly job (`notification-retention-sweep`, 03:30) deletes notifications more than
   90 days old, read or not; the activity log keeps what happened.
 
-`Requester`, `Assigned` and `Mentioned` are defined, but nothing produces them yet. Only the reasons in
-`NotificationReasons.Produced` can be muted; a producer of a new reason adds it there, or its mute would be
-refused.
+`Requester`, `Assigned`, `Participant` (someone given an intake request), `Mentioned` and `Desk` (a request
+waiting unassigned on a desk you work on) are defined, but nothing produces them yet. Only the reasons in
+`NotificationReasons.Produced` can be muted; a producer of a new reason adds it there first — the writer throws
+for any other reason — or its mute would be refused.
 
 ## Connector framework
 

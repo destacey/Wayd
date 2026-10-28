@@ -95,7 +95,7 @@ const NotificationsPage = () => {
     <div className={styles.page}>
       <PageTitle
         title="Notifications"
-        subtitle="Changes to the records you follow or take part in, newest first. Opening one marks it read."
+        subtitle="Changes to the records you follow or work on, newest first. Opening one marks it read."
       />
       {user?.employeeId ? (
         <Tabs

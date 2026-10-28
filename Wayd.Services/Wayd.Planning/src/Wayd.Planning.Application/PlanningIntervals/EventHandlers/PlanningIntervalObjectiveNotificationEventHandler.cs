@@ -10,7 +10,7 @@ namespace Wayd.Planning.Application.PlanningIntervals.EventHandlers;
 /// Tells a planning interval objective's followers and team about the changes to it worth hearing about.
 /// </summary>
 /// <remarks>
-/// The participants are the direct members of the team that owns the objective, read when the event is
+/// The direct members of the team that owns the objective are told for their role, read when the event is
 /// handled. Members of the teams it belongs to or contains are not: an objective is its own team's
 /// commitment, and a team of teams would otherwise hear about every one beneath it.
 /// <para>
@@ -32,7 +32,7 @@ public sealed class PlanningIntervalObjectiveNotificationEventHandler(
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly INotificationWriter _notificationWriter = notificationWriter;
 
-    /// <summary>Tells the objective's participants it was created with them in it.</summary>
+    /// <summary>Tells the objective's team it was created with them in it.</summary>
     public Task Handle(PlanningIntervalObjectiveCreatedEvent @event, CancellationToken cancellationToken) =>
         Notify(@event.Id, NotificationEvent.Created, @event, cancellationToken);
 
@@ -66,7 +66,7 @@ public sealed class PlanningIntervalObjectiveNotificationEventHandler(
 
         await _notificationWriter.Notify(
             new RecordChange(PlanningFollowOwners.PlanningIntervalObjective.Key, objectiveId, notificationEvent, @event),
-            memberIds,
+            NotificationRecipient.For(NotificationReason.Role, memberIds).ToList(),
             cancellationToken);
     }
 }

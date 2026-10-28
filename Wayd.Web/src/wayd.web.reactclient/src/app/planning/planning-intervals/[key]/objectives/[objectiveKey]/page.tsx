@@ -7,7 +7,7 @@ import {
 } from '@/src/app/planning/planning-intervals/_components'
 import PiObjectiveHealthCheckTag from '@/src/app/planning/planning-intervals/_components/pi-objective-health-check-tag'
 import PiObjectiveHealthReportGrid from '@/src/app/planning/planning-intervals/_components/pi-objective-health-report-grid'
-import { FollowButton, MuteButton, PageActions } from '@/src/components/common'
+import { PageActions } from '@/src/components/common'
 import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
@@ -240,16 +240,12 @@ const PlanningIntervalObjectivePage = (props: {
               objectiveId={objective.id}
             />
           ),
+          follow: {
+            ownerType: FollowOwnerTypes.PlanningIntervalObjective,
+            ownerId: objective.id,
+          },
           actions: (
             <>
-              <FollowButton
-                ownerType={FollowOwnerTypes.PlanningIntervalObjective}
-                ownerId={objective.id}
-              />
-              <MuteButton
-                ownerType={FollowOwnerTypes.PlanningIntervalObjective}
-                ownerId={objective.id}
-              />
               <PageActions actionItems={actionsMenuItems} />
             </>
           ),

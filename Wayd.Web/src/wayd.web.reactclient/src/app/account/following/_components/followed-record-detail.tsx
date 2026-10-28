@@ -201,7 +201,10 @@ const FollowedRecordDetail = ({
           {asView ? null : (
             <Tooltip title="Stop following" placement="topRight">
               <Button
-                icon={<EyeFilled />}
+                type="text"
+                icon={
+                  <EyeFilled style={{ color: 'var(--ant-color-primary)' }} />
+                }
                 aria-label="Unfollow"
                 loading={isUnfollowing}
                 onClick={onUnfollow}
@@ -228,7 +231,7 @@ const FollowedRecordDetail = ({
           />
           <FollowedRecordHealth record={record} variant="tag" />
           {record.isMuted ? (
-            <Tooltip title="You still follow this, but are told nothing about it. Unmute it on its page, or under Notifications → Muted.">
+            <Tooltip title="You still follow this, but are told nothing about it. Unmute it under Notifications → Muted.">
               <Tag icon={<MutedOutlined />}>Muted</Tag>
             </Tooltip>
           ) : null}

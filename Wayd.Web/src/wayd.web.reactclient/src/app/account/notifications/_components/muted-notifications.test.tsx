@@ -57,7 +57,7 @@ describe('MutedNotifications', () => {
       data: [
         { reason: NotificationReason.Following, isMuted: false },
         {
-          reason: NotificationReason.Participant,
+          reason: NotificationReason.Role,
           isMuted: true,
           mutedOn: new Date(),
         },
@@ -93,7 +93,7 @@ describe('MutedNotifications', () => {
       screen.getByRole('switch', { name: 'Records you follow' }),
     ).not.toBeChecked()
     expect(
-      screen.getByRole('switch', { name: 'Records you take part in' }),
+      screen.getByRole('switch', { name: 'Records you work on' }),
     ).toBeChecked()
   })
 
@@ -122,14 +122,14 @@ describe('MutedNotifications', () => {
         screen.getByRole('switch', { name: 'Records you follow' }),
       )
       fireEvent.click(
-        screen.getByRole('switch', { name: 'Records you take part in' }),
+        screen.getByRole('switch', { name: 'Records you work on' }),
       )
     })
 
     // Assert
     expect(mockMuteReason).toHaveBeenCalledWith(NotificationReason.Following)
     expect(mockUnmuteReason).toHaveBeenCalledWith(
-      NotificationReason.Participant,
+      NotificationReason.Role,
     )
   })
 

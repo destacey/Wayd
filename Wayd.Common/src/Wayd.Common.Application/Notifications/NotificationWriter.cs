@@ -10,7 +10,7 @@ namespace Wayd.Common.Application.Notifications;
 /// Resolves who should hear about a change and writes their notifications.
 /// </summary>
 /// <remarks>
-/// The audience is the record's followers plus the participants its module names, merged so each person
+/// The audience is the record's followers plus the people its module names as involved, merged so each person
 /// gets one notification with every reason that applies. From that audience it removes:
 /// <list type="bullet">
 /// <item>the person who made the change — nobody is told about their own action;</item>
@@ -44,10 +44,20 @@ public sealed class NotificationWriter(
     private readonly ILogger<NotificationWriter> _logger = logger;
 
     /// <inheritdoc/>
-    public async Task<int> Notify(RecordChange change, IReadOnlyCollection<Guid> participantEmployeeIds, CancellationToken cancellationToken)
+    public async Task<int> Notify(RecordChange change, IReadOnlyCollection<NotificationRecipient> involved, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(change);
-        ArgumentNullException.ThrowIfNull(participantEmployeeIds);
+        ArgumentNullException.ThrowIfNull(involved);
+
+        foreach (var recipient in involved)
+        {
+            if (recipient.Reason == 0 || (recipient.Reason & ~NotificationReasons.Produced) != 0)
+            {
+                throw new ArgumentException(
+                    $"'{recipient.Reason}' is not a produced notification reason; add it to NotificationReasons.Produced.",
+                    nameof(involved));
+            }
+        }
 
         if (!await ShouldNotify(change.Source, cancellationToken))
         {
@@ -62,8 +72,15 @@ public sealed class NotificationWriter(
             .Where(f => f.OwnerType == change.OwnerType && f.OwnerId == change.OwnerId)
             .Select(f => f.EmployeeId)
             .ToListAsync(cancellationToken);
-        Add(audience, followerIds, NotificationReason.Following);
-        Add(audience, participantEmployeeIds, NotificationReason.Participant);
+        foreach (var followerId in followerIds)
+        {
+            Add(audience, followerId, NotificationReason.Following);
+        }
+
+        foreach (var recipient in involved)
+        {
+            Add(audience, recipient.EmployeeId, recipient.Reason);
+        }
 
         var actorEmployeeId = actor.EmployeeId ?? await ActorEmployeeId(actor, cancellationToken);
         if (actorEmployeeId is { } actorId)
@@ -160,13 +177,8 @@ public sealed class NotificationWriter(
         return await _featureFlags.IsEnabled(FeatureFlags.Names.Following, cancellationToken);
     }
 
-    private static void Add(Dictionary<Guid, NotificationReason> audience, IEnumerable<Guid> employeeIds, NotificationReason reason)
-    {
-        foreach (var employeeId in employeeIds)
-        {
-            audience[employeeId] = audience.TryGetValue(employeeId, out var reasons) ? reasons | reason : reason;
-        }
-    }
+    private static void Add(Dictionary<Guid, NotificationReason> audience, Guid employeeId, NotificationReason reason) =>
+        audience[employeeId] = audience.TryGetValue(employeeId, out var reasons) ? reasons | reason : reason;
 
     /// <summary>The employee linked to the account that made the change, for an actor that did not carry one.</summary>
     private async Task<Guid?> ActorEmployeeId(EventActor actor, CancellationToken cancellationToken) =>

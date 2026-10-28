@@ -30,13 +30,13 @@ public sealed class MuteReasonCommandHandlerTests
     public async Task Handle_ShouldMuteTheReasonForTheCaller()
     {
         // Act
-        var result = await CreateHandler().Handle(new MuteReasonCommand(NotificationReason.Participant), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new MuteReasonCommand(NotificationReason.Role), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         var mute = _dbContext.ReasonMutes.Should().ContainSingle().Subject;
         mute.EmployeeId.Should().Be(_employeeId);
-        mute.Reason.Should().Be(NotificationReason.Participant);
+        mute.Reason.Should().Be(NotificationReason.Role);
         mute.MutedOn.Should().Be(Now);
     }
 
@@ -82,10 +82,11 @@ public sealed class MuteReasonCommandHandlerTests
 
     [Theory]
     [InlineData(NotificationReason.Following, true)]
-    [InlineData(NotificationReason.Participant, true)]
+    [InlineData(NotificationReason.Role, true)]
+    [InlineData(NotificationReason.Participant, false)]
     [InlineData(NotificationReason.Requester, false)]
     [InlineData(NotificationReason.Mentioned, false)]
-    [InlineData(NotificationReason.Following | NotificationReason.Participant, false)]
+    [InlineData(NotificationReason.Following | NotificationReason.Role, false)]
     public void Validator_ShouldAcceptOnlyAReasonThatCanBeMuted(NotificationReason reason, bool expected)
     {
         // Act
@@ -103,6 +104,6 @@ public sealed class MuteReasonCommandHandlerTests
 
         // Assert
         result.Errors.Should().ContainSingle()
-            .Which.ErrorMessage.Should().Be("'Reason' must be one of: Following, Participant.");
+            .Which.ErrorMessage.Should().Be("'Reason' must be one of: Following, Role.");
     }
 }

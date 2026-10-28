@@ -67,7 +67,7 @@ public sealed class NotificationWriterIntegrationTests(SqlServerDbContextFixture
         // Act
         var added = await CreateWriter(context).Notify(
             new RecordChange(GadgetType, ownerId, NotificationEvent.StatusChanged, source),
-            [participantAndFollower.Id],
+            [.. NotificationRecipient.For(NotificationReason.Role, [participantAndFollower.Id])],
             cancellationToken);
 
         // Assert
@@ -79,7 +79,7 @@ public sealed class NotificationWriterIntegrationTests(SqlServerDbContextFixture
             .ToListAsync(cancellationToken);
         stored.Should().BeEquivalentTo([
             new { RecipientEmployeeId = follower.Id, Reasons = NotificationReason.Following, ActorEmployeeId = (Guid?)actor.Id },
-            new { RecipientEmployeeId = participantAndFollower.Id, Reasons = NotificationReason.Following | NotificationReason.Participant, ActorEmployeeId = (Guid?)actor.Id },
+            new { RecipientEmployeeId = participantAndFollower.Id, Reasons = NotificationReason.Following | NotificationReason.Role, ActorEmployeeId = (Guid?)actor.Id },
         ]);
     }
 
@@ -106,7 +106,7 @@ public sealed class NotificationWriterIntegrationTests(SqlServerDbContextFixture
                 RecordMute.Create(GadgetType, ownerId, recordMuter.Id, Timestamp).Value,
                 // Same id, different owner type: a different record, so it silences nothing here.
                 RecordMute.Create(WidgetType, ownerId, widgetMuter.Id, Timestamp).Value);
-            seed.ReasonMutes.Add(ReasonMute.Create(participantMuter.Id, NotificationReason.Participant, Timestamp).Value);
+            seed.ReasonMutes.Add(ReasonMute.Create(participantMuter.Id, NotificationReason.Role, Timestamp).Value);
             await seed.SaveChangesAsync(cancellationToken);
         }
 
@@ -116,7 +116,7 @@ public sealed class NotificationWriterIntegrationTests(SqlServerDbContextFixture
         // Act
         await CreateWriter(context).Notify(
             new RecordChange(GadgetType, ownerId, NotificationEvent.StatusChanged, source),
-            [recordMuter.Id, participantMuter.Id, widgetMuter.Id],
+            [.. NotificationRecipient.For(NotificationReason.Role, [recordMuter.Id, participantMuter.Id, widgetMuter.Id])],
             cancellationToken);
 
         // Assert
@@ -127,7 +127,7 @@ public sealed class NotificationWriterIntegrationTests(SqlServerDbContextFixture
             .ToListAsync(cancellationToken);
         stored.Should().BeEquivalentTo([
             new { RecipientEmployeeId = participantMuter.Id, Reasons = NotificationReason.Following },
-            new { RecipientEmployeeId = widgetMuter.Id, Reasons = NotificationReason.Following | NotificationReason.Participant },
+            new { RecipientEmployeeId = widgetMuter.Id, Reasons = NotificationReason.Following | NotificationReason.Role },
         ]);
     }
 

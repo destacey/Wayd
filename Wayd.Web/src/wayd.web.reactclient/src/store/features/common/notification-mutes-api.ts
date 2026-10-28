@@ -116,6 +116,7 @@ export const notificationMutesApi = apiSlice.injectEndpoints({
         statusTag(target),
         QueryTags.MyMutes,
         QueryTags.MyFollows,
+        QueryTags.FollowedRecord,
         QueryTags.MyNotifications,
         QueryTags.UnreadNotificationCount,
       ],
@@ -152,6 +153,7 @@ export const notificationMutesApi = apiSlice.injectEndpoints({
         statusTag(target),
         QueryTags.MyMutes,
         QueryTags.MyFollows,
+        QueryTags.FollowedRecord,
       ],
     }),
 

@@ -26,7 +26,7 @@ import styles from './notifications.module.css'
 
 /** What an empty list says when nothing has ever arrived: how to get told things. */
 export const NoNotificationsMessage =
-  'No notifications yet. Wayd tells you here when something changes on a project, program or PI objective you follow or take part in. Open one and select the eye at the top of its page to follow it.'
+  'No notifications yet. Wayd tells you here when something changes on a project, program or PI objective you follow or work on. Open one and select the eye at the top of its page to follow it.'
 
 /** What an empty list says when only unread entries are shown. */
 export const NothingUnreadMessage = 'You have read everything.'

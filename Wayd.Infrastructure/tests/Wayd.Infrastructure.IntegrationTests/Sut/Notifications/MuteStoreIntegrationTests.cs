@@ -122,7 +122,7 @@ public sealed class MuteStoreIntegrationTests(SqlServerDbContextFixture fixture)
         var outcomes = new[]
         {
             await store.Add(ReasonMute.Create(employee.Id, NotificationReason.Following, Timestamp).Value, cancellationToken),
-            await store.Add(ReasonMute.Create(employee.Id, NotificationReason.Participant, Timestamp).Value, cancellationToken),
+            await store.Add(ReasonMute.Create(employee.Id, NotificationReason.Role, Timestamp).Value, cancellationToken),
             await store.Add(ReasonMute.Create(employee.Id, NotificationReason.Following, Timestamp).Value, cancellationToken),
         };
         var removed = await store.RemoveReasonMute(employee.Id, NotificationReason.Following, cancellationToken);
@@ -135,7 +135,7 @@ public sealed class MuteStoreIntegrationTests(SqlServerDbContextFixture fixture)
             .Where(m => m.EmployeeId == employee.Id)
             .Select(m => m.Reason)
             .ToListAsync(cancellationToken);
-        remaining.Should().Equal(NotificationReason.Participant);
+        remaining.Should().Equal(NotificationReason.Role);
     }
 
     private static RecordMute NewRecordMute(Guid ownerId, Guid employeeId, Instant? mutedOn = null)

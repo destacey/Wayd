@@ -50,6 +50,7 @@ export const otherUpdatesText = (count: number): string => {
 const youVerbs: Partial<Record<NotificationReason, string>> = {
   [NotificationReason.Following]: 'follow',
   [NotificationReason.Participant]: 'take part in',
+  [NotificationReason.Role]: 'work on',
   [NotificationReason.Requester]: 'requested',
 }
 
@@ -57,9 +58,10 @@ const youVerbs: Partial<Record<NotificationReason, string>> = {
 const otherReasons: Partial<Record<NotificationReason, string>> = {
   [NotificationReason.Assigned]: 'It is assigned to you',
   [NotificationReason.Mentioned]: 'You were mentioned',
+  [NotificationReason.Desk]: 'It is waiting on your desk',
 }
 
-/** "follow", "follow and take part in", "follow, take part in and requested". */
+/** "follow", "follow and work on", "follow, work on and requested". */
 const joinVerbs = (verbs: string[]) =>
   verbs.length > 1
     ? `${verbs.slice(0, -1).join(', ')} and ${verbs[verbs.length - 1]}`
@@ -67,7 +69,7 @@ const joinVerbs = (verbs: string[]) =>
 
 /**
  * Why the reader was told, GitHub's "you're receiving this because…": "You
- * follow and take part in this". A reason the client has no words for is left
+ * follow and work on this". A reason the client has no words for is left
  * out rather than shown raw.
  */
 export const notificationReasonText = (

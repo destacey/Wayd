@@ -41,7 +41,7 @@ public sealed class GetMyNotificationsQueryHandlerTests
         // Arrange
         var sprocket = _gadgets.Add("G-1", "Sprocket");
         var lever = _widgets.Add("W-1", "Lever");
-        Seed(GadgetType, sprocket.Id, hours: 1, NotificationEvent.StatusChanged, NotificationReason.Participant, read: true);
+        Seed(GadgetType, sprocket.Id, hours: 1, NotificationEvent.StatusChanged, NotificationReason.Role, read: true);
         Seed(GadgetType, sprocket.Id, hours: 5, NotificationEvent.HealthReported, NotificationReason.Following);
         Seed(WidgetType, lever.Id, hours: 3, NotificationEvent.TimelineChanged, NotificationReason.Following);
 
@@ -61,7 +61,29 @@ public sealed class GetMyNotificationsQueryHandlerTests
         entry.Count.Should().Be(2);
         entry.UnreadCount.Should().Be(1);
         entry.IsUnread.Should().BeTrue();
-        entry.Reasons.Should().BeEquivalentTo([NotificationReason.Following, NotificationReason.Participant]);
+        entry.Reasons.Should().BeEquivalentTo([NotificationReason.Following, NotificationReason.Role]);
+    }
+
+    [Theory]
+    [InlineData(NotificationReason.Following)]
+    [InlineData(NotificationReason.Requester)]
+    [InlineData(NotificationReason.Participant)]
+    [InlineData(NotificationReason.Assigned)]
+    [InlineData(NotificationReason.Mentioned)]
+    [InlineData(NotificationReason.Desk)]
+    [InlineData(NotificationReason.Role)]
+    public async Task Handle_ShouldKeepEveryReason_WhenCollapsingARecordsNotifications(NotificationReason reason)
+    {
+        // Arrange
+        var sprocket = _gadgets.Add("G-1", "Sprocket");
+        Seed(GadgetType, sprocket.Id, hours: 1, NotificationEvent.StatusChanged, reason);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest()), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Items.Should().ContainSingle()
+            .Which.Reasons.Should().Equal(reason);
     }
 
     [Fact]
@@ -220,7 +242,7 @@ public sealed class GetMyNotificationsQueryHandlerTests
         var sharedId = Guid.NewGuid();
         _gadgets.Add("G-1", "Sprocket", id: sharedId);
         _widgets.Add("W-1", "Lever", id: sharedId);
-        Seed(GadgetType, sharedId, hours: 1, NotificationEvent.HealthReported, NotificationReason.Participant);
+        Seed(GadgetType, sharedId, hours: 1, NotificationEvent.HealthReported, NotificationReason.Role);
         Seed(WidgetType, sharedId, hours: 2, NotificationEvent.TimelineChanged, NotificationReason.Following);
 
         // Act
@@ -230,7 +252,7 @@ public sealed class GetMyNotificationsQueryHandlerTests
         result.Items.Select(i => (i.Record.Key, i.Event, i.Count)).Should().Equal(
             ("W-1", NotificationEvent.TimelineChanged, 1),
             ("G-1", NotificationEvent.HealthReported, 1));
-        result.Items[1].Reasons.Should().Equal(NotificationReason.Participant);
+        result.Items[1].Reasons.Should().Equal(NotificationReason.Role);
     }
 
     [Fact]

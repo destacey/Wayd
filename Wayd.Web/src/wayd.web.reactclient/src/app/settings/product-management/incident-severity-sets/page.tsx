@@ -1,6 +1,6 @@
 'use client'
 
-import { PageTitle } from '@/src/components/common'
+import { PageTitle, WaydTooltip } from '@/src/components/common'
 import {
   ConfigListPanel,
   useSelectedRecord,
@@ -97,27 +97,31 @@ const IncidentSeveritySetsPage = () => {
       enableColumnFilter: false,
       cell: ({ row }) =>
         canUpdate && !row.original.isSelected ? (
-          <Button
-            size="small"
-            loading={selecting}
-            onClick={(e) => {
-              e.stopPropagation()
-              void selectSet({ severitySetId: row.original.id })
-                .unwrap()
-                .then(() => {
-                  messageApi.success('Severity set selected.')
-                  refetch()
-                })
-                .catch((err) => {
-                  messageApi.error(
-                    (isApiError(err) ? err.detail : undefined) ??
-                      'Could not select severity set',
-                  )
-                })
-            }}
+          <WaydTooltip
+            title={`Click to set ${row.original.name} to the current severity set`}
           >
-            Select
-          </Button>
+            <Button
+              size="small"
+              loading={selecting}
+              onClick={(e) => {
+                e.stopPropagation()
+                void selectSet({ severitySetId: row.original.id })
+                  .unwrap()
+                  .then(() => {
+                    messageApi.success('Severity set selected.')
+                    refetch()
+                  })
+                  .catch((err) => {
+                    messageApi.error(
+                      (isApiError(err) ? err.detail : undefined) ??
+                        'Could not select severity set',
+                    )
+                  })
+              }}
+            >
+              Select
+            </Button>
+          </WaydTooltip>
         ) : null,
     },
   ]

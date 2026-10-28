@@ -1,4 +1,7 @@
 using System.Globalization;
+using Wayd.Common.Application.Activities;
+using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Records;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums;
@@ -132,4 +135,17 @@ public sealed class PlanningIntervalObjectiveReadRule(
                 End = o.TargetDate,
             });
     }
+
+    /// <inheritdoc/>
+    /// <remarks>Anyone who can read a objective reads its whole history, so nothing is narrowed.</remarks>
+    public Task<IQueryable<ActivityStamp>> VisibleActivity(IQueryable<ActivityStamp> activity, CancellationToken cancellationToken) =>
+        Task.FromResult(activity);
+
+    /// <inheritdoc/>
+    public Task<PagedResponse<ActivityLogDto>> ReadActivity(
+        Guid id,
+        IActivityLogReader activityLogReader,
+        PageRequest paging,
+        CancellationToken cancellationToken) =>
+        activityLogReader.Read(id, ActivityAggregateType, paging, cancellationToken);
 }

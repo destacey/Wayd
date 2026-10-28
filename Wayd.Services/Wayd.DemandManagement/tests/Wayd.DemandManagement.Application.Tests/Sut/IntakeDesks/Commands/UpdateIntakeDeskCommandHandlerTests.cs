@@ -363,4 +363,70 @@ public sealed class UpdateIntakeDeskCommandHandlerTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("Every channel must be a company channel.");
     }
+
+    [Fact]
+    public async Task Handle_ChoosingTagAxes_OffersOnlyThose()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var desk = _scenario.DeskWithMembers(Admin(deskAdmin.Id));
+        var chosen = _scenario.TagCategory();
+        var other = _scenario.TagCategory();
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            Unchanged(desk) with { OffersAllTagCategories = false, TagCategoryIds = [chosen.Id] },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        desk.Offers(chosen).Should().BeTrue();
+        desk.Offers(other).Should().BeFalse();
+        desk.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskTagCategoriesChangedEvent>();
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_WithoutTagAxes_KeepsTheChoiceTheDeskMade()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var desk = _scenario.DeskWithMembers(Admin(deskAdmin.Id));
+        var chosen = _scenario.TagCategory();
+        desk.ChangeTagCategories(false, [chosen.Id], EventActor.System, _scenario.Clock.Now);
+        desk.ClearDomainEvents();
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(Unchanged(desk) with { Name = "Renamed" },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        desk.OffersAllTagCategories.Should().BeFalse();
+        desk.TagCategories.Should().ContainSingle(c => c.CategoryId == chosen.Id);
+    }
+
+    [Fact]
+    public async Task Handle_NewlyChoosingAnInactiveTagAxis_FailsWithoutChangingTheDesk()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var desk = _scenario.DeskWithMembers(Admin(deskAdmin.Id));
+        var inactive = _scenario.TagCategory();
+        inactive.Deactivate(EventActor.System, _scenario.Clock.Now);
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            Unchanged(desk) with { OffersAllTagCategories = false, TagCategoryIds = [inactive.Id] },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("An inactive tag axis cannot be offered.");
+        desk.OffersAllTagCategories.Should().BeTrue();
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
 }

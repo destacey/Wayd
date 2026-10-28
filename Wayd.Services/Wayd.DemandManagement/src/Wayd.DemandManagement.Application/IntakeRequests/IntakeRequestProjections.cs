@@ -4,6 +4,7 @@ using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.DemandManagement.Application.IntakeChannels.Dtos;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
+using Wayd.DemandManagement.Application.IntakeRequestTagCategories.Dtos;
 using Wayd.DemandManagement.Domain.Models;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests;
@@ -24,6 +25,7 @@ internal static class IntakeRequestProjections
         var channels = dbContext.IntakeChannels;
         var employees = dbContext.Employees;
         var transitions = dbContext.IntakeRequestStatusTransitions;
+        var tagCategories = dbContext.IntakeRequestTagCategories;
 
         // Every request records its initial status as its first transition, so both reads always find a row.
         return r => new IntakeRequestSummaryDto
@@ -56,6 +58,18 @@ internal static class IntakeRequestProjections
                         .FirstOrDefault(),
                     CommittedOn = r.NeedBy.CommittedOn,
                 },
+            Tags = tagCategories
+                .SelectMany(c => c.Tags, (c, t) => new { Category = c, Tag = t })
+                .Where(x => r.Tags.Any(a => a.TagId == x.Tag.Id))
+                .OrderBy(x => x.Category.Order).ThenBy(x => x.Category.Name).ThenBy(x => x.Tag.Name).ThenBy(x => x.Tag.Id)
+                .Select(x => new IntakeRequestTagNavigationDto
+                {
+                    Id = x.Tag.Id,
+                    Name = x.Tag.Name,
+                    CategoryId = x.Category.Id,
+                    CategoryName = x.Category.Name,
+                })
+                .ToList(),
             SubmittedOn = transitions.Where(t => t.RecordId == r.Id)
                 .OrderBy(t => t.Sequence)
                 .Select(t => t.ChangedOn)

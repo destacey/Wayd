@@ -21,11 +21,14 @@ internal static class IntakeRequestAccess
         IntakeRequestReader reader,
         Guid id,
         bool includeParticipants,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool includeTags = false)
     {
         var query = dbContext.IntakeRequests.AsQueryable();
         if (includeParticipants)
             query = query.Include(r => r.Participants);
+        if (includeTags)
+            query = query.Include(r => r.Tags);
 
         return query
             .Where(r => r.Id == id)

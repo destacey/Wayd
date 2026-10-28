@@ -17,7 +17,10 @@ export interface TagChanges {
 }
 
 export interface ManageTagsFormProps {
-  /** The axes to offer. Callers pass the active ones. */
+  /**
+   * The axes to offer, each with the tags it may show. Only these are diffed, so
+   * a tag on an axis not passed stays on the record.
+   */
   categories: TagCategory[]
   /** What the record currently carries. */
   tags: TagAssignment[]
@@ -31,8 +34,12 @@ export interface ManageTagsFormProps {
   onFormComplete: () => void
   onFormCancel: () => void
   title?: string
-  /** Permission the modal gates on, checked by useModalForm. */
-  permission: string
+  /**
+   * Permission the modal gates on, checked by useModalForm. Omitted where tagging
+   * is granted by membership rather than a claim, and the caller opens the form
+   * only for someone the record's capability flag allows.
+   */
+  permission?: string
 }
 
 const toTagIds = (value: string | string[] | undefined): string[] => {
@@ -43,7 +50,10 @@ const toTagIds = (value: string | string[] | undefined): string[] => {
 const tagIdsByCategory = (tags: TagAssignment[]) => {
   const grouped = new Map<string, string[]>()
   for (const tag of tags) {
-    grouped.set(tag.categoryId, [...(grouped.get(tag.categoryId) ?? []), tag.tagId])
+    grouped.set(tag.categoryId, [
+      ...(grouped.get(tag.categoryId) ?? []),
+      tag.tagId,
+    ])
   }
   return grouped
 }
@@ -106,7 +116,8 @@ const ManageTagsForm = ({
       },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
-      errorMessage: 'An error occurred while updating the tags. Please try again.',
+      errorMessage:
+        'An error occurred while updating the tags. Please try again.',
       permission,
     })
 
@@ -135,7 +146,12 @@ const ManageTagsForm = ({
       destroyOnHidden
     >
       <Spin spinning={categoriesLoading}>
-        <Form form={form} size="small" layout="vertical" name="manage-tags-form">
+        <Form
+          form={form}
+          size="small"
+          layout="vertical"
+          name="manage-tags-form"
+        >
           {categories.map((category) => (
             <Form.Item
               key={category.id}

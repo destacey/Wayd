@@ -359,7 +359,7 @@ describe('NotificationList', () => {
   it('shows an entry with no page for its record without a link', () => {
     // Arrange
     const entry = buildNotification({
-      record: buildNotifiedRecord({ ownerType: 'demand.intake-request' }),
+      record: buildNotifiedRecord({ ownerType: 'demand.unknown-record' }),
     })
 
     // Act

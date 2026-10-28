@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using NodaTime;
+using Wayd.Common.Application.Activities;
+using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Notifications.Queries;
@@ -9,6 +12,8 @@ using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Following;
 using Wayd.Common.Domain.Notifications;
+using Wayd.DemandManagement.Application.IntakeRequests;
+using Wayd.DemandManagement.Domain;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
 using Wayd.Infrastructure.Notifications;
 using Wayd.Infrastructure.Persistence.Context;
@@ -53,7 +58,7 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
         await using (var seed = fixture.CreateContext())
         {
             var store = new NotificationStore(seed);
-            foreach (var descriptor in PpmFollowOwners.All.Concat(PlanningFollowOwners.All))
+            foreach (var descriptor in PpmFollowOwners.All.Concat(PlanningFollowOwners.All).Concat(DemandManagementFollowOwners.All))
             {
                 await Seed(store, recipient.Id, descriptor.Key, Guid.CreateVersion7(), Timestamp.Plus(Duration.FromDays(1)));
             }
@@ -161,7 +166,7 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
         await using (var seed = fixture.CreateContext())
         {
             var store = new NotificationStore(seed);
-            foreach (var descriptor in PpmFollowOwners.All.Concat(PlanningFollowOwners.All))
+            foreach (var descriptor in PpmFollowOwners.All.Concat(PlanningFollowOwners.All).Concat(DemandManagementFollowOwners.All))
             {
                 await Seed(store, recipient.Id, descriptor.Key, Guid.CreateVersion7(), Timestamp);
             }
@@ -205,7 +210,7 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
 
         await using (var seed = fixture.CreateContext())
         {
-            foreach (var descriptor in PpmFollowOwners.All.Concat(PlanningFollowOwners.All))
+            foreach (var descriptor in PpmFollowOwners.All.Concat(PlanningFollowOwners.All).Concat(DemandManagementFollowOwners.All))
             {
                 seed.RecordMutes.Add(RecordMute.Create(descriptor.Key, Guid.CreateVersion7(), caller.Id, Timestamp.Plus(Duration.FromDays(1))).Value);
             }
@@ -261,6 +266,7 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
     {
         PpmFollowOwners.Register();
         PlanningFollowOwners.Register();
+        DemandManagementFollowOwners.Register();
         FollowOwners.Register(EmployeeOwner, ColleagueOwner);
     }
 
@@ -269,6 +275,7 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
         new ProjectReadRule(context, principal, Clock()),
         new ProgramReadRule(context, principal),
         new PlanningIntervalObjectiveReadRule(context, principal, Clock()),
+        new IntakeRequestReadRule(context, principal, FeatureFlagsOn()),
         new EmployeeReadRule(context, readable, EmployeeOwner.Key),
         new EmployeeReadRule(context, readable, ColleagueOwner.Key),
     ];
@@ -278,6 +285,13 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
         var clock = new Mock<IDateTimeProvider>();
         clock.Setup(c => c.Now).Returns(Timestamp.Plus(Duration.FromDays(1)));
         return clock.Object;
+    }
+
+    private static IFeatureFlags FeatureFlagsOn()
+    {
+        var featureFlags = new Mock<IFeatureFlags>();
+        featureFlags.Setup(f => f.IsEnabled(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        return featureFlags.Object;
     }
 
     private static Mock<ICurrentPrincipal> Principal(Guid employeeId)
@@ -314,5 +328,12 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
                         Lifecycle = LifecycleCategory.Active,
                     },
                     cancellationToken);
+
+        public Task<IQueryable<ActivityStamp>> VisibleActivity(IQueryable<ActivityStamp> activity, CancellationToken cancellationToken) =>
+            Task.FromResult(activity);
+
+        public Task<PagedResponse<ActivityLogDto>> ReadActivity(
+            Guid id, IActivityLogReader activityLogReader, PageRequest paging, CancellationToken cancellationToken) =>
+            activityLogReader.Read(id, ActivityAggregateType, paging, cancellationToken);
     }
 }

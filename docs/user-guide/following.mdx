@@ -1,17 +1,17 @@
 ---
 title: Following
-description: Follow the projects, programs and PI objectives you care about, and find them again in your Following list.
+description: Follow the projects, programs, PI objectives and intake requests you care about, and find them again in your Following list.
 sidebar_position: 9
 audience: [user, agent]
 ---
 
 # Following
 
-Following a record keeps it in your **Following** list, so the projects, programs and planning interval objectives you care about are in one place. Following is behind the **Following** feature flag; an administrator turns it on in **Settings → Feature Flags**.
+Following a record keeps it in your **Following** list, so the projects, programs, planning interval objectives and intake requests you care about are in one place. Following is behind the **Following** feature flag; an administrator turns it on in **Settings → Feature Flags**.
 
 ## Follow a record
 
-Open a project, program or PI objective and select the eye at the top right of the page, at the end of the record's buttons. The eye fills in and takes the highlight color while you follow the record; select it again to stop following. Hover over it to see which it is.
+Open a project, program, PI objective or intake request and select the eye at the top right of the page, at the end of the record's buttons. The eye fills in and takes the highlight color while you follow the record; select it again to stop following. Hover over it to see which it is.
 
 You can follow:
 
@@ -20,21 +20,24 @@ You can follow:
 | [Projects](./ppm/projects.mdx) | View Projects |
 | [Programs](./ppm/portfolios-programs.mdx) | View Programs |
 | [PI Objectives](./planning/planning-intervals.mdx) | View Planning Interval Objectives |
+| [Intake requests](./demand-management/index.mdx#who-can-see-a-request) | None, if you work the request's desk or are its requester, submitter or a participant; otherwise View Intake Requests, and only for a desk that is not private |
+
+Intake requests can be followed only while the **Demand Management** feature flag is on as well.
 
 Following a record you already follow changes nothing, and stopping following one you do not follow is not an error.
 
 ## Your Following list
 
-Open your profile menu (top right) and select **Following**. The page lists everything you follow together, most recently changed first. Each row shows the record's health, its kind (Project, Program or PI Objective), its key, an objective's planning interval, when it last changed and its status. "Last changed" counts everything the record's own Activity section lists.
+Open your profile menu (top right) and select **Following**. The page lists everything you follow together, most recently changed first. Each row shows the record's health, its kind (Project, Program, PI Objective or Request), its key, an objective's planning interval or a request's desk, when it last changed and its status. "Last changed" counts everything the record's own Activity section lists.
 
-- **Narrow the list** by kind of record — Projects, Programs, PI objectives — or to what needs a look. On a wide screen the side rail picks one or the other; on a narrower one the filter row above the list combines a kind with a view. The views are **Health is red** (an unhealthy current health check), **Changed this week** (any activity in the last seven days) and **Closed or done** (completed, canceled or missed — the records worth pruning). Each shows how many it holds. **Filter** by name, or by key exactly, and **sort** by when records last changed or when you followed them; the arrow beside the sort switches between newest and oldest first. Sorted oldest first by last change, records with no activity come first: the ones most likely to have gone quiet.
-- **Select a record** to see it beside the list: its status and health, a project's stages or an objective's progress, its owners and managers (an objective's team), its dates, when you started following it, and what has happened to it since. Select the record's name to open it, or the eye at the top right to stop following it; the next record in the list takes its place. Drag the bar between the list and the record to give either more room; the page remembers where you left it.
+- **Narrow the list** by kind of record — Projects, Programs, PI objectives, Requests — or to what needs a look. On a wide screen the side rail picks one or the other; on a narrower one the filter row above the list combines a kind with a view. The views are **Health is red** (an unhealthy current health check), **Changed this week** (any activity in the last seven days) and **Closed or done** (completed, canceled or missed, or a request that is done or removed — the records worth pruning). Each shows how many it holds. **Filter** by name, or by key exactly, and **sort** by when records last changed or when you followed them; the arrow beside the sort switches between newest and oldest first. Sorted oldest first by last change, records with no activity come first: the ones most likely to have gone quiet.
+- **Select a record** to see it beside the list: its status and health, a project's stages or an objective's progress, its owners and managers (an objective's team; a request's assignee and requester), its dates (a request's need-by date), when you started following it, and what has happened to it since. Select the record's name to open it, or the eye at the top right to stop following it; the next record in the list takes its place. Drag the bar between the list and the record to give either more room; the page remembers where you left it.
 
 On a phone, the list is the page: tap a record to open its details, with **Open** and **Unfollow** pinned at the bottom, and use **Back to the list** (or your browser's back) to return to where you were. With fewer than ten records followed, the page shows just the list and the selected record.
 
 ## What following does not do
 
-- **It grants nothing.** You can follow only a record you can already see, and following it never lets you see more. If you lose access to a record — a permission is removed, or the record is deleted — it disappears from your list and from its group's count.
+- **It grants nothing.** You can follow only a record you can already see, and following it never lets you see more. If you lose access to a record — a permission is removed, the record is deleted, a request moves to a private desk you are not on, or you are removed from a private desk's request — it disappears from your list and from its group's count.
 - **It is only for yourself.** Nobody can follow a record on your behalf, and you cannot add someone else as a follower.
 - **It needs an employee.** A follow belongs to the employee your account is linked to. An account with no linked employee does not see the Follow button.
 
@@ -42,6 +45,6 @@ Following is different from being part of a record. Owners, managers and members
 
 ## Notifications
 
-Following a record means you are told when it changes: the bell at the top right of every page shows the unread count and the newest changes, with why you were told. Taking part in a record tells you too, without following it. See [Notifications](./notifications.mdx).
+Following a record means you are told when it changes — except an intake request, for which notifications are still to come: the bell at the top right of every page shows the unread count and the newest changes, with why you were told. Taking part in a record tells you too, without following it. See [Notifications](./notifications.mdx).
 
 To keep a record in your Following list without being told about it, [mute it](./notifications.mdx#mute-notifications). A muted record shows a muted-speaker icon in the list and **Muted** in its detail. Muting never stops you following it, and unfollowing never unmutes it.

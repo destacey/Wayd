@@ -50,6 +50,12 @@ public sealed record IntakeRequestDetailsDto
     /// <summary>Whether the reader may assign the request to a member of its desk, or unassign it: an agent on its desk.</summary>
     public bool CanChangeAssignee { get; init; }
 
+    /// <summary>
+    /// Whether the reader may apply and remove the request's tags: an agent on its desk. Everyone who sees the
+    /// request sees its tags.
+    /// </summary>
+    public bool CanChangeTags { get; init; }
+
     /// <summary>Whether the reader may withdraw the request: its requester, while it is open.</summary>
     public bool CanWithdraw { get; init; }
 

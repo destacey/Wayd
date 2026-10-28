@@ -247,6 +247,86 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
             .Should().BeTrue();
     }
 
+    [Fact]
+    public async Task SaveChanges_ChoosingADesksTagAxes_PersistsThemAndRecordsTheChange()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        Guid deskId;
+        Guid categoryId;
+        await using (var context = _fixture.CreateContext())
+        {
+            var (desk, _) = await SeedDeskAndChannel(context);
+            var category = IntakeRequestTagCategory.Create(UniqueName("Axis"), null, allowsMany: true, 1, EventActor.System, Now);
+            context.IntakeRequestTagCategories.Add(category);
+            await context.SaveChangesAsync(ct);
+            deskId = desk.Id;
+            categoryId = category.Id;
+        }
+
+        // Act
+        await using (var context = _fixture.CreateContext())
+        {
+            var desk = await context.IntakeDesks.Include(d => d.TagCategories).SingleAsync(d => d.Id == deskId, ct);
+            desk.ChangeTagCategories(false, [categoryId], EventActor.System, Now).IsSuccess.Should().BeTrue();
+            await context.SaveChangesAsync(ct);
+        }
+
+        // Assert
+        await using var reader = _fixture.CreateContext();
+        var saved = await reader.IntakeDesks.AsNoTracking().Include(d => d.TagCategories).SingleAsync(d => d.Id == deskId, ct);
+        saved.OffersAllTagCategories.Should().BeFalse();
+        saved.TagCategories.Select(c => c.CategoryId).Should().Equal(categoryId);
+        (await reader.ActivityLogs.AsNoTracking()
+            .AnyAsync(a => a.AggregateId == deskId && a.EventType == nameof(IntakeDeskTagCategoriesChangedEvent), ct))
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SaveChanges_DeletingATagAxisADeskChose_IsRefusedUnlessTheDeskLetsItGoInTheSameSave()
+    {
+        // Arrange — the key restricts, so only the desk itself can drop the axis, recording that it did
+        var ct = TestContext.Current.CancellationToken;
+        Guid deskId;
+        Guid categoryId;
+        await using (var context = _fixture.CreateContext())
+        {
+            var (desk, _) = await SeedDeskAndChannel(context);
+            var category = IntakeRequestTagCategory.Create(UniqueName("Axis"), null, allowsMany: true, 1, EventActor.System, Now);
+            context.IntakeRequestTagCategories.Add(category);
+            await context.SaveChangesAsync(ct);
+            desk.ChangeTagCategories(false, [category.Id], EventActor.System, Now).IsSuccess.Should().BeTrue();
+            await context.SaveChangesAsync(ct);
+            deskId = desk.Id;
+            categoryId = category.Id;
+        }
+
+        // Act
+        Func<Task> deleteAlone = async () =>
+        {
+            await using var context = _fixture.CreateContext();
+            var category = await context.IntakeRequestTagCategories.Include(c => c.Tags).SingleAsync(c => c.Id == categoryId, ct);
+            context.IntakeRequestTagCategories.Remove(category);
+            await context.SaveChangesAsync(ct);
+        };
+        await deleteAlone.Should().ThrowAsync<DbUpdateException>();
+
+        await using (var context = _fixture.CreateContext())
+        {
+            var desk = await context.IntakeDesks.Include(d => d.TagCategories).SingleAsync(d => d.Id == deskId, ct);
+            var category = await context.IntakeRequestTagCategories.Include(c => c.Tags).SingleAsync(c => c.Id == categoryId, ct);
+            desk.ChangeTagCategories(false, [], EventActor.System, Now).IsSuccess.Should().BeTrue();
+            context.IntakeRequestTagCategories.Remove(category);
+            await context.SaveChangesAsync(ct);
+        }
+
+        // Assert
+        await using var reader = _fixture.CreateContext();
+        (await reader.IntakeRequestTagCategories.AnyAsync(c => c.Id == categoryId, ct)).Should().BeFalse();
+        (await reader.IntakeDesks.AsNoTracking().Include(d => d.TagCategories).SingleAsync(d => d.Id == deskId, ct))
+            .TagCategories.Should().BeEmpty();
+    }
+
     private static string UniqueName(string prefix) => $"{prefix}-{Guid.NewGuid():N}"[..30];
 
     private static async Task<(IntakeDesk Desk, IntakeChannel Channel)> SeedDeskAndChannel(WaydDbContext context)

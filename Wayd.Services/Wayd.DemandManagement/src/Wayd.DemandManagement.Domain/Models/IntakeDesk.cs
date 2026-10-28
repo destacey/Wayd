@@ -27,6 +27,7 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
 {
     private readonly List<IntakeDeskMember> _members = [];
     private readonly List<IntakeDeskChannel> _channels = [];
+    private readonly List<IntakeDeskTagCategory> _tagCategories = [];
 
     private IntakeDesk() { }
 
@@ -140,6 +141,35 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     /// The channels, of those given, that the desk offers. Needs <see cref="Channels"/> loaded.
     /// </summary>
     public IEnumerable<IntakeChannel> OfferedFrom(IEnumerable<IntakeChannel> channels) => channels.Where(Offers);
+
+    /// <summary>
+    /// Whether the desk offers every active company tag axis, including axes added later. A new desk does, until
+    /// a Desk Admin chooses its axes.
+    /// </summary>
+    public bool OffersAllTagCategories { get; private set; } = true;
+
+    /// <summary>
+    /// The company tag axes the desk chose, while it does not offer them all. Empty with
+    /// <see cref="OffersAllTagCategories"/> false means its agents tag along none.
+    /// </summary>
+    /// <remarks>
+    /// Whole axes, never single tags: where desks need different values they use different axes.
+    /// </remarks>
+    public IReadOnlyCollection<IntakeDeskTagCategory> TagCategories => _tagCategories.AsReadOnly();
+
+    /// <summary>
+    /// Whether the desk's agents may tag its requests along the axis. Needs <see cref="TagCategories"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// An inactive axis is offered by no desk, but stays chosen on a desk that chose it. Only applying a tag is
+    /// held to this: a request keeps, shows and can lose tags along any axis.
+    /// </remarks>
+    public bool Offers(IntakeRequestTagCategory category)
+    {
+        Guard.Against.Null(category);
+
+        return category.IsActive && (OffersAllTagCategories || _tagCategories.Any(c => c.CategoryId == category.Id));
+    }
 
     /// <summary>
     /// How many changes the desk has recorded. A change made from a page loaded before another is refused by
@@ -307,6 +337,39 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         Guid[] resulting = [.. _channels.Select(c => c.ChannelId)];
         RaiseWhenKeyed(() => new IntakeDeskChannelsChangedEvent(Id, Key, offersAllChannels, previousOffersAllChannels,
             added, removed, resulting, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Sets which company tag axes the desk offers its agents: every active one, including axes added later, or
+    /// only those chosen, which may be none. Needs <see cref="TagCategories"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// Whether the chosen ids are axes, and whether a newly chosen one is active, is the caller's to check: the
+    /// desk does not hold the company list. Offering every axis clears the chosen list. Requests already tagged
+    /// keep their tags.
+    /// </remarks>
+    public Result ChangeTagCategories(bool offersAllTagCategories, IEnumerable<Guid> categoryIds, EventActor actor, Instant timestamp)
+    {
+        Guid[] target = offersAllTagCategories ? [] : [.. categoryIds.Distinct()];
+        if (target.Any(id => id == Guid.Empty))
+            return Result.Failure("A tag axis id cannot be empty.");
+
+        Guid[] added = [.. target.Where(id => _tagCategories.All(c => c.CategoryId != id))];
+        Guid[] removed = [.. _tagCategories.Select(c => c.CategoryId).Where(id => !target.Contains(id))];
+
+        if (offersAllTagCategories == OffersAllTagCategories && added.Length == 0 && removed.Length == 0)
+            return Result.Success();
+
+        var previousOffersAllTagCategories = OffersAllTagCategories;
+        OffersAllTagCategories = offersAllTagCategories;
+        _tagCategories.RemoveAll(c => removed.Contains(c.CategoryId));
+        _tagCategories.AddRange(added.Select(id => new IntakeDeskTagCategory(Id, id)));
+
+        Guid[] resulting = [.. _tagCategories.Select(c => c.CategoryId)];
+        RaiseWhenKeyed(() => new IntakeDeskTagCategoriesChangedEvent(Id, Key, offersAllTagCategories,
+            previousOffersAllTagCategories, added, removed, resulting, actor, timestamp));
 
         return Result.Success();
     }

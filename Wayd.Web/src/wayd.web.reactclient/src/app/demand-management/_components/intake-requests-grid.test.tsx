@@ -44,6 +44,7 @@ const request = (
     needBy,
     submittedOn: daysAgo(ages.submitted ?? 0),
     statusChangedOn: daysAgo(ages.inStatus ?? 0),
+    tags: [],
   }) as IntakeRequestSummaryDto
 
 const BASES: NeedByBasisDto[] = [
@@ -108,6 +109,33 @@ describe('IntakeRequestsGrid', () => {
     expect(
       screen.queryByRole('link', { name: 'Avery Example' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('shows each tag qualified by its axis', () => {
+    // Arrange / Act
+    renderGrid([
+      {
+        ...request(42, 'Rotate the VPN certificates'),
+        tags: [
+          {
+            id: 't-1',
+            name: 'Payments',
+            categoryId: 'a-1',
+            categoryName: 'Area',
+          },
+          {
+            id: 't-2',
+            name: 'SMB',
+            categoryId: 'a-2',
+            categoryName: 'Segment',
+          },
+        ],
+      },
+    ])
+
+    // Assert
+    expect(screen.getByText('Area | Payments')).toBeInTheDocument()
+    expect(screen.getByText('Segment | SMB')).toBeInTheDocument()
   })
 
   it('shows a request with no channel as Not recorded', () => {

@@ -67,6 +67,20 @@ public static class IntakeRequestFakerExtensions
         return faker;
     }
 
+    public static IntakeRequestFaker WithKey(this IntakeRequestFaker faker, int key)
+    {
+        faker.RuleFor(x => x.Key, key);
+
+        return faker;
+    }
+
+    public static IntakeRequestFaker WithTitle(this IntakeRequestFaker faker, string title)
+    {
+        faker.RuleFor(x => x.Title, title);
+
+        return faker;
+    }
+
     public static IntakeRequestFaker WithNeedBy(this IntakeRequestFaker faker, IntakeRequestNeedBy? needBy)
     {
         faker.RuleFor(x => x.NeedBy, needBy);

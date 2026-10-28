@@ -6,7 +6,10 @@ import {
   IntakeDeskVisibility,
   IntakeDeskVisibilityDto,
 } from '@/src/services/wayd-api'
-import { useGetIntakeChannelsQuery } from '@/src/store/features/demand-management/demand-management-api'
+import {
+  useGetIntakeChannelsQuery,
+  useGetIntakeRequestTagCategoriesQuery,
+} from '@/src/store/features/demand-management/demand-management-api'
 import { Flex, Skeleton, Typography } from 'antd'
 import { FC } from 'react'
 import IntakeDeskWorkflow from './intake-desk-workflow'
@@ -34,6 +37,13 @@ const IntakeDeskSettings: FC<IntakeDeskSettingsProps> = ({
   // An archived channel stays chosen but is offered by no desk.
   const offered = (channels ?? []).filter(
     (c) => c.isActive && desk.channelIds.includes(c.id),
+  )
+  const { data: tagCategories } = useGetIntakeRequestTagCategoriesQuery({
+    includeInactive: true,
+  })
+  // An inactive axis stays chosen but is offered by no desk.
+  const offeredAxes = (tagCategories ?? []).filter(
+    (c) => c.isActive && desk.tagCategoryIds.includes(c.id),
   )
 
   return (
@@ -67,6 +77,20 @@ const IntakeDeskSettings: FC<IntakeDeskSettingsProps> = ({
             <Text type="secondary">
               Requesters are not asked where a request came from.
             </Text>
+          </Flex>
+        )}
+      </LabeledContent>
+      <LabeledContent label="Tag Axes Offered">
+        {desk.offersAllTagCategories ? (
+          'Every tag axis, including ones added later'
+        ) : !tagCategories ? (
+          <Skeleton.Input active size="small" />
+        ) : offeredAxes.length > 0 ? (
+          offeredAxes.map((c) => c.name).join(', ')
+        ) : (
+          <Flex vertical>
+            <Text>None</Text>
+            <Text type="secondary">Requests on this desk are not tagged.</Text>
           </Flex>
         )}
       </LabeledContent>

@@ -28,6 +28,7 @@ const request = (
     channel: { id: 'c-support', name: 'Support' },
     submittedOn: new Date('2026-10-01T00:00:00Z'),
     statusChangedOn: new Date('2026-10-01T00:00:00Z'),
+    tags: [],
     ...overrides,
   }) as IntakeRequestSummaryDto
 
@@ -50,6 +51,31 @@ const requests = [
 ]
 
 describe('applyRequestFilters', () => {
+  it('keeps requests carrying any of the chosen tags', () => {
+    // Arrange
+    const tag = (id: string, categoryId: string) => ({
+      id,
+      name: id,
+      categoryId,
+      categoryName: categoryId,
+    })
+    const tagged = [
+      request('payments', { tags: [tag('t-payments', 'area')] }),
+      request('enterprise', { tags: [tag('t-enterprise', 'segment')] }),
+      request('untagged'),
+    ]
+
+    // Act
+    const result = applyRequestFilters(
+      tagged,
+      { ...DEFAULT_REQUEST_FILTERS, tagIds: ['t-payments', 't-enterprise'] },
+      'e-me',
+    )
+
+    // Assert
+    expect(result.map((r) => r.id)).toEqual(['payments', 'enterprise'])
+  })
+
   it('keeps everything with the default filters', () => {
     // Act
     const result = applyRequestFilters(
@@ -238,6 +264,7 @@ describe('the address', () => {
       statusNames: ['In Review'],
       assignee: 'unassigned',
       channelIds: ['c-1'],
+      tagIds: ['t-1', 't-2'],
       needBy: 'chosen',
     }
 

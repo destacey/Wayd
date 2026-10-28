@@ -1,7 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Wayd.Common.Application.Records;
+using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Interfaces;
+using Wayd.DemandManagement.Application;
+using Wayd.DemandManagement.Domain;
 using Wayd.Common.Domain.Following;
 using Wayd.Infrastructure.Following;
 using Wayd.Planning.Application.Persistence;
@@ -22,7 +25,7 @@ namespace Wayd.Infrastructure.Tests.Sut.Following;
 public sealed class FollowRegistrationTests
 {
     private static readonly string[] ApplicationOwnerTypes =
-        [.. PpmFollowOwners.All.Concat(PlanningFollowOwners.All).Select(d => d.Key)];
+        [.. PpmFollowOwners.All.Concat(PlanningFollowOwners.All).Concat(DemandManagementFollowOwners.All).Select(d => d.Key)];
 
     private static ServiceProvider BuildProvider()
     {
@@ -30,6 +33,8 @@ public sealed class FollowRegistrationTests
 
         services.AddScoped(_ => new Mock<IProjectPortfolioManagementDbContext>().Object);
         services.AddScoped(_ => new Mock<IPlanningDbContext>().Object);
+        services.AddScoped(_ => new Mock<IDemandManagementDbContext>().Object);
+        services.AddScoped(_ => new Mock<IFeatureFlags>().Object);
         services.AddScoped(_ => new Mock<ICurrentPrincipal>().Object);
         services.AddScoped(_ => new Mock<IDateTimeProvider>().Object);
 

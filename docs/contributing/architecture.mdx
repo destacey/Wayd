@@ -329,13 +329,18 @@ record id, the convention status workflows use, so Common holds no module's voca
 followable is a registration in its module, not a schema change:
 
 1. Declare a `FollowOwnerDescriptor` as a static field in the module's domain project (`PpmFollowOwners`,
-   `PlanningFollowOwners`). The key is persisted — namespace it by module and never rename it.
+   `PlanningFollowOwners`, `DemandManagementFollowOwners`). The key is persisted — namespace it by module and never rename it.
 2. Implement `IRecordReadRule` (`Common.Application/Records`) in the module's Application project:
    - `Readable(search)` returns the records the caller may read, by **exactly** the rule the record's own read
      endpoints apply, as `RecordFacts` rows (id, `IsUnhealthy`, `IsClosed`) in a query the database can run. A
      search matches the record's name, or its key in the record's own form.
    - `Describe(ids)` returns a `RecordSummary` per record for one page: key, name, parent, status and its
      `LifecycleCategory`, health, progress, the people who lead it with their roles, and dates.
+   - `VisibleActivity(activity)` and `ReadActivity(id)` hold the record's history to what its own Activity
+     endpoint shows the caller. A record whose history every reader sees whole passes the activity through
+     and reads it with `IActivityLogReader.Read`. One read in tiers — an intake request — narrows both by the
+     same rules as its Activity endpoint, or "last changed" and "what has happened since you followed it"
+     would show a follower what that endpoint withholds.
 3. Register both in `Infrastructure/Following/ConfigureServices.AddFollowing`. `FollowRegistrationTests`
    fails until every registered owner type has exactly one read rule.
 
@@ -344,7 +349,7 @@ The Following list joins the caller's follows to each owner type's `Readable` ro
 only plain columns: a converted value (a value-object key, a string-stored enum) has a different store type in
 each table and breaks the union. `FollowQueryTranslationIntegrationTests` runs every real read rule in that
 union against SQL Server. "Last changed" and "what has happened since you followed it" come from the activity
-log, so they cost a new owner type nothing.
+log, through the read rule's `VisibleActivity` and `ReadActivity`.
 
 **Following grants nothing.** `Readable` only ever narrows: never consult follows from an authorization
 check, and never widen a read because a follow exists. Readability is applied before counting, so a record the

@@ -250,7 +250,7 @@
           "MyFollows"
         ],
         "summary": "List the records you follow.",
-        "description": "Returns one page of the records you follow — projects, programs and planning interval objectives together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` (`ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for records that have finished, whatever the outcome: completed, canceled, or a missed objective) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default) or `Followed`, and `direction` is `Descending` (default, most recent first) or `Ascending`; a record with no activity counts as the least recently changed, so it comes last when descending and first when ascending. `page` starts at 1; `pageSize` is at most 500. Following a record tells you about its changes through your notifications. Requires the following feature flag; returns 404 when it is off.",
+        "description": "Returns one page of the records you follow — projects, programs, planning interval objectives and intake requests together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval, and an intake request its desk. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` (`ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for records that have finished, whatever the outcome: completed, canceled, or a missed objective) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default) or `Followed`, and `direction` is `Descending` (default, most recent first) or `Ascending`; a record with no activity counts as the least recently changed, so it comes last when descending and first when ascending. `page` starts at 1; `pageSize` is at most 500. Following a record tells you about its changes through your notifications. Requires the following feature flag; returns 404 when it is off.",
         "operationId": "MyFollows_GetFollows",
         "parameters": [
           {
@@ -403,7 +403,7 @@
           "MyFollows"
         ],
         "summary": "Get a record you follow, with what has happened since you followed it.",
-        "description": "Returns the record as `Me_GetFollows` lists it (`record`), plus `progress` (0–100, objectives only), `people` (each with a `role`, a `name` and the `employeeId` of a person, null for a team: a project's or program's owners then managers, an objective's team), `start` and `end`, and `changesSinceFollowed`: its activity since you followed it, newest first, at most 20 — `hasMoreChanges` says whether there is more. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Returns 404 when you do not follow the record or can no longer read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.",
+        "description": "Returns the record as `Me_GetFollows` lists it (`record`), plus `progress` (0–100, objectives only), `people` (each with a `role`, a `name` and the `employeeId` of a person, null for a team: a project's or program's owners then managers, an objective's team, an intake request's assignee then requester), `start` and `end` (an intake request's `end` is its need-by date), and `changesSinceFollowed`: its activity since you followed it, newest first, at most 20 — `hasMoreChanges` says whether there is more. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Returns 404 when you do not follow the record or can no longer read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.",
         "operationId": "MyFollows_GetFollowedRecord",
         "parameters": [
           {
@@ -481,7 +481,7 @@
           "MyFollows"
         ],
         "summary": "Get whether you follow a record.",
-        "description": "Returns `isFollowing` and, when true, `followedOn`. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Returns 404 when the record does not exist or you cannot read it — even if you followed it before losing access — and 400 for an owner type that cannot be followed. Requires the following feature flag.",
+        "description": "Returns `isFollowing` and, when true, `followedOn`. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Returns 404 when the record does not exist or you cannot read it — even if you followed it before losing access — and 400 for an owner type that cannot be followed. Requires the following feature flag.",
         "operationId": "MyFollows_GetFollowStatus",
         "parameters": [
           {
@@ -557,7 +557,7 @@
           "MyFollows"
         ],
         "summary": "Follow a record.",
-        "description": "Follows the record for you. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Following a record you already follow changes nothing and still succeeds. You can follow only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Following grants no access; it tells you about the record's changes through your notifications. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
+        "description": "Follows the record for you. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Following a record you already follow changes nothing and still succeeds. You can follow only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Following grants no access; it tells you about the record's changes through your notifications. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
         "operationId": "MyFollows_Follow",
         "parameters": [
           {
@@ -636,7 +636,7 @@
           "MyFollows"
         ],
         "summary": "Stop following a record.",
-        "description": "Removes your follow of the record. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Succeeds whether or not you followed it, and works on a record you can no longer read. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
+        "description": "Removes your follow of the record. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Succeeds whether or not you followed it, and works on a record you can no longer read. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
         "operationId": "MyFollows_Unfollow",
         "parameters": [
           {
@@ -707,7 +707,7 @@
           "MyNotificationMutes"
         ],
         "summary": "List the records you have muted.",
-        "description": "Returns one page of the records you have muted, most recently muted first: each with `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle`, `isFollowing` (muting never stops following) and `mutedOn`; an objective also carries `parentKey` and `parentName`, its planning interval. A muted record tells you nothing more, whatever the reason. A record you can no longer read is left out of the page and the total. `page` starts at 1; `pageSize` is at most 500. Requires the following feature flag; returns 404 when it is off.",
+        "description": "Returns one page of the records you have muted, most recently muted first: each with `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle`, `isFollowing` (muting never stops following) and `mutedOn`; an objective also carries `parentKey` and `parentName`, its planning interval, and an intake request its desk. A muted record tells you nothing more, whatever the reason. A record you can no longer read is left out of the page and the total. `page` starts at 1; `pageSize` is at most 500. Requires the following feature flag; returns 404 when it is off.",
         "operationId": "MyNotificationMutes_GetMutedRecords",
         "parameters": [
           {
@@ -766,7 +766,7 @@
           "MyNotificationMutes"
         ],
         "summary": "Get whether you have muted a record.",
-        "description": "Returns `isMuted` and, when true, `mutedOn`. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.",
+        "description": "Returns `isMuted` and, when true, `mutedOn`. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.",
         "operationId": "MyNotificationMutes_GetRecordMuteStatus",
         "parameters": [
           {
@@ -842,7 +842,7 @@
           "MyNotificationMutes"
         ],
         "summary": "Mute a record.",
-        "description": "Mutes the record for you: you are told nothing more about it, whether you follow it, take part in it, or both, and your unread notifications about it are marked read. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Muting a record you already muted changes nothing and still succeeds; `wasAlreadyMuted` says which happened, so an undo unmutes only a mute this call made. Muting changes nothing else: you keep your access and your roles, and you still follow the record if you did. Unmuting brings back nothing that happened while it was muted. You can mute only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
+        "description": "Mutes the record for you: you are told nothing more about it, whether you follow it, take part in it, or both, and your unread notifications about it are marked read. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Muting a record you already muted changes nothing and still succeeds; `wasAlreadyMuted` says which happened, so an undo unmutes only a mute this call made. Muting changes nothing else: you keep your access and your roles, and you still follow the record if you did. Unmuting brings back nothing that happened while it was muted. You can mute only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
         "operationId": "MyNotificationMutes_MuteRecord",
         "parameters": [
           {
@@ -928,7 +928,7 @@
           "MyNotificationMutes"
         ],
         "summary": "Unmute a record.",
-        "description": "Removes your mute of the record, so its later changes notify you again. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Succeeds whether or not you had muted it, and works on a record you can no longer read. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
+        "description": "Removes your mute of the record, so its later changes notify you again. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Succeeds whether or not you had muted it, and works on a record you can no longer read. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
         "operationId": "MyNotificationMutes_UnmuteRecord",
         "parameters": [
           {
@@ -1149,7 +1149,7 @@
           "MyNotifications"
         ],
         "summary": "List your notifications.",
-        "description": "Returns one page of your notifications, one entry per record, newest change first. Each entry has the `record` (`ownerType`, `id`, `key`, `name`, `statusName`; an objective also carries `parentKey` and `parentName`, its planning interval), the newest change — `event` (`Created`, `StatusChanged`, `LifecycleChanged`, `HealthReported`, `TimelineChanged`, `RolesChanged`, `Reparented`, `ScoreRecorded`), `eventId`, `occurredOn`, `actorKind` and `actor` (null when no employee is linked to whoever made it) — the `reasons` you were told (`Following`: you follow the record; `Role`: you hold a role on it, or are on the team that owns it; and later `Requester`, `Assigned`, `Participant`, `Mentioned`, `Desk`), `unreadCount`, `count`, `isUnread` and `latestNotificationId`. You are never told about your own changes, or about imports. A record you can no longer read is left out. `unreadOnly` keeps only entries with something unread. `pageSize` is at most 500. For the next page, pass the response's `nextCursor` as `before`; `nextCursor` is null on the last page. Paging by cursor means an entry that moves to the top while you read on is neither repeated nor skipped; it appears when you read the first page again. Requires the following feature flag; returns 404 when it is off.",
+        "description": "Returns one page of your notifications, one entry per record, newest change first. Each entry has the `record` (`ownerType`, `id`, `key`, `name`, `statusName`; an objective also carries `parentKey` and `parentName`, its planning interval, and an intake request its desk), the newest change — `event` (`Created`, `StatusChanged`, `LifecycleChanged`, `HealthReported`, `TimelineChanged`, `RolesChanged`, `Reparented`, `ScoreRecorded`), `eventId`, `occurredOn`, `actorKind` and `actor` (null when no employee is linked to whoever made it) — the `reasons` you were told (`Following`: you follow the record; `Role`: you hold a role on it, or are on the team that owns it; and later `Requester`, `Assigned`, `Participant`, `Mentioned`, `Desk`), `unreadCount`, `count`, `isUnread` and `latestNotificationId`. You are never told about your own changes, or about imports. A record you can no longer read is left out. `unreadOnly` keeps only entries with something unread. `pageSize` is at most 500. For the next page, pass the response's `nextCursor` as `before`; `nextCursor` is null on the last page. Paging by cursor means an entry that moves to the top while you read on is neither repeated nor skipped; it appears when you read the first page again. Requires the following feature flag; returns 404 when it is off.",
         "operationId": "MyNotifications_GetNotifications",
         "parameters": [
           {
@@ -1305,7 +1305,7 @@
           "MyNotifications"
         ],
         "summary": "Mark your notifications about one record read.",
-        "description": "Marks every notification you have about the record read — the whole entry the list shows for it. `ownerType` is `ppm.project`, `ppm.program` or `planning.planning-interval-objective`; `ownerId` is the record's UUID, not its key. Succeeds whether or not anything was unread. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
+        "description": "Marks every notification you have about the record read — the whole entry the list shows for it. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Succeeds whether or not anything was unread. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.",
         "operationId": "MyNotifications_MarkRecordRead",
         "parameters": [
           {
@@ -41747,6 +41747,128 @@
         ]
       }
     },
+    "/api/demand-management/intake-requests/{id}/tags/{tagId}": {
+      "put": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "File an intake request under a tag.",
+        "description": "Needs an agent on the request's desk. The tag must be active, on an active axis. On an axis that takes one tag, this replaces the tag the request held there. Applying a tag the request already carries changes nothing.",
+        "operationId": "IntakeRequests_Tag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "tagId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Take a tag off an intake request.",
+        "description": "Needs an agent on the request's desk. Works for an inactive tag too. Removing a tag the request does not carry changes nothing.",
+        "operationId": "IntakeRequests_Untag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "tagId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/demand-management/intake-requests/need-by-bases": {
       "get": {
         "tags": [
@@ -41793,6 +41915,645 @@
                   "items": {
                     "$ref": "#/components/schemas/NeedByBasisFamilyDto"
                   }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-request-tag-categories": {
+      "get": {
+        "tags": [
+          "IntakeRequestTagCategories"
+        ],
+        "summary": "Get the intake request tag axes, each with its tags.",
+        "description": "Axes in presentation order, tags alphabetically, inactive tags included. Inactive axes only with `includeInactive`. With `deskId`, only the active axes that desk's agents tag along, which may be none; `includeInactive` is then ignored. Each tag's `requestCount` counts only the requests the caller can see.",
+        "operationId": "IntakeRequestTagCategories_GetIntakeRequestTagCategories",
+        "parameters": [
+          {
+            "name": "includeInactive",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 1
+          },
+          {
+            "name": "deskId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeRequestTagCategoryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "IntakeRequestTagCategories"
+        ],
+        "summary": "Add an intake request tag axis to the end of the list.",
+        "description": "The axis starts with no tags. `allowsMany` cannot be changed afterwards.",
+        "operationId": "IntakeRequestTagCategories_Create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIntakeRequestTagCategoryRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-request-tag-categories/{id}": {
+      "put": {
+        "tags": [
+          "IntakeRequestTagCategories"
+        ],
+        "summary": "Rename an intake request tag axis or change its description.",
+        "description": "Refused on a system axis.",
+        "operationId": "IntakeRequestTagCategories_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIntakeRequestTagCategoryRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "IntakeRequestTagCategories"
+        ],
+        "summary": "Delete an intake request tag axis and its tags.",
+        "description": "Refused on a system axis, and while any request is tagged along it; deactivate it instead.",
+        "operationId": "IntakeRequestTagCategories_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-request-tag-categories/{id}/active": {
+      "put": {
+        "tags": [
+          "IntakeRequestTagCategories"
+        ],
+        "summary": "Take an intake request tag axis out of use, or put it back.",
+        "description": "Nothing new can be tagged along an inactive axis; requests already tagged keep their tags and can still have them removed.",
+        "operationId": "IntakeRequestTagCategories_SetActive",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetIntakeRequestTagCategoryActiveRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-request-tag-categories/order": {
+      "put": {
+        "tags": [
+          "IntakeRequestTagCategories"
+        ],
+        "summary": "Put the intake request tag axes in the order they are presented.",
+        "description": "The list must name every axis, inactive ones included, exactly once; a partial list is refused.",
+        "operationId": "IntakeRequestTagCategories_Reorder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderIntakeRequestTagCategoriesRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-request-tag-categories/{id}/tags": {
+      "post": {
+        "tags": [
+          "IntakeRequestTagCategories"
+        ],
+        "summary": "Add a tag to an intake request tag axis.",
+        "description": "Tag names are unique within their axis. Refused on a system axis.",
+        "operationId": "IntakeRequestTagCategories_AddTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddIntakeRequestTagRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-request-tag-categories/{id}/tags/{tagId}": {
+      "put": {
+        "tags": [
+          "IntakeRequestTagCategories"
+        ],
+        "summary": "Rename a tag or change its description.",
+        "description": "Every request carrying the tag reads the new name. Refused on a system axis.",
+        "operationId": "IntakeRequestTagCategories_UpdateTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "tagId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIntakeRequestTagRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "IntakeRequestTagCategories"
+        ],
+        "summary": "Delete a tag.",
+        "description": "Refused on a system axis, and while any request carries the tag; deactivate it instead.",
+        "operationId": "IntakeRequestTagCategories_DeleteTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "tagId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-request-tag-categories/{id}/tags/{tagId}/active": {
+      "put": {
+        "tags": [
+          "IntakeRequestTagCategories"
+        ],
+        "summary": "Take a tag out of use, or put it back.",
+        "description": "An inactive tag cannot be applied; requests already carrying it keep it and can still have it removed. Refused on a system axis.",
+        "operationId": "IntakeRequestTagCategories_SetTagActive",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "tagId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetIntakeRequestTagActiveRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -47017,6 +47778,28 @@
         "additionalProperties": false,
         "description": "Someone to give access to an intake request as a participant."
       },
+      "AddIntakeRequestTagRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "The label, unique within the axis."
+          },
+          "description": {
+            "maxLength": 512,
+            "type": "string",
+            "description": "What the label means, where it is not obvious.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A tag to add to a tag axis."
+      },
       "AddPersonaRequest": {
         "required": [
           "name",
@@ -49770,6 +50553,33 @@
         },
         "additionalProperties": false,
         "description": "A request submitted to a desk, for the caller or on someone else's behalf."
+      },
+      "CreateIntakeRequestTagCategoryRequest": {
+        "required": [
+          "name",
+          "allowsMany"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the company calls the axis. Unique among active and inactive axes."
+          },
+          "description": {
+            "maxLength": 512,
+            "type": "string",
+            "description": "What the axis is for, shown when choosing tags.",
+            "nullable": true
+          },
+          "allowsMany": {
+            "type": "boolean",
+            "description": "Whether a request can carry several tags from the axis. When false, tagging a request replaces the tag it\nheld on the axis. Cannot be changed afterwards."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A tag axis to add to the end of the list, with no tags."
       },
       "CreateLinkRequest": {
         "required": [
@@ -53533,7 +54343,7 @@
           },
           "parentKey": {
             "type": "string",
-            "description": "The key of the record this one is addressed under, such as a planning interval objective's planning\ninterval. Null when the owner type does not nest.",
+            "description": "The key of the record this one sits under, such as a planning interval objective's planning interval\nor an intake request's desk. Null when the owner type has no parent.",
             "nullable": true
           },
           "parentName": {
@@ -56402,6 +57212,8 @@
           "isOpen",
           "requesterMayAddParticipants",
           "offersAllChannels",
+          "offersAllTagCategories",
+          "tagCategoryIds",
           "revision",
           "canManage",
           "canAdminister",
@@ -56458,6 +57270,18 @@
               "format": "uuid"
             },
             "description": "The company channels the desk chose, in the company's order, while it does not offer them all; an\narchived one stays chosen but is not offered. Empty with bool IntakeDeskDto.OffersAllChannels false means the\ndesk offers none."
+          },
+          "offersAllTagCategories": {
+            "type": "boolean",
+            "description": "Whether the desk's agents tag along every active company tag axis, including axes added later."
+          },
+          "tagCategoryIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The tag axes the desk chose, in the company's order, while it does not offer them all; an inactive one\nstays chosen but is not offered. Empty with bool IntakeDeskDto.OffersAllTagCategories false means its agents tag\nalong none."
           },
           "revision": {
             "type": "integer",
@@ -56683,6 +57507,7 @@
           "isDeskAgent",
           "canChangeStatus",
           "canChangeAssignee",
+          "canChangeTags",
           "canWithdraw"
         ],
         "type": "object",
@@ -56735,6 +57560,10 @@
           "canChangeAssignee": {
             "type": "boolean",
             "description": "Whether the reader may assign the request to a member of its desk, or unassign it: an agent on its desk."
+          },
+          "canChangeTags": {
+            "type": "boolean",
+            "description": "Whether the reader may apply and remove the request's tags: an agent on its desk. Everyone who sees the\nrequest sees its tags."
           },
           "canWithdraw": {
             "type": "boolean",
@@ -57016,6 +57845,7 @@
           "requester",
           "id",
           "key",
+          "tags",
           "submittedOn",
           "statusChangedOn"
         ],
@@ -57086,6 +57916,13 @@
             "description": "When the request has to land and why, when it has a need-by date.",
             "nullable": true
           },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntakeRequestTagNavigationDto"
+            },
+            "description": "The tags reviewers filed the request under, by axis order and then name. Inactive tags the request still\ncarries are included."
+          },
           "submittedOn": {
             "type": "string",
             "description": "When the request was submitted, from which its age is read.",
@@ -57099,6 +57936,127 @@
         },
         "additionalProperties": false,
         "description": "The summary tier of an intake request: enough to recognise that an ask exists."
+      },
+      "IntakeRequestTagCategoryDto": {
+        "required": [
+          "name",
+          "tags",
+          "id",
+          "allowsMany",
+          "order",
+          "isActive",
+          "isSystem"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The axis's id.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "What the company calls the axis."
+          },
+          "description": {
+            "type": "string",
+            "description": "What the axis is for, when described.",
+            "nullable": true
+          },
+          "allowsMany": {
+            "type": "boolean",
+            "description": "Whether a request can carry several tags from the axis. When false, tagging a request replaces the tag\nit held on the axis. Fixed once the axis exists."
+          },
+          "order": {
+            "type": "integer",
+            "description": "Position when presenting the axes, lowest first.",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether requests can still be tagged along the axis."
+          },
+          "isSystem": {
+            "type": "boolean",
+            "description": "Whether the platform defines the axis, which then cannot be renamed, given tags or deleted."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntakeRequestTagOptionDto"
+            },
+            "description": "The axis's tags, alphabetically, inactive ones included."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A tag axis reviewers file intake requests along, with its tags."
+      },
+      "IntakeRequestTagNavigationDto": {
+        "required": [
+          "name",
+          "categoryName",
+          "id",
+          "categoryId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The tag's id.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The label."
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "The tag's axis.",
+            "format": "uuid"
+          },
+          "categoryName": {
+            "type": "string",
+            "description": "What the company calls the tag's axis."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A tag an intake request carries, named with its axis."
+      },
+      "IntakeRequestTagOptionDto": {
+        "required": [
+          "name",
+          "id",
+          "isActive",
+          "requestCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The tag's id, which a request refers to.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The label, unique within its axis."
+          },
+          "description": {
+            "type": "string",
+            "description": "What the label means, when described.",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether requests can still be given the tag."
+          },
+          "requestCount": {
+            "type": "integer",
+            "description": "How many requests the reader can see carry the tag, so an admin can see what deactivating or deleting it\nwould touch. Counts only visible requests, so it never discloses a private desk's.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One tag on an axis, as the settings page and the pickers list it."
       },
       "IntakeWorkflowChoiceDto": {
         "required": [
@@ -58335,7 +59293,7 @@
           },
           "parentKey": {
             "type": "string",
-            "description": "The key of the record this one is addressed under, such as a planning interval objective's planning\ninterval. Null when the owner type does not nest.",
+            "description": "The key of the record this one sits under, such as a planning interval objective's planning interval\nor an intake request's desk. Null when the owner type has no parent.",
             "nullable": true
           },
           "parentName": {
@@ -58680,7 +59638,7 @@
           },
           "parentKey": {
             "type": "string",
-            "description": "The key of the record this one is addressed under, such as a planning interval objective's planning\ninterval. Null when the owner type does not nest.",
+            "description": "The key of the record this one sits under, such as a planning interval objective's planning interval\nor an intake request's desk. Null when the owner type has no parent.",
             "nullable": true
           },
           "parentName": {
@@ -64357,6 +65315,25 @@
         "additionalProperties": false,
         "description": "The order requesters see the channels in."
       },
+      "ReorderIntakeRequestTagCategoriesRequest": {
+        "required": [
+          "orderedCategoryIds"
+        ],
+        "type": "object",
+        "properties": {
+          "orderedCategoryIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Every axis, inactive ones included, in order. A partial list is refused."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The order the tag axes are presented in."
+      },
       "ReorderPersonaRequest": {
         "required": [
           "newOrder"
@@ -66225,6 +67202,34 @@
           }
         },
         "additionalProperties": false
+      },
+      "SetIntakeRequestTagActiveRequest": {
+        "required": [
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "isActive": {
+            "type": "boolean",
+            "description": "True to put the tag back into use, false to take it out of use. Requests already carrying it keep it\neither way."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Whether requests can be given a tag."
+      },
+      "SetIntakeRequestTagCategoryActiveRequest": {
+        "required": [
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "isActive": {
+            "type": "boolean",
+            "description": "True to put the axis back into use, false to take it out of use. Requests already tagged along it keep\ntheir tags either way."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Whether requests can be tagged along a tag axis."
       },
       "SetProductTagActiveRequest": {
         "required": [
@@ -72817,7 +73822,8 @@
           "requesterMayAddParticipants",
           "members",
           "expectedRevision",
-          "channelIds"
+          "channelIds",
+          "tagCategoryIds"
         ],
         "type": "object",
         "properties": {
@@ -72872,6 +73878,21 @@
               "format": "uuid"
             },
             "description": "The company channels the desk offers when `offersAllChannels` is false; empty means the desk offers\nnone, and its submit form does not ask where a request came from. Leave it out to keep the ones it has.\nIgnored unless `offersAllChannels` is false. A channel already chosen may stay after it is archived;\na newly chosen one must be active.",
+            "nullable": true
+          },
+          "offersAllTagCategories": {
+            "type": "boolean",
+            "description": "Whether the desk's agents tag requests along every active company tag axis, including axes added later. A\nnew desk does. Leave it out to keep the desk's axes as they are.",
+            "nullable": true
+          },
+          "tagCategoryIds": {
+            "type": "array",
+            "items": {
+              "minLength": 1,
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The tag axes the desk's agents tag along when `offersAllTagCategories` is false; empty means none. Leave\nit out to keep the ones it has. Ignored unless `offersAllTagCategories` is false. An axis already chosen\nmay stay after it is deactivated; a newly chosen one must be active. Requests keep tags along any axis.",
             "nullable": true
           },
           "members": {
@@ -72938,6 +73959,57 @@
         },
         "additionalProperties": false,
         "description": "An intake request's editable fields, overwritten as a whole. Fields that did not change record nothing."
+      },
+      "UpdateIntakeRequestTagCategoryRequest": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The axis being changed; must match the route.",
+            "format": "uuid"
+          },
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the company calls the axis. Unique among active and inactive axes."
+          },
+          "description": {
+            "maxLength": 512,
+            "type": "string",
+            "description": "What the axis is for, or null for no description.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A tag axis's new name and description."
+      },
+      "UpdateIntakeRequestTagRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "The label, unique within the axis."
+          },
+          "description": {
+            "maxLength": 512,
+            "type": "string",
+            "description": "What the label means, or null for no description.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A tag's new name and description. Every request carrying the tag reads the new name."
       },
       "UpdateLinkRequest": {
         "required": [
@@ -78087,6 +79159,9 @@
     },
     {
       "name": "IntakeRequests"
+    },
+    {
+      "name": "IntakeRequestTagCategories"
     },
     {
       "name": "AzureDevOpsConnections"

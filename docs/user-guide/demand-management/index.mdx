@@ -102,6 +102,16 @@ A **channel** records where a request came from: business stakeholder, customer 
 - **A desk can offer none.** Its submit form then does not ask where a request came from, and its requests have no channel, shown as **Not recorded**.
 - **A request keeps its channel.** Moving it to another desk never changes or clears its channel, even when the new desk does not offer it, because it records where the ask came from. An agent can change it to one the new desk offers. A request also keeps a channel after the channel is archived.
 
+### Tags
+
+**Tags** are the reviewing team's own filing: the area a request concerns, the customer segment, the review cycle — whatever the intake team needs to slice requests by. They are neither the channel a request came through nor anything the requester picks.
+
+- **Tags sit on axes.** An axis such as **Area** holds the tags you can choose along it. One company set of axes serves every desk, so a filter on *Area: Payments* means the same on every desk. Wayd starts with one axis, **Area**, which takes several tags and has none until you add them.
+- **Each desk uses the axes that apply to it.** A new desk uses every axis, including ones added later, until a Desk Admin [chooses its axes](#choosing-the-tag-axes-a-desk-uses). Where desks need different values, they use different axes — *IT Area* and *Product Area* — rather than sharing one.
+- **An axis takes one tag or several.** On an axis that takes several, tagging adds to what the request has. On one that takes a single tag, choosing another replaces it. This is set when the axis is created and cannot change.
+- **Reviewers apply them.** An agent on the request's desk adds and removes tags, along the axes that desk uses. Everyone who can see the request sees its tags, including on a **Summary Only** desk, but the requester and participants cannot change them.
+- **Deactivating keeps what is already tagged.** A deactivated tag, or every tag on a deactivated axis, can no longer be applied, but requests that carry it keep it, and it can still be removed from them.
+
 ### Need-by date and its basis
 
 A date on its own tells an agent nothing. Two requests can both say 31 December, one because a regulation sets the date and one because somebody picked it in a meeting. So a need-by date always carries its **basis**, the thing that makes it that date, and a reference saying what the date rests on.
@@ -157,10 +167,11 @@ The same filters apply to both layouts, so switching between them never changes 
 - **Desk**, **Status** and **Channel** — Pick one or more. **Desks I work** stands for your own desks, so a shared link with it shows each reader their own; status names are matched across desks, so *In Review* means every desk's *In Review*. **Channel** lists archived channels too, and **Not recorded** for requests with no channel
 - **Assignee** — Anyone, **Assigned to me**, or **Not assigned**. **Assigned to me**, as a filter and as a view, is offered only when your account is linked to an employee record
 - **Need by** — Any date, **Fixed for us**, **We chose it**, or **No date given**
+- **Tags** — Pick one or more, grouped by axis, to keep requests carrying any of them. Inactive tags are listed too, since requests keep them. Shown once the company has added tags
 
 The filters and the layout are kept in the page's address, so a view can be bookmarked or sent to someone. If you work a desk, the page opens on **My desks**; otherwise it opens on every open request. Switch between **List** and **Board** with the icons at the right of the toolbar. **Reset filters**, the clear icon at the end of the filters, puts them all back to every open request. On a phone the filters fold behind a **Filters** button.
 
-**List** shows each request's number, title, status, how long it has been in that status, its need-by date with what makes it that date, its age, assignee, desk, requester and channel, or **Not recorded** for a request with none. Need-by dates are coloured by their basis — red for a date fixed for us, amber for a promise — and time in status and age turn amber after a week and red after three. Sorting **Need By** ascending puts the earliest date first, a fixed date before a chosen one on the same day, and requests with no date last; descending reverses that. Hovering a status shows its category. The desk links to its page, and the requester and assignee link to theirs if you can view employees; otherwise they are plain names.
+**List** shows each request's number, title, status, how long it has been in that status, its need-by date with what makes it that date, its age, assignee, desk, requester and channel, or **Not recorded** for a request with none, and its [tags](#tags), each named with its axis. Need-by dates are coloured by their basis — red for a date fixed for us, amber for a promise — and time in status and age turn amber after a week and red after three. Sorting **Need By** ascending puts the earliest date first, a fixed date before a chosen one on the same day, and requests with no date last; descending reverses that. Hovering a status shows its category. The desk links to its page, and the requester and assignee link to theirs if you can view employees; otherwise they are plain names.
 
 **Board** shows the same requests as cards in columns, one per stage of the desk's review workflow, in the workflow's order, so a stage with nothing in it still shows. A heading names the desk the board is for. Desks that follow different workflows have no single board, so with more than one such desk in scope the page asks you to pick one. Each card shows the number, title, need-by date, requester and time in its stage, with a red edge when the date is fixed for us; opening it opens the request. Moving a request between stages is done from the request, since some moves ask for a reason. On a phone the board shows one stage at a time, chosen from a list with each stage's count.
 
@@ -168,12 +179,14 @@ The filters and the layout are kept in the page's address, so a view can be book
 
 ### The request page
 
-Opening a request shows its number and title, with its status beside the title; clicking the status opens its history. The trail beneath the title leads back to **Requests** through the desk the request is on, and beneath that a line says who raised it, when, and where it came from when that was recorded. The panel opened from the header lists its desk, channel, requester and assignee and, where you can read them, who submitted it and where it came from.
+Opening a request shows its number and title, with its status and [tags](#tags) beside the title; clicking the status opens its history. An agent on the request's desk changes the tags with the edit icon beside them or **Manage Tags** in the actions menu, choosing from the axes the desk uses. A tag the request carries along an axis the desk does not use — one it brought from another desk — can be removed there but not added to. The trail beneath the title leads back to **Requests** through the desk the request is on, and beneath that a line says who raised it, when, and where it came from when that was recorded. The panel opened from the header lists its desk, channel, requester and assignee and, where you can read them, who submitted it and where it came from.
 
 - **Details** — The reason for its current status, when it has one, then the description, the expected benefits and the need-by date, which says what makes it that date and whether it can move. On a desk that keeps its detail to itself, people outside it see a message saying the detail is limited to that desk, rather than empty fields
 - **People** — The requester, the submitter when it is someone else, and the request's participants. Participants can read the request and reply to it, but cannot change it, and being one does not assign them any work. Shown only to people who can read the request's detail
 - **Status History** — Every status the request has been in, as a timeline or drawn on its desk's workflow. Without the request's detail you see each change without its reason or who made it
 - **Activity** — The request's history, limited to what you can read
+
+Anyone who can see a request can **follow** it with the eye at the top of the page, to keep it in their [Following](../following.mdx) list; the Following feature flag must be on. Following grants nothing: a follower reads exactly what the tiers below allow, and loses the request from their list the moment they can no longer see it — when it moves to a private desk they are not on, they are removed from a private desk's request, or it is deleted. Its history in their Following list shows only what the request's own Activity section shows them. Following a request does not yet tell you when it changes; that comes with request notifications.
 
 **Edit** appears in the actions menu when you can change the request: the requester while it is proposed, or an agent on its desk while it is open. The desk cannot be changed here.
 
@@ -243,7 +256,7 @@ A desk is run from its own page, opened from **Desks** or from the desk named on
 
 - **Requests** — The requests on the desk that you can see
 - **Members** — Who works the desk, and in which role
-- **Settings** — Its name, what to bring here, its review workflow, who can see its requests (with what that exposes, in plain words), the channels it offers, whether it is open, and what requesters may do on it
+- **Settings** — Its name, what to bring here, its review workflow, who can see its requests (with what that exposes, in plain words), the channels and tag axes it offers, whether it is open, and what requesters may do on it
 
 What you can change depends on your role:
 
@@ -252,6 +265,7 @@ What you can change depends on your role:
 | Name and what to bring here | Yes | Yes |
 | Open to new requests, requesters can choose it, requesters may add participants | Yes | Yes |
 | **Channels offered** | Yes | Yes |
+| **Tag axes offered** | Yes | Yes |
 | Name or remove **Agents** | Yes | Yes |
 | **Review workflow** | Yes, while no request is on it | Yes, while no request is on it |
 | Name or remove **Desk Admins** | No | Yes |
@@ -265,6 +279,12 @@ Removing someone from a desk unassigns them from the requests they own there.
 **Channels offered** in the desk's Settings is either **Every channel, including ones added later** — what a new desk starts with — or **Only the channels chosen here**, with the channels ticked. Ticking none means the desk offers no channel: its submit form does not ask where a request came from. An archived channel stays ticked on a desk that chose it, but no desk offers it until it is restored, and it cannot be newly ticked.
 
 Changing what a desk offers changes only what new requests and edits can choose. Requests already on the desk keep their channels, and editing one offers the desk's channels plus the one it has.
+
+#### Choosing the tag axes a desk uses
+
+**Tag axes offered** in the desk's Settings is either **Every tag axis, including ones added later** — what a new desk starts with — or **Only the tag axes chosen here**, with the axes ticked. Ticking none means the desk's requests are not tagged. A deactivated axis stays ticked on a desk that chose it, but no desk uses it until it is activated, and it cannot be newly ticked.
+
+Changing what a desk uses changes only what its agents can apply. Requests keep every tag they already have, and anyone who can see a request still sees all its tags; the **Tags** filter on **Requests** still lists every axis.
 
 #### Choosing a desk's review workflow
 
@@ -284,6 +304,18 @@ The Demand Management Admin keeps the company's list of channels in **Settings �
 - **Edit** renames a channel or changes its description. Every request from it shows the new name.
 - **Drag a row by its grab handle** to reorder the list, which is the order requesters see.
 - **Archive** takes a channel out of use: no desk offers it and no new request can be given it, while requests already from it keep it. **Restore** brings it back. Channels are archived rather than deleted, because requests refer to them.
+
+Every change is recorded in the activity log.
+
+### Managing tag axes
+
+The Demand Management Admin keeps the [tag](#tags) axes in **Settings → Demand Management → Tag Axes**:
+
+- **Add an axis** with a name, a description, and whether a request can carry several of its tags. That last choice cannot be changed later.
+- **Open an axis** to add, rename, deactivate or delete its tags. Each tag shows how many requests carry it, counting only requests you can see.
+- **Drag a row by its grab handle** to reorder the axes, which is the order a request's tags are listed in.
+- **Deactivate** an axis or a tag to stop it being applied; requests that carry it keep it. **Activate** puts it back.
+- **Delete** removes an axis or a tag that no request carries. Once a request has it, deactivate it instead.
 
 Every change is recorded in the activity log.
 
@@ -320,6 +352,6 @@ Most of what happens to a request is decided by [desk roles](#intake-desks), not
 | Permission | What it allows |
 |---|---|
 | View | Browse other people's requests, within the desk visibility above |
-| Administer | The Demand Management Admin: create and delete desks, change a desk's visibility, name Desk Admins, manage channels, and act as Desk Admin on every desk |
+| Administer | The Demand Management Admin: create and delete desks, change a desk's visibility, name Desk Admins, manage channels and tag axes, and act as Desk Admin on every desk |
 
 Submitting a request, and reading, editing (while it is proposed), withdrawing and replying to your own, need no permission. See [Demand Management: desk roles](../settings/permissions.mdx#demand-management-desk-roles).

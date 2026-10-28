@@ -32,6 +32,8 @@ export interface RequestFilters {
   assignee: AssigneeFilter
   /** Empty for every channel; {@link NOT_RECORDED_CHANNEL} stands for requests with none. */
   channelIds: string[]
+  /** Empty for any tags; otherwise requests carrying at least one of these. */
+  tagIds: string[]
   needBy: NeedByFilter
 }
 
@@ -41,6 +43,7 @@ export const DEFAULT_REQUEST_FILTERS: RequestFilters = {
   statusNames: [],
   assignee: 'anyone',
   channelIds: [],
+  tagIds: [],
   needBy: 'any',
 }
 
@@ -93,6 +96,8 @@ export const applyRequestFilters = (
         filters.statusNames.includes(r.status.name)) &&
       (filters.channelIds.length === 0 ||
         filters.channelIds.includes(r.channel?.id ?? NOT_RECORDED_CHANNEL)) &&
+      (filters.tagIds.length === 0 ||
+        r.tags.some((t) => filters.tagIds.includes(t.id))) &&
       (filters.assignee === 'anyone' ||
         (filters.assignee === 'unassigned' && !r.assignee) ||
         (filters.assignee === 'me' &&
@@ -110,6 +115,7 @@ export const activeFilterCount = (filters: RequestFilters): number =>
     filters.statusNames.length > 0,
     filters.assignee !== 'anyone',
     filters.channelIds.length > 0,
+    filters.tagIds.length > 0,
     filters.needBy !== 'any',
   ].filter(Boolean).length
 
@@ -168,7 +174,8 @@ const sameFilters = (a: RequestFilters, b: RequestFilters) =>
   a.needBy === b.needBy &&
   sameSet(a.deskIds, b.deskIds) &&
   sameSet(a.statusNames, b.statusNames) &&
-  sameSet(a.channelIds, b.channelIds)
+  sameSet(a.channelIds, b.channelIds) &&
+  sameSet(a.tagIds, b.tagIds)
 
 /** The built-in view the filters are exactly, or undefined once the reader has changed something. */
 export const matchingView = (
@@ -206,6 +213,7 @@ export const fromSearchParams = (
       'anyone',
     ),
     channelIds: params.getAll('channel'),
+    tagIds: params.getAll('tag'),
     needBy: pick(
       params.get('needBy'),
       ['any', 'fixed', 'chosen', 'none'] as const,
@@ -226,6 +234,7 @@ export const toSearchParams = (
   filters.statusNames.forEach((name) => params.append('status', name))
   if (filters.assignee !== 'anyone') params.set('assignee', filters.assignee)
   filters.channelIds.forEach((id) => params.append('channel', id))
+  filters.tagIds.forEach((id) => params.append('tag', id))
   if (filters.needBy !== 'any') params.set('needBy', filters.needBy)
   return params
 }

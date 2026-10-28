@@ -50,6 +50,13 @@ jest.mock(
         { id: 'c-3', name: 'Engineering', order: 3, isActive: false },
       ],
     }),
+    useGetIntakeRequestTagCategoriesQuery: () => ({
+      data: [
+        { id: 'a-1', name: 'Area', isActive: true, tags: [] },
+        { id: 'a-2', name: 'Segment', isActive: true, tags: [] },
+        { id: 'a-3', name: 'Retired', isActive: false, tags: [] },
+      ],
+    }),
     useGetIntakeDeskVisibilitiesQuery: () => ({
       data: [
         {
@@ -83,6 +90,8 @@ const desk = (overrides: Record<string, unknown> = {}) =>
     requesterMayAddParticipants: true,
     offersAllChannels: true,
     channelIds: [],
+    offersAllTagCategories: true,
+    tagCategoryIds: [],
     members: [
       {
         employee: { id: 'e-1', key: 1, name: 'Avery' },
@@ -166,11 +175,51 @@ describe('EditIntakeDeskSettingsForm', () => {
       requesterMayAddParticipants: true,
       offersAllChannels: true,
       channelIds: [],
+      offersAllTagCategories: true,
+      tagCategoryIds: [],
       members: [
         { employeeId: 'e-1', role: IntakeDeskRole.Admin },
         { employeeId: 'e-2', role: IntakeDeskRole.Agent },
       ],
     })
+  })
+
+  it('saves the tag axes a desk chooses to offer', async () => {
+    // Arrange
+    await renderForm()
+    await act(() =>
+      userEvent.click(
+        screen.getByRole('radio', { name: 'Only the tag axes chosen here' }),
+      ),
+    )
+    await act(() =>
+      userEvent.click(screen.getByRole('checkbox', { name: 'Segment' })),
+    )
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Save' })),
+    )
+
+    // Assert
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        offersAllTagCategories: false,
+        tagCategoryIds: ['a-2'],
+      }),
+    )
+  })
+
+  it('leaves out an inactive tag axis the desk never chose', async () => {
+    // Arrange
+    await renderForm(
+      desk({ offersAllTagCategories: false, tagCategoryIds: [] }),
+    )
+
+    // Assert
+    expect(
+      screen.queryByRole('checkbox', { name: /Retired/ }),
+    ).not.toBeInTheDocument()
   })
 
   it('saves the channels a desk chooses to offer', async () => {

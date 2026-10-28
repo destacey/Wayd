@@ -136,6 +136,22 @@ public sealed class IntakeScenario
         return channel;
     }
 
+    /// <summary>A company tag axis with active tags of the names.</summary>
+    public IntakeRequestTagCategory TagCategory(bool allowsMany = true, params string[] tagNames)
+    {
+        var category = new IntakeRequestTagCategoryFaker().WithAllowsMany(allowsMany).WithTags(tagNames).Generate();
+        DbContext.AddTagCategories(category);
+        return category;
+    }
+
+    /// <summary>Files the request under the tag as already saved, raising nothing.</summary>
+    public void Tagged(IntakeRequest request, IntakeRequestTagCategory category, string tagName)
+    {
+        var desk = DbContext.IntakeDesks.Single(d => d.Id == request.DeskId);
+        request.Tag(category.Tags.Single(t => t.Name == tagName), category, desk, EventActor.System, Instant.MinValue);
+        request.ClearDomainEvents();
+    }
+
     public IntakeRequest Request(IntakeDesk desk, Employee requester, params Guid[] participantIds) =>
         AddRequest(RequestFaker(desk, requester).WithParticipants(participantIds));
 

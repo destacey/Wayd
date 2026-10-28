@@ -1,3 +1,6 @@
+using Wayd.Common.Application.Activities;
+using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Records;
 using Wayd.Common.Domain.Enums;
 using Wayd.Tests.Shared.Infrastructure;
@@ -44,6 +47,12 @@ public sealed class FakeRecordReadRule(string ownerType) : IRecordReadRule
         _records.Add(record);
         return record;
     }
+
+    /// <summary>
+    /// Event types the caller may not see in any record's history, as a rule that reads history in tiers would
+    /// withhold them.
+    /// </summary>
+    public HashSet<string> HiddenEventTypes { get; } = [];
 
     /// <summary>Makes one record unreadable to the caller while it still exists, as a row-level rule would.</summary>
     public void Hide(Guid id) => _hidden.Add(id);
@@ -101,6 +110,22 @@ public sealed class FakeRecordReadRule(string ownerType) : IRecordReadRule
             });
 
         return Task.FromResult(summaries);
+    }
+
+    public Task<IQueryable<ActivityStamp>> VisibleActivity(IQueryable<ActivityStamp> activity, CancellationToken cancellationToken)
+    {
+        var hidden = HiddenEventTypes.ToArray();
+        return Task.FromResult(activity.Where(a => !hidden.Contains(a.EventType)));
+    }
+
+    public async Task<PagedResponse<ActivityLogDto>> ReadActivity(
+        Guid id,
+        IActivityLogReader activityLogReader,
+        PageRequest paging,
+        CancellationToken cancellationToken)
+    {
+        var page = await activityLogReader.Read(id, ActivityAggregateType, paging, cancellationToken);
+        return page with { Items = [.. page.Items.Where(a => !HiddenEventTypes.Contains(a.EventType))] };
     }
 }
 

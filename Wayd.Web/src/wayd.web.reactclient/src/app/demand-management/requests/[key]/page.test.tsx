@@ -38,6 +38,21 @@ jest.mock('@/src/components/common/markdown', () => ({
 }))
 
 jest.mock('@/src/components/common', () => ({
+  FollowButton: ({
+    ownerType,
+    ownerId,
+  }: {
+    ownerType: string
+    ownerId: string
+  }) => (
+    <button
+      type="button"
+      data-testid="follow"
+      data-owner={`${ownerType}:${ownerId}`}
+    >
+      Follow
+    </button>
+  ),
   PageActions: ({ actionItems }: { actionItems: any[] }) => (
     <div data-testid="page-actions">
       {actionItems.map((item) => (
@@ -80,6 +95,9 @@ const summary = {
   requester: { id: 'e-1', key: 1, name: 'Avery Example' },
   channel: { id: 'c-1', name: 'Security' },
   status: { id: 's-1', name: 'Submitted', category: 'Proposed', alias: 1 },
+  tags: [
+    { id: 't-1', name: 'Payments', categoryId: 'a-1', categoryName: 'Area' },
+  ],
 }
 
 const substance = {
@@ -119,6 +137,9 @@ jest.mock(
     useUpdateIntakeRequestMutation: () => [jest.fn()],
     useGetIntakeEmployeeOptionsQuery: () => ({ data: [] }),
     useGetIntakeChannelsQuery: () => ({ data: [] }),
+    useGetIntakeRequestTagCategoriesQuery: () => ({ data: [] }),
+    useTagIntakeRequestMutation: () => [jest.fn()],
+    useUntagIntakeRequestMutation: () => [jest.fn()],
     useGetIntakeRequestStatusOptionsQuery: () => ({
       data: [],
       isFetching: false,
@@ -150,6 +171,7 @@ const details = (overrides: Record<string, unknown> = {}) => ({
   canAddParticipants: false,
   canChangeStatus: false,
   canChangeAssignee: false,
+  canChangeTags: false,
   canWithdraw: false,
   isDeskAgent: false,
   ...overrides,
@@ -234,6 +256,33 @@ describe('IntakeRequestDetailsPage', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('shows the request’s tags to a reader who cannot change them', async () => {
+    // Arrange
+    mockRequest = details({})
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(await screen.findByText('Payments')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Manage Tags' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('offers Manage Tags only when the server allows it', async () => {
+    // Arrange
+    mockRequest = details({ canChangeTags: true })
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(
+      await screen.findByRole('button', { name: 'Manage Tags' }),
+    ).toBeInTheDocument()
+  })
+
   it('offers Change Assignee only when the server allows it', async () => {
     // Arrange
     mockRequest = details({ canChangeAssignee: true })
@@ -275,6 +324,17 @@ describe('IntakeRequestDetailsPage', () => {
     expect(
       screen.queryByRole('button', { name: /Move to/ }),
     ).not.toBeInTheDocument()
+  })
+
+  it('offers to follow the request, as any reader can', async () => {
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(await screen.findByTestId('follow')).toHaveAttribute(
+      'data-owner',
+      'demand.intake-request:r-42',
+    )
   })
 
   it('leads back through the request’s desk, between Requests and the request', async () => {

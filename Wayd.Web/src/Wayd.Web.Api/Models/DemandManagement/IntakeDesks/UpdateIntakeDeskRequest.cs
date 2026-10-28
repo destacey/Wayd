@@ -59,6 +59,19 @@ public sealed record UpdateIntakeDeskRequest
     public List<Guid>? ChannelIds { get; set; }
 
     /// <summary>
+    /// Whether the desk's agents tag requests along every active company tag axis, including axes added later. A
+    /// new desk does. Leave it out to keep the desk's axes as they are.
+    /// </summary>
+    public bool? OffersAllTagCategories { get; set; }
+
+    /// <summary>
+    /// The tag axes the desk's agents tag along when <c>offersAllTagCategories</c> is false; empty means none. Leave
+    /// it out to keep the ones it has. Ignored unless <c>offersAllTagCategories</c> is false. An axis already chosen
+    /// may stay after it is deactivated; a newly chosen one must be active. Requests keep tags along any axis.
+    /// </summary>
+    public List<Guid>? TagCategoryIds { get; set; }
+
+    /// <summary>
     /// Everyone on the desk after the change, each with their role. Naming, removing or re-roling a Desk Admin
     /// needs the Demand Management Admin.
     /// </summary>
@@ -72,7 +85,8 @@ public sealed record UpdateIntakeDeskRequest
 
     public UpdateIntakeDeskCommand ToUpdateIntakeDeskCommand() =>
         new(Id, Name, Description, Visibility, IsRequesterSelectable, IsOpen, RequesterMayAddParticipants,
-            OffersAllChannels, ChannelIds, [.. Members.Select(m => m.ToMemberDetails())], ExpectedRevision);
+            OffersAllChannels, ChannelIds, [.. Members.Select(m => m.ToMemberDetails())], ExpectedRevision,
+            OffersAllTagCategories, TagCategoryIds);
 }
 
 public sealed class UpdateIntakeDeskRequestValidator : CustomValidator<UpdateIntakeDeskRequest>
@@ -84,6 +98,7 @@ public sealed class UpdateIntakeDeskRequestValidator : CustomValidator<UpdateInt
         RuleFor(d => d.Description).NotEmpty().MaximumLength(1024);
         RuleFor(d => d.Visibility).IsInEnum();
         RuleForEach(d => d.ChannelIds).NotEmpty();
+        RuleForEach(d => d.TagCategoryIds).NotEmpty();
         RuleFor(d => d.Members).NotNull()
             .Must(members => members.Select(m => m.EmployeeId).Distinct().Count() == members.Count)
             .WithMessage("An employee can hold only one role on a desk.");

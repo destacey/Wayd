@@ -5,6 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import { IntakeDeskDto, IntakeDeskVisibility } from '@/src/services/wayd-api'
 import {
   useGetIntakeChannelsQuery,
+  useGetIntakeRequestTagCategoriesQuery,
   useGetIntakeDeskVisibilitiesQuery,
   useUpdateIntakeDeskMutation,
 } from '@/src/store/features/demand-management/demand-management-api'
@@ -40,6 +41,8 @@ interface EditIntakeDeskSettingsFormValues {
   requesterMayAddParticipants?: boolean
   offersAllChannels: boolean
   channelIds?: string[]
+  offersAllTagCategories: boolean
+  tagCategoryIds?: string[]
 }
 
 /**
@@ -69,6 +72,17 @@ const EditIntakeDeskSettingsForm: FC<EditIntakeDeskSettingsFormProps> = ({
       value: c.id,
       label: c.isActive ? c.name : `${c.name} (Archived)`,
     }))
+  const { data: tagCategories } = useGetIntakeRequestTagCategoriesQuery({
+    includeInactive: true,
+  })
+  // Active axes, plus any inactive one the desk already chose: it may stay
+  // chosen, and is offered again if activated, but cannot be newly chosen.
+  const tagCategoryOptions = (tagCategories ?? [])
+    .filter((c) => c.isActive || desk.tagCategoryIds.includes(c.id))
+    .map((c) => ({
+      value: c.id,
+      label: c.isActive ? c.name : `${c.name} (Inactive)`,
+    }))
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditIntakeDeskSettingsFormValues>({
@@ -90,6 +104,11 @@ const EditIntakeDeskSettingsForm: FC<EditIntakeDeskSettingsFormProps> = ({
               channelIds: values.offersAllChannels
                 ? []
                 : (values.channelIds ?? desk.channelIds),
+              offersAllTagCategories: values.offersAllTagCategories,
+              // Asked only when the desk chooses its axes.
+              tagCategoryIds: values.offersAllTagCategories
+                ? []
+                : (values.tagCategoryIds ?? desk.tagCategoryIds),
             }),
           ).unwrap()
           messageApi.success('Desk updated.')
@@ -137,6 +156,8 @@ const EditIntakeDeskSettingsForm: FC<EditIntakeDeskSettingsFormProps> = ({
           requesterMayAddParticipants: desk.requesterMayAddParticipants,
           offersAllChannels: desk.offersAllChannels,
           channelIds: desk.channelIds,
+          offersAllTagCategories: desk.offersAllTagCategories,
+          tagCategoryIds: desk.tagCategoryIds,
         }}
       >
         <Item
@@ -243,6 +264,38 @@ const EditIntakeDeskSettingsForm: FC<EditIntakeDeskSettingsFormProps> = ({
                 extra="Choose none and requesters are not asked where a request came from. A request moved here keeps the channel it has."
               >
                 <Checkbox.Group options={channelOptions} />
+              </Item>
+            )
+          }
+        </Item>
+        <Item
+          name="offersAllTagCategories"
+          label="Tag axes offered"
+          extra="The axes this desk's agents tag requests along."
+        >
+          <Radio.Group>
+            <Flex vertical gap={8}>
+              <Radio value={true}>
+                Every tag axis, including ones added later
+              </Radio>
+              <Radio value={false}>Only the tag axes chosen here</Radio>
+            </Flex>
+          </Radio.Group>
+        </Item>
+        <Item
+          noStyle
+          shouldUpdate={(previous, current) =>
+            previous.offersAllTagCategories !== current.offersAllTagCategories
+          }
+        >
+          {({ getFieldValue }) =>
+            getFieldValue('offersAllTagCategories') === false && (
+              <Item
+                name="tagCategoryIds"
+                label="Tag axes this desk uses"
+                extra="Choose none and the desk's requests are not tagged. A request moved here keeps the tags it has."
+              >
+                <Checkbox.Group options={tagCategoryOptions} />
               </Item>
             )
           }

@@ -107,8 +107,9 @@ A **channel** records where a request came from: business stakeholder, customer 
 **Tags** are the reviewing team's own filing: the area a request concerns, the customer segment, the review cycle — whatever the intake team needs to slice requests by. They are neither the channel a request came through nor anything the requester picks.
 
 - **Tags sit on axes.** An axis such as **Area** holds the tags you can choose along it. One company set of axes serves every desk, so a filter on *Area: Payments* means the same on every desk. Wayd starts with one axis, **Area**, which takes several tags and has none until you add them.
+- **Each desk uses the axes that apply to it.** A new desk uses every axis, including ones added later, until a Desk Admin [chooses its axes](#choosing-the-tag-axes-a-desk-uses). Where desks need different values, they use different axes — *IT Area* and *Product Area* — rather than sharing one.
 - **An axis takes one tag or several.** On an axis that takes several, tagging adds to what the request has. On one that takes a single tag, choosing another replaces it. This is set when the axis is created and cannot change.
-- **Reviewers apply them.** An agent on the request's desk adds and removes tags. Everyone who can see the request sees its tags, including on a **Summary Only** desk, but the requester and participants cannot change them.
+- **Reviewers apply them.** An agent on the request's desk adds and removes tags, along the axes that desk uses. Everyone who can see the request sees its tags, including on a **Summary Only** desk, but the requester and participants cannot change them.
 - **Deactivating keeps what is already tagged.** A deactivated tag, or every tag on a deactivated axis, can no longer be applied, but requests that carry it keep it, and it can still be removed from them.
 
 ### Need-by date and its basis
@@ -178,7 +179,7 @@ The filters and the layout are kept in the page's address, so a view can be book
 
 ### The request page
 
-Opening a request shows its number and title, with its status and [tags](#tags) beside the title; clicking the status opens its history. An agent on the request's desk changes the tags with the edit icon beside them or **Manage Tags** in the actions menu, choosing from the active axes. The trail beneath the title leads back to **Requests** through the desk the request is on, and beneath that a line says who raised it, when, and where it came from when that was recorded. The panel opened from the header lists its desk, channel, requester and assignee and, where you can read them, who submitted it and where it came from.
+Opening a request shows its number and title, with its status and [tags](#tags) beside the title; clicking the status opens its history. An agent on the request's desk changes the tags with the edit icon beside them or **Manage Tags** in the actions menu, choosing from the axes the desk uses. A tag the request carries along an axis the desk does not use — one it brought from another desk — can be removed there but not added to. The trail beneath the title leads back to **Requests** through the desk the request is on, and beneath that a line says who raised it, when, and where it came from when that was recorded. The panel opened from the header lists its desk, channel, requester and assignee and, where you can read them, who submitted it and where it came from.
 
 - **Details** — The reason for its current status, when it has one, then the description, the expected benefits and the need-by date, which says what makes it that date and whether it can move. On a desk that keeps its detail to itself, people outside it see a message saying the detail is limited to that desk, rather than empty fields
 - **People** — The requester, the submitter when it is someone else, and the request's participants. Participants can read the request and reply to it, but cannot change it, and being one does not assign them any work. Shown only to people who can read the request's detail
@@ -253,7 +254,7 @@ A desk is run from its own page, opened from **Desks** or from the desk named on
 
 - **Requests** — The requests on the desk that you can see
 - **Members** — Who works the desk, and in which role
-- **Settings** — Its name, what to bring here, its review workflow, who can see its requests (with what that exposes, in plain words), the channels it offers, whether it is open, and what requesters may do on it
+- **Settings** — Its name, what to bring here, its review workflow, who can see its requests (with what that exposes, in plain words), the channels and tag axes it offers, whether it is open, and what requesters may do on it
 
 What you can change depends on your role:
 
@@ -262,6 +263,7 @@ What you can change depends on your role:
 | Name and what to bring here | Yes | Yes |
 | Open to new requests, requesters can choose it, requesters may add participants | Yes | Yes |
 | **Channels offered** | Yes | Yes |
+| **Tag axes offered** | Yes | Yes |
 | Name or remove **Agents** | Yes | Yes |
 | **Review workflow** | Yes, while no request is on it | Yes, while no request is on it |
 | Name or remove **Desk Admins** | No | Yes |
@@ -275,6 +277,12 @@ Removing someone from a desk unassigns them from the requests they own there.
 **Channels offered** in the desk's Settings is either **Every channel, including ones added later** — what a new desk starts with — or **Only the channels chosen here**, with the channels ticked. Ticking none means the desk offers no channel: its submit form does not ask where a request came from. An archived channel stays ticked on a desk that chose it, but no desk offers it until it is restored, and it cannot be newly ticked.
 
 Changing what a desk offers changes only what new requests and edits can choose. Requests already on the desk keep their channels, and editing one offers the desk's channels plus the one it has.
+
+#### Choosing the tag axes a desk uses
+
+**Tag axes offered** in the desk's Settings is either **Every tag axis, including ones added later** — what a new desk starts with — or **Only the tag axes chosen here**, with the axes ticked. Ticking none means the desk's requests are not tagged. A deactivated axis stays ticked on a desk that chose it, but no desk uses it until it is activated, and it cannot be newly ticked.
+
+Changing what a desk uses changes only what its agents can apply. Requests keep every tag they already have, and anyone who can see a request still sees all its tags; the **Tags** filter on **Requests** still lists every axis.
 
 #### Choosing a desk's review workflow
 

@@ -122,6 +122,24 @@ public sealed class GetFollowedRecordQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldReadTheChangesThroughTheReadRule_LeavingOutWhatItWithholds()
+    {
+        // Arrange — the detail must show no more of the record's history than its own Activity section would
+        var gadget = _gadgets.Add("G-1", "Sprocket");
+        SeedFollow(gadget.Id);
+        var visible = Activity(FollowedOn.Plus(Duration.FromDays(2)));
+        var withheld = Activity(FollowedOn.Plus(Duration.FromDays(3))) with { EventType = "SecretChangedEvent" };
+        ActivityReturns([withheld, visible]);
+        _gadgets.HiddenEventTypes.Add("SecretChangedEvent");
+
+        // Act
+        var result = await CreateHandler().Handle(new GetFollowedRecordQuery(GadgetType, gadget.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value!.ChangesSinceFollowed.Should().Equal(visible);
+    }
+
+    [Fact]
     public async Task Handle_ShouldReturnNull_WhenTheCallerDoesNotFollowTheRecord()
     {
         // Arrange

@@ -89,8 +89,8 @@ public sealed record NotifiedRecordDto
     public required string Name { get; init; }
 
     /// <summary>
-    /// The key of the record this one is addressed under, such as a planning interval objective's planning
-    /// interval. Null when the owner type does not nest.
+    /// The key of the record this one sits under, such as a planning interval objective's planning interval
+    /// or an intake request's desk. Null when the owner type has no parent.
     /// </summary>
     public string? ParentKey { get; init; }
 

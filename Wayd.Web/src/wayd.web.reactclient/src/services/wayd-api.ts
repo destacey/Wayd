@@ -56443,8 +56443,8 @@ export interface FollowedRecordDto {
     key: string;
     /** The record's name or title. */
     name: string;
-    /** The key of the record this one is addressed under, such as a planning interval objective's planning
-interval. Null when the owner type does not nest. */
+    /** The key of the record this one sits under, such as a planning interval objective's planning interval
+or an intake request's desk. Null when the owner type has no parent. */
     parentKey?: string | undefined;
     /** The name of the parent record. Null when there is none. */
     parentName?: string | undefined;
@@ -58056,8 +58056,8 @@ export interface MutedRecordDto {
     key: string;
     /** The record's name or title. */
     name: string;
-    /** The key of the record this one is addressed under, such as a planning interval objective's planning
-interval. Null when the owner type does not nest. */
+    /** The key of the record this one sits under, such as a planning interval objective's planning interval
+or an intake request's desk. Null when the owner type has no parent. */
     parentKey?: string | undefined;
     /** The name of the parent record. Null when there is none. */
     parentName?: string | undefined;
@@ -58174,8 +58174,8 @@ export interface NotifiedRecordDto {
     key: string;
     /** The record's name or title. */
     name: string;
-    /** The key of the record this one is addressed under, such as a planning interval objective's planning
-interval. Null when the owner type does not nest. */
+    /** The key of the record this one sits under, such as a planning interval objective's planning interval
+or an intake request's desk. Null when the owner type has no parent. */
     parentKey?: string | undefined;
     /** The name of the parent record. Null when there is none. */
     parentName?: string | undefined;

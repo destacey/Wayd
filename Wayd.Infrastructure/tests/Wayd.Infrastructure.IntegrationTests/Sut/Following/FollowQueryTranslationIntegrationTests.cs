@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Activities;
+using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Following;
 using Wayd.Common.Application.Following.Queries;
 using Wayd.Common.Application.Interfaces;
@@ -13,6 +15,8 @@ using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Following;
 using Wayd.Common.Models;
+using Wayd.DemandManagement.Application.IntakeRequests;
+using Wayd.DemandManagement.Domain;
 using Wayd.Infrastructure.Following;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
 using Wayd.Infrastructure.Persistence.Context;
@@ -54,7 +58,7 @@ public sealed class FollowQueryTranslationIntegrationTests(SqlServerDbContextFix
         await using (var seed = fixture.CreateContext())
         {
             var store = new FollowStore(seed);
-            foreach (var descriptor in PpmFollowOwners.All.Concat(PlanningFollowOwners.All))
+            foreach (var descriptor in PpmFollowOwners.All.Concat(PlanningFollowOwners.All).Concat(DemandManagementFollowOwners.All))
             {
                 await store.Add(Follow.Create(descriptor.Key, Guid.CreateVersion7(), follower.Id, Timestamp).Value, cancellationToken);
             }
@@ -221,6 +225,7 @@ public sealed class FollowQueryTranslationIntegrationTests(SqlServerDbContextFix
     {
         PpmFollowOwners.Register();
         PlanningFollowOwners.Register();
+        DemandManagementFollowOwners.Register();
         FollowOwners.Register(EmployeeOwner);
     }
 
@@ -229,6 +234,7 @@ public sealed class FollowQueryTranslationIntegrationTests(SqlServerDbContextFix
         new ProjectReadRule(context, principal, Clock()),
         new ProgramReadRule(context, principal),
         new PlanningIntervalObjectiveReadRule(context, principal, Clock()),
+        new IntakeRequestReadRule(context, principal, FeatureFlagsOn()),
     ];
 
     private static IRecordReadRule[] ReadRules(WaydDbContext context, ICurrentPrincipal principal, Guid[] readable, Guid[] unhealthy) =>
@@ -240,6 +246,13 @@ public sealed class FollowQueryTranslationIntegrationTests(SqlServerDbContextFix
         // A day after the seeded activity, so it counts as changed recently.
         clock.Setup(c => c.Now).Returns(Timestamp.Plus(Duration.FromDays(1)));
         return clock.Object;
+    }
+
+    private static IFeatureFlags FeatureFlagsOn()
+    {
+        var featureFlags = new Mock<IFeatureFlags>();
+        featureFlags.Setup(f => f.IsEnabled(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        return featureFlags.Object;
     }
 
     private static Mock<ICurrentPrincipal> Principal(Guid employeeId)
@@ -287,6 +300,13 @@ public sealed class FollowQueryTranslationIntegrationTests(SqlServerDbContextFix
                         Lifecycle = LifecycleCategory.Active,
                     },
                     cancellationToken);
+
+        public Task<IQueryable<ActivityStamp>> VisibleActivity(IQueryable<ActivityStamp> activity, CancellationToken cancellationToken) =>
+            Task.FromResult(activity);
+
+        public Task<PagedResponse<ActivityLogDto>> ReadActivity(
+            Guid id, IActivityLogReader activityLogReader, PageRequest paging, CancellationToken cancellationToken) =>
+            activityLogReader.Read(id, ActivityAggregateType, paging, cancellationToken);
     }
 
     private async Task<Employee> SeedEmployee()

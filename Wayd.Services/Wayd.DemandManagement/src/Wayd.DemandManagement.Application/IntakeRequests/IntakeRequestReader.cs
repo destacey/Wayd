@@ -112,6 +112,19 @@ public sealed record IntakeRequestReader(
             || r.SubmittedById == employeeId
             || r.Participants.Any(p => p.EmployeeId == employeeId);
     }
+
+    /// <summary>
+    /// Requests whose internal tier the reader may see: those on the desks they work, every one for the Demand
+    /// Management Admin. The query form of <see cref="IsAgentOn"/>.
+    /// </summary>
+    public Expression<Func<IntakeRequest, bool>> CanSeeInternal()
+    {
+        if (IsDemandManagementAdmin)
+            return r => true;
+
+        var memberDeskIds = DeskRoles.Keys.ToArray();
+        return r => memberDeskIds.Contains(r.DeskId);
+    }
 }
 
 /// <summary>

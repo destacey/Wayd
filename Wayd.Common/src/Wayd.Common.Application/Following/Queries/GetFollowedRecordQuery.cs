@@ -12,7 +12,8 @@ namespace Wayd.Common.Application.Following.Queries;
 /// </summary>
 /// <remarks>
 /// The record is reached through the same readable-follows query as the list, so it resolves only while the
-/// caller both follows it and can read it. Its activity is read only once that is established.
+/// caller both follows it and can read it. Its activity is read only once that is established, through its
+/// read rule, so it holds exactly what the record's own Activity section shows the caller.
 /// </remarks>
 public sealed record GetFollowedRecordQuery(string OwnerType, Guid OwnerId) : IQuery<Result<FollowedRecordDetailDto?>>;
 
@@ -80,11 +81,11 @@ public sealed class GetFollowedRecordQueryHandler(
         }
 
         // Newest first, so the entries since following are a prefix of the first page.
-        var activity = await _activityLogReader.Read(
+        var activity = await resolved.Value.ReadRule.ReadActivity(
             row.OwnerId,
-            resolved.Value.ReadRule.ActivityAggregateType,
-            paging: new PageRequest(PageSize: ChangeLimit),
-            cancellationToken: cancellationToken);
+            _activityLogReader,
+            new PageRequest(PageSize: ChangeLimit),
+            cancellationToken);
         var changes = activity.Items.Where(a => a.Timestamp >= row.FollowedOn).ToList();
 
         var isMuted = await _notificationsDbContext.RecordMutes.AnyAsync(

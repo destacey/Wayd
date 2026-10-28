@@ -41,6 +41,7 @@ import { ProjectStatusAction } from '@/src/app/ppm/projects/_components/change-p
 import ProjectDetailsLoading from './loading'
 import ProjectDefinition from './_components/project-definition'
 import ProjectFacts from './_components/project-facts'
+import ProjectIntakeRequests from './_components/project-intake-requests'
 import ProjectOverview from './_components/project-overview'
 import { canActOnPpmRecord } from '../../_components/ppm-authorization'
 import ProjectTaskMetricsInline from '@/src/app/ppm/projects/_components/project-task-metrics-inline'
@@ -72,6 +73,7 @@ enum ProjectSections {
   Team = 'team',
   Plan = 'plan',
   WorkItems = 'work-items',
+  Requests = 'requests',
   Activities = 'activities',
   HealthReport = 'health-report',
   Forecast = 'forecast',
@@ -104,6 +106,8 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { isEnabled: forecastingEnabled } = useFeatureFlag(
     'delivery-forecasting',
   )
+  const { isEnabled: demandManagementEnabled } =
+    useFeatureFlag('demand-management')
 
   const [openEditProjectForm, setOpenEditProjectForm] = useState<boolean>(false)
   const [openChangeProgramForm, setOpenChangeProgramForm] =
@@ -419,6 +423,9 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       ? [{ id: ProjectSections.Plan, label: 'Plan' }]
       : []),
     { id: ProjectSections.WorkItems, label: 'Work Items' },
+    ...(demandManagementEnabled
+      ? [{ id: ProjectSections.Requests, label: 'Requests' }]
+      : []),
     { id: ProjectSections.Activities, label: 'Activity' },
   ]
 
@@ -472,6 +479,10 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             hideProjectColumn={true}
           />
         )
+      case ProjectSections.Requests:
+        return demandManagementEnabled ? (
+          <ProjectIntakeRequests projectId={projectData.id} />
+        ) : null
       case ProjectSections.Activities:
         return <ActivityLogTimeline {...activityLog.timelineProps} />
       case ProjectSections.HealthReport:

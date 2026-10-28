@@ -5,7 +5,7 @@ Desks, channels and tag axes are shared by everyone who submits and reviews requ
 Who may do what:
 
 - **Demand Management Admin** (the Administer permission on intake requests) — creates and deletes desks, chooses a desk's visibility and its Desk Admins, and keeps the company's channels and tag axes.
-- **Desk Admin** — changes their own desk's details, settings, agents, channels, tag axes and workflow. The Demand Management Admin can do this on every desk too.
+- **Desk Admin** — changes their own desk's details, settings, agents, channels, tag axes, scoring model and workflow. The Demand Management Admin can do this on every desk too.
 
 ## Desks
 
@@ -18,6 +18,7 @@ Who may do what:
   3. Send its `revision` as `expectedRevision`. A 409 means someone changed the desk since: read it again and redo the change on the new version, never resend the old body.
   4. `offersAllChannels`/`channelIds` and `offersAllTagCategories`/`tagCategoryIds` may be left out to keep the desk's choice as it is. With `offersAllChannels: false`, an empty `channelIds` means the desk asks no channel at all.
   Changing `visibility` or any Desk Admin needs the Demand Management Admin. Making a desk less private exposes its requests to more people: say so.
+- **Scoring model**: `IntakeDesks_GetScoringModelChoices` lists the active scoring models; `IntakeDesks_ChangeScoringModel` gives the desk one, or `null` to stop scoring its requests. The desk's `scoringModel` names its current one. Recorded scores keep the model they used, and only scores from the desk's current model rank together, so changing it leaves every request needing a re-score before it ranks again; say so before changing it. Building models is done in Wayd's settings.
 - **Workflow**: `IntakeDesks_GetWorkflow` shows the workflow a desk follows and whether it may change; `IntakeDesks_GetWorkflowChoices` lists the published intake workflows; `IntakeDesks_ChangeWorkflow` points the desk at one, only while no request is on it. Building workflows is done in Wayd's settings.
 - **Delete** with `IntakeDesks_Delete`, only while no request is on it. A desk with requests is closed instead (`isOpen: false` through an update).
 

@@ -47,6 +47,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("scores")]
     [Authorize]
+    [McpTool("IntakeRequests_GetScores", "List intake request scores")]
     [EndpointSummary("Get the current scores of the intake requests you can see.")]
     [EndpointDescription("Takes the same filters as the list and answers beside it, for the requests whose score you may read: a score is substance, so a request whose substance is withheld from you is absent, as is one never scored. `isDeskModel` is false for a score from a model the request's desk no longer scores with, which does not rank with the rest.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -310,6 +311,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{id}/scoring")]
     [Authorize]
+    [McpTool("IntakeRequests_GetScoring", "Get intake request scoring")]
     [EndpointSummary("Get an intake request's scoring: its desk's model, its score history and its rank on the desk.")]
     [EndpointDescription("Answers 404 when you may not read the request's substance, the tier its score belongs to. `scoringModel` is null when the desk does not score its requests. `deskRank` places the request among the open requests on its desk scored with the desk's current model whose scores you may read.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -324,6 +326,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{id}/scores")]
     [Authorize]
+    [McpTool("IntakeRequests_Score", "Score intake request", Destructive = false)]
     [EndpointSummary("Score an intake request with its desk's scoring model.")]
     [EndpointDescription("Needs an agent on the request's desk, an open request, and a desk with a scoring model. Rate every criterion: choose a level for one rated on a scale, a number for one without. Adds a score to the request's history and makes it current; earlier scores are kept. Answers the new score's id.")]
     [ProducesResponseType(StatusCodes.Status201Created)]
@@ -340,6 +343,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost("{id}/scores/preview")]
     [Authorize]
+    [McpTool("IntakeRequests_PreviewScore", "Preview intake request score", Destructive = false, Idempotent = true)]
     [EndpointSummary("Preview what ratings would score an intake request, without recording it.")]
     [EndpointDescription("Needs an agent on the request's desk. Calculates every output of the desk's scoring model from the ratings and records nothing.")]
     [ProducesResponseType(StatusCodes.Status200OK)]

@@ -23,8 +23,8 @@ internal sealed class FollowedRow
     public Instant FollowedOn { get; init; }
 
     /// <summary>
-    /// The newest entry the record's Activity section lists — its own or one naming it as related — or null
-    /// when it has none.
+    /// The newest entry the record's Activity section lists to the caller — its own or one naming it as
+    /// related — or null when it has none.
     /// </summary>
     public Instant? LastChangedOn { get; init; }
 
@@ -62,6 +62,14 @@ internal static class FollowedRows
     {
         IQueryable<FollowedRow>? all = null;
 
+        // The same entries the record's Activity section lists: its own, and those that name it as a related
+        // record, so "last changed" never trails the changes its detail shows.
+        var stamps = activity
+            .Select(a => new ActivityStamp { RecordId = a.AggregateId, AggregateType = a.AggregateType, EventType = a.EventType, Timestamp = a.Timestamp })
+            .Concat(activity.SelectMany(
+                a => a.RelatedAggregates,
+                (a, r) => new ActivityStamp { RecordId = r.AggregateId, AggregateType = r.AggregateType, EventType = a.EventType, Timestamp = a.Timestamp }));
+
         foreach (var (descriptor, readRule) in owners)
         {
             var readable = await readRule.Readable(search, cancellationToken);
@@ -72,12 +80,9 @@ internal static class FollowedRows
 
             var ownerType = descriptor.Key;
             var activityType = readRule.ActivityAggregateType;
-            var related = activity.SelectMany(
-                a => a.RelatedAggregates,
-                (a, r) => new { a.Timestamp, r.AggregateId, r.AggregateType });
+            var visibleStamps = await readRule.VisibleActivity(
+                stamps.Where(x => x.AggregateType == activityType), cancellationToken);
 
-            // The same entries the record's Activity section lists: its own, and those that name it as a
-            // related record, so "last changed" never trails the changes its detail shows.
             var rows =
                 from f in follows
                 where f.EmployeeId == employeeId && f.OwnerType == ownerType
@@ -87,13 +92,9 @@ internal static class FollowedRows
                     OwnerType = f.OwnerType,
                     OwnerId = f.OwnerId,
                     FollowedOn = f.FollowedOn,
-                    LastChangedOn = activity
-                        .Where(a => a.AggregateId == f.OwnerId && a.AggregateType == activityType)
-                        .Select(a => (Instant?)a.Timestamp)
-                        .Concat(related
-                            .Where(x => x.AggregateId == f.OwnerId && x.AggregateType == activityType)
-                            .Select(x => (Instant?)x.Timestamp))
-                        .Max(),
+                    LastChangedOn = visibleStamps
+                        .Where(x => x.RecordId == f.OwnerId)
+                        .Max(x => (Instant?)x.Timestamp),
                     IsUnhealthy = r.IsUnhealthy,
                     IsClosed = r.IsClosed,
                 };

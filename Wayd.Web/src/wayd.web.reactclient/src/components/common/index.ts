@@ -1,7 +1,6 @@
 export { ActivityLogTimeline } from './activities'
 export { default as ContainerCard } from './container-card'
 export { default as FollowButton } from './follow-button'
-export { default as MuteButton } from './mute-button'
 export type { FollowButtonProps } from './follow-button'
 export { default as IconMenu } from './icon-menu'
 export { default as InactiveTag } from './inactive-tag'

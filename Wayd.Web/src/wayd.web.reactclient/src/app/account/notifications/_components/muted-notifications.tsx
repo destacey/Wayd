@@ -43,7 +43,7 @@ const reasonWording: Partial<
 
 /** What the muted-records list says when there are none. */
 export const NoMutedRecordsMessage =
-  'You have not muted any records. Mute one with the muted-speaker button at the top of its page, or beside it in your notifications.'
+  'You have not muted any records. Mute one with the muted-speaker button beside it in your notifications.'
 
 const mutedAgo = (mutedOn?: Date) => {
   const date = mutedOn ? new Date(mutedOn) : null

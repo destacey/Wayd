@@ -120,4 +120,97 @@ describe('ScoreIntakeRequestForm', () => {
       screen.getByText('The requester gave no need-by date.'),
     ).toBeInTheDocument()
   })
+
+  it('marks the criterion a 422 names by its position in the ratings', async () => {
+    // Arrange
+    mockScore.mockReturnValue({
+      unwrap: () =>
+        Promise.reject({
+          status: 422,
+          errors: { 'ratings[1].Value': ['Enter a number.'] },
+        }),
+    })
+    await renderForm({
+      ratings: [
+        { criterionId: 'c-bv', ratingValue: 8, ratingLevelId: 'l-high' },
+        { criterionId: 'c-js', ratingValue: 2 },
+      ],
+    })
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Save Score' })),
+    )
+
+    // Assert
+    expect(await screen.findByText('Enter a number.')).toBeInTheDocument()
+  })
+
+  it('previews the outputs on the server before saving', async () => {
+    // Arrange
+    mockPreview.mockReturnValue({
+      unwrap: () =>
+        Promise.resolve({
+          primaryValue: 4,
+          outputs: [
+            {
+              token: 'WSJF',
+              name: 'WSJF',
+              value: 4,
+              isPrimary: true,
+              order: 1,
+            },
+          ],
+        }),
+    })
+    await renderForm({
+      ratings: [
+        { criterionId: 'c-bv', ratingValue: 8, ratingLevelId: 'l-high' },
+        { criterionId: 'c-js', ratingValue: 2 },
+      ],
+    })
+
+    // Act
+    await act(() =>
+      userEvent.click(
+        screen.getByText('Preview', { selector: 'a, button, span' }),
+      ),
+    )
+
+    // Assert
+    expect(mockPreview).toHaveBeenCalledWith(
+      expect.objectContaining({ requestId: 'r-1' }),
+    )
+    expect(await screen.findByText('WSJF = BV / JS')).toBeInTheDocument()
+  })
+
+  it('shows the need-by and what makes it that date beside the ratings', async () => {
+    // Act
+    await act(async () =>
+      render(
+        <ScoreIntakeRequestForm
+          requestId="r-1"
+          scoringModel={model}
+          modelArchived={false}
+          needBy={
+            {
+              date: '2027-01-31',
+              basis: 'Commitment',
+              family: 'ChosenByUs',
+              reference: 'Acme renewal',
+              committedBy: { id: 'e-2', key: 2, name: 'Dana Lead' },
+            } as any
+          }
+          currentScore={undefined}
+          onFormComplete={jest.fn()}
+          onFormCancel={jest.fn()}
+        />,
+      ),
+    )
+
+    // Assert
+    expect(
+      screen.getByText(/Dana Lead promised it to Acme renewal/),
+    ).toBeInTheDocument()
+  })
 })

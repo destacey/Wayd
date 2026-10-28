@@ -24,6 +24,8 @@ const { Text } = Typography
 
 export interface IntakeRequestScoreProps {
   requestId: string
+  /** Whether the request is open; a closed one is not scored or ranked until it is moved back. */
+  isOpen: boolean
 }
 
 /** "2nd of 7 open requests on this desk". */
@@ -90,7 +92,10 @@ const ScoreBreakdown: FC<{ score: IntakeRequestScoreDto }> = ({ score }) => (
  * ratings behind it, and every earlier score. A request scored months apart shows how its score moved when
  * the facts moved. Shown only to a reader who can read the request's substance, the tier its score is in.
  */
-const IntakeRequestScore: FC<IntakeRequestScoreProps> = ({ requestId }) => {
+const IntakeRequestScore: FC<IntakeRequestScoreProps> = ({
+  requestId,
+  isOpen,
+}) => {
   const {
     data: scoring,
     isLoading,
@@ -122,9 +127,17 @@ const IntakeRequestScore: FC<IntakeRequestScoreProps> = ({ requestId }) => {
           title="This request's desk does not score its requests."
           description={
             current
-              ? 'Its earlier scores are kept below.'
+              ? 'Its scores are kept, but no longer rank with the desk’s other requests.'
               : 'A Desk Admin can choose a scoring model in the desk settings.'
           }
+        />
+      )}
+      {!isOpen && scoring.scoringModel && (
+        <Alert
+          type="info"
+          showIcon
+          title="Scoring is frozen while the request is closed."
+          description="It is not ranked with the desk's open requests, and can be scored again once it is moved back to an open status."
         />
       )}
       {current ? (
@@ -139,7 +152,7 @@ const IntakeRequestScore: FC<IntakeRequestScoreProps> = ({ requestId }) => {
               <Text strong>{deskRankText(scoring.deskRank)}</Text>
             )}
           </Flex>
-          {!scoring.deskRank &&
+          {isOpen &&
             scoring.scoringModel &&
             current.scoringModel.id !== scoring.scoringModel.id && (
               <Alert

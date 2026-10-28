@@ -45,11 +45,30 @@ jest.mock('@/src/components/hoc', () => ({
   requireFeatureFlag: (Component: React.ComponentType<any>) => Component,
 }))
 
-// The grid has a suite of its own; here only which actions the page offers matters.
+// The grid has a suite of its own; here only what the page hands it matters: the rows, in order, and the
+// sort it opens on.
 jest.mock('../_components/intake-requests-grid', () => ({
   __esModule: true,
-  default: ({ rightSlot }: { rightSlot?: React.ReactNode }) => (
-    <div data-testid="requests-grid">{rightSlot}</div>
+  default: ({
+    rightSlot,
+    requests,
+    initialSorting,
+  }: {
+    rightSlot?: React.ReactNode
+    requests?: { id: string; title: string }[]
+    initialSorting?: unknown
+  }) => (
+    <div
+      data-testid="requests-grid"
+      data-sorting={JSON.stringify(initialSorting ?? null)}
+    >
+      {(requests ?? []).map((r) => (
+        <span key={r.id} data-testid="row">
+          {r.title}
+        </span>
+      ))}
+      {rightSlot}
+    </div>
   ),
 }))
 
@@ -62,6 +81,7 @@ jest.mock('next/navigation', () => ({
 }))
 
 let mockDesks: any[] = []
+let mockScores: any[] = []
 const mockRequestsQuery = jest.fn((_args?: unknown) => ({
   currentData: [],
   isFetching: false,
@@ -71,7 +91,7 @@ jest.mock(
   '@/src/store/features/demand-management/demand-management-api',
   () => ({
     useGetIntakeRequestsQuery: (args: unknown) => mockRequestsQuery(args),
-    useGetIntakeRequestScoresQuery: () => ({ currentData: [] }),
+    useGetIntakeRequestScoresQuery: () => ({ currentData: mockScores }),
     useGetNeedByBasesQuery: () => ({ data: [] }),
     useGetIntakeDesksQuery: () => ({ data: mockDesks }),
     useGetIntakeChannelsQuery: () => ({ data: [] }),
@@ -87,6 +107,7 @@ describe('IntakeRequestsPage', () => {
     mockReplace.mockClear()
     mockSearch = new URLSearchParams()
     mockDesks = []
+    mockScores = []
   })
 
   it('opens on the desks the reader works when the address names no filters', () => {
@@ -249,5 +270,79 @@ describe('IntakeRequestsPage', () => {
     expect(
       screen.queryByRole('button', { name: 'Submit a Request' }),
     ).not.toBeInTheDocument()
+  })
+
+  describe('ranked by score', () => {
+    const request = (id: string, key: number) => ({
+      id,
+      key,
+      title: id,
+      status: { id: 's-1', name: 'Submitted', category: 'Proposed' },
+      desk: { id: 'd-1', key: 1, name: 'IT' },
+      requester: { id: 'e-r', key: 1, name: 'Requester' },
+      tags: [],
+    })
+    const score = (requestId: string, value: number) => ({
+      requestId,
+      value,
+      isDeskModel: true,
+      scoringModel: { id: 'm-1', key: 1, name: 'WSJF' },
+    })
+
+    beforeEach(() => {
+      mockRequestsQuery.mockReturnValue({
+        currentData: [
+          request('unscored', 1),
+          request('low', 2),
+          request('high', 3),
+        ] as any,
+        isFetching: false,
+        refetch: jest.fn(),
+      })
+      mockScores = [score('low', 1.6), score('high', 3.3)]
+    })
+
+    afterEach(() => {
+      mockRequestsQuery.mockReturnValue({
+        currentData: [],
+        isFetching: false,
+        refetch: jest.fn(),
+      })
+    })
+
+    it('hands the grid the requests highest score first, with no sort of its own', () => {
+      // Arrange
+      mockSearch = new URLSearchParams('order=score')
+
+      // Act
+      render(<IntakeRequestsPage />)
+
+      // Assert
+      expect(screen.getAllByTestId('row').map((r) => r.textContent)).toEqual([
+        'high',
+        'low',
+        'unscored',
+      ])
+      expect(screen.getByTestId('requests-grid')).toHaveAttribute(
+        'data-sorting',
+        '[]',
+      )
+    })
+
+    it('leaves the usual order to the grid', () => {
+      // Act
+      render(<IntakeRequestsPage />)
+
+      // Assert
+      expect(screen.getAllByTestId('row').map((r) => r.textContent)).toEqual([
+        'unscored',
+        'low',
+        'high',
+      ])
+      expect(screen.getByTestId('requests-grid')).toHaveAttribute(
+        'data-sorting',
+        'null',
+      )
+    })
   })
 })

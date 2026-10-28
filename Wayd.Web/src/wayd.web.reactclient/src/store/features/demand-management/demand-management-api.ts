@@ -579,6 +579,8 @@ export const demandManagementApi = apiSlice.injectEndpoints({
         { type: QueryTags.IntakeDesk, id },
         deskListTag,
         QueryTags.IntakeRequest,
+        // Members and visibility decide whose scores a reader may read, and so which ones rank.
+        QueryTags.IntakeRequestScore,
         channelListTag,
         tagCategoryListTag,
       ],

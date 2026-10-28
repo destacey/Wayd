@@ -2,6 +2,7 @@ import {
   IntakeRequestCurrentScoreDto,
   IntakeRequestSummaryDto,
 } from '@/src/services/wayd-api'
+import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import type { RequestOrder } from '../requests/_components/request-filters'
 
 /** Each request's current score by request id, for the requests whose score the reader may read. */
@@ -12,9 +13,10 @@ export const toRequestScores = (
 ): RequestScores => new Map((scores ?? []).map((s) => [s.requestId, s]))
 
 /**
- * Highest score first. A score from a model its desk no longer uses ranks after every comparable score, and
- * a request with no score, or whose score is withheld, after both: none of them can be compared with the
- * desk's other requests. Ties keep the newest request first.
+ * Highest score first, among scores from the same model: values from two models are on different scales, so
+ * desks that score with different models rank in separate runs, one per model by its name. A score from a
+ * model its desk no longer uses ranks after every comparable score, and a request with no score, or whose
+ * score is withheld, after both. Ties keep the newest request first.
  */
 export const compareByScore =
   (scores: RequestScores) =>
@@ -25,6 +27,12 @@ export const compareByScore =
     }
     const byTier = tier(a) - tier(b)
     if (byTier !== 0) return byTier
+    const modelA = scores.get(a.id)?.scoringModel
+    const modelB = scores.get(b.id)?.scoringModel
+    if (modelA && modelB && modelA.id !== modelB.id) {
+      const byModel = caseInsensitiveCompare(modelA.name, modelB.name)
+      return byModel !== 0 ? byModel : modelA.key - modelB.key
+    }
     const byValue =
       (scores.get(b.id)?.value ?? 0) - (scores.get(a.id)?.value ?? 0)
     return byValue !== 0 ? byValue : b.key - a.key

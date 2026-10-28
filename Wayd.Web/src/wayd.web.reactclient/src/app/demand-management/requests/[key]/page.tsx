@@ -17,6 +17,7 @@ import {
   useLazyGetIntakeRequestActivitiesQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
 import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
+import { StatusCategory } from '@/src/services/wayd-api'
 import { toApiError } from '@/src/utils'
 import { Alert, Button, Flex } from 'antd'
 import dayjs from 'dayjs'
@@ -263,7 +264,15 @@ const IntakeRequestDetailsPage = (props: {
           <IntakeRequestParticipants request={request} substance={substance} />
         ) : null
       case RequestSection.Score:
-        return substance ? <IntakeRequestScore requestId={summary.id} /> : null
+        return substance ? (
+          <IntakeRequestScore
+            requestId={summary.id}
+            isOpen={
+              summary.status.category === StatusCategory.Proposed ||
+              summary.status.category === StatusCategory.Active
+            }
+          />
+        ) : null
       case RequestSection.Activity:
         return <ActivityLogTimeline {...activityLog.timelineProps} />
       default:

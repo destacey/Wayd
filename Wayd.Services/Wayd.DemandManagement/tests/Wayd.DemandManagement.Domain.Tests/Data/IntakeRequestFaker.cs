@@ -39,6 +39,9 @@ public static class IntakeRequestFakerExtensions
     private static readonly FieldInfo ParticipantsField =
         typeof(IntakeRequest).GetField("_participants", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
+    private static readonly FieldInfo OutcomesField =
+        typeof(IntakeRequest).GetField("_outcomes", BindingFlags.Instance | BindingFlags.NonPublic)!;
+
     public static IntakeRequestFaker WithRequesterId(this IntakeRequestFaker faker, Guid requesterId)
     {
         faker.RuleFor(x => x.RequesterId, requesterId);
@@ -169,6 +172,21 @@ public static class IntakeRequestFakerExtensions
             var participants = (List<IntakeRequestParticipant>)ParticipantsField.GetValue(request)!;
             participants.Clear();
             participants.AddRange(employeeIds.Select(id => new IntakeRequestParticipant(request.Id, id, null, Instant.MinValue)));
+        });
+
+        return faker;
+    }
+
+    /// <summary>
+    /// Records the request as having become each target, as the kind given, without a note.
+    /// </summary>
+    public static IntakeRequestFaker WithOutcomes(this IntakeRequestFaker faker, IntakeRequestOutcomeKind kind, params Guid[] targetIds)
+    {
+        faker.FinishWith((_, request) =>
+        {
+            var outcomes = (List<IntakeRequestOutcome>)OutcomesField.GetValue(request)!;
+            outcomes.Clear();
+            outcomes.AddRange(targetIds.Select(id => new IntakeRequestOutcome(request.Id, kind, id, null, Guid.NewGuid(), Instant.MinValue)));
         });
 
         return faker;

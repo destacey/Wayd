@@ -21,8 +21,10 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
     private readonly List<IntakeRequestTagCategory> _tagCategories = [];
     private readonly List<Employee> _employees = [];
     private readonly List<StatusTransition> _transitions = [];
+    private readonly List<DemandProject> _projects = [];
 
     public DbSet<IntakeChannel> IntakeChannels => _channels.AsDbSet();
+    public DbSet<DemandProject> DemandProjects => _projects.AsDbSet();
     public DbSet<IntakeDesk> IntakeDesks => _desks.AsDbSet();
     public DbSet<IntakeRequest> IntakeRequests => _requests.AsDbSet();
     public DbSet<IntakeRequestTagCategory> IntakeRequestTagCategories => _tagCategories.AsDbSet();
@@ -56,6 +58,7 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
     public void AddDesks(params IntakeDesk[] desks) => _desks.AddRange(desks);
     public void AddEmployees(params Employee[] employees) => _employees.AddRange(employees);
     public void AddTagCategories(params IntakeRequestTagCategory[] categories) => _tagCategories.AddRange(categories);
+    public void AddProjects(params DemandProject[] projects) => _projects.AddRange(projects);
 
     /// <summary>
     /// Adds requests together with the status history they have recorded so far, as a save would persist it.

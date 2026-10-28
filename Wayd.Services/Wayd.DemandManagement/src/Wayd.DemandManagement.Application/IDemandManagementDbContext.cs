@@ -35,6 +35,12 @@ public interface IDemandManagementDbContext
     DbSet<IntakeRequestTagCategory> IntakeRequestTagCategories { get; }
 
     /// <summary>
+    /// The module's same-Id copies of PPM projects, which outcomes point at. Written only by the replication
+    /// handlers.
+    /// </summary>
+    DbSet<DemandProject> DemandProjects { get; }
+
+    /// <summary>
     /// The shared employee table, read-only: requesters, submitters, desk members and participants are employees.
     /// </summary>
     /// <remarks>

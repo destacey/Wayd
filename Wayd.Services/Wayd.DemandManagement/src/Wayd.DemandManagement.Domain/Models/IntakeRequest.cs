@@ -31,6 +31,7 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
 {
     private readonly List<IntakeRequestParticipant> _participants = [];
     private readonly List<IntakeRequestTagAssignment> _tags = [];
+    private readonly List<IntakeRequestOutcome> _outcomes = [];
 
     private IntakeRequest() { }
 
@@ -151,6 +152,12 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// slice by finds nothing, so it is shown wherever the title is.
     /// </summary>
     public IReadOnlyCollection<IntakeRequestTagAssignment> Tags => _tags.AsReadOnly();
+
+    /// <summary>
+    /// What the request became: the projects that deliver it. Summary tier, because what a
+    /// request became is part of where it stands.
+    /// </summary>
+    public IReadOnlyCollection<IntakeRequestOutcome> Outcomes => _outcomes.AsReadOnly();
 
     /// <summary>
     /// Why the request is in its current status, as the requester reads it: the desk's reason for declining,
@@ -440,21 +447,22 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
 
     /// <summary>
     /// Whether moving a request into a status needs a reason the requester can read: closing it in any Removed
-    /// status but Withdrawn, and finishing it.
+    /// status but Withdrawn, and finishing it with no outcome.
     /// </summary>
     /// <remarks>
     /// Keyed on the category rather than on meanings, so a company's own "Won't do" or finishing status needs
-    /// one too. Withdrawn is the requester's own decision and keeps its optional note. Finishing needs a reason
-    /// because a request finished with no outcome to show for it has to say why; once outcomes exist, a request
-    /// with one will not.
+    /// one too. Withdrawn is the requester's own decision and keeps its optional note. A request finished with
+    /// no outcome to show for it has to say why; one with an outcome points at what delivered it.
     /// </remarks>
-    public static bool NeedsReason(StatusCategory category, IntakeRequestStatusAlias alias) =>
-        category == StatusCategory.Done
+    /// <param name="hasOutcomes">Whether the request has at least one outcome.</param>
+    public static bool NeedsReason(StatusCategory category, IntakeRequestStatusAlias alias, bool hasOutcomes) =>
+        (category == StatusCategory.Done && !hasOutcomes)
         || (category == StatusCategory.Removed && alias != IntakeRequestStatusAlias.Withdrawn);
 
     /// <summary>
     /// Moves the request to another status of its desk's workflow: an agent's decision. Needs the surviving
-    /// request for a status meaning Duplicate, and a reason where <see cref="NeedsReason"/> says so.
+    /// request for a status meaning Duplicate, and a reason where <see cref="NeedsReason"/> says so. Needs
+    /// <see cref="Outcomes"/> loaded.
     /// </summary>
     /// <remarks>
     /// Needs an agent on the request's desk, which the caller checks. Withdrawn is not offered: only the
@@ -543,7 +551,7 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         RequireOwnWorkflow(status);
 
         var alias = (IntakeRequestStatusAlias)status.Alias;
-        if (NeedsReason(status.Category, alias) && string.IsNullOrWhiteSpace(reason))
+        if (NeedsReason(status.Category, alias, _outcomes.Count > 0) && string.IsNullOrWhiteSpace(reason))
             return Result.Failure($"Moving this request to '{status.Name}' needs a reason the requester can read.");
 
         var fromStatusId = StatusId;
@@ -619,6 +627,87 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// Records that the request became a project. Needs <see cref="Outcomes"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// Needs an agent on the request's desk, and a project that exists; the caller checks both, since the
+    /// request knows neither who works its desk nor what exists in PPM. Allowed only while
+    /// the request is accepted (Active): before that nothing has been decided, and once it is closed the
+    /// record of what it became is settled until it is reopened. Recording existing project scope says what
+    /// the project absorbed, because the project's own definition is not changed.
+    /// </remarks>
+    /// <param name="targetId">The project, by the id it shares with its source.</param>
+    /// <param name="addedById">The employee recording it.</param>
+    public Result AddOutcome(IntakeRequestOutcomeKind kind, Guid targetId, string? note, Guid addedById, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.EnumOutOfRange(kind, nameof(kind));
+        Guard.Against.Default(targetId, nameof(targetId));
+        Guard.Against.Default(addedById, nameof(addedById));
+
+        if (StatusCategory != StatusCategory.Active)
+            return Result.Failure(OutcomeNeedsAcceptedRequestError);
+
+        if (kind == IntakeRequestOutcomeKind.ExistingProjectScope && string.IsNullOrWhiteSpace(note))
+            return Result.Failure(ExistingProjectScopeNeedsNoteError);
+
+        if (_outcomes.Any(o => o.TargetId == targetId))
+            return Result.Failure(DuplicateOutcomeError);
+
+        var outcome = new IntakeRequestOutcome(Id, kind, targetId, note, addedById, timestamp);
+        _outcomes.Add(outcome);
+
+        var targetIds = OutcomeTargetIds();
+        RaiseWhenKeyed(() => new IntakeRequestOutcomeAddedEvent(Id, Key, outcome.Kind, outcome.TargetId, outcome.Note,
+            targetIds, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Takes an outcome off the request: it no longer counts the project as what it became. Needs
+    /// <see cref="Outcomes"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// Needs an agent on the request's desk, which the caller checks, and allowed only while the request is
+    /// accepted, as adding is. The project itself is untouched.
+    /// </remarks>
+    public Result RemoveOutcome(Guid targetId, EventActor actor, Instant timestamp)
+    {
+        if (StatusCategory != StatusCategory.Active)
+            return Result.Failure(OutcomeNeedsAcceptedRequestError);
+
+        var outcome = _outcomes.FirstOrDefault(o => o.TargetId == targetId);
+        if (outcome is null)
+            return Result.Failure("The request has no outcome pointing at that record.");
+
+        _outcomes.Remove(outcome);
+
+        var targetIds = OutcomeTargetIds();
+        RaiseWhenKeyed(() => new IntakeRequestOutcomeRemovedEvent(Id, Key, outcome.Kind, outcome.TargetId, outcome.Note,
+            targetIds, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// The failure for adding or removing an outcome while the request is not accepted.
+    /// </summary>
+    public const string OutcomeNeedsAcceptedRequestError =
+        "Outcomes can be changed only while the request is accepted.";
+
+    /// <summary>
+    /// The failure for recording existing project scope without saying what the project absorbed.
+    /// </summary>
+    public const string ExistingProjectScopeNeedsNoteError =
+        "Say what the project absorbed from this request.";
+
+    /// <summary>
+    /// The failure for recording a second outcome pointing at the same project.
+    /// </summary>
+    public const string DuplicateOutcomeError =
+        "The request already has an outcome pointing at that record.";
 
     /// <summary>
     /// Files the request under a tag. Needs <see cref="Tags"/> loaded, and <paramref name="desk"/>'s
@@ -703,8 +792,9 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// </summary>
     /// <remarks>
     /// Refused once the request has status history beyond its initial status, because by then it is part of
-    /// the record of a decision; withdrawing is the requester's way out and declining the desk's. Requests
-    /// with outcomes will be refused too, once outcomes exist. A request others are marked duplicates of is
+    /// the record of a decision; withdrawing is the requester's way out and declining the desk's. A request
+    /// with outcomes is always refused by that rule, since outcomes are added only once it is accepted. A
+    /// request others are marked duplicates of is
     /// refused as well, because their pages point at it. Both refusals read the same, because the duplicates
     /// may be on desks the deleter cannot see, and saying they exist would disclose them.
     /// </remarks>
@@ -864,6 +954,8 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     private Guid[] ParticipantIds() => [.. _participants.Select(p => p.EmployeeId)];
 
     private Guid[] TagIds() => [.. _tags.Select(t => t.TagId)];
+
+    private Guid[] OutcomeTargetIds() => [.. _outcomes.Select(o => o.TargetId)];
 
     /// <summary>
     /// Raises the event now, or once the save assigns <see cref="Key"/> when the request is not yet persisted,

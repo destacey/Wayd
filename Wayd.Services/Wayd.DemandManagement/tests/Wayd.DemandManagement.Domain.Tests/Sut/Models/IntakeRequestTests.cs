@@ -1176,18 +1176,22 @@ public sealed class IntakeRequestTests
     #region ChangeStatus
 
     [Theory]
-    [InlineData(StatusCategory.Proposed, IntakeRequestStatusAlias.None, false)]
-    [InlineData(StatusCategory.Proposed, IntakeRequestStatusAlias.WaitingOnRequester, false)]
-    [InlineData(StatusCategory.Active, IntakeRequestStatusAlias.Accepted, false)]
-    [InlineData(StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled, true)]
-    [InlineData(StatusCategory.Done, IntakeRequestStatusAlias.None, true)]
-    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.None, true)]
-    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.Duplicate, true)]
-    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.Withdrawn, false)]
-    public void NeedsReason_FollowsTheCategory_ExceptForWithdrawn(StatusCategory category, IntakeRequestStatusAlias alias, bool expected)
+    [InlineData(StatusCategory.Proposed, IntakeRequestStatusAlias.None, false, false)]
+    [InlineData(StatusCategory.Proposed, IntakeRequestStatusAlias.WaitingOnRequester, false, false)]
+    [InlineData(StatusCategory.Active, IntakeRequestStatusAlias.Accepted, false, false)]
+    [InlineData(StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled, false, true)]
+    [InlineData(StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled, true, false)]
+    [InlineData(StatusCategory.Done, IntakeRequestStatusAlias.None, false, true)]
+    [InlineData(StatusCategory.Done, IntakeRequestStatusAlias.None, true, false)]
+    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.None, false, true)]
+    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.None, true, true)]
+    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.Duplicate, false, true)]
+    [InlineData(StatusCategory.Removed, IntakeRequestStatusAlias.Withdrawn, false, false)]
+    public void NeedsReason_FollowsTheCategory_ExceptForWithdrawnAndFinishingWithAnOutcome(StatusCategory category,
+        IntakeRequestStatusAlias alias, bool hasOutcomes, bool expected)
     {
         // Act — a company's own "Won't do" needs a reason with no meaning set; Withdrawn is the requester's own
-        var needsReason = IntakeRequest.NeedsReason(category, alias);
+        var needsReason = IntakeRequest.NeedsReason(category, alias, hasOutcomes);
 
         // Assert
         needsReason.Should().Be(expected);
@@ -1521,6 +1525,202 @@ public sealed class IntakeRequestTests
     }
 
     #endregion Delete with duplicates
+
+    #region Outcomes
+
+    private static IntakeRequest AnAcceptedRequest(params Guid[] workItemOutcomeIds) =>
+        new IntakeRequestFaker()
+            .InStatus(StatusCategory.Active, IntakeRequestStatusAlias.Accepted)
+            .WithOutcomes(IntakeRequestOutcomeKind.NewProject, workItemOutcomeIds)
+            .Generate();
+
+    [Fact]
+    public void AddOutcome_WhileAccepted_RecordsItAndRaisesTheResultingTargets()
+    {
+        // Arrange
+        var existingId = Guid.NewGuid();
+        var sut = AnAcceptedRequest(existingId);
+        var projectId = Guid.NewGuid();
+        var addedById = Guid.NewGuid();
+        var timestamp = _dateTimeProvider.Now;
+
+        // Act
+        var result = sut.AddOutcome(IntakeRequestOutcomeKind.NewProject, projectId, " Phase one ", addedById, EventActor.System, timestamp);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Outcomes.Should().ContainSingle(o => o.TargetId == projectId).Which.Should().BeEquivalentTo(new
+        {
+            RequestId = sut.Id,
+            Kind = IntakeRequestOutcomeKind.NewProject,
+            TargetId = projectId,
+            Note = "Phase one",
+            AddedById = addedById,
+            AddedOn = timestamp,
+        });
+        var added = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestOutcomeAddedEvent>().Subject;
+        added.Kind.Should().Be(IntakeRequestOutcomeKind.NewProject);
+        added.TargetId.Should().Be(projectId);
+        added.Note.Should().Be("Phase one");
+        added.TargetIds.Should().BeEquivalentTo([existingId, projectId]);
+    }
+
+    [Theory]
+    [InlineData(StatusCategory.Proposed)]
+    [InlineData(StatusCategory.Done)]
+    [InlineData(StatusCategory.Removed)]
+    public void AddOutcome_WhenNotAccepted_FailsAndRecordsNothing(StatusCategory category)
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().InStatus(category).Generate();
+
+        // Act
+        var result = sut.AddOutcome(IntakeRequestOutcomeKind.NewProject, Guid.NewGuid(), null, Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.OutcomeNeedsAcceptedRequestError);
+        sut.Outcomes.Should().BeEmpty();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("  ")]
+    public void AddOutcome_ExistingProjectScopeWithoutANote_Fails(string? note)
+    {
+        // Arrange
+        var sut = AnAcceptedRequest();
+
+        // Act
+        var result = sut.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, Guid.NewGuid(), note, Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.ExistingProjectScopeNeedsNoteError);
+        sut.Outcomes.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddOutcome_ForATargetItAlreadyPointsAt_FailsWhateverTheKind()
+    {
+        // Arrange
+        var projectId = Guid.NewGuid();
+        var sut = new IntakeRequestFaker()
+            .InStatus(StatusCategory.Active, IntakeRequestStatusAlias.Accepted)
+            .WithOutcomes(IntakeRequestOutcomeKind.NewProject, projectId)
+            .Generate();
+
+        // Act
+        var result = sut.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, projectId, "Export screen", Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.DuplicateOutcomeError);
+        sut.Outcomes.Should().ContainSingle();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddOutcome_BeforeTheFirstSave_RaisesOnlyOnceKeyed()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().WithKey(0).InStatus(StatusCategory.Active).Generate();
+
+        // Act
+        var result = sut.AddOutcome(IntakeRequestOutcomeKind.NewProject, Guid.NewGuid(), null, Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+        sut.PostPersistenceActions.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void RemoveOutcome_WhileAccepted_RemovesItAndRaisesItAsItWas()
+    {
+        // Arrange
+        var keptId = Guid.NewGuid();
+        var removedId = Guid.NewGuid();
+        var sut = AnAcceptedRequest(keptId, removedId);
+
+        // Act
+        var result = sut.RemoveOutcome(removedId, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Outcomes.Select(o => o.TargetId).Should().Equal(keptId);
+        var removed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestOutcomeRemovedEvent>().Subject;
+        removed.Kind.Should().Be(IntakeRequestOutcomeKind.NewProject);
+        removed.TargetId.Should().Be(removedId);
+        removed.TargetIds.Should().Equal(keptId);
+    }
+
+    [Fact]
+    public void RemoveOutcome_ForATargetItDoesNotPointAt_Fails()
+    {
+        // Arrange
+        var sut = AnAcceptedRequest(Guid.NewGuid());
+
+        // Act
+        var result = sut.RemoveOutcome(Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        sut.Outcomes.Should().ContainSingle();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RemoveOutcome_OnceClosed_FailsAndKeepsIt()
+    {
+        // Arrange
+        var targetId = Guid.NewGuid();
+        var sut = new IntakeRequestFaker()
+            .InStatus(StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled)
+            .WithOutcomes(IntakeRequestOutcomeKind.NewProject, targetId)
+            .Generate();
+
+        // Act
+        var result = sut.RemoveOutcome(targetId, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.OutcomeNeedsAcceptedRequestError);
+        sut.Outcomes.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void ChangeStatus_ToFinishedWithAnOutcome_NeedsNoReason()
+    {
+        // Arrange
+        var sut = AnAcceptedRequest(Guid.NewGuid());
+
+        // Act
+        var result = sut.ChangeStatus(InItsWorkflow(sut, StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled), null, null,
+            EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.StatusCategory.Should().Be(StatusCategory.Done);
+        sut.StatusReason.Should().BeNull();
+    }
+
+    [Fact]
+    public void ChangeStatus_ToRemovedWithAnOutcome_StillNeedsAReason()
+    {
+        // Arrange
+        var sut = AnAcceptedRequest(Guid.NewGuid());
+
+        // Act
+        var result = sut.ChangeStatus(InItsWorkflow(sut, StatusCategory.Removed), null, null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().EndWith("needs a reason the requester can read.");
+    }
+
+    #endregion Outcomes
 
     #region Tags
 

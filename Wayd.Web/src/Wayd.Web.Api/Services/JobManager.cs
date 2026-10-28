@@ -6,6 +6,7 @@ using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Notifications.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
+using Wayd.DemandManagement.Application.DemandProjects.Commands;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Work.Application.Iterations.Queries;
 using Wayd.Planning.Application.PlanningSprints.Commands;
@@ -144,15 +145,35 @@ public class JobManager(
         var asOf = _dateTimeProvider.Now;
         var projects = await _dispatcher.Send(new GetSimpleProjectsQuery(), cancellationToken);
 
-        var result = await _dispatcher.Send(new SyncWorkProjectsCommand(projects, asOf), cancellationToken);
-        if (result.IsFailure)
+        // Each copy is synced on its own, so one module's failure never leaves the other stale.
+        try
         {
-            _logger.LogError("Failed to sync projects: {Error}", result.Error);
+            var result = await _dispatcher.Send(new SyncWorkProjectsCommand(projects, asOf), cancellationToken);
+            if (result.IsFailure)
+            {
+                _logger.LogError("Failed to sync projects: {Error}", result.Error);
+            }
         }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Failed to sync projects");
+        }
+
+        try
+        {
+            var demandResult = await _dispatcher.Send(new SyncDemandProjectsCommand(projects, asOf), cancellationToken);
+            if (demandResult.IsFailure)
+            {
+                _logger.LogError("Failed to sync Demand Management projects: {Error}", demandResult.Error);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Failed to sync Demand Management projects");
+        }
+
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncProjects));
     }
-
-
 
     [DisableConcurrentExecution(60 * 3)]
     public async Task RunSyncTeams(CancellationToken cancellationToken)

@@ -385,4 +385,50 @@ public sealed class GetIntakeRequestQueryHandlerTests
         result.Summary.Status.Category.Should().Be(StatusCategory.Proposed);
         result.Summary.Status.Alias.Should().Be((int)IntakeRequestStatusAlias.WaitingOnRequester);
     }
+
+    [Fact]
+    public async Task Handle_ForARequestWithOutcomes_ReturnsThemWithTheirProjectsToAnyoneWhoSeesTheSummary()
+    {
+        // Arrange — one project still exists; the other has been deleted, and only its copy went
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(IntakeDeskVisibility.SummaryOnly, agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        var project = _scenario.Project("ATLAS", "Atlas");
+        var deletedProjectId = Guid.NewGuid();
+        _scenario.Outcome(request, project.Id, agent);
+        _scenario.Outcome(request, deletedProjectId, agent, IntakeRequestOutcomeKind.ExistingProjectScope, "Export screen");
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.View);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Substance.Should().BeNull();
+        result.Outcomes.Should().HaveCount(2);
+        var live = result.Outcomes.Single(o => o.TargetId == project.Id);
+        live.Project!.Key.Should().Be("ATLAS");
+        live.Project.Name.Should().Be("Atlas");
+        live.AddedBy.Id.Should().Be(agent.Id);
+        var gone = result.Outcomes.Single(o => o.TargetId == deletedProjectId);
+        gone.Project.Should().BeNull();
+        gone.Note.Should().Be("Export screen");
+        result.CanChangeOutcomes.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("Accepted", true)]
+    [InlineData("In Review", false)]
+    [InlineData("Fulfilled", false)]
+    public async Task Handle_ForAnAgent_OffersChangingOutcomesOnlyWhileAccepted(string statusName, bool expected)
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), statusName);
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.CanChangeOutcomes.Should().Be(expected);
+    }
 }

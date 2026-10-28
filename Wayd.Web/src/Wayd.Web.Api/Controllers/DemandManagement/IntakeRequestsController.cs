@@ -241,6 +241,41 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult> RemoveParticipant(Guid id, Guid employeeId, CancellationToken cancellationToken) =>
         NoContentOrError(await _dispatcher.Send(new RemoveIntakeRequestParticipantCommand(id, employeeId), cancellationToken));
 
+    [HttpPost("{id}/outcomes")]
+    [McpTool("IntakeRequests_AddOutcome", "Add intake request outcome", Destructive = false)]
+    [Authorize]
+    [EndpointSummary("Record that an accepted intake request became a project.")]
+    [EndpointDescription("Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on. The project itself is not changed. A request points at a project at most once. Once a request has an outcome, finishing it needs no reason.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> AddOutcome(Guid id, [FromBody] AddIntakeRequestOutcomeRequest request, CancellationToken cancellationToken) =>
+        NoContentOrError(await _dispatcher.Send(new AddIntakeRequestOutcomeCommand(id, request.Kind, request.ProjectId, request.Note), cancellationToken));
+
+    [HttpDelete("{id}/outcomes/{targetId}")]
+    [McpTool("IntakeRequests_RemoveOutcome", "Remove intake request outcome")]
+    [Authorize]
+    [EndpointSummary("Take an outcome off an accepted intake request.")]
+    [EndpointDescription("Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. The project itself is not changed.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> RemoveOutcome(Guid id, Guid targetId, CancellationToken cancellationToken) =>
+        NoContentOrError(await _dispatcher.Send(new RemoveIntakeRequestOutcomeCommand(id, targetId), cancellationToken));
+
+    [HttpGet("projects/{projectId}")]
+    [Authorize]
+    [McpTool("IntakeRequests_GetProjectIntakeRequests", "List a project's intake requests")]
+    [EndpointSummary("Get the intake requests a project came from or absorbed, that you can see.")]
+    [EndpointDescription("Ordered by request number. Each request is read under its desk's visibility, so a request on a private desk you are not part of is absent rather than listed as redacted.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<ProjectIntakeRequestDto>>> GetProjectIntakeRequests(Guid projectId, CancellationToken cancellationToken)
+    {
+        var requests = await _dispatcher.Send(new GetProjectIntakeRequestsQuery(projectId), cancellationToken);
+        return Ok(requests);
+    }
+
     [HttpPut("{id}/tags/{tagId}")]
     [McpTool("IntakeRequests_Tag", "Tag intake request")]
     [Authorize]

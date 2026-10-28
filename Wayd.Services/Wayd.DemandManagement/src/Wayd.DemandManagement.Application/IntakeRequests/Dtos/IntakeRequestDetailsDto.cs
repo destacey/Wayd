@@ -56,6 +56,16 @@ public sealed record IntakeRequestDetailsDto
     /// </summary>
     public bool CanChangeTags { get; init; }
 
+    /// <summary>
+    /// What the request became, oldest first. Summary tier, so everyone who sees the request sees them.
+    /// </summary>
+    public IReadOnlyList<IntakeRequestOutcomeDto> Outcomes { get; init; } = [];
+
+    /// <summary>
+    /// Whether the reader may add and remove outcomes: an agent on its desk, while the request is accepted.
+    /// </summary>
+    public bool CanChangeOutcomes { get; init; }
+
     /// <summary>Whether the reader may withdraw the request: its requester, while it is open.</summary>
     public bool CanWithdraw { get; init; }
 

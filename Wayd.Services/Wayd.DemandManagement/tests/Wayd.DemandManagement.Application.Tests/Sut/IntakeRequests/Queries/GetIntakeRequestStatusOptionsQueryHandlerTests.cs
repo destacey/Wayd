@@ -31,6 +31,21 @@ public sealed class GetIntakeRequestStatusOptionsQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ForARequestWithAnOutcome_NeedsNoReasonToFinishIt()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.AcceptedRequestWithOutcomes(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), Guid.NewGuid());
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var options = await CreateHandler().Handle(new GetIntakeRequestStatusOptionsQuery(request.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        options!.Where(o => o.NeedsReason).Select(o => o.Name).Should().BeEquivalentTo(["Declined", "Duplicate"]);
+    }
+
+    [Fact]
     public async Task Handle_ForTheRequester_OffersNothing()
     {
         // Arrange

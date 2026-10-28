@@ -196,6 +196,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<IntakeDesk> IntakeDesks => Set<IntakeDesk>();
     public DbSet<IntakeRequest> IntakeRequests => Set<IntakeRequest>();
     public DbSet<IntakeRequestTagCategory> IntakeRequestTagCategories => Set<IntakeRequestTagCategory>();
+    public DbSet<DemandProject> DemandProjects => Set<DemandProject>();
 
     IQueryable<Employee> IDemandManagementDbContext.Employees => Employees.AsNoTracking();
 

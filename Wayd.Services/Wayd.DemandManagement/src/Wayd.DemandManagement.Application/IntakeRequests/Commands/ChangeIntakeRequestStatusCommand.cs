@@ -8,8 +8,8 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
 /// Moves an intake request to another status of its desk's workflow: an agent's decision.
 /// </summary>
 /// <remarks>
-/// Needs an agent on the request's desk, with no claim beside it. Declining, deferring, marking a duplicate and
-/// finishing need a reason the requester can read; marking a duplicate needs the surviving request, which the
+/// Needs an agent on the request's desk, with no claim beside it. Declining, marking a duplicate and finishing
+/// with no outcome need a reason the requester can read; marking a duplicate needs the surviving request, which the
 /// agent must be able to see. Withdrawing is the requester's, through <see cref="WithdrawIntakeRequestCommand"/>.
 /// </remarks>
 /// <param name="Id">The request.</param>
@@ -53,7 +53,9 @@ public sealed class ChangeIntakeRequestStatusCommandHandler(
         if (reader.EmployeeId is null)
             LinkedEmployeeRequired.Throw();
 
-        var intakeRequest = await _dbContext.FindVisible(reader, request.Id, includeParticipants: false, cancellationToken);
+        // Outcomes decide whether finishing the request needs a reason.
+        var intakeRequest = await _dbContext.FindVisible(reader, request.Id, includeParticipants: false, cancellationToken,
+            includeOutcomes: true);
         if (intakeRequest is null)
             return Result.Failure(IntakeRequestAccess.NotFoundError);
 

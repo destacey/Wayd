@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.Infrastructure.Persistence.Converters;
@@ -261,6 +262,60 @@ public class IntakeRequestConfiguration : IEntityTypeConfiguration<IntakeRequest
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(r => r.Tags).HasField("_tags").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(r => r.Outcomes)
+            .WithOne()
+            .HasForeignKey(o => o.RequestId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(r => r.Outcomes).HasField("_outcomes").UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class IntakeRequestOutcomeConfiguration : IEntityTypeConfiguration<IntakeRequestOutcome>
+{
+    public void Configure(EntityTypeBuilder<IntakeRequestOutcome> builder)
+    {
+        builder.ToTable("IntakeRequestOutcomes", SchemaNames.DemandManagement);
+
+        // A request points at a target at most once.
+        builder.HasKey(o => new { o.RequestId, o.TargetId });
+
+        // "Which requests did this project come from": the reverse view on the project page.
+        builder.HasIndex(o => o.TargetId);
+
+        // No foreign key on TargetId: an outcome outlives the project's copy, which goes when the project is
+        // deleted.
+        builder.Property(o => o.Kind).IsRequired()
+            .HasConversion<EnumConverter<IntakeRequestOutcomeKind>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+        builder.Property(o => o.Note).HasMaxLength(1024);
+        builder.Property(o => o.AddedOn).IsRequired();
+
+        builder.HasOne<Employee>()
+            .WithMany()
+            .HasForeignKey(o => o.AddedById)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class DemandProjectConfiguration : IEntityTypeConfiguration<DemandProject>
+{
+    public void Configure(EntityTypeBuilder<DemandProject> builder)
+    {
+        builder.ToTable("DemandProjects", SchemaNames.DemandManagement);
+
+        builder.HasKey(p => p.Id);
+
+        builder.Property(p => p.Id).ValueGeneratedNever();
+        builder.Property(p => p.Key).IsRequired()
+            .HasConversion(k => k.Value, v => new ProjectKey(v))
+            .HasColumnType("varchar")
+            .HasMaxLength(20);
+        builder.Property(p => p.Name).IsRequired().HasMaxLength(128);
+
+        builder.ConfigureReplicaTracking(p => p.Watermarks);
     }
 }
 

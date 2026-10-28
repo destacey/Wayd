@@ -26,7 +26,7 @@ public enum NotificationReason
     [Display(Name = "Requester", Description = "You asked for the record.", Order = 2)]
     Requester = 2,
 
-    [Display(Name = "Participant", Description = "You hold a role on the record, or belong to the team that owns it.", Order = 3)]
+    [Display(Name = "Participant", Description = "You were given the record and can join its conversation.", Order = 3)]
     Participant = 4,
 
     [Display(Name = "Assigned", Description = "The record is assigned to you.", Order = 4)]
@@ -34,6 +34,12 @@ public enum NotificationReason
 
     [Display(Name = "Mentioned", Description = "You were mentioned on the record.", Order = 5)]
     Mentioned = 16,
+
+    [Display(Name = "Desk", Description = "The record is waiting, unassigned, on a desk you work on.", Order = 6)]
+    Desk = 32,
+
+    [Display(Name = "Role", Description = "You hold a role on the record, or belong to the team that owns it.", Order = 7)]
+    Role = 64,
 }
 
 /// <summary>Checks on a <see cref="NotificationReason"/> set.</summary>
@@ -45,7 +51,9 @@ public static class NotificationReasons
         | NotificationReason.Requester
         | NotificationReason.Participant
         | NotificationReason.Assigned
-        | NotificationReason.Mentioned;
+        | NotificationReason.Mentioned
+        | NotificationReason.Desk
+        | NotificationReason.Role;
 
     /// <summary>
     /// The reasons something tells people for today, and so the only reasons that can be muted.
@@ -54,7 +62,7 @@ public static class NotificationReasons
     /// A mute of a reason nothing produces would sit unnoticed until a producer arrived, then silently swallow
     /// its first notifications. A producer of a new reason adds it here.
     /// </remarks>
-    public const NotificationReason Produced = NotificationReason.Following | NotificationReason.Participant;
+    public const NotificationReason Produced = NotificationReason.Following | NotificationReason.Role;
 
     /// <summary>Whether the set holds at least one reason and nothing that is not a defined reason.</summary>
     public static bool IsValid(NotificationReason reasons) => reasons != 0 && (reasons & ~All) == 0;

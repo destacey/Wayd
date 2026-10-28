@@ -29,7 +29,7 @@ public sealed class UnmuteReasonCommandHandlerTests
         // Arrange
         var otherPerson = Guid.NewGuid();
         _dbContext.AddReasonMute(ReasonMute.Create(_employeeId, NotificationReason.Following, Now).Value);
-        _dbContext.AddReasonMute(ReasonMute.Create(_employeeId, NotificationReason.Participant, Now).Value);
+        _dbContext.AddReasonMute(ReasonMute.Create(_employeeId, NotificationReason.Role, Now).Value);
         _dbContext.AddReasonMute(ReasonMute.Create(otherPerson, NotificationReason.Following, Now).Value);
 
         // Act
@@ -38,7 +38,7 @@ public sealed class UnmuteReasonCommandHandlerTests
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         _dbContext.ReasonMutes.AsEnumerable().Select(m => (m.EmployeeId, m.Reason)).Should().BeEquivalentTo([
-            (_employeeId, NotificationReason.Participant),
+            (_employeeId, NotificationReason.Role),
             (otherPerson, NotificationReason.Following),
         ]);
     }
@@ -47,7 +47,7 @@ public sealed class UnmuteReasonCommandHandlerTests
     public async Task Handle_ShouldSucceed_WhenTheReasonWasNotMuted()
     {
         // Act
-        var result = await CreateHandler().Handle(new UnmuteReasonCommand(NotificationReason.Participant), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new UnmuteReasonCommand(NotificationReason.Role), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -56,8 +56,8 @@ public sealed class UnmuteReasonCommandHandlerTests
     [Theory]
     [InlineData(NotificationReason.Following, true)]
     [InlineData(NotificationReason.Mentioned, true)]
-    [InlineData(NotificationReason.Following | NotificationReason.Participant, true)]
-    [InlineData((NotificationReason)64, false)]
+    [InlineData(NotificationReason.Following | NotificationReason.Role, true)]
+    [InlineData((NotificationReason)128, false)]
     [InlineData((NotificationReason)999, false)]
     public void Validator_ShouldAcceptOnlyDefinedReasons(NotificationReason reason, bool expected)
     {

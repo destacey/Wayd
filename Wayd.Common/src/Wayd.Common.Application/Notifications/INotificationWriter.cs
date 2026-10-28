@@ -3,8 +3,8 @@ using Wayd.Common.Domain.Notifications;
 namespace Wayd.Common.Application.Notifications;
 
 /// <summary>
-/// Tells the people who should know about a change to a record: its followers, and the participants the
-/// record's own module names.
+/// Tells the people who should know about a change to a record: its followers, and the people the record's
+/// own module names as involved in it, each with the reason they are involved.
 /// </summary>
 /// <remarks>
 /// Called only from the event handlers of the module that owns the record, never from an aggregate or a
@@ -27,11 +27,26 @@ public interface INotificationWriter
     /// every reason that applies to them.
     /// </summary>
     /// <param name="change">What happened, to which record, and the event that recorded it.</param>
-    /// <param name="participantEmployeeIds">
-    /// The employees taking part in the record as its module defines it, read as the record is now.
+    /// <param name="involved">
+    /// The people involved in the record as its module defines it, read as the record is now, each with why.
+    /// One person may appear more than once, for different reasons. Followers are found here, not passed.
     /// </param>
     /// <returns>How many notifications were added; zero when the event was already written.</returns>
-    Task<int> Notify(RecordChange change, IReadOnlyCollection<Guid> participantEmployeeIds, CancellationToken cancellationToken);
+    /// <exception cref="ArgumentException">
+    /// A reason that is not in <see cref="NotificationReasons.Produced"/>: a producer of a new reason adds it
+    /// there first, so it can be muted from the day it is sent.
+    /// </exception>
+    Task<int> Notify(RecordChange change, IReadOnlyCollection<NotificationRecipient> involved, CancellationToken cancellationToken);
+}
+
+/// <summary>Someone a module names as involved in a record, and why.</summary>
+/// <param name="EmployeeId">The employee involved.</param>
+/// <param name="Reason">How they are involved: one reason, or several that all apply.</param>
+public readonly record struct NotificationRecipient(Guid EmployeeId, NotificationReason Reason)
+{
+    /// <summary>Names every one of <paramref name="employeeIds"/> as involved for the same reason.</summary>
+    public static IEnumerable<NotificationRecipient> For(NotificationReason reason, IEnumerable<Guid> employeeIds) =>
+        employeeIds.Select(id => new NotificationRecipient(id, reason));
 }
 
 /// <summary>A change to one record that people may need to hear about.</summary>

@@ -34,7 +34,7 @@ public sealed class NotificationReasonsTests
     [InlineData(NotificationReason.Following, true)]
     [InlineData(NotificationReason.Following | NotificationReason.Mentioned, true)]
     [InlineData((NotificationReason)0, false)]
-    [InlineData((NotificationReason)64, false)]
+    [InlineData((NotificationReason)128, false)]
     public void IsValid_ShouldAcceptOnlyNonEmptySetsOfDefinedReasons(NotificationReason reasons, bool expected)
     {
         // Act
@@ -46,11 +46,13 @@ public sealed class NotificationReasonsTests
 
     [Theory]
     [InlineData(NotificationReason.Following, true)]
-    [InlineData(NotificationReason.Participant, true)]
+    [InlineData(NotificationReason.Role, true)]
+    [InlineData(NotificationReason.Participant, false)]
+    [InlineData(NotificationReason.Desk, false)]
     [InlineData(NotificationReason.Requester, false)]
     [InlineData(NotificationReason.Assigned, false)]
     [InlineData(NotificationReason.Mentioned, false)]
-    [InlineData(NotificationReason.Following | NotificationReason.Participant, false)]
+    [InlineData(NotificationReason.Following | NotificationReason.Role, false)]
     [InlineData((NotificationReason)0, false)]
     public void IsMutable_ShouldAcceptOnlyASingleProducedReason(NotificationReason reason, bool expected)
     {

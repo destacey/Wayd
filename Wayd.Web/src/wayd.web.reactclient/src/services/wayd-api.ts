@@ -58162,6 +58162,8 @@ export enum NotificationReason {
     Participant = "Participant",
     Assigned = "Assigned",
     Mentioned = "Mentioned",
+    Desk = "Desk",
+    Role = "Role",
 }
 
 /** The record a notification is about, as its owner type describes it now. */

@@ -52,7 +52,7 @@ public sealed class ProgramNotificationEventHandlerTests : IDisposable
         // Assert
         _writer.Verify(w => w.Notify(
             It.Is<RecordChange>(c => c.Event == expected && c.OwnerId == program.Id && c.Source == @event),
-            It.IsAny<IReadOnlyCollection<Guid>>(),
+            It.IsAny<IReadOnlyCollection<NotificationRecipient>>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -68,7 +68,7 @@ public sealed class ProgramNotificationEventHandlerTests : IDisposable
         await CreateHandler().Handle(new ProgramTimelineChangedEvent(program.Id, program.Key, null, null, Actor, Now), TestContext.Current.CancellationToken);
 
         // Assert
-        _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<NotificationRecipient>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public sealed class ProgramNotificationEventHandlerTests : IDisposable
                 && c.OwnerId == program.Id
                 && c.Event == NotificationEvent.TimelineChanged
                 && c.Source == @event),
-            It.Is<IReadOnlyCollection<Guid>>(ids => ids.Count == 2 && ids.Contains(sponsor) && ids.Contains(owner)),
+            It.Is<IReadOnlyCollection<NotificationRecipient>>(r => AreRoleHolders(r, sponsor, owner)),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -107,7 +107,7 @@ public sealed class ProgramNotificationEventHandlerTests : IDisposable
         await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
 
         // Assert
-        _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<NotificationRecipient>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     public void Dispose() => _dbContext.Dispose();
@@ -121,4 +121,8 @@ public sealed class ProgramNotificationEventHandlerTests : IDisposable
         nameof(ProgramRolesChangedEvent) => new ProgramRolesChangedEvent(id, key, [], [], [], Actor, Now),
         _ => throw new ArgumentOutOfRangeException(nameof(eventType), eventType, null),
     };
+
+    private static bool AreRoleHolders(IReadOnlyCollection<NotificationRecipient> involved, params Guid[] employeeIds) =>
+        involved.All(r => r.Reason == NotificationReason.Role)
+        && involved.Select(r => r.EmployeeId).ToHashSet().SetEquals(employeeIds);
 }

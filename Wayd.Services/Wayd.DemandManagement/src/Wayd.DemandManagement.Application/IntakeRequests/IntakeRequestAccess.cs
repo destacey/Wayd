@@ -22,13 +22,16 @@ internal static class IntakeRequestAccess
         Guid id,
         bool includeParticipants,
         CancellationToken cancellationToken,
-        bool includeTags = false)
+        bool includeTags = false,
+        bool includeScores = false)
     {
         var query = dbContext.IntakeRequests.AsQueryable();
         if (includeParticipants)
             query = query.Include(r => r.Participants);
         if (includeTags)
             query = query.Include(r => r.Tags);
+        if (includeScores)
+            query = query.Include(r => r.Scores);
 
         return query
             .Where(r => r.Id == id)

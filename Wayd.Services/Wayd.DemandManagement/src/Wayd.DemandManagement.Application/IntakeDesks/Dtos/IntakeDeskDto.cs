@@ -1,3 +1,4 @@
+using Wayd.Common.Application.Dtos;
 using Wayd.Common.Domain.Enums.DemandManagement;
 
 namespace Wayd.DemandManagement.Application.IntakeDesks.Dtos;
@@ -50,6 +51,11 @@ public sealed record IntakeDeskDto
     /// along none.
     /// </summary>
     public IReadOnlyList<Guid> TagCategoryIds { get; init; } = [];
+
+    /// <summary>
+    /// The scoring model the desk's agents score its requests with, or null when the desk does not score them.
+    /// </summary>
+    public NavigationDto? ScoringModel { get; init; }
 
     /// <summary>How many changes the desk has recorded; sent back with a change so a stale one is refused.</summary>
     public int Revision { get; init; }

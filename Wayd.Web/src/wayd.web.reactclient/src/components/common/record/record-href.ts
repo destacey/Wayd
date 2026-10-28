@@ -17,6 +17,8 @@ export const recordHref = (
       return record.parentKey
         ? `/planning/planning-intervals/${record.parentKey}/objectives/${record.key}`
         : null
+    case FollowOwnerTypes.IntakeRequest:
+      return `/demand-management/requests/${record.key}`
     default:
       return null
   }

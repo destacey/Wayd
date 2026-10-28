@@ -1,6 +1,6 @@
 'use client'
 
-import { PageActions } from '@/src/components/common'
+import { FollowButton, PageActions } from '@/src/components/common'
 import {
   ACTIVITY_LOG_PAGE_SIZE,
   ActivityLogExportButton,
@@ -15,6 +15,7 @@ import {
   useGetIntakeRequestQuery,
   useLazyGetIntakeRequestActivitiesQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
+import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
 import { toApiError } from '@/src/utils'
 import { Alert, Button, Flex } from 'antd'
 import dayjs from 'dayjs'
@@ -265,6 +266,10 @@ const IntakeRequestDetailsPage = (props: {
           ),
           actions: (
             <Flex gap="small" align="center">
+              <FollowButton
+                ownerType={FollowOwnerTypes.IntakeRequest}
+                ownerId={summary.id}
+              />
               {request.canChangeStatus && (
                 <MoveIntakeRequestButton
                   request={request}

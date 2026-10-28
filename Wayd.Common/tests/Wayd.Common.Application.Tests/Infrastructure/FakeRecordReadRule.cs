@@ -3,6 +3,7 @@ using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Records;
 using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Notifications;
 using Wayd.Tests.Shared.Infrastructure;
 
 namespace Wayd.Common.Application.Tests.Infrastructure;
@@ -53,6 +54,15 @@ public sealed class FakeRecordReadRule(string ownerType) : IRecordReadRule
     /// withhold them.
     /// </summary>
     public HashSet<string> HiddenEventTypes { get; } = [];
+
+    /// <summary>
+    /// Changes the caller may not be told about on any record, as a rule that reads history in tiers would
+    /// withhold them.
+    /// </summary>
+    public HashSet<NotificationEvent> HiddenNotificationEvents { get; } = [];
+
+    /// <summary>Records on which the caller may not be told who made a change.</summary>
+    public HashSet<Guid> ActorHiddenRecords { get; } = [];
 
     /// <summary>Makes one record unreadable to the caller while it still exists, as a row-level rule would.</summary>
     public void Hide(Guid id) => _hidden.Add(id);
@@ -117,6 +127,15 @@ public sealed class FakeRecordReadRule(string ownerType) : IRecordReadRule
         var hidden = HiddenEventTypes.ToArray();
         return Task.FromResult(activity.Where(a => !hidden.Contains(a.EventType)));
     }
+
+    public Task<IQueryable<Notification>> VisibleNotifications(IQueryable<Notification> notifications, CancellationToken cancellationToken)
+    {
+        var hidden = HiddenNotificationEvents.ToArray();
+        return Task.FromResult(notifications.Where(n => !hidden.Contains(n.Event)));
+    }
+
+    public Task<IReadOnlySet<Guid>> ActorHiddenOn(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlySet<Guid>>(ids.Where(ActorHiddenRecords.Contains).ToHashSet());
 
     public async Task<PagedResponse<ActivityLogDto>> ReadActivity(
         Guid id,

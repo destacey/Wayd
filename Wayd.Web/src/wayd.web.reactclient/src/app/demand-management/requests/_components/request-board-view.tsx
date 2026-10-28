@@ -11,6 +11,7 @@ import { Alert, Button, Flex, Skeleton, Typography } from 'antd'
 import { FC } from 'react'
 import RequestBoard, { boardColumns } from './request-board'
 import { RequestFilters } from './request-filters'
+import type { RequestScores } from '../../_components/request-scores'
 
 const { Text } = Typography
 
@@ -69,6 +70,8 @@ export interface RequestBoardViewProps {
   desks: IntakeDeskDto[] | undefined
   /** Narrows the filters to one desk, offered when the desks in scope have no single board. */
   onPickDesk: (deskId: string) => void
+  /** The current scores the reader may read, shown on the cards. */
+  scores?: RequestScores
 }
 
 /**
@@ -81,6 +84,7 @@ const RequestBoardView: FC<RequestBoardViewProps> = ({
   filters,
   desks,
   onPickDesk,
+  scores,
 }) => {
   const deskIds = boardDeskIds(filters, desks, requests ?? [])
   // `currentData`, so a change of desks never draws the previous desks' columns or hides a failure.
@@ -144,6 +148,7 @@ const RequestBoardView: FC<RequestBoardViewProps> = ({
       <Text strong>{boardTitle(filters, desks, shared.workflow.name)}</Text>
       <RequestBoard
         columns={boardColumns(shared.statuses, requests, filters.scope)}
+        scores={scores}
       />
     </Flex>
   )

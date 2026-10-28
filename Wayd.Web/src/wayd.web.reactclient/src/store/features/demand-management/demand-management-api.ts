@@ -17,6 +17,11 @@ import {
   CreateIntakeDeskRequest,
   CreateIntakeRequestRequest,
   IntakeDeskWorkflowDto,
+  IntakeRequestCurrentScoreDto,
+  IntakeRequestScoringDto,
+  IntakeScoringModelChoiceDto,
+  ScoreIntakeRequestRequest,
+  ScoringModelEvaluationDto,
   IntakeRequestArrivalStatusesDto,
   IntakeRequestStatusOptionDto,
   IntakeWorkflowChoiceDto,
@@ -75,6 +80,8 @@ const statusMoveTags = (requestId: string) => [
   { type: QueryTags.StatusHistory, id: requestId },
   listTag,
   QueryTags.IntakeDesk,
+  // A move in or out of an open status, or to another desk, changes which requests rank together.
+  QueryTags.IntakeRequestScore,
 ]
 
 const listTag = { type: QueryTags.IntakeRequest, id: 'LIST' } as const
@@ -116,6 +123,16 @@ export interface WithdrawIntakeRequestArgs extends WithdrawIntakeRequestRequest 
   requestId: string
 }
 
+export interface ScoreIntakeRequestArgs extends ScoreIntakeRequestRequest {
+  requestId: string
+}
+
+export interface ChangeIntakeDeskScoringModelArgs {
+  deskId: string
+  /** An active model, or undefined to stop scoring the desk's requests. */
+  scoringModelId?: string
+}
+
 /**
  * Rejects with what the generated client threw, unchanged, so pages and forms read it with `toApiError`:
  * a documented response arrives as its problem details and an undocumented one as an `ApiException`.
@@ -147,6 +164,74 @@ export const demandManagementApi = apiSlice.injectEndpoints({
         listTag,
         ...result.map(({ id }) => ({ type: QueryTags.IntakeRequest, id })),
       ],
+    }),
+
+    // Answered beside the list rather than on it, since a score is substance and a summary is not.
+    getIntakeRequestScores: builder.query<
+      IntakeRequestCurrentScoreDto[],
+      IntakeRequestListArgs | void
+    >({
+      queryFn: async (args) => {
+        try {
+          const data = await getIntakeRequestsClient().getIntakeRequestScores(
+            args?.deskId,
+            args?.mine,
+            args?.openOnly,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      providesTags: [{ type: QueryTags.IntakeRequestScore, id: 'LIST' }],
+    }),
+
+    getIntakeRequestScoring: builder.query<IntakeRequestScoringDto, string>({
+      queryFn: async (requestId) => {
+        try {
+          const data = await getIntakeRequestsClient().getScoring(requestId)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      providesTags: (_result, _error, requestId) => [
+        { type: QueryTags.IntakeRequestScore, id: requestId },
+      ],
+    }),
+
+    // A new score moves the request among the others on its desk, so every request's rank is stale.
+    scoreIntakeRequest: builder.mutation<string, ScoreIntakeRequestArgs>({
+      queryFn: async ({ requestId, ...request }) => {
+        try {
+          const data = await getIntakeRequestsClient().score(requestId, request)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: (_result, _error, { requestId }) => [
+        { type: QueryTags.ActivityLog, id: requestId },
+        QueryTags.IntakeRequestScore,
+      ],
+    }),
+
+    // A mutation only because the ratings travel in a body: it records nothing, so it invalidates nothing.
+    previewIntakeRequestScore: builder.mutation<
+      ScoringModelEvaluationDto,
+      ScoreIntakeRequestArgs
+    >({
+      queryFn: async ({ requestId, ...request }) => {
+        try {
+          const data = await getIntakeRequestsClient().previewScore(
+            requestId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
     }),
 
     getIntakeRequest: builder.query<IntakeRequestDetailsDto, string>({
@@ -590,6 +675,44 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    getIntakeScoringModelChoices: builder.query<
+      IntakeScoringModelChoiceDto[],
+      void
+    >({
+      queryFn: async () => {
+        try {
+          const data = await getIntakeDesksClient().getScoringModelChoices()
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      // Settings activates and archives models under this tag, which is what changes the choices.
+      providesTags: [QueryTags.ScoringModel],
+    }),
+
+    // Which model a desk scores with decides what its requests are rated on and which scores rank together.
+    changeIntakeDeskScoringModel: builder.mutation<
+      void,
+      ChangeIntakeDeskScoringModelArgs
+    >({
+      queryFn: async ({ deskId, scoringModelId }) => {
+        try {
+          const data = await getIntakeDesksClient().changeScoringModel(deskId, {
+            scoringModelId,
+          })
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: (_result, _error, { deskId }) => [
+        { type: QueryTags.IntakeDesk, id: deskId },
+        deskListTag,
+        QueryTags.IntakeRequestScore,
+      ],
+    }),
+
     getIntakeDeskRoles: builder.query<IntakeDeskRoleDto[], void>({
       queryFn: async () => {
         try {
@@ -988,4 +1111,10 @@ export const {
   useTagIntakeRequestMutation,
   useUntagIntakeRequestMutation,
   useGetIntakeEmployeeOptionsQuery,
+  useGetIntakeRequestScoresQuery,
+  useGetIntakeRequestScoringQuery,
+  useScoreIntakeRequestMutation,
+  usePreviewIntakeRequestScoreMutation,
+  useGetIntakeScoringModelChoicesQuery,
+  useChangeIntakeDeskScoringModelMutation,
 } = demandManagementApi

@@ -2,7 +2,10 @@
 
 import { NOT_RECORDED_CHANNEL_LABEL } from './channel'
 import { WaydGrid, createCsvColumn } from '@/src/components/common/wayd-grid'
-import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
+import type {
+  ColumnDef,
+  SortingState,
+} from '@/src/components/common/wayd-grid-core'
 import EntityLink from '@/src/components/common/entity-link'
 import {
   statusCategoryDescription,
@@ -21,6 +24,8 @@ import { NeedByTag } from './need-by'
 import { deskHref } from './desk-status'
 import EmployeeName from './employee-name'
 import { WaitTime, daysSince } from './request-age'
+import { ScoreValue } from './score-value'
+import type { RequestScores } from './request-scores'
 
 export interface IntakeRequestsGridProps {
   requests: IntakeRequestSummaryDto[] | undefined
@@ -35,6 +40,13 @@ export interface IntakeRequestsGridProps {
   leftSlot?: ReactNode
   /** Shown at the right of the grid's toolbar, such as a layout switcher. */
   rightSlot?: ReactNode
+  /**
+   * The requests' current scores, fetched beside the summaries since a score is substance. Adds a Score
+   * column when given.
+   */
+  scores?: RequestScores
+  /** The sort the grid opens on; newest first unless given. Empty keeps the order the requests arrive in. */
+  initialSorting?: SortingState
 }
 
 export const requestHref = (key: number) => `/demand-management/requests/${key}`
@@ -71,6 +83,8 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
   emptyMessage,
   leftSlot,
   rightSlot,
+  scores,
+  initialSorting = [{ id: 'key', desc: true }],
 }) => {
   const basisName = (code: string | undefined) =>
     code ? (needByBases?.find((b) => b.code === code)?.name ?? code) : ''
@@ -96,6 +110,20 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
         </EntityLink>
       ),
     },
+    ...(scores
+      ? [
+          {
+            id: 'score',
+            accessorFn: (request: IntakeRequestSummaryDto) =>
+              scores.get(request.id)?.value ?? null,
+            header: 'Score',
+            size: 100,
+            cell: ({ row }: { row: { original: IntakeRequestSummaryDto } }) => (
+              <ScoreValue score={scores.get(row.original.id)} />
+            ),
+          } satisfies ColumnDef<IntakeRequestSummaryDto, any>,
+        ]
+      : []),
     {
       id: 'status',
       accessorFn: (request) => request.status.name,
@@ -217,7 +245,7 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       emptyMessage={emptyMessage}
       leftSlot={leftSlot}
       rightSlot={rightSlot}
-      initialSorting={[{ id: 'key', desc: true }]}
+      initialSorting={initialSorting}
     />
   )
 }

@@ -71,6 +71,7 @@ jest.mock(
   '@/src/store/features/demand-management/demand-management-api',
   () => ({
     useGetIntakeRequestsQuery: (args: unknown) => mockRequestsQuery(args),
+    useGetIntakeRequestScoresQuery: () => ({ currentData: [] }),
     useGetNeedByBasesQuery: () => ({ data: [] }),
     useGetIntakeDesksQuery: () => ({ data: mockDesks }),
     useGetIntakeChannelsQuery: () => ({ data: [] }),

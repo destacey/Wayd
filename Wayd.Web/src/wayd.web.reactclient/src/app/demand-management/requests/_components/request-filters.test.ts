@@ -266,6 +266,7 @@ describe('the address', () => {
       channelIds: ['c-1'],
       tagIds: ['t-1', 't-2'],
       needBy: 'chosen',
+      order: 'score',
     }
 
     // Act

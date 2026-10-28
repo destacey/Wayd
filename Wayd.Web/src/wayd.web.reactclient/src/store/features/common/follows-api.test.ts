@@ -1,13 +1,20 @@
 import { configureStore } from '@reduxjs/toolkit'
+import { waitFor } from '@testing-library/react'
 import { apiSlice } from '../apiSlice'
 import { followsApi, FollowTarget } from './follows-api'
 
 const getFollowStatus = jest.fn()
 const follow = jest.fn()
 const unfollow = jest.fn()
+const getFollowedRecord = jest.fn()
 
 jest.mock('@/src/services/clients', () => ({
-  getMyFollowsClient: () => ({ getFollowStatus, follow, unfollow }),
+  getMyFollowsClient: () => ({
+    getFollowStatus,
+    follow,
+    unfollow,
+    getFollowedRecord,
+  }),
 }))
 
 const createStore = () =>
@@ -97,5 +104,43 @@ describe('followsApi', () => {
     request.resolve()
     await pending
     expect(unfollow).toHaveBeenCalledWith('ppm.project', 'p-1')
+  })
+
+  it('does not reload the detail of a record just unfollowed', async () => {
+    // Arrange
+    getFollowedRecord.mockResolvedValue({ record: { name: 'Apollo' } })
+    unfollow.mockResolvedValue(undefined)
+    getFollowStatus.mockResolvedValue({ isFollowing: false })
+    const store = createStore()
+    const detail = store.dispatch(
+      followsApi.endpoints.getFollowedRecord.initiate(target),
+    )
+    await detail
+
+    // Act
+    await store.dispatch(followsApi.endpoints.unfollow.initiate(target))
+
+    // Assert
+    expect(getFollowedRecord).toHaveBeenCalledTimes(1)
+    detail.unsubscribe()
+  })
+
+  it('reloads the detail of a record followed again', async () => {
+    // Arrange
+    getFollowedRecord.mockResolvedValue({ record: { name: 'Apollo' } })
+    follow.mockResolvedValue(undefined)
+    getFollowStatus.mockResolvedValue({ isFollowing: true })
+    const store = createStore()
+    const detail = store.dispatch(
+      followsApi.endpoints.getFollowedRecord.initiate(target),
+    )
+    await detail
+
+    // Act
+    await store.dispatch(followsApi.endpoints.follow.initiate(target))
+
+    // Assert
+    await waitFor(() => expect(getFollowedRecord).toHaveBeenCalledTimes(2))
+    detail.unsubscribe()
   })
 })

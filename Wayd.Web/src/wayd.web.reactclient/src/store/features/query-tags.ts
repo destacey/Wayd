@@ -34,6 +34,7 @@ export enum QueryTags {
   Links = 'Common.Links',
   FollowStatus = 'Common.FollowStatus',
   MyFollows = 'Common.MyFollows',
+  FollowedRecord = 'Common.FollowedRecord',
   MyNotifications = 'Common.MyNotifications',
   UnreadNotificationCount = 'Common.UnreadNotificationCount',
   RecordMuteStatus = 'Common.RecordMuteStatus',

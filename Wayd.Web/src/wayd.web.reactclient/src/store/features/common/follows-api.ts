@@ -46,6 +46,16 @@ const statusTag = ({ ownerType, ownerId }: FollowTarget) => ({
   id: `${ownerType}:${ownerId}`,
 })
 
+/**
+ * One followed record's detail. Unfollowing never invalidates it: the pane
+ * showing it is on its way out, and a refetch would only earn a 404 for a
+ * record the person just stopped following.
+ */
+const followedRecordTag = ({ ownerType, ownerId }: FollowTarget) => ({
+  type: QueryTags.FollowedRecord,
+  id: `${ownerType}:${ownerId}`,
+})
+
 export const followsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getFollowStatus: builder.query<FollowStatusDto, FollowTarget>({
@@ -120,10 +130,7 @@ export const followsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      providesTags: (result, error, target) => [
-        statusTag(target),
-        QueryTags.MyFollows,
-      ],
+      providesTags: (result, error, target) => [followedRecordTag(target)],
     }),
 
     follow: builder.mutation<null, FollowTarget>({
@@ -160,6 +167,7 @@ export const followsApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (result, error, target) => [
         statusTag(target),
+        followedRecordTag(target),
         QueryTags.MyFollows,
       ],
     }),

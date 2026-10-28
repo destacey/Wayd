@@ -130,7 +130,8 @@ describe('documentation coverage', () => {
     // The prose states a count ("eight pre-built skills"), which drifts as
     // silently as the list itself did.
     const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
-      'eight', 'nine', 'ten', 'eleven', 'twelve'];
+      'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen',
+      'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
     const stated = docText.match(/(\w+) pre-built skills/)?.[1];
 
     assert.equal(

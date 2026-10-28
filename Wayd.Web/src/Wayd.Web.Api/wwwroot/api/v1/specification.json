@@ -41933,7 +41933,7 @@
           "IntakeRequestTagCategories"
         ],
         "summary": "Get the intake request tag axes, each with its tags.",
-        "description": "Axes in presentation order, tags alphabetically, inactive tags included. Inactive axes only with `includeInactive`. Each tag's `requestCount` counts only the requests the caller can see.",
+        "description": "Axes in presentation order, tags alphabetically, inactive tags included. Inactive axes only with `includeInactive`. With `deskId`, only the active axes that desk's agents tag along, which may be none; `includeInactive` is then ignored. Each tag's `requestCount` counts only the requests the caller can see.",
         "operationId": "IntakeRequestTagCategories_GetIntakeRequestTagCategories",
         "parameters": [
           {
@@ -41944,6 +41944,16 @@
               "default": false
             },
             "x-position": 1
+          },
+          {
+            "name": "deskId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "x-position": 2
           }
         ],
         "responses": {
@@ -57202,6 +57212,8 @@
           "isOpen",
           "requesterMayAddParticipants",
           "offersAllChannels",
+          "offersAllTagCategories",
+          "tagCategoryIds",
           "revision",
           "canManage",
           "canAdminister",
@@ -57258,6 +57270,18 @@
               "format": "uuid"
             },
             "description": "The company channels the desk chose, in the company's order, while it does not offer them all; an\narchived one stays chosen but is not offered. Empty with bool IntakeDeskDto.OffersAllChannels false means the\ndesk offers none."
+          },
+          "offersAllTagCategories": {
+            "type": "boolean",
+            "description": "Whether the desk's agents tag along every active company tag axis, including axes added later."
+          },
+          "tagCategoryIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The tag axes the desk chose, in the company's order, while it does not offer them all; an inactive one\nstays chosen but is not offered. Empty with bool IntakeDeskDto.OffersAllTagCategories false means its agents tag\nalong none."
           },
           "revision": {
             "type": "integer",
@@ -73796,7 +73820,8 @@
           "requesterMayAddParticipants",
           "members",
           "expectedRevision",
-          "channelIds"
+          "channelIds",
+          "tagCategoryIds"
         ],
         "type": "object",
         "properties": {
@@ -73851,6 +73876,21 @@
               "format": "uuid"
             },
             "description": "The company channels the desk offers when `offersAllChannels` is false; empty means the desk offers\nnone, and its submit form does not ask where a request came from. Leave it out to keep the ones it has.\nIgnored unless `offersAllChannels` is false. A channel already chosen may stay after it is archived;\na newly chosen one must be active.",
+            "nullable": true
+          },
+          "offersAllTagCategories": {
+            "type": "boolean",
+            "description": "Whether the desk's agents tag requests along every active company tag axis, including axes added later. A\nnew desk does. Leave it out to keep the desk's axes as they are.",
+            "nullable": true
+          },
+          "tagCategoryIds": {
+            "type": "array",
+            "items": {
+              "minLength": 1,
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The tag axes the desk's agents tag along when `offersAllTagCategories` is false; empty means none. Leave\nit out to keep the ones it has. Ignored unless `offersAllTagCategories` is false. An axis already chosen\nmay stay after it is deactivated; a newly chosen one must be active. Requests keep tags along any axis.",
             "nullable": true
           },
           "members": {

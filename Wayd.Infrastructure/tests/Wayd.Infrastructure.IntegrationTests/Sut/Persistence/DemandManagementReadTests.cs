@@ -367,9 +367,10 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
             await arrange.SaveChangesAsync(ct);
 
             var request = await arrange.IntakeRequests.Include(r => r.Tags).SingleAsync(r => r.Id == scenario.OnOpen.Id, ct);
-            request.Tag(enterprise, second, EventActor.System, Now).IsSuccess.Should().BeTrue();
-            request.Tag(payments, first, EventActor.System, Now).IsSuccess.Should().BeTrue();
-            request.Tag(billing, first, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            var desk = await arrange.IntakeDesks.Include(d => d.TagCategories).SingleAsync(d => d.Id == request.DeskId, ct);
+            request.Tag(enterprise, second, desk, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            request.Tag(payments, first, desk, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            request.Tag(billing, first, desk, EventActor.System, Now).IsSuccess.Should().BeTrue();
             await arrange.SaveChangesAsync(ct);
         }
         await using var context = _fixture.CreateContext();
@@ -400,7 +401,10 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
                 .Where(r => r.Id == scenario.OnOpen.Id || r.Id == scenario.OnPrivate.Id)
                 .ToListAsync(ct);
             foreach (var request in requests)
-                request.Tag(payments, area, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            {
+                var desk = await arrange.IntakeDesks.Include(d => d.TagCategories).SingleAsync(d => d.Id == request.DeskId, ct);
+                request.Tag(payments, area, desk, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            }
             await arrange.SaveChangesAsync(ct);
         }
         await using var context = _fixture.CreateContext();

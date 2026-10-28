@@ -31,9 +31,26 @@ const ManageIntakeRequestTagsForm = ({
   const [tagRequest] = useTagIntakeRequestMutation()
   const [untagRequest] = useUntagIntakeRequestMutation()
 
-  // Active axes only, so a tag on a deactivated axis is never offered or diffed and stays on the request.
-  const { data: categories, isLoading } =
-    useGetIntakeRequestTagCategoriesQuery()
+  // The axes the request's desk offers, so its agents choose only from what applies to them.
+  const { data: offered, isLoading: offeredLoading } =
+    useGetIntakeRequestTagCategoriesQuery({ deskId: summary.desk.id })
+  // Every axis, for one the request already carries a tag on but its desk does not offer — a request moved
+  // here keeps it — so that tag can still be removed. Not offered for new tags beyond what it carries.
+  const { data: all, isLoading: allLoading } =
+    useGetIntakeRequestTagCategoriesQuery({ includeInactive: true })
+  const isLoading = offeredLoading || allLoading
+  const offeredIds = new Set((offered ?? []).map((c) => c.id))
+  const carriedOnly = (all ?? [])
+    .filter(
+      (c) =>
+        !offeredIds.has(c.id) &&
+        summary.tags.some((t) => t.categoryId === c.id),
+    )
+    .map((c) => ({
+      ...c,
+      tags: c.tags.filter((t) => summary.tags.some((st) => st.id === t.id)),
+    }))
+  const categories = [...(offered ?? []), ...carriedOnly]
 
   const onSave = async ({ added, removed }: TagChanges) => {
     // Each change is its own request, so a failure part-way leaves the earlier ones applied.
@@ -78,7 +95,7 @@ const ManageIntakeRequestTagsForm = ({
 
   return (
     <ManageTagsForm
-      categories={(categories ?? []).map((c) => ({
+      categories={categories.map((c) => ({
         id: c.id,
         name: c.name,
         description: c.description,

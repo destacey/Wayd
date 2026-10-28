@@ -47,6 +47,7 @@ public class IntakeDeskConfiguration : IEntityTypeConfiguration<IntakeDesk>
         builder.Property(d => d.IsOpen).IsRequired();
         builder.Property(d => d.RequesterMayAddParticipants).IsRequired();
         builder.Property(d => d.OffersAllChannels).IsRequired();
+        builder.Property(d => d.OffersAllTagCategories).IsRequired();
 
         // The desk is saved whole; without this, two saves read at the same revision would both pass the
         // handler's check and the second would undo the first.
@@ -65,6 +66,31 @@ public class IntakeDeskConfiguration : IEntityTypeConfiguration<IntakeDesk>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(d => d.Channels).HasField("_channels").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(d => d.TagCategories)
+            .WithOne()
+            .HasForeignKey(c => c.DeskId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(d => d.TagCategories).HasField("_tagCategories").UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class IntakeDeskTagCategoryConfiguration : IEntityTypeConfiguration<IntakeDeskTagCategory>
+{
+    public void Configure(EntityTypeBuilder<IntakeDeskTagCategory> builder)
+    {
+        builder.ToTable("IntakeDeskTagCategories", SchemaNames.DemandManagement);
+
+        builder.HasKey(c => new { c.DeskId, c.CategoryId });
+
+        builder.HasIndex(c => c.CategoryId);
+
+        // Cascade, so deleting an axis no request is tagged along also drops it from the desks that chose it.
+        builder.HasOne<IntakeRequestTagCategory>()
+            .WithMany()
+            .HasForeignKey(c => c.CategoryId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 

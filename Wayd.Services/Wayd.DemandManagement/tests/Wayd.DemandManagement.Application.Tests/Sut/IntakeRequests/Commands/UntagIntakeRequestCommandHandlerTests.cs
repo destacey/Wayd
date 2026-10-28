@@ -21,7 +21,7 @@ public sealed class UntagIntakeRequestCommandHandlerTests
         var agent = _scenario.Employee();
         var request = _scenario.Request(_scenario.Desk(agentIds: [agent.Id]), _scenario.Employee());
         var area = _scenario.TagCategory(allowsMany: true, "Payments");
-        IntakeScenario.Tagged(request, area, "Payments");
+        _scenario.Tagged(request, area, "Payments");
         area.DeactivateTag(area.Tags.Single().Id, EventActor.System, _scenario.Clock.Now);
         _scenario.SignedInAs(agent);
 
@@ -43,7 +43,7 @@ public sealed class UntagIntakeRequestCommandHandlerTests
         var participant = _scenario.Employee();
         var request = _scenario.Request(_scenario.Desk(), _scenario.Employee(), participant.Id);
         var area = _scenario.TagCategory(allowsMany: true, "Payments");
-        IntakeScenario.Tagged(request, area, "Payments");
+        _scenario.Tagged(request, area, "Payments");
         _scenario.SignedInAs(participant);
 
         // Act

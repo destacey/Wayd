@@ -20,7 +20,7 @@ public sealed class DeleteIntakeRequestTagCommandHandlerTests
         _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);
         var area = _scenario.TagCategory(allowsMany: true, "Payments", "Onboarding");
         var request = _scenario.Request(_scenario.Desk(), _scenario.Employee());
-        IntakeScenario.Tagged(request, area, "Onboarding");
+        _scenario.Tagged(request, area, "Onboarding");
         var payments = area.Tags.Single(t => t.Name == "Payments");
 
         // Act
@@ -41,7 +41,7 @@ public sealed class DeleteIntakeRequestTagCommandHandlerTests
         _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);
         var area = _scenario.TagCategory(allowsMany: true, "Payments");
         var request = _scenario.Request(_scenario.Desk(), _scenario.Employee());
-        IntakeScenario.Tagged(request, area, "Payments");
+        _scenario.Tagged(request, area, "Payments");
 
         // Act
         var result = await CreateHandler().Handle(new DeleteIntakeRequestTagCommand(area.Id, area.Tags.Single().Id),

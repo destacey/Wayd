@@ -1822,6 +1822,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<bool>("OffersAllChannels")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("OffersAllTagCategories")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("RequesterMayAddParticipants")
                         .HasColumnType("bit");
 
@@ -1891,6 +1894,21 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasIndex("EmployeeId");
 
                     b.ToTable("IntakeDeskMembers", "DemandManagement");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDeskTagCategory", b =>
+                {
+                    b.Property<Guid>("DeskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("DeskId", "CategoryId");
+
+                    b.HasIndex("CategoryId");
+
+                    b.ToTable("IntakeDeskTagCategories", "DemandManagement");
                 });
 
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequest", b =>
@@ -8720,6 +8738,21 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDeskTagCategory", b =>
+                {
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeRequestTagCategory", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeDesk", null)
+                        .WithMany("TagCategories")
+                        .HasForeignKey("DeskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequest", b =>
                 {
                     b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
@@ -10659,6 +10692,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Channels");
 
                     b.Navigation("Members");
+
+                    b.Navigation("TagCategories");
                 });
 
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequest", b =>

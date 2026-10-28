@@ -621,24 +621,33 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Files the request under a tag. Needs <see cref="Tags"/> loaded.
+    /// Files the request under a tag. Needs <see cref="Tags"/> loaded, and <paramref name="desk"/>'s
+    /// <see cref="IntakeDesk.TagCategories"/>.
     /// </summary>
     /// <remarks>
     /// Needs an agent on the request's desk, which the caller checks: tagging is the reviewers' call, and the
     /// request's own people see tags without changing them. On an axis that takes one tag, this replaces the
     /// tag the request held there. Allowed whatever the request's status, because filing a closed request is
-    /// still filing.
+    /// still filing. The axis must be one the request's desk offers; a tag already carried along an axis the desk
+    /// does not offer stays, and can be removed.
     /// </remarks>
+    /// <param name="desk">The request's desk.</param>
     /// <param name="category">The tag's axis, loaded by the caller; its <see cref="IntakeRequestTagCategory.AllowsMany"/> decides whether this replaces or adds.</param>
-    public Result Tag(IntakeRequestTag tag, IntakeRequestTagCategory category, EventActor actor, Instant timestamp)
+    public Result Tag(IntakeRequestTag tag, IntakeRequestTagCategory category, IntakeDesk desk, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(tag);
         Guard.Against.Null(category);
+        Guard.Against.Null(desk);
         if (tag.CategoryId != category.Id)
             throw new ArgumentException("The tag must belong to the supplied axis.", nameof(category));
+        if (desk.Id != DeskId)
+            throw new ArgumentException("The desk must be the request's own.", nameof(desk));
 
         if (!tag.IsActive || !category.IsActive)
             return Result.Failure(InactiveTagError);
+
+        if (!desk.Offers(category))
+            return Result.Failure(TagAxisNotOfferedError);
 
         if (_tags.Any(t => t.TagId == tag.Id))
             return Result.Success();
@@ -663,6 +672,11 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// The failure for applying a tag, or a tag on an axis, that has been deactivated.
     /// </summary>
     public const string InactiveTagError = "An inactive tag cannot be applied.";
+
+    /// <summary>
+    /// The failure for applying a tag along an axis the request's desk does not offer.
+    /// </summary>
+    public const string TagAxisNotOfferedError = "This desk does not use that tag axis.";
 
     /// <summary>
     /// Takes a tag off the request, inactive ones included. Succeeds whether or not the request carried it.

@@ -40,7 +40,7 @@ public sealed class DeleteIntakeRequestTagCategoryCommandHandlerTests
         _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);
         var area = _scenario.TagCategory(allowsMany: true, "Payments");
         var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Private), _scenario.Employee());
-        IntakeScenario.Tagged(request, area, "Payments");
+        _scenario.Tagged(request, area, "Payments");
 
         // Act
         var result = await CreateHandler().Handle(new DeleteIntakeRequestTagCategoryCommand(area.Id),

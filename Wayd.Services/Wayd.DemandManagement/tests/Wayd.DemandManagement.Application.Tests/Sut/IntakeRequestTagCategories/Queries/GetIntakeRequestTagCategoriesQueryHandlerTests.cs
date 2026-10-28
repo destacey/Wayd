@@ -53,8 +53,8 @@ public sealed class GetIntakeRequestTagCategoriesQueryHandlerTests
     {
         // Arrange — a private desk's requests appear in no count for outsiders
         var area = _scenario.TagCategory(allowsMany: true, "Payments");
-        IntakeScenario.Tagged(_scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), _scenario.Employee()), area, "Payments");
-        IntakeScenario.Tagged(_scenario.Request(_scenario.Desk(IntakeDeskVisibility.Private), _scenario.Employee()), area, "Payments");
+        _scenario.Tagged(_scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), _scenario.Employee()), area, "Payments");
+        _scenario.Tagged(_scenario.Request(_scenario.Desk(IntakeDeskVisibility.Private), _scenario.Employee()), area, "Payments");
         _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.View);
 
         // Act
@@ -62,6 +62,25 @@ public sealed class GetIntakeRequestTagCategoriesQueryHandlerTests
 
         // Assert
         result.Single().Tags.Single().RequestCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ForADesk_ReturnsOnlyTheActiveAxesItOffers()
+    {
+        // Arrange
+        _scenario.SignedInAs(_scenario.Employee());
+        var desk = _scenario.Desk();
+        var chosen = _scenario.TagCategory();
+        var inactiveChosen = _scenario.TagCategory();
+        inactiveChosen.Deactivate(EventActor.System, _scenario.Clock.Now);
+        _scenario.TagCategory();
+        desk.ChangeTagCategories(false, [chosen.Id, inactiveChosen.Id], EventActor.System, _scenario.Clock.Now);
+
+        // Act
+        var result = await Handle(new GetIntakeRequestTagCategoriesQuery(IncludeInactive: true, DeskId: desk.Id));
+
+        // Assert
+        result.Select(c => c.Id).Should().Equal(chosen.Id);
     }
 
     private Task<List<IntakeRequestTagCategoryDto>> Handle(GetIntakeRequestTagCategoriesQuery query) =>

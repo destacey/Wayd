@@ -145,9 +145,10 @@ public sealed class IntakeScenario
     }
 
     /// <summary>Files the request under the tag as already saved, raising nothing.</summary>
-    public static void Tagged(IntakeRequest request, IntakeRequestTagCategory category, string tagName)
+    public void Tagged(IntakeRequest request, IntakeRequestTagCategory category, string tagName)
     {
-        request.Tag(category.Tags.Single(t => t.Name == tagName), category, EventActor.System, Instant.MinValue);
+        var desk = DbContext.IntakeDesks.Single(d => d.Id == request.DeskId);
+        request.Tag(category.Tags.Single(t => t.Name == tagName), category, desk, EventActor.System, Instant.MinValue);
         request.ClearDomainEvents();
     }
 

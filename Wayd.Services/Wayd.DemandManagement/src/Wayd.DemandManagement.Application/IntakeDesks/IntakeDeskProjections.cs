@@ -14,6 +14,7 @@ internal static class IntakeDeskProjections
     {
         var employees = dbContext.Employees;
         var channels = dbContext.IntakeChannels;
+        var tagCategories = dbContext.IntakeRequestTagCategories;
 
         return d => new IntakeDeskDto
         {
@@ -28,6 +29,12 @@ internal static class IntakeDeskProjections
             OffersAllChannels = d.OffersAllChannels,
             ChannelIds = d.Channels
                 .Join(channels, dc => dc.ChannelId, c => c.Id, (dc, c) => c)
+                .OrderBy(c => c.Order).ThenBy(c => c.Name).ThenBy(c => c.Id)
+                .Select(c => c.Id)
+                .ToList(),
+            OffersAllTagCategories = d.OffersAllTagCategories,
+            TagCategoryIds = d.TagCategories
+                .Join(tagCategories, dt => dt.CategoryId, c => c.Id, (dt, c) => c)
                 .OrderBy(c => c.Order).ThenBy(c => c.Name).ThenBy(c => c.Id)
                 .Select(c => c.Id)
                 .ToList(),

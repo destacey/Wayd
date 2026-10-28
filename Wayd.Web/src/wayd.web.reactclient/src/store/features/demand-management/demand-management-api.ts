@@ -712,16 +712,18 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       },
     ),
 
-    // Every signed-in user reads these: whoever sees a request sees its tags and can filter on them.
+    // Every signed-in user reads these: whoever sees a request sees its tags and can filter on them. With a
+    // desk, only the active axes it offers its agents.
     getIntakeRequestTagCategories: builder.query<
       IntakeRequestTagCategoryDto[],
-      { includeInactive?: boolean } | void
+      { includeInactive?: boolean; deskId?: string } | void
     >({
       queryFn: async (args) => {
         try {
           const data =
             await getIntakeRequestTagCategoriesClient().getIntakeRequestTagCategories(
               args?.includeInactive,
+              args?.deskId,
             )
           return { data }
         } catch (error) {

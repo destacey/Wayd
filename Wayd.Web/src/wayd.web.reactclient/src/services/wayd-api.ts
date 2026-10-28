@@ -48574,14 +48574,17 @@ export class IntakeRequestTagCategoriesClient {
     /**
      * Get the intake request tag axes, each with its tags.
      * @param includeInactive (optional) 
+     * @param deskId (optional) 
      * @return OK
      */
-    getIntakeRequestTagCategories(includeInactive?: boolean | undefined, cancelToken?: CancelToken): Promise<IntakeRequestTagCategoryDto[]> {
+    getIntakeRequestTagCategories(includeInactive?: boolean | undefined, deskId?: string | null | undefined, cancelToken?: CancelToken): Promise<IntakeRequestTagCategoryDto[]> {
         let url_ = this.baseUrl + "/api/demand-management/intake-request-tag-categories?";
         if (includeInactive === null)
             throw new globalThis.Error("The parameter 'includeInactive' cannot be null.");
         else if (includeInactive !== undefined)
             url_ += "includeInactive=" + encodeURIComponent("" + includeInactive) + "&";
+        if (deskId !== undefined && deskId !== null)
+            url_ += "deskId=" + encodeURIComponent("" + deskId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -58260,6 +58263,12 @@ export interface IntakeDeskDto {
 archived one stays chosen but is not offered. Empty with bool IntakeDeskDto.OffersAllChannels false means the
 desk offers none. */
     channelIds: string[];
+    /** Whether the desk's agents tag along every active company tag axis, including axes added later. */
+    offersAllTagCategories: boolean;
+    /** The tag axes the desk chose, in the company's order, while it does not offer them all; an inactive one
+stays chosen but is not offered. Empty with bool IntakeDeskDto.OffersAllTagCategories false means its agents tag
+along none. */
+    tagCategoryIds: string[];
     /** How many changes the desk has recorded; sent back with a change so a stale one is refused. */
     revision: number;
     /** The employees named on the desk, by name, with their roles. */
@@ -63584,6 +63593,13 @@ none, and its submit form does not ask where a request came from. Leave it out t
 Ignored unless `offersAllChannels` is false. A channel already chosen may stay after it is archived;
 a newly chosen one must be active. */
     channelIds: string[] | undefined;
+    /** Whether the desk's agents tag requests along every active company tag axis, including axes added later. A
+new desk does. Leave it out to keep the desk's axes as they are. */
+    offersAllTagCategories?: boolean | undefined;
+    /** The tag axes the desk's agents tag along when `offersAllTagCategories` is false; empty means none. Leave
+it out to keep the ones it has. Ignored unless `offersAllTagCategories` is false. An axis already chosen
+may stay after it is deactivated; a newly chosen one must be active. Requests keep tags along any axis. */
+    tagCategoryIds: string[] | undefined;
     /** Everyone on the desk after the change, each with their role. Naming, removing or re-roling a Desk Admin
 needs the Demand Management Admin. */
     members: IntakeDeskMemberRequest[];

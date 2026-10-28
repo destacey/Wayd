@@ -55,7 +55,11 @@ public sealed class TagIntakeRequestCommandHandler(
         if (category is null || tag is null)
             return Result.Failure(IntakeRequestTagCategoryErrors.TagNotFoundError);
 
-        var result = intakeRequest.Tag(tag, category,
+        var desk = await _dbContext.IntakeDesks
+            .Include(d => d.TagCategories)
+            .FirstAsync(d => d.Id == intakeRequest.DeskId, cancellationToken);
+
+        var result = intakeRequest.Tag(tag, category, desk,
             EventActor.User(_currentUser.GetUserId(), reader.EmployeeId), _dateTimeProvider.Now);
         if (result.IsFailure)
             return result;

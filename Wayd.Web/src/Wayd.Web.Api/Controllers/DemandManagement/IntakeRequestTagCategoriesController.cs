@@ -30,11 +30,11 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
     [HttpGet]
     [Authorize]
     [EndpointSummary("Get the intake request tag axes, each with its tags.")]
-    [EndpointDescription("Axes in presentation order, tags alphabetically, inactive tags included. Inactive axes only with `includeInactive`. Each tag's `requestCount` counts only the requests the caller can see.")]
+    [EndpointDescription("Axes in presentation order, tags alphabetically, inactive tags included. Inactive axes only with `includeInactive`. With `deskId`, only the active axes that desk's agents tag along, which may be none; `includeInactive` is then ignored. Each tag's `requestCount` counts only the requests the caller can see.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<IntakeRequestTagCategoryDto>>> GetIntakeRequestTagCategories([FromQuery] bool includeInactive = false, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<IEnumerable<IntakeRequestTagCategoryDto>>> GetIntakeRequestTagCategories([FromQuery] bool includeInactive = false, [FromQuery] Guid? deskId = null, CancellationToken cancellationToken = default)
     {
-        var categories = await _dispatcher.Send(new GetIntakeRequestTagCategoriesQuery(includeInactive), cancellationToken);
+        var categories = await _dispatcher.Send(new GetIntakeRequestTagCategoriesQuery(includeInactive, deskId), cancellationToken);
         return Ok(categories);
     }
 

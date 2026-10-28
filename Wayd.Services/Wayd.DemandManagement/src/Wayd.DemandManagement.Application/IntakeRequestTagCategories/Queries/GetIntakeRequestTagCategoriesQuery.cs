@@ -12,9 +12,12 @@ namespace Wayd.DemandManagement.Application.IntakeRequestTagCategories.Queries;
 /// </remarks>
 /// <param name="IncludeInactive">
 /// Include axes requests can no longer be tagged along. A settings page manages what a picker hides; an
-/// inactive tag on an active axis is always included, because requests may still carry it.
+/// inactive tag on an active axis is always included, because requests may still carry it. Ignored with a desk.
 /// </param>
-public sealed record GetIntakeRequestTagCategoriesQuery(bool IncludeInactive = false) : IQuery<List<IntakeRequestTagCategoryDto>>;
+/// <param name="DeskId">
+/// Only the active axes this desk offers its agents, which may be none; none for a desk that does not exist.
+/// </param>
+public sealed record GetIntakeRequestTagCategoriesQuery(bool IncludeInactive = false, Guid? DeskId = null) : IQuery<List<IntakeRequestTagCategoryDto>>;
 
 public sealed class GetIntakeRequestTagCategoriesQueryHandler(
     IDemandManagementDbContext dbContext,
@@ -32,8 +35,23 @@ public sealed class GetIntakeRequestTagCategoriesQueryHandler(
             .SelectMany(r => r.Tags);
 
         var query = _dbContext.IntakeRequestTagCategories.AsQueryable();
-        if (!request.IncludeInactive)
+        if (request.DeskId is { } deskId)
+        {
+            var desk = await _dbContext.IntakeDesks
+                .Where(d => d.Id == deskId)
+                .Select(d => new { d.OffersAllTagCategories, CategoryIds = d.TagCategories.Select(c => c.CategoryId).ToList() })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (desk is null)
+                return [];
+
             query = query.Where(c => c.IsActive);
+            if (!desk.OffersAllTagCategories)
+                query = query.Where(c => desk.CategoryIds.Contains(c.Id));
+        }
+        else if (!request.IncludeInactive)
+        {
+            query = query.Where(c => c.IsActive);
+        }
 
         return await query
             .OrderBy(c => c.Order).ThenBy(c => c.Name).ThenBy(c => c.Id)

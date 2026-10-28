@@ -44,7 +44,7 @@ public sealed class TagIntakeRequestCommandHandlerTests
         var agent = _scenario.Employee();
         var request = _scenario.Request(_scenario.Desk(agentIds: [agent.Id]), _scenario.Employee());
         var segment = _scenario.TagCategory(allowsMany: false, "Enterprise", "SMB");
-        IntakeScenario.Tagged(request, segment, "Enterprise");
+        _scenario.Tagged(request, segment, "Enterprise");
         _scenario.SignedInAs(agent);
 
         // Act
@@ -145,6 +145,28 @@ public sealed class TagIntakeRequestCommandHandlerTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(IntakeRequest.InactiveTagError);
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_AlongAnAxisTheDeskDoesNotOffer_FailsAndSavesNothing()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var desk = _scenario.Desk(agentIds: [agent.Id]);
+        var request = _scenario.Request(desk, _scenario.Employee());
+        var offered = _scenario.TagCategory(allowsMany: true, "Payments");
+        var notOffered = _scenario.TagCategory(allowsMany: true, "Onboarding");
+        desk.ChangeTagCategories(false, [offered.Id], EventActor.System, _scenario.Clock.Now);
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new TagIntakeRequestCommand(request.Id, notOffered.Tags.Single().Id),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.TagAxisNotOfferedError);
         _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
     }
 }

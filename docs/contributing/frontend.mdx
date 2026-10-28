@@ -376,6 +376,8 @@ Sanitizing before `rehypeRaw` leaves the raw HTML unparsed at that point, so it 
 Anything added to `tagNames` or `attributes` must be checked against clickjacking. An attacker who can set `style` on any element can cover the page with a full-viewport overlay — that is same-origin, so no CSP prevents it. `sanitize-schema.test.ts` covers this case explicitly; keep it passing.
 :::
 
+`MarkdownEditor`'s preview pane (`@uiw/react-md-editor`) runs its own pipeline, which always parses raw HTML and passes link URLs through unchecked. It gets the same `[rehypeSanitize, sanitizeSchema]` through `previewOptions.rehypePlugins`, which the library runs after its `rehype-raw`. Keep the two in step: a stored description is shown to other users in both places.
+
 The docs viewer is a **separate** pipeline (`next-mdx-remote` / `MDXRemote`) rendering repo-authored content, and does not go through `MarkdownRenderer`.
 
 ### Writing docs for both renderers

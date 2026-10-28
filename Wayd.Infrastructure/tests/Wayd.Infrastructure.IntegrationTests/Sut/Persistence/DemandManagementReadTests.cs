@@ -487,6 +487,42 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         scores.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task GetIntakeRequestScores_AfterTheDeskChangesModel_FlagsTheEarlierScoresAndLeavesOutTheUnscored()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        var (modelId, second) = await ScorePrivateDesk(scenario, ct);
+        await using (var arrange = _fixture.CreateContext())
+        {
+            var replacement = ScoringModel.Create(UniqueName("Model"), "Replaces the first.", EventActor.System, Now,
+                criteria: [("Business Value", "BV", null, null, null)],
+                outputs: [("Score", "Score", "BV", true)]);
+            replacement.Activate(EventActor.System, Now).IsSuccess.Should().BeTrue();
+            arrange.ScoringModels.Add(replacement);
+            var current = await arrange.ScoringModels.AsNoTracking().SingleAsync(m => m.Id == modelId, ct);
+            var desk = await arrange.IntakeDesks.SingleAsync(d => d.Id == scenario.Private.Id, ct);
+            desk.ChangeScoringModel(replacement, current, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            arrange.IntakeRequests.Add(IntakeRequest.Create(UniqueName("Ask"), "Never scored", null, scenario.Requester.Id,
+                scenario.Requester.Id, desk, await arrange.IntakeChannels.FirstAsync(ct), null, null, IntakeStatuses.Submitted(),
+                EventActor.System, Now).Value);
+            await arrange.SaveChangesAsync(ct);
+        }
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var scores = await new GetIntakeRequestScoresQueryHandler(context, Principal(scenario.Agent.Id))
+            .Handle(new GetIntakeRequestScoresQuery(scenario.Private.Id), ct);
+        var mine = await new GetIntakeRequestScoresQueryHandler(context, Principal(scenario.Requester.Id))
+            .Handle(new GetIntakeRequestScoresQuery(Mine: true, OpenOnly: true), ct);
+
+        // Assert
+        scores.Should().HaveCount(2).And.OnlyContain(s => !s.IsDeskModel && s.ScoringModel.Id == modelId && s.ScoringModel.Key > 0);
+        scores.Select(s => s.RequestId).Should().BeEquivalentTo([scenario.OnPrivate.Id, second]);
+        mine.Select(s => s.RequestId).Should().BeEquivalentTo([scenario.OnPrivate.Id, second]);
+    }
+
     /// <summary>
     /// Has the private desk score with a one-criterion model, scores its seeded request Low then High, and a second
     /// request Low; answers the model and the second request.

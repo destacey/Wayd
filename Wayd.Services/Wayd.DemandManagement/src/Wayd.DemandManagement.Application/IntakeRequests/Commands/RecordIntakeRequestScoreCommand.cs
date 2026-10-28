@@ -77,16 +77,32 @@ public sealed class RecordIntakeRequestScoreCommandHandler(
         if (result.IsFailure)
             return Result.Failure<Guid>(result.Error);
 
+        // Checked before saving, which nothing is when this refuses, so the score never reaches the database.
+        if (result.Value.Outputs.FirstOrDefault(o => Math.Abs(o.Value) > IntakeRequestScoreRatings.MaxOutputValue) is { } tooLarge)
+            return Result.Failure<Guid>($"Output '{tooLarge.Name}' comes to {tooLarge.Value}, too large to record. Check the ratings.");
+
         try
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateException)
         {
-            // The sequence is unique per request, so a failed save is another score taking the same number.
+            if (!await SequenceTaken(intakeRequest.Id, result.Value.Sequence, cancellationToken))
+                throw;
+
             return Result.Failure<Guid>(ScoredMeanwhileError);
         }
 
         return result.Value.Id;
     }
+
+    /// <summary>
+    /// Whether another score now holds the sequence this one was given, which is the one failed save a retry
+    /// can fix.
+    /// </summary>
+    private Task<bool> SequenceTaken(Guid requestId, long sequence, CancellationToken cancellationToken) =>
+        _dbContext.IntakeRequests.AsNoTracking()
+            .Where(r => r.Id == requestId)
+            .SelectMany(r => r.Scores)
+            .AnyAsync(s => s.Sequence == sequence, cancellationToken);
 }

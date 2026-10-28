@@ -17,6 +17,17 @@ public sealed record IntakeRequestCriterionRatingInput(Guid CriterionId, decimal
 internal static class IntakeRequestScoreRatings
 {
     /// <summary>
+    /// The largest number a rating can hold, as a score stores it: four decimal places, five digits before.
+    /// </summary>
+    public const decimal MaxRatingValue = 99_999.9999m;
+
+    /// <summary>
+    /// The largest value a computed output can hold, as a score stores it: four decimal places, fourteen digits
+    /// before.
+    /// </summary>
+    public const decimal MaxOutputValue = 99_999_999_999_999.9999m;
+
+    /// <summary>
     /// The value for each of the model's criteria, and the level chosen for each scale-rated one. Refused when a
     /// criterion is unrated, a scale-rated one has no level from its scale, or another has no number. Needs the
     /// model's criteria and scales with their levels loaded.
@@ -49,6 +60,9 @@ internal static class IntakeRequestScoreRatings
             {
                 if (rating.Value is not { } value)
                     return Fail($"Rate criterion '{criterion.Name}' with a number.");
+
+                if (Math.Abs(value) > MaxRatingValue || decimal.Round(value, 4) != value)
+                    return Fail($"Rate criterion '{criterion.Name}' with a number between -{MaxRatingValue:0.####} and {MaxRatingValue:0.####}, to at most four decimal places.");
 
                 values[criterion.Id] = value;
             }

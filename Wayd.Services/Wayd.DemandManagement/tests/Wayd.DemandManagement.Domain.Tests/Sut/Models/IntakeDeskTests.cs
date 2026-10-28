@@ -776,6 +776,23 @@ public sealed class IntakeDeskTests
         sut.DomainEvents.Should().BeEmpty();
     }
 
+    [Fact]
+    public void ChangeScoringModel_KeepingAModelArchivedSinceItWasChosen_ChangesNothing()
+    {
+        // Arrange — the settings form offers the desk's archived model, and saving it untouched must not fail
+        var model = _scoringModelFaker.AsActiveWsjf();
+        var sut = new IntakeDeskFaker().WithScoringModel(model).Generate();
+        model.Archive(EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var result = sut.ChangeScoringModel(model, model, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.ScoringModelId.Should().Be(model.Id);
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
     [Theory]
     [InlineData(ScoringModelState.Proposed)]
     [InlineData(ScoringModelState.Archived)]

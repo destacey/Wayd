@@ -110,6 +110,29 @@ public sealed class RecordIntakeRequestScoreCommandHandlerTests
         _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
     }
 
+    [Theory]
+    [InlineData(250_000)]
+    [InlineData(-100_000)]
+    [InlineData(1.23456)]
+    public async Task Handle_WithANumberAScoreCannotHold_FailsAndSavesNothing(decimal value)
+    {
+        // Arrange — a rating is stored to four decimal places with five digits before the point
+        var agent = _scenario.Employee();
+        var model = _scenario.ScoringModel();
+        var request = _scenario.Request(_scenario.ScoresWith(_scenario.Desk(agentIds: [agent.Id]), model), _scenario.Employee());
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new RecordIntakeRequestScoreCommand(request.Id, IntakeScenario.Ratings(model, value, 3m)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("Business Value").And.Contain("four decimal places");
+        request.Scores.Should().BeEmpty();
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
     [Fact]
     public async Task Handle_ByAViewHolderNotOnTheDesk_FailsAndSavesNothing()
     {

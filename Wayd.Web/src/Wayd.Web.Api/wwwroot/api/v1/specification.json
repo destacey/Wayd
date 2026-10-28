@@ -58447,7 +58447,7 @@
                 "$ref": "#/components/schemas/IntakeRequestDeskRankDto"
               }
             ],
-            "description": "Where the request ranks among the open requests on its desk scored with the desk's current model, or null\nwhen it is closed or its current score came from another model.",
+            "description": "Where the request ranks among the open requests on its desk scored with the desk's current model, or null\nwhen it is closed, has never been scored, or its current score came from another model.",
             "nullable": true
           }
         },

@@ -31,7 +31,7 @@ public sealed record IntakeRequestScoringDto
 
     /// <summary>
     /// Where the request ranks among the open requests on its desk scored with the desk's current model, or null
-    /// when it is closed or its current score came from another model.
+    /// when it is closed, has never been scored, or its current score came from another model.
     /// </summary>
     public IntakeRequestDeskRankDto? DeskRank { get; init; }
 }

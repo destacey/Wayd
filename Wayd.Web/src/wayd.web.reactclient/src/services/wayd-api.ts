@@ -58981,7 +58981,7 @@ desk has a model. */
     /** Every score the request has been given, newest first; the first is the current score. */
     scores: IntakeRequestScoreDto[];
     /** Where the request ranks among the open requests on its desk scored with the desk's current model, or null
-when it is closed or its current score came from another model. */
+when it is closed, has never been scored, or its current score came from another model. */
     deskRank?: IntakeRequestDeskRankDto | undefined;
 }
 

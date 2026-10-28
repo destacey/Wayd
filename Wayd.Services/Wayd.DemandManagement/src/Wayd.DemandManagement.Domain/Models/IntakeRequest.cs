@@ -5,9 +5,9 @@ using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Scoring;
-using Wayd.DemandManagement.Domain.Models.Scoring;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.DemandManagement.Domain.Models.Scoring;
 
 namespace Wayd.DemandManagement.Domain.Models;
 

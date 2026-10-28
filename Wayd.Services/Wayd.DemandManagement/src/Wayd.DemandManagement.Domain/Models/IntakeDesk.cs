@@ -205,12 +205,13 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         if (current?.Id != ScoringModelId)
             throw new ArgumentException("The current model must be the one the desk scores with.", nameof(current));
 
-        if (model is not null && model.State != ScoringModelState.Active)
-            return Result.Failure("Only an active scoring model can be assigned to a desk.");
-
+        // Keeping the model the desk has is no change, even once it has been archived.
         var toId = model?.Id;
         if (toId == ScoringModelId)
             return Result.Success();
+
+        if (model is not null && model.State != ScoringModelState.Active)
+            return Result.Failure("Only an active scoring model can be assigned to a desk.");
 
         ScoringModelId = toId;
 

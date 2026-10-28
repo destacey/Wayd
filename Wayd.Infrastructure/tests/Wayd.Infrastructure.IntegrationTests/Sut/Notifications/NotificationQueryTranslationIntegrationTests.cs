@@ -332,6 +332,12 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
         public Task<IQueryable<ActivityStamp>> VisibleActivity(IQueryable<ActivityStamp> activity, CancellationToken cancellationToken) =>
             Task.FromResult(activity);
 
+        public Task<IQueryable<Notification>> VisibleNotifications(IQueryable<Notification> notifications, CancellationToken cancellationToken) =>
+            Task.FromResult(notifications);
+
+        public Task<IReadOnlySet<Guid>> ActorHiddenOn(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlySet<Guid>>(new HashSet<Guid>());
+
         public Task<PagedResponse<ActivityLogDto>> ReadActivity(
             Guid id, IActivityLogReader activityLogReader, PageRequest paging, CancellationToken cancellationToken) =>
             activityLogReader.Read(id, ActivityAggregateType, paging, cancellationToken);

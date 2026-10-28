@@ -5,6 +5,7 @@ using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Records;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Notifications;
 using Wayd.Common.Extensions;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Planning.Domain;
@@ -140,6 +141,14 @@ public sealed class PlanningIntervalObjectiveReadRule(
     /// <remarks>Anyone who can read a objective reads its whole history, so nothing is narrowed.</remarks>
     public Task<IQueryable<ActivityStamp>> VisibleActivity(IQueryable<ActivityStamp> activity, CancellationToken cancellationToken) =>
         Task.FromResult(activity);
+
+    /// <inheritdoc/>
+    public Task<IQueryable<Notification>> VisibleNotifications(IQueryable<Notification> notifications, CancellationToken cancellationToken) =>
+        Task.FromResult(notifications);
+
+    /// <inheritdoc/>
+    public Task<IReadOnlySet<Guid>> ActorHiddenOn(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlySet<Guid>>(new HashSet<Guid>());
 
     /// <inheritdoc/>
     public Task<PagedResponse<ActivityLogDto>> ReadActivity(

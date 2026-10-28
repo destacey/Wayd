@@ -4,10 +4,14 @@ using NodaTime;
 using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.FeatureManagement;
+using Wayd.Common.Domain.Notifications;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.Tests.Infrastructure;
+using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.DemandManagement.Domain.Tests.Data;
 
@@ -18,7 +22,11 @@ public sealed class IntakeRequestReadRuleTests
     private readonly IntakeScenario _scenario = new();
     private readonly Mock<IFeatureFlags> _featureFlags = new();
 
-    public IntakeRequestReadRuleTests() => TurnDemandManagement(on: true);
+    public IntakeRequestReadRuleTests()
+    {
+        TurnDemandManagement(on: true);
+        DemandManagementFollowOwners.Register();
+    }
 
     private IntakeRequestReadRule CreateSut() => new(_scenario.DbContext, _scenario.Principal.Object, _featureFlags.Object);
 
@@ -217,4 +225,120 @@ public sealed class IntakeRequestReadRuleTests
         // Assert
         lifecycle.Should().Be(expected);
     }
+
+    [Fact]
+    public async Task VisibleNotifications_ForASummaryOnlyReader_ShouldWithholdChangesToTheSubstance()
+    {
+        // Arrange — a View holder following a summary-only desk's request sees its summary and nothing more
+        var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.SummaryOnly), _scenario.Employee());
+        var follower = _scenario.Employee();
+        _scenario.SignedInAs(follower, IntakeScenario.View);
+        var notifications = new[]
+        {
+            Notified(follower, request, NotificationEvent.StatusChanged),
+            Notified(follower, request, NotificationEvent.DetailsChanged),
+            Notified(follower, request, NotificationEvent.ParticipantsChanged),
+        };
+
+        // Act
+        var visible = await VisibleEvents(notifications);
+
+        // Assert
+        visible.Should().Equal(NotificationEvent.StatusChanged);
+    }
+
+    [Fact]
+    public async Task VisibleNotifications_ForTheRequestsOwnPeople_ShouldKeepChangesToTheSubstance()
+    {
+        // Arrange — the same desk, but the reader is a participant, who holds the substance
+        var participant = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.SummaryOnly), _scenario.Employee(), participant.Id);
+        _scenario.SignedInAs(participant);
+        var notifications = new[]
+        {
+            Notified(participant, request, NotificationEvent.StatusChanged),
+            Notified(participant, request, NotificationEvent.DetailsChanged),
+        };
+
+        // Act
+        var visible = await VisibleEvents(notifications);
+
+        // Assert
+        visible.Should().BeEquivalentTo([NotificationEvent.StatusChanged, NotificationEvent.DetailsChanged]);
+    }
+
+    [Fact]
+    public async Task VisibleNotifications_ForAViewHolderOnAnOpenDesk_ShouldKeepChangesToTheSubstance()
+    {
+        // Arrange — an open desk shows its substance to everyone with View
+        var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), _scenario.Employee());
+        var follower = _scenario.Employee();
+        _scenario.SignedInAs(follower, IntakeScenario.View);
+
+        // Act
+        var visible = await VisibleEvents([Notified(follower, request, NotificationEvent.DetailsChanged)]);
+
+        // Assert
+        visible.Should().Equal(NotificationEvent.DetailsChanged);
+    }
+
+    [Fact]
+    public async Task ActorHiddenOn_ShouldHideWhoMadeAChange_OnlyFromAReaderWithoutTheSubstance()
+    {
+        // Arrange — a View holder reads a summary-only desk's request in summary and an open desk's in full
+        var requester = _scenario.Employee();
+        var summaryOnly = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.SummaryOnly), requester);
+        var open = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), requester);
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.View);
+
+        // Act
+        var hidden = await CreateSut().ActorHiddenOn([summaryOnly.Id, open.Id], TestContext.Current.CancellationToken);
+
+        // Assert
+        hidden.Should().BeEquivalentTo([summaryOnly.Id]);
+    }
+
+    [Fact]
+    public async Task ActorHiddenOn_ShouldHideNothing_FromTheRequestsOwnPeople()
+    {
+        // Arrange
+        var requester = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.SummaryOnly), requester);
+        _scenario.SignedInAs(requester);
+
+        // Act
+        var hidden = await CreateSut().ActorHiddenOn([request.Id], TestContext.Current.CancellationToken);
+
+        // Assert
+        hidden.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task VisibleNotifications_ShouldWithholdAChangeWithNoTier_FromAnyoneButTheDesk()
+    {
+        // Arrange — a change the request never notifies of today has no tier, so only an agent sees it
+        var requester = _scenario.Employee();
+        var agent = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(agentIds: agent.Id), requester);
+
+        // Act
+        _scenario.SignedInAs(requester);
+        var forRequester = await VisibleEvents([Notified(requester, request, NotificationEvent.HealthReported)]);
+        _scenario.SignedInAs(agent);
+        var forAgent = await VisibleEvents([Notified(agent, request, NotificationEvent.HealthReported)]);
+
+        // Assert
+        forRequester.Should().BeEmpty();
+        forAgent.Should().Equal(NotificationEvent.HealthReported);
+    }
+
+    private async Task<List<NotificationEvent>> VisibleEvents(IEnumerable<Notification> notifications)
+    {
+        var visible = await CreateSut().VisibleNotifications(notifications.AsQueryable(), TestContext.Current.CancellationToken);
+        return [.. visible.Select(n => n.Event)];
+    }
+
+    private Notification Notified(Employee recipient, IntakeRequest request, NotificationEvent notificationEvent) =>
+        Notification.Create(recipient.Id, DemandManagementFollowOwners.IntakeRequest.Key, request.Id, Guid.NewGuid(),
+            notificationEvent, EventActorKind.User, null, _scenario.Clock.Now, NotificationReason.Following).Value;
 }

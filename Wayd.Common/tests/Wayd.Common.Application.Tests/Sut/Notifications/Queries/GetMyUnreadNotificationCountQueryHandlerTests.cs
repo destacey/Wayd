@@ -52,6 +52,23 @@ public sealed class GetMyUnreadNotificationCountQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldNotCountARecord_WhoseOnlyUnreadChangeTheCallerMayNotBeToldOf()
+    {
+        // Arrange
+        var told = _gadgets.Add("G-1", "Told");
+        var withheld = _gadgets.Add("G-2", "Withheld");
+        Seed(told.Id);
+        Seed(withheld.Id, @event: NotificationEvent.DetailsChanged);
+        _gadgets.HiddenNotificationEvents.Add(NotificationEvent.DetailsChanged);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetMyUnreadNotificationCountQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Count.Should().Be(1);
+    }
+
+    [Fact]
     public async Task Handle_ShouldCapTheCount()
     {
         // Arrange
@@ -100,11 +117,12 @@ public sealed class GetMyUnreadNotificationCountQueryHandlerTests
         result.IsCapped.Should().BeFalse();
     }
 
-    private void Seed(Guid ownerId, bool read = false)
+    private void Seed(Guid ownerId, bool read = false, NotificationEvent @event = NotificationEvent.StatusChanged)
     {
         _dbContext.AddNotification(new NotificationFaker()
             .WithRecipientEmployeeId(_employeeId)
             .WithOwner(GadgetType, ownerId)
+            .WithEvent(@event)
             .WithOccurredOn(Start)
             .WithReadOn(read ? Start : null)
             .Generate());

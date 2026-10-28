@@ -236,6 +236,61 @@ public sealed class GetMyNotificationsQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldNotNameWhoMadeTheChange_WhenTheRecordWithholdsItFromTheCaller()
+    {
+        // Arrange
+        var actor = new EmployeeFaker().Generate();
+        _dbContext.AddEmployee(actor);
+        var sprocket = _gadgets.Add("G-1", "Sprocket");
+        var lever = _gadgets.Add("G-2", "Lever");
+        Seed(GadgetType, sprocket.Id, hours: 1, actorEmployeeId: actor.Id);
+        Seed(GadgetType, lever.Id, hours: 2, actorEmployeeId: actor.Id);
+        _gadgets.ActorHiddenRecords.Add(lever.Id);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest()), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Items.Single(i => i.Record.Id == lever.Id).Actor.Should().BeNull();
+        result.Items.Single(i => i.Record.Id == sprocket.Id).Actor.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldLeaveOutChangesTheCallerMayNotBeToldOf_FromTheEntryAndItsCounts()
+    {
+        // Arrange — the newest change is one the caller may not be told of, so the entry leads with the one before
+        var sprocket = _gadgets.Add("G-1", "Sprocket");
+        Seed(GadgetType, sprocket.Id, hours: 1, NotificationEvent.StatusChanged);
+        Seed(GadgetType, sprocket.Id, hours: 2, NotificationEvent.DetailsChanged);
+        _gadgets.HiddenNotificationEvents.Add(NotificationEvent.DetailsChanged);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest()), TestContext.Current.CancellationToken);
+
+        // Assert
+        var entry = result.Items.Should().ContainSingle().Subject;
+        entry.Event.Should().Be(NotificationEvent.StatusChanged);
+        entry.OccurredOn.Should().Be(Start.Plus(Duration.FromHours(1)));
+        entry.Count.Should().Be(1);
+        entry.UnreadCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldLeaveOutARecord_WhenEveryChangeToItIsOneTheCallerMayNotBeToldOf()
+    {
+        // Arrange
+        var sprocket = _gadgets.Add("G-1", "Sprocket");
+        Seed(GadgetType, sprocket.Id, hours: 1, NotificationEvent.DetailsChanged);
+        _gadgets.HiddenNotificationEvents.Add(NotificationEvent.DetailsChanged);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetMyNotificationsQuery(new CursorRequest()), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Items.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Handle_ShouldKeepRecordsOfDifferentTypesApart_WhenTheyShareAnId()
     {
         // Arrange — a replicated record keeps its source's id, so two owner types can share one.

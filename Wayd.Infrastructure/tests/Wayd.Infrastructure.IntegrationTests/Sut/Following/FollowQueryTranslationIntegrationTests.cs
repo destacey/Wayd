@@ -14,6 +14,7 @@ using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Following;
+using Wayd.Common.Domain.Notifications;
 using Wayd.Common.Models;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Domain;
@@ -303,6 +304,12 @@ public sealed class FollowQueryTranslationIntegrationTests(SqlServerDbContextFix
 
         public Task<IQueryable<ActivityStamp>> VisibleActivity(IQueryable<ActivityStamp> activity, CancellationToken cancellationToken) =>
             Task.FromResult(activity);
+
+        public Task<IQueryable<Notification>> VisibleNotifications(IQueryable<Notification> notifications, CancellationToken cancellationToken) =>
+            Task.FromResult(notifications);
+
+        public Task<IReadOnlySet<Guid>> ActorHiddenOn(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlySet<Guid>>(new HashSet<Guid>());
 
         public Task<PagedResponse<ActivityLogDto>> ReadActivity(
             Guid id, IActivityLogReader activityLogReader, PageRequest paging, CancellationToken cancellationToken) =>

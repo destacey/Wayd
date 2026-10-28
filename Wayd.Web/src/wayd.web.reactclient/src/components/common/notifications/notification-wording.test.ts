@@ -21,6 +21,12 @@ describe('notificationAction', () => {
     [NotificationEvent.RolesChanged, 'changed the people on'],
     [NotificationEvent.Reparented, 'moved'],
     [NotificationEvent.ScoreRecorded, 'scored'],
+    [NotificationEvent.Withdrawn, 'withdrew'],
+    [NotificationEvent.Retitled, 'renamed'],
+    [NotificationEvent.DetailsChanged, 'changed the details of'],
+    [NotificationEvent.AssigneeChanged, 'changed the assignee of'],
+    [NotificationEvent.ParticipantsChanged, 'changed the participants of'],
+    [NotificationEvent.ChannelChanged, 'changed the channel of'],
   ])('words a %s change', (event, expected) => {
     // Act & Assert
     expect(notificationAction(event)).toBe(expected)

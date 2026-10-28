@@ -110,9 +110,10 @@ public sealed class GetMyNotificationsQueryHandler(
         List<(FollowOwnerDescriptor Descriptor, IRecordReadRule ReadRule)> owners,
         CancellationToken cancellationToken)
     {
-        var latest = await Latest(employeeId, page, cancellationToken);
+        var latest = await Latest(employeeId, page, owners, cancellationToken);
         var summaries = await FollowReadRules.Describe(page.Select(g => (g.OwnerType, g.OwnerId)), owners, cancellationToken);
         var actors = await Actors(latest.Values, cancellationToken);
+        var actorHidden = await ActorHidden(page, owners, cancellationToken);
 
         var items = new List<NotificationDto>(page.Count);
         foreach (var group in page)
@@ -126,11 +127,38 @@ public sealed class GetMyNotificationsQueryHandler(
                 continue;
             }
 
-            var actor = newest.ActorEmployeeId is { } actorId ? actors.GetValueOrDefault(actorId) : null;
+            var actor = newest.ActorEmployeeId is { } actorId && !actorHidden.Contains(key)
+                ? actors.GetValueOrDefault(actorId)
+                : null;
             items.Add(NotificationDto.Create(newest, group.UnreadCount, group.Count, group.Reasons, actor, summary));
         }
 
         return items;
+    }
+
+    /// <summary>The entries on the page whose record withholds from the caller who made its changes.</summary>
+    private static async Task<HashSet<(string OwnerType, Guid OwnerId)>> ActorHidden(
+        List<NotificationGroupRow> page,
+        List<(FollowOwnerDescriptor Descriptor, IRecordReadRule ReadRule)> owners,
+        CancellationToken cancellationToken)
+    {
+        var hidden = new HashSet<(string OwnerType, Guid OwnerId)>();
+        foreach (var (descriptor, readRule) in owners)
+        {
+            var ownerType = descriptor.Key;
+            var ids = page.Where(g => g.OwnerType == ownerType).Select(g => g.OwnerId).Distinct().ToList();
+            if (ids.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (var id in await readRule.ActorHiddenOn(ids, cancellationToken))
+            {
+                hidden.Add((ownerType, id));
+            }
+        }
+
+        return hidden;
     }
 
     /// <summary>
@@ -139,30 +167,47 @@ public sealed class GetMyNotificationsQueryHandler(
     /// </summary>
     /// <remarks>
     /// Reads only the rows at each entry's newest instant, so a busy record costs one row here rather than
-    /// every notification it has had.
+    /// every notification it has had. Read through each owner type's
+    /// <see cref="IRecordReadRule.VisibleNotifications"/>, one query per owner type on the page, so the change an
+    /// entry leads with is never one the caller may not be told about.
     /// </remarks>
     private async Task<Dictionary<(string OwnerType, Guid OwnerId), Notification>> Latest(
         Guid employeeId,
         List<NotificationGroupRow> page,
+        List<(FollowOwnerDescriptor Descriptor, IRecordReadRule ReadRule)> owners,
         CancellationToken cancellationToken)
     {
-        var ownerIds = page.Select(g => g.OwnerId).Distinct().ToList();
-        var pageKeys = page.Select(g => (g.OwnerType, g.OwnerId)).ToHashSet();
-        var notifications = _notificationsDbContext.Notifications.Where(n => n.RecipientEmployeeId == employeeId);
+        var latest = new Dictionary<(string OwnerType, Guid OwnerId), Notification>();
 
-        // Owner ids can repeat across owner types, so the read narrows by id and the match is made on the full
-        // key. The instants are compared in SQL rather than sent as a list, which a converted type cannot be.
-        var candidates = await notifications
-            .Where(n => ownerIds.Contains(n.OwnerId)
-                && n.OccurredOn == notifications
-                    .Where(m => m.OwnerType == n.OwnerType && m.OwnerId == n.OwnerId)
-                    .Max(m => m.OccurredOn))
-            .ToListAsync(cancellationToken);
+        foreach (var (descriptor, readRule) in owners)
+        {
+            var ownerType = descriptor.Key;
+            var ownerIds = page.Where(g => g.OwnerType == ownerType).Select(g => g.OwnerId).Distinct().ToList();
+            if (ownerIds.Count == 0)
+            {
+                continue;
+            }
 
-        return candidates
-            .Where(n => pageKeys.Contains((n.OwnerType, n.OwnerId)))
-            .GroupBy(n => (n.OwnerType, n.OwnerId))
-            .ToDictionary(g => g.Key, g => g.MaxBy(n => n.Id)!);
+            var notifications = await readRule.VisibleNotifications(
+                _notificationsDbContext.Notifications
+                    .Where(n => n.RecipientEmployeeId == employeeId && n.OwnerType == ownerType),
+                cancellationToken);
+
+            // The instants are compared in SQL rather than sent as a list, which a converted type cannot be.
+            var candidates = await notifications
+                .Where(n => ownerIds.Contains(n.OwnerId)
+                    && n.OccurredOn == notifications
+                        .Where(m => m.OwnerId == n.OwnerId)
+                        .Max(m => m.OccurredOn))
+                .ToListAsync(cancellationToken);
+
+            foreach (var group in candidates.GroupBy(n => n.OwnerId))
+            {
+                latest[(ownerType, group.Key)] = group.MaxBy(n => n.Id)!;
+            }
+        }
+
+        return latest;
     }
 
     /// <summary>The people who made the page's newest changes, named as they are now.</summary>

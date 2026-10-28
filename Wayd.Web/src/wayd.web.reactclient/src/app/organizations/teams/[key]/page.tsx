@@ -318,6 +318,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             team={team!}
             hasEverBeenScrum={hasEverBeenScrum === true}
             onNavigateToSection={goToSection}
+            capacityEnabled={capacityEnabled}
           />
         )
       case TeamTabs.Backlog:

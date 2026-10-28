@@ -9,3 +9,5 @@ global using Wayd.Common.Application.Persistence;
 global using Wayd.Common.Application.StatusWorkflows;
 global using Wayd.Common.Domain.Events;
 global using Wayd.Common.Models;
+global using Wayd.ProductManagement.Application.IncidentSeveritySets;
+global using Wayd.ProductManagement.Domain.Models;

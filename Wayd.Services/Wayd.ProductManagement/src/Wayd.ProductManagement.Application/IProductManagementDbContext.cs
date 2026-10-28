@@ -22,4 +22,7 @@ public interface IProductManagementDbContext : IWaydDbContext
     DbSet<ReleasePackageComponent> ReleasePackageComponents { get; }
     DbSet<DeploymentEnvironment> DeploymentEnvironments { get; }
     DbSet<Deployment> Deployments { get; }
+    DbSet<IncidentSeveritySet> IncidentSeveritySets { get; }
+    DbSet<IncidentSeverityLevel> IncidentSeverityLevels { get; }
+    DbSet<IncidentSeveritySetAssignment> IncidentSeveritySetAssignments { get; }
 }

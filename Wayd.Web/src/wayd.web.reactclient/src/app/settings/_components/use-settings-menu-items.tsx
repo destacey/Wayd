@@ -17,6 +17,7 @@ import {
 interface SettingsMenuOptions {
   planningPoker: boolean
   productManagement: boolean
+  incidentManagement: boolean
   demandManagement: boolean
   imports: boolean
 }
@@ -86,7 +87,7 @@ const buildSettingsMenuItems = (
       ]
     : []),
 
-  ...(options.productManagement
+  ...(options.productManagement && options.incidentManagement
     ? [
         restrictedMenuSection(
           'Product Management',
@@ -100,10 +101,33 @@ const buildSettingsMenuItems = (
               'product-management.product-tags',
               '/settings/product-management/product-tags',
             ),
+            restrictedPermissionMenuItem(
+              'Permissions.IncidentSeveritySets.View',
+              'Incident Severity Sets',
+              'product-management.incident-severity-sets',
+              '/settings/product-management/incident-severity-sets',
+            ),
           ],
         ),
       ]
-    : []),
+    : options.productManagement
+      ? [
+          restrictedMenuSection(
+            'Product Management',
+            'product-management',
+            undefined,
+            undefined,
+            [
+              restrictedPermissionMenuItem(
+                'Permissions.ProductTagCategories.View',
+                'Product Tags',
+                'product-management.product-tags',
+                '/settings/product-management/product-tags',
+              ),
+            ],
+          ),
+        ]
+      : []),
 
   ...(options.demandManagement
     ? [
@@ -285,6 +309,7 @@ export const useSettingsMenuItems = () => {
   const { hasClaim } = useAuth()
   const { isEnabled: planningPoker } = useFeatureFlag('planning-poker')
   const { isEnabled: productManagement } = useFeatureFlag('product-management')
+  const { isEnabled: incidentManagement } = useFeatureFlag('incident-management')
   const { isEnabled: demandManagement } = useFeatureFlag('demand-management')
 
   // Cheap and cached: the same query the Imports page uses, so opening it costs nothing extra.
@@ -293,6 +318,7 @@ export const useSettingsMenuItems = () => {
   const items = buildSettingsMenuItems({
     planningPoker,
     productManagement,
+    incidentManagement,
     demandManagement,
     imports: (importDefinitions?.length ?? 0) > 0,
   })

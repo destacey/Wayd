@@ -167,6 +167,9 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<ReleasePackageComponent> ReleasePackageComponents => Set<ReleasePackageComponent>();
     public DbSet<DeploymentEnvironment> DeploymentEnvironments => Set<DeploymentEnvironment>();
     public DbSet<Deployment> Deployments => Set<Deployment>();
+    public DbSet<IncidentSeveritySet> IncidentSeveritySets => Set<IncidentSeveritySet>();
+    public DbSet<IncidentSeverityLevel> IncidentSeverityLevels => Set<IncidentSeverityLevel>();
+    public DbSet<IncidentSeveritySetAssignment> IncidentSeveritySetAssignments => Set<IncidentSeveritySetAssignment>();
 
     #endregion ProductManagement
 

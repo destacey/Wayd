@@ -106,6 +106,7 @@ export enum QueryTags {
   StoryMap = 'Planning.StoryMap',
   StoryMapList = 'Planning.StoryMap.List',
   EstimationScale = 'Planning.EstimationScale',
+  IncidentSeveritySet = 'ProductManagement.IncidentSeveritySet',
   Sprint = 'Planning.Sprint',
   SprintBacklog = 'Planning.Sprint.Backlog',
   SprintMetrics = 'Planning.Sprint.Metrics',

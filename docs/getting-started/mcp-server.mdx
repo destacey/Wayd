@@ -329,7 +329,7 @@ CLI arguments take precedence over environment variables.
 
 ## Agent Skills
 
-For Claude Code users, thirteen pre-built skills provide guided workflows:
+For Claude Code users, fourteen pre-built skills provide guided workflows:
 
 - **`/wayd-ppm`** — Portfolio, program, project, and strategic initiative operations, including scoring, health checks, status changes, and tasks
 - **`/wayd-pi`** — Planning intervals, iterations, objectives, and risks
@@ -343,6 +343,7 @@ For Claude Code users, thirteen pre-built skills provide guided workflows:
 - **`/wayd-work`** — Workspaces, work items, sprints, and the work processes, types and statuses behind them (hosted endpoint only, apart from work item forecasts)
 - **`/wayd-estimation`** — Planning poker sessions and estimation scales (hosted endpoint only)
 - **`/wayd-imports`** — Loading CSV data: writing a file, checking it with a preflight, importing it, and following import runs
+- **`/wayd-incidents`** — Incident severity scales under Product Management — list seeded and custom sets, select which scale the organization uses, and manage custom sets (requires `product-management` and `incident-management` feature flags)
 - **`/wayd-intake`** — Raising intake requests, following what happened to them, reviewing them on a desk, and setting up desks, channels and tag axes (hosted endpoint only)
 
 Install the skills:
@@ -522,6 +523,11 @@ The catalog is one typed tree of what your organization owns — products, platf
 | `ProductTagCategories_AddTag` / `ProductTagCategories_RenameTag`                              | Manage the tags on an axis                                                               |
 | `ProductTagCategories_SetTagActive`                                                           | Take a single tag out of use, or put it back                                             |
 | `ProductTagCategories_DeleteTag`                                                              | Permanently delete a tag no product carries                                              |
+| `IncidentSeveritySets_GetSets` / `IncidentSeveritySets_GetSet`                                | List incident severity scales (seeded and custom), or get one with ordered levels        |
+| `IncidentSeveritySets_CreateSet` / `IncidentSeveritySets_UpdateSet`                           | Create a custom scale, or rename it and replace its level names (most severe first)      |
+| `IncidentSeveritySets_SetActiveStatus`                                                        | Activate or deactivate a custom scale (system scales cannot be deactivated)              |
+| `IncidentSeveritySets_SelectSet`                                                                | Choose which active scale new incidents will use                                         |
+| `IncidentSeveritySets_DeleteSet`                                                              | Permanently delete a custom scale that is not selected and not in use                    |
 
 Dependencies are **rolled up**: a product line's list includes its services' links to anything outside it. Strength has no default — hard if the product stops working without the other, soft if it only degrades — and a dependency that stopped should be **ended, not removed**, so the record of when it held survives.
 

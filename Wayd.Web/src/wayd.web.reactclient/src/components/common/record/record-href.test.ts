@@ -23,6 +23,7 @@ describe('recordHref', () => {
       '26',
       '/planning/planning-intervals/26/objectives/7',
     ],
+    ['demand.intake-request', '15', '3', '/demand-management/requests/15'],
   ])('links a %s to its own page', (ownerType, key, parentKey, expected) => {
     // Act & Assert
     expect(recordHref(record({ ownerType, key, parentKey }))).toBe(expected)
@@ -44,7 +45,7 @@ describe('recordHref', () => {
   it('gives no link for an owner type the client has no page for', () => {
     // Act & Assert
     expect(
-      recordHref(record({ ownerType: 'demand.intake-request' })),
+      recordHref(record({ ownerType: 'demand.unknown-record' })),
     ).toBeNull()
   })
 })

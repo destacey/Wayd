@@ -138,6 +138,28 @@ public sealed class GetMyFollowsQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldIgnoreActivityTheReadRuleWithholds_WhenSayingWhenARecordLastChanged()
+    {
+        // Arrange — a change the caller may not see in the record's history must not show when it happened
+        var gadget = _gadgets.Add("G-1", "Sprocket");
+        SeedFollow(GadgetType, gadget.Id, 1);
+        SeedActivity(gadget.Id, Now.Minus(Duration.FromDays(20)));
+        _dbContext.ActivityLogs.Add(new ActivityLogEntry(
+            Guid.NewGuid(), "SecretChangedEvent", ActivityCategory.Updated, "Test", "Test", gadget.Id, EventActor.System,
+            Now.Minus(Duration.FromHours(1)), 0, null, "{}"));
+        _gadgets.HiddenEventTypes.Add("SecretChangedEvent");
+
+        // Act
+        var all = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), GadgetType), TestContext.Current.CancellationToken);
+        var changedRecently = await CreateHandler().Handle(
+            new GetMyFollowsQuery(new PageRequest(), GadgetType, FollowView.ChangedRecently), TestContext.Current.CancellationToken);
+
+        // Assert
+        all.Value.Items.Should().ContainSingle().Which.LastChangedOn.Should().Be(Now.Minus(Duration.FromDays(20)));
+        changedRecently.Value.Items.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Handle_ShouldListRecordsWithoutActivityFirst_ThenLeastRecentlyChanged_WhenAscending()
     {
         // Arrange

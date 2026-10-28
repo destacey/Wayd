@@ -247,7 +247,7 @@ const FollowingContent = () => {
 
     if (counts.data.total === 0) {
       return (
-        <WaydEmpty message="You are not following anything yet. Following keeps the projects, programs and planning interval objectives you care about in one place. Open one and select the eye at the top of its page to follow it. Following grants no access: you can follow only what you can already see." />
+        <WaydEmpty message="You are not following anything yet. Following keeps the projects, programs, planning interval objectives and intake requests you care about in one place. Open one and select the eye at the top of its page to follow it. Following grants no access: you can follow only what you can already see." />
       )
     }
 

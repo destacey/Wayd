@@ -38,6 +38,21 @@ jest.mock('@/src/components/common/markdown', () => ({
 }))
 
 jest.mock('@/src/components/common', () => ({
+  FollowButton: ({
+    ownerType,
+    ownerId,
+  }: {
+    ownerType: string
+    ownerId: string
+  }) => (
+    <button
+      type="button"
+      data-testid="follow"
+      data-owner={`${ownerType}:${ownerId}`}
+    >
+      Follow
+    </button>
+  ),
   PageActions: ({ actionItems }: { actionItems: any[] }) => (
     <div data-testid="page-actions">
       {actionItems.map((item) => (
@@ -309,6 +324,17 @@ describe('IntakeRequestDetailsPage', () => {
     expect(
       screen.queryByRole('button', { name: /Move to/ }),
     ).not.toBeInTheDocument()
+  })
+
+  it('offers to follow the request, as any reader can', async () => {
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(await screen.findByTestId('follow')).toHaveAttribute(
+      'data-owner',
+      'demand.intake-request:r-42',
+    )
   })
 
   it('leads back through the request’s desk, between Requests and the request', async () => {

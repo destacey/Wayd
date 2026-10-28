@@ -1,3 +1,5 @@
+using Wayd.Common.Application.Activities;
+using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Domain.Enums;
 
 namespace Wayd.Common.Application.Records;
@@ -61,6 +63,51 @@ public interface IRecordReadRule
     Task<IReadOnlyDictionary<Guid, RecordSummary>> Describe(
         IReadOnlyCollection<Guid> ids,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Narrows activity on this owner type's records to the entries the caller may see, as the record's own
+    /// Activity section shows them. An owner type whose history every reader sees whole returns
+    /// <paramref name="activity"/> unchanged.
+    /// </summary>
+    /// <remarks>
+    /// Like <see cref="Readable"/>, it only ever narrows and must stay a query the database can run: callers
+    /// take the newest stamp per record from it, in SQL, for when a record last changed. Without it a reader
+    /// who may see only part of a record's history would learn when the rest of it changed.
+    /// </remarks>
+    /// <param name="activity">Every entry on, or naming, a record of this owner type.</param>
+    Task<IQueryable<ActivityStamp>> VisibleActivity(IQueryable<ActivityStamp> activity, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// One page of a record's history, newest first, exactly as its own Activity endpoint returns it to the
+    /// caller: no entry, and no field of one, that the endpoint withholds from them.
+    /// </summary>
+    /// <remarks>Called only with an id that <see cref="Readable"/> already admitted.</remarks>
+    /// <param name="activityLogReader">The shared activity log reader, which the rule reads through.</param>
+    Task<PagedResponse<ActivityLogDto>> ReadActivity(
+        Guid id,
+        IActivityLogReader activityLogReader,
+        PageRequest paging,
+        CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// One activity log entry as it bears on one record — its own entry, or one naming the record as related — in
+/// plain columns a read rule can filter on.
+/// </summary>
+/// <remarks>A class with settable properties, so it can be projected into inside a query.</remarks>
+public sealed class ActivityStamp
+{
+    /// <summary>The record the entry is on, or names as related.</summary>
+    public Guid RecordId { get; init; }
+
+    /// <summary>The aggregate type the record is logged under.</summary>
+    public string AggregateType { get; init; } = default!;
+
+    /// <summary>The name of the event the entry records.</summary>
+    public string EventType { get; init; } = default!;
+
+    /// <summary>When it happened.</summary>
+    public Instant Timestamp { get; init; }
 }
 
 /// <summary>
@@ -94,8 +141,8 @@ public sealed record RecordSummary
     public required string Name { get; init; }
 
     /// <summary>
-    /// The key of the record this one is addressed under, for an owner type whose pages nest — a planning
-    /// interval objective under its planning interval. Null otherwise.
+    /// The key of the record this one sits under, as its own page shows it — a planning interval objective
+    /// under its planning interval, an intake request on its desk. Null for an owner type with no parent.
     /// </summary>
     public string? ParentKey { get; init; }
 

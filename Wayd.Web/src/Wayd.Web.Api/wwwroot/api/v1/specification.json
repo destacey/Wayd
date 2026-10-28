@@ -40805,6 +40805,7 @@
           "IntakeRequests"
         ],
         "summary": "Submit an intake request to a desk.",
+        "description": "Needs your account to be linked to an employee, who is recorded as the submitter, and as the requester unless `requesterId` names someone else. The request starts in its desk's initial status.",
         "operationId": "IntakeRequests_Create",
         "requestBody": {
           "content": {
@@ -40853,7 +40854,7 @@
           "IntakeRequests"
         ],
         "summary": "Get an intake request in the tiers you can read.",
-        "description": "The summary is always returned; the substance is null when you may not read it.",
+        "description": "The summary is always returned; the substance is null when you may not read it. The outcome is the summary's status and its category, with the substance's `statusReason` saying why the desk declined, deferred, finished or marked it a duplicate, or why its requester withdrew it, and `duplicateOf` naming the request it gave way to when you can see that one.",
         "operationId": "IntakeRequests_GetIntakeRequest",
         "parameters": [
           {

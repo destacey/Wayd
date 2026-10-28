@@ -405,6 +405,27 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
+    public async Task CallTool_IsRefused_WhenReadOnlyAndAnIntakeToolWrites()
+    {
+        // Arrange — editing a request is authorized by the request's own rules, not a permission claim, so
+        // nothing but read-only mode stands in the way of a caller who may read requests
+        await SetFlag(true);
+        var permission = ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.IntakeRequests);
+        var (_, token) = await CreateUserWithToken(permission);
+        await using var mcp = await Connect(token, "?toolsets=intake&readonly=true");
+        var requestId = Guid.NewGuid();
+
+        // Act
+        var call = () => mcp.CallToolAsync(
+            "IntakeRequests_Update",
+            new Dictionary<string, object?> { ["id"] = requestId, ["requestBody"] = new { id = requestId, title = "Changed through MCP", description = "Changed through MCP." } },
+            cancellationToken: TestContext.Current.CancellationToken).AsTask();
+
+        // Assert
+        await Assert.ThrowsAsync<McpProtocolException>(call);
+    }
+
+    [Fact]
     public async Task Mcp_AnswersBadRequest_ForAnUnknownToolset()
     {
         // Arrange

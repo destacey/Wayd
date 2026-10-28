@@ -1750,6 +1750,36 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("WorkflowTransitions", "StatusWorkflows");
                 });
 
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.DemandProject", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Watermarks")
+                        .IsRequired()
+                        .HasColumnType("varchar(1024)")
+                        .HasColumnName("Watermarks");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DemandProjects", "DemandManagement");
+                });
+
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeChannel", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2018,6 +2048,38 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasIndex("DeskId", "AssigneeId");
 
                     b.ToTable("IntakeRequests", "DemandManagement");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestOutcome", b =>
+                {
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AddedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AddedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.HasKey("RequestId", "TargetId");
+
+                    b.HasIndex("AddedById");
+
+                    b.HasIndex("TargetId");
+
+                    b.ToTable("IntakeRequestOutcomes", "DemandManagement");
                 });
 
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestParticipant", b =>
@@ -9092,6 +9154,21 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Origin");
                 });
 
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestOutcome", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("AddedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeRequest", null)
+                        .WithMany("Outcomes")
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestParticipant", b =>
                 {
                     b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
@@ -10947,6 +11024,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequest", b =>
                 {
+                    b.Navigation("Outcomes");
+
                     b.Navigation("Participants");
 
                     b.Navigation("Scores");

@@ -44,8 +44,10 @@ public static class DurableEventRoutes
     /// </summary>
     private static readonly HashSet<Type> DurableEventTypes =
     [
-        // PPM Project → Work WorkProject. The key change is here for the same reason as the details
-        // change: the projection stores the key, and a rekeyed project would otherwise keep its old one.
+        // PPM Project → Work WorkProject and Demand Management DemandProject. The key change is here for the
+        // same reason as the details change: the projections store the key, and a rekeyed project would
+        // otherwise keep its old one. Adding an outcome checks the DemandProject exists, so a project not yet
+        // copied fails cleanly.
         typeof(ProjectCreatedEvent),
         typeof(ProjectDetailsUpdatedEvent),
         typeof(ProjectKeyChangedEventV2),

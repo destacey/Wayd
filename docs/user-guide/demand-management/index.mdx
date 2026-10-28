@@ -159,7 +159,7 @@ Submitting needs your account to be linked to an employee record, because every 
 
 #### Through an AI assistant
 
-An assistant connected to Wayd's [hosted MCP endpoint](../../getting-started/mcp-server.mdx), with the `intake` toolset, can raise a request for you: it picks the desk from the descriptions of the desks taking requests, asks where the request came from when the desk records a channel, and shows you the request before submitting it. It can also list your requests and tell you where one stands — its status, the desk's reason for declining or finishing it, and its status history. It can edit or withdraw your request too. If you work a desk, it can review requests with you — change their status, assign, tag and move them, and manage participants — and a Desk Admin or the Demand Management Admin can have it set up desks, channels and tag axes. It sees only what you can see in Wayd and can do only what you can do here, so it never reads a desk's internal notes unless you work that desk.
+An assistant connected to Wayd's [hosted MCP endpoint](../../getting-started/mcp-server.mdx), with the `intake` toolset, can raise a request for you: it picks the desk from the descriptions of the desks taking requests, asks where the request came from when the desk records a channel, and shows you the request before submitting it. It can also list your requests and tell you where one stands — its status, the desk's reason for declining or finishing it, and its status history. It can edit or withdraw your request too. If you work a desk, it can review requests with you — change their status, assign, tag and move them, record the projects they became, and manage participants — and a Desk Admin or the Demand Management Admin can have it set up desks, channels and tag axes. It sees only what you can see in Wayd and can do only what you can do here, so it never reads a desk's internal notes unless you work that desk.
 
 ### Finding requests
 
@@ -187,6 +187,7 @@ The filters and the layout are kept in the page's address, so a view can be book
 Opening a request shows its number and title, with its status and [tags](#tags) beside the title; clicking the status opens its history. An agent on the request's desk changes the tags with the edit icon beside them or **Manage Tags** in the actions menu, choosing from the axes the desk uses. A tag the request carries along an axis the desk does not use — one it brought from another desk — can be removed there but not added to. The trail beneath the title leads back to **Requests** through the desk the request is on, and beneath that a line says who raised it, when, and where it came from when that was recorded. The panel opened from the header lists its desk, channel, requester and assignee and, where you can read them, who submitted it and where it came from.
 
 - **Details** — The reason for its current status, when it has one, then the description, the expected benefits and the need-by date, which says what makes it that date and whether it can move. On a desk that keeps its detail to itself, people outside it see a message saying the detail is limited to that desk, rather than empty fields
+- **Outcomes** — What the request became: the projects that deliver it. Shown to everyone who can see the request, as its status is. See [Outcomes](#outcomes)
 - **People** — The requester, the submitter when it is someone else, and the request's participants. Participants can read the request and reply to it, but cannot change it, and being one does not assign them any work. Shown only to people who can read the request's detail
 - **Score** — The request's current score, where it ranks among the open requests on its desk, the ratings behind it, and every earlier score. Shown only to people who can read the request's detail; see [Scoring a request](#scoring-a-request)
 - **Status History** — Every status the request has been in, as a timeline or drawn on its desk's workflow. Without the request's detail you see each change without its reason or who made it
@@ -215,7 +216,7 @@ The requester and participants read the score and its ratings on their own reque
 
 **Move to**, beside the actions menu, is offered to an agent on its desk. It lists the statuses of the desk's workflow, in the order the desk laid them out, apart from the one the request holds and Withdrawn. A status that needs nothing more moves the request at once; one that does opens a form asking for it:
 
-- A **reason** — required for declining, deferring, marking a duplicate and finishing a request, and optional otherwise. The requester reads it on the request, so write it for them
+- A **reason** — required for declining, marking a duplicate, and finishing a request that has no [outcome](#outcomes), and optional otherwise. The requester reads it on the request, so write it for them
 - For **Duplicate**, the request this one gives way to — any other request you can see. One that is itself a duplicate is refused, so a duplicate always leads straight to the request that survives
 
 A closed request can be moved back to an open status the same way, which also lets it be edited again.
@@ -225,6 +226,23 @@ A closed request can be moved back to an open status the same way, which also le
 Once a request is marked a duplicate, anyone who opens it and can see the surviving request is taken there, and that request says which duplicate brought them. The desk's agents stay on the duplicate, with a link to the surviving request, so they can see why and reopen it.
 
 Someone who cannot see the surviving request stays on the duplicate. They see it marked Duplicate, with your reason, and nothing about the other request. Whether the requester can see it depends on that request's desk, as [Who Can See a Request](#who-can-see-a-request) describes: a request on a private desk they are not part of is hidden from them, and so is one on any other desk if they cannot view requests. A request that others are marked duplicates of cannot be deleted.
+
+### Outcomes
+
+Once a request is accepted, its desk records what it became, so the requester can follow their ask from the decision into delivery. Each outcome points at a project:
+
+- **New project** — A project started to deliver the request
+- **Existing project scope** — A project that already existed and took the request on. Its note, which is required, says what the project absorbed; recording it does not change the project's own definition
+
+**Add Outcome**, in the request's **Outcomes** section, is offered to an agent on the request's desk while the request is in an active status, such as Accepted. It lists the projects you can see in PPM, apart from those the request already points at, so a request points at a project once. Outcomes can be added and removed only while the request is accepted; once it is finished or closed they are part of its record, and moving it back to an active status opens them again. Removing an outcome never changes the project.
+
+A request with an outcome can be finished without a reason, since the outcome says what delivered it. Finishing one with no outcome still needs a reason. If a project is later deleted, its outcome stays on the request, marked as a project that has been deleted.
+
+A project created moments ago is offered straight away, but adding it may be refused as not found for a short while; if so, try again shortly.
+
+#### From the project
+
+With Demand Management on, a project's page has a **Requests** section listing the requests it came from or absorbed, with each request's status and what the project took on. Each request is listed only to people who can see it, by its desk's rules: a request on a private desk you are not part of does not appear, and nothing says it is there.
 
 ### Withdrawing a request
 

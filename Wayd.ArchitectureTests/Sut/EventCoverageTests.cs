@@ -196,6 +196,7 @@ public partial class EventCoverageTests
             "A drafting canvas of fine-grained edits whose current state is the artifact.",
 
         // Copies built from another module's events, which are their history.
+        [typeof(DemandProject)] = "A copy of PPM's Project.",
         [typeof(PlanningSprint)] = "A copy of Work's Iteration.",
         [typeof(PlanningTeam)] = "A copy of Organization's team.",
         [typeof(PpmStrategicTheme)] = "A copy of Strategic Management's StrategicTheme.",

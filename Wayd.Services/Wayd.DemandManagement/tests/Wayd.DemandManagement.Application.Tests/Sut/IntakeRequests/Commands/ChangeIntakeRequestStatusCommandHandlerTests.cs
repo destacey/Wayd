@@ -163,4 +163,40 @@ public sealed class ChangeIntakeRequestStatusCommandHandlerTests
         result.Error.Should().Be("Moving this request to 'Declined' needs a reason the requester can read.");
         _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
     }
+
+    [Fact]
+    public async Task Handle_ToFulfilledWithAnOutcomeAndNoReason_MovesTheRequest()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.AcceptedRequestWithOutcomes(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), Guid.NewGuid());
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new ChangeIntakeRequestStatusCommand(request.Id, StatusId("Fulfilled"), null, null),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        request.StatusId.Should().Be(StatusId("Fulfilled"));
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ToFulfilledWithNoOutcomeAndNoReason_FailsAndSavesNothing()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.AcceptedRequestWithOutcomes(_scenario.Desk(agentIds: agent.Id), _scenario.Employee());
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new ChangeIntakeRequestStatusCommand(request.Id, StatusId("Fulfilled"), null, null),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Moving this request to 'Fulfilled' needs a reason the requester can read.");
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
 }

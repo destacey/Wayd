@@ -10,6 +10,8 @@ using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Models;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -561,6 +563,60 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
 
         return (model.Id, second.Id);
     }
+
+    [Fact]
+    public async Task Outcomes_ReadBackOnTheRequestAndFromTheProject_UnderTheDesksVisibility()
+    {
+        // Arrange — the same project absorbed an open request and a private one; a second outcome on the open
+        // request points at a project whose copy has gone
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        var projectId = Guid.CreateVersion7();
+        var deletedProjectId = Guid.CreateVersion7();
+        await using (var arrange = _fixture.CreateContext())
+        {
+            arrange.DemandProjects.Add(new DemandProject(new Source(projectId, new ProjectKey("P" + Guid.NewGuid().ToString("N")[..10]), "Atlas"), Now));
+            var requests = await arrange.IntakeRequests.Include(r => r.Outcomes)
+                .Where(r => r.Id == scenario.OnOpen.Id || r.Id == scenario.OnPrivate.Id)
+                .ToListAsync(ct);
+            foreach (var request in requests)
+            {
+                var accepted = new StatusRef(request.StatusWorkflowId, Guid.CreateVersion7(), "Accepted", StatusCategory.Active,
+                    (int)IntakeRequestStatusAlias.Accepted);
+                request.ChangeStatus(accepted, null, null, EventActor.System, Now).IsSuccess.Should().BeTrue();
+                request.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, projectId, "Export screen", scenario.Agent.Id,
+                    EventActor.System, Now).IsSuccess.Should().BeTrue();
+            }
+            requests.Single(r => r.Id == scenario.OnOpen.Id)
+                .AddOutcome(IntakeRequestOutcomeKind.NewProject, deletedProjectId, null, scenario.Agent.Id, EventActor.System, Now)
+                .IsSuccess.Should().BeTrue();
+            await arrange.SaveChangesAsync(ct);
+        }
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var fromProject = await new GetProjectIntakeRequestsQueryHandler(context, Principal(Guid.NewGuid()))
+            .Handle(new GetProjectIntakeRequestsQuery(projectId), ct);
+        var fromProjectAsAgent = await new GetProjectIntakeRequestsQueryHandler(context, Principal(scenario.Agent.Id))
+            .Handle(new GetProjectIntakeRequestsQuery(projectId), ct);
+        var onRequest = await new GetIntakeRequestQueryHandler(context, Principal(Guid.NewGuid()))
+            .Handle(new GetIntakeRequestQuery(new IdOrKey(scenario.OnOpen.Id)), ct);
+
+        // Assert
+        var listed = fromProject.Should().ContainSingle().Subject;
+        listed.Request.Id.Should().Be(scenario.OnOpen.Id);
+        listed.Kind.Should().Be(IntakeRequestOutcomeKind.ExistingProjectScope);
+        listed.Note.Should().Be("Export screen");
+        listed.Status.Name.Should().Be("Accepted");
+        fromProjectAsAgent.Select(r => r.Request.Id).Should().BeEquivalentTo([scenario.OnOpen.Id, scenario.OnPrivate.Id]);
+
+        onRequest!.Outcomes.Should().HaveCount(2);
+        onRequest.Outcomes.Single(o => o.TargetId == projectId).Project!.Name.Should().Be("Atlas");
+        onRequest.Outcomes.Single(o => o.TargetId == deletedProjectId).Project.Should().BeNull();
+        onRequest.Outcomes.Should().AllSatisfy(o => o.AddedBy.Id.Should().Be(scenario.Agent.Id));
+    }
+
+    private sealed record Source(Guid Id, ProjectKey Key, string Name, string Description = "desc") : ISimpleProject;
 
     private static ICurrentPrincipal Principal(Guid employeeId, bool holdsView = true, bool holdsAdminister = false,
         bool isReadOnly = false)

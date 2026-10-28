@@ -41922,6 +41922,184 @@
         ]
       }
     },
+    "/api/demand-management/intake-requests/{id}/outcomes": {
+      "post": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Record that an accepted intake request became a project.",
+        "description": "Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on. The project itself is not changed. A request points at a project at most once. Once a request has an outcome, finishing it needs no reason.",
+        "operationId": "IntakeRequests_AddOutcome",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddIntakeRequestOutcomeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{id}/outcomes/{targetId}": {
+      "delete": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Take an outcome off an accepted intake request.",
+        "description": "Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. The project itself is not changed.",
+        "operationId": "IntakeRequests_RemoveOutcome",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "targetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/projects/{projectId}": {
+      "get": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Get the intake requests a project came from or absorbed, that you can see.",
+        "description": "Ordered by request number. Each request is read under its desk's visibility, so a request on a private desk you are not part of is absent rather than listed as redacted.",
+        "operationId": "IntakeRequests_GetProjectIntakeRequests",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectIntakeRequestDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/demand-management/intake-requests/{id}/tags/{tagId}": {
       "put": {
         "tags": [
@@ -48149,6 +48327,37 @@
         },
         "additionalProperties": false
       },
+      "AddIntakeRequestOutcomeRequest": {
+        "required": [
+          "kind",
+          "projectId"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRequestOutcomeKind"
+              }
+            ],
+            "description": "What the request became: a new project started for it, or scope added to a project that already existed."
+          },
+          "projectId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The project. Recording the outcome does not change it.",
+            "format": "uuid"
+          },
+          "note": {
+            "maxLength": 1024,
+            "type": "string",
+            "description": "What the outcome covers. Required for existing project scope, where it says what the project absorbed.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A project an accepted intake request became."
+      },
       "AddIntakeRequestParticipantRequest": {
         "required": [
           "employeeId"
@@ -53308,6 +53517,31 @@
         "additionalProperties": false,
         "description": "A lifecycle action whose move a record's workflow allows from the status the record holds."
       },
+      "DemandProjectNavigationDto": {
+        "required": [
+          "key",
+          "name",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The project's id, the same as in PPM.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string",
+            "description": "The project's key, which its page is addressed by."
+          },
+          "name": {
+            "type": "string",
+            "description": "The project's name."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A PPM project, named enough to link to, as Demand Management's copy holds it."
+      },
       "DependencyDto": {
         "required": [
           "source",
@@ -58006,6 +58240,8 @@
           "canChangeStatus",
           "canChangeAssignee",
           "canChangeTags",
+          "outcomes",
+          "canChangeOutcomes",
           "canWithdraw"
         ],
         "type": "object",
@@ -58062,6 +58298,17 @@
           "canChangeTags": {
             "type": "boolean",
             "description": "Whether the reader may apply and remove the request's tags: an agent on its desk. Everyone who sees the\nrequest sees its tags."
+          },
+          "outcomes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntakeRequestOutcomeDto"
+            },
+            "description": "What the request became, oldest first. Summary tier, so everyone who sees the request sees them."
+          },
+          "canChangeOutcomes": {
+            "type": "boolean",
+            "description": "Whether the reader may add and remove outcomes: an agent on its desk, while the request is accepted."
           },
           "canWithdraw": {
             "type": "boolean",
@@ -58225,6 +58472,66 @@
         },
         "additionalProperties": false,
         "description": "The upstream record an intake request arrived from."
+      },
+      "IntakeRequestOutcomeDto": {
+        "required": [
+          "addedBy",
+          "kind",
+          "targetId",
+          "addedOn"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRequestOutcomeKind"
+              }
+            ],
+            "description": "What the request became."
+          },
+          "targetId": {
+            "type": "string",
+            "description": "The id of the project the outcome points at, which identifies the outcome on the request.",
+            "format": "uuid"
+          },
+          "project": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DemandProjectNavigationDto"
+              }
+            ],
+            "description": "The project, or null when it has since been deleted; the outcome stays as the record of what was decided.",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "description": "What the outcome covers, in the agent's words. Always present for existing project scope.",
+            "nullable": true
+          },
+          "addedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ],
+            "description": "The employee who recorded the outcome."
+          },
+          "addedOn": {
+            "type": "string",
+            "description": "When the outcome was recorded.",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One thing an intake request became. Summary tier."
+      },
+      "IntakeRequestOutcomeKind": {
+        "enum": [
+          "NewProject",
+          "ExistingProjectScope"
+        ],
+        "type": "string"
       },
       "IntakeRequestParticipantDto": {
         "required": [
@@ -63870,6 +64177,47 @@
           }
         },
         "additionalProperties": false
+      },
+      "ProjectIntakeRequestDto": {
+        "required": [
+          "request",
+          "status",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "request": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRequestNavigationDto"
+              }
+            ],
+            "description": "The request."
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusNavigationDto"
+              }
+            ],
+            "description": "Where the request stands in its desk's review workflow."
+          },
+          "kind": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRequestOutcomeKind"
+              }
+            ],
+            "description": "How the project relates to the request: started for it, or absorbing it into existing scope."
+          },
+          "note": {
+            "type": "string",
+            "description": "What the project took on from the request, in the agent's words.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "An intake request a project came from or absorbed, as listed on the project's page. Summary tier only."
       },
       "ProjectLifecycleDetailsDto": {
         "required": [

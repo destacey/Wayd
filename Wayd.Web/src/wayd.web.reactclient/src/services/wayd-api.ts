@@ -48518,6 +48518,205 @@ export class IntakeRequestsClient {
     }
 
     /**
+     * Record that an accepted intake request became a project.
+     * @return No Content
+     */
+    addOutcome(id: string, request: AddIntakeRequestOutcomeRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}/outcomes";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAddOutcome(_response);
+        });
+    }
+
+    protected processAddOutcome(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Take an outcome off an accepted intake request.
+     * @return No Content
+     */
+    removeOutcome(id: string, targetId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}/outcomes/{targetId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (targetId === undefined || targetId === null)
+            throw new globalThis.Error("The parameter 'targetId' must be defined.");
+        url_ = url_.replace("{targetId}", encodeURIComponent("" + targetId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRemoveOutcome(_response);
+        });
+    }
+
+    protected processRemoveOutcome(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get the intake requests a project came from or absorbed, that you can see.
+     * @return OK
+     */
+    getProjectIntakeRequests(projectId: string, cancelToken?: CancelToken): Promise<ProjectIntakeRequestDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/projects/{projectId}";
+        if (projectId === undefined || projectId === null)
+            throw new globalThis.Error("The parameter 'projectId' must be defined.");
+        url_ = url_.replace("{projectId}", encodeURIComponent("" + projectId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetProjectIntakeRequests(_response);
+        });
+    }
+
+    protected processGetProjectIntakeRequests(response: AxiosResponse): Promise<ProjectIntakeRequestDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ProjectIntakeRequestDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ProjectIntakeRequestDto[]>(null as any);
+    }
+
+    /**
      * File an intake request under a tag.
      * @return No Content
      */
@@ -55644,6 +55843,16 @@ export interface AddGoalRequest {
     name: string;
 }
 
+/** A project an accepted intake request became. */
+export interface AddIntakeRequestOutcomeRequest {
+    /** What the request became: a new project started for it, or scope added to a project that already existed. */
+    kind: IntakeRequestOutcomeKind;
+    /** The project. Recording the outcome does not change it. */
+    projectId: string;
+    /** What the outcome covers. Required for existing project scope, where it says what the project absorbed. */
+    note?: string | undefined;
+}
+
 /** Someone to give access to an intake request as a participant. */
 export interface AddIntakeRequestParticipantRequest {
     /** The employee to give access. They will read the request and may join its discussion, but cannot change it. */
@@ -57233,6 +57442,16 @@ export interface DeliveryScopeDto {
 export interface DeliveryWorkflowActionDto {
     /** The action. */
     action: DeliveryAction;
+}
+
+/** A PPM project, named enough to link to, as Demand Management's copy holds it. */
+export interface DemandProjectNavigationDto {
+    /** The project's id, the same as in PPM. */
+    id: string;
+    /** The project's key, which its page is addressed by. */
+    key: string;
+    /** The project's name. */
+    name: string;
 }
 
 export interface DependencyDto {
@@ -58847,6 +59066,10 @@ on it to review it, and everyone else is taken to the request it gives way to. *
     /** Whether the reader may apply and remove the request's tags: an agent on its desk. Everyone who sees the
 request sees its tags. */
     canChangeTags: boolean;
+    /** What the request became, oldest first. Summary tier, so everyone who sees the request sees them. */
+    outcomes: IntakeRequestOutcomeDto[];
+    /** Whether the reader may add and remove outcomes: an agent on its desk, while the request is accepted. */
+    canChangeOutcomes: boolean;
     /** Whether the reader may withdraw the request: its requester, while it is open. */
     canWithdraw: boolean;
     /** The request this one is a duplicate of, while its status means Duplicate and the reader can see that
@@ -58903,6 +59126,27 @@ export interface IntakeRequestOriginDto {
     externalId: string;
     /** A link to the request in that system, when it has one. */
     url?: string | undefined;
+}
+
+/** One thing an intake request became. Summary tier. */
+export interface IntakeRequestOutcomeDto {
+    /** What the request became. */
+    kind: IntakeRequestOutcomeKind;
+    /** The id of the project the outcome points at, which identifies the outcome on the request. */
+    targetId: string;
+    /** The project, or null when it has since been deleted; the outcome stays as the record of what was decided. */
+    project?: DemandProjectNavigationDto | undefined;
+    /** What the outcome covers, in the agent's words. Always present for existing project scope. */
+    note?: string | undefined;
+    /** The employee who recorded the outcome. */
+    addedBy: EmployeeNavigationDto;
+    /** When the outcome was recorded. */
+    addedOn: Date;
+}
+
+export enum IntakeRequestOutcomeKind {
+    NewProject = "NewProject",
+    ExistingProjectScope = "ExistingProjectScope",
 }
 
 /** A participant on an intake request: who, and who added them when. */
@@ -60748,6 +60992,18 @@ export interface ProjectHealthCheckEvidenceStageDto {
 export interface ProjectHealthCheckSummaryDto {
     id: string;
     status: SimpleNavigationDto;
+}
+
+/** An intake request a project came from or absorbed, as listed on the project's page. Summary tier only. */
+export interface ProjectIntakeRequestDto {
+    /** The request. */
+    request: IntakeRequestNavigationDto;
+    /** Where the request stands in its desk's review workflow. */
+    status: StatusNavigationDto;
+    /** How the project relates to the request: started for it, or absorbing it into existing scope. */
+    kind: IntakeRequestOutcomeKind;
+    /** What the project took on from the request, in the agent's words. */
+    note?: string | undefined;
 }
 
 export interface ProjectLifecycleDetailsDto {

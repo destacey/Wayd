@@ -186,6 +186,25 @@ public sealed class IntakeScenario
         return category;
     }
 
+    /// <summary>Demand Management's copy of a PPM project.</summary>
+    public DemandProject Project(string key = "ATLAS", string name = "Atlas")
+    {
+        var project = new DemandProject(SourceProject.Any(key, name), Clock.Now);
+        DbContext.AddProjects(project);
+        return project;
+    }
+
+    /// <summary>Records an outcome on an accepted request as already saved, raising nothing.</summary>
+    public void Outcome(IntakeRequest request, Guid projectId, Employee addedBy,
+        IntakeRequestOutcomeKind kind = IntakeRequestOutcomeKind.NewProject, string? note = null)
+    {
+        var added = request.AddOutcome(kind, projectId, note, addedBy.Id, EventActor.System, Clock.Now);
+        if (added.IsFailure)
+            throw new InvalidOperationException(added.Error);
+        request.ClearDomainEvents();
+        request.ClearPostPersistenceActions();
+    }
+
     /// <summary>Files the request under the tag as already saved, raising nothing.</summary>
     public void Tagged(IntakeRequest request, IntakeRequestTagCategory category, string tagName)
     {
@@ -220,6 +239,11 @@ public sealed class IntakeScenario
     /// <summary>A request in the named status of <see cref="Workflow"/>, moved there from Submitted.</summary>
     public IntakeRequest RequestInStatus(IntakeDesk desk, Employee requester, string statusName) =>
         AddRequest(InStatus(RequestFaker(desk, requester), statusName));
+
+    /// <summary>A request in Accepted, recorded as having become each project.</summary>
+    public IntakeRequest AcceptedRequestWithOutcomes(IntakeDesk desk, Employee requester, params Guid[] projectIds) =>
+        AddRequest(InStatus(RequestFaker(desk, requester), "Accepted")
+            .WithOutcomes(IntakeRequestOutcomeKind.NewProject, projectIds));
 
     /// <summary>A request marked a duplicate of <paramref name="survivor"/>.</summary>
     public IntakeRequest DuplicateOf(IntakeRequest survivor, IntakeDesk desk, Employee requester) =>

@@ -1,3 +1,4 @@
+using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Wayd.Common.Application.Interfaces;
@@ -8,6 +9,8 @@ using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Events.StatusWorkflows;
+using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Models;
@@ -691,6 +694,90 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         archivable.Archive(isAssigned: await reader.WorkflowAssignments.AnyAsync(a => a.WorkflowId == copy.Id, ct), EventActor.System, Now)
             .IsSuccess.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task IntakeRequestOutcomes_AreLoadedWithTheRequest_SoADuplicateIsRefusedAndARemoveFindsIt()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (requestId, agent, projectId) = await SeedAcceptedWithAProject(ct);
+        await AddOutcome(requestId, agent, projectId, ct);
+
+        // Act
+        Result duplicate;
+        await using (var context = _fixture.CreateContext())
+        {
+            duplicate = await new AddIntakeRequestOutcomeCommandHandler(context, Principal(agent.Id), User(), _clock)
+                .Handle(new AddIntakeRequestOutcomeCommand(requestId, IntakeRequestOutcomeKind.NewProject, projectId, null), ct);
+        }
+
+        Result removed;
+        await using (var context = _fixture.CreateContext())
+        {
+            removed = await new RemoveIntakeRequestOutcomeCommandHandler(context, Principal(agent.Id), User(), _clock)
+                .Handle(new RemoveIntakeRequestOutcomeCommand(requestId, projectId), ct);
+        }
+
+        // Assert
+        duplicate.IsFailure.Should().BeTrue();
+        duplicate.Error.Should().Be(IntakeRequest.DuplicateOutcomeError);
+        removed.IsSuccess.Should().BeTrue();
+        await using var reader = _fixture.CreateContext();
+        (await reader.IntakeRequests.Where(r => r.Id == requestId).SelectMany(r => r.Outcomes).AnyAsync(ct))
+            .Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ChangeIntakeRequestStatus_ToFulfilled_WithAnOutcome_NeedsNoReason()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (requestId, agent, projectId) = await SeedAcceptedWithAProject(ct);
+        await AddOutcome(requestId, agent, projectId, ct);
+
+        // Act
+        await using var context = _fixture.CreateContext();
+        var resolver = new StatusResolver(context);
+        var deskId = await context.IntakeRequests.Where(r => r.Id == requestId).Select(r => r.DeskId).SingleAsync(ct);
+        var result = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver)
+            .Handle(new ChangeIntakeRequestStatusCommand(requestId, await StatusId(resolver, deskId, "Fulfilled", ct), null, null), ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        await using var reader = _fixture.CreateContext();
+        var saved = await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == requestId, ct);
+        saved.StatusCategory.Should().Be(StatusCategory.Done);
+        saved.StatusReason.Should().BeNull();
+    }
+
+    /// <summary>A request accepted by its desk's admin, and a project Demand Management holds a copy of.</summary>
+    private async Task<(Guid RequestId, Employee Agent, Guid ProjectId)> SeedAcceptedWithAProject(CancellationToken ct)
+    {
+        var (desk, requestId, _, agent) = await SeedOnTheDefaultWorkflow(ct, IntakeDeskRole.Admin);
+        var projectId = Guid.NewGuid();
+
+        await using var context = _fixture.CreateContext();
+        context.DemandProjects.Add(new DemandProject(
+            new SourceProject(projectId, new ProjectKey("P" + Guid.NewGuid().ToString("N")[..10]), "Atlas"), Now));
+        await context.SaveChangesAsync(ct);
+
+        var resolver = new StatusResolver(context);
+        var accepted = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver)
+            .Handle(new ChangeIntakeRequestStatusCommand(requestId, await StatusId(resolver, desk.Id, "Accepted", ct), null, null), ct);
+        accepted.IsSuccess.Should().BeTrue();
+
+        return (requestId, agent, projectId);
+    }
+
+    private async Task AddOutcome(Guid requestId, Employee agent, Guid projectId, CancellationToken ct)
+    {
+        await using var context = _fixture.CreateContext();
+        var added = await new AddIntakeRequestOutcomeCommandHandler(context, Principal(agent.Id), User(), _clock)
+            .Handle(new AddIntakeRequestOutcomeCommand(requestId, IntakeRequestOutcomeKind.NewProject, projectId, null), ct);
+        added.IsSuccess.Should().BeTrue();
+    }
+
+    private sealed record SourceProject(Guid Id, ProjectKey Key, string Name, string Description = "desc") : ISimpleProject;
 
     private static ICurrentPrincipal Principal(Guid employeeId, params string[] permissions)
     {

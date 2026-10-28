@@ -34,7 +34,7 @@ public sealed class GetIntakeRequestStatusOptionsQueryHandler(
         var target = await _dbContext.IntakeRequests
             .Where(r => r.Id == request.Id)
             .Where(reader.CanSeeSummary(_dbContext.IntakeDesks))
-            .Select(r => new { r.DeskId, r.StatusId, r.StatusWorkflowId })
+            .Select(r => new { r.DeskId, r.StatusId, r.StatusWorkflowId, HasOutcomes = r.Outcomes.Any() })
             .FirstOrDefaultAsync(cancellationToken);
         if (target is null)
             return null;
@@ -58,7 +58,7 @@ public sealed class GetIntakeRequestStatusOptionsQueryHandler(
                     Name = s.Name,
                     Category = s.Category,
                     Alias = s.Alias,
-                    NeedsReason = IntakeRequest.NeedsReason(s.Category, (IntakeRequestStatusAlias)s.Alias),
+                    NeedsReason = IntakeRequest.NeedsReason(s.Category, (IntakeRequestStatusAlias)s.Alias, target.HasOutcomes),
                     NeedsSurvivingRequest = s.Alias == (int)IntakeRequestStatusAlias.Duplicate,
                 }),
         ];

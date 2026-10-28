@@ -6,7 +6,9 @@ import {
   getIntakeRequestTagCategoriesClient,
 } from '@/src/services/clients'
 import {
+  AddIntakeRequestOutcomeRequest,
   AddIntakeRequestTagRequest,
+  ProjectIntakeRequestDto,
   ChangeIntakeRequestStatusRequest,
   CreateIntakeRequestTagCategoryRequest,
   IntakeRequestTagCategoryDto,
@@ -61,6 +63,21 @@ export interface IntakeRequestParticipantArgs {
   requestId: string
   employeeId: string
 }
+
+export interface AddIntakeRequestOutcomeArgs {
+  requestId: string
+  request: AddIntakeRequestOutcomeRequest
+}
+
+export interface RemoveIntakeRequestOutcomeArgs {
+  requestId: string
+  /** The project the outcome points at. */
+  targetId: string
+}
+
+/** A project's list of the requests it came from or absorbed. */
+const projectRequestsTag = (projectId: string) =>
+  ({ type: QueryTags.IntakeRequest, id: `PROJECT-${projectId}` }) as const
 
 /**
  * A request's details are fetched by the key in the URL, and its mutations know only its id, so every
@@ -502,6 +519,70 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (_result, _error, { requestId }) =>
         requestTags(requestId),
+    }),
+
+    // Outcomes change whether finishing the request needs a reason; the request's tag refetches its status
+    // options too.
+    addIntakeRequestOutcome: builder.mutation<
+      void,
+      AddIntakeRequestOutcomeArgs
+    >({
+      queryFn: async ({ requestId, request }) => {
+        try {
+          const data = await getIntakeRequestsClient().addOutcome(
+            requestId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: (_result, _error, { requestId, request }) => [
+        ...requestTags(requestId),
+        projectRequestsTag(request.projectId),
+      ],
+    }),
+
+    removeIntakeRequestOutcome: builder.mutation<
+      void,
+      RemoveIntakeRequestOutcomeArgs
+    >({
+      queryFn: async ({ requestId, targetId }) => {
+        try {
+          const data = await getIntakeRequestsClient().removeOutcome(
+            requestId,
+            targetId,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: (_result, _error, { requestId, targetId }) => [
+        ...requestTags(requestId),
+        projectRequestsTag(targetId),
+      ],
+    }),
+
+    getProjectIntakeRequests: builder.query<ProjectIntakeRequestDto[], string>({
+      queryFn: async (projectId) => {
+        try {
+          const data =
+            await getIntakeRequestsClient().getProjectIntakeRequests(projectId)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      // Tagged with each request too, so a status change or rename on one refreshes the project's list.
+      providesTags: (result = [], _error, projectId) => [
+        projectRequestsTag(projectId),
+        ...result.map(({ request }) => ({
+          type: QueryTags.IntakeRequest,
+          id: request.id,
+        })),
+      ],
     }),
 
     getNeedByBases: builder.query<NeedByBasisDto[], void>({
@@ -1073,6 +1154,9 @@ export const {
   useUpdateIntakeRequestMutation,
   useAddIntakeRequestParticipantMutation,
   useRemoveIntakeRequestParticipantMutation,
+  useAddIntakeRequestOutcomeMutation,
+  useRemoveIntakeRequestOutcomeMutation,
+  useGetProjectIntakeRequestsQuery,
   useGetNeedByBasesQuery,
   useGetNeedByBasisFamiliesQuery,
   useGetIntakeDesksQuery,

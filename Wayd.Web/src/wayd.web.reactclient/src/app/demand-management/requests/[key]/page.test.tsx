@@ -144,6 +144,11 @@ jest.mock(
       { isLoading: false },
     ],
     useAddIntakeRequestParticipantMutation: () => [jest.fn()],
+    useAddIntakeRequestOutcomeMutation: () => [jest.fn()],
+    useRemoveIntakeRequestOutcomeMutation: () => [
+      jest.fn(),
+      { isLoading: false },
+    ],
     useUpdateIntakeRequestMutation: () => [jest.fn()],
     useGetIntakeEmployeeOptionsQuery: () => ({ data: [] }),
     useGetIntakeChannelsQuery: () => ({ data: [] }),
@@ -184,6 +189,8 @@ const details = (overrides: Record<string, unknown> = {}) => ({
   canChangeTags: false,
   canWithdraw: false,
   isDeskAgent: false,
+  outcomes: [],
+  canChangeOutcomes: false,
   ...overrides,
 })
 
@@ -292,6 +299,43 @@ describe('IntakeRequestDetailsPage', () => {
     expect(
       await screen.findByRole('button', { name: 'Manage Tags' }),
     ).toBeInTheDocument()
+  })
+
+  describe('outcomes section', () => {
+    beforeEach(() => {
+      mockSearchParams = new URLSearchParams('section=outcomes')
+    })
+
+    it('offers Add Outcome when the server allows it', async () => {
+      // Arrange
+      mockRequest = details({ canChangeOutcomes: true })
+
+      // Act
+      await renderPage()
+
+      // Assert
+      expect(
+        await screen.findByRole('button', { name: 'Add Outcome' }),
+      ).toBeInTheDocument()
+    })
+
+    it('offers no Add Outcome when the server does not allow it', async () => {
+      // Arrange
+      mockRequest = details({ canChangeOutcomes: false })
+
+      // Act
+      await renderPage()
+
+      // Assert
+      expect(
+        await screen.findByText(
+          'No outcome has been recorded for this request.',
+        ),
+      ).toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'Add Outcome' }),
+      ).not.toBeInTheDocument()
+    })
   })
 
   it('offers Change Assignee only when the server allows it', async () => {

@@ -29,12 +29,14 @@ import { StatusHistoryTag } from '@/src/components/common/status-workflows'
 import { TagList } from '@/src/components/common/tags'
 import { deskHref } from '../../_components/desk-status'
 import { requestHref } from '../../_components/intake-requests-grid'
+import AddIntakeRequestOutcomeForm from './_components/add-intake-request-outcome-form'
 import AddIntakeRequestParticipantForm from './_components/add-intake-request-participant-form'
 import ChangeIntakeRequestAssigneeForm from './_components/change-intake-request-assignee-form'
 import ChangeIntakeRequestStatusForm from './_components/change-intake-request-status-form'
 import EditIntakeRequestForm from './_components/edit-intake-request-form'
 import IntakeRequestDetails from './_components/intake-request-details'
 import IntakeRequestFacts from './_components/intake-request-facts'
+import IntakeRequestOutcomes from './_components/intake-request-outcomes'
 import IntakeRequestParticipants from './_components/intake-request-participants'
 import IntakeRequestScore from './_components/intake-request-score'
 import ScoreIntakeRequestForm from './_components/score-intake-request-form'
@@ -47,6 +49,7 @@ import IntakeRequestDetailsLoading from './loading'
 
 enum RequestSection {
   Details = 'details',
+  Outcomes = 'outcomes',
   Participants = 'participants',
   Score = 'score',
   StatusHistory = 'status-history',
@@ -56,6 +59,7 @@ enum RequestSection {
 type RequestDialog =
   | 'edit'
   | 'add-participant'
+  | 'add-outcome'
   | 'reroute'
   | 'change-status'
   | 'change-assignee'
@@ -143,6 +147,12 @@ const IntakeRequestDetailsPage = (props: {
 
   const sections: RecordSection[] = [
     { id: RequestSection.Details, label: 'Details' },
+    // Summary tier: everyone who sees the request sees what it became.
+    {
+      id: RequestSection.Outcomes,
+      label: 'Outcomes',
+      count: request.outcomes.length,
+    },
     // The request's people are substance; a reader without it is not told who they are.
     ...(substance
       ? [
@@ -214,6 +224,11 @@ const IntakeRequestDetailsPage = (props: {
       <Button size="small" onClick={() => setDialog('add-participant')}>
         Add Participant
       </Button>
+    ) : activeSection === RequestSection.Outcomes &&
+      request.canChangeOutcomes ? (
+      <Button size="small" onClick={() => setDialog('add-outcome')}>
+        Add Outcome
+      </Button>
     ) : activeSection === RequestSection.Score && scoring?.canScore ? (
       <Button size="small" onClick={() => setDialog('score')}>
         {scoring.scores.length > 0 ? 'Re-score' : 'Score'}
@@ -257,6 +272,8 @@ const IntakeRequestDetailsPage = (props: {
             }
           />
         )
+      case RequestSection.Outcomes:
+        return <IntakeRequestOutcomes request={request} />
       case RequestSection.StatusHistory:
         return <IntakeRequestStatusHistory requestId={summary.id} />
       case RequestSection.Participants:
@@ -382,6 +399,13 @@ const IntakeRequestDetailsPage = (props: {
       )}
       {dialog === 'withdraw' && request.canWithdraw && (
         <WithdrawIntakeRequestForm
+          request={request}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'add-outcome' && request.canChangeOutcomes && (
+        <AddIntakeRequestOutcomeForm
           request={request}
           onFormComplete={() => setDialog(null)}
           onFormCancel={() => setDialog(null)}

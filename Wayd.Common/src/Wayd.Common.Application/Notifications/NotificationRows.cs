@@ -96,7 +96,8 @@ internal static class NotificationRows
     /// <remarks>
     /// Each owner type contributes its notifications joined to the records its read rule admits, so a
     /// notification about a record that was deleted, or that the caller can no longer see, never appears —
-    /// not in a page, not in a count. Being notified is not evidence of access.
+    /// not in a page, not in a count. Being notified is not evidence of access. The rule also withholds
+    /// notifications of changes to parts of a record the caller cannot read.
     /// </remarks>
     public static async Task<IQueryable<NotificationRow>?> Build(
         IQueryable<Notification> notifications,
@@ -115,9 +116,11 @@ internal static class NotificationRows
             }
 
             var ownerType = descriptor.Key;
+            var visible = await readRule.VisibleNotifications(
+                notifications.Where(n => n.RecipientEmployeeId == recipientEmployeeId && n.OwnerType == ownerType),
+                cancellationToken);
             var rows =
-                from n in notifications
-                where n.RecipientEmployeeId == recipientEmployeeId && n.OwnerType == ownerType
+                from n in visible
                 join r in readable on n.OwnerId equals r.Id
                 select new NotificationRow
                 {

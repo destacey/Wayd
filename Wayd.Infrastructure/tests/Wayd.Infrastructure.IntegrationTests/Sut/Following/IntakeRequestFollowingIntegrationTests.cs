@@ -5,6 +5,7 @@ using Wayd.Common.Application.Following.Dtos;
 using Wayd.Common.Application.Following.Queries;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Application.Notifications.Dtos;
 using Wayd.Common.Application.Notifications.Queries;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
@@ -210,6 +211,76 @@ public sealed class IntakeRequestFollowingIntegrationTests(SqlServerDbContextFix
         // The desk's agent holds the substance, so nothing is withheld from them.
         asAgent.Record.LastChangedOn.Should().Be(editedOn);
         asAgent.ChangesSinceFollowed.Should().Contain(c => c.EventType == nameof(IntakeRequestDetailsUpdatedEvent));
+    }
+
+    [Fact]
+    public async Task AFollowerWithOnlyTheSummary_IsNotToldTheSubstanceChanged_OrWhoMadeAChange()
+    {
+        // Arrange — on a summary-only desk the follower was notified of an assignment (summary) and then of a
+        // rewritten description (substance), both made by the requester; the agent was notified of both
+        var ct = TestContext.Current.CancellationToken;
+        var assignedOn = Now.Plus(Duration.FromHours(1));
+        var editedOn = Now.Plus(Duration.FromHours(2));
+        Employee follower, agent;
+        Guid requestId;
+        await using (var seed = _fixture.CreateContext())
+        {
+            follower = SeedEmployee(seed);
+            agent = SeedEmployee(seed);
+            var requester = SeedEmployee(seed);
+            var desk = IntakeDesk.Create($"Desk-{Guid.NewGuid():N}"[..30], "Anything", IntakeDeskVisibility.SummaryOnly, true, true, true,
+                [new IntakeDeskMemberDetails(agent.Id, IntakeDeskRole.Agent)], EventActor.System, Now);
+            var channel = IntakeChannel.Create($"Channel-{Guid.NewGuid():N}"[..30], null, 1, EventActor.System, Now);
+            seed.IntakeDesks.Add(desk);
+            seed.IntakeChannels.Add(channel);
+            await seed.SaveChangesAsync(ct);
+
+            var request = IntakeRequest.Create("Export invoices", "Finance needs a CSV export", null, requester.Id, requester.Id, desk,
+                channel, null, null, IntakeStatuses.Submitted(), EventActor.User("requester", requester.Id), Now).Value;
+            seed.IntakeRequests.Add(request);
+            await seed.SaveChangesAsync(ct);
+            requestId = request.Id;
+
+            var store = new NotificationStore(seed);
+            foreach (var (notificationEvent, occurredOn) in new[] { (NotificationEvent.AssigneeChanged, assignedOn), (NotificationEvent.DetailsChanged, editedOn) })
+            {
+                var eventId = Guid.CreateVersion7();
+                await store.Add([.. new[] { follower.Id, agent.Id }.Select(recipient => Notification.Create(recipient, OwnerType, requestId,
+                    eventId, notificationEvent, EventActorKind.User, requester.Id, occurredOn, NotificationReason.Following).Value)], ct);
+            }
+        }
+
+        // Act
+        var asFollower = await Notifications(follower.Id, ct, IntakeRequestAuthorization.ViewPermission);
+        var asAgent = await Notifications(agent.Id, ct);
+
+        // Assert — the follower's entry leads with the assignment and counts it alone
+        var entry = asFollower.Notifications.Items.Should().ContainSingle().Subject;
+        entry.Event.Should().Be(NotificationEvent.AssigneeChanged);
+        entry.OccurredOn.Should().Be(assignedOn);
+        entry.Count.Should().Be(1);
+        entry.Actor.Should().BeNull("who made a change is substance, which the follower cannot see");
+        asFollower.Unread.Count.Should().Be(1);
+
+        // The desk's agent holds the substance, so nothing is withheld from them.
+        var agentEntry = asAgent.Notifications.Items.Should().ContainSingle().Subject;
+        agentEntry.Event.Should().Be(NotificationEvent.DetailsChanged);
+        agentEntry.Count.Should().Be(2);
+        agentEntry.Actor.Should().NotBeNull();
+    }
+
+    /// <summary>The reader's notification list and unread count.</summary>
+    private async Task<(CursorPage<NotificationDto> Notifications, UnreadNotificationCountDto Unread)> Notifications(
+        Guid employeeId, CancellationToken ct, params string[] permissions)
+    {
+        await using var context = _fixture.CreateContext();
+        var principal = Principal(employeeId, permissions);
+        var readRules = ReadRules(context, principal);
+        var notifications = await new GetMyNotificationsQueryHandler(context, context, readRules, principal)
+            .Handle(new GetMyNotificationsQuery(new CursorRequest()), ct);
+        var unread = await new GetMyUnreadNotificationCountQueryHandler(context, readRules, principal)
+            .Handle(new GetMyUnreadNotificationCountQuery(), ct);
+        return (notifications, unread);
     }
 
     /// <summary>The followed request in full, as the given reader opens it from their Following list.</summary>

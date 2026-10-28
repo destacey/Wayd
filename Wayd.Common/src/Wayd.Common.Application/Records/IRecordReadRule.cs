@@ -1,6 +1,7 @@
 using Wayd.Common.Application.Activities;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Notifications;
 
 namespace Wayd.Common.Application.Records;
 
@@ -76,6 +77,28 @@ public interface IRecordReadRule
     /// </remarks>
     /// <param name="activity">Every entry on, or naming, a record of this owner type.</param>
     Task<IQueryable<ActivityStamp>> VisibleActivity(IQueryable<ActivityStamp> activity, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Narrows the caller's notifications about this owner type's records to those about changes they may see,
+    /// as <see cref="VisibleActivity"/> narrows the record's history. An owner type whose every reader sees
+    /// every change returns <paramref name="notifications"/> unchanged.
+    /// </summary>
+    /// <remarks>
+    /// A notification names what changed, so one about a part of the record the caller cannot read would tell
+    /// them that part changed. Applied every time the list is read, like <see cref="Readable"/>, because what a
+    /// caller may see can change after the notification was written. It only ever narrows and must stay a
+    /// query the database can run.
+    /// </remarks>
+    /// <param name="notifications">The caller's notifications about records of this owner type.</param>
+    Task<IQueryable<Notification>> VisibleNotifications(IQueryable<Notification> notifications, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Of the given records, those on which the caller may not be told who made a change, as the record's own
+    /// Activity section withholds it from them. An owner type that names every change's maker to every reader
+    /// returns an empty set.
+    /// </summary>
+    /// <remarks>Called only with ids that <see cref="Readable"/> already admitted, and with no more than a page of them.</remarks>
+    Task<IReadOnlySet<Guid>> ActorHiddenOn(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
 
     /// <summary>
     /// One page of a record's history, newest first, exactly as its own Activity endpoint returns it to the

@@ -116,3 +116,7 @@ A model's detail page carries an **Activity** section holding its recorded histo
 Only **Active** scoring models can be assigned to portfolios, from **Actions → Set Scoring Model** on the portfolio page. Once a model is assigned, users with project update rights and project/portfolio/program management access can record scores on projects in that portfolio. See [Portfolio Project Scoring](../ppm/portfolios-programs.mdx#portfolio-project-scoring) and [Project Priority Scores](../ppm/projects.mdx#project-priority-scores).
 
 Recorded project scores are snapshots: Wayd stores the model name, criterion ratings, calculated outputs, scorer, and timestamp with each score. This means old scores remain interpretable if the model is later archived or the portfolio is assigned a different model.
+
+## Using models in Demand Management
+
+A [desk](../demand-management/index.mdx#choosing-a-desks-scoring-model) can be given an **Active** model from its Settings, by a Desk Admin or the Demand Management Admin. The desk's agents then [score its requests](../demand-management/index.mdx#scoring-a-request) with it, and the requests list can rank by the score. Choosing a model for a desk needs no scoring model permission, and neither does scoring with it. Request scores are snapshots in the same way: each keeps the model it was scored with, so archiving the model or giving the desk another leaves earlier scores readable.

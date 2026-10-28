@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.DemandManagement.Domain.Models;
 
@@ -60,6 +61,16 @@ public interface IDemandManagementDbContext
     /// module's records. History is appended by the aggregate, so nothing here writes it.
     /// </remarks>
     IQueryable<StatusTransition> IntakeRequestStatusTransitions { get; }
+
+    /// <summary>
+    /// The company's scoring models, read-only: a desk scores its requests with one, and a score copies what
+    /// it needs out of it.
+    /// </summary>
+    /// <remarks>
+    /// Administered in Settings, never here. A no-tracking query, like <see cref="Employees"/>, so a model is
+    /// never attached to a desk as a navigation: a desk holds the model's id alone.
+    /// </remarks>
+    IQueryable<ScoringModel> ScoringModels { get; }
 
     /// <summary>
     /// Saves the tracked changes, together with the events, audit trail and activity log they produce.

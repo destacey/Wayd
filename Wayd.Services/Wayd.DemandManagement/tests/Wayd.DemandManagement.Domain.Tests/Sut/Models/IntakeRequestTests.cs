@@ -6,8 +6,10 @@ using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Events.StatusWorkflows;
+using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Common.Domain.Tests.Data;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.DemandManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
@@ -1915,4 +1917,274 @@ public sealed class IntakeRequestTests
     }
 
     #endregion Tags
+
+    #region Scoring
+
+    private readonly ScoringModelFaker _scoringModelFaker = new();
+
+    private ScoringModel FreeNumericModel() =>
+        _scoringModelFaker.AsActiveWith(
+            scales: [],
+            criteria: [("Business Value", "BV", null, null), ("Job Size", "JS", null, null)],
+            outputs: [("Cost of Delay", "CoD", "BV * 2", false), ("Score", "Score", "CoD / JS", true)]);
+
+    private static IReadOnlyDictionary<Guid, decimal> Ratings(ScoringModel model, decimal bv, decimal js) =>
+        model.Criteria.ToDictionary(c => c.Id, c => c.Token == "BV" ? bv : js);
+
+    private static (IntakeRequest Request, IntakeDesk Desk) AScoredDeskRequest(ScoringModel model,
+        StatusCategory category = StatusCategory.Proposed)
+    {
+        var desk = new IntakeDeskFaker().WithScoringModel(model).Generate();
+        var request = new IntakeRequestFaker().WithDeskId(desk.Id).InStatus(category).Generate();
+        return (request, desk);
+    }
+
+    [Fact]
+    public void RecordScore_ByADeskAgent_AddsASnapshotAndMakesItCurrent()
+    {
+        // Arrange
+        var model = FreeNumericModel();
+        var (sut, desk) = AScoredDeskRequest(model);
+        var scorer = ADeskAgent();
+        var now = _dateTimeProvider.Now;
+
+        // Act
+        var result = sut.RecordScore(desk, model, Ratings(model, 6m, 4m), null, scorer, now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var score = result.Value;
+        score.RequestId.Should().Be(sut.Id);
+        score.PrimaryValue.Should().Be(3m);
+        score.Sequence.Should().Be(1);
+        score.ScoringModelId.Should().Be(model.Id);
+        score.ScoringModelKey.Should().Be(model.Key);
+        score.ScoringModelName.Should().Be(model.Name);
+        score.ScoredById.Should().Be(scorer.EmployeeId!.Value);
+        score.ScoredOn.Should().Be(now);
+        score.Ratings.Select(r => (r.CriterionToken, r.RatingValue)).Should().Equal(("BV", 6m), ("JS", 4m));
+        score.Outputs.Select(o => (o.Token, o.Value, o.IsPrimary)).Should().Equal(("CoD", 12m, false), ("Score", 3m, true));
+        sut.Scores.Should().ContainSingle().Which.Should().Be(score);
+        sut.CurrentScore.Should().NotBeNull();
+        sut.CurrentScore!.Value.Should().Be(3m);
+        sut.CurrentScore.ScoredOn.Should().Be(now);
+        sut.CurrentScore.ScoredById.Should().Be(scorer.EmployeeId!.Value);
+        sut.CurrentScore.ScoringModelId.Should().Be(model.Id);
+        sut.CurrentScore.ScoringModelName.Should().Be(model.Name);
+    }
+
+    [Fact]
+    public void RecordScore_RaisesASubstanceEventSharingTheScoresId()
+    {
+        // Arrange
+        var model = FreeNumericModel();
+        var (sut, desk) = AScoredDeskRequest(model);
+        var scorer = ADeskAgent();
+
+        // Act
+        var result = sut.RecordScore(desk, model, Ratings(model, 6m, 4m), null, scorer, _dateTimeProvider.Now);
+
+        // Assert
+        var raised = sut.DomainEvents.OfType<IntakeRequestScoreRecordedEvent>().Should().ContainSingle().Subject;
+        raised.EventId.Should().Be(result.Value.Id);
+        raised.Id.Should().Be(sut.Id);
+        raised.Key.Should().Be(sut.Key);
+        raised.ScoringModelId.Should().Be(model.Id);
+        raised.ScoringModelName.Should().Be(model.Name);
+        raised.PrimaryValue.Should().Be(3m);
+        raised.Sequence.Should().Be(1);
+        raised.ScoredById.Should().Be(scorer.EmployeeId!.Value);
+        IntakeRequestScoreRecordedEvent.ReadTier.Should().Be(IntakeRequestReadTier.Substance);
+    }
+
+    [Fact]
+    public void RecordScore_AgainAddsASnapshotAndKeepsTheEarlierOne()
+    {
+        // Arrange
+        var model = FreeNumericModel();
+        var (sut, desk) = AScoredDeskRequest(model);
+        var first = sut.RecordScore(desk, model, Ratings(model, 2m, 4m), null, ADeskAgent(), _dateTimeProvider.Now).Value;
+
+        // Act
+        var result = sut.RecordScore(desk, model, Ratings(model, 8m, 4m), null, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Sequence.Should().Be(2);
+        sut.Scores.Should().HaveCount(2).And.Contain(first);
+        first.PrimaryValue.Should().Be(1m);
+        sut.CurrentScore!.Value.Should().Be(4m);
+    }
+
+    [Fact]
+    public void RecordScore_OnAScale_FreezesTheChosenLevel()
+    {
+        // Arrange
+        var model = _scoringModelFaker.AsActiveWsjf();
+        var (sut, desk) = AScoredDeskRequest(model);
+        var high = model.Scales.Single().Levels.Single(l => l.Label == "High");
+        var low = model.Scales.Single().Levels.Single(l => l.Label == "Low");
+        var values = model.Criteria.ToDictionary(c => c.Id, c => c.Token == "JS" ? low.Value : high.Value);
+        var levels = model.Criteria.ToDictionary(c => c.Id, c => c.Token == "JS" ? (low.Id, low.Label) : (high.Id, high.Label));
+
+        // Act
+        var result = sut.RecordScore(desk, model, values, levels, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.PrimaryValue.Should().Be(24m);
+        var jobSize = result.Value.Ratings.Single(r => r.CriterionToken == "JS");
+        jobSize.RatingLevelId.Should().Be(low.Id);
+        jobSize.RatingLevelLabel.Should().Be("Low");
+    }
+
+    [Theory]
+    [InlineData(StatusCategory.Proposed)]
+    [InlineData(StatusCategory.Active)]
+    public void RecordScore_WhileOpen_Succeeds(StatusCategory category)
+    {
+        // Arrange
+        var model = FreeNumericModel();
+        var (sut, desk) = AScoredDeskRequest(model, category);
+
+        // Act
+        var result = sut.RecordScore(desk, model, Ratings(model, 6m, 4m), null, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(StatusCategory.Done)]
+    [InlineData(StatusCategory.Removed)]
+    public void RecordScore_WhenClosed_FailsAndChangesNothing(StatusCategory category)
+    {
+        // Arrange
+        var model = FreeNumericModel();
+        var (sut, desk) = AScoredDeskRequest(model, category);
+
+        // Act
+        var result = sut.RecordScore(desk, model, Ratings(model, 6m, 4m), null, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.ClosedScoreError);
+        sut.Scores.Should().BeEmpty();
+        sut.CurrentScore.Should().BeNull();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RecordScore_BySomeoneOffTheDesk_Fails()
+    {
+        // Arrange
+        var model = FreeNumericModel();
+        var (sut, desk) = AScoredDeskRequest(model);
+
+        // Act
+        var result = sut.RecordScore(desk, model, Ratings(model, 6m, 4m), null, SomeoneOffTheDesk(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.NotAScorerError);
+        sut.Scores.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RecordScore_ByTheRequester_Fails()
+    {
+        // Arrange
+        var model = FreeNumericModel();
+        var (sut, desk) = AScoredDeskRequest(model);
+        var requester = new IntakeRequestEditor(sut.RequesterId, IsDeskAgent: false, EventActor.System);
+
+        // Act
+        var result = sut.RecordScore(desk, model, Ratings(model, 6m, 4m), null, requester, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.NotAScorerError);
+    }
+
+    [Fact]
+    public void RecordScore_OnADeskWithNoModel_Fails()
+    {
+        // Arrange
+        var model = FreeNumericModel();
+        var desk = new IntakeDeskFaker().Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(desk.Id).Generate();
+
+        // Act
+        var result = sut.RecordScore(desk, model, Ratings(model, 6m, 4m), null, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.DeskDoesNotScoreError);
+    }
+
+    [Fact]
+    public void RecordScore_WithAModelTheDeskDoesNotUse_Throws()
+    {
+        // Arrange
+        var (sut, desk) = AScoredDeskRequest(FreeNumericModel());
+        var other = FreeNumericModel();
+
+        // Act
+        Action act = () => sut.RecordScore(desk, other, Ratings(other, 6m, 4m), null, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void RecordScore_WithAnotherDesk_Throws()
+    {
+        // Arrange
+        var model = FreeNumericModel();
+        var (sut, _) = AScoredDeskRequest(model);
+        var otherDesk = new IntakeDeskFaker().WithScoringModel(model).Generate();
+
+        // Act
+        Action act = () => sut.RecordScore(otherDesk, model, Ratings(model, 6m, 4m), null, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void RecordScore_WithAnUnratedCriterion_FailsAndChangesNothing()
+    {
+        // Arrange
+        var model = FreeNumericModel();
+        var (sut, desk) = AScoredDeskRequest(model);
+        var ratings = model.Criteria.Where(c => c.Token == "BV").ToDictionary(c => c.Id, _ => 6m);
+
+        // Act
+        var result = sut.RecordScore(desk, model, ratings, null, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("Job Size");
+        sut.Scores.Should().BeEmpty();
+        sut.CurrentScore.Should().BeNull();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RecordScore_WhenNotYetPersisted_RaisesOnceKeyed()
+    {
+        // Arrange
+        var model = FreeNumericModel();
+        var desk = new IntakeDeskFaker().WithScoringModel(model).Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(desk.Id).WithKey(0).Generate();
+
+        // Act
+        var result = sut.RecordScore(desk, model, Ratings(model, 6m, 4m), null, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    #endregion Scoring
 }

@@ -97,6 +97,33 @@ describe('MutedNotifications', () => {
     ).toBeChecked()
   })
 
+  it('words the reasons an intake request is told for', () => {
+    // Arrange
+    mockUseReasons.mockReturnValue({
+      data: [
+        { reason: NotificationReason.Requester, isMuted: false },
+        { reason: NotificationReason.Assigned, isMuted: false },
+        { reason: NotificationReason.Participant, isMuted: false },
+      ],
+      isLoading: false,
+      isError: false,
+    })
+
+    // Act
+    render(<MutedNotifications />)
+
+    // Assert
+    expect(
+      screen.getByRole('switch', { name: 'Requests you made' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('switch', { name: 'Requests assigned to you' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('switch', { name: 'Requests you take part in' }),
+    ).toBeInTheDocument()
+  })
+
   it('leaves out a reason it has no words for', () => {
     // Arrange
     mockUseReasons.mockReturnValue({
@@ -128,9 +155,7 @@ describe('MutedNotifications', () => {
 
     // Assert
     expect(mockMuteReason).toHaveBeenCalledWith(NotificationReason.Following)
-    expect(mockUnmuteReason).toHaveBeenCalledWith(
-      NotificationReason.Role,
-    )
+    expect(mockUnmuteReason).toHaveBeenCalledWith(NotificationReason.Role)
   })
 
   it('lists muted records with when they were muted and whether they are still followed', () => {

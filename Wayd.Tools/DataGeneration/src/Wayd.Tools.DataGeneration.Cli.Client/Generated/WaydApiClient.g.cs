@@ -2594,7 +2594,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// List the reasons you can mute, and which you have.
         /// </summary>
         /// <remarks>
-        /// Returns one entry per reason you can be told for: `reason` (`Following`: records you follow; `Role`: records you hold a role on, or whose team you belong to), `isMuted`, and `mutedOn` when muted. A muted reason stops only that reason, on every record: if you follow a project and also manage it, muting `Role` still tells you about it because you follow it. Requires the following feature flag; returns 404 when it is off.
+        /// Returns one entry per reason you can be told for: `reason` (`Following`: records you follow; `Requester`: intake requests you asked for; `Participant`: intake requests you were given or submitted for someone else; `Assigned`: intake requests assigned to you; `Role`: records you hold a role on, or whose team you belong to), `isMuted`, and `mutedOn` when muted. A muted reason stops only that reason, on every record: if you follow a project and also manage it, muting `Role` still tells you about it because you follow it. Requires the following feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -2605,7 +2605,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Mute a reason.
         /// </summary>
         /// <remarks>
-        /// Stops telling you about any record for `reason` (`Following` or `Role`); you are still told for any other reason that applies. Muting a reason you already muted changes nothing and still succeeds. Muting changes no follow, role or access, and leaves the notifications you already have. Returns 422 for any other reason. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
+        /// Stops telling you about any record for `reason` (`Following`, `Requester`, `Participant`, `Assigned` or `Role`); you are still told for any other reason that applies. Muting a reason you already muted changes nothing and still succeeds. Muting changes no follow, role or access, and leaves the notifications you already have. Returns 422 for any other reason. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -3127,7 +3127,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// List the reasons you can mute, and which you have.
         /// </summary>
         /// <remarks>
-        /// Returns one entry per reason you can be told for: `reason` (`Following`: records you follow; `Role`: records you hold a role on, or whose team you belong to), `isMuted`, and `mutedOn` when muted. A muted reason stops only that reason, on every record: if you follow a project and also manage it, muting `Role` still tells you about it because you follow it. Requires the following feature flag; returns 404 when it is off.
+        /// Returns one entry per reason you can be told for: `reason` (`Following`: records you follow; `Requester`: intake requests you asked for; `Participant`: intake requests you were given or submitted for someone else; `Assigned`: intake requests assigned to you; `Role`: records you hold a role on, or whose team you belong to), `isMuted`, and `mutedOn` when muted. A muted reason stops only that reason, on every record: if you follow a project and also manage it, muting `Role` still tells you about it because you follow it. Requires the following feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -3204,7 +3204,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Mute a reason.
         /// </summary>
         /// <remarks>
-        /// Stops telling you about any record for `reason` (`Following` or `Role`); you are still told for any other reason that applies. Muting a reason you already muted changes nothing and still succeeds. Muting changes no follow, role or access, and leaves the notifications you already have. Returns 422 for any other reason. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
+        /// Stops telling you about any record for `reason` (`Following`, `Requester`, `Participant`, `Assigned` or `Role`); you are still told for any other reason that applies. Muting a reason you already muted changes nothing and still succeeds. Muting changes no follow, role or access, and leaves the notifications you already have. Returns 422 for any other reason. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -3548,7 +3548,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// List your notifications.
         /// </summary>
         /// <remarks>
-        /// Returns one page of your notifications, one entry per record, newest change first. Each entry has the `record` (`ownerType`, `id`, `key`, `name`, `statusName`; an objective also carries `parentKey` and `parentName`, its planning interval, and an intake request its desk), the newest change — `event` (`Created`, `StatusChanged`, `LifecycleChanged`, `HealthReported`, `TimelineChanged`, `RolesChanged`, `Reparented`, `ScoreRecorded`), `eventId`, `occurredOn`, `actorKind` and `actor` (null when no employee is linked to whoever made it) — the `reasons` you were told (`Following`: you follow the record; `Role`: you hold a role on it, or are on the team that owns it; and later `Requester`, `Assigned`, `Participant`, `Mentioned`, `Desk`), `unreadCount`, `count`, `isUnread` and `latestNotificationId`. You are never told about your own changes, or about imports. A record you can no longer read is left out. `unreadOnly` keeps only entries with something unread. `pageSize` is at most 500. For the next page, pass the response's `nextCursor` as `before`; `nextCursor` is null on the last page. Paging by cursor means an entry that moves to the top while you read on is neither repeated nor skipped; it appears when you read the first page again. Requires the following feature flag; returns 404 when it is off.
+        /// Returns one page of your notifications, one entry per record, newest change first. Each entry has the `record` (`ownerType`, `id`, `key`, `name`, `statusName`; an objective also carries `parentKey` and `parentName`, its planning interval, and an intake request its desk), the newest change — `event` (`Created`, `StatusChanged`, `LifecycleChanged`, `HealthReported`, `TimelineChanged`, `RolesChanged`, `Reparented`, `ScoreRecorded`, `Withdrawn`, `Retitled`, `DetailsChanged`, `AssigneeChanged`, `ParticipantsChanged`, `ChannelChanged`), `eventId`, `occurredOn`, `actorKind` and `actor` (null when no employee is linked to whoever made it, or when you may not see who made changes to the record — an intake request whose details you cannot see) — the `reasons` you were told (`Following`: you follow the record; `Role`: you hold a role on it, or are on the team that owns it; `Requester`: you asked for an intake request; `Assigned`: it is assigned to you; `Participant`: you were given it, or submitted it for someone else; and later `Mentioned`, `Desk`), `unreadCount`, `count`, `isUnread` and `latestNotificationId`. You are never told about your own changes, or about imports. A record you can no longer read is left out, and so is a change to a part of a record you cannot read. `unreadOnly` keeps only entries with something unread. `pageSize` is at most 500. For the next page, pass the response's `nextCursor` as `before`; `nextCursor` is null on the last page. Paging by cursor means an entry that moves to the top while you read on is neither repeated nor skipped; it appears when you read the first page again. Requires the following feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -3653,7 +3653,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// List your notifications.
         /// </summary>
         /// <remarks>
-        /// Returns one page of your notifications, one entry per record, newest change first. Each entry has the `record` (`ownerType`, `id`, `key`, `name`, `statusName`; an objective also carries `parentKey` and `parentName`, its planning interval, and an intake request its desk), the newest change — `event` (`Created`, `StatusChanged`, `LifecycleChanged`, `HealthReported`, `TimelineChanged`, `RolesChanged`, `Reparented`, `ScoreRecorded`), `eventId`, `occurredOn`, `actorKind` and `actor` (null when no employee is linked to whoever made it) — the `reasons` you were told (`Following`: you follow the record; `Role`: you hold a role on it, or are on the team that owns it; and later `Requester`, `Assigned`, `Participant`, `Mentioned`, `Desk`), `unreadCount`, `count`, `isUnread` and `latestNotificationId`. You are never told about your own changes, or about imports. A record you can no longer read is left out. `unreadOnly` keeps only entries with something unread. `pageSize` is at most 500. For the next page, pass the response's `nextCursor` as `before`; `nextCursor` is null on the last page. Paging by cursor means an entry that moves to the top while you read on is neither repeated nor skipped; it appears when you read the first page again. Requires the following feature flag; returns 404 when it is off.
+        /// Returns one page of your notifications, one entry per record, newest change first. Each entry has the `record` (`ownerType`, `id`, `key`, `name`, `statusName`; an objective also carries `parentKey` and `parentName`, its planning interval, and an intake request its desk), the newest change — `event` (`Created`, `StatusChanged`, `LifecycleChanged`, `HealthReported`, `TimelineChanged`, `RolesChanged`, `Reparented`, `ScoreRecorded`, `Withdrawn`, `Retitled`, `DetailsChanged`, `AssigneeChanged`, `ParticipantsChanged`, `ChannelChanged`), `eventId`, `occurredOn`, `actorKind` and `actor` (null when no employee is linked to whoever made it, or when you may not see who made changes to the record — an intake request whose details you cannot see) — the `reasons` you were told (`Following`: you follow the record; `Role`: you hold a role on it, or are on the team that owns it; `Requester`: you asked for an intake request; `Assigned`: it is assigned to you; `Participant`: you were given it, or submitted it for someone else; and later `Mentioned`, `Desk`), `unreadCount`, `count`, `isUnread` and `latestNotificationId`. You are never told about your own changes, or about imports. A record you can no longer read is left out, and so is a change to a part of a record you cannot read. `unreadOnly` keeps only entries with something unread. `pageSize` is at most 500. For the next page, pass the response's `nextCursor` as `before`; `nextCursor` is null on the last page. Paging by cursor means an entry that moves to the top while you read on is neither repeated nor skipped; it appears when you read the first page again. Requires the following feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -85601,6 +85601,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Set the scoring model a desk's requests are scored with.
+        /// </summary>
+        /// <remarks>
+        /// Needs a Desk Admin on the desk or the Demand Management Admin. The model must be active; a null `scoringModelId` stops scoring the desk's requests. Scores already recorded keep the model they were scored with. A desk changed meanwhile answers 409.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task ChangeScoringModelAsync(System.Guid id, ChangeIntakeDeskScoringModelRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the active scoring models a desk can score its requests with.
+        /// </summary>
+        /// <remarks>
+        /// Building and editing scoring models is in Settings, under scoring model administration.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeScoringModelChoiceDto>> GetScoringModelChoicesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the published intake request workflows a desk can follow.
         /// </summary>
         /// <remarks>
@@ -86435,6 +86457,206 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Set the scoring model a desk's requests are scored with.
+        /// </summary>
+        /// <remarks>
+        /// Needs a Desk Admin on the desk or the Demand Management Admin. The model must be active; a null `scoringModelId` stops scoring the desk's requests. Scores already recorded keep the model they were scored with. A desk changed meanwhile answers 409.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task ChangeScoringModelAsync(System.Guid id, ChangeIntakeDeskScoringModelRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-desks/{id}/scoring-model"
+                    urlBuilder_.Append("api/demand-management/intake-desks/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/scoring-model");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the active scoring models a desk can score its requests with.
+        /// </summary>
+        /// <remarks>
+        /// Building and editing scoring models is in Settings, under scoring model administration.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeScoringModelChoiceDto>> GetScoringModelChoicesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-desks/scoring-model-choices"
+                    urlBuilder_.Append("api/demand-management/intake-desks/scoring-model-choices");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<IntakeScoringModelChoiceDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the published intake request workflows a desk can follow.
         /// </summary>
         /// <remarks>
@@ -87012,6 +87234,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the current scores of the intake requests you can see.
+        /// </summary>
+        /// <remarks>
+        /// Takes the same filters as the list and answers beside it, for the requests whose score you may read: a score is substance, so a request whose substance is withheld from you is absent, as is one never scored. `isDeskModel` is false for a score from a model the request's desk no longer scores with, which does not rank with the rest.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestCurrentScoreDto>> GetIntakeRequestScoresAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get an intake request in the tiers you can read.
         /// </summary>
         /// <remarks>
@@ -87232,6 +87465,39 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<NeedByBasisFamilyDto>> GetNeedByBasisFamiliesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get an intake request's scoring: its desk's model, its score history and its rank on the desk.
+        /// </summary>
+        /// <remarks>
+        /// Answers 404 when you may not read the request's substance, the tier its score belongs to. `scoringModel` is null when the desk does not score its requests. `deskRank` places the request among the open requests on its desk scored with the desk's current model whose scores you may read.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<IntakeRequestScoringDto> GetScoringAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Score an intake request with its desk's scoring model.
+        /// </summary>
+        /// <remarks>
+        /// Needs an agent on the request's desk, an open request, and a desk with a scoring model. Rate every criterion: choose a level for one rated on a scale, a number for one without. Adds a score to the request's history and makes it current; earlier scores are kept. Answers the new score's id.
+        /// </remarks>
+        /// <returns>Created</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Guid> ScoreAsync(System.Guid id, ScoreIntakeRequestRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Preview what ratings would score an intake request, without recording it.
+        /// </summary>
+        /// <remarks>
+        /// Needs an agent on the request's desk. Calculates every output of the desk's scoring model from the ratings and records nothing.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ScoringModelEvaluationDto> PreviewScoreAsync(System.Guid id, ScoreIntakeRequestRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -87446,6 +87712,97 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the current scores of the intake requests you can see.
+        /// </summary>
+        /// <remarks>
+        /// Takes the same filters as the list and answers beside it, for the requests whose score you may read: a score is substance, so a request whose substance is withheld from you is absent, as is one never scored. `isDeskModel` is false for a score from a model the request's desk no longer scores with, which does not rank with the rest.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestCurrentScoreDto>> GetIntakeRequestScoresAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-requests/scores"
+                    urlBuilder_.Append("api/demand-management/intake-requests/scores");
+                    urlBuilder_.Append('?');
+                    if (deskId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("deskId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(deskId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (mine != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("mine")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(mine, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (openOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("openOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(openOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<IntakeRequestCurrentScoreDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -89545,6 +89902,336 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get an intake request's scoring: its desk's model, its score history and its rank on the desk.
+        /// </summary>
+        /// <remarks>
+        /// Answers 404 when you may not read the request's substance, the tier its score belongs to. `scoringModel` is null when the desk does not score its requests. `deskRank` places the request among the open requests on its desk scored with the desk's current model whose scores you may read.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<IntakeRequestScoringDto> GetScoringAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-requests/{id}/scoring"
+                    urlBuilder_.Append("api/demand-management/intake-requests/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/scoring");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<IntakeRequestScoringDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Score an intake request with its desk's scoring model.
+        /// </summary>
+        /// <remarks>
+        /// Needs an agent on the request's desk, an open request, and a desk with a scoring model. Rate every criterion: choose a level for one rated on a scale, a number for one without. Adds a score to the request's history and makes it current; earlier scores are kept. Answers the new score's id.
+        /// </remarks>
+        /// <returns>Created</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Guid> ScoreAsync(System.Guid id, ScoreIntakeRequestRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-requests/{id}/scores"
+                    urlBuilder_.Append("api/demand-management/intake-requests/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/scores");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 201)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Preview what ratings would score an intake request, without recording it.
+        /// </summary>
+        /// <remarks>
+        /// Needs an agent on the request's desk. Calculates every output of the desk's scoring model from the ratings and records nothing.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ScoringModelEvaluationDto> PreviewScoreAsync(System.Guid id, ScoreIntakeRequestRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-requests/{id}/scores/preview"
+                    urlBuilder_.Append("api/demand-management/intake-requests/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/scores/preview");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ScoringModelEvaluationDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -103144,6 +103831,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// The scoring model a desk's requests should be scored with.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ChangeIntakeDeskScoringModelRequest
+    {
+
+        /// <summary>
+        /// An active scoring model, from the scoring model choices, or null to stop scoring the desk's requests.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scoringModelId")]
+        public System.Guid? ScoringModelId { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// The review workflow a desk's requests should follow.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -110912,6 +111614,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Collections.Generic.ICollection<System.Guid> TagCategoryIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
         /// <summary>
+        /// The scoring model the desk's agents score its requests with, or null when the desk does not score them.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scoringModel")]
+        public NavigationDto? ScoringModel { get; set; } = default!;
+
+        /// <summary>
         /// How many changes the desk has recorded; sent back with a change so a stale one is refused.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("revision")]
@@ -111131,6 +111839,98 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("defaultStatusId")]
         public System.Guid? DefaultStatusId { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One criterion's rating: a level of its scale, or a number for a criterion with no scale.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestCriterionRatingRequest
+    {
+
+        /// <summary>
+        /// The criterion rated.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("criterionId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid CriterionId { get; set; } = default!;
+
+        /// <summary>
+        /// The number entered, for a criterion with no scale.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public decimal? Value { get; set; } = default!;
+
+        /// <summary>
+        /// The level chosen, for a criterion rated on a scale.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ratingLevelId")]
+        public System.Guid? RatingLevelId { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A request's current score, as the requests list and board rank on it. Substance tier, which is why it is
+    /// <br/>returned beside the summaries rather than on them.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestCurrentScoreDto
+    {
+
+        /// <summary>
+        /// The request scored.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("requestId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid RequestId { get; set; } = default!;
+
+        /// <summary>
+        /// The value of the model's primary output.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public decimal Value { get; set; } = default!;
+
+        /// <summary>
+        /// When the request was last scored.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scoredOn")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset ScoredOn { get; set; } = default!;
+
+        /// <summary>
+        /// The scoring model the score came from, as it was named then.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scoringModel")]
+        public NavigationDto ScoringModel { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the score came from the model the request's desk scores with now. A score from an earlier model,
+        /// <br/>or from the desk a request moved from, does not rank with the rest.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isDeskModel")]
+        public bool IsDeskModel { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A request's place among the open requests on its desk, by primary score.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestDeskRankDto
+    {
+
+        /// <summary>
+        /// The request's position, 1 being the highest score.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("position")]
+        public int Position { get; set; } = default!;
+
+        /// <summary>
+        /// How many open requests on the desk are ranked.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("of")]
+        public int Of { get; set; } = default!;
 
     }
 
@@ -111489,6 +112289,208 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// One of an intake request's scores: the frozen ratings and outputs it was given at a point in time. Substance
+    /// <br/>tier.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestScoreDto
+    {
+
+        /// <summary>
+        /// The score's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The request's score number; the highest is the current score.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sequence")]
+        public long Sequence { get; set; } = default!;
+
+        /// <summary>
+        /// The value of the model's primary output, which requests are ranked on.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("primaryValue")]
+        public decimal PrimaryValue { get; set; } = default!;
+
+        /// <summary>
+        /// When the score was recorded.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scoredOn")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset ScoredOn { get; set; } = default!;
+
+        /// <summary>
+        /// The agent who rated the request.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scoredBy")]
+        public EmployeeNavigationDto ScoredBy { get; set; } = default!;
+
+        /// <summary>
+        /// The scoring model the request was rated with, as it was named then.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scoringModel")]
+        public NavigationDto ScoringModel { get; set; } = default!;
+
+        /// <summary>
+        /// Each criterion's rating, in the model's display order.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ratings")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IntakeRequestScoreRatingDto> Ratings { get; set; } = new System.Collections.ObjectModel.Collection<IntakeRequestScoreRatingDto>();
+
+        /// <summary>
+        /// Every computed output, in evaluation order.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("outputs")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IntakeRequestScoreOutputDto> Outputs { get; set; } = new System.Collections.ObjectModel.Collection<IntakeRequestScoreOutputDto>();
+
+    }
+
+    /// <summary>
+    /// One frozen computed output within an intake request's score.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestScoreOutputDto
+    {
+
+        /// <summary>
+        /// The output's formula token.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("token")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Token { get; set; } = default!;
+
+        /// <summary>
+        /// The output's name when the request was scored.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// The computed value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public decimal Value { get; set; } = default!;
+
+        /// <summary>
+        /// Whether this was the model's primary output.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isPrimary")]
+        public bool IsPrimary { get; set; } = default!;
+
+        /// <summary>
+        /// The output's evaluation order.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("order")]
+        public int Order { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One criterion's frozen rating within an intake request's score.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestScoreRatingDto
+    {
+
+        /// <summary>
+        /// The criterion rated.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("criterionId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid CriterionId { get; set; } = default!;
+
+        /// <summary>
+        /// The criterion's name when the request was scored.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("criterionName")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string CriterionName { get; set; } = default!;
+
+        /// <summary>
+        /// The criterion's formula token when the request was scored.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("criterionToken")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string CriterionToken { get; set; } = default!;
+
+        /// <summary>
+        /// The number the calculation used.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ratingValue")]
+        public decimal RatingValue { get; set; } = default!;
+
+        /// <summary>
+        /// The level chosen, when the criterion is rated on a scale.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ratingLevelId")]
+        public System.Guid? RatingLevelId { get; set; } = default!;
+
+        /// <summary>
+        /// The chosen level's label when the request was scored; null for a number entered directly.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ratingLevelLabel")]
+        public string? RatingLevelLabel { get; set; } = default!;
+
+        /// <summary>
+        /// The criterion's display order.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("order")]
+        public int Order { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Everything a request's Score tab shows: the model its desk scores with, the score history, and where the
+    /// <br/>request ranks on its desk. Substance tier.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestScoringDto
+    {
+
+        /// <summary>
+        /// The model the request's desk scores with, with the criteria, scales and outputs a rating form needs; null
+        /// <br/>when the desk does not score its requests.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scoringModel")]
+        public ScoringModelDetailsDto? ScoringModel { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the desk's model has been archived since it was assigned. It still scores, but an admin is
+        /// <br/>expected to replace it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scoringModelArchived")]
+        public bool ScoringModelArchived { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the reader may score the request now: an agent on its desk, while the request is open and the
+        /// <br/>desk has a model.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canScore")]
+        public bool CanScore { get; set; } = default!;
+
+        /// <summary>
+        /// Every score the request has been given, newest first; the first is the current score.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scores")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IntakeRequestScoreDto> Scores { get; set; } = new System.Collections.ObjectModel.Collection<IntakeRequestScoreDto>();
+
+        /// <summary>
+        /// Where the request ranks among the open requests on its desk scored with the desk's current model, or null
+        /// <br/>when it is closed, has never been scored, or its current score came from another model.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deskRank")]
+        public IntakeRequestDeskRankDto? DeskRank { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// A status an agent can move an intake request to, with what the move needs.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -111783,6 +112785,42 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("requestCount")]
         public int RequestCount { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// An active scoring model a desk can score its requests with.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeScoringModelChoiceDto
+    {
+
+        /// <summary>
+        /// The model's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The model's key.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
+
+        /// <summary>
+        /// The model's name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// What the model is for, as its administrator described it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Description { get; set; } = default!;
 
     }
 
@@ -113284,7 +114322,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public EventActorKind ActorKind { get; set; } = default!;
 
         /// <summary>
-        /// Who made the newest change, or null when no employee is linked to the account that did.
+        /// Who made the newest change, or null when no employee is linked to the account that did, or when the
+        /// <br/>record withholds who made its changes from the caller — an intake request whose substance they cannot see.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("actor")]
         public EmployeeNavigationDto? Actor { get; set; } = default!;
@@ -113344,6 +114383,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Runtime.Serialization.EnumMember(Value = @"ScoreRecorded")]
         ScoreRecorded = 7,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Withdrawn")]
+        Withdrawn = 8,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Retitled")]
+        Retitled = 9,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"DetailsChanged")]
+        DetailsChanged = 10,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"AssigneeChanged")]
+        AssigneeChanged = 11,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"ParticipantsChanged")]
+        ParticipantsChanged = 12,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"ChannelChanged")]
+        ChannelChanged = 13,
 
     }
 
@@ -119897,6 +120954,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("comment")]
         public string? Comment { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// An agent's ratings of an intake request against its desk's scoring model.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ScoreIntakeRequestRequest
+    {
+
+        /// <summary>
+        /// A rating for every criterion of the desk's model.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ratings")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IntakeRequestCriterionRatingRequest> Ratings { get; set; } = new System.Collections.ObjectModel.Collection<IntakeRequestCriterionRatingRequest>();
 
     }
 

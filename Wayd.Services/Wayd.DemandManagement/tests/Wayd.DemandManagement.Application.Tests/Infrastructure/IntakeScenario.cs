@@ -10,12 +10,15 @@ using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Common.Domain.Tests.Data;
 using Wayd.Common.Models;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
+using Wayd.DemandManagement.Domain.Models.Scoring;
 using Wayd.DemandManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
 
@@ -127,6 +130,45 @@ public sealed class IntakeScenario
             .Generate();
         DbContext.AddDesks(desk);
         return desk;
+    }
+
+    /// <summary>
+    /// An active model with two numeric criteria, Business Value and Job Size, scoring <c>BV / JS</c> through a
+    /// Cost of Delay output of <c>BV * 2</c>.
+    /// </summary>
+    public ScoringModel ScoringModel()
+    {
+        var model = new ScoringModelFaker().AsActiveWith(
+            scales: [],
+            criteria: [("Business Value", "BV", null, null), ("Job Size", "JS", null, null)],
+            outputs: [("Cost of Delay", "CoD", "BV * 2", false), ("Score", "Score", "BV / JS", true)]);
+        DbContext.AddScoringModels(model);
+        return model;
+    }
+
+    /// <summary>Has the desk score its requests with the model, as already saved, raising nothing.</summary>
+    public IntakeDesk ScoresWith(IntakeDesk desk, ScoringModel? model)
+    {
+        var current = DbContext.ScoringModels.SingleOrDefault(m => m.Id == desk.ScoringModelId);
+        desk.ChangeScoringModel(model, current, EventActor.System, Instant.MinValue);
+        desk.ClearDomainEvents();
+        return desk;
+    }
+
+    /// <summary>The criterion ratings for <see cref="ScoringModel"/>, as an agent enters them.</summary>
+    public static IReadOnlyList<IntakeRequestCriterionRatingInput> Ratings(ScoringModel model, decimal businessValue, decimal jobSize) =>
+        [.. model.Criteria.Select(c => new IntakeRequestCriterionRatingInput(c.Id, c.Token == "BV" ? businessValue : jobSize, null))];
+
+    /// <summary>Scores the request with its desk's model as already saved, raising nothing.</summary>
+    public IntakeRequestScore Scored(IntakeRequest request, Employee scorer, decimal businessValue, decimal jobSize)
+    {
+        var desk = DbContext.IntakeDesks.Single(d => d.Id == request.DeskId);
+        var model = DbContext.ScoringModels.Single(m => m.Id == desk.ScoringModelId);
+        var values = model.Criteria.ToDictionary(c => c.Id, c => c.Token == "BV" ? businessValue : jobSize);
+        var score = request.RecordScore(desk, model, values, null,
+            new IntakeRequestEditor(scorer.Id, IsDeskAgent: true, EventActor.System), Clock.Now).Value;
+        request.ClearDomainEvents();
+        return score;
     }
 
     public IntakeChannel Channel()

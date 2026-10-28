@@ -4,6 +4,8 @@ using NodaTime;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.Scoring;
+using Wayd.Common.Domain.Scoring.Enums;
 
 namespace Wayd.DemandManagement.Domain.Models;
 
@@ -169,6 +171,54 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         Guard.Against.Null(category);
 
         return category.IsActive && (OffersAllTagCategories || _tagCategories.Any(c => c.CategoryId == category.Id));
+    }
+
+    /// <summary>
+    /// The scoring model the desk's agents score its requests with, or null when the desk does not score them.
+    /// </summary>
+    /// <remarks>
+    /// A desk without one is a normal state, not a gap: its requests simply cannot be scored. Only an active
+    /// model can be assigned, but one archived afterwards stays assigned until a Desk Admin changes it. An id
+    /// with no navigation, because the module reads scoring models but never tracks them.
+    /// </remarks>
+    public Guid? ScoringModelId { get; private set; }
+
+    /// <summary>
+    /// Whether the desk scores its requests with the model.
+    /// </summary>
+    public bool ScoresWith(ScoringModel model) => model is not null && ScoringModelId == model.Id;
+
+    /// <summary>
+    /// Sets the scoring model the desk's requests are scored with, or stops scoring them with null.
+    /// </summary>
+    /// <remarks>
+    /// Scores already recorded keep the model they froze; this changes only what the next score uses, and which
+    /// scores rank together on the desk.
+    /// </remarks>
+    /// <param name="model">The model to score with, or null to stop scoring.</param>
+    /// <param name="current">
+    /// The model the desk scores with now, loaded by the caller, or null when it has none. The change names it
+    /// as the model it replaces.
+    /// </param>
+    public Result ChangeScoringModel(ScoringModel? model, ScoringModel? current, EventActor actor, Instant timestamp)
+    {
+        if (current?.Id != ScoringModelId)
+            throw new ArgumentException("The current model must be the one the desk scores with.", nameof(current));
+
+        // Keeping the model the desk has is no change, even once it has been archived.
+        var toId = model?.Id;
+        if (toId == ScoringModelId)
+            return Result.Success();
+
+        if (model is not null && model.State != ScoringModelState.Active)
+            return Result.Failure("Only an active scoring model can be assigned to a desk.");
+
+        ScoringModelId = toId;
+
+        RaiseWhenKeyed(() => new IntakeDeskScoringModelChangedEvent(Id, Key, current?.Id, current?.Name, model?.Id, model?.Name,
+            actor, timestamp));
+
+        return Result.Success();
     }
 
     /// <summary>

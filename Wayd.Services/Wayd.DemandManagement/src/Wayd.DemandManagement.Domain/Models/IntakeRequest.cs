@@ -4,8 +4,10 @@ using NodaTime;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.DemandManagement.Domain.Models.Scoring;
 
 namespace Wayd.DemandManagement.Domain.Models;
 
@@ -32,6 +34,7 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     private readonly List<IntakeRequestParticipant> _participants = [];
     private readonly List<IntakeRequestTagAssignment> _tags = [];
     private readonly List<IntakeRequestOutcome> _outcomes = [];
+    private readonly List<IntakeRequestScore> _scores = [];
 
     private IntakeRequest() { }
 
@@ -178,6 +181,16 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// a reader who can see that request.
     /// </summary>
     public Guid? DuplicateOfId { get; private set; }
+
+    /// <summary>
+    /// Every score the request has been given, each a frozen snapshot. Substance tier.
+    /// </summary>
+    public IReadOnlyCollection<IntakeRequestScore> Scores => _scores.AsReadOnly();
+
+    /// <summary>
+    /// The latest score, or null when the request has never been scored. Substance tier.
+    /// </summary>
+    public IntakeRequestScoreSummary? CurrentScore { get; private set; }
 
     /// <inheritdoc/>
     public override string StatusOwnerType => DemandManagementWorkflowOwners.IntakeRequest.Key;
@@ -785,6 +798,83 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// Scores the request with its desk's scoring model, adding a snapshot to <see cref="Scores"/> and making it
+    /// the <see cref="CurrentScore"/>. Needs <see cref="Scores"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// An agent's call, like a status change: the requester and participants read the score but never set it.
+    /// Allowed while the request is open and frozen once it is Done or Removed, the same rule as the edit lock,
+    /// so it follows each company's workflow. A desk with no model is a normal state in which nothing is
+    /// scored. Re-scoring never overwrites: every earlier score stays readable.
+    /// </remarks>
+    /// <param name="desk">The request's desk, whose <see cref="IntakeDesk.ScoringModelId"/> decides the model.</param>
+    /// <param name="model">The desk's scoring model with its criteria, scales and outputs loaded.</param>
+    /// <param name="ratingValuesByCriterionId">The value for each criterion, keyed by criterion id.</param>
+    /// <param name="selectedLevels">For scale-rated criteria, the chosen level's id and label.</param>
+    public Result<IntakeRequestScore> RecordScore(
+        IntakeDesk desk,
+        ScoringModel model,
+        IReadOnlyDictionary<Guid, decimal> ratingValuesByCriterionId,
+        IReadOnlyDictionary<Guid, (Guid LevelId, string Label)>? selectedLevels,
+        IntakeRequestEditor scorer,
+        Instant timestamp)
+    {
+        Guard.Against.Null(desk);
+        Guard.Against.Null(model);
+        Guard.Against.Null(ratingValuesByCriterionId);
+        Guard.Against.Null(scorer);
+        if (desk.Id != DeskId)
+            throw new ArgumentException("The desk must be the request's own.", nameof(desk));
+
+        if (desk.ScoringModelId is null)
+            return Result.Failure<IntakeRequestScore>(DeskDoesNotScoreError);
+
+        if (!desk.ScoresWith(model))
+            throw new ArgumentException("The model must be the one the request's desk scores with.", nameof(model));
+
+        if (!scorer.IsDeskAgent || scorer.EmployeeId is not { } scoredById)
+            return Result.Failure<IntakeRequestScore>(NotAScorerError);
+
+        if (!IsOpen)
+            return Result.Failure<IntakeRequestScore>(ClosedScoreError);
+
+        var calculation = model.CalculateScore(ratingValuesByCriterionId);
+        if (calculation.IsFailure)
+            return Result.Failure<IntakeRequestScore>(calculation.Error);
+
+        var sequence = _scores.Count == 0 ? 1 : _scores.Max(s => s.Sequence) + 1;
+        var score = IntakeRequestScore.CreateSnapshot(Id, model, calculation.Value, ratingValuesByCriterionId,
+            selectedLevels, scoredById, timestamp, sequence);
+
+        _scores.Add(score);
+        CurrentScore = new IntakeRequestScoreSummary(score.PrimaryValue, timestamp, scoredById, model.Id, model.Name);
+
+        var scoreId = score.Id;
+        var primaryValue = score.PrimaryValue;
+        var modelId = model.Id;
+        var modelName = score.ScoringModelName;
+        RaiseWhenKeyed(() => new IntakeRequestScoreRecordedEvent(scoreId, Id, Key, modelId, modelName, primaryValue,
+            sequence, scoredById, scorer.Actor, timestamp));
+
+        return Result.Success(score);
+    }
+
+    /// <summary>
+    /// The failure for scoring a request on a desk that has no scoring model.
+    /// </summary>
+    public const string DeskDoesNotScoreError = "This request's desk does not score its requests.";
+
+    /// <summary>
+    /// The failure for a scorer who is not an agent on the request's desk.
+    /// </summary>
+    public const string NotAScorerError = "Only an agent on the request's desk may score it.";
+
+    /// <summary>
+    /// The failure for scoring a request that is Done or Removed.
+    /// </summary>
+    public const string ClosedScoreError = "A closed request cannot be scored until it is moved back to an open status.";
 
     /// <summary>
     /// Records that the request is being deleted, or refuses when it has moved through review. Removing it

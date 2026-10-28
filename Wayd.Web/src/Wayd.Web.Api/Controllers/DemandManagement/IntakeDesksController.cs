@@ -130,6 +130,31 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult> ChangeWorkflow(Guid id, [FromBody] ChangeIntakeDeskWorkflowRequest request, CancellationToken cancellationToken) =>
         NoContentOrError(await _dispatcher.Send(new ChangeIntakeDeskWorkflowCommand(id, request.WorkflowId), cancellationToken));
 
+    [HttpPut("{id}/scoring-model")]
+    [Authorize]
+    [McpTool("IntakeDesks_ChangeScoringModel", "Change intake desk scoring model")]
+    [EndpointSummary("Set the scoring model a desk's requests are scored with.")]
+    [EndpointDescription("Needs a Desk Admin on the desk or the Demand Management Admin. The model must be active; a null `scoringModelId` stops scoring the desk's requests. Scores already recorded keep the model they were scored with. A desk changed meanwhile answers 409.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> ChangeScoringModel(Guid id, [FromBody] ChangeIntakeDeskScoringModelRequest request, CancellationToken cancellationToken) =>
+        NoContentOrError(await _dispatcher.Send(new ChangeIntakeDeskScoringModelCommand(id, request.ScoringModelId), cancellationToken));
+
+    [HttpGet("scoring-model-choices")]
+    [Authorize]
+    [McpTool("IntakeDesks_GetScoringModelChoices", "List intake desk scoring model choices")]
+    [EndpointSummary("Get the active scoring models a desk can score its requests with.")]
+    [EndpointDescription("Building and editing scoring models is in Settings, under scoring model administration.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<IntakeScoringModelChoiceDto>>> GetScoringModelChoices(CancellationToken cancellationToken)
+    {
+        var choices = await _dispatcher.Send(new GetIntakeScoringModelChoicesQuery(), cancellationToken);
+        return Ok(choices);
+    }
+
     [HttpGet("workflow-choices")]
     [McpTool("IntakeDesks_GetWorkflowChoices", "List intake desk workflow choices")]
     [Authorize]

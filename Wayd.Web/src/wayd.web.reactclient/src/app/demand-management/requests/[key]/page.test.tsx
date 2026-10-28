@@ -112,6 +112,7 @@ const substance = {
 
 let mockRequest: any
 let mockError: any
+let mockScoring: any
 
 jest.mock(
   '@/src/store/features/demand-management/demand-management-api',
@@ -128,6 +129,16 @@ jest.mock(
       isLoading: false,
     }),
     useLazyGetIntakeRequestActivitiesQuery: () => [jest.fn()],
+    useGetIntakeRequestScoringQuery: () => ({
+      data: mockScoring,
+      isLoading: false,
+      isError: false,
+    }),
+    useScoreIntakeRequestMutation: () => [jest.fn(), { isLoading: false }],
+    usePreviewIntakeRequestScoreMutation: () => [
+      jest.fn(),
+      { isLoading: false },
+    ],
     useRemoveIntakeRequestParticipantMutation: () => [
       jest.fn(),
       { isLoading: false },
@@ -207,6 +218,7 @@ describe('IntakeRequestDetailsPage', () => {
     ).toBeInTheDocument()
     expect(screen.queryByTestId('markdown')).not.toBeInTheDocument()
     expect(screen.queryByText('People')).not.toBeInTheDocument()
+    expect(screen.queryByText('Score')).not.toBeInTheDocument()
   })
 
   it('shows the description when the substance is readable', async () => {
@@ -551,6 +563,102 @@ describe('IntakeRequestDetailsPage', () => {
       expect(
         screen.queryByRole('button', { name: 'Add Participant' }),
       ).not.toBeInTheDocument()
+    })
+  })
+
+  describe('score section', () => {
+    const model = {
+      id: 'm-1',
+      key: 1,
+      name: 'WSJF',
+      description: 'Weighted shortest job first',
+      state: { id: 2, name: 'Active' },
+      criteria: [],
+      scales: [],
+      outputs: [],
+    }
+    const score = (sequence: number, primaryValue: number) => ({
+      id: `s-${sequence}`,
+      sequence,
+      primaryValue,
+      scoredOn: new Date('2026-10-01T09:00:00Z'),
+      scoredBy: { id: 'e-3', key: 3, name: 'Casey Agent' },
+      scoringModel: { id: 'm-1', key: 1, name: 'WSJF' },
+      ratings: [],
+      outputs: [
+        {
+          token: 'WSJF',
+          name: 'WSJF',
+          value: primaryValue,
+          isPrimary: true,
+          order: 1,
+        },
+      ],
+    })
+
+    beforeEach(() => {
+      mockSearchParams = new URLSearchParams('section=score')
+      mockScoring = undefined
+    })
+
+    it('shows the current score, its rank on the desk and the earlier scores', async () => {
+      // Arrange
+      mockRequest = details()
+      mockScoring = {
+        scoringModel: model,
+        scoringModelArchived: false,
+        canScore: false,
+        scores: [score(2, 3.3), score(1, 1.6)],
+        deskRank: { position: 2, of: 7 },
+      }
+
+      // Act
+      await renderPage()
+
+      // Assert
+      expect(
+        await screen.findByText('2nd of 7 open requests on this desk'),
+      ).toBeInTheDocument()
+      expect(screen.getByText('Earlier Scores')).toBeInTheDocument()
+      expect(screen.getByText('1.60')).toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'Re-score' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('offers Re-score only when the server says the reader may score', async () => {
+      // Arrange
+      mockRequest = details()
+      mockScoring = {
+        scoringModel: model,
+        scoringModelArchived: false,
+        canScore: true,
+        scores: [score(1, 1.6)],
+      }
+
+      // Act
+      await renderPage()
+
+      // Assert
+      expect(
+        await screen.findByRole('button', { name: 'Re-score' }),
+      ).toBeInTheDocument()
+    })
+
+    it('says so when the desk does not score its requests', async () => {
+      // Arrange
+      mockRequest = details()
+      mockScoring = { scoringModelArchived: false, canScore: false, scores: [] }
+
+      // Act
+      await renderPage()
+
+      // Assert
+      expect(
+        await screen.findByText(
+          "This request's desk does not score its requests.",
+        ),
+      ).toBeInTheDocument()
     })
   })
 })

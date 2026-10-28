@@ -9,6 +9,9 @@ public sealed class ReasonMuteTests
 
     [Theory]
     [InlineData(NotificationReason.Following)]
+    [InlineData(NotificationReason.Requester)]
+    [InlineData(NotificationReason.Participant)]
+    [InlineData(NotificationReason.Assigned)]
     [InlineData(NotificationReason.Role)]
     public void Create_ShouldRecordWhoMutedWhichReasonAndWhen(NotificationReason reason)
     {
@@ -26,12 +29,9 @@ public sealed class ReasonMuteTests
     }
 
     [Theory]
-    [InlineData(NotificationReason.Requester)]
-    [InlineData(NotificationReason.Assigned)]
     [InlineData(NotificationReason.Mentioned)]
     [InlineData(NotificationReason.Following | NotificationReason.Role)]
     [InlineData((NotificationReason)0)]
-    [InlineData(NotificationReason.Participant)]
     [InlineData(NotificationReason.Desk)]
     [InlineData((NotificationReason)128)]
     public void Create_ShouldFail_ForAnythingButOneProducedReason(NotificationReason reason)

@@ -203,6 +203,8 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     IQueryable<StatusTransition> IDemandManagementDbContext.IntakeRequestStatusTransitions =>
         StatusTransitions.AsNoTracking().Where(t => t.OwnerType == DemandManagementWorkflowOwners.IntakeRequest.Key);
 
+    IQueryable<ScoringModel> IDemandManagementDbContext.ScoringModels => ScoringModels.AsNoTracking();
+
     #endregion IDemandManagementDbContext
 
     #region IStrategicManagement

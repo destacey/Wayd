@@ -1,4 +1,3 @@
-using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Queries;
@@ -30,23 +29,11 @@ public sealed class GetIntakeRequestsQueryHandler(
     {
         var reader = await _currentPrincipal.ResolveIntakeRequestReader(_dbContext, cancellationToken);
 
-        var query = _dbContext.IntakeRequests
-            .AsNoTracking()
-            .Where(reader.CanSeeSummary(_dbContext.IntakeDesks));
-
-        if (request.DeskId is { } deskId)
-            query = query.Where(r => r.DeskId == deskId);
-
-        if (request.Mine)
-        {
-            if (reader.EmployeeId is not { } employeeId)
-                return [];
-
-            query = query.Where(r => r.RequesterId == employeeId || r.SubmittedById == employeeId);
-        }
-
-        if (request.OpenOnly)
-            query = query.Where(r => r.StatusCategory == StatusCategory.Proposed || r.StatusCategory == StatusCategory.Active);
+        var query = IntakeRequestListFilter.Apply(
+            _dbContext.IntakeRequests.AsNoTracking().Where(reader.CanSeeSummary(_dbContext.IntakeDesks)),
+            reader, request.DeskId, request.Mine, request.OpenOnly);
+        if (query is null)
+            return [];
 
         return await query
             .OrderBy(r => r.Key)

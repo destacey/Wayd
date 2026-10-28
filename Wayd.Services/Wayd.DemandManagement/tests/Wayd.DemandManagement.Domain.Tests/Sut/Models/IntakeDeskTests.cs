@@ -4,6 +4,8 @@ using NodaTime.Testing;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.Scoring.Enums;
+using Wayd.Common.Domain.Tests.Data;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.DemandManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
@@ -691,4 +693,138 @@ public sealed class IntakeDeskTests
     }
 
     #endregion Tag categories
+
+    #region Scoring model
+
+    private readonly ScoringModelFaker _scoringModelFaker = new();
+
+    [Fact]
+    public void ChangeScoringModel_ToAnActiveModel_AssignsItAndRaisesTheChange()
+    {
+        // Arrange
+        var model = _scoringModelFaker.AsActiveWsjf();
+        var sut = new IntakeDeskFaker().Generate();
+        var revision = sut.Revision;
+
+        // Act
+        var result = sut.ChangeScoringModel(model, null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.ScoringModelId.Should().Be(model.Id);
+        sut.ScoresWith(model).Should().BeTrue();
+        sut.Revision.Should().Be(revision + 1);
+        var raised = sut.DomainEvents.OfType<IntakeDeskScoringModelChangedEvent>().Should().ContainSingle().Subject;
+        raised.FromScoringModelId.Should().BeNull();
+        raised.FromScoringModelName.Should().BeNull();
+        raised.ToScoringModelId.Should().Be(model.Id);
+        raised.ToScoringModelName.Should().Be(model.Name);
+    }
+
+    [Fact]
+    public void ChangeScoringModel_ToAnotherModel_CarriesBothEnds()
+    {
+        // Arrange
+        var from = _scoringModelFaker.AsActiveWsjf();
+        var to = _scoringModelFaker.AsActiveWsjf();
+        var sut = new IntakeDeskFaker().WithScoringModel(from).Generate();
+
+        // Act
+        var result = sut.ChangeScoringModel(to, from, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.ScoringModelId.Should().Be(to.Id);
+        var raised = sut.DomainEvents.OfType<IntakeDeskScoringModelChangedEvent>().Should().ContainSingle().Subject;
+        raised.FromScoringModelId.Should().Be(from.Id);
+        raised.FromScoringModelName.Should().Be(from.Name);
+        raised.ToScoringModelId.Should().Be(to.Id);
+    }
+
+    [Fact]
+    public void ChangeScoringModel_ToNull_StopsScoring()
+    {
+        // Arrange
+        var from = _scoringModelFaker.AsActiveWsjf();
+        var sut = new IntakeDeskFaker().WithScoringModel(from).Generate();
+
+        // Act
+        var result = sut.ChangeScoringModel(null, from, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.ScoringModelId.Should().BeNull();
+        var raised = sut.DomainEvents.OfType<IntakeDeskScoringModelChangedEvent>().Should().ContainSingle().Subject;
+        raised.FromScoringModelId.Should().Be(from.Id);
+        raised.ToScoringModelId.Should().BeNull();
+    }
+
+    [Fact]
+    public void ChangeScoringModel_ToTheSameModel_ChangesNothing()
+    {
+        // Arrange
+        var model = _scoringModelFaker.AsActiveWsjf();
+        var sut = new IntakeDeskFaker().WithScoringModel(model).Generate();
+        var revision = sut.Revision;
+
+        // Act
+        var result = sut.ChangeScoringModel(model, model, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Revision.Should().Be(revision);
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeScoringModel_KeepingAModelArchivedSinceItWasChosen_ChangesNothing()
+    {
+        // Arrange — the settings form offers the desk's archived model, and saving it untouched must not fail
+        var model = _scoringModelFaker.AsActiveWsjf();
+        var sut = new IntakeDeskFaker().WithScoringModel(model).Generate();
+        model.Archive(EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var result = sut.ChangeScoringModel(model, model, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.ScoringModelId.Should().Be(model.Id);
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(ScoringModelState.Proposed)]
+    [InlineData(ScoringModelState.Archived)]
+    public void ChangeScoringModel_ToAModelThatIsNotActive_Fails(ScoringModelState state)
+    {
+        // Arrange
+        var model = state == ScoringModelState.Proposed ? _scoringModelFaker.AsProposedWsjf() : _scoringModelFaker.AsActiveWsjf();
+        if (state == ScoringModelState.Archived)
+            model.Archive(EventActor.System, _dateTimeProvider.Now);
+        var sut = new IntakeDeskFaker().Generate();
+
+        // Act
+        var result = sut.ChangeScoringModel(model, null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        sut.ScoringModelId.Should().BeNull();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeScoringModel_WhenTheCurrentModelIsNotTheDesks_Throws()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().WithScoringModel(_scoringModelFaker.AsActiveWsjf()).Generate();
+
+        // Act
+        Action act = () => sut.ChangeScoringModel(null, null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    #endregion Scoring model
 }

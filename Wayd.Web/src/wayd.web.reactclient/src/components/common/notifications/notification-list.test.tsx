@@ -81,6 +81,11 @@ describe('NotificationList', () => {
     ],
     [NotificationEvent.Reparented, 'Ada Lovelace moved Apollo'],
     [NotificationEvent.ScoreRecorded, 'Ada Lovelace scored Apollo'],
+    [NotificationEvent.Withdrawn, 'Ada Lovelace withdrew Apollo'],
+    [
+      NotificationEvent.AssigneeChanged,
+      'Ada Lovelace changed the assignee of Apollo',
+    ],
   ])('words a %s change as a sentence', (event, sentence) => {
     // Act
     renderList([buildReadNotification({ event })])

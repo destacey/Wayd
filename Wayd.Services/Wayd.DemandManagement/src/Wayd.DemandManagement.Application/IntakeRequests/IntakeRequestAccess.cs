@@ -23,7 +23,8 @@ internal static class IntakeRequestAccess
         bool includeParticipants,
         CancellationToken cancellationToken,
         bool includeTags = false,
-        bool includeOutcomes = false)
+        bool includeOutcomes = false,
+        bool includeScores = false)
     {
         var query = dbContext.IntakeRequests.AsQueryable();
         if (includeParticipants)
@@ -32,6 +33,8 @@ internal static class IntakeRequestAccess
             query = query.Include(r => r.Tags);
         if (includeOutcomes)
             query = query.Include(r => r.Outcomes);
+        if (includeScores)
+            query = query.Include(r => r.Scores);
 
         return query
             .Where(r => r.Id == id)

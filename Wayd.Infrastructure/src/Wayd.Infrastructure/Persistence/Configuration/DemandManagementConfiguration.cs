@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Domain.Models;
+using Wayd.DemandManagement.Domain.Models.Scoring;
 using Wayd.Infrastructure.Persistence.Converters;
 
 namespace Wayd.Infrastructure.Persistence.Configuration;
@@ -49,6 +51,13 @@ public class IntakeDeskConfiguration : IEntityTypeConfiguration<IntakeDesk>
         builder.Property(d => d.RequesterMayAddParticipants).IsRequired();
         builder.Property(d => d.OffersAllChannels).IsRequired();
         builder.Property(d => d.OffersAllTagCategories).IsRequired();
+
+        builder.HasIndex(d => d.ScoringModelId);
+        builder.HasOne<ScoringModel>()
+            .WithMany()
+            .HasForeignKey(d => d.ScoringModelId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.NoAction);
 
         // The desk is saved whole; without this, two saves read at the same revision would both pass the
         // handler's check and the second would undo the first.
@@ -269,6 +278,114 @@ public class IntakeRequestConfiguration : IEntityTypeConfiguration<IntakeRequest
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(r => r.Outcomes).HasField("_outcomes").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        // A cache of the latest score for the list and board; IntakeRequestScores stays authoritative.
+        builder.OwnsOne(r => r.CurrentScore, score =>
+        {
+            score.Property(s => s.Value).HasColumnName("CurrentScoreValue").HasColumnType("decimal(18,4)");
+            score.Property(s => s.ScoredOn).HasColumnName("CurrentScoredOn");
+            score.Property(s => s.ScoredById).HasColumnName("CurrentScoredById");
+            score.Property(s => s.ScoringModelId).HasColumnName("CurrentScoringModelId");
+            score.Property(s => s.ScoringModelName).HasColumnName("CurrentScoringModelName").HasMaxLength(128);
+
+            score.HasOne<Employee>()
+                .WithMany()
+                .HasForeignKey(s => s.ScoredById)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.HasMany(r => r.Scores)
+            .WithOne()
+            .HasForeignKey(s => s.RequestId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(r => r.Scores).HasField("_scores").UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class IntakeRequestScoreConfiguration : IEntityTypeConfiguration<IntakeRequestScore>
+{
+    public void Configure(EntityTypeBuilder<IntakeRequestScore> builder)
+    {
+        builder.ToTable("IntakeRequestScores", SchemaNames.DemandManagement);
+
+        builder.HasKey(s => s.Id);
+
+        // Two agents scoring at once compute the same next sequence; this makes the second save fail rather
+        // than leave two scores claiming to be current.
+        builder.HasIndex(s => new { s.RequestId, s.Sequence }).IsUnique();
+
+        builder.Property(s => s.Id).ValueGeneratedNever();
+        builder.Property(s => s.RequestId).IsRequired();
+
+        // Not a foreign key: the snapshot stays valid whatever later happens to the model.
+        builder.Property(s => s.ScoringModelId).IsRequired();
+        builder.Property(s => s.ScoringModelKey).IsRequired();
+        builder.Property(s => s.ScoringModelName).HasMaxLength(128).IsRequired();
+
+        builder.Property(s => s.PrimaryValue).HasColumnType("decimal(18,4)").IsRequired();
+        builder.Property(s => s.ScoredOn).IsRequired();
+        builder.Property(s => s.ScoredById).IsRequired();
+        builder.Property(s => s.Sequence).IsRequired();
+
+        builder.HasOne<Employee>()
+            .WithMany()
+            .HasForeignKey(s => s.ScoredById)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(s => s.Ratings)
+            .WithOne()
+            .HasForeignKey(r => r.ScoreId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(s => s.Ratings).HasField("_ratings").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(s => s.Outputs)
+            .WithOne()
+            .HasForeignKey(o => o.ScoreId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(s => s.Outputs).HasField("_outputs").UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class IntakeRequestScoreRatingConfiguration : IEntityTypeConfiguration<IntakeRequestScoreRating>
+{
+    public void Configure(EntityTypeBuilder<IntakeRequestScoreRating> builder)
+    {
+        builder.ToTable("IntakeRequestScoreRatings", SchemaNames.DemandManagement);
+
+        builder.HasKey(r => r.Id);
+        builder.HasIndex(r => r.ScoreId);
+
+        builder.Property(r => r.Id).ValueGeneratedNever();
+        builder.Property(r => r.ScoreId).IsRequired();
+        builder.Property(r => r.CriterionId).IsRequired();
+        builder.Property(r => r.CriterionName).HasMaxLength(128).IsRequired();
+        builder.Property(r => r.CriterionToken).HasColumnType("varchar").HasMaxLength(32).IsRequired();
+        builder.Property(r => r.RatingValue).HasColumnType("decimal(9,4)").IsRequired();
+        builder.Property(r => r.RatingLevelId);
+        builder.Property(r => r.RatingLevelLabel).HasMaxLength(64);
+        builder.Property(r => r.Order).IsRequired();
+    }
+}
+
+public class IntakeRequestScoreOutputConfiguration : IEntityTypeConfiguration<IntakeRequestScoreOutput>
+{
+    public void Configure(EntityTypeBuilder<IntakeRequestScoreOutput> builder)
+    {
+        builder.ToTable("IntakeRequestScoreOutputs", SchemaNames.DemandManagement);
+
+        builder.HasKey(o => o.Id);
+        builder.HasIndex(o => o.ScoreId);
+
+        builder.Property(o => o.Id).ValueGeneratedNever();
+        builder.Property(o => o.ScoreId).IsRequired();
+        builder.Property(o => o.Token).HasColumnType("varchar").HasMaxLength(32).IsRequired();
+        builder.Property(o => o.Name).HasMaxLength(128).IsRequired();
+        builder.Property(o => o.Value).HasColumnType("decimal(18,4)").IsRequired();
+        builder.Property(o => o.IsPrimary).IsRequired();
+        builder.Property(o => o.Order).IsRequired();
     }
 }
 

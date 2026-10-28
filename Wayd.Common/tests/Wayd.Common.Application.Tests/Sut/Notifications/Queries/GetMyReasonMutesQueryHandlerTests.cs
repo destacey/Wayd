@@ -36,6 +36,9 @@ public sealed class GetMyReasonMutesQueryHandlerTests
         // Assert
         reasons.Should().Equal(
             new ReasonMuteDto { Reason = NotificationReason.Following, IsMuted = false, MutedOn = null },
+            new ReasonMuteDto { Reason = NotificationReason.Requester, IsMuted = false, MutedOn = null },
+            new ReasonMuteDto { Reason = NotificationReason.Participant, IsMuted = false, MutedOn = null },
+            new ReasonMuteDto { Reason = NotificationReason.Assigned, IsMuted = false, MutedOn = null },
             new ReasonMuteDto { Reason = NotificationReason.Role, IsMuted = true, MutedOn = Now });
     }
 
@@ -49,7 +52,12 @@ public sealed class GetMyReasonMutesQueryHandlerTests
         var reasons = await CreateHandler().Handle(new GetMyReasonMutesQuery(), TestContext.Current.CancellationToken);
 
         // Assert
-        reasons.Select(r => r.Reason).Should().Equal(NotificationReason.Following, NotificationReason.Role);
+        reasons.Select(r => r.Reason).Should().Equal(
+            NotificationReason.Following,
+            NotificationReason.Requester,
+            NotificationReason.Participant,
+            NotificationReason.Assigned,
+            NotificationReason.Role);
         reasons.Should().OnlyContain(r => !r.IsMuted);
     }
 }

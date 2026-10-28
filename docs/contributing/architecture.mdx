@@ -341,6 +341,12 @@ followable is a registration in its module, not a schema change:
      and reads it with `IActivityLogReader.Read`. One read in tiers — an intake request — narrows both by the
      same rules as its Activity endpoint, or "last changed" and "what has happened since you followed it"
      would show a follower what that endpoint withholds.
+   - `VisibleNotifications(notifications)` holds the caller's notifications to changes they may see. Most owner
+     types pass them through; an intake request keeps a notification only when the reader holds the tier of
+     the change it names (`IntakeRequestNotificationTiers`), so a summary-only follower is not told its
+     details changed.
+   - `ActorHiddenOn(ids)` names the records on which the caller may not be told who made a change; the list
+     leaves the actor out for those. An intake request hides it from readers without its substance.
 3. Register both in `Infrastructure/Following/ConfigureServices.AddFollowing`. `FollowRegistrationTests`
    fails until every registered owner type has exactly one read rule.
 
@@ -366,13 +372,15 @@ set, and when it was read. The wording is produced when the list is read, from t
 
 - **Written only from domain events.** No module calls anything to notify. Each owning module has one Wolverine
   handler per owner type (`ProjectNotificationEventHandler`, `ProgramNotificationEventHandler`,
-  `PlanningIntervalObjectiveNotificationEventHandler`) that picks which of its events notify, reads who is
+  `PlanningIntervalObjectiveNotificationEventHandler`, `IntakeRequestNotificationEventHandler`) that picks which of its events notify, reads who is
   involved in the record as it is now, each with a reason (a `NotificationRecipient`), and hands both to
   `INotificationWriter`. The notifying events are routed
   durably in `DurableEventRoutes`, so a failure to notify never fails the change. Making a new owner type
   notify is a handler in its module and its events in that list.
 - **The writer decides the audience.** Followers (`Following`) plus the people the module names as involved,
-  each with their own reason — `Role` for a project's or program's role holders and an objective's team —
+  each with their own reason — `Role` for a project's or program's role holders and an objective's team;
+  `Requester`, `Assigned` and `Participant` for an intake request's requester, assignee, and participants and
+  submitter —
   merged so each person gets one notification carrying every reason; minus the actor; minus deleted and
   inactive employees, whose follows and roles outlive them. It writes nothing for a change no person made
   directly — an import, a sync or the platform's own work — and nothing while the `following` flag is off.
@@ -384,15 +392,16 @@ set, and when it was read. The wording is produced when the list is read, from t
 - **One per person per event.** `(EventId, RecipientEmployeeId)` is unique, so a redelivered event writes
   nothing; `INotificationStore` turns a concurrent duplicate into that outcome.
 - **Read through the record's read rule, every time.** The list and the unread count join each owner type's
-  notifications to its `Readable` rows and combine the types with `UNION ALL`, as the Following list does, then
+  notifications, narrowed by its `VisibleNotifications`, to its `Readable` rows and combine the types with
+  `UNION ALL`, as the Following list does, then
   collapse each record's notifications into one entry (newest change, counts, every reason) in SQL. A
   notification about a record its recipient can no longer read is never shown or counted.
   `NotificationQueryTranslationIntegrationTests` runs the real read rules in that union against SQL Server.
 - **Not an audit trail.** A nightly job (`notification-retention-sweep`, 03:30) deletes notifications more than
   90 days old, read or not; the activity log keeps what happened.
 
-`Requester`, `Assigned`, `Participant` (someone given an intake request), `Mentioned` and `Desk` (a request
-waiting unassigned on a desk you work on) are defined, but nothing produces them yet. Only the reasons in
+`Mentioned` and `Desk` (a request waiting unassigned on a desk you work on) are defined, but nothing produces
+them yet. Only the reasons in
 `NotificationReasons.Produced` can be muted; a producer of a new reason adds it there first — the writer throws
 for any other reason — or its mute would be refused.
 

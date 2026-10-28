@@ -62,7 +62,12 @@ public static class NotificationReasons
     /// A mute of a reason nothing produces would sit unnoticed until a producer arrived, then silently swallow
     /// its first notifications. A producer of a new reason adds it here.
     /// </remarks>
-    public const NotificationReason Produced = NotificationReason.Following | NotificationReason.Role;
+    public const NotificationReason Produced =
+        NotificationReason.Following
+        | NotificationReason.Requester
+        | NotificationReason.Participant
+        | NotificationReason.Assigned
+        | NotificationReason.Role;
 
     /// <summary>Whether the set holds at least one reason and nothing that is not a defined reason.</summary>
     public static bool IsValid(NotificationReason reasons) => reasons != 0 && (reasons & ~All) == 0;

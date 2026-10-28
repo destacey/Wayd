@@ -38,4 +38,22 @@ public enum NotificationEvent
 
     [Display(Name = "Scored", Description = "The record was scored.", Order = 8)]
     ScoreRecorded = 8,
+
+    [Display(Name = "Withdrawn", Description = "The person who asked for the record no longer needs it.", Order = 9)]
+    Withdrawn = 9,
+
+    [Display(Name = "Retitled", Description = "The record's title changed.", Order = 10)]
+    Retitled = 10,
+
+    [Display(Name = "Details Changed", Description = "The record's description or other details changed.", Order = 11)]
+    DetailsChanged = 11,
+
+    [Display(Name = "Assignee Changed", Description = "The record was assigned to someone else, or unassigned.", Order = 12)]
+    AssigneeChanged = 12,
+
+    [Display(Name = "Participants Changed", Description = "Someone was given access to the record, or lost it.", Order = 13)]
+    ParticipantsChanged = 13,
+
+    [Display(Name = "Channel Changed", Description = "Where the record is recorded as coming from changed.", Order = 14)]
+    ChannelChanged = 14,
 }

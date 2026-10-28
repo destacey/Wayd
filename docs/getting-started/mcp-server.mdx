@@ -27,6 +27,7 @@ The MCP server exposes more than 250 tools across Wayd's core modules:
 | **[Product Delivery](../user-guide/product-management/delivery.mdx)**             | Plan, cut, release, and withdraw versions, releases, and release packages. Record deployments and how they ended. Manage deployment environments. Read the rollout, delivery metrics, and delivery overview. |
 | **[Delivery Forecasting](../user-guide/work-management/delivery-forecasting.mdx)** | Forecast when a work item, PI objective, or project will be done, and how many backlog work items a team finishes by a date.                                                                                                                                                                                                                                                                              |
 | **[Imports](../user-guide/settings/imports.mdx)**                                  | Check a CSV file before importing it, then import the rows it checked. Follow import runs and their row outcomes, and stop, resume, or retry a run.                                                                                                                                                                                                                                                       |
+| **[Demand Management](../user-guide/demand-management/index.mdx)**               | Hosted endpoint only. Submit, edit, and withdraw intake requests and read where they stand. Review requests on a desk: change status, assign, tag, move to another desk, and manage participants. Set up desks, channels, and tag axes. |
 
 ## Prerequisites
 
@@ -37,7 +38,7 @@ There are two ways to connect: the [hosted endpoint](#hosted-endpoint-preview), 
 
 ## Hosted Endpoint (Preview)
 
-The Wayd API also serves MCP itself, at `/mcp` on the API's address, using Streamable HTTP. It offers the same tools under the same names as the npm package, so skills and prompts written for one work with the other, and it needs no Node.js on your machine. It also offers [tools the package lacks](#hosted-only-tools): partial updates that change only the fields you name, single-call evidence reads for health checks, and whole areas the package never covered, such as work items and sprints, employees, team membership and capacity, risks, and planning poker. Each of the [agent skills](#agent-skills) is served there without installing it, two ways: as an MCP prompt named after the skill (`wayd-ppm`, `wayd-pi`, …) that you can pick in a client that lists prompts, and through a skills tool, which the assistant calls on its own. Every tool's description names the skill for its area, so an assistant connected to the hosted endpoint is pointed to that guidance whichever toolsets you chose; whether it reads it is up to the assistant. The npm package will be retired a few weeks after the hosted endpoint is generally available.
+The Wayd API also serves MCP itself, at `/mcp` on the API's address, using Streamable HTTP. It offers the same tools under the same names as the npm package, so skills and prompts written for one work with the other, and it needs no Node.js on your machine. It also offers [tools the package lacks](#hosted-only-tools): partial updates that change only the fields you name, single-call evidence reads for health checks, and whole areas the package never covered, such as work items and sprints, employees, team membership and capacity, risks, planning poker, and intake requests. Each of the [agent skills](#agent-skills) is served there without installing it, two ways: as an MCP prompt named after the skill (`wayd-ppm`, `wayd-pi`, …) that you can pick in a client that lists prompts, and through a skills tool, which the assistant calls on its own. Every tool's description names the skill for its area, so an assistant connected to the hosted endpoint is pointed to that guidance whichever toolsets you chose; whether it reads it is up to the assistant. The npm package will be retired a few weeks after the hosted endpoint is generally available.
 
 An administrator turns it on with the **MCP Server** feature flag (**Settings > System > Feature Flags**); while the flag is off, `/mcp` answers 404. Connect in one of two ways:
 
@@ -155,6 +156,7 @@ Every tool's description is loaded into the conversation before any work starts,
 | `organization` | Employees, holiday calendars, team member roles, team types, risks                                        |
 | `work`         | Workspaces, work items, sprints, work processes, work types and statuses                                  |
 | `imports`      | Checking, applying and following CSV imports                                                              |
+| `intake`       | Intake requests and their review, desks, channels, tag axes                                               |
 
 Choose them on the URL, or in headers if your client sends them:
 
@@ -224,6 +226,7 @@ Beyond those, it covers these areas, which the npm package covers partly or not 
 | `Roadmaps_*`, `StoryMaps_*` | `planning` | Create, copy, update, archive and delete roadmaps and their items; rename a story map task or set its description |
 | `PokerSessions_*`, `EstimationScales_*` | `planning` | Run planning poker sessions — rounds, votes, reveal and consensus — and manage estimation scales |
 | `Portfolios_*`, `Programs_*`, `Projects_*`, `Tasks_*`, `ProjectLifecycles_*`, `StrategicInitiatives_*`, `ExpenditureCategories_*`, `ScoringModels_*` | `ppm` | Delete portfolios, programs and projects; list scoring models, assign them to portfolios and move projects on the ranking board; assign and change project lifecycles and manage the lifecycles themselves; record project scores; create, update and delete strategic initiatives and their KPIs; manage expenditure categories |
+| `IntakeRequests_*`, `IntakeDesks_*`, `IntakeChannels_*`, `IntakeRequestTagCategories_*`, `IntakeEmployeeOptions_*` | `intake` | Submit, edit and withdraw intake requests and read where they stand; review them on a desk — change status, assign, tag, move to another desk, manage participants; set up desks, channels and tag axes (`demand-management` feature flag) |
 
 The patch tools take a JSON Patch (RFC 6902) and leave alone anything it does not name, so they avoid the [whole-record overwrite](#changes-that-ask-first) of the matching update tools.
 
@@ -326,7 +329,7 @@ CLI arguments take precedence over environment variables.
 
 ## Agent Skills
 
-For Claude Code users, twelve pre-built skills provide guided workflows:
+For Claude Code users, thirteen pre-built skills provide guided workflows:
 
 - **`/wayd-ppm`** — Portfolio, program, project, and strategic initiative operations, including scoring, health checks, status changes, and tasks
 - **`/wayd-pi`** — Planning intervals, iterations, objectives, and risks
@@ -340,6 +343,7 @@ For Claude Code users, twelve pre-built skills provide guided workflows:
 - **`/wayd-work`** — Workspaces, work items, sprints, and the work processes, types and statuses behind them (hosted endpoint only, apart from work item forecasts)
 - **`/wayd-estimation`** — Planning poker sessions and estimation scales (hosted endpoint only)
 - **`/wayd-imports`** — Loading CSV data: writing a file, checking it with a preflight, importing it, and following import runs
+- **`/wayd-intake`** — Raising intake requests, following what happened to them, reviewing them on a desk, and setting up desks, channels and tag axes (hosted endpoint only)
 
 Install the skills:
 

@@ -6,6 +6,7 @@ using Wayd.DemandManagement.Application.IntakeRequestTagCategories;
 using Wayd.DemandManagement.Application.IntakeRequestTagCategories.Commands;
 using Wayd.DemandManagement.Application.IntakeRequestTagCategories.Dtos;
 using Wayd.DemandManagement.Application.IntakeRequestTagCategories.Queries;
+using Wayd.DemandManagement.Domain.Models;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.DemandManagement.IntakeRequestTagCategories;
 
@@ -150,7 +151,7 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
         result.IsSuccess ? NoContent() : ErrorFor(result.Error);
 
     private ActionResult ErrorFor(string error) =>
-        error == IntakeRequestTagCategoryErrors.NotFoundError
+        error is IntakeRequestTagCategoryErrors.NotFoundError or IntakeRequestTagCategory.TagNotFoundError
             ? NotFound()
             : BadRequest(Result.Failure(error).ToBadRequestObject(HttpContext));
 }

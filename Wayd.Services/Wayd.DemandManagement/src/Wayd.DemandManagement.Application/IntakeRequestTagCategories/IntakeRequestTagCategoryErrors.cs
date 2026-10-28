@@ -13,4 +13,7 @@ public static class IntakeRequestTagCategoryErrors
 
     /// <summary>Another axis, active or not, already has the name.</summary>
     public const string DuplicateNameError = "A tag axis with this name already exists.";
+
+    /// <summary>A save refused because the axis or what refers to it changed after the checks passed.</summary>
+    public const string ChangedWhileSavingError = "The tag axis changed while saving. Reload and try again.";
 }

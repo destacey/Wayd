@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
@@ -168,5 +169,24 @@ public sealed class TagIntakeRequestCommandHandlerTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(IntakeRequest.TagAxisNotOfferedError);
         _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheSaveFails_ReportsTheTagsChanged()
+    {
+        // Arrange — another agent applied the same tag between the checks and the save
+        var agent = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(agentIds: [agent.Id]), _scenario.Employee());
+        var area = _scenario.TagCategory(allowsMany: true, "Payments");
+        _scenario.SignedInAs(agent);
+        _scenario.DbContext.FailNextSaveWith = new DbUpdateException("Duplicate key.");
+
+        // Act
+        var result = await CreateHandler().Handle(new TagIntakeRequestCommand(request.Id, area.Tags.Single().Id),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(TagIntakeRequestCommandHandler.TagsChangedError);
     }
 }

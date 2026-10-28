@@ -86,11 +86,12 @@ public class IntakeDeskTagCategoryConfiguration : IEntityTypeConfiguration<Intak
 
         builder.HasIndex(c => c.CategoryId);
 
-        // Cascade, so deleting an axis no request is tagged along also drops it from the desks that chose it.
+        // Restrict: deleting an axis takes it off each desk that chose it through the desk, so the desk records
+        // the change; a database cascade would remove it with no event.
         builder.HasOne<IntakeRequestTagCategory>()
             .WithMany()
             .HasForeignKey(c => c.CategoryId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
 

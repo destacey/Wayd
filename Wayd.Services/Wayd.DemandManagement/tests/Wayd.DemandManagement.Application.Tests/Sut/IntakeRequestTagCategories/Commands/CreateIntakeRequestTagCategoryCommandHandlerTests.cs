@@ -55,4 +55,20 @@ public sealed class CreateIntakeRequestTagCategoryCommandHandlerTests
         result.Error.Should().Be(IntakeRequestTagCategoryErrors.DuplicateNameError);
         _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
     }
+
+    [Fact]
+    public async Task Handle_WhenAnotherAxisTakesTheNameBeforeTheSave_ReportsTheDuplicate()
+    {
+        // Arrange
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);
+        _scenario.DbContext.FailNextSaveWith = new Microsoft.EntityFrameworkCore.DbUpdateException("Unique index.");
+
+        // Act
+        var result = await CreateHandler().Handle(new CreateIntakeRequestTagCategoryCommand("Area", null, true),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequestTagCategoryErrors.DuplicateNameError);
+    }
 }

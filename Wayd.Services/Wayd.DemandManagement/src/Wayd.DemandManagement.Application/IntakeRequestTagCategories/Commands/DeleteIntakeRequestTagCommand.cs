@@ -1,4 +1,5 @@
 using Wayd.Common.Domain.Events;
+using Wayd.DemandManagement.Domain.Models;
 
 namespace Wayd.DemandManagement.Application.IntakeRequestTagCategories.Commands;
 
@@ -49,7 +50,15 @@ public sealed class DeleteIntakeRequestTagCommandHandler(
         if (result.IsFailure)
             return result;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // The check above passed, so a failed save is a request given the tag since.
+            return Result.Failure(IntakeRequestTagCategory.TagInUseError);
+        }
 
         return Result.Success();
     }

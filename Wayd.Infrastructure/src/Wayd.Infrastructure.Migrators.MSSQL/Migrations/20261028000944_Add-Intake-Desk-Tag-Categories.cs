@@ -44,7 +44,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         principalSchema: "DemandManagement",
                         principalTable: "IntakeRequestTagCategories",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(

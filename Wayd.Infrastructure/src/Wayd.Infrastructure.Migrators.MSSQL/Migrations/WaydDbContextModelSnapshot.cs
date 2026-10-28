@@ -8743,7 +8743,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeRequestTagCategory", null)
                         .WithMany()
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeDesk", null)

@@ -64,6 +64,9 @@ public sealed class IntakeRequestTagCategory : BaseAuditableEntity
     /// Whether the platform defines this axis. A system axis cannot be renamed, given tags or deleted; it can
     /// still be reordered and deactivated, which are the company's calls.
     /// </summary>
+    /// <remarks>
+    /// Reserved: no axis is a system axis yet. The seeded Area axis is the company's to change, so it is not one.
+    /// </remarks>
     public bool IsSystem { get; private init; }
 
     /// <summary>

@@ -35,6 +35,8 @@ public sealed class TagIntakeRequestCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
+    public const string TagsChangedError = "The request's tags changed while saving. Reload and try again.";
+
     public async Task<Result> Handle(TagIntakeRequestCommand request, CancellationToken cancellationToken)
     {
         var reader = await _currentPrincipal.ResolveIntakeRequestReader(_dbContext, cancellationToken);
@@ -64,7 +66,15 @@ public sealed class TagIntakeRequestCommandHandler(
         if (result.IsFailure)
             return result;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // The tag was applied, or the tag or its axis deleted, between the checks above and this save.
+            return Result.Failure(TagsChangedError);
+        }
 
         return Result.Success();
     }

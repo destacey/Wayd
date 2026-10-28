@@ -1,4 +1,6 @@
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.DemandManagement.Application.IntakeRequestTagCategories;
@@ -66,5 +68,47 @@ public sealed class DeleteIntakeRequestTagCategoryCommandHandlerTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(IntakeRequestTagCategoryErrors.NotFoundError);
+    }
+
+    [Fact]
+    public async Task Handle_WhenDesksChoseIt_TakesItOffEachDeskThroughTheDesk()
+    {
+        // Arrange — a database cascade would drop it with no desk event and no new revision
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);
+        var area = _scenario.TagCategory(allowsMany: true, "Payments");
+        var segment = _scenario.TagCategory(allowsMany: false, "Enterprise");
+        var desk = _scenario.Desk();
+        desk.ChangeTagCategories(false, [area.Id, segment.Id], EventActor.System, _scenario.Clock.Now);
+        desk.ClearDomainEvents();
+        var untouched = _scenario.Desk();
+
+        // Act
+        var result = await CreateHandler().Handle(new DeleteIntakeRequestTagCategoryCommand(area.Id),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        desk.OffersAllTagCategories.Should().BeFalse();
+        desk.TagCategories.Select(c => c.CategoryId).Should().Equal(segment.Id);
+        var changed = desk.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskTagCategoriesChangedEvent>().Subject;
+        changed.RemovedTagCategoryIds.Should().Equal(area.Id);
+        untouched.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheSaveFails_ReportsTheAxisChanged()
+    {
+        // Arrange
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);
+        var area = _scenario.TagCategory(allowsMany: true, "Payments");
+        _scenario.DbContext.FailNextSaveWith = new DbUpdateException("A request was tagged along it meanwhile.");
+
+        // Act
+        var result = await CreateHandler().Handle(new DeleteIntakeRequestTagCategoryCommand(area.Id),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequestTagCategoryErrors.ChangedWhileSavingError);
     }
 }

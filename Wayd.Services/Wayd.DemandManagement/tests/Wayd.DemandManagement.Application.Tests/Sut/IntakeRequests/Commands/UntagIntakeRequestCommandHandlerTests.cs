@@ -56,4 +56,23 @@ public sealed class UntagIntakeRequestCommandHandlerTests
         request.Tags.Should().ContainSingle();
         _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
     }
+
+    [Fact]
+    public async Task Handle_ByAViewHolderNotOnTheDesk_FailsAndKeepsTheTag()
+    {
+        // Arrange
+        var request = _scenario.Request(_scenario.Desk(), _scenario.Employee());
+        var area = _scenario.TagCategory(allowsMany: true, "Payments");
+        _scenario.Tagged(request, area, "Payments");
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.View);
+
+        // Act
+        var result = await CreateHandler().Handle(new UntagIntakeRequestCommand(request.Id, area.Tags.Single().Id),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequestAuthorization.NotAnAgentError);
+        request.Tags.Should().ContainSingle();
+    }
 }

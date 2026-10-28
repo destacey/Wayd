@@ -1,4 +1,5 @@
 using Wayd.Common.Domain.Events;
+using Wayd.DemandManagement.Domain.Models;
 
 namespace Wayd.DemandManagement.Application.IntakeRequestTagCategories.Commands;
 
@@ -46,7 +47,15 @@ public sealed class AddIntakeRequestTagCommandHandler(
         if (result.IsFailure)
             return Result.Failure<Guid>(result.Error);
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // The name was checked above, so a failed save is another one taking it meanwhile.
+            return Result.Failure<Guid>(IntakeRequestTagCategory.DuplicateTagNameError);
+        }
 
         return result.Value.Id;
     }

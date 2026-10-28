@@ -49,7 +49,15 @@ public sealed class UpdateIntakeRequestTagCategoryCommandHandler(
         if (result.IsFailure)
             return result;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // The name was checked above, so a failed save is another one taking it meanwhile.
+            return Result.Failure(IntakeRequestTagCategoryErrors.DuplicateNameError);
+        }
 
         return Result.Success();
     }

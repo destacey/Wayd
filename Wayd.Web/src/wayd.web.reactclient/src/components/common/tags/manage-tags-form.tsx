@@ -17,7 +17,10 @@ export interface TagChanges {
 }
 
 export interface ManageTagsFormProps {
-  /** The axes to offer. Callers pass the active ones. */
+  /**
+   * The axes to offer, each with the tags it may show. Only these are diffed, so
+   * a tag on an axis not passed stays on the record.
+   */
   categories: TagCategory[]
   /** What the record currently carries. */
   tags: TagAssignment[]

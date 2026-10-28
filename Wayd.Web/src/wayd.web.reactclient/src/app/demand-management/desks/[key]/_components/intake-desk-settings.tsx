@@ -90,7 +90,7 @@ const IntakeDeskSettings: FC<IntakeDeskSettingsProps> = ({
         ) : (
           <Flex vertical>
             <Text>None</Text>
-            <Text type="secondary">The desk's requests are not tagged.</Text>
+            <Text type="secondary">Requests on this desk are not tagged.</Text>
           </Flex>
         )}
       </LabeledContent>

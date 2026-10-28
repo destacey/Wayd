@@ -489,12 +489,13 @@ export const demandManagementApi = apiSlice.injectEndpoints({
         }
       },
       // Removing a member unassigns them from the desk's requests, and a rename shows on every request
-      // on the desk, so every cached request refreshes too. The channels it offers may have changed.
+      // on the desk, so every cached request refreshes too. The channels and tag axes it offers may have changed.
       invalidatesTags: (_result, _error, { id }) => [
         { type: QueryTags.IntakeDesk, id },
         deskListTag,
         QueryTags.IntakeRequest,
         channelListTag,
+        tagCategoryListTag,
       ],
     }),
 

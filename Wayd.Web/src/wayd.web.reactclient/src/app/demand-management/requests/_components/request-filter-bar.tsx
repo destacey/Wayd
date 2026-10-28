@@ -224,7 +224,8 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
           { value: NOT_RECORDED_CHANNEL, label: NOT_RECORDED_CHANNEL_LABEL },
         ]}
       />
-      {(tagCategories?.length ?? 0) > 0 && (
+      {/* Hidden until some axis has a tag: the seeded axis starts empty. */}
+      {tagCategories?.some((c) => c.tags.length > 0) && (
         <Select
           className={controlClass}
           mode="multiple"

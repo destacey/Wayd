@@ -57881,6 +57881,7 @@ export enum Connector {
     AzureOpenAI = "AzureOpenAI",
     Entra = "Entra",
     Workday = "Workday",
+    Teams = "Teams",
 }
 
 /** A capability a connector supports, with the display category it is grouped under. */
@@ -58538,6 +58539,12 @@ export interface CreateTeamRequest {
     description?: string | undefined;
     /** The active date for the team. */
     activeDate: string;
+}
+
+export interface CreateTeamsConnectionRequest extends CreateConnectionRequest {
+    tenantId: string;
+    clientId: string;
+    clientSecret: string;
 }
 
 export interface CreateUserRequest {
@@ -65528,6 +65535,19 @@ int? TeamOperatingModelListDto.CadenceWeeks is. */
     cadenceAnchor?: string | undefined;
 }
 
+export interface TeamsConnectionConfigurationDto {
+    tenantId: string;
+    clientId: string;
+    clientSecret: string;
+}
+
+export interface TeamsConnectionDetailsDto extends ConnectionDetailsDto {
+    configuration: TeamsConnectionConfigurationDto;
+}
+
+export interface TeamsConnectionListDto extends ConnectionListDto {
+}
+
 /** A team's velocity, predictability and say/do over its last completed standard sprints: each sprint's values, their average and their spread. Worked out when read from work item history, and never stored. */
 export interface TeamSprintMetricsDto {
     /** The team the metrics are of. */
@@ -66555,6 +66575,12 @@ export interface UpdateTeamRequest {
     code: string;
     /** Gets the team description. */
     description?: string | undefined;
+}
+
+export interface UpdateTeamsConnectionRequest extends UpdateConnectionRequest {
+    tenantId: string;
+    clientId: string;
+    clientSecret?: string | undefined;
 }
 
 export interface UpdateUserRequest {

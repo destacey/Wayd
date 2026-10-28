@@ -34,7 +34,7 @@ describe('create-connection-form helpers', () => {
 
     it('should return valid discriminator strings matching backend expectations', () => {
       // These discriminators must match the JsonDerivedType attributes in the backend
-      const validDiscriminators = ['azure-devops', 'azure-openai', 'entra', 'workday']
+      const validDiscriminators = ['azure-devops', 'azure-openai', 'entra', 'workday', 'teams']
 
       Object.values(ConnectorType)
         .filter((v) => typeof v === 'number')

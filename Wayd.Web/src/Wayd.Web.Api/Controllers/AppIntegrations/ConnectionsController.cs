@@ -3,11 +3,13 @@ using Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Commands.AzureOpenAI;
 using Wayd.AppIntegration.Application.Connections.Commands.Entra;
 using Wayd.AppIntegration.Application.Connections.Commands.Workday;
+using Wayd.AppIntegration.Application.Connections.Commands.Teams;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureOpenAI;
 using Wayd.AppIntegration.Application.Connections.Dtos.Entra;
 using Wayd.AppIntegration.Application.Connections.Dtos.Identities;
 using Wayd.AppIntegration.Application.Connections.Dtos.Workday;
+using Wayd.AppIntegration.Application.Connections.Dtos.Teams;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Application.Connections.Commands.Identities;
@@ -137,6 +139,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
                 await _dispatcher.Send(entra.ToCommand(), cancellationToken),
             CreateWorkdayConnectionRequest workday =>
                 await _dispatcher.Send(workday.ToCommand(), cancellationToken),
+            CreateTeamsConnectionRequest teams =>
+                await _dispatcher.Send(teams.ToCommand(), cancellationToken),
             _ => Result.Failure<Guid>($"Connector type not supported")
         };
 
@@ -169,6 +173,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
                 await _dispatcher.Send(entra.ToCommand(), cancellationToken),
             UpdateWorkdayConnectionRequest workday =>
                 await _dispatcher.Send(workday.ToCommand(), cancellationToken),
+            UpdateTeamsConnectionRequest teams =>
+                await _dispatcher.Send(teams.ToCommand(), cancellationToken),
             _ => Result.Failure($"Connector type not supported")
         };
 
@@ -396,6 +402,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
                 await _dispatcher.Send(new DeleteEntraConnectionCommand(id), cancellationToken),
             WorkdayConnectionDetailsDto =>
                 await _dispatcher.Send(new DeleteWorkdayConnectionCommand(id), cancellationToken),
+            TeamsConnectionDetailsDto =>
+                await _dispatcher.Send(new DeleteTeamsConnectionCommand(id), cancellationToken),
             _ => Result.Failure($"Connector type not supported")
         };
 

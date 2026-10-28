@@ -4,6 +4,8 @@ using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureOpenAI;
 using Wayd.AppIntegration.Application.Connections.Dtos.Entra;
 using Wayd.AppIntegration.Application.Connections.Dtos.Workday;
+using Wayd.AppIntegration.Application.Connections.Dtos.Teams;
+using Wayd.AppIntegration.Domain.Models.Teams;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.AppIntegration.Domain.Models.Workday;
@@ -55,6 +57,11 @@ public sealed class GetConnectionQueryHandler(IAppIntegrationDbContext appIntegr
                 var workday = connection.Adapt<WorkdayConnectionDetailsDto>();
                 workday.Configuration.MaskIsuPassword();
                 return workday;
+
+            case TeamsConnection:
+                var teams = connection.Adapt<TeamsConnectionDetailsDto>();
+                teams.Configuration.MaskClientSecret();
+                return teams;
 
             default:
                 throw new InvalidOperationException(

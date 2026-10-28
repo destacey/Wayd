@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.AppIntegration.Domain.Models.Workday;
+using Wayd.AppIntegration.Domain.Models.Teams;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
@@ -23,7 +24,8 @@ public class ConnectionConfig : IEntityTypeConfiguration<Connection>
             .HasValue<AzureDevOpsBoardsConnection>(Connector.AzureDevOps)
             .HasValue<AzureOpenAIConnection>(Connector.AzureOpenAI)
             .HasValue<EntraConnection>(Connector.Entra)
-            .HasValue<WorkdayConnection>(Connector.Workday);
+            .HasValue<WorkdayConnection>(Connector.Workday)
+            .HasValue<TeamsConnection>(Connector.Teams);
 
         builder.HasIndex(c => new { c.Id, c.IsDeleted })
             .WhereNotDeleted();
@@ -103,6 +105,16 @@ public class EntraConnectionConfig : IEntityTypeConfiguration<EntraConnection>
 public class WorkdayConnectionConfig : IEntityTypeConfiguration<WorkdayConnection>
 {
     public void Configure(EntityTypeBuilder<WorkdayConnection> builder)
+    {
+        builder.Property(c => c.Configuration)
+            .HasEncryptedJsonConversion()
+            .HasColumnName("Configuration");
+    }
+}
+
+public class TeamsConnectionConfig : IEntityTypeConfiguration<TeamsConnection>
+{
+    public void Configure(EntityTypeBuilder<TeamsConnection> builder)
     {
         builder.Property(c => c.Configuration)
             .HasEncryptedJsonConversion()

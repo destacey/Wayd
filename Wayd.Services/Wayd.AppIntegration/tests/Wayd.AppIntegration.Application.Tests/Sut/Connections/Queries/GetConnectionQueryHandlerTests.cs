@@ -12,6 +12,8 @@ using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.AppIntegration.Domain.Models.Workday;
+using Wayd.AppIntegration.Application.Connections.Dtos.Teams;
+using Wayd.AppIntegration.Domain.Models.Teams;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.AppIntegration;
 
@@ -135,6 +137,7 @@ public class GetConnectionQueryHandlerTests
             AzureOpenAIConnectionDetailsDto aoai => aoai.Configuration.ApiKey,
             EntraConnectionDetailsDto entra => entra.Configuration.ClientSecret,
             WorkdayConnectionDetailsDto workday => workday.Configuration.IsuPassword,
+            TeamsConnectionDetailsDto teams => teams.Configuration.ClientSecret,
             _ => throw new InvalidOperationException($"No secret accessor for '{dto?.GetType().Name}'."),
         });
 
@@ -148,6 +151,8 @@ public class GetConnectionQueryHandlerTests
             "Entra", null, new EntraConnectionConfiguration("tenant-id", "client-id", "client-secret"), true, EventActor.System, _now),
         WorkdayConnection.Create(
             "Workday", null, new WorkdayConnectionConfiguration("https://wd.acme.example/ccx/service/acme_corp/Staffing/v46.1?wsdl", "isu-user", "isu-pass"), true, EventActor.System, _now),
+        TeamsConnection.Create(
+            "Teams", null, new TeamsConnectionConfiguration("tenant-id", "client-id", "client-secret"), true, EventActor.System, _now),
     ];
 
     private sealed class UnmappedConnection : Connection

@@ -51461,7 +51461,8 @@
             "azure-devops": "#/components/schemas/AzureDevOpsConnectionDetailsDto",
             "azure-openai": "#/components/schemas/AzureOpenAIConnectionDetailsDto",
             "entra": "#/components/schemas/EntraConnectionDetailsDto",
-            "workday": "#/components/schemas/WorkdayConnectionDetailsDto"
+            "workday": "#/components/schemas/WorkdayConnectionDetailsDto",
+            "teams": "#/components/schemas/TeamsConnectionDetailsDto"
           }
         }
       },
@@ -51573,7 +51574,8 @@
             "azure-devops": "#/components/schemas/AzureDevOpsConnectionListDto",
             "azure-openai": "#/components/schemas/AzureOpenAIConnectionListDto",
             "entra": "#/components/schemas/EntraConnectionListDto",
-            "workday": "#/components/schemas/WorkdayConnectionListDto"
+            "workday": "#/components/schemas/WorkdayConnectionListDto",
+            "teams": "#/components/schemas/TeamsConnectionListDto"
           }
         }
       },
@@ -51582,7 +51584,8 @@
           "AzureDevOps",
           "AzureOpenAI",
           "Entra",
-          "Workday"
+          "Workday",
+          "Teams"
         ],
         "type": "string"
       },
@@ -51885,7 +51888,8 @@
             "azure-devops": "#/components/schemas/CreateAzureDevOpsConnectionRequest",
             "azure-openai": "#/components/schemas/CreateAzureOpenAIConnectionRequest",
             "entra": "#/components/schemas/CreateEntraConnectionRequest",
-            "workday": "#/components/schemas/CreateWorkdayConnectionRequest"
+            "workday": "#/components/schemas/CreateWorkdayConnectionRequest",
+            "teams": "#/components/schemas/CreateTeamsConnectionRequest"
           }
         },
         "x-abstract": true
@@ -53779,6 +53783,39 @@
           }
         },
         "additionalProperties": false
+      },
+      "CreateTeamsConnectionRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CreateConnectionRequest"
+          },
+          {
+            "required": [
+              "tenantId",
+              "clientId",
+              "clientSecret"
+            ],
+            "type": "object",
+            "properties": {
+              "tenantId": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "clientId": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "clientSecret": {
+                "maxLength": 512,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
       },
       "CreateUserRequest": {
         "required": [
@@ -75228,6 +75265,56 @@
         "additionalProperties": false,
         "description": "A team's operating model in brief: the methodology and sizing method it uses, the time zone its days are\ncounted in, and its reporting cadence."
       },
+      "TeamsConnectionConfigurationDto": {
+        "required": [
+          "tenantId",
+          "clientId",
+          "clientSecret"
+        ],
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TeamsConnectionDetailsDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConnectionDetailsDto"
+          },
+          {
+            "required": [
+              "configuration"
+            ],
+            "type": "object",
+            "properties": {
+              "configuration": {
+                "$ref": "#/components/schemas/TeamsConnectionConfigurationDto"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "TeamsConnectionListDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConnectionListDto"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false
+          }
+        ]
+      },
       "TeamSprintMetricsDto": {
         "required": [
           "byCount",
@@ -76000,7 +76087,8 @@
             "azure-devops": "#/components/schemas/UpdateAzureDevOpsConnectionRequest",
             "azure-openai": "#/components/schemas/UpdateAzureOpenAIConnectionRequest",
             "entra": "#/components/schemas/UpdateEntraConnectionRequest",
-            "workday": "#/components/schemas/UpdateWorkdayConnectionRequest"
+            "workday": "#/components/schemas/UpdateWorkdayConnectionRequest",
+            "teams": "#/components/schemas/UpdateTeamsConnectionRequest"
           }
         },
         "x-abstract": true
@@ -78623,6 +78711,38 @@
           }
         },
         "additionalProperties": false
+      },
+      "UpdateTeamsConnectionRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UpdateConnectionRequest"
+          },
+          {
+            "required": [
+              "tenantId",
+              "clientId"
+            ],
+            "type": "object",
+            "properties": {
+              "tenantId": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "clientId": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "clientSecret": {
+                "maxLength": 512,
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
       },
       "UpdateUserRequest": {
         "required": [

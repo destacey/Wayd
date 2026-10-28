@@ -61,6 +61,8 @@ export const getDiscriminator = (connector: ConnectorType): string => {
       return 'entra'
     case ConnectorType.Workday:
       return 'workday'
+    case ConnectorType.Teams:
+      return 'teams'
     default:
       // A silent fallback would submit a request the backend can't deserialize —
       // fail loudly so a new connector can't ship without its discriminator.

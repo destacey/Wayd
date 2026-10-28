@@ -2,6 +2,7 @@
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.AppIntegration.Domain.Models.Workday;
+using Wayd.AppIntegration.Domain.Models.Teams;
 
 namespace Wayd.AppIntegration.Application.Persistence;
 
@@ -12,5 +13,6 @@ public interface IAppIntegrationDbContext : IWaydDbContext
     DbSet<AzureOpenAIConnection> AzureOpenAIConnections { get; }
     DbSet<EntraConnection> EntraConnections { get; }
     DbSet<WorkdayConnection> WorkdayConnections { get; }
+    DbSet<TeamsConnection> TeamsConnections { get; }
     DbSet<SyncRun> SyncRuns { get; }
 }

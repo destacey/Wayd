@@ -37,14 +37,10 @@ jest.mock('@/src/components/common/markdown', () => ({
   MarkdownEditor: () => <textarea data-testid="markdown-editor" />,
 }))
 
-jest.mock('@/src/components/common', () => ({
-  FollowButton: ({
-    ownerType,
-    ownerId,
-  }: {
-    ownerType: string
-    ownerId: string
-  }) => (
+// The record header renders the follow eye itself.
+jest.mock('@/src/components/common/follow-button', () => ({
+  __esModule: true,
+  default: ({ ownerType, ownerId }: { ownerType: string; ownerId: string }) => (
     <button
       type="button"
       data-testid="follow"
@@ -53,6 +49,9 @@ jest.mock('@/src/components/common', () => ({
       Follow
     </button>
   ),
+}))
+
+jest.mock('@/src/components/common', () => ({
   PageActions: ({ actionItems }: { actionItems: any[] }) => (
     <div data-testid="page-actions">
       {actionItems.map((item) => (

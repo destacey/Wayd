@@ -1,6 +1,6 @@
 'use client'
 
-import { FollowButton, PageActions } from '@/src/components/common'
+import { PageActions } from '@/src/components/common'
 import {
   ACTIVITY_LOG_PAGE_SIZE,
   ActivityLogExportButton,
@@ -293,12 +293,12 @@ const IntakeRequestDetailsPage = (props: {
               />
             </Flex>
           ),
+          follow: {
+            ownerType: FollowOwnerTypes.IntakeRequest,
+            ownerId: summary.id,
+          },
           actions: (
             <Flex gap="small" align="center">
-              <FollowButton
-                ownerType={FollowOwnerTypes.IntakeRequest}
-                ownerId={summary.id}
-              />
               {request.canChangeStatus && (
                 <MoveIntakeRequestButton
                   request={request}

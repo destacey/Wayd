@@ -87,7 +87,7 @@ A gap in request numbers can be requests the caller cannot see; it says nothing 
 - **Edit** with `IntakeRequests_Update` while the request is Proposed (an agent on its desk can edit it while it is open). It **overwrites the whole request**: read it first and send back `title`, `description`, `expectedBenefits`, `channelId` and `needBy` as they are, changing only what the user asked. An omitted `needBy` clears the date, its basis and reference. Send the request's current `channelId` unless the user is changing it: a recorded channel can be changed but not cleared while the desk offers channels, so an omitted one is refused.
 - **Withdraw** with `IntakeRequests_Withdraw`, with an optional `note` for the desk. Only the requester can, while it is open — not whoever submitted it on their behalf. It stays on record as Withdrawn, and an agent can reopen it.
 - **Give someone access** with `IntakeRequests_AddParticipant` (an employee id): participants read the request but cannot change it. The requester and submitter can, unless the desk is private and does not allow it (`canAddParticipants`).
-- **Follow it** with `Me_Follow` (`ownerType` `demand.intake-request` and the request's UUID; see the `wayd-users` skill), where the `following` feature flag is on. Following an intake request sends no notifications yet.
+- **Follow it** with `Me_Follow` (`ownerType` `demand.intake-request` and the request's UUID; see the `wayd-users` skill), where the `following` feature flag is on. A request's requester, assignee and participants are told about its changes without following it; following tells anyone else who can see it. See the `wayd-users` skill for reading and muting notifications.
 
 ## Reviewing requests on a desk
 

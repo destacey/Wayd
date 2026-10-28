@@ -157,6 +157,7 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Desk Admin / Agent** | The two roles on a desk (`IntakeDeskRole`). An Agent acts on the desk's requests; a Desk Admin also runs the desk and deletes its requests. Membership is the grant, with no permission beside it. Generic on purpose, so neither reads as a job title. |
 | **Demand Management Admin** | Whoever holds `Permissions.IntakeRequests.Administer`: creates and deletes desks, sets their visibility, names Desk Admins, and acts as Desk Admin on every desk. |
 | **Assignee** | The desk member who owns a request. Ownership, never an approver. |
+| **Intake Request Score** | An agent's rating of a request against its desk's scoring model: an immutable snapshot, added on every re-score so the history shows how it moved. Substance tier. Only scores from the desk's current model rank together. A desk with no model does not score. |
 | **Review Workflow** | The status workflow a desk's requests follow (owner type `demand.intake-request`): the organization's default, or one chosen for the desk while no request is on it. Rules key on the status's category and alias, never its name. |
 | **Withdraw** | The requester's way out: moves their open request to Withdrawn, the only route there. The submitter cannot withdraw a request entered on someone's behalf. |
 | **Duplicate** | A request marked as giving way to another, which it names; readers who can see the surviving request are taken to it. Resolved by hand, never merged. |

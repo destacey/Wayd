@@ -56,8 +56,10 @@ const IncidentSeveritySetsPage = () => {
 
   const columns: ColumnDef<IncidentSeveritySetDto, unknown>[] = [
     {
+      id: 'name',
       accessorKey: 'name',
       header: 'Name',
+      size: 340,
       cell: ({ row }) => (
         <Space wrap>
           <span>{row.original.name}</span>
@@ -70,12 +72,15 @@ const IncidentSeveritySetsPage = () => {
     {
       id: 'levels',
       header: 'Levels',
+      size: 420,
       cell: ({ row }) =>
         row.original.levels.map((l) => l.name).join(' → '),
     },
     {
       id: 'select',
       header: '',
+      size: 100,
+      enableColumnFilter: false,
       cell: ({ row }) =>
         canUpdate && !row.original.isSelected ? (
           <Button
@@ -112,7 +117,7 @@ const IncidentSeveritySetsPage = () => {
   return (
     <div className="page-gutters">
       <PageTitle
-        title="Incident severity sets"
+        title="Incident Severity Sets"
         subtitle="Choose the scale new incidents use. Open incidents keep the level they were given."
         actions={actions}
       />

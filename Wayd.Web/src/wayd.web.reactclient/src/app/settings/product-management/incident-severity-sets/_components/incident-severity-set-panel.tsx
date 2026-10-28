@@ -73,22 +73,24 @@ export function CreateIncidentSeveritySetForm({ open, onClose, onCreated }: Prop
           {(fields, { add, remove }) => (
             <>
               {fields.map((field) => (
-                <Form.Item
-                  {...field}
+                <Space.Compact
                   key={field.key}
-                  rules={[{ required: true, message: 'Level name is required' }]}
+                  block
+                  style={{ width: '100%', marginBottom: 8 }}
                 >
-                  <Input
-                    placeholder="Level name"
-                    addonAfter={
-                      fields.length > 2 ? (
-                        <Button type="link" onClick={() => remove(field.name)}>
-                          Remove
-                        </Button>
-                      ) : null
-                    }
-                  />
-                </Form.Item>
+                  <Form.Item
+                    {...field}
+                    noStyle
+                    rules={[{ required: true, message: 'Level name is required' }]}
+                  >
+                    <Input placeholder="Level name" />
+                  </Form.Item>
+                  {fields.length > 2 ? (
+                    <Button type="link" onClick={() => remove(field.name)}>
+                      Remove
+                    </Button>
+                  ) : null}
+                </Space.Compact>
               ))}
               <Button type="dashed" onClick={() => add('')} block>
                 Add level

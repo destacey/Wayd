@@ -3,9 +3,16 @@ import {
   getIntakeDesksClient,
   getIntakeEmployeeOptionsClient,
   getIntakeRequestsClient,
+  getIntakeRequestTagCategoriesClient,
 } from '@/src/services/clients'
 import {
+  AddIntakeRequestTagRequest,
   ChangeIntakeRequestStatusRequest,
+  CreateIntakeRequestTagCategoryRequest,
+  IntakeRequestTagCategoryDto,
+  ReorderIntakeRequestTagCategoriesRequest,
+  UpdateIntakeRequestTagCategoryRequest,
+  UpdateIntakeRequestTagRequest,
   CreateIntakeChannelRequest,
   CreateIntakeDeskRequest,
   CreateIntakeRequestRequest,
@@ -75,6 +82,21 @@ const listTag = { type: QueryTags.IntakeRequest, id: 'LIST' } as const
 const deskListTag = { type: QueryTags.IntakeDesk, id: 'LIST' } as const
 
 const channelListTag = { type: QueryTags.IntakeChannel, id: 'LIST' } as const
+
+const tagCategoryListTag = {
+  type: QueryTags.IntakeRequestTagCategory,
+  id: 'LIST',
+} as const
+
+export interface IntakeRequestTagArgs {
+  requestId: string
+  tagId: string
+}
+
+export interface IntakeRequestTagCategoryTagArgs {
+  categoryId: string
+  tagId: string
+}
 
 export interface ChangeIntakeRequestAssigneeArgs {
   requestId: string
@@ -467,12 +489,13 @@ export const demandManagementApi = apiSlice.injectEndpoints({
         }
       },
       // Removing a member unassigns them from the desk's requests, and a rename shows on every request
-      // on the desk, so every cached request refreshes too. The channels it offers may have changed.
+      // on the desk, so every cached request refreshes too. The channels and tag axes it offers may have changed.
       invalidatesTags: (_result, _error, { id }) => [
         { type: QueryTags.IntakeDesk, id },
         deskListTag,
         QueryTags.IntakeRequest,
         channelListTag,
+        tagCategoryListTag,
       ],
     }),
 
@@ -690,6 +713,217 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       },
     ),
 
+    // Every signed-in user reads these: whoever sees a request sees its tags and can filter on them. With a
+    // desk, only the active axes it offers its agents.
+    getIntakeRequestTagCategories: builder.query<
+      IntakeRequestTagCategoryDto[],
+      { includeInactive?: boolean; deskId?: string } | void
+    >({
+      queryFn: async (args) => {
+        try {
+          const data =
+            await getIntakeRequestTagCategoriesClient().getIntakeRequestTagCategories(
+              args?.includeInactive,
+              args?.deskId,
+            )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      providesTags: [tagCategoryListTag],
+    }),
+
+    createIntakeRequestTagCategory: builder.mutation<
+      string,
+      CreateIntakeRequestTagCategoryRequest
+    >({
+      queryFn: async (request) => {
+        try {
+          const data =
+            await getIntakeRequestTagCategoriesClient().create(request)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: [tagCategoryListTag],
+    }),
+
+    // A rename shows on every request tagged along the axis.
+    updateIntakeRequestTagCategory: builder.mutation<
+      void,
+      UpdateIntakeRequestTagCategoryRequest
+    >({
+      queryFn: async (request) => {
+        try {
+          const data = await getIntakeRequestTagCategoriesClient().update(
+            request.id,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: [tagCategoryListTag, QueryTags.IntakeRequest],
+    }),
+
+    setIntakeRequestTagCategoryActive: builder.mutation<
+      void,
+      { id: string; isActive: boolean }
+    >({
+      queryFn: async ({ id, isActive }) => {
+        try {
+          const data = await getIntakeRequestTagCategoriesClient().setActive(
+            id,
+            { isActive },
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: [tagCategoryListTag],
+    }),
+
+    // Requests list their tags in axis order.
+    reorderIntakeRequestTagCategories: builder.mutation<
+      void,
+      ReorderIntakeRequestTagCategoriesRequest
+    >({
+      queryFn: async (request) => {
+        try {
+          const data =
+            await getIntakeRequestTagCategoriesClient().reorder(request)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: [tagCategoryListTag, QueryTags.IntakeRequest],
+    }),
+
+    deleteIntakeRequestTagCategory: builder.mutation<void, string>({
+      queryFn: async (id) => {
+        try {
+          const data = await getIntakeRequestTagCategoriesClient().delete(id)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: [tagCategoryListTag],
+    }),
+
+    addIntakeRequestTag: builder.mutation<
+      string,
+      AddIntakeRequestTagRequest & { categoryId: string }
+    >({
+      queryFn: async ({ categoryId, ...request }) => {
+        try {
+          const data = await getIntakeRequestTagCategoriesClient().addTag(
+            categoryId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: [tagCategoryListTag],
+    }),
+
+    // A rename shows on every request carrying the tag.
+    updateIntakeRequestTag: builder.mutation<
+      void,
+      UpdateIntakeRequestTagRequest & IntakeRequestTagCategoryTagArgs
+    >({
+      queryFn: async ({ categoryId, tagId, ...request }) => {
+        try {
+          const data = await getIntakeRequestTagCategoriesClient().updateTag(
+            categoryId,
+            tagId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: [tagCategoryListTag, QueryTags.IntakeRequest],
+    }),
+
+    setIntakeRequestTagActive: builder.mutation<
+      void,
+      IntakeRequestTagCategoryTagArgs & { isActive: boolean }
+    >({
+      queryFn: async ({ categoryId, tagId, isActive }) => {
+        try {
+          const data = await getIntakeRequestTagCategoriesClient().setTagActive(
+            categoryId,
+            tagId,
+            { isActive },
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: [tagCategoryListTag],
+    }),
+
+    deleteIntakeRequestTag: builder.mutation<
+      void,
+      IntakeRequestTagCategoryTagArgs
+    >({
+      queryFn: async ({ categoryId, tagId }) => {
+        try {
+          const data = await getIntakeRequestTagCategoriesClient().deleteTag(
+            categoryId,
+            tagId,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: [tagCategoryListTag],
+    }),
+
+    // Changes the request, its activity, every list it appears in, and the tag counts.
+    tagIntakeRequest: builder.mutation<void, IntakeRequestTagArgs>({
+      queryFn: async ({ requestId, tagId }) => {
+        try {
+          const data = await getIntakeRequestsClient().tag(requestId, tagId)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: (_result, _error, { requestId }) => [
+        ...requestTags(requestId),
+        listTag,
+        tagCategoryListTag,
+      ],
+    }),
+
+    untagIntakeRequest: builder.mutation<void, IntakeRequestTagArgs>({
+      queryFn: async ({ requestId, tagId }) => {
+        try {
+          const data = await getIntakeRequestsClient().untag(requestId, tagId)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: (_result, _error, { requestId }) => [
+        ...requestTags(requestId),
+        listTag,
+        tagCategoryListTag,
+      ],
+    }),
+
     getIntakeEmployeeOptions: builder.query<EmployeeNavigationDto[], void>({
       queryFn: async () => {
         try {
@@ -741,5 +975,17 @@ export const {
   useArchiveIntakeChannelMutation,
   useRestoreIntakeChannelMutation,
   useReorderIntakeChannelsMutation,
+  useGetIntakeRequestTagCategoriesQuery,
+  useCreateIntakeRequestTagCategoryMutation,
+  useUpdateIntakeRequestTagCategoryMutation,
+  useSetIntakeRequestTagCategoryActiveMutation,
+  useReorderIntakeRequestTagCategoriesMutation,
+  useDeleteIntakeRequestTagCategoryMutation,
+  useAddIntakeRequestTagMutation,
+  useUpdateIntakeRequestTagMutation,
+  useSetIntakeRequestTagActiveMutation,
+  useDeleteIntakeRequestTagMutation,
+  useTagIntakeRequestMutation,
+  useUntagIntakeRequestMutation,
   useGetIntakeEmployeeOptionsQuery,
 } = demandManagementApi

@@ -74,6 +74,7 @@ jest.mock(
     useGetNeedByBasesQuery: () => ({ data: [] }),
     useGetIntakeDesksQuery: () => ({ data: mockDesks }),
     useGetIntakeChannelsQuery: () => ({ data: [] }),
+    useGetIntakeRequestTagCategoriesQuery: () => ({ data: [] }),
   }),
 )
 

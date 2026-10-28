@@ -10,8 +10,8 @@ namespace Wayd.DemandManagement.Application.IntakeDesks.Commands;
 /// not change record nothing.
 /// </summary>
 /// <remarks>
-/// A Desk Admin on the desk changes its details, whether it is open, its requester settings, the channels it
-/// offers and its agents.
+/// A Desk Admin on the desk changes its details, whether it is open, its requester settings, the channels and
+/// tag axes it offers and its agents.
 /// Its visibility, and who its Desk Admins are, only the Demand Management Admin changes: a Desk Admin who
 /// could open their own desk could publish everything on it, and one who could name Desk Admins could raise
 /// anyone's access. A member removed while owning requests on the desk is unassigned from them, because the
@@ -40,6 +40,14 @@ namespace Wayd.DemandManagement.Application.IntakeDesks.Commands;
 /// </param>
 /// <param name="Members">Everyone on the desk after the change, each with their role.</param>
 /// <param name="ExpectedRevision">The desk's <c>Revision</c> when the change was prepared; a desk changed since refuses it.</param>
+/// <param name="OffersAllTagCategories">
+/// Whether the desk's agents tag along every active company tag axis, including ones added later; null keeps the
+/// desk's axes as they are.
+/// </param>
+/// <param name="TagCategoryIds">
+/// The tag axes the desk offers when it does not offer them all; empty means none, and null keeps the ones it has.
+/// Ignored unless <paramref name="OffersAllTagCategories"/> is false. A newly chosen axis must be active.
+/// </param>
 public sealed record UpdateIntakeDeskCommand(
     Guid Id,
     string Name,
@@ -51,7 +59,9 @@ public sealed record UpdateIntakeDeskCommand(
     bool? OffersAllChannels,
     IReadOnlyList<Guid>? ChannelIds,
     IReadOnlyList<IntakeDeskMemberDetails> Members,
-    int ExpectedRevision) : ICommand;
+    int ExpectedRevision,
+    bool? OffersAllTagCategories = null,
+    IReadOnlyList<Guid>? TagCategoryIds = null) : ICommand;
 
 public sealed class UpdateIntakeDeskCommandValidator : CustomValidator<UpdateIntakeDeskCommand>
 {
@@ -62,6 +72,7 @@ public sealed class UpdateIntakeDeskCommandValidator : CustomValidator<UpdateInt
         RuleFor(c => c.Description).NotEmpty().MaximumLength(1024);
         RuleFor(c => c.Visibility).IsInEnum();
         RuleForEach(c => c.ChannelIds).NotEmpty();
+        RuleForEach(c => c.TagCategoryIds).NotEmpty();
         RuleFor(c => c.Members).NotNull()
             .Must(members => members.Select(m => m.EmployeeId).Distinct().Count() == members.Count)
             .WithMessage("An employee can hold only one role on a desk.");
@@ -92,6 +103,7 @@ public sealed class UpdateIntakeDeskCommandHandler(
         var desk = await _dbContext.IntakeDesks
             .Include(d => d.Members)
             .Include(d => d.Channels)
+            .Include(d => d.TagCategories)
             .FirstOrDefaultAsync(d => d.Id == request.Id, cancellationToken);
         if (desk is null)
             return Result.Failure(IntakeDeskAccess.NotFoundError);
@@ -136,6 +148,22 @@ public sealed class UpdateIntakeDeskCommandHandler(
                 return Result.Failure("An archived channel cannot be offered.");
         }
 
+        var offersAllTagCategories = request.OffersAllTagCategories ?? desk.OffersAllTagCategories;
+        Guid[] tagCategoryIds = [.. (request.TagCategoryIds ?? [.. desk.TagCategories.Select(c => c.CategoryId)]).Distinct()];
+        if (!offersAllTagCategories)
+        {
+            // An axis already chosen may stay after it is deactivated; only one newly chosen must be active.
+            var newlyChosen = tagCategoryIds.Where(id => desk.TagCategories.All(c => c.CategoryId != id)).ToArray();
+            var known = await _dbContext.IntakeRequestTagCategories
+                .Where(c => tagCategoryIds.Contains(c.Id))
+                .Select(c => new { c.Id, c.IsActive })
+                .ToListAsync(cancellationToken);
+            if (known.Count != tagCategoryIds.Length)
+                return Result.Failure("Every tag axis must be a company tag axis.");
+            if (known.Any(c => !c.IsActive && newlyChosen.Contains(c.Id)))
+                return Result.Failure("An inactive tag axis cannot be offered.");
+        }
+
         var actor = EventActor.User(_currentUser.GetUserId(), reader.EmployeeId);
         var now = _dateTimeProvider.Now;
         var result = Result.Combine(
@@ -144,6 +172,7 @@ public sealed class UpdateIntakeDeskCommandHandler(
             request.IsOpen ? desk.Open(actor, now) : desk.Close(actor, now),
             desk.ChangeRequesterSettings(request.IsRequesterSelectable, request.RequesterMayAddParticipants, actor, now),
             desk.ChangeChannels(offersAllChannels, channelIds, actor, now),
+            desk.ChangeTagCategories(offersAllTagCategories, tagCategoryIds, actor, now),
             desk.ChangeMembers(request.Members, actor, now));
         if (result.IsFailure)
             return result;

@@ -95,6 +95,9 @@ const summary = {
   requester: { id: 'e-1', key: 1, name: 'Avery Example' },
   channel: { id: 'c-1', name: 'Security' },
   status: { id: 's-1', name: 'Submitted', category: 'Proposed', alias: 1 },
+  tags: [
+    { id: 't-1', name: 'Payments', categoryId: 'a-1', categoryName: 'Area' },
+  ],
 }
 
 const substance = {
@@ -134,6 +137,9 @@ jest.mock(
     useUpdateIntakeRequestMutation: () => [jest.fn()],
     useGetIntakeEmployeeOptionsQuery: () => ({ data: [] }),
     useGetIntakeChannelsQuery: () => ({ data: [] }),
+    useGetIntakeRequestTagCategoriesQuery: () => ({ data: [] }),
+    useTagIntakeRequestMutation: () => [jest.fn()],
+    useUntagIntakeRequestMutation: () => [jest.fn()],
     useGetIntakeRequestStatusOptionsQuery: () => ({
       data: [],
       isFetching: false,
@@ -165,6 +171,7 @@ const details = (overrides: Record<string, unknown> = {}) => ({
   canAddParticipants: false,
   canChangeStatus: false,
   canChangeAssignee: false,
+  canChangeTags: false,
   canWithdraw: false,
   isDeskAgent: false,
   ...overrides,
@@ -247,6 +254,33 @@ describe('IntakeRequestDetailsPage', () => {
     expect(
       screen.queryByRole('button', { name: 'Withdraw Request' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('shows the request’s tags to a reader who cannot change them', async () => {
+    // Arrange
+    mockRequest = details({})
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(await screen.findByText('Payments')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Manage Tags' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('offers Manage Tags only when the server allows it', async () => {
+    // Arrange
+    mockRequest = details({ canChangeTags: true })
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(
+      await screen.findByRole('button', { name: 'Manage Tags' }),
+    ).toBeInTheDocument()
   })
 
   it('offers Change Assignee only when the server allows it', async () => {

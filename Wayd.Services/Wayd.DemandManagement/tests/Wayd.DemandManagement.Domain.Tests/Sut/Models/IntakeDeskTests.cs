@@ -600,4 +600,95 @@ public sealed class IntakeDeskTests
     }
 
     #endregion Channels
+
+
+    #region Tag categories
+
+    [Fact]
+    public void Offers_ANewDesk_OffersEveryActiveAxis()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().Generate();
+
+        // Act
+        var offersActive = sut.Offers(new IntakeRequestTagCategoryFaker().Generate());
+        var offersInactive = sut.Offers(new IntakeRequestTagCategoryFaker().WithIsActive(false).Generate());
+
+        // Assert
+        offersActive.Should().BeTrue();
+        offersInactive.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ChangeTagCategories_ToChosenOnes_OffersOnlyThoseAndRaisesBothEnds()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().Generate();
+        var chosen = new IntakeRequestTagCategoryFaker().Generate();
+        var other = new IntakeRequestTagCategoryFaker().Generate();
+
+        // Act
+        var result = sut.ChangeTagCategories(false, [chosen.Id], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Offers(chosen).Should().BeTrue();
+        sut.Offers(other).Should().BeFalse();
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskTagCategoriesChangedEvent>().Subject;
+        changed.OffersAllTagCategories.Should().BeFalse();
+        changed.PreviousOffersAllTagCategories.Should().BeTrue();
+        changed.AddedTagCategoryIds.Should().Equal(chosen.Id);
+        changed.RemovedTagCategoryIds.Should().BeEmpty();
+        changed.TagCategoryIds.Should().Equal(chosen.Id);
+    }
+
+    [Fact]
+    public void ChangeTagCategories_ChosenAxisDeactivated_IsNotOfferedButStaysChosen()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().Generate();
+        var inactive = new IntakeRequestTagCategoryFaker().WithIsActive(false).Generate();
+        sut.ChangeTagCategories(false, [inactive.Id], EventActor.System, _dateTimeProvider.Now);
+
+        // Act
+        var offers = sut.Offers(inactive);
+
+        // Assert
+        offers.Should().BeFalse();
+        sut.TagCategories.Should().ContainSingle(c => c.CategoryId == inactive.Id);
+    }
+
+    [Fact]
+    public void ChangeTagCategories_BackToAll_ClearsTheChosenList()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().Generate();
+        var chosen = new IntakeRequestTagCategoryFaker().Generate();
+        sut.ChangeTagCategories(false, [chosen.Id], EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        sut.ChangeTagCategories(true, [chosen.Id], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.TagCategories.Should().BeEmpty();
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskTagCategoriesChangedEvent>().Subject;
+        changed.RemovedTagCategoryIds.Should().Equal(chosen.Id);
+    }
+
+    [Fact]
+    public void ChangeTagCategories_WhenNothingChanges_RaisesNothing()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().Generate();
+
+        // Act
+        var result = sut.ChangeTagCategories(true, [], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    #endregion Tag categories
 }

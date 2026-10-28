@@ -119,6 +119,12 @@ const buildSettingsMenuItems = (
               'demand-management.channels',
               '/settings/demand-management/channels',
             ),
+            restrictedPermissionMenuItem(
+              'Permissions.IntakeRequests.Administer',
+              'Tag Axes',
+              'demand-management.tag-axes',
+              '/settings/demand-management/tag-axes',
+            ),
           ],
         ),
       ]

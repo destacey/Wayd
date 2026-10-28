@@ -13,6 +13,7 @@ using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.DemandManagement.Application.IntakeDesks.Queries;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
+using Wayd.DemandManagement.Application.IntakeRequestTagCategories.Queries;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
 using Wayd.Infrastructure.Persistence.Context;
@@ -347,6 +348,76 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         result.CanManage.Should().Be(expected);
         result.CanAdminister.Should().Be(expected);
         result.CanDelete.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetIntakeRequests_ProjectsTheRequestsTagsInAxisOrderThenByName()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        await using (var arrange = _fixture.CreateContext())
+        {
+            var first = IntakeRequestTagCategory.Create(UniqueName("Area"), null, allowsMany: true, -2, EventActor.System, Now);
+            var second = IntakeRequestTagCategory.Create(UniqueName("Segment"), null, allowsMany: false, -1, EventActor.System, Now);
+            var payments = first.AddTag("Payments", null, EventActor.System, Now).Value;
+            var billing = first.AddTag("Billing", null, EventActor.System, Now).Value;
+            var enterprise = second.AddTag("Enterprise", null, EventActor.System, Now).Value;
+            arrange.IntakeRequestTagCategories.AddRange(first, second);
+            await arrange.SaveChangesAsync(ct);
+
+            var request = await arrange.IntakeRequests.Include(r => r.Tags).SingleAsync(r => r.Id == scenario.OnOpen.Id, ct);
+            var desk = await arrange.IntakeDesks.Include(d => d.TagCategories).SingleAsync(d => d.Id == request.DeskId, ct);
+            request.Tag(enterprise, second, desk, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            request.Tag(payments, first, desk, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            request.Tag(billing, first, desk, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            await arrange.SaveChangesAsync(ct);
+        }
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var result = await new GetIntakeRequestsQueryHandler(context, Principal(scenario.Agent.Id))
+            .Handle(new GetIntakeRequestsQuery(scenario.Open.Id), ct);
+
+        // Assert
+        result.Should().ContainSingle().Which.Tags.Select(t => t.Name).Should().Equal("Billing", "Payments", "Enterprise");
+    }
+
+    [Fact]
+    public async Task GetIntakeRequestTagCategories_ForAnOutsider_CountsNoRequestOnAPrivateDesk()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        var name = UniqueName("Area");
+        await using (var arrange = _fixture.CreateContext())
+        {
+            var area = IntakeRequestTagCategory.Create(name, null, allowsMany: true, 1, EventActor.System, Now);
+            var payments = area.AddTag("Payments", null, EventActor.System, Now).Value;
+            arrange.IntakeRequestTagCategories.Add(area);
+            await arrange.SaveChangesAsync(ct);
+
+            var requests = await arrange.IntakeRequests.Include(r => r.Tags)
+                .Where(r => r.Id == scenario.OnOpen.Id || r.Id == scenario.OnPrivate.Id)
+                .ToListAsync(ct);
+            foreach (var request in requests)
+            {
+                var desk = await arrange.IntakeDesks.Include(d => d.TagCategories).SingleAsync(d => d.Id == request.DeskId, ct);
+                request.Tag(payments, area, desk, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            }
+            await arrange.SaveChangesAsync(ct);
+        }
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var outsider = await new GetIntakeRequestTagCategoriesQueryHandler(context, Principal(Guid.NewGuid()))
+            .Handle(new GetIntakeRequestTagCategoriesQuery(), ct);
+        var admin = await new GetIntakeRequestTagCategoriesQueryHandler(context, Principal(Guid.NewGuid(), holdsAdminister: true))
+            .Handle(new GetIntakeRequestTagCategoriesQuery(), ct);
+
+        // Assert
+        outsider.Single(c => c.Name == name).Tags.Single().RequestCount.Should().Be(1);
+        admin.Single(c => c.Name == name).Tags.Single().RequestCount.Should().Be(2);
     }
 
     private static ICurrentPrincipal Principal(Guid employeeId, bool holdsView = true, bool holdsAdminister = false,

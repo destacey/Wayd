@@ -25,6 +25,8 @@ export const toUpdateRequest = (
   requesterMayAddParticipants: desk.requesterMayAddParticipants,
   offersAllChannels: desk.offersAllChannels,
   channelIds: desk.channelIds,
+  offersAllTagCategories: desk.offersAllTagCategories,
+  tagCategoryIds: desk.tagCategoryIds,
   members: desk.members.map((m) => ({
     employeeId: m.employee.id,
     role: m.role,

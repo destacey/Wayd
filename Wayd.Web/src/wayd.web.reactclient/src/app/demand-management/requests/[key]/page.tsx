@@ -24,6 +24,7 @@ import NextLink from 'next/link'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import { StatusHistoryTag } from '@/src/components/common/status-workflows'
+import { TagList } from '@/src/components/common/tags'
 import { deskHref } from '../../_components/desk-status'
 import { requestHref } from '../../_components/intake-requests-grid'
 import AddIntakeRequestParticipantForm from './_components/add-intake-request-participant-form'
@@ -34,6 +35,7 @@ import IntakeRequestDetails from './_components/intake-request-details'
 import IntakeRequestFacts from './_components/intake-request-facts'
 import IntakeRequestParticipants from './_components/intake-request-participants'
 import IntakeRequestStatusHistory from './_components/intake-request-status-history'
+import ManageIntakeRequestTagsForm from './_components/manage-intake-request-tags-form'
 import RerouteIntakeRequestForm from './_components/reroute-intake-request-form'
 import WithdrawIntakeRequestForm from './_components/withdraw-intake-request-form'
 import MoveIntakeRequestButton from './_components/move-intake-request-button'
@@ -53,6 +55,7 @@ type RequestDialog =
   | 'change-status'
   | 'change-assignee'
   | 'withdraw'
+  | 'manage-tags'
 
 /** The query parameter a redirected duplicate's number arrives in, so its surviving request can say why. */
 const DUPLICATE_PARAM = 'duplicate'
@@ -161,6 +164,15 @@ const IntakeRequestDetailsPage = (props: {
           },
         ]
       : []),
+    ...(request.canChangeTags
+      ? [
+          {
+            key: 'manage-tags',
+            label: 'Manage Tags',
+            onClick: () => setDialog('manage-tags'),
+          },
+        ]
+      : []),
     ...(request.canWithdraw
       ? [
           {
@@ -254,15 +266,32 @@ const IntakeRequestDetailsPage = (props: {
           ],
           subtitle: 'Request Details',
           caption: `Raised by ${summary.requester.name} on ${dayjs(summary.submittedOn).format('MMM D, YYYY')}${summary.channel ? ` · from ${summary.channel.name}` : ''}`,
+          // Status leads; the request's tags follow, visible to everyone who sees the request.
           tags: (
-            <StatusHistoryTag
-              status={summary.status}
-              onOpenHistory={() =>
-                router.replace(`?section=${RequestSection.StatusHistory}`, {
-                  scroll: false,
-                })
-              }
-            />
+            <Flex gap="small" align="center" wrap>
+              <StatusHistoryTag
+                status={summary.status}
+                onOpenHistory={() =>
+                  router.replace(`?section=${RequestSection.StatusHistory}`, {
+                    scroll: false,
+                  })
+                }
+              />
+              <TagList
+                // The server orders them by axis, then name.
+                tags={summary.tags.map((tag) => ({
+                  id: tag.id,
+                  label: tag.name,
+                  qualifier: tag.categoryName,
+                }))}
+                maxVisible={3}
+                onManage={
+                  request.canChangeTags
+                    ? () => setDialog('manage-tags')
+                    : undefined
+                }
+              />
+            </Flex>
           ),
           actions: (
             <Flex gap="small" align="center">
@@ -310,6 +339,13 @@ const IntakeRequestDetailsPage = (props: {
       )}
       {dialog === 'change-assignee' && request.canChangeAssignee && (
         <ChangeIntakeRequestAssigneeForm
+          request={request}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'manage-tags' && request.canChangeTags && (
+        <ManageIntakeRequestTagsForm
           request={request}
           onFormComplete={() => setDialog(null)}
           onFormCancel={() => setDialog(null)}

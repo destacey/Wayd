@@ -1,7 +1,7 @@
 'use client'
 
 import { NOT_RECORDED_CHANNEL_LABEL } from './channel'
-import { WaydGrid } from '@/src/components/common/wayd-grid'
+import { WaydGrid, createCsvColumn } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import EntityLink from '@/src/components/common/entity-link'
 import {
@@ -189,6 +189,14 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       size: 180,
       meta: { filterType: 'set' },
     },
+    createCsvColumn<IntakeRequestSummaryDto>({
+      id: 'tags',
+      header: 'Tags',
+      size: 260,
+      // Qualified by axis, as the request page's chips are, so the set filter picks one axis's tag rather
+      // than every tag sharing a name. Kept in the server's order: by axis, then name.
+      getValues: (r) => r.tags.map((t) => `${t.categoryName} | ${t.name}`),
+    }),
     {
       id: 'needByBasis',
       accessorFn: (request) => basisName(request.needBy?.basis),

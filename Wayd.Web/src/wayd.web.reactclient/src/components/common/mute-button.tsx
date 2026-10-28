@@ -22,7 +22,7 @@ export interface MuteButtonProps {
  * Mutes or unmutes a record's notifications for the signed-in person.
  *
  * Sits beside the Follow button and is shown whether or not the person follows
- * the record, since people who take part in a record are told about it too.
+ * the record, since people who work on a record are told about it too.
  * Muting changes nothing else: the person keeps their access, roles and follow.
  */
 const MuteButton = ({ ownerType, ownerId }: MuteButtonProps) => {

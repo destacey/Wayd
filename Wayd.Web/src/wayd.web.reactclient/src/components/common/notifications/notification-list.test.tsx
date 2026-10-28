@@ -138,7 +138,7 @@ describe('NotificationList', () => {
     const entry = buildNotification({
       count: 3,
       unreadCount: 2,
-      reasons: [NotificationReason.Following, NotificationReason.Participant],
+      reasons: [NotificationReason.Following, NotificationReason.Role],
     })
 
     // Act
@@ -150,7 +150,7 @@ describe('NotificationList', () => {
     })
     expect(link).toHaveAttribute('href', '/ppm/projects/APOLLO')
     expect(link).toHaveTextContent('Project APOLLO')
-    expect(link).toHaveTextContent('You follow and take part in this')
+    expect(link).toHaveTextContent('You follow and work on this')
     const item = screen.getByRole('listitem')
     expect(within(item).getByText('Active')).toBeInTheDocument()
     expect(item).toHaveTextContent('2 unreadActive')

@@ -34,8 +34,8 @@ const reasonWording: Partial<
     description:
       'Changes to anything you follow. They stay in your Following list.',
   },
-  [NotificationReason.Participant]: {
-    title: 'Records you take part in',
+  [NotificationReason.Role]: {
+    title: 'Records you work on',
     description:
       'Changes to projects and programs you hold a role on, and objectives of your team. You keep your roles.',
   },

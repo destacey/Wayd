@@ -254,7 +254,7 @@ another domain, kept aligned two ways:
 | Source domain | Aggregate | Event(s) | Consumers (projection written) |
 |---|---|---|---|
 | Organization | `Team` / `TeamOfTeams` | `TeamCreated/DetailsUpdated/Activated/Deactivated` | PPM `PpmTeam`, Planning `PlanningTeam`, Work `WorkTeam` |
-| PPM | `Project` | `ProjectCreated/DetailsUpdated/KeyChangedV2/Deleted` | Work `WorkProject` |
+| PPM | `Project` | `ProjectCreated/DetailsUpdated/KeyChangedV2/Deleted` | Work `WorkProject`, Demand Management `DemandProject` |
 | StrategicManagement | `StrategicTheme` (**the source**) | `StrategicThemeCreated/DetailsUpdated/Activated/Archived/Deleted` | PPM `PpmStrategicThemes` |
 | Work | `Iteration` (sprints) | `IterationCreatedV3/DetailsUpdated/DateRangeChangedV2/TeamChanged/Deleted` | Planning `PlanningSprint` |
 | Common | `Employee` | — (shared table) | referenced by Guid everywhere |

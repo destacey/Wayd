@@ -169,6 +169,8 @@ Key rules:
 - When an employee is deactivated, their allocations end that day, and any that start later are removed. Wayd does not know the day someone actually left, so if they left on a different day, change their allocations to end on it. The [capacity report](#capacity-report-report) takes the last day an inactive person's allocations cover as the day they left
 - When a team or team of teams is deactivated, everyone's allocations to it end on its inactive date, and any that start later are removed. Their time on other teams is unchanged, and from the next day it can be allocated elsewhere. Reactivating the team does not bring the allocations back
 
+A team's Overview shows a **Capacity** tile with the time allocated to it today, in full-time equivalents (FTE): the allocations' percents added up, so two people at 100% and one at 50% read 2.5 FTE. It counts everyone allocated, member or not, in every role and whether or not they are away today, so it is the time the team has been given rather than the time it has available. It is left off when nobody is allocated today. Selecting it opens the team's Capacity section.
+
 Who can change a team's allocations is covered under [Allocations: team membership](../settings/permissions.mdx#allocations-team-membership).
 
 ### Time Away and Holiday Calendars

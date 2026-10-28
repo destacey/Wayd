@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.Tests.Shared.Infrastructure;
@@ -21,6 +22,7 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
     private readonly List<IntakeRequestTagCategory> _tagCategories = [];
     private readonly List<Employee> _employees = [];
     private readonly List<StatusTransition> _transitions = [];
+    private readonly List<ScoringModel> _scoringModels = [];
 
     public DbSet<IntakeChannel> IntakeChannels => _channels.AsDbSet();
     public DbSet<IntakeDesk> IntakeDesks => _desks.AsDbSet();
@@ -28,6 +30,7 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
     public DbSet<IntakeRequestTagCategory> IntakeRequestTagCategories => _tagCategories.AsDbSet();
     public IQueryable<Employee> Employees => _employees.AsDbSet();
     public IQueryable<StatusTransition> IntakeRequestStatusTransitions => _transitions.AsDbSet();
+    public IQueryable<ScoringModel> ScoringModels => _scoringModels.AsDbSet();
 
     /// <summary>
     /// The number of times <see cref="SaveChangesAsync"/> has been called.
@@ -55,6 +58,7 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
     public void AddChannels(params IntakeChannel[] channels) => _channels.AddRange(channels);
     public void AddDesks(params IntakeDesk[] desks) => _desks.AddRange(desks);
     public void AddEmployees(params Employee[] employees) => _employees.AddRange(employees);
+    public void AddScoringModels(params ScoringModel[] models) => _scoringModels.AddRange(models);
     public void AddTagCategories(params IntakeRequestTagCategory[] categories) => _tagCategories.AddRange(categories);
 
     /// <summary>

@@ -1832,6 +1832,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("ScoringModelId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("SystemCreated")
                         .HasColumnType("datetime2");
 
@@ -1857,6 +1860,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("Name")
                         .IsUnique();
+
+                    b.HasIndex("ScoringModelId");
 
                     b.ToTable("IntakeDesks", "DemandManagement");
                 });
@@ -2146,6 +2151,164 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsUnique();
 
                     b.ToTable("IntakeRequestTagCategories", "DemandManagement");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.Scoring.IntakeRequestScore", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("PrimaryValue")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ScoredById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ScoredOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ScoringModelId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ScoringModelKey")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ScoringModelName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<long>("Sequence")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScoredById");
+
+                    b.HasIndex("RequestId", "Sequence")
+                        .IsUnique();
+
+                    b.ToTable("IntakeRequestScores", "DemandManagement");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.Scoring.IntakeRequestScoreOutput", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ScoreId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<decimal>("Value")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScoreId");
+
+                    b.ToTable("IntakeRequestScoreOutputs", "DemandManagement");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.Scoring.IntakeRequestScoreRating", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CriterionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CriterionName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("CriterionToken")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("RatingLevelId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RatingLevelLabel")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<decimal>("RatingValue")
+                        .HasColumnType("decimal(9,4)");
+
+                    b.Property<Guid>("ScoreId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScoreId");
+
+                    b.ToTable("IntakeRequestScoreRatings", "DemandManagement");
                 });
 
             modelBuilder.Entity("Wayd.Infrastructure.Auditing.Trail", b =>
@@ -8708,6 +8871,14 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDesk", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Scoring.ScoringModel", null)
+                        .WithMany()
+                        .HasForeignKey("ScoringModelId")
+                        .OnDelete(DeleteBehavior.NoAction);
+                });
+
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDeskChannel", b =>
                 {
                     b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeChannel", null)
@@ -8871,6 +9042,51 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                                 .HasForeignKey("IntakeRequestId");
                         });
 
+                    b.OwnsOne("Wayd.DemandManagement.Domain.Models.Scoring.IntakeRequestScoreSummary", "CurrentScore", b1 =>
+                        {
+                            b1.Property<Guid>("IntakeRequestId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid>("ScoredById")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("CurrentScoredById");
+
+                            b1.Property<DateTime>("ScoredOn")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("CurrentScoredOn");
+
+                            b1.Property<Guid>("ScoringModelId")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("CurrentScoringModelId");
+
+                            b1.Property<string>("ScoringModelName")
+                                .IsRequired()
+                                .HasMaxLength(128)
+                                .HasColumnType("nvarchar(128)")
+                                .HasColumnName("CurrentScoringModelName");
+
+                            b1.Property<decimal>("Value")
+                                .HasColumnType("decimal(18,4)")
+                                .HasColumnName("CurrentScoreValue");
+
+                            b1.HasKey("IntakeRequestId");
+
+                            b1.HasIndex("ScoredById");
+
+                            b1.ToTable("IntakeRequests", "DemandManagement");
+
+                            b1.WithOwner()
+                                .HasForeignKey("IntakeRequestId");
+
+                            b1.HasOne("Wayd.Common.Domain.Employees.Employee", null)
+                                .WithMany()
+                                .HasForeignKey("ScoredById")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+                        });
+
+                    b.Navigation("CurrentScore");
+
                     b.Navigation("NeedBy");
 
                     b.Navigation("Origin");
@@ -8923,6 +9139,39 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .WithMany()
                         .HasForeignKey("TagId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.Scoring.IntakeRequestScore", b =>
+                {
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeRequest", null)
+                        .WithMany("Scores")
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("ScoredById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.Scoring.IntakeRequestScoreOutput", b =>
+                {
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.Scoring.IntakeRequestScore", null)
+                        .WithMany("Outputs")
+                        .HasForeignKey("ScoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.Scoring.IntakeRequestScoreRating", b =>
+                {
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.Scoring.IntakeRequestScore", null)
+                        .WithMany("Ratings")
+                        .HasForeignKey("ScoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
@@ -10700,12 +10949,21 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 {
                     b.Navigation("Participants");
 
+                    b.Navigation("Scores");
+
                     b.Navigation("Tags");
                 });
 
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestTagCategory", b =>
                 {
                     b.Navigation("Tags");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.Scoring.IntakeRequestScore", b =>
+                {
+                    b.Navigation("Outputs");
+
+                    b.Navigation("Ratings");
                 });
 
             modelBuilder.Entity("Wayd.Infrastructure.Identity.ApplicationRole", b =>

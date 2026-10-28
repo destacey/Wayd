@@ -707,12 +707,11 @@ public sealed class IntakeDeskTests
         var revision = sut.Revision;
 
         // Act
-        var result = sut.ChangeScoringModel(model, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.ChangeScoringModel(model, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         sut.ScoringModelId.Should().Be(model.Id);
-        sut.ScoringModel.Should().Be(model);
         sut.ScoresWith(model).Should().BeTrue();
         sut.Revision.Should().Be(revision + 1);
         var raised = sut.DomainEvents.OfType<IntakeDeskScoringModelChangedEvent>().Should().ContainSingle().Subject;
@@ -731,7 +730,7 @@ public sealed class IntakeDeskTests
         var sut = new IntakeDeskFaker().WithScoringModel(from).Generate();
 
         // Act
-        var result = sut.ChangeScoringModel(to, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.ChangeScoringModel(to, from, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -750,12 +749,11 @@ public sealed class IntakeDeskTests
         var sut = new IntakeDeskFaker().WithScoringModel(from).Generate();
 
         // Act
-        var result = sut.ChangeScoringModel(null, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.ChangeScoringModel(null, from, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         sut.ScoringModelId.Should().BeNull();
-        sut.ScoringModel.Should().BeNull();
         var raised = sut.DomainEvents.OfType<IntakeDeskScoringModelChangedEvent>().Should().ContainSingle().Subject;
         raised.FromScoringModelId.Should().Be(from.Id);
         raised.ToScoringModelId.Should().BeNull();
@@ -770,7 +768,7 @@ public sealed class IntakeDeskTests
         var revision = sut.Revision;
 
         // Act
-        var result = sut.ChangeScoringModel(model, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.ChangeScoringModel(model, model, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -790,7 +788,7 @@ public sealed class IntakeDeskTests
         var sut = new IntakeDeskFaker().Generate();
 
         // Act
-        var result = sut.ChangeScoringModel(model, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.ChangeScoringModel(model, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -799,16 +797,16 @@ public sealed class IntakeDeskTests
     }
 
     [Fact]
-    public void ChangeScoringModel_WhenTheAssignedModelIsNotLoaded_Throws()
+    public void ChangeScoringModel_WhenTheCurrentModelIsNotTheDesks_Throws()
     {
         // Arrange
-        var sut = new IntakeDeskFaker().RuleFor(x => x.ScoringModelId, Guid.NewGuid()).Generate();
+        var sut = new IntakeDeskFaker().WithScoringModel(_scoringModelFaker.AsActiveWsjf()).Generate();
 
         // Act
-        Action act = () => sut.ChangeScoringModel(null, EventActor.System, _dateTimeProvider.Now);
+        Action act = () => sut.ChangeScoringModel(null, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        act.Should().Throw<InvalidOperationException>();
+        act.Should().Throw<ArgumentException>();
     }
 
     #endregion Scoring model

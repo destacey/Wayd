@@ -96,12 +96,11 @@ public static class IntakeDeskFakerExtensions
     }
 
     /// <summary>
-    /// Scores the desk's requests with the model, loaded as its navigation.
+    /// Scores the desk's requests with the model.
     /// </summary>
     public static IntakeDeskFaker WithScoringModel(this IntakeDeskFaker faker, ScoringModel scoringModel)
     {
         faker.RuleFor(x => x.ScoringModelId, scoringModel.Id);
-        faker.RuleFor(x => x.ScoringModel, scoringModel);
 
         return faker;
     }

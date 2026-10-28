@@ -5,6 +5,7 @@ import { Breadcrumb, Button, Flex, Typography } from 'antd'
 import type { BreadcrumbItemType } from 'antd/es/breadcrumb/Breadcrumb'
 import Link from 'next/link'
 import { ReactNode } from 'react'
+import FollowButton, { FollowButtonProps } from '../follow-button'
 import RecordAvatar, { RecordAvatarProps } from '../record-avatar'
 import RecordKey from '../record-key'
 import WaydTooltip from '../wayd-tooltip'
@@ -72,6 +73,11 @@ export interface RecordHeaderProps {
   /** Record-level actions, aligned right. */
   actions?: ReactNode
   /**
+   * The record to offer following for. The eye sits after the actions, beside
+   * the details toggle, in the same place on every followable record.
+   */
+  follow?: FollowButtonProps
+  /**
    * Toggles the record facts panel. Supplied by `RecordLayout`; pages do not
    * set it.
    */
@@ -99,6 +105,7 @@ const RecordHeader = ({
   tags,
   descriptor,
   actions,
+  follow,
   factsToggle,
 }: RecordHeaderProps) => {
   const parents = !parent ? [] : Array.isArray(parent) ? parent : [parent]
@@ -141,11 +148,12 @@ const RecordHeader = ({
       </Text>
     )}
 
-    {(actions || factsToggle) && (
+    {(actions || follow || factsToggle) && (
       <>
         <div style={{ flexGrow: 1 }} className={styles.headerSpacer} />
         <Flex align="center" gap={8} wrap className={styles.headerActions}>
           {actions}
+          {follow && <FollowButton {...follow} />}
           {factsToggle && (
             <WaydTooltip title={factsToggle.open ? 'Hide Details' : 'Show Details'}>
               <Button

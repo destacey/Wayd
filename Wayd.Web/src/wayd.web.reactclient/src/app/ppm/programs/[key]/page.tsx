@@ -1,10 +1,6 @@
 'use client'
 
-import {
-  FollowButton,
-  LifecycleStatusTag,
-  PageActions,
-} from '@/src/components/common'
+import { LifecycleStatusTag, PageActions } from '@/src/components/common'
 import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
@@ -351,12 +347,12 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           parent: { label: 'Programs', href: '/ppm/programs' },
           subtitle: 'Program Details',
           tags: <LifecycleStatusTag status={programData.status} />,
+          follow: {
+            ownerType: FollowOwnerTypes.Program,
+            ownerId: programData.id,
+          },
           actions: (
             <>
-              <FollowButton
-                ownerType={FollowOwnerTypes.Program}
-                ownerId={programData.id}
-              />
               <PageActions actionItems={actionsMenuItems} />
             </>
           ),

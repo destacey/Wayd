@@ -1,10 +1,6 @@
 'use client'
 
-import {
-  FollowButton,
-  LifecycleStatusTag,
-  PageActions,
-} from '@/src/components/common'
+import { LifecycleStatusTag, PageActions } from '@/src/components/common'
 import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
@@ -527,6 +523,10 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               />
             </Flex>
           ),
+          follow: {
+            ownerType: FollowOwnerTypes.Project,
+            ownerId: projectData.id,
+          },
           actions: (
             <>
               {/* Recording health is the recurring action on a live project,
@@ -537,10 +537,6 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
                   Create Health Check
                 </Button>
               )}
-              <FollowButton
-                ownerType={FollowOwnerTypes.Project}
-                ownerId={projectData.id}
-              />
               <PageActions actionItems={actionsMenuItems} />
             </>
           ),

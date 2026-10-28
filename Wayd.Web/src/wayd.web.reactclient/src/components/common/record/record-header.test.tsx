@@ -2,6 +2,13 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import RecordHeader from './record-header'
 
+jest.mock('../follow-button', () => ({
+  __esModule: true,
+  default: ({ ownerId }: { ownerId: string }) => (
+    <button aria-label="Follow" data-owner-id={ownerId} />
+  ),
+}))
+
 describe('RecordHeader', () => {
   it('renders the record key as its own element, not part of the name', () => {
     // Arrange / Act
@@ -24,10 +31,7 @@ describe('RecordHeader', () => {
   it('renders a circular avatar for a person', () => {
     // Arrange / Act
     render(
-      <RecordHeader
-        name="Priya Raghunathan"
-        avatar={{ initials: 'PR' }}
-      />,
+      <RecordHeader name="Priya Raghunathan" avatar={{ initials: 'PR' }} />,
     )
 
     // Assert
@@ -135,6 +139,41 @@ describe('RecordHeader', () => {
     // Assert
     expect(screen.getByText('Active')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Actions' })).toBeInTheDocument()
+  })
+
+  it('places the follow eye after the actions and before the details toggle', () => {
+    // Arrange / Act
+    render(
+      <RecordHeader
+        name="Apollo"
+        actions={<button>Actions</button>}
+        follow={{ ownerType: 'ppm.project', ownerId: 'project-1' }}
+        factsToggle={{ open: false, onToggle: jest.fn() }}
+      />,
+    )
+
+    // Assert
+    const labels = screen
+      .getAllByRole('button')
+      .map((b) => b.getAttribute('aria-label') ?? b.textContent)
+    expect(labels).toEqual(['Actions', 'Follow', 'Show Details'])
+    expect(screen.getByRole('button', { name: 'Follow' })).toHaveAttribute(
+      'data-owner-id',
+      'project-1',
+    )
+  })
+
+  it('offers following on a record with no other actions', () => {
+    // Arrange / Act
+    render(
+      <RecordHeader
+        name="Apollo"
+        follow={{ ownerType: 'ppm.project', ownerId: 'project-1' }}
+      />,
+    )
+
+    // Assert
+    expect(screen.getByRole('button', { name: 'Follow' })).toBeInTheDocument()
   })
 
   it('renders a caption on its own line beneath the bar', () => {

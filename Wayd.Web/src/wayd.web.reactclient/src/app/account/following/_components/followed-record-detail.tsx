@@ -201,7 +201,10 @@ const FollowedRecordDetail = ({
           {asView ? null : (
             <Tooltip title="Stop following" placement="topRight">
               <Button
-                icon={<EyeFilled />}
+                type="text"
+                icon={
+                  <EyeFilled style={{ color: 'var(--ant-color-primary)' }} />
+                }
                 aria-label="Unfollow"
                 loading={isUnfollowing}
                 onClick={onUnfollow}

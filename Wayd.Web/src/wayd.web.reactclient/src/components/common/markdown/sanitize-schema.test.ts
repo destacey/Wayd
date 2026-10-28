@@ -1,8 +1,8 @@
 import { sanitizeSchema } from './sanitize-schema'
 
-// jest.setup.ts mocks react-markdown, remark-gfm and rehype-raw globally, so a component-level test
-// of <MarkdownRenderer/> renders a stub and proves nothing about sanitization. These tests exercise
-// the schema against the real sanitizer instead.
+// These tests exercise the schema in isolation against the real sanitizer; markdown-renderer.test.tsx
+// covers it through the full rendering pipeline. Serialized output is checked here because only it can
+// show nodes React never renders, such as comments.
 //
 // Only `hast-util-sanitize` (rehype-sanitize's own engine) and `hast-util-from-html` are used, both
 // reachable from declared dependencies — the surrounding remark/unified packages are not in
@@ -18,9 +18,17 @@ const parseAndSanitize = async (html: string): Promise<string> => {
 describe('sanitizeSchema blocks injected HTML', () => {
   it.each([
     ['iframe', '<iframe src="https://attacker.example"></iframe>', '<iframe'],
-    ['form', '<form action="https://attacker.example"><button>Go</button></form>', '<form'],
+    [
+      'form',
+      '<form action="https://attacker.example"><button>Go</button></form>',
+      '<form',
+    ],
     ['base', '<base href="https://attacker.example">', '<base'],
-    ['meta refresh', '<meta http-equiv="refresh" content="0;url=https://attacker.example">', '<meta'],
+    [
+      'meta refresh',
+      '<meta http-equiv="refresh" content="0;url=https://attacker.example">',
+      '<meta',
+    ],
     ['style', '<style>body{display:none}</style>', '<style'],
     ['object', '<object data="x"></object>', '<object'],
     ['embed', '<embed src="x">', '<embed'],
@@ -55,9 +63,19 @@ describe('sanitizeSchema blocks injected HTML', () => {
     expect(output).not.toContain('style=')
   })
 
+  it('strips HTML comments', async () => {
+    // Arrange / Act
+    const output = await parseAndSanitize('<p>text</p><!-- hidden comment -->')
+
+    // Assert
+    expect(output).not.toContain('hidden comment')
+  })
+
   it('blanks javascript: URLs on links', async () => {
     // Arrange / Act
-    const output = await parseAndSanitize('<a href="javascript:alert(1)">click</a>')
+    const output = await parseAndSanitize(
+      '<a href="javascript:alert(1)">click</a>',
+    )
 
     // Assert
     expect(output).not.toContain('javascript:')

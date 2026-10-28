@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react'
+import type React from 'react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { MarkdownCodeBlock, MarkdownCodeBlockProps } from '.'
 
@@ -17,7 +18,7 @@ describe('MarkdownCodeBlock', () => {
   beforeEach(() => {
     Object.assign(navigator, {
       clipboard: {
-        writeText: jest.fn(),
+        writeText: jest.fn().mockResolvedValue(undefined),
       },
     })
   })
@@ -35,44 +36,50 @@ describe('MarkdownCodeBlock', () => {
     expect(codeElement).toHaveStyle('font-size: 0.9em')
   })
 
-  // TODO: fix this test.  The test is failing because the code block content is not being copied to the clipboard.
-  // Manual testing shows that the copy button works as expected, but this test could be indicating a deeper problem.
-  //   it('copies the code block content to the clipboard when the copy button is clicked', () => {
-  //     const mockClipboardWrite = jest.fn()
-  //     Object.assign(navigator, {
-  //       clipboard: {
-  //         writeText: mockClipboardWrite,
-  //       },
-  //     })
-
-  //     const mockCode = 'Sample code block'
-  //     render(<MarkdownCodeBlock {...defaultProps}>{mockCode}</MarkdownCodeBlock>)
-
-  //     const copyButton = screen.getByRole('button', {
-  //       name: 'Copy code to clipboard',
-  //     })
-
-  //     fireEvent.click(copyButton)
-
-  //     console.log('Mock Clipboard Calls:', mockClipboardWrite.mock.calls)
-
-  //     expect(mockClipboardWrite).toHaveBeenCalledTimes(1)
-  //     expect(mockClipboardWrite).toHaveBeenCalledWith(mockCode)
-  //   })
-
-  it('removes class attributes from span elements inside the code block on mount', () => {
-    const { container } = render(
+  it('copies the code block content to the clipboard when the copy button is clicked', () => {
+    // Arrange
+    render(
       <MarkdownCodeBlock {...defaultProps}>
-        <code>
-          <span className="test-class">Span content</span>
+        <code className="language-ts">
+          <span className="token keyword">const</span> x = 1
         </code>
       </MarkdownCodeBlock>,
     )
 
-    const codeSpans = container.querySelectorAll('code span')
-    codeSpans.forEach((span) => {
-      expect(span).not.toHaveAttribute('class')
-    })
+    // Act
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Copy code to clipboard' }),
+    )
+
+    // Assert
+    expect(navigator.clipboard.writeText).toHaveBeenCalledTimes(1)
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('const x = 1')
+  })
+
+  it('lifts the content and language class out of the inner code element', () => {
+    // Arrange
+    const InlineCode = ({
+      node: _node,
+      ...props
+    }: React.HTMLAttributes<HTMLElement> & { node?: unknown }) => (
+      <code data-inline-style {...props} />
+    )
+
+    // Act
+    const { container } = render(
+      <MarkdownCodeBlock {...defaultProps}>
+        <InlineCode className="language-ts" node={{ tagName: 'code' }}>
+          <span className="token keyword">const</span> x
+        </InlineCode>
+      </MarkdownCodeBlock>,
+    )
+
+    // Assert
+    const codeElements = container.querySelectorAll('code')
+    expect(codeElements).toHaveLength(1)
+    expect(codeElements[0]).toHaveClass('language-ts')
+    expect(codeElements[0]).not.toHaveAttribute('data-inline-style')
+    expect(container.querySelector('code span')).toHaveClass('token keyword')
   })
 
   it('applies additional styles passed via props', () => {

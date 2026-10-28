@@ -32,6 +32,16 @@ describe('MarkdownBlockquote', () => {
     })
   })
 
+  it('renders a blockquote element so assistive technology announces a quote', () => {
+    // Arrange / Act
+    render(<MarkdownBlockquote {...defaultProps} />)
+
+    // Assert
+    expect(screen.getByRole('blockquote')).toHaveTextContent(
+      'This is a blockquote',
+    )
+  })
+
   it('applies additional styles from props', () => {
     const customStyle = { color: 'red' }
     render(<MarkdownBlockquote {...defaultProps} style={customStyle} />)

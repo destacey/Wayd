@@ -87,7 +87,7 @@ const buildSettingsMenuItems = (
       ]
     : []),
 
-  ...(options.productManagement && options.incidentManagement
+  ...(options.productManagement
     ? [
         restrictedMenuSection(
           'Product Management',
@@ -101,33 +101,20 @@ const buildSettingsMenuItems = (
               'product-management.product-tags',
               '/settings/product-management/product-tags',
             ),
-            restrictedPermissionMenuItem(
-              'Permissions.IncidentSeveritySets.View',
-              'Incident Severity Sets',
-              'product-management.incident-severity-sets',
-              '/settings/product-management/incident-severity-sets',
-            ),
+            ...(options.incidentManagement
+              ? [
+                  restrictedPermissionMenuItem(
+                    'Permissions.IncidentSeveritySets.View',
+                    'Incident Severity Sets',
+                    'product-management.incident-severity-sets',
+                    '/settings/product-management/incident-severity-sets',
+                  ),
+                ]
+              : []),
           ],
         ),
       ]
-    : options.productManagement
-      ? [
-          restrictedMenuSection(
-            'Product Management',
-            'product-management',
-            undefined,
-            undefined,
-            [
-              restrictedPermissionMenuItem(
-                'Permissions.ProductTagCategories.View',
-                'Product Tags',
-                'product-management.product-tags',
-                '/settings/product-management/product-tags',
-              ),
-            ],
-          ),
-        ]
-      : []),
+    : []),
 
   ...(options.demandManagement
     ? [

@@ -34,8 +34,6 @@ public class IncidentSeveritySetSeeder : ICustomSeeder
 
         dbContext.IncidentSeveritySets.Add(sevScale.Value);
         dbContext.IncidentSeveritySets.Add(criticalScale.Value);
-        await dbContext.SaveChangesAsync(cancellationToken);
-
         dbContext.IncidentSeveritySetAssignments.Add(
             IncidentSeveritySetAssignment.Create(sevScale.Value.Id));
         await dbContext.SaveChangesAsync(cancellationToken);

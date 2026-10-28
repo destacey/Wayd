@@ -66,7 +66,7 @@ public sealed class IncidentSeveritySet : BaseAuditableEntity
         }
         catch (Exception ex)
         {
-            return Result.Failure<IncidentSeveritySet>(ex.ToString());
+            return Result.Failure<IncidentSeveritySet>(ex.Message);
         }
     }
 
@@ -102,7 +102,7 @@ public sealed class IncidentSeveritySet : BaseAuditableEntity
         }
         catch (Exception ex)
         {
-            return Result.Failure(ex.ToString());
+            return Result.Failure(ex.Message);
         }
     }
 
@@ -141,7 +141,9 @@ public sealed class IncidentSeveritySet : BaseAuditableEntity
             var (id, name) = levels[i];
             if (id is null)
             {
-                _levels.Add(new IncidentSeverityLevel(Id, name, i));
+                var added = new IncidentSeverityLevel(Id, name, i);
+                _levels.Add(added);
+                requestedIds.Add(added.Id);
                 continue;
             }
 

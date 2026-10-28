@@ -31,6 +31,27 @@ public sealed class IncidentSeveritySetTests
     }
 
     [Fact]
+    public void ReplaceLevels_WhenAddingLevel_KeepsTheNewLevel()
+    {
+        // Arrange
+        var set = IncidentSeveritySet.CreateCustom("Custom", null, ["A", "B"]).Value;
+
+        // Act
+        var result = set.ReplaceLevels(
+            [
+                (set.Levels[0].Id, "A"),
+                (set.Levels[1].Id, "B"),
+                (null, "C"),
+            ],
+            new HashSet<Guid>());
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        set.Levels.Should().HaveCount(3);
+        set.Levels.Select(l => l.Name).Should().Equal("A", "B", "C");
+    }
+
+    [Fact]
     public void ReplaceLevels_WhenLevelInUse_Fails()
     {
         // Arrange

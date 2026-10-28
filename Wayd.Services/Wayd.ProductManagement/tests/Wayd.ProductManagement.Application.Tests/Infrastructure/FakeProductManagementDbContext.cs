@@ -144,6 +144,10 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     public void AddDeploymentEnvironment(DeploymentEnvironment environment) => _deploymentEnvironments.Add(environment);
     public void AddDeployment(Deployment deployment) => _deployments.Add(deployment);
 
+    public void AddIncidentSeveritySet(IncidentSeveritySet set) => _incidentSeveritySets.Add(set);
+    public void AddIncidentSeveritySetAssignment(IncidentSeveritySetAssignment assignment) =>
+        _incidentSeveritySetAssignments.Add(assignment);
+
     public void AddStatusWorkflow(StatusWorkflow workflow) => _statusWorkflows.Add(workflow);
     public void AddWorkflowAssignment(WorkflowAssignment assignment) => _workflowAssignments.Add(assignment);
 
@@ -167,6 +171,9 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
         _releasePackageComponents.Clear();
         _deploymentEnvironments.Clear();
         _deployments.Clear();
+        _incidentSeveritySets.Clear();
+        _incidentSeverityLevels.Clear();
+        _incidentSeveritySetAssignments.Clear();
         _statusWorkflows.Clear();
         _workflowAssignments.Clear();
         _statusTransitions.Clear();

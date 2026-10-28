@@ -68,7 +68,7 @@ public class IncidentSeveritySetsController(IDispatcher dispatcher) : Controller
     [EndpointSummary("Update a custom severity set.")]
     [EndpointDescription(
         "Replaces name, description, and the full ordered level list. Omitting an existing level id removes that level unless an incident still uses it. Refused on system sets.")]
-    [McpTool("IncidentSeveritySets_UpdateSet", "Update incident severity set")]
+    [McpTool("IncidentSeveritySets_UpdateSet", "Update incident severity set", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Update(
@@ -90,7 +90,7 @@ public class IncidentSeveritySetsController(IDispatcher dispatcher) : Controller
     [EndpointSummary("Activate or deactivate a custom severity set.")]
     [EndpointDescription(
         "Only custom sets that are not the organization default may be deactivated. The selected set cannot be deactivated.")]
-    [McpTool("IncidentSeveritySets_SetActiveStatus", "Activate or deactivate incident severity set")]
+    [McpTool("IncidentSeveritySets_SetActiveStatus", "Activate or deactivate incident severity set", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SetActiveStatus(
@@ -112,7 +112,7 @@ public class IncidentSeveritySetsController(IDispatcher dispatcher) : Controller
     [EndpointSummary("Select which severity set new incidents use.")]
     [EndpointDescription(
         "Changes the levels offered when opening an incident. Incidents already open keep the level they were given.")]
-    [McpTool("IncidentSeveritySets_SelectSet", "Select incident severity set")]
+    [McpTool("IncidentSeveritySets_SelectSet", "Select incident severity set", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> SelectSet(
@@ -127,7 +127,7 @@ public class IncidentSeveritySetsController(IDispatcher dispatcher) : Controller
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.IncidentSeveritySets)]
     [EndpointSummary("Delete a custom severity set.")]
     [EndpointDescription("Refused for system sets, the selected set, or when an incident still uses a level in the set.")]
-    [McpTool("IncidentSeveritySets_DeleteSet", "Delete incident severity set")]
+    [McpTool("IncidentSeveritySets_DeleteSet", "Delete incident severity set", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)

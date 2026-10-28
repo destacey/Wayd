@@ -47016,6 +47016,141 @@ export class IntakeDesksClient {
     }
 
     /**
+     * Set the scoring model a desk's requests are scored with.
+     * @return No Content
+     */
+    changeScoringModel(id: string, request: ChangeIntakeDeskScoringModelRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks/{id}/scoring-model";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeScoringModel(_response);
+        });
+    }
+
+    protected processChangeScoringModel(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get the active scoring models a desk can score its requests with.
+     * @return OK
+     */
+    getScoringModelChoices( cancelToken?: CancelToken): Promise<IntakeScoringModelChoiceDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks/scoring-model-choices";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetScoringModelChoices(_response);
+        });
+    }
+
+    protected processGetScoringModelChoices(response: AxiosResponse): Promise<IntakeScoringModelChoiceDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeScoringModelChoiceDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeScoringModelChoiceDto[]>(null as any);
+    }
+
+    /**
      * Get the published intake request workflows a desk can follow.
      * @return OK
      */
@@ -47325,6 +47460,71 @@ export class IntakeRequestsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<ObjectIdAndKey>(null as any);
+    }
+
+    /**
+     * Get the current scores of the intake requests you can see.
+     * @param deskId (optional) 
+     * @param mine (optional) 
+     * @param openOnly (optional) 
+     * @return OK
+     */
+    getIntakeRequestScores(deskId?: string | null | undefined, mine?: boolean | undefined, openOnly?: boolean | undefined, cancelToken?: CancelToken): Promise<IntakeRequestCurrentScoreDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/scores?";
+        if (deskId !== undefined && deskId !== null)
+            url_ += "deskId=" + encodeURIComponent("" + deskId) + "&";
+        if (mine === null)
+            throw new globalThis.Error("The parameter 'mine' cannot be null.");
+        else if (mine !== undefined)
+            url_ += "mine=" + encodeURIComponent("" + mine) + "&";
+        if (openOnly === null)
+            throw new globalThis.Error("The parameter 'openOnly' cannot be null.");
+        else if (openOnly !== undefined)
+            url_ += "openOnly=" + encodeURIComponent("" + openOnly) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIntakeRequestScores(_response);
+        });
+    }
+
+    protected processGetIntakeRequestScores(response: AxiosResponse): Promise<IntakeRequestCurrentScoreDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeRequestCurrentScoreDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeRequestCurrentScoreDto[]>(null as any);
     }
 
     /**
@@ -48555,6 +48755,228 @@ export class IntakeRequestsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<NeedByBasisFamilyDto[]>(null as any);
+    }
+
+    /**
+     * Get an intake request's scoring: its desk's model, its score history and its rank on the desk.
+     * @return OK
+     */
+    getScoring(id: string, cancelToken?: CancelToken): Promise<IntakeRequestScoringDto> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}/scoring";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetScoring(_response);
+        });
+    }
+
+    protected processGetScoring(response: AxiosResponse): Promise<IntakeRequestScoringDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeRequestScoringDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeRequestScoringDto>(null as any);
+    }
+
+    /**
+     * Score an intake request with its desk's scoring model.
+     * @return Created
+     */
+    score(id: string, request: ScoreIntakeRequestRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}/scores";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processScore(_response);
+        });
+    }
+
+    protected processScore(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Preview what ratings would score an intake request, without recording it.
+     * @return OK
+     */
+    previewScore(id: string, request: ScoreIntakeRequestRequest, cancelToken?: CancelToken): Promise<ScoringModelEvaluationDto> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}/scores/preview";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPreviewScore(_response);
+        });
+    }
+
+    protected processPreviewScore(response: AxiosResponse): Promise<ScoringModelEvaluationDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ScoringModelEvaluationDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ScoringModelEvaluationDto>(null as any);
     }
 }
 
@@ -55686,6 +56108,12 @@ judge", which is not the same as a rate of zero. */
     rate?: number | undefined;
 }
 
+/** The scoring model a desk's requests should be scored with. */
+export interface ChangeIntakeDeskScoringModelRequest {
+    /** An active scoring model, from the scoring model choices, or null to stop scoring the desk's requests. */
+    scoringModelId?: string | undefined;
+}
+
 /** The review workflow a desk's requests should follow. */
 export interface ChangeIntakeDeskWorkflowRequest {
     /** A published intake request workflow, from the workflow choices. */
@@ -58269,6 +58697,8 @@ desk offers none. */
 stays chosen but is not offered. Empty with bool IntakeDeskDto.OffersAllTagCategories false means its agents tag
 along none. */
     tagCategoryIds: string[];
+    /** The scoring model the desk's agents score its requests with, or null when the desk does not score them. */
+    scoringModel?: NavigationDto | undefined;
     /** How many changes the desk has recorded; sent back with a change so a stale one is refused. */
     revision: number;
     /** The employees named on the desk, by name, with their roles. */
@@ -58353,6 +58783,39 @@ export interface IntakeRequestArrivalStatusesDto {
 shares its workflow, otherwise the one with the same meaning or name. Null when none fits, and the mover
 must choose. */
     defaultStatusId?: string | undefined;
+}
+
+/** One criterion's rating: a level of its scale, or a number for a criterion with no scale. */
+export interface IntakeRequestCriterionRatingRequest {
+    /** The criterion rated. */
+    criterionId: string;
+    /** The number entered, for a criterion with no scale. */
+    value?: number | undefined;
+    /** The level chosen, for a criterion rated on a scale. */
+    ratingLevelId?: string | undefined;
+}
+
+/** A request's current score, as the requests list and board rank on it. Substance tier, which is why it is returned beside the summaries rather than on them. */
+export interface IntakeRequestCurrentScoreDto {
+    /** The request scored. */
+    requestId: string;
+    /** The value of the model's primary output. */
+    value: number;
+    /** When the request was last scored. */
+    scoredOn: Date;
+    /** The scoring model the score came from, as it was named then. */
+    scoringModel: NavigationDto;
+    /** Whether the score came from the model the request's desk scores with now. A score from an earlier model,
+or from the desk a request moved from, does not rank with the rest. */
+    isDeskModel: boolean;
+}
+
+/** A request's place among the open requests on its desk, by primary score. */
+export interface IntakeRequestDeskRankDto {
+    /** The request's position, 1 being the highest score. */
+    position: number;
+    /** How many open requests on the desk are ranked. */
+    of: number;
 }
 
 /** One intake request as its reader may see it: the summary always, the substance only when they may read it. */
@@ -58450,6 +58913,76 @@ export interface IntakeRequestParticipantDto {
     addedBy?: EmployeeNavigationDto | undefined;
     /** When they were added. */
     addedOn: Date;
+}
+
+/** One of an intake request's scores: the frozen ratings and outputs it was given at a point in time. Substance tier. */
+export interface IntakeRequestScoreDto {
+    /** The score's id. */
+    id: string;
+    /** The request's score number; the highest is the current score. */
+    sequence: number;
+    /** The value of the model's primary output, which requests are ranked on. */
+    primaryValue: number;
+    /** When the score was recorded. */
+    scoredOn: Date;
+    /** The agent who rated the request. */
+    scoredBy: EmployeeNavigationDto;
+    /** The scoring model the request was rated with, as it was named then. */
+    scoringModel: NavigationDto;
+    /** Each criterion's rating, in the model's display order. */
+    ratings: IntakeRequestScoreRatingDto[];
+    /** Every computed output, in evaluation order. */
+    outputs: IntakeRequestScoreOutputDto[];
+}
+
+/** One frozen computed output within an intake request's score. */
+export interface IntakeRequestScoreOutputDto {
+    /** The output's formula token. */
+    token: string;
+    /** The output's name when the request was scored. */
+    name: string;
+    /** The computed value. */
+    value: number;
+    /** Whether this was the model's primary output. */
+    isPrimary: boolean;
+    /** The output's evaluation order. */
+    order: number;
+}
+
+/** One criterion's frozen rating within an intake request's score. */
+export interface IntakeRequestScoreRatingDto {
+    /** The criterion rated. */
+    criterionId: string;
+    /** The criterion's name when the request was scored. */
+    criterionName: string;
+    /** The criterion's formula token when the request was scored. */
+    criterionToken: string;
+    /** The number the calculation used. */
+    ratingValue: number;
+    /** The level chosen, when the criterion is rated on a scale. */
+    ratingLevelId?: string | undefined;
+    /** The chosen level's label when the request was scored; null for a number entered directly. */
+    ratingLevelLabel?: string | undefined;
+    /** The criterion's display order. */
+    order: number;
+}
+
+/** Everything a request's Score tab shows: the model its desk scores with, the score history, and where the request ranks on its desk. Substance tier. */
+export interface IntakeRequestScoringDto {
+    /** The model the request's desk scores with, with the criteria, scales and outputs a rating form needs; null
+when the desk does not score its requests. */
+    scoringModel?: ScoringModelDetailsDto | undefined;
+    /** Whether the desk's model has been archived since it was assigned. It still scores, but an admin is
+expected to replace it. */
+    scoringModelArchived: boolean;
+    /** Whether the reader may score the request now: an agent on its desk, while the request is open and the
+desk has a model. */
+    canScore: boolean;
+    /** Every score the request has been given, newest first; the first is the current score. */
+    scores: IntakeRequestScoreDto[];
+    /** Where the request ranks among the open requests on its desk scored with the desk's current model, or null
+when it is closed or its current score came from another model. */
+    deskRank?: IntakeRequestDeskRankDto | undefined;
 }
 
 /** The status a record currently holds, as a reader needs it. */
@@ -58566,6 +59099,18 @@ export interface IntakeRequestTagOptionDto {
     /** How many requests the reader can see carry the tag, so an admin can see what deactivating or deleting it
 would touch. Counts only visible requests, so it never discloses a private desk's. */
     requestCount: number;
+}
+
+/** An active scoring model a desk can score its requests with. */
+export interface IntakeScoringModelChoiceDto {
+    /** The model's id. */
+    id: string;
+    /** The model's key. */
+    key: number;
+    /** The model's name. */
+    name: string;
+    /** What the model is for, as its administrator described it. */
+    description: string;
 }
 
 /** A published intake request workflow a desk can follow. */
@@ -61252,6 +61797,12 @@ export interface ScopedDependencyDto {
     createdOn: Date;
     createdBy?: EmployeeNavigationDto | undefined;
     comment?: string | undefined;
+}
+
+/** An agent's ratings of an intake request against its desk's scoring model. */
+export interface ScoreIntakeRequestRequest {
+    /** A rating for every criterion of the desk's model. */
+    ratings: IntakeRequestCriterionRatingRequest[];
 }
 
 /** A summary of a project's current score: the score, when it was recorded, who recorded it, and the scoring model used. */

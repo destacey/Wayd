@@ -4,6 +4,8 @@ using NodaTime;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.Scoring;
+using Wayd.Common.Domain.Scoring.Enums;
 
 namespace Wayd.DemandManagement.Domain.Models;
 
@@ -169,6 +171,71 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         Guard.Against.Null(category);
 
         return category.IsActive && (OffersAllTagCategories || _tagCategories.Any(c => c.CategoryId == category.Id));
+    }
+
+    /// <summary>
+    /// The scoring model the desk's agents score its requests with, or null when the desk does not score them.
+    /// </summary>
+    /// <remarks>
+    /// A desk without one is a normal state, not a gap: its requests simply cannot be scored. Only an active
+    /// model can be assigned, but one archived afterwards stays assigned until a Desk Admin changes it.
+    /// </remarks>
+    public Guid? ScoringModelId { get; private set; }
+
+    /// <summary>
+    /// The scoring model behind <see cref="ScoringModelId"/>, when loaded.
+    /// </summary>
+    public ScoringModel? ScoringModel { get; private set; }
+
+    /// <summary>
+    /// Whether the desk scores its requests with the model.
+    /// </summary>
+    public bool ScoresWith(ScoringModel model) => model is not null && ScoringModelId == model.Id;
+
+    /// <summary>
+    /// Sets the scoring model the desk's requests are scored with, or stops scoring them with null. Needs
+    /// <see cref="ScoringModel"/> loaded when one is assigned, because the change names the model it replaces.
+    /// </summary>
+    /// <remarks>
+    /// Scores already recorded keep the model they froze; this changes only what the next score uses, and which
+    /// scores rank together on the desk.
+    /// </remarks>
+    public Result ChangeScoringModel(ScoringModel? model, EventActor actor, Instant timestamp)
+    {
+        if (model is not null && model.State != ScoringModelState.Active)
+            return Result.Failure("Only an active scoring model can be assigned to a desk.");
+
+        var toId = model?.Id;
+        if (toId == ScoringModelId)
+            return Result.Success();
+
+        var from = CurrentScoringModel();
+        ScoringModelId = toId;
+        ScoringModel = model;
+
+        RaiseWhenKeyed(() => new IntakeDeskScoringModelChangedEvent(Id, Key, from?.Id, from?.Name, model?.Id, model?.Name,
+            actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// The assigned model, which a change names as the one it replaces.
+    /// </summary>
+    /// <remarks>
+    /// Throws rather than returning null when a model is assigned but not loaded: without it a missing include
+    /// would record the replaced model with no name.
+    /// </remarks>
+    private ScoringModel? CurrentScoringModel()
+    {
+        if (ScoringModelId is null)
+            return null;
+
+        if (ScoringModel is null || ScoringModel.Id != ScoringModelId)
+            throw new InvalidOperationException(
+                $"Desk {Id} scores with model {ScoringModelId}, but it was not loaded. Include IntakeDesk.ScoringModel before changing it.");
+
+        return ScoringModel;
     }
 
     /// <summary>

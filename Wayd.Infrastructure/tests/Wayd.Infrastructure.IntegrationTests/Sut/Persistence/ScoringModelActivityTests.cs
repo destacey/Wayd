@@ -55,10 +55,12 @@ public sealed class ScoringModelActivityTests(SqlServerDbContextFixture fixture)
     public async Task Seeder_RecordsTheCreationOfTheModelItSeeds()
     {
         // Arrange — the seeder only runs against an empty table, so every model is removed, as on a fresh install.
+        // Other tests in the collection leave portfolios and intake desks pointing at models, so those go first.
         var ct = TestContext.Current.CancellationToken;
         await using (var setup = _fixture.CreateContext())
         {
             await setup.Portfolios.ExecuteUpdateAsync(p => p.SetProperty(x => x.ScoringModelId, (Guid?)null), ct);
+            await setup.IntakeDesks.ExecuteUpdateAsync(d => d.SetProperty(x => x.ScoringModelId, (Guid?)null), ct);
             await setup.ScoringModels.ExecuteDeleteAsync(ct);
         }
 

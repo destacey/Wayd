@@ -17,6 +17,12 @@ export type NeedByFilter = 'any' | 'fixed' | 'chosen' | 'none'
 export type RequestView = 'list' | 'board'
 
 /**
+ * The order requests are shown in: the layout's usual one, or ranked by score, highest first. Part of the
+ * filters so a view can rank, and so a ranked page can be bookmarked or sent.
+ */
+export type RequestOrder = 'usual' | 'score'
+
+/**
  * The one filter set the Requests page applies to both the list and the board, so switching view never
  * changes what is in scope.
  */
@@ -35,6 +41,7 @@ export interface RequestFilters {
   /** Empty for any tags; otherwise requests carrying at least one of these. */
   tagIds: string[]
   needBy: NeedByFilter
+  order: RequestOrder
 }
 
 export const DEFAULT_REQUEST_FILTERS: RequestFilters = {
@@ -45,6 +52,7 @@ export const DEFAULT_REQUEST_FILTERS: RequestFilters = {
   channelIds: [],
   tagIds: [],
   needBy: 'any',
+  order: 'usual',
 }
 
 const keepsNeedBy = (
@@ -117,6 +125,7 @@ export const activeFilterCount = (filters: RequestFilters): number =>
     filters.channelIds.length > 0,
     filters.tagIds.length > 0,
     filters.needBy !== 'any',
+    filters.order !== 'usual',
   ].filter(Boolean).length
 
 /** A view the Requests page offers by name: a set of filters reviewers reach for often. */
@@ -158,6 +167,16 @@ export const BUILT_IN_VIEWS: BuiltInView[] = [
     filters: { ...DEFAULT_REQUEST_FILTERS, assignee: 'me' },
   },
   {
+    id: 'ranked',
+    name: 'Ranked by score',
+    description: 'Open requests on the desks you work, highest score first.',
+    filters: {
+      ...DEFAULT_REQUEST_FILTERS,
+      deskIds: [MY_DESKS],
+      order: 'score',
+    },
+  },
+  {
     id: 'fixed-dates',
     name: 'Fixed dates, open',
     description: 'Open requests whose date something outside us sets.',
@@ -172,6 +191,7 @@ const sameFilters = (a: RequestFilters, b: RequestFilters) =>
   a.scope === b.scope &&
   a.assignee === b.assignee &&
   a.needBy === b.needBy &&
+  a.order === b.order &&
   sameSet(a.deskIds, b.deskIds) &&
   sameSet(a.statusNames, b.statusNames) &&
   sameSet(a.channelIds, b.channelIds) &&
@@ -219,6 +239,7 @@ export const fromSearchParams = (
       ['any', 'fixed', 'chosen', 'none'] as const,
       'any',
     ),
+    order: pick(params.get('order'), ['usual', 'score'] as const, 'usual'),
   },
 })
 
@@ -236,5 +257,6 @@ export const toSearchParams = (
   filters.channelIds.forEach((id) => params.append('channel', id))
   filters.tagIds.forEach((id) => params.append('tag', id))
   if (filters.needBy !== 'any') params.set('needBy', filters.needBy)
+  if (filters.order !== 'usual') params.set('order', filters.order)
   return params
 }

@@ -13,9 +13,11 @@ import { useDocumentTitle } from '@/src/hooks'
 import {
   useGetIntakeRequestActivitiesQuery,
   useGetIntakeRequestQuery,
+  useGetIntakeRequestScoringQuery,
   useLazyGetIntakeRequestActivitiesQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
 import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
+import { StatusCategory } from '@/src/services/wayd-api'
 import { toApiError } from '@/src/utils'
 import { Alert, Button, Flex } from 'antd'
 import dayjs from 'dayjs'
@@ -34,6 +36,8 @@ import EditIntakeRequestForm from './_components/edit-intake-request-form'
 import IntakeRequestDetails from './_components/intake-request-details'
 import IntakeRequestFacts from './_components/intake-request-facts'
 import IntakeRequestParticipants from './_components/intake-request-participants'
+import IntakeRequestScore from './_components/intake-request-score'
+import ScoreIntakeRequestForm from './_components/score-intake-request-form'
 import IntakeRequestStatusHistory from './_components/intake-request-status-history'
 import ManageIntakeRequestTagsForm from './_components/manage-intake-request-tags-form'
 import RerouteIntakeRequestForm from './_components/reroute-intake-request-form'
@@ -44,6 +48,7 @@ import IntakeRequestDetailsLoading from './loading'
 enum RequestSection {
   Details = 'details',
   Participants = 'participants',
+  Score = 'score',
   StatusHistory = 'status-history',
   Activity = 'activity',
 }
@@ -56,6 +61,7 @@ type RequestDialog =
   | 'change-assignee'
   | 'withdraw'
   | 'manage-tags'
+  | 'score'
 
 /** The query parameter a redirected duplicate's number arrives in, so its surviving request can say why. */
 const DUPLICATE_PARAM = 'duplicate'
@@ -96,6 +102,13 @@ const IntakeRequestDetailsPage = (props: {
     { idOrKey: requestId ?? '', page: 1, pageSize: ACTIVITY_LOG_PAGE_SIZE },
     { skip: !requestId || activeSection !== RequestSection.Activity },
   )
+  // Substance tier, so fetched only for the Score section, which only a reader with the substance is offered.
+  const { data: scoring } = useGetIntakeRequestScoringQuery(requestId ?? '', {
+    skip:
+      !requestId ||
+      !request?.substance ||
+      activeSection !== RequestSection.Score,
+  })
   const [fetchActivityLogPage] = useLazyGetIntakeRequestActivitiesQuery()
   const activityLog = useActivityLog({
     idOrKey: requestId,
@@ -142,6 +155,8 @@ const IntakeRequestDetailsPage = (props: {
           },
         ]
       : []),
+    // A score ranks one ask above another, which is what a restricted desk restricts, so it is substance.
+    ...(substance ? [{ id: RequestSection.Score, label: 'Score' }] : []),
     { id: RequestSection.StatusHistory, label: 'Status History' },
     { id: RequestSection.Activity, label: 'Activity' },
   ]
@@ -199,6 +214,10 @@ const IntakeRequestDetailsPage = (props: {
       <Button size="small" onClick={() => setDialog('add-participant')}>
         Add Participant
       </Button>
+    ) : activeSection === RequestSection.Score && scoring?.canScore ? (
+      <Button size="small" onClick={() => setDialog('score')}>
+        {scoring.scores.length > 0 ? 'Re-score' : 'Score'}
+      </Button>
     ) : activeSection === RequestSection.Activity ? (
       <ActivityLogExportButton activityLog={activityLog} />
     ) : undefined
@@ -243,6 +262,16 @@ const IntakeRequestDetailsPage = (props: {
       case RequestSection.Participants:
         return substance ? (
           <IntakeRequestParticipants request={request} substance={substance} />
+        ) : null
+      case RequestSection.Score:
+        return substance ? (
+          <IntakeRequestScore
+            requestId={summary.id}
+            isOpen={
+              summary.status.category === StatusCategory.Proposed ||
+              summary.status.category === StatusCategory.Active
+            }
+          />
         ) : null
       case RequestSection.Activity:
         return <ActivityLogTimeline {...activityLog.timelineProps} />
@@ -354,6 +383,17 @@ const IntakeRequestDetailsPage = (props: {
       {dialog === 'withdraw' && request.canWithdraw && (
         <WithdrawIntakeRequestForm
           request={request}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'score' && scoring?.canScore && scoring.scoringModel && (
+        <ScoreIntakeRequestForm
+          requestId={summary.id}
+          scoringModel={scoring.scoringModel}
+          modelArchived={scoring.scoringModelArchived}
+          needBy={summary.needBy}
+          currentScore={scoring.scores[0]}
           onFormComplete={() => setDialog(null)}
           onFormCancel={() => setDialog(null)}
         />

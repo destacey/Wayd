@@ -40652,6 +40652,120 @@
         ]
       }
     },
+    "/api/demand-management/intake-desks/{id}/scoring-model": {
+      "put": {
+        "tags": [
+          "IntakeDesks"
+        ],
+        "summary": "Set the scoring model a desk's requests are scored with.",
+        "description": "Needs a Desk Admin on the desk or the Demand Management Admin. The model must be active; a null `scoringModelId` stops scoring the desk's requests. Scores already recorded keep the model they were scored with. A desk changed meanwhile answers 409.",
+        "operationId": "IntakeDesks_ChangeScoringModel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeIntakeDeskScoringModelRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-desks/scoring-model-choices": {
+      "get": {
+        "tags": [
+          "IntakeDesks"
+        ],
+        "summary": "Get the active scoring models a desk can score its requests with.",
+        "description": "Building and editing scoring models is in Settings, under scoring model administration.",
+        "operationId": "IntakeDesks_GetScoringModelChoices",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeScoringModelChoiceDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/demand-management/intake-desks/workflow-choices": {
       "get": {
         "tags": [
@@ -40836,6 +40950,66 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/scores": {
+      "get": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Get the current scores of the intake requests you can see.",
+        "description": "Takes the same filters as the list and answers beside it, for the requests whose score you may read: a score is substance, so a request whose substance is withheld from you is absent, as is one never scored. `isDeskModel` is false for a score from a model the request's desk no longer scores with, which does not rank with the rest.",
+        "operationId": "IntakeRequests_GetIntakeRequestScores",
+        "parameters": [
+          {
+            "name": "deskId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "mine",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 2
+          },
+          {
+            "name": "openOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeRequestCurrentScoreDto"
+                  }
                 }
               }
             }
@@ -41916,6 +42090,218 @@
                   "items": {
                     "$ref": "#/components/schemas/NeedByBasisFamilyDto"
                   }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{id}/scoring": {
+      "get": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Get an intake request's scoring: its desk's model, its score history and its rank on the desk.",
+        "description": "Answers 404 when you may not read the request's substance, the tier its score belongs to. `scoringModel` is null when the desk does not score its requests. `deskRank` places the request among the open requests on its desk scored with the desk's current model whose scores you may read.",
+        "operationId": "IntakeRequests_GetScoring",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeRequestScoringDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{id}/scores": {
+      "post": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Score an intake request with its desk's scoring model.",
+        "description": "Needs an agent on the request's desk, an open request, and a desk with a scoring model. Rate every criterion: choose a level for one rated on a scale, a number for one without. Adds a score to the request's history and makes it current; earlier scores are kept. Answers the new score's id.",
+        "operationId": "IntakeRequests_Score",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoreIntakeRequestRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{id}/scores/preview": {
+      "post": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Preview what ratings would score an intake request, without recording it.",
+        "description": "Needs an agent on the request's desk. Calculates every output of the desk's scoring model from the ratings and records nothing.",
+        "operationId": "IntakeRequests_PreviewScore",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoreIntakeRequestRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringModelEvaluationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -49192,6 +49578,19 @@
         },
         "additionalProperties": false,
         "description": "The share of production deployments that failed or were rolled back."
+      },
+      "ChangeIntakeDeskScoringModelRequest": {
+        "type": "object",
+        "properties": {
+          "scoringModelId": {
+            "type": "string",
+            "description": "An active scoring model, from the scoring model choices, or null to stop scoring the desk's requests.",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The scoring model a desk's requests should be scored with."
       },
       "ChangeIntakeDeskWorkflowRequest": {
         "required": [
@@ -57284,6 +57683,15 @@
             },
             "description": "The tag axes the desk chose, in the company's order, while it does not offer them all; an inactive one\nstays chosen but is not offered. Empty with bool IntakeDeskDto.OffersAllTagCategories false means its agents tag\nalong none."
           },
+          "scoringModel": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The scoring model the desk's agents score its requests with, or null when the desk does not score them.",
+            "nullable": true
+          },
           "revision": {
             "type": "integer",
             "description": "How many changes the desk has recorded; sent back with a change so a stale one is refused.",
@@ -57496,6 +57904,95 @@
         },
         "additionalProperties": false,
         "description": "The statuses an intake request can arrive in when moved to a desk, and the one it arrives in unless the\nmover chooses."
+      },
+      "IntakeRequestCriterionRatingRequest": {
+        "required": [
+          "criterionId"
+        ],
+        "type": "object",
+        "properties": {
+          "criterionId": {
+            "type": "string",
+            "description": "The criterion rated.",
+            "format": "uuid"
+          },
+          "value": {
+            "type": "number",
+            "description": "The number entered, for a criterion with no scale.",
+            "format": "decimal",
+            "nullable": true
+          },
+          "ratingLevelId": {
+            "type": "string",
+            "description": "The level chosen, for a criterion rated on a scale.",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One criterion's rating: a level of its scale, or a number for a criterion with no scale."
+      },
+      "IntakeRequestCurrentScoreDto": {
+        "required": [
+          "scoringModel",
+          "requestId",
+          "value",
+          "scoredOn",
+          "isDeskModel"
+        ],
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "description": "The request scored.",
+            "format": "uuid"
+          },
+          "value": {
+            "type": "number",
+            "description": "The value of the model's primary output.",
+            "format": "decimal"
+          },
+          "scoredOn": {
+            "type": "string",
+            "description": "When the request was last scored.",
+            "format": "date-time"
+          },
+          "scoringModel": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The scoring model the score came from, as it was named then."
+          },
+          "isDeskModel": {
+            "type": "boolean",
+            "description": "Whether the score came from the model the request's desk scores with now. A score from an earlier model,\nor from the desk a request moved from, does not rank with the rest."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request's current score, as the requests list and board rank on it. Substance tier, which is why it is\nreturned beside the summaries rather than on them."
+      },
+      "IntakeRequestDeskRankDto": {
+        "required": [
+          "position",
+          "of"
+        ],
+        "type": "object",
+        "properties": {
+          "position": {
+            "type": "integer",
+            "description": "The request's position, 1 being the highest score.",
+            "format": "int32"
+          },
+          "of": {
+            "type": "integer",
+            "description": "How many open requests on the desk are ranked.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request's place among the open requests on its desk, by primary score."
       },
       "IntakeRequestDetailsDto": {
         "required": [
@@ -57761,6 +58258,202 @@
         },
         "additionalProperties": false,
         "description": "A participant on an intake request: who, and who added them when."
+      },
+      "IntakeRequestScoreDto": {
+        "required": [
+          "scoredBy",
+          "scoringModel",
+          "ratings",
+          "outputs",
+          "id",
+          "sequence",
+          "primaryValue",
+          "scoredOn"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The score's id.",
+            "format": "uuid"
+          },
+          "sequence": {
+            "type": "integer",
+            "description": "The request's score number; the highest is the current score.",
+            "format": "int64"
+          },
+          "primaryValue": {
+            "type": "number",
+            "description": "The value of the model's primary output, which requests are ranked on.",
+            "format": "decimal"
+          },
+          "scoredOn": {
+            "type": "string",
+            "description": "When the score was recorded.",
+            "format": "date-time"
+          },
+          "scoredBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ],
+            "description": "The agent who rated the request."
+          },
+          "scoringModel": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The scoring model the request was rated with, as it was named then."
+          },
+          "ratings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntakeRequestScoreRatingDto"
+            },
+            "description": "Each criterion's rating, in the model's display order."
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntakeRequestScoreOutputDto"
+            },
+            "description": "Every computed output, in evaluation order."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One of an intake request's scores: the frozen ratings and outputs it was given at a point in time. Substance\ntier."
+      },
+      "IntakeRequestScoreOutputDto": {
+        "required": [
+          "token",
+          "name",
+          "value",
+          "isPrimary",
+          "order"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The output's formula token."
+          },
+          "name": {
+            "type": "string",
+            "description": "The output's name when the request was scored."
+          },
+          "value": {
+            "type": "number",
+            "description": "The computed value.",
+            "format": "decimal"
+          },
+          "isPrimary": {
+            "type": "boolean",
+            "description": "Whether this was the model's primary output."
+          },
+          "order": {
+            "type": "integer",
+            "description": "The output's evaluation order.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One frozen computed output within an intake request's score."
+      },
+      "IntakeRequestScoreRatingDto": {
+        "required": [
+          "criterionName",
+          "criterionToken",
+          "criterionId",
+          "ratingValue",
+          "order"
+        ],
+        "type": "object",
+        "properties": {
+          "criterionId": {
+            "type": "string",
+            "description": "The criterion rated.",
+            "format": "uuid"
+          },
+          "criterionName": {
+            "type": "string",
+            "description": "The criterion's name when the request was scored."
+          },
+          "criterionToken": {
+            "type": "string",
+            "description": "The criterion's formula token when the request was scored."
+          },
+          "ratingValue": {
+            "type": "number",
+            "description": "The number the calculation used.",
+            "format": "decimal"
+          },
+          "ratingLevelId": {
+            "type": "string",
+            "description": "The level chosen, when the criterion is rated on a scale.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "ratingLevelLabel": {
+            "type": "string",
+            "description": "The chosen level's label when the request was scored; null for a number entered directly.",
+            "nullable": true
+          },
+          "order": {
+            "type": "integer",
+            "description": "The criterion's display order.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One criterion's frozen rating within an intake request's score."
+      },
+      "IntakeRequestScoringDto": {
+        "required": [
+          "scores",
+          "scoringModelArchived",
+          "canScore"
+        ],
+        "type": "object",
+        "properties": {
+          "scoringModel": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ScoringModelDetailsDto"
+              }
+            ],
+            "description": "The model the request's desk scores with, with the criteria, scales and outputs a rating form needs; null\nwhen the desk does not score its requests.",
+            "nullable": true
+          },
+          "scoringModelArchived": {
+            "type": "boolean",
+            "description": "Whether the desk's model has been archived since it was assigned. It still scores, but an admin is\nexpected to replace it."
+          },
+          "canScore": {
+            "type": "boolean",
+            "description": "Whether the reader may score the request now: an agent on its desk, while the request is open and the\ndesk has a model."
+          },
+          "scores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntakeRequestScoreDto"
+            },
+            "description": "Every score the request has been given, newest first; the first is the current score."
+          },
+          "deskRank": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRequestDeskRankDto"
+              }
+            ],
+            "description": "Where the request ranks among the open requests on its desk scored with the desk's current model, or null\nwhen it is closed, has never been scored, or its current score came from another model.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Everything a request's Score tab shows: the model its desk scores with, the score history, and where the\nrequest ranks on its desk. Substance tier."
       },
       "IntakeRequestStatusOptionDto": {
         "allOf": [
@@ -58058,6 +58751,37 @@
         },
         "additionalProperties": false,
         "description": "One tag on an axis, as the settings page and the pickers list it."
+      },
+      "IntakeScoringModelChoiceDto": {
+        "required": [
+          "name",
+          "description",
+          "id",
+          "key"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The model's id.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "description": "The model's key.",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "description": "The model's name."
+          },
+          "description": {
+            "type": "string",
+            "description": "What the model is for, as its administrator described it."
+          }
+        },
+        "additionalProperties": false,
+        "description": "An active scoring model a desk can score its requests with."
       },
       "IntakeWorkflowChoiceDto": {
         "required": [
@@ -66680,6 +67404,23 @@
           }
         },
         "additionalProperties": false
+      },
+      "ScoreIntakeRequestRequest": {
+        "required": [
+          "ratings"
+        ],
+        "type": "object",
+        "properties": {
+          "ratings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntakeRequestCriterionRatingRequest"
+            },
+            "description": "A rating for every criterion of the desk's model."
+          }
+        },
+        "additionalProperties": false,
+        "description": "An agent's ratings of an intake request against its desk's scoring model."
       },
       "ScoreSummaryDto": {
         "required": [

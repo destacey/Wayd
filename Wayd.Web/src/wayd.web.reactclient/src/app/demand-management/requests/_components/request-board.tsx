@@ -14,6 +14,8 @@ import { requestHref } from '../../_components/intake-requests-grid'
 import { NeedByTag } from '../../_components/need-by'
 import { WaitTime } from '../../_components/request-age'
 import { TOUCH_THEME } from '../../_components/touch-theme'
+import type { RequestScores } from '../../_components/request-scores'
+import { ScoreValue } from '../../_components/score-value'
 import styles from './request-board.module.css'
 import { RequestScope } from './request-filters'
 
@@ -44,16 +46,22 @@ export const boardColumns = (
       requests: requests.filter((r) => r.status.id === status.id),
     }))
 
-const RequestCard: FC<{ request: IntakeRequestSummaryDto }> = ({ request }) => {
+const RequestCard: FC<{
+  request: IntakeRequestSummaryDto
+  scores: RequestScores
+}> = ({ request, scores }) => {
   const fixed = request.needBy?.family === NeedByBasisFamily.FixedForUs
   return (
     <Link
       href={requestHref(request.key)}
       className={`${styles.card} ${fixed ? styles.fixed : ''}`}
     >
-      <Text type="secondary" className={styles.number}>
-        {request.key}
-      </Text>
+      <span className={styles.header}>
+        <Text type="secondary" className={styles.number}>
+          {request.key}
+        </Text>
+        <ScoreValue score={scores.get(request.id)} />
+      </span>
       <Text strong className={styles.title}>
         {request.title}
       </Text>
@@ -73,10 +81,11 @@ const RequestCard: FC<{ request: IntakeRequestSummaryDto }> = ({ request }) => {
   )
 }
 
-const ColumnView: FC<{ column: BoardColumn; showHeader: boolean }> = ({
-  column,
-  showHeader,
-}) => (
+const ColumnView: FC<{
+  column: BoardColumn
+  showHeader: boolean
+  scores: RequestScores
+}> = ({ column, showHeader, scores }) => (
   <section
     className={styles.column}
     aria-label={`${column.status.name}, ${column.requests.length}`}
@@ -96,7 +105,9 @@ const ColumnView: FC<{ column: BoardColumn; showHeader: boolean }> = ({
           Nothing here
         </Text>
       ) : (
-        column.requests.map((r) => <RequestCard key={r.id} request={r} />)
+        column.requests.map((r) => (
+          <RequestCard key={r.id} request={r} scores={scores} />
+        ))
       )}
     </div>
   </section>
@@ -104,6 +115,8 @@ const ColumnView: FC<{ column: BoardColumn; showHeader: boolean }> = ({
 
 export interface RequestBoardProps {
   columns: BoardColumn[]
+  /** The current scores the reader may read, shown on the cards. */
+  scores?: RequestScores
 }
 
 /**
@@ -112,7 +125,10 @@ export interface RequestBoardProps {
  * Cards open the request; moving one goes through the request's own status change, which can ask for a
  * reason or the surviving request, so there is no dragging.
  */
-const RequestBoard: FC<RequestBoardProps> = ({ columns }) => {
+const RequestBoard: FC<RequestBoardProps> = ({
+  columns,
+  scores = new Map(),
+}) => {
   const screens = useBreakpoint()
   const [chosenId, setChosenId] = useState<string>()
 
@@ -138,7 +154,7 @@ const RequestBoard: FC<RequestBoardProps> = ({ columns }) => {
             }))}
           />
         </ConfigProvider>
-        <ColumnView column={shown} showHeader={false} />
+        <ColumnView column={shown} showHeader={false} scores={scores} />
       </div>
     )
   }
@@ -146,7 +162,7 @@ const RequestBoard: FC<RequestBoardProps> = ({ columns }) => {
   return (
     <div className={styles.board}>
       {columns.map((c) => (
-        <ColumnView key={c.status.id} column={c} showHeader />
+        <ColumnView key={c.status.id} column={c} showHeader scores={scores} />
       ))}
     </div>
   )

@@ -1,17 +1,22 @@
+using Mapster;
+using Mapster.Utils;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Wayd.Common.Application.Activities;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Application.Scoring.ScoringModels.Dtos;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Models;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.DemandManagement.Application.IntakeDesks.Queries;
 using Wayd.DemandManagement.Application.IntakeRequests;
+using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
 using Wayd.DemandManagement.Application.IntakeRequestTagCategories.Queries;
 using Wayd.DemandManagement.Domain.Models;
@@ -30,6 +35,18 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
     private static readonly Instant Now = Instant.FromUtc(2026, 10, 1, 8, 0, 0);
 
     private readonly SqlServerDbContextFixture _fixture = fixture;
+
+    /// <summary>
+    /// Registers the shared application layer's Mapster mappings as its <c>ConfigureServices</c> does at startup,
+    /// which the scoring query adapts a scoring model through.
+    /// </summary>
+    private static readonly Lazy<bool> SharedMappings = new(() =>
+    {
+        var assembly = typeof(ScoringModelDetailsDto).Assembly;
+        TypeAdapterConfig.GlobalSettings.Scan(assembly);
+        TypeAdapterConfig.GlobalSettings.ScanInheritedTypes(assembly);
+        return true;
+    });
 
     private sealed record Scenario(
         IntakeDesk Open,
@@ -418,6 +435,131 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         // Assert
         outsider.Single(c => c.Name == name).Tags.Single().RequestCount.Should().Be(1);
         admin.Single(c => c.Name == name).Tags.Single().RequestCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetIntakeRequestScoring_ForTheDesksAgent_TranslatesTheHistoryModelAndRank()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        var (modelId, second) = await ScorePrivateDesk(scenario, ct);
+        await using var context = _fixture.CreateContext();
+        _ = SharedMappings.Value;
+
+        // Act
+        var result = await new GetIntakeRequestScoringQueryHandler(context, Principal(scenario.Agent.Id))
+            .Handle(new GetIntakeRequestScoringQuery(scenario.OnPrivate.Id), ct);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.ScoringModel!.Id.Should().Be(modelId);
+        result.ScoringModel.Criteria.Should().ContainSingle();
+        result.CanScore.Should().BeTrue();
+        result.Scores.Select(s => (s.Sequence, s.PrimaryValue)).Should().Equal((2L, 8m), (1L, 1m));
+        result.Scores[0].ScoredBy.Id.Should().Be(scenario.Agent.Id);
+        result.Scores[0].Ratings.Should().ContainSingle().Which.RatingLevelLabel.Should().Be("High");
+        result.Scores[0].Outputs.Should().ContainSingle().Which.IsPrimary.Should().BeTrue();
+        result.DeskRank.Should().Be(new IntakeRequestDeskRankDto { Position = 1, Of = 2 });
+
+        var scores = await new GetIntakeRequestScoresQueryHandler(context, Principal(scenario.Agent.Id))
+            .Handle(new GetIntakeRequestScoresQuery(scenario.Private.Id, OpenOnly: true), ct);
+        scores.Select(s => (s.RequestId, s.Value, s.IsDeskModel)).Should().Equal((scenario.OnPrivate.Id, 8m, true), (second, 1m, true));
+    }
+
+    [Fact]
+    public async Task GetIntakeRequestScoring_ForAnOutsider_ReturnsNothing()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        await ScorePrivateDesk(scenario, ct);
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var result = await new GetIntakeRequestScoringQueryHandler(context, Principal(Guid.NewGuid()))
+            .Handle(new GetIntakeRequestScoringQuery(scenario.OnPrivate.Id), ct);
+        var scores = await new GetIntakeRequestScoresQueryHandler(context, Principal(Guid.NewGuid()))
+            .Handle(new GetIntakeRequestScoresQuery(scenario.Private.Id), ct);
+
+        // Assert
+        result.Should().BeNull();
+        scores.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetIntakeRequestScores_AfterTheDeskChangesModel_FlagsTheEarlierScoresAndLeavesOutTheUnscored()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        var (modelId, second) = await ScorePrivateDesk(scenario, ct);
+        await using (var arrange = _fixture.CreateContext())
+        {
+            var replacement = ScoringModel.Create(UniqueName("Model"), "Replaces the first.", EventActor.System, Now,
+                criteria: [("Business Value", "BV", null, null, null)],
+                outputs: [("Score", "Score", "BV", true)]);
+            replacement.Activate(EventActor.System, Now).IsSuccess.Should().BeTrue();
+            arrange.ScoringModels.Add(replacement);
+            var current = await arrange.ScoringModels.AsNoTracking().SingleAsync(m => m.Id == modelId, ct);
+            var desk = await arrange.IntakeDesks.SingleAsync(d => d.Id == scenario.Private.Id, ct);
+            desk.ChangeScoringModel(replacement, current, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            arrange.IntakeRequests.Add(IntakeRequest.Create(UniqueName("Ask"), "Never scored", null, scenario.Requester.Id,
+                scenario.Requester.Id, desk, await arrange.IntakeChannels.FirstAsync(ct), null, null, IntakeStatuses.Submitted(),
+                EventActor.System, Now).Value);
+            await arrange.SaveChangesAsync(ct);
+        }
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var scores = await new GetIntakeRequestScoresQueryHandler(context, Principal(scenario.Agent.Id))
+            .Handle(new GetIntakeRequestScoresQuery(scenario.Private.Id), ct);
+        var mine = await new GetIntakeRequestScoresQueryHandler(context, Principal(scenario.Requester.Id))
+            .Handle(new GetIntakeRequestScoresQuery(Mine: true, OpenOnly: true), ct);
+
+        // Assert
+        scores.Should().HaveCount(2).And.OnlyContain(s => !s.IsDeskModel && s.ScoringModel.Id == modelId && s.ScoringModel.Key > 0);
+        scores.Select(s => s.RequestId).Should().BeEquivalentTo([scenario.OnPrivate.Id, second]);
+        mine.Select(s => s.RequestId).Should().BeEquivalentTo([scenario.OnPrivate.Id, second]);
+    }
+
+    /// <summary>
+    /// Has the private desk score with a one-criterion model, scores its seeded request Low then High, and a second
+    /// request Low; answers the model and the second request.
+    /// </summary>
+    private async Task<(Guid ModelId, Guid SecondRequestId)> ScorePrivateDesk(Scenario scenario, CancellationToken ct)
+    {
+        await using var context = _fixture.CreateContext();
+        var model = ScoringModel.Create(UniqueName("Model"), "Scores intake requests.", EventActor.System, Now,
+            scales: [("Impact", [("High", 8m), ("Low", 1m)])],
+            criteria: [("Business Value", "BV", null, null, "Impact")],
+            outputs: [("Score", "Score", "BV", true)]);
+        model.Activate(EventActor.System, Now).IsSuccess.Should().BeTrue();
+        context.ScoringModels.Add(model);
+        var desk = await context.IntakeDesks.SingleAsync(d => d.Id == scenario.Private.Id, ct);
+        desk.ChangeScoringModel(model, null, EventActor.System, Now).IsSuccess.Should().BeTrue();
+        var channel = await context.IntakeChannels.FirstAsync(ct);
+        var second = IntakeRequest.Create(UniqueName("Ask"), "Another ask", null, scenario.Requester.Id, scenario.Requester.Id,
+            desk, channel, null, null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
+        context.IntakeRequests.Add(second);
+        var first = await context.IntakeRequests.Include(r => r.Scores).SingleAsync(r => r.Id == scenario.OnPrivate.Id, ct);
+
+        var criterion = model.Criteria.Single();
+        var scorer = new IntakeRequestEditor(scenario.Agent.Id, IsDeskAgent: true, EventActor.System);
+        void Score(IntakeRequest request, string label)
+        {
+            var level = model.Scales.Single().Levels.Single(l => l.Label == label);
+            request.RecordScore(desk, model, new Dictionary<Guid, decimal> { [criterion.Id] = level.Value },
+                new Dictionary<Guid, (Guid, string)> { [criterion.Id] = (level.Id, level.Label) }, scorer, Now)
+                .IsSuccess.Should().BeTrue();
+        }
+
+        Score(first, "Low");
+        Score(first, "High");
+        Score(second, "Low");
+        await context.SaveChangesAsync(ct);
+
+        return (model.Id, second.Id);
     }
 
     private static ICurrentPrincipal Principal(Guid employeeId, bool holdsView = true, bool holdsAdminister = false,

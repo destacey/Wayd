@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Employees.Dtos;
 using Wayd.DemandManagement.Application.IntakeDesks.Dtos;
 using Wayd.DemandManagement.Domain.Models;
@@ -15,6 +16,7 @@ internal static class IntakeDeskProjections
         var employees = dbContext.Employees;
         var channels = dbContext.IntakeChannels;
         var tagCategories = dbContext.IntakeRequestTagCategories;
+        var scoringModels = dbContext.ScoringModels;
 
         return d => new IntakeDeskDto
         {
@@ -38,6 +40,9 @@ internal static class IntakeDeskProjections
                 .OrderBy(c => c.Order).ThenBy(c => c.Name).ThenBy(c => c.Id)
                 .Select(c => c.Id)
                 .ToList(),
+            ScoringModel = scoringModels.Where(m => m.Id == d.ScoringModelId)
+                .Select(m => new NavigationDto { Id = m.Id, Key = m.Key, Name = m.Name })
+                .FirstOrDefault(),
             Revision = d.Revision,
             Members = d.Members
                 .Join(employees, m => m.EmployeeId, e => e.Id, (m, e) => new { m.Role, Employee = e })

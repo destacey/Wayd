@@ -3,7 +3,9 @@ using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Models;
+using Wayd.DemandManagement.Application;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
 using Wayd.Infrastructure.Persistence.Context;
@@ -325,6 +327,113 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
         (await reader.IntakeRequestTagCategories.AnyAsync(c => c.Id == categoryId, ct)).Should().BeFalse();
         (await reader.IntakeDesks.AsNoTracking().Include(d => d.TagCategories).SingleAsync(d => d.Id == deskId, ct))
             .TagCategories.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task SaveChanges_GivingADeskAScoringModelReadUntracked_StoresOnlyItsIdAndRecordsTheChange()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        Guid deskId;
+        Guid modelId;
+        await using (var context = _fixture.CreateContext())
+        {
+            var (desk, _) = await SeedDeskAndChannel(context);
+            deskId = desk.Id;
+            modelId = (await SeedActiveScoringModel(context)).Id;
+        }
+
+        // Act
+        await using (var context = _fixture.CreateContext())
+        {
+            IDemandManagementDbContext module = context;
+            var desk = await module.IntakeDesks.SingleAsync(d => d.Id == deskId, ct);
+            var model = await module.ScoringModels.SingleAsync(m => m.Id == modelId, ct);
+            desk.ChangeScoringModel(model, null, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            await context.SaveChangesAsync(ct);
+        }
+
+        // Assert
+        await using var reader = _fixture.CreateContext();
+        (await reader.IntakeDesks.AsNoTracking().SingleAsync(d => d.Id == deskId, ct)).ScoringModelId.Should().Be(modelId);
+        (await reader.ScoringModels.CountAsync(m => m.Id == modelId, ct)).Should().Be(1);
+        (await reader.ActivityLogs.AsNoTracking()
+            .AnyAsync(a => a.AggregateId == deskId && a.EventType == nameof(IntakeDeskScoringModelChangedEvent), ct))
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SaveChanges_ScoringARequestTwice_PersistsBothSnapshotsAndTheCurrentScore()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        Guid requestId;
+        Guid deskId;
+        Guid modelId;
+        Guid agentId;
+        await using (var context = _fixture.CreateContext())
+        {
+            var (desk, channel) = await SeedDeskAndChannel(context);
+            var model = await SeedActiveScoringModel(context);
+            var agent = await SeedEmployee(context);
+            desk.ChangeScoringModel(model, null, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            var request = IntakeRequest.Create("Export invoices", "Finance needs a CSV export", null, agent.Id, agent.Id,
+                desk, channel, null, null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
+            context.IntakeRequests.Add(request);
+            await context.SaveChangesAsync(ct);
+            (requestId, deskId, modelId, agentId) = (request.Id, desk.Id, model.Id, agent.Id);
+        }
+
+        // Act
+        foreach (var (value, at) in new[] { ("Low", Now), ("High", Now.Plus(Duration.FromDays(90))) })
+        {
+            await using var context = _fixture.CreateContext();
+            IDemandManagementDbContext module = context;
+            var request = await module.IntakeRequests.Include(r => r.Scores).SingleAsync(r => r.Id == requestId, ct);
+            var desk = await module.IntakeDesks.SingleAsync(d => d.Id == deskId, ct);
+            var model = await module.ScoringModels
+                .Include(m => m.Criteria).Include(m => m.Scales).ThenInclude(s => s.Levels).Include(m => m.Outputs)
+                .SingleAsync(m => m.Id == modelId, ct);
+            var level = model.Scales.Single().Levels.Single(l => l.Label == value);
+            var criterion = model.Criteria.Single();
+            var scorer = new IntakeRequestEditor(agentId, IsDeskAgent: true, EventActor.System);
+
+            request.RecordScore(desk, model, new Dictionary<Guid, decimal> { [criterion.Id] = level.Value },
+                new Dictionary<Guid, (Guid, string)> { [criterion.Id] = (level.Id, level.Label) }, scorer, at)
+                .IsSuccess.Should().BeTrue();
+            await context.SaveChangesAsync(ct);
+        }
+
+        // Assert
+        await using var reader = _fixture.CreateContext();
+        var saved = await reader.IntakeRequests.AsNoTracking()
+            .Include(r => r.Scores).ThenInclude(s => s.Ratings)
+            .Include(r => r.Scores).ThenInclude(s => s.Outputs)
+            .SingleAsync(r => r.Id == requestId, ct);
+        saved.Scores.OrderBy(s => s.Sequence).Select(s => (s.Sequence, s.PrimaryValue)).Should().Equal((1L, 1m), (2L, 8m));
+        var first = saved.Scores.Single(s => s.Sequence == 1);
+        first.Ratings.Should().ContainSingle().Which.RatingLevelLabel.Should().Be("Low");
+        first.Outputs.Should().ContainSingle().Which.IsPrimary.Should().BeTrue();
+        saved.CurrentScore.Should().NotBeNull();
+        saved.CurrentScore!.Value.Should().Be(8m);
+        saved.CurrentScore.ScoringModelId.Should().Be(modelId);
+        saved.CurrentScore.ScoredById.Should().Be(agentId);
+        (await reader.ActivityLogs.AsNoTracking()
+            .CountAsync(a => a.AggregateId == requestId && a.EventType == nameof(IntakeRequestScoreRecordedEvent), ct))
+            .Should().Be(2);
+    }
+
+    private static async Task<ScoringModel> SeedActiveScoringModel(WaydDbContext context)
+    {
+        var model = ScoringModel.Create(UniqueName("Model"), "Scores intake requests.", EventActor.System, Now,
+            scales: [("Impact", [("High", 8m), ("Low", 1m)])],
+            criteria: [("Business Value", "BV", null, null, "Impact")],
+            outputs: [("Score", "Score", "BV", true)]);
+        model.Activate(EventActor.System, Now).IsSuccess.Should().BeTrue();
+        context.ScoringModels.Add(model);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return model;
     }
 
     private static string UniqueName(string prefix) => $"{prefix}-{Guid.NewGuid():N}"[..30];

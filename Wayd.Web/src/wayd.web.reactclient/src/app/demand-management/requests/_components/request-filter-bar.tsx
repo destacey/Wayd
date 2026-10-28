@@ -33,6 +33,7 @@ import {
   MY_DESKS,
   NeedByFilter,
   RequestFilters,
+  RequestOrder,
   RequestScope,
   activeFilterCount,
   applyRequestFilters,
@@ -204,6 +205,16 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
           { value: 'fixed', label: 'Fixed for us' },
           { value: 'chosen', label: 'We chose it' },
           { value: 'none', label: 'No date given' },
+        ]}
+      />
+      <Select<RequestOrder>
+        className={controlClass}
+        aria-label="Order"
+        value={filters.order}
+        onChange={(order) => set({ order })}
+        options={[
+          { value: 'usual', label: 'Usual order' },
+          { value: 'score', label: 'Highest score first' },
         ]}
       />
       <Select

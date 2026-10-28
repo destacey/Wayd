@@ -118,6 +118,7 @@ export enum QueryTags {
   IntakeDesk = 'DemandManagement.IntakeDesk',
   IntakeChannel = 'DemandManagement.IntakeChannel',
   IntakeRequestTagCategory = 'DemandManagement.IntakeRequestTagCategory',
+  IntakeRequestScore = 'DemandManagement.IntakeRequestScore',
   IntakeLookup = 'DemandManagement.Lookup',
   IntakeEmployeeOption = 'DemandManagement.EmployeeOption',
 

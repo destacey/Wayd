@@ -1,6 +1,7 @@
 using System.Reflection;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.Scoring;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.TestData.Core;
 
@@ -90,6 +91,16 @@ public static class IntakeDeskFakerExtensions
             list.Clear();
             list.AddRange(members.Select(m => new IntakeDeskMember(desk.Id, m.EmployeeId, m.Role)));
         });
+
+        return faker;
+    }
+
+    /// <summary>
+    /// Scores the desk's requests with the model.
+    /// </summary>
+    public static IntakeDeskFaker WithScoringModel(this IntakeDeskFaker faker, ScoringModel scoringModel)
+    {
+        faker.RuleFor(x => x.ScoringModelId, scoringModel.Id);
 
         return faker;
     }

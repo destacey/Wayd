@@ -10,8 +10,9 @@ import {
   useGetIntakeChannelsQuery,
   useGetIntakeRequestTagCategoriesQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
-import { Flex, Skeleton, Typography } from 'antd'
-import { FC } from 'react'
+import { Button, Flex, Skeleton, Typography } from 'antd'
+import { FC, useState } from 'react'
+import ChangeIntakeDeskScoringModelForm from './change-intake-desk-scoring-model-form'
 import IntakeDeskWorkflow from './intake-desk-workflow'
 
 const { Text } = Typography
@@ -31,6 +32,7 @@ const IntakeDeskSettings: FC<IntakeDeskSettingsProps> = ({
   visibilities,
 }) => {
   const visibility = visibilities?.find((v) => v.code === desk.visibility)
+  const [changingScoringModel, setChangingScoringModel] = useState(false)
   const { data: channels } = useGetIntakeChannelsQuery({
     includeArchived: true,
   })
@@ -54,6 +56,31 @@ const IntakeDeskSettings: FC<IntakeDeskSettingsProps> = ({
       </LabeledContent>
       <LabeledContent label="Review Workflow">
         <IntakeDeskWorkflow deskId={desk.id} deskName={desk.name} />
+      </LabeledContent>
+      <LabeledContent label="Scoring Model">
+        <Flex vertical gap={4}>
+          <Flex gap={8} align="center" wrap>
+            <Text>{desk.scoringModel?.name ?? 'None'}</Text>
+            {desk.canManage && (
+              <Button
+                size="small"
+                onClick={() => setChangingScoringModel(true)}
+              >
+                Change Scoring Model
+              </Button>
+            )}
+          </Flex>
+          {!desk.scoringModel && (
+            <Text type="secondary">Requests on this desk are not scored.</Text>
+          )}
+        </Flex>
+        {changingScoringModel && desk.canManage && (
+          <ChangeIntakeDeskScoringModelForm
+            desk={desk}
+            onFormComplete={() => setChangingScoringModel(false)}
+            onFormCancel={() => setChangingScoringModel(false)}
+          />
+        )}
       </LabeledContent>
       <LabeledContent label="Who Can See Its Requests">
         <Flex vertical>

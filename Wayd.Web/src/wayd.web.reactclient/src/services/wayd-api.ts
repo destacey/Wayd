@@ -59605,7 +59605,8 @@ export interface NotificationDto {
     occurredOn: Date;
     /** How the newest change was made: a person directly, or the platform reacting for one. */
     actorKind: EventActorKind;
-    /** Who made the newest change, or null when no employee is linked to the account that did. */
+    /** Who made the newest change, or null when no employee is linked to the account that did, or when the
+record withholds who made its changes from the caller — an intake request whose substance they cannot see. */
     actor?: EmployeeNavigationDto | undefined;
     /** Every reason the caller was told about this record, across the whole entry. */
     reasons: NotificationReason[];
@@ -59626,6 +59627,12 @@ export enum NotificationEvent {
     RolesChanged = "RolesChanged",
     Reparented = "Reparented",
     ScoreRecorded = "ScoreRecorded",
+    Withdrawn = "Withdrawn",
+    Retitled = "Retitled",
+    DetailsChanged = "DetailsChanged",
+    AssigneeChanged = "AssigneeChanged",
+    ParticipantsChanged = "ParticipantsChanged",
+    ChannelChanged = "ChannelChanged",
 }
 
 export enum NotificationReason {

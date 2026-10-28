@@ -34,6 +34,21 @@ const reasonWording: Partial<
     description:
       'Changes to anything you follow. They stay in your Following list.',
   },
+  [NotificationReason.Requester]: {
+    title: 'Requests you made',
+    description:
+      'Changes to intake requests you asked for, or that were submitted for you.',
+  },
+  [NotificationReason.Assigned]: {
+    title: 'Requests assigned to you',
+    description:
+      'Changes to intake requests you are assigned, including being given or losing one. You stay assigned.',
+  },
+  [NotificationReason.Participant]: {
+    title: 'Requests you take part in',
+    description:
+      'Changes to intake requests you were given access to, or submitted for someone else. You keep your access.',
+  },
   [NotificationReason.Role]: {
     title: 'Records you work on',
     description:

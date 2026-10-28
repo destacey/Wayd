@@ -157,6 +157,10 @@ The rest of the form is the same for every desk, in three steps. From the first 
 Submitting needs your account to be linked to an employee record, because every request names employees as its requester and submitter. If yours is not linked, the page says so; ask an administrator to link it.
 :::
 
+#### Through an AI assistant
+
+An assistant connected to Wayd's [hosted MCP endpoint](../../getting-started/mcp-server.mdx), with the `intake` toolset, can raise a request for you: it picks the desk from the descriptions of the desks taking requests, asks where the request came from when the desk records a channel, and shows you the request before submitting it. It can also list your requests and tell you where one stands — its status, the desk's reason for declining or finishing it, and its status history. It can edit or withdraw your request too. If you work a desk, it can review requests with you — change their status, assign, tag and move them, and manage participants — and a Desk Admin or the Demand Management Admin can have it set up desks, channels and tag axes. It sees only what you can see in Wayd and can do only what you can do here, so it never reads a desk's internal notes unless you work that desk.
+
 ### Finding requests
 
 **Requests** is where reviewers work from, and where anyone checks whether an ask already exists before raising it. It opens on the requests still open — those in a proposed or active status, whatever their desk calls it; **Everything** adds the closed ones. Requests on a private desk you are not part of never appear, so every list, count and total on the page covers only what you can see.
@@ -188,7 +192,9 @@ Opening a request shows its number and title, with its status and [tags](#tags) 
 - **Status History** — Every status the request has been in, as a timeline or drawn on its desk's workflow. Without the request's detail you see each change without its reason or who made it
 - **Activity** — The request's history, limited to what you can read
 
-Anyone who can see a request can **follow** it with the eye at the top of the page, to keep it in their [Following](../following.mdx) list; the Following feature flag must be on. Following grants nothing: a follower reads exactly what the tiers below allow, and loses the request from their list the moment they can no longer see it — when it moves to a private desk they are not on, they are removed from a private desk's request, or it is deleted. Its history in their Following list shows only what the request's own Activity section shows them. Following a request does not yet tell you when it changes; that comes with request notifications.
+Anyone who can see a request can **follow** it with the eye at the top of the page, to keep it in their [Following](../following.mdx) list; the Following feature flag must be on. Following grants nothing: a follower reads exactly what the tiers below allow, and loses the request from their list the moment they can no longer see it — when it moves to a private desk they are not on, they are removed from a private desk's request, or it is deleted. Its history in their Following list shows only what the request's own Activity section shows them.
+
+The bell tells a request's people when it changes, without their having to follow it: its requester, its assignee, its participants and anyone who entered it on the requester's behalf, as well as its followers. Each is told for their own reason and can mute that reason, and nobody is told about their own change. The requester hears when its status changes, when it is reassigned or moved to another desk, and when its title, details, need-by date or channel change; an agent hears when a request is assigned to them or taken off them. A follower who sees only a request's summary is not told about changes to its details or participants. [Notifications](../notifications.mdx#who-is-told) lists who is told about each change.
 
 **Edit** appears in the actions menu when you can change the request: the requester while it is proposed, or an agent on its desk while it is open. The desk cannot be changed here.
 

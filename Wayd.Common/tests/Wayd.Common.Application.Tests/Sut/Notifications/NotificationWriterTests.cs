@@ -112,9 +112,9 @@ public sealed class NotificationWriterTests
     }
 
     [Theory]
-    [InlineData(NotificationReason.Participant)]
     [InlineData(NotificationReason.Desk)]
-    [InlineData(NotificationReason.Role | NotificationReason.Assigned)]
+    [InlineData(NotificationReason.Mentioned)]
+    [InlineData(NotificationReason.Role | NotificationReason.Desk)]
     [InlineData((NotificationReason)0)]
     [InlineData((NotificationReason)128)]
     public async Task Notify_ShouldThrow_ForAReasonNothingProducesYet(NotificationReason reason)

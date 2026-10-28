@@ -20,6 +20,12 @@ const actions: Record<NotificationEvent, string> = {
   [NotificationEvent.RolesChanged]: 'changed the people on',
   [NotificationEvent.Reparented]: 'moved',
   [NotificationEvent.ScoreRecorded]: 'scored',
+  [NotificationEvent.Withdrawn]: 'withdrew',
+  [NotificationEvent.Retitled]: 'renamed',
+  [NotificationEvent.DetailsChanged]: 'changed the details of',
+  [NotificationEvent.AssigneeChanged]: 'changed the assignee of',
+  [NotificationEvent.ParticipantsChanged]: 'changed the participants of',
+  [NotificationEvent.ChannelChanged]: 'changed the channel of',
 }
 
 /** The words between the actor and the record for a change. */

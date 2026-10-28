@@ -106,7 +106,7 @@ public class MyNotificationMutesController(IDispatcher dispatcher) : ControllerB
     [HttpGet("reasons")]
     [EndpointSummary("List the reasons you can mute, and which you have.")]
     [EndpointDescription(
-        "Returns one entry per reason you can be told for: `reason` (`Following`: records you follow; `Role`: records you hold a role on, or whose team you belong to), `isMuted`, and `mutedOn` when muted. A muted reason stops only that reason, on every record: if you follow a project and also manage it, muting `Role` still tells you about it because you follow it. Requires the following feature flag; returns 404 when it is off.")]
+        "Returns one entry per reason you can be told for: `reason` (`Following`: records you follow; `Requester`: intake requests you asked for; `Participant`: intake requests you were given or submitted for someone else; `Assigned`: intake requests assigned to you; `Role`: records you hold a role on, or whose team you belong to), `isMuted`, and `mutedOn` when muted. A muted reason stops only that reason, on every record: if you follow a project and also manage it, muting `Role` still tells you about it because you follow it. Requires the following feature flag; returns 404 when it is off.")]
     [McpTool("Me_GetReasonMutes", "List the reasons I have muted")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<List<ReasonMuteDto>>> GetReasonMutes(CancellationToken cancellationToken)
@@ -117,7 +117,7 @@ public class MyNotificationMutesController(IDispatcher dispatcher) : ControllerB
     [HttpPut("reasons/{reason}")]
     [EndpointSummary("Mute a reason.")]
     [EndpointDescription(
-        "Stops telling you about any record for `reason` (`Following` or `Role`); you are still told for any other reason that applies. Muting a reason you already muted changes nothing and still succeeds. Muting changes no follow, role or access, and leaves the notifications you already have. Returns 422 for any other reason. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.")]
+        "Stops telling you about any record for `reason` (`Following`, `Requester`, `Participant`, `Assigned` or `Role`); you are still told for any other reason that applies. Muting a reason you already muted changes nothing and still succeeds. Muting changes no follow, role or access, and leaves the notifications you already have. Returns 422 for any other reason. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.")]
     [McpTool("Me_MuteReason", "Mute a reason", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

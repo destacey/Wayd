@@ -440,6 +440,51 @@ public sealed class DomainEventSerializationTests
         roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
     }
 
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void IntakeRequestAssigneeChangedEvent_RoundTripsThroughDurableSerializer(bool hadAssignee, bool hasAssignee)
+    {
+        // Arrange
+        var original = new IntakeRequestAssigneeChangedEvent(Guid.NewGuid(), 42, hadAssignee ? Guid.NewGuid() : null,
+            hasAssignee ? Guid.NewGuid() : null, EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
+    }
+
+    [Fact]
+    public void IntakeRequestDetailsUpdatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange — expected benefits set at one end and cleared at the other
+        var original = new IntakeRequestDetailsUpdatedEvent(Guid.NewGuid(), 42, "Export invoices nightly", null,
+            "Export invoices", "Saves a day a month", EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
+    }
+
+    [Fact]
+    public void IntakeRequestRetitledEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var original = new IntakeRequestRetitledEvent(Guid.NewGuid(), 42, "Export invoices", "Export invoices nightly",
+            EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
+    }
+
     [Fact]
     public void WorkflowAssignmentRemovedEvent_RoundTripsThroughDurableSerializer()
     {

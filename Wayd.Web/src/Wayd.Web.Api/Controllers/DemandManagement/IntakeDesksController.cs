@@ -19,12 +19,14 @@ namespace Wayd.Web.Api.Controllers.DemandManagement;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.DemandManagement)]
+[McpTools(McpToolset.Intake, "wayd-intake")]
 public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [Authorize]
+    [McpTool("IntakeDesks_GetList", "List intake desks")]
     [EndpointSummary("Get the intake desks, or only those a requester can submit to now.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<IntakeDeskDto>>> GetIntakeDesks([FromQuery] bool submittableOnly = false, CancellationToken cancellationToken = default)
@@ -34,6 +36,7 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("{idOrKey}")]
+    [McpTool("IntakeDesks_GetIntakeDesk", "Get intake desk")]
     [Authorize]
     [EndpointSummary("Get an intake desk.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -47,6 +50,7 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPost]
+    [McpTool("IntakeDesks_Create", "Create intake desk", Destructive = false)]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
     [EndpointSummary("Create an intake desk with its initial members.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
@@ -59,6 +63,7 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [McpTool("IntakeDesks_Update", "Update intake desk")]
     [Authorize]
     [EndpointSummary("Update an intake desk's settings and members.")]
     [EndpointDescription("Needs a Desk Admin on the desk, who also chooses which company channels it offers. Changing its visibility, or naming, removing or re-roling a Desk Admin, needs the Demand Management Admin. A member removed while owning requests on the desk is unassigned from them. Send the desk's `revision` as `expectedRevision`: a desk changed since answers 409.")]
@@ -76,6 +81,7 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [McpTool("IntakeDesks_Delete", "Delete intake desk")]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
     [EndpointSummary("Delete an intake desk with no requests on it.")]
     [EndpointDescription("A desk with requests on it cannot be deleted; close it instead. A desk changed while the delete was under way answers 409.")]
@@ -87,6 +93,7 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
         NoContentOrError(await _dispatcher.Send(new DeleteIntakeDeskCommand(id), cancellationToken));
 
     [HttpGet("visibilities")]
+    [McpTool("IntakeDesks_GetVisibilities", "List intake desk visibilities")]
     [Authorize]
     [EndpointSummary("Get the desk visibility values, with their codes.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -97,6 +104,7 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("{idOrKey}/workflow")]
+    [McpTool("IntakeDesks_GetWorkflow", "Get intake desk workflow")]
     [Authorize]
     [EndpointSummary("Get the review workflow a desk's requests follow.")]
     [EndpointDescription("Whether the desk follows the organization's default, and whether you may choose another: a Desk Admin on it or the Demand Management Admin, while no request is on it.")]
@@ -111,6 +119,7 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{id}/workflow")]
+    [McpTool("IntakeDesks_ChangeWorkflow", "Change intake desk workflow")]
     [Authorize]
     [EndpointSummary("Point a desk at another published intake request workflow.")]
     [EndpointDescription("Needs a Desk Admin on the desk or the Demand Management Admin, and is refused while any request is on the desk. The desk then follows the chosen workflow rather than the organization's default.")]
@@ -145,6 +154,7 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("workflow-choices")]
+    [McpTool("IntakeDesks_GetWorkflowChoices", "List intake desk workflow choices")]
     [Authorize]
     [EndpointSummary("Get the published intake request workflows a desk can follow.")]
     [EndpointDescription("Building and editing workflows is in Settings, under status workflow administration.")]
@@ -156,6 +166,7 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("roles")]
+    [McpTool("IntakeDesks_GetRoles", "List intake desk roles")]
     [Authorize]
     [EndpointSummary("Get the roles a desk member can hold, with their codes.")]
     [ProducesResponseType(StatusCodes.Status200OK)]

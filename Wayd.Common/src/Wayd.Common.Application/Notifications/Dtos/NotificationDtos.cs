@@ -33,7 +33,10 @@ public sealed record NotificationDto
     /// <summary>How the newest change was made: a person directly, or the platform reacting for one.</summary>
     public required EventActorKind ActorKind { get; init; }
 
-    /// <summary>Who made the newest change, or null when no employee is linked to the account that did.</summary>
+    /// <summary>
+    /// Who made the newest change, or null when no employee is linked to the account that did, or when the
+    /// record withholds who made its changes from the caller — an intake request whose substance they cannot see.
+    /// </summary>
     public EmployeeNavigationDto? Actor { get; init; }
 
     /// <summary>Every reason the caller was told about this record, across the whole entry.</summary>

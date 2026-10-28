@@ -2594,7 +2594,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// List the reasons you can mute, and which you have.
         /// </summary>
         /// <remarks>
-        /// Returns one entry per reason you can be told for: `reason` (`Following`: records you follow; `Role`: records you hold a role on, or whose team you belong to), `isMuted`, and `mutedOn` when muted. A muted reason stops only that reason, on every record: if you follow a project and also manage it, muting `Role` still tells you about it because you follow it. Requires the following feature flag; returns 404 when it is off.
+        /// Returns one entry per reason you can be told for: `reason` (`Following`: records you follow; `Requester`: intake requests you asked for; `Participant`: intake requests you were given or submitted for someone else; `Assigned`: intake requests assigned to you; `Role`: records you hold a role on, or whose team you belong to), `isMuted`, and `mutedOn` when muted. A muted reason stops only that reason, on every record: if you follow a project and also manage it, muting `Role` still tells you about it because you follow it. Requires the following feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -2605,7 +2605,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Mute a reason.
         /// </summary>
         /// <remarks>
-        /// Stops telling you about any record for `reason` (`Following` or `Role`); you are still told for any other reason that applies. Muting a reason you already muted changes nothing and still succeeds. Muting changes no follow, role or access, and leaves the notifications you already have. Returns 422 for any other reason. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
+        /// Stops telling you about any record for `reason` (`Following`, `Requester`, `Participant`, `Assigned` or `Role`); you are still told for any other reason that applies. Muting a reason you already muted changes nothing and still succeeds. Muting changes no follow, role or access, and leaves the notifications you already have. Returns 422 for any other reason. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -3127,7 +3127,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// List the reasons you can mute, and which you have.
         /// </summary>
         /// <remarks>
-        /// Returns one entry per reason you can be told for: `reason` (`Following`: records you follow; `Role`: records you hold a role on, or whose team you belong to), `isMuted`, and `mutedOn` when muted. A muted reason stops only that reason, on every record: if you follow a project and also manage it, muting `Role` still tells you about it because you follow it. Requires the following feature flag; returns 404 when it is off.
+        /// Returns one entry per reason you can be told for: `reason` (`Following`: records you follow; `Requester`: intake requests you asked for; `Participant`: intake requests you were given or submitted for someone else; `Assigned`: intake requests assigned to you; `Role`: records you hold a role on, or whose team you belong to), `isMuted`, and `mutedOn` when muted. A muted reason stops only that reason, on every record: if you follow a project and also manage it, muting `Role` still tells you about it because you follow it. Requires the following feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -3204,7 +3204,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Mute a reason.
         /// </summary>
         /// <remarks>
-        /// Stops telling you about any record for `reason` (`Following` or `Role`); you are still told for any other reason that applies. Muting a reason you already muted changes nothing and still succeeds. Muting changes no follow, role or access, and leaves the notifications you already have. Returns 422 for any other reason. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
+        /// Stops telling you about any record for `reason` (`Following`, `Requester`, `Participant`, `Assigned` or `Role`); you are still told for any other reason that applies. Muting a reason you already muted changes nothing and still succeeds. Muting changes no follow, role or access, and leaves the notifications you already have. Returns 422 for any other reason. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -3548,7 +3548,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// List your notifications.
         /// </summary>
         /// <remarks>
-        /// Returns one page of your notifications, one entry per record, newest change first. Each entry has the `record` (`ownerType`, `id`, `key`, `name`, `statusName`; an objective also carries `parentKey` and `parentName`, its planning interval, and an intake request its desk), the newest change — `event` (`Created`, `StatusChanged`, `LifecycleChanged`, `HealthReported`, `TimelineChanged`, `RolesChanged`, `Reparented`, `ScoreRecorded`), `eventId`, `occurredOn`, `actorKind` and `actor` (null when no employee is linked to whoever made it) — the `reasons` you were told (`Following`: you follow the record; `Role`: you hold a role on it, or are on the team that owns it; and later `Requester`, `Assigned`, `Participant`, `Mentioned`, `Desk`), `unreadCount`, `count`, `isUnread` and `latestNotificationId`. You are never told about your own changes, or about imports. A record you can no longer read is left out. `unreadOnly` keeps only entries with something unread. `pageSize` is at most 500. For the next page, pass the response's `nextCursor` as `before`; `nextCursor` is null on the last page. Paging by cursor means an entry that moves to the top while you read on is neither repeated nor skipped; it appears when you read the first page again. Requires the following feature flag; returns 404 when it is off.
+        /// Returns one page of your notifications, one entry per record, newest change first. Each entry has the `record` (`ownerType`, `id`, `key`, `name`, `statusName`; an objective also carries `parentKey` and `parentName`, its planning interval, and an intake request its desk), the newest change — `event` (`Created`, `StatusChanged`, `LifecycleChanged`, `HealthReported`, `TimelineChanged`, `RolesChanged`, `Reparented`, `ScoreRecorded`, `Withdrawn`, `Retitled`, `DetailsChanged`, `AssigneeChanged`, `ParticipantsChanged`, `ChannelChanged`), `eventId`, `occurredOn`, `actorKind` and `actor` (null when no employee is linked to whoever made it, or when you may not see who made changes to the record — an intake request whose details you cannot see) — the `reasons` you were told (`Following`: you follow the record; `Role`: you hold a role on it, or are on the team that owns it; `Requester`: you asked for an intake request; `Assigned`: it is assigned to you; `Participant`: you were given it, or submitted it for someone else; and later `Mentioned`, `Desk`), `unreadCount`, `count`, `isUnread` and `latestNotificationId`. You are never told about your own changes, or about imports. A record you can no longer read is left out, and so is a change to a part of a record you cannot read. `unreadOnly` keeps only entries with something unread. `pageSize` is at most 500. For the next page, pass the response's `nextCursor` as `before`; `nextCursor` is null on the last page. Paging by cursor means an entry that moves to the top while you read on is neither repeated nor skipped; it appears when you read the first page again. Requires the following feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -3653,7 +3653,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// List your notifications.
         /// </summary>
         /// <remarks>
-        /// Returns one page of your notifications, one entry per record, newest change first. Each entry has the `record` (`ownerType`, `id`, `key`, `name`, `statusName`; an objective also carries `parentKey` and `parentName`, its planning interval, and an intake request its desk), the newest change — `event` (`Created`, `StatusChanged`, `LifecycleChanged`, `HealthReported`, `TimelineChanged`, `RolesChanged`, `Reparented`, `ScoreRecorded`), `eventId`, `occurredOn`, `actorKind` and `actor` (null when no employee is linked to whoever made it) — the `reasons` you were told (`Following`: you follow the record; `Role`: you hold a role on it, or are on the team that owns it; and later `Requester`, `Assigned`, `Participant`, `Mentioned`, `Desk`), `unreadCount`, `count`, `isUnread` and `latestNotificationId`. You are never told about your own changes, or about imports. A record you can no longer read is left out. `unreadOnly` keeps only entries with something unread. `pageSize` is at most 500. For the next page, pass the response's `nextCursor` as `before`; `nextCursor` is null on the last page. Paging by cursor means an entry that moves to the top while you read on is neither repeated nor skipped; it appears when you read the first page again. Requires the following feature flag; returns 404 when it is off.
+        /// Returns one page of your notifications, one entry per record, newest change first. Each entry has the `record` (`ownerType`, `id`, `key`, `name`, `statusName`; an objective also carries `parentKey` and `parentName`, its planning interval, and an intake request its desk), the newest change — `event` (`Created`, `StatusChanged`, `LifecycleChanged`, `HealthReported`, `TimelineChanged`, `RolesChanged`, `Reparented`, `ScoreRecorded`, `Withdrawn`, `Retitled`, `DetailsChanged`, `AssigneeChanged`, `ParticipantsChanged`, `ChannelChanged`), `eventId`, `occurredOn`, `actorKind` and `actor` (null when no employee is linked to whoever made it, or when you may not see who made changes to the record — an intake request whose details you cannot see) — the `reasons` you were told (`Following`: you follow the record; `Role`: you hold a role on it, or are on the team that owns it; `Requester`: you asked for an intake request; `Assigned`: it is assigned to you; `Participant`: you were given it, or submitted it for someone else; and later `Mentioned`, `Desk`), `unreadCount`, `count`, `isUnread` and `latestNotificationId`. You are never told about your own changes, or about imports. A record you can no longer read is left out, and so is a change to a part of a record you cannot read. `unreadOnly` keeps only entries with something unread. `pageSize` is at most 500. For the next page, pass the response's `nextCursor` as `before`; `nextCursor` is null on the last page. Paging by cursor means an entry that moves to the top while you read on is neither repeated nor skipped; it appears when you read the first page again. Requires the following feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -87003,6 +87003,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Submit an intake request to a desk.
         /// </summary>
+        /// <remarks>
+        /// Needs your account to be linked to an employee, who is recorded as the submitter, and as the requester unless `requesterId` names someone else. The request starts in its desk's initial status.
+        /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateIntakeRequestRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -87012,7 +87015,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get an intake request in the tiers you can read.
         /// </summary>
         /// <remarks>
-        /// The summary is always returned; the substance is null when you may not read it.
+        /// The summary is always returned; the substance is null when you may not read it. The outcome is the summary's status and its category, with the substance's `statusReason` saying why the desk declined, deferred, finished or marked it a duplicate, or why its requester withdrew it, and `duplicateOf` naming the request it gave way to when you can see that one.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -87341,6 +87344,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Submit an intake request to a desk.
         /// </summary>
+        /// <remarks>
+        /// Needs your account to be linked to an employee, who is recorded as the submitter, and as the requester unless `requesterId` names someone else. The request starts in its desk's initial status.
+        /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateIntakeRequestRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -87433,7 +87439,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get an intake request in the tiers you can read.
         /// </summary>
         /// <remarks>
-        /// The summary is always returned; the substance is null when you may not read it.
+        /// The summary is always returned; the substance is null when you may not read it. The outcome is the summary's status and its category, with the substance's `statusReason` saying why the desk declined, deferred, finished or marked it a duplicate, or why its requester withdrew it, and `duplicateOf` naming the request it gave way to when you can see that one.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -112816,7 +112822,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public EventActorKind ActorKind { get; set; } = default!;
 
         /// <summary>
-        /// Who made the newest change, or null when no employee is linked to the account that did.
+        /// Who made the newest change, or null when no employee is linked to the account that did, or when the
+        /// <br/>record withholds who made its changes from the caller — an intake request whose substance they cannot see.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("actor")]
         public EmployeeNavigationDto? Actor { get; set; } = default!;
@@ -112876,6 +112883,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Runtime.Serialization.EnumMember(Value = @"ScoreRecorded")]
         ScoreRecorded = 7,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Withdrawn")]
+        Withdrawn = 8,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Retitled")]
+        Retitled = 9,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"DetailsChanged")]
+        DetailsChanged = 10,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"AssigneeChanged")]
+        AssigneeChanged = 11,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"ParticipantsChanged")]
+        ParticipantsChanged = 12,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"ChannelChanged")]
+        ChannelChanged = 13,
 
     }
 

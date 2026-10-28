@@ -28,12 +28,14 @@ namespace Wayd.Web.Api.Controllers.DemandManagement;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.DemandManagement)]
+[McpTools(McpToolset.Intake, "wayd-intake")]
 public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [Authorize]
+    [McpTool("IntakeRequests_GetList", "List intake requests")]
     [EndpointSummary("Get the intake requests you can see, as summaries.")]
     [EndpointDescription("Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf. With `openOnly`, only requests still under review or accepted — in the Proposed or Active status category, whatever the desk's workflow calls the status.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -56,8 +58,9 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{idOrKey}")]
     [Authorize]
+    [McpTool("IntakeRequests_GetIntakeRequest", "Get intake request")]
     [EndpointSummary("Get an intake request in the tiers you can read.")]
-    [EndpointDescription("The summary is always returned; the substance is null when you may not read it.")]
+    [EndpointDescription("The summary is always returned; the substance is null when you may not read it. The outcome is the summary's status and its category, with the substance's `statusReason` saying why the desk declined, deferred, finished or marked it a duplicate, or why its requester withdrew it, and `duplicateOf` naming the request it gave way to when you can see that one.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IntakeRequestDetailsDto>> GetIntakeRequest(string idOrKey, CancellationToken cancellationToken)
@@ -69,6 +72,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("{idOrKey}/activities")]
+    [McpTool("IntakeRequests_GetActivities", "Get intake request activity history")]
     [Authorize]
     [EndpointSummary("Get an intake request's history, limited to the tiers you can read.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -84,7 +88,9 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPost]
     [Authorize]
+    [McpTool("IntakeRequests_Submit", "Submit intake request", Destructive = false)]
     [EndpointSummary("Submit an intake request to a desk.")]
+    [EndpointDescription("Needs your account to be linked to an employee, who is recorded as the submitter, and as the requester unless `requesterId` names someone else. The request starts in its desk's initial status.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateIntakeRequestRequest request, CancellationToken cancellationToken)
     {
@@ -95,6 +101,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [McpTool("IntakeRequests_Update", "Update intake request")]
     [Authorize]
     [EndpointSummary("Update an intake request.")]
     [EndpointDescription("The requester can edit their own request while it is proposed; otherwise you must be an agent on the request's desk. You must also be able to read the request's detail.")]
@@ -111,6 +118,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{id}/assignee")]
+    [McpTool("IntakeRequests_ChangeAssignee", "Change intake request assignee")]
     [Authorize]
     [EndpointSummary("Give an intake request a different assignee, or unassign it.")]
     [EndpointDescription("Needs an agent on the request's desk. The assignee must be a member of that desk.")]
@@ -122,6 +130,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
         NoContentOrError(await _dispatcher.Send(new ChangeIntakeRequestAssigneeCommand(id, request.AssigneeId), cancellationToken));
 
     [HttpPost("{id}/reroute")]
+    [McpTool("IntakeRequests_Reroute", "Move intake request to another desk")]
     [Authorize]
     [EndpointSummary("Move an open intake request to another desk.")]
     [EndpointDescription("Needs an agent on the request's current desk; the destination need not be one you work, but must be open to new requests. A move to a less private desk is refused unless `confirmWiderVisibility` is set. An assignee who is not a member of the destination is unassigned.")]
@@ -133,6 +142,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
         NoContentOrError(await _dispatcher.Send(new RerouteIntakeRequestCommand(id, request.DeskId, request.ConfirmWiderVisibility, request.StatusId), cancellationToken));
 
     [HttpGet("{id}/arrival-statuses")]
+    [McpTool("IntakeRequests_GetArrivalStatuses", "List intake request arrival statuses")]
     [Authorize]
     [EndpointSummary("Get the statuses an intake request can arrive in on another desk.")]
     [EndpointDescription("The destination workflow's open statuses that need no reason, in its order, and the one the request arrives in unless you choose. Empty unless you can move the request: an agent on its current desk.")]
@@ -147,6 +157,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPost("{id}/status")]
+    [McpTool("IntakeRequests_ChangeStatus", "Change intake request status")]
     [Authorize]
     [EndpointSummary("Move an intake request to another status of its desk's workflow.")]
     [EndpointDescription("Needs an agent on the request's desk. Declining, deferring, marking a duplicate and finishing need a `reason` the requester can read; marking a duplicate needs `duplicateOfId`, a request you can see that is not itself a duplicate. Withdrawn is the requester's, through withdraw.")]
@@ -158,6 +169,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
         NoContentOrError(await _dispatcher.Send(new ChangeIntakeRequestStatusCommand(id, request.StatusId, request.Reason, request.DuplicateOfId), cancellationToken));
 
     [HttpPost("{id}/withdraw")]
+    [McpTool("IntakeRequests_Withdraw", "Withdraw intake request")]
     [Authorize]
     [EndpointSummary("Withdraw your own open intake request.")]
     [EndpointDescription("Only the request's requester; the submitter cannot withdraw a request entered on someone's behalf.")]
@@ -169,6 +181,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
         NoContentOrError(await _dispatcher.Send(new WithdrawIntakeRequestCommand(id, request.Note), cancellationToken));
 
     [HttpGet("{id}/status-options")]
+    [McpTool("IntakeRequests_GetStatusOptions", "List intake request status options")]
     [Authorize]
     [EndpointSummary("Get the statuses you can move an intake request to, with what each move needs.")]
     [EndpointDescription("In its desk workflow's order, without the status it holds or Withdrawn. Empty unless you are an agent on the request's desk.")]
@@ -184,6 +197,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("{idOrKey}/status-history")]
     [Authorize]
+    [McpTool("IntakeRequests_GetStatusHistory", "Get intake request status history")]
     [EndpointSummary("Get an intake request's status changes, newest first, in the tiers you can read.")]
     [EndpointDescription("Each change reports the status names as they were at the time. Without the request's substance, each change comes without its reason or who made it.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -202,6 +216,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("{idOrKey}/status-workflow")]
+    [McpTool("IntakeRequests_GetStatusWorkflow", "Get intake request status workflow")]
     [Authorize]
     [EndpointSummary("Get the status workflow an intake request moves through.")]
     [EndpointDescription("Readable by anyone who can see the request, so its status history can be drawn on the workflow without workflow administration permissions.")]
@@ -216,6 +231,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPost("{id}/participants")]
+    [McpTool("IntakeRequests_AddParticipant", "Add intake request participant")]
     [Authorize]
     [EndpointSummary("Give an employee access to an intake request as a participant.")]
     [EndpointDescription("An agent on the request's desk can always add someone; the requester and submitter can too, except on a private desk that does not allow it.")]
@@ -227,6 +243,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
         NoContentOrError(await _dispatcher.Send(new AddIntakeRequestParticipantCommand(id, request.EmployeeId), cancellationToken));
 
     [HttpDelete("{id}/participants/{employeeId}")]
+    [McpTool("IntakeRequests_RemoveParticipant", "Remove intake request participant")]
     [Authorize]
     [EndpointSummary("Remove a participant's access to an intake request.")]
     [EndpointDescription("Needs an agent on the request's desk.")]
@@ -237,6 +254,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
         NoContentOrError(await _dispatcher.Send(new RemoveIntakeRequestParticipantCommand(id, employeeId), cancellationToken));
 
     [HttpPut("{id}/tags/{tagId}")]
+    [McpTool("IntakeRequests_Tag", "Tag intake request")]
     [Authorize]
     [EndpointSummary("File an intake request under a tag.")]
     [EndpointDescription("Needs an agent on the request's desk. The tag must be active, on an active axis. On an axis that takes one tag, this replaces the tag the request held there. Applying a tag the request already carries changes nothing.")]
@@ -247,6 +265,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
         NoContentOrError(await _dispatcher.Send(new TagIntakeRequestCommand(id, tagId), cancellationToken));
 
     [HttpDelete("{id}/tags/{tagId}")]
+    [McpTool("IntakeRequests_Untag", "Untag intake request")]
     [Authorize]
     [EndpointSummary("Take a tag off an intake request.")]
     [EndpointDescription("Needs an agent on the request's desk. Works for an inactive tag too. Removing a tag the request does not carry changes nothing.")]
@@ -257,6 +276,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
         NoContentOrError(await _dispatcher.Send(new UntagIntakeRequestCommand(id, tagId), cancellationToken));
 
     [HttpDelete("{id}")]
+    [McpTool("IntakeRequests_Delete", "Delete intake request")]
     [Authorize]
     [EndpointSummary("Delete an intake request.")]
     [EndpointDescription("Needs a Desk Admin on the request's desk. Deleting is a last resort: withdrawing or declining keeps a request on record.")]
@@ -268,6 +288,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet("need-by-bases")]
     [Authorize]
+    [McpTool("IntakeRequests_GetNeedByBases", "List need-by bases")]
     [EndpointSummary("Get the need-by basis values, with their codes and families.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<NeedByBasisDto>>> GetNeedByBases(CancellationToken cancellationToken)
@@ -277,6 +298,7 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("need-by-basis-families")]
+    [McpTool("IntakeRequests_GetNeedByBasisFamilies", "List need-by basis families")]
     [Authorize]
     [EndpointSummary("Get the need-by basis families, with their codes and names.")]
     [ProducesResponseType(StatusCodes.Status200OK)]

@@ -5,6 +5,7 @@ using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Records;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Notifications;
 using Wayd.Common.Extensions;
 using Wayd.ProjectPortfolioManagement.Domain;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
@@ -113,6 +114,14 @@ public sealed class ProgramReadRule(
     /// <remarks>Anyone who can read a program reads its whole history, so nothing is narrowed.</remarks>
     public Task<IQueryable<ActivityStamp>> VisibleActivity(IQueryable<ActivityStamp> activity, CancellationToken cancellationToken) =>
         Task.FromResult(activity);
+
+    /// <inheritdoc/>
+    public Task<IQueryable<Notification>> VisibleNotifications(IQueryable<Notification> notifications, CancellationToken cancellationToken) =>
+        Task.FromResult(notifications);
+
+    /// <inheritdoc/>
+    public Task<IReadOnlySet<Guid>> ActorHiddenOn(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlySet<Guid>>(new HashSet<Guid>());
 
     /// <inheritdoc/>
     public Task<PagedResponse<ActivityLogDto>> ReadActivity(

@@ -24,11 +24,13 @@ namespace Wayd.Web.Api.Controllers.DemandManagement;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.DemandManagement)]
+[McpTools(McpToolset.Intake, "wayd-intake")]
 public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
+    [McpTool("IntakeRequestTagCategories_GetList", "List intake request tag categories")]
     [Authorize]
     [EndpointSummary("Get the intake request tag axes, each with its tags.")]
     [EndpointDescription("Axes in presentation order, tags alphabetically, inactive tags included. Inactive axes only with `includeInactive`. With `deskId`, only the active axes that desk's agents tag along, which may be none; `includeInactive` is then ignored. Each tag's `requestCount` counts only the requests the caller can see.")]
@@ -40,6 +42,7 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
     }
 
     [HttpPost]
+    [McpTool("IntakeRequestTagCategories_Create", "Create intake request tag category", Destructive = false)]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
     [EndpointSummary("Add an intake request tag axis to the end of the list.")]
     [EndpointDescription("The axis starts with no tags. `allowsMany` cannot be changed afterwards.")]
@@ -54,6 +57,7 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
     }
 
     [HttpPut("{id}")]
+    [McpTool("IntakeRequestTagCategories_Update", "Update intake request tag category")]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
     [EndpointSummary("Rename an intake request tag axis or change its description.")]
     [EndpointDescription("Refused on a system axis.")]
@@ -70,6 +74,7 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
     }
 
     [HttpPut("{id}/active")]
+    [McpTool("IntakeRequestTagCategories_SetActive", "Activate or deactivate intake request tag category")]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
     [EndpointSummary("Take an intake request tag axis out of use, or put it back.")]
     [EndpointDescription("Nothing new can be tagged along an inactive axis; requests already tagged keep their tags and can still have them removed.")]
@@ -80,6 +85,7 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
         NoContentOrError(await _dispatcher.Send(new SetIntakeRequestTagCategoryActiveCommand(id, request.IsActive), cancellationToken));
 
     [HttpPut("order")]
+    [McpTool("IntakeRequestTagCategories_Reorder", "Reorder intake request tag categories")]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
     [EndpointSummary("Put the intake request tag axes in the order they are presented.")]
     [EndpointDescription("The list must name every axis, inactive ones included, exactly once; a partial list is refused.")]
@@ -90,6 +96,7 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
         NoContentOrError(await _dispatcher.Send(request.ToReorderIntakeRequestTagCategoriesCommand(), cancellationToken));
 
     [HttpDelete("{id}")]
+    [McpTool("IntakeRequestTagCategories_Delete", "Delete intake request tag category")]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
     [EndpointSummary("Delete an intake request tag axis and its tags.")]
     [EndpointDescription("Refused on a system axis, and while any request is tagged along it; deactivate it instead.")]
@@ -100,6 +107,7 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
         NoContentOrError(await _dispatcher.Send(new DeleteIntakeRequestTagCategoryCommand(id), cancellationToken));
 
     [HttpPost("{id}/tags")]
+    [McpTool("IntakeRequestTagCategories_AddTag", "Add intake request tag", Destructive = false)]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
     [EndpointSummary("Add a tag to an intake request tag axis.")]
     [EndpointDescription("Tag names are unique within their axis. Refused on a system axis.")]
@@ -117,6 +125,7 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
     }
 
     [HttpPut("{id}/tags/{tagId}")]
+    [McpTool("IntakeRequestTagCategories_UpdateTag", "Update intake request tag")]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
     [EndpointSummary("Rename a tag or change its description.")]
     [EndpointDescription("Every request carrying the tag reads the new name. Refused on a system axis.")]
@@ -128,6 +137,7 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
         NoContentOrError(await _dispatcher.Send(new UpdateIntakeRequestTagCommand(id, tagId, request.Name, request.Description), cancellationToken));
 
     [HttpPut("{id}/tags/{tagId}/active")]
+    [McpTool("IntakeRequestTagCategories_SetTagActive", "Activate or deactivate intake request tag")]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
     [EndpointSummary("Take a tag out of use, or put it back.")]
     [EndpointDescription("An inactive tag cannot be applied; requests already carrying it keep it and can still have it removed. Refused on a system axis.")]
@@ -138,6 +148,7 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
         NoContentOrError(await _dispatcher.Send(new SetIntakeRequestTagActiveCommand(id, tagId, request.IsActive), cancellationToken));
 
     [HttpDelete("{id}/tags/{tagId}")]
+    [McpTool("IntakeRequestTagCategories_DeleteTag", "Delete intake request tag")]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
     [EndpointSummary("Delete a tag.")]
     [EndpointDescription("Refused on a system axis, and while any request carries the tag; deactivate it instead.")]

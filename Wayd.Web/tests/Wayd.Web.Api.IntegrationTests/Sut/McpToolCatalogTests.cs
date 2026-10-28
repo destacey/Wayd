@@ -376,6 +376,27 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
     }
 
     [Fact]
+    public async Task GetTools_OffersOnlyIntakeTools_InTheIntakeToolset()
+    {
+        // Arrange
+        var filter = new McpToolFilter(new HashSet<McpToolset> { McpToolset.Intake }, false);
+
+        // Act
+        var tools = (await GetCatalog().GetToolsets())
+            .Where(t => t.Toolset == McpToolset.Intake)
+            .Select(t => t.Tool.ProtocolTool.Name)
+            .ToList();
+        var offered = (await GetCatalog().GetTools(filter)).Select(t => t.ProtocolTool.Name).ToList();
+
+        // Assert
+        Assert.NotEmpty(tools);
+        Assert.All(tools, name => Assert.StartsWith("Intake", name, StringComparison.Ordinal));
+        Assert.Contains("IntakeRequests_Submit", offered);
+        Assert.Contains("IntakeDesks_Update", offered);
+        Assert.DoesNotContain(offered, name => name.StartsWith("Projects_", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task GetTools_OffersOnlyTheChosenToolsetsReadOnlyTools()
     {
         // Arrange

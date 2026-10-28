@@ -6,6 +6,7 @@ using Wayd.Common.Application.Records;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.FeatureManagement;
+using Wayd.Common.Domain.Notifications;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
@@ -160,6 +161,47 @@ public sealed class IntakeRequestReadRule(
         return activity.Where(a => summaryTypes.Contains(a.EventType)
             || (substanceTypes.Contains(a.EventType) && substanceIds.Contains(a.RecordId))
             || (internalTypes.Contains(a.EventType) && internalIds.Contains(a.RecordId)));
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Each notification is kept when the reader holds, on the request it is about, the tier of the change it
+    /// names, by the same rules as <see cref="VisibleActivity"/>: a follower who sees only the summary is not
+    /// told that the description changed.
+    /// </remarks>
+    public async Task<IQueryable<Notification>> VisibleNotifications(IQueryable<Notification> notifications, CancellationToken cancellationToken)
+    {
+        var reader = await _currentPrincipal.ResolveIntakeRequestReader(_dbContext, cancellationToken);
+        var desks = _dbContext.IntakeDesks;
+        var visible = _dbContext.IntakeRequests.Where(reader.CanSeeSummary(desks));
+
+        var summaryEvents = IntakeRequestNotificationTiers.EventsIn(IntakeRequestReadTier.Summary);
+        var substanceEvents = IntakeRequestNotificationTiers.EventsIn(IntakeRequestReadTier.Substance);
+        var internalEvents = IntakeRequestNotificationTiers.EventsIn(IntakeRequestReadTier.Internal);
+        var substanceIds = visible.Where(reader.CanSeeSubstance(desks)).Select(r => r.Id);
+        var internalIds = visible.Where(reader.CanSeeInternal()).Select(r => r.Id);
+
+        return notifications.Where(n => summaryEvents.Contains(n.Event)
+            || (substanceEvents.Contains(n.Event) && substanceIds.Contains(n.OwnerId))
+            || (internalEvents.Contains(n.Event) && internalIds.Contains(n.OwnerId)));
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The requests whose substance the reader cannot see: who submitted a request and who takes part in it are
+    /// substance, so the request's Activity section names nobody to them, and neither does a notification.
+    /// </remarks>
+    public async Task<IReadOnlySet<Guid>> ActorHiddenOn(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken)
+    {
+        var reader = await _currentPrincipal.ResolveIntakeRequestReader(_dbContext, cancellationToken);
+        var desks = _dbContext.IntakeDesks;
+        var withSubstance = await _dbContext.IntakeRequests
+            .Where(r => ids.Contains(r.Id))
+            .Where(reader.CanSeeSubstance(desks))
+            .Select(r => r.Id)
+            .ToListAsync(cancellationToken);
+
+        return ids.Except(withSubstance).ToHashSet();
     }
 
     /// <inheritdoc/>

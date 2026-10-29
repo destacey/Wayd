@@ -43,11 +43,7 @@ export const ConnectionFormBase: React.FC<ConnectionFormBaseProps> = ({
         initialValue=""
         rules={[{ max: 1024 }]}
       >
-        <MarkdownEditor
-          value={form.getFieldValue('description')}
-          onChange={(value) => form.setFieldValue('description', value || '')}
-          maxLength={1024}
-        />
+        <MarkdownEditor maxLength={1024} />
       </Item>
 
       <Divider titlePlacement="start" style={{ marginTop: '50px' }}>

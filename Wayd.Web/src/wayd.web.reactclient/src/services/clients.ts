@@ -34,6 +34,7 @@ import {
   PortfoliosClient,
   ProductsClient,
   ProductTagCategoriesClient,
+  ProductTagsClient,
   ProductTypesClient,
   ReleasePackagesClient,
   ReleasesClient,
@@ -66,6 +67,7 @@ import {
   TokenResponse,
   IntakeChannelsClient,
   IntakeRequestTagCategoriesClient,
+  IntakeRequestTagsClient,
   IntakeDesksClient,
   IntakeEmployeeOptionsClient,
   IntakeRequestsClient,
@@ -487,6 +489,7 @@ export const getProductTypesClient = () =>
   new ProductTypesClient('', axiosClient)
 export const getProductTagCategoriesClient = () =>
   new ProductTagCategoriesClient('', axiosClient)
+export const getProductTagsClient = () => new ProductTagsClient('', axiosClient)
 
 // DELIVERY
 export const getReleasesClient = () => new ReleasesClient('', axiosClient)
@@ -511,6 +514,8 @@ export const getIntakeRequestsClient = () =>
   new IntakeRequestsClient('', axiosClient)
 export const getIntakeRequestTagCategoriesClient = () =>
   new IntakeRequestTagCategoriesClient('', axiosClient)
+export const getIntakeRequestTagsClient = () =>
+  new IntakeRequestTagsClient('', axiosClient)
 
 // PPM
 export const getExpenditureCategoriesClient = () =>

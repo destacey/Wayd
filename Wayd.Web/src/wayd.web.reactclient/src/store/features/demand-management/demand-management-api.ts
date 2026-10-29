@@ -4,6 +4,7 @@ import {
   getIntakeEmployeeOptionsClient,
   getIntakeRequestsClient,
   getIntakeRequestTagCategoriesClient,
+  getIntakeRequestTagsClient,
 } from '@/src/services/clients'
 import {
   AddIntakeRequestOutcomeRequest,
@@ -12,6 +13,8 @@ import {
   ChangeIntakeRequestStatusRequest,
   CreateIntakeRequestTagCategoryRequest,
   IntakeRequestTagCategoryDto,
+  IntakeRequestTagListItemDto,
+  UpdateFreeIntakeRequestTagRequest,
   ReorderIntakeRequestTagCategoriesRequest,
   UpdateIntakeRequestTagCategoryRequest,
   UpdateIntakeRequestTagRequest,
@@ -115,6 +118,26 @@ const tagCategoryListTag = {
 export interface IntakeRequestTagArgs {
   requestId: string
   tagId: string
+}
+
+export interface TagIntakeRequestByNameArgs {
+  requestId: string
+  /** The typed name; the server applies the matching tag or a free tag of that name. */
+  name: string
+}
+
+export interface SearchIntakeRequestTagsArgs {
+  search?: string
+  /** True for free tags only, false for tags on axes only, omitted for both. */
+  isFree?: boolean
+  includeInactive?: boolean
+}
+
+export interface MergeIntakeRequestTagArgs {
+  /** The free tag to merge away. */
+  id: string
+  /** The tag its requests move to. */
+  targetTagId: string
 }
 
 export interface IntakeRequestTagCategoryTagArgs {
@@ -1130,6 +1153,104 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    // Returns the id of the tag applied, which may be a free tag created for the name.
+    tagIntakeRequestByName: builder.mutation<
+      string,
+      TagIntakeRequestByNameArgs
+    >({
+      queryFn: async ({ requestId, name }) => {
+        try {
+          const data = await getIntakeRequestsClient().tagByName(requestId, {
+            name,
+          })
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: (_result, _error, { requestId }) => [
+        ...requestTags(requestId),
+        listTag,
+        tagCategoryListTag,
+      ],
+    }),
+
+    // Tagged with the axes' list: every change that moves tag counts already
+    // invalidates it, and free tags come and go with those same changes.
+    searchIntakeRequestTags: builder.query<
+      IntakeRequestTagListItemDto[],
+      SearchIntakeRequestTagsArgs | void
+    >({
+      queryFn: async (args) => {
+        try {
+          const data = await getIntakeRequestTagsClient().search(
+            args?.search,
+            args?.isFree,
+            args?.includeInactive,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      providesTags: [tagCategoryListTag],
+    }),
+
+    // A rename shows on every request carrying the tag.
+    updateFreeIntakeRequestTag: builder.mutation<
+      void,
+      UpdateFreeIntakeRequestTagRequest & { id: string }
+    >({
+      queryFn: async ({ id, ...request }) => {
+        try {
+          const data = await getIntakeRequestTagsClient().updateFreeTag(
+            id,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: [tagCategoryListTag, QueryTags.IntakeRequest],
+    }),
+
+    // Retags requests on every desk, so every request and its activity may change.
+    mergeIntakeRequestTag: builder.mutation<void, MergeIntakeRequestTagArgs>({
+      queryFn: async ({ id, targetTagId }) => {
+        try {
+          const data = await getIntakeRequestTagsClient().merge(id, {
+            targetTagId,
+          })
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: [
+        tagCategoryListTag,
+        QueryTags.IntakeRequest,
+        QueryTags.ActivityLog,
+      ],
+    }),
+
+    // Takes the tag off every request carrying it.
+    deleteFreeIntakeRequestTag: builder.mutation<void, string>({
+      queryFn: async (id) => {
+        try {
+          const data = await getIntakeRequestTagsClient().deleteFreeTag(id)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: [
+        tagCategoryListTag,
+        QueryTags.IntakeRequest,
+        QueryTags.ActivityLog,
+      ],
+    }),
+
     getIntakeEmployeeOptions: builder.query<EmployeeNavigationDto[], void>({
       queryFn: async () => {
         try {
@@ -1196,6 +1317,11 @@ export const {
   useDeleteIntakeRequestTagMutation,
   useTagIntakeRequestMutation,
   useUntagIntakeRequestMutation,
+  useTagIntakeRequestByNameMutation,
+  useSearchIntakeRequestTagsQuery,
+  useUpdateFreeIntakeRequestTagMutation,
+  useMergeIntakeRequestTagMutation,
+  useDeleteFreeIntakeRequestTagMutation,
   useGetIntakeEmployeeOptionsQuery,
   useGetIntakeRequestScoresQuery,
   useGetIntakeRequestScoringQuery,

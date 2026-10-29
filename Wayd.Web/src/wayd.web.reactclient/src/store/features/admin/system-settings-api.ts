@@ -2,8 +2,10 @@ import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
   PagedResponseOfActivityLogDto,
+  ProductTagSettingsDto,
   SchedulingSettingsDto,
   SprintMetricsSettingsDto,
+  UpdateProductTagSettingsRequest,
   UpdateSchedulingSettingsRequest,
   UpdateSprintMetricsSettingsRequest,
 } from '@/src/services/wayd-api'
@@ -16,6 +18,9 @@ export const SCHEDULING_SETTINGS_ACTIVITY_ID = 'system-settings-scheduling'
 /** The Activity tag id for the sprint metrics section. */
 export const SPRINT_METRICS_SETTINGS_ACTIVITY_ID =
   'system-settings-sprint-metrics'
+
+/** The Activity tag id for the product tags section. */
+export const PRODUCT_TAG_SETTINGS_ACTIVITY_ID = 'system-settings-product-tags'
 
 export const systemSettingsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -146,6 +151,64 @@ export const systemSettingsApi = apiSlice.injectEndpoints({
         },
       ],
     }),
+    getProductTagSettings: builder.query<ProductTagSettingsDto, void>({
+      queryFn: async () => {
+        try {
+          const data = await getSystemSettingsClient().getProductTagSettings()
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return {
+            error:
+              error ?? new Error('Unknown error loading product tag settings'),
+          }
+        }
+      },
+      providesTags: [{ type: QueryTags.SystemSettings, id: 'product-tags' }],
+    }),
+    updateProductTagSettings: builder.mutation<
+      void,
+      UpdateProductTagSettingsRequest
+    >({
+      queryFn: async (request) => {
+        try {
+          await getSystemSettingsClient().updateProductTagSettings(request)
+          return { data: null as unknown as void }
+        } catch (error) {
+          console.error('API Error:', error)
+          return {
+            error:
+              error ?? new Error('Unknown error updating product tag settings'),
+          }
+        }
+      },
+      invalidatesTags: [
+        { type: QueryTags.SystemSettings, id: 'product-tags' },
+        { type: QueryTags.ActivityLog, id: PRODUCT_TAG_SETTINGS_ACTIVITY_ID },
+      ],
+    }),
+    // Takes the shared activity-log argument so useActivityLog can page it; the id is fixed.
+    getProductTagSettingsActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      ActivityLogQueryArg
+    >({
+      queryFn: async ({ page, pageSize }) => {
+        try {
+          const data =
+            await getSystemSettingsClient().getProductTagSettingsActivities(
+              page,
+              pageSize,
+            )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: [
+        { type: QueryTags.ActivityLog, id: PRODUCT_TAG_SETTINGS_ACTIVITY_ID },
+      ],
+    }),
   }),
 })
 
@@ -158,4 +221,8 @@ export const {
   useUpdateSchedulingSettingsMutation,
   useGetSchedulingSettingsActivitiesQuery,
   useLazyGetSchedulingSettingsActivitiesQuery,
+  useGetProductTagSettingsQuery,
+  useUpdateProductTagSettingsMutation,
+  useGetProductTagSettingsActivitiesQuery,
+  useLazyGetProductTagSettingsActivitiesQuery,
 } = systemSettingsApi

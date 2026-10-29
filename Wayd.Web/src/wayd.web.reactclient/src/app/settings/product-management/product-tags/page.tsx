@@ -24,6 +24,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import {
   CreateProductTagCategoryForm,
+  FreeProductTagsSection,
   useProductTagCategoryActions,
 } from './_components'
 import { useMessage } from '@/src/components/contexts/messaging'
@@ -194,6 +195,11 @@ const ProductTagCategoriesPage = () => {
         getRowId={(category: ProductTagCategoryDto) => category.id}
         onRowReorder={canReorder ? onRowReorder : undefined}
       />
+
+      {/* Block-level, not a flex child: WaydGrid collapses inside a flex column. */}
+      <div style={{ marginTop: 'var(--ant-margin-lg)' }}>
+        <FreeProductTagsSection />
+      </div>
 
       {dialogs}
 

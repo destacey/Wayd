@@ -1,12 +1,14 @@
 /**
- * The shape a categorised-tag consumer supplies.
+ * The shape a tag consumer supplies.
  *
  * Deliberately not tied to any module's DTOs: the components in this folder take
  * these, and each consuming area maps its own types across. That is what lets a
  * second area adopt curated tags without touching anything here.
  *
- * Free-text tags — Azure DevOps work item tags, for instance — are a different
- * model with no axes and no ids, and are not served by these types.
+ * Two kinds of tag share these types: curated tags on an axis, and free tags —
+ * informal labels on no axis, typed in while tagging. Both have ids. Azure DevOps
+ * work item tags, plain strings with no ids, are a different model and are not
+ * served here.
  */
 
 /** A tag a record can carry. */
@@ -17,7 +19,7 @@ export interface TagOption {
   /**
    * Whether the tag can still be applied. An inactive tag stays visible on the
    * records already carrying it — deactivating retires it from new use rather
-   * than removing it.
+   * than removing it. Always true for a free tag.
    */
   isActive: boolean
 }
@@ -35,10 +37,13 @@ export interface TagCategory {
   tags: TagOption[]
 }
 
-/** A tag a record currently carries, and the axis it came from. */
+/**
+ * A tag a record currently carries, and the axis it came from. A free tag has
+ * no axis, so both axis fields are absent.
+ */
 export interface TagAssignment {
   tagId: string
   tagName: string
-  categoryId: string
-  categoryName: string
+  categoryId?: string
+  categoryName?: string
 }

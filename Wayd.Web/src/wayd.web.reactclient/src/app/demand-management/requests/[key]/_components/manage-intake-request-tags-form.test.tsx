@@ -71,6 +71,8 @@ const request = {
 
 const mockTag = jest.fn()
 const mockUntag = jest.fn()
+const mockTagByName = jest.fn()
+let mockAllowsFreeTags = false
 const mockError = jest.fn()
 const mockComplete = jest.fn()
 
@@ -117,6 +119,23 @@ jest.mock(
     }),
     useTagIntakeRequestMutation: () => [mockTag],
     useUntagIntakeRequestMutation: () => [mockUntag],
+    useTagIntakeRequestByNameMutation: () => [mockTagByName],
+    useGetIntakeDeskQuery: () => ({
+      data: { id: 'd-1', allowsFreeTags: mockAllowsFreeTags },
+      isLoading: false,
+    }),
+    useSearchIntakeRequestTagsQuery: () => ({
+      data: [
+        {
+          id: 't-followup',
+          name: 'follow up',
+          isFree: true,
+          isActive: true,
+          requestCount: 2,
+        },
+      ],
+      isLoading: false,
+    }),
   }),
 )
 
@@ -170,6 +189,8 @@ describe('ManageIntakeRequestTagsForm', () => {
   beforeEach(() => {
     mockTag.mockReset().mockResolvedValue({ data: undefined })
     mockUntag.mockReset().mockResolvedValue({ data: undefined })
+    mockTagByName.mockReset().mockResolvedValue({ data: 't-new' })
+    mockAllowsFreeTags = false
     mockError.mockReset()
     mockComplete.mockReset()
   })
@@ -204,6 +225,40 @@ describe('ManageIntakeRequestTagsForm', () => {
     expect(mockUntag.mock.invocationCallOrder[0]).toBeLessThan(
       mockTag.mock.invocationCallOrder[0],
     )
+  })
+
+  it('offers no free tags on a desk that does not allow them', async () => {
+    // Arrange / Act
+    await renderForm()
+
+    // Assert
+    expect(screen.queryByText('Free tags')).not.toBeInTheDocument()
+  })
+
+  it('applies an existing free tag by id and a typed name by name, on a desk allowing them', async () => {
+    // Arrange
+    mockAllowsFreeTags = true
+    await renderForm()
+    const input = fieldFor('Free tags').querySelector(
+      'input[role="combobox"]',
+    ) as HTMLInputElement
+
+    // Act — committed with the field's comma separator, which jsdom drives reliably
+    await act(async () => {
+      await userEvent.setup().type(input, 'Follow Up,escalated,')
+    })
+    await save()
+
+    // Assert
+    expect(mockTag).toHaveBeenCalledWith({
+      requestId: 'r-1',
+      tagId: 't-followup',
+    })
+    expect(mockTagByName).toHaveBeenCalledWith({
+      requestId: 'r-1',
+      name: 'escalated',
+    })
+    expect(mockUntag).not.toHaveBeenCalled()
   })
 
   it('says how many changes were saved and closes when one fails part-way', async () => {

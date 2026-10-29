@@ -324,7 +324,7 @@ const IntakeRequestDetailsPage = (props: {
                 }
               />
               <TagList
-                // The server orders them by axis, then name.
+                // The server orders them by axis, then name, with free tags — on no axis, so unqualified — last.
                 tags={summary.tags.map((tag) => ({
                   id: tag.id,
                   label: tag.name,

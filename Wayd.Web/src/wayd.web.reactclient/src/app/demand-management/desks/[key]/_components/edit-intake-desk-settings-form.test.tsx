@@ -92,6 +92,7 @@ const desk = (overrides: Record<string, unknown> = {}) =>
     channelIds: [],
     offersAllTagCategories: true,
     tagCategoryIds: [],
+    allowsFreeTags: false,
     members: [
       {
         employee: { id: 'e-1', key: 1, name: 'Avery' },
@@ -177,6 +178,7 @@ describe('EditIntakeDeskSettingsForm', () => {
       channelIds: [],
       offersAllTagCategories: true,
       tagCategoryIds: [],
+      allowsFreeTags: false,
       members: [
         { employeeId: 'e-1', role: IntakeDeskRole.Admin },
         { employeeId: 'e-2', role: IntakeDeskRole.Agent },
@@ -207,6 +209,24 @@ describe('EditIntakeDeskSettingsForm', () => {
         offersAllTagCategories: false,
         tagCategoryIds: ['a-2'],
       }),
+    )
+  })
+
+  it('saves free tags turned on', async () => {
+    // Arrange
+    await renderForm()
+    await act(() =>
+      userEvent.click(screen.getByRole('switch', { name: 'Allow free tags' })),
+    )
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Save' })),
+    )
+
+    // Assert
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ allowsFreeTags: true }),
     )
   })
 

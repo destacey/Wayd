@@ -23,9 +23,13 @@ import { toApiError } from '@/src/utils'
 import { Button, Typography } from 'antd'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { CreateTagAxisForm, useTagAxisActions } from './_components'
+import {
+  CreateTagAxisForm,
+  FreeTagsList,
+  useTagAxisActions,
+} from './_components'
 
-const { Paragraph } = Typography
+const { Paragraph, Title } = Typography
 
 /**
  * The axes reviewers file requests along, with each axis's tags one click
@@ -172,6 +176,15 @@ const TagAxesPage = () => {
       />
 
       {dialogs}
+
+      <Title level={4}>Free Tags</Title>
+      <Paragraph type="secondary">
+        Tags agents add by typing a name, on desks that allow free tags. Rename
+        one, merge near-duplicates together, or promote one onto an axis by
+        adding the tag there and merging into it. A free tag no request carries
+        is removed on its own.
+      </Paragraph>
+      <FreeTagsList />
 
       {openCreateForm && (
         <CreateTagAxisForm

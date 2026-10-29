@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import ManageTagsForm from './manage-tags-form'
 import { TagAssignment, TagCategory } from './types'
 
@@ -50,9 +51,19 @@ const tier: TagCategory = {
 const carried = (
   tagId: string,
   tagName: string,
-  categoryId: string,
-  categoryName: string,
+  categoryId?: string,
+  categoryName?: string,
 ): TagAssignment => ({ tagId, tagName, categoryId, categoryName })
+
+const freeTags = {
+  options: [{ id: 'free-wave', name: 'migration wave', isActive: true }],
+}
+
+const save = async () => {
+  await act(async () => {
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+  })
+}
 
 const renderForm = (
   overrides: Partial<React.ComponentProps<typeof ManageTagsForm>> = {},
@@ -124,5 +135,56 @@ describe('ManageTagsForm', () => {
 
     // Assert
     expect(screen.getByText('Risk Level')).toBeInTheDocument()
+  })
+
+  it('offers no free tag field unless the area allows free tags', () => {
+    // Arrange / Act
+    renderForm()
+
+    // Assert
+    expect(screen.queryByText('Free tags')).not.toBeInTheDocument()
+  })
+
+  it('leaves a carried free tag alone when free tags are not offered', async () => {
+    // Free tags turned off must not strip the ones a record already carries.
+    // Arrange
+    const { onSave } = renderForm({ tags: [carried('free-wave', 'migration wave')] })
+
+    // Act
+    await save()
+
+    // Assert
+    expect(onSave).toHaveBeenCalledWith({ added: [], removed: [], addedNames: [] })
+  })
+
+  it('shows the free tags a record carries by name', () => {
+    // Arrange / Act
+    renderForm({ freeTags: { options: [] }, tags: [carried('free-q3', 'follow up')] })
+
+    // Assert
+    expect(screen.getByText('Free tags')).toBeInTheDocument()
+    expect(screen.getByText('follow up')).toBeInTheDocument()
+  })
+
+  it('saves a typed name as a new free tag and a known one as its tag', async () => {
+    // Arrange
+    const { onSave } = renderForm({ freeTags })
+    const input = document.querySelector<HTMLInputElement>(
+      '#manage-tags-form___freeTags',
+    )!
+
+    // Act
+    // Committed with the field's comma separator, which jsdom drives reliably.
+    await userEvent.type(input, 'Migration Wave,  follow   up ,')
+    await save()
+
+    // Assert
+    // A name matching a known free tag, in any case, is that tag; anything else is
+    // new, tidied the way the server stores it.
+    expect(onSave).toHaveBeenCalledWith({
+      added: ['free-wave'],
+      removed: [],
+      addedNames: ['follow up'],
+    })
   })
 })

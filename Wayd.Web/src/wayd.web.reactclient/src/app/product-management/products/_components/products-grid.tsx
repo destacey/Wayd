@@ -1,5 +1,6 @@
 'use client'
 
+import { tagText } from '@/src/components/common/tags'
 import {
   WaydGrid,
   caseInsensitiveCompare,
@@ -128,10 +129,13 @@ const buildColumns = <T extends ProductDto>(
     // whether it is a tier, a platform or a compliance scope. Sorting the
     // qualified string groups an axis's tags together, and the set filter is
     // built from these same values, so filtering picks one axis's tag rather
-    // than every tag that happens to share a name.
+    // than every tag that happens to share a name. A free tag has no axis, so
+    // it reads as its bare name.
     getValues: (row) =>
       (row.tags ?? [])
-        .map((t) => `${t.categoryName} | ${t.tagName}`)
+        .map((t) =>
+          tagText({ name: t.tagName, categoryName: t.categoryName }),
+        )
         .sort((a, b) => caseInsensitiveCompare(a, b)),
   }),
 ]

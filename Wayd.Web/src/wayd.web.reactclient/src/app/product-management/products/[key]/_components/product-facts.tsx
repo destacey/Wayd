@@ -26,9 +26,11 @@ const ProductFacts = ({ product }: ProductFactsProps) => {
       { categoryId: string; categoryName: string; tagNames: string[] }
     >
   >((acc, tag) => {
+    // Free tags are on no axis, so they gather in a group of their own.
+    if (!tag.categoryId) return acc
     const group = (acc[tag.categoryId] ??= {
       categoryId: tag.categoryId,
-      categoryName: tag.categoryName,
+      categoryName: tag.categoryName ?? '',
       tagNames: [],
     })
     group.tagNames.push(tag.tagName)
@@ -38,6 +40,13 @@ const ProductFacts = ({ product }: ProductFactsProps) => {
   const categories = Object.values(tagsByCategory).sort((a, b) =>
     caseInsensitiveCompare(a.categoryName, b.categoryName),
   )
+
+  // After the axes: those are the curated filing everyone shares, and free tags
+  // are a team's own informal labels.
+  const freeTagNames = (product.tags ?? [])
+    .filter((tag) => !tag.categoryId)
+    .map((tag) => tag.tagName)
+    .sort(caseInsensitiveCompare)
 
   return (
     <>
@@ -68,7 +77,7 @@ const ProductFacts = ({ product }: ProductFactsProps) => {
         </RecordFactsGroup>
       )}
 
-      {categories.length > 0 && (
+      {(categories.length > 0 || freeTagNames.length > 0) && (
         <RecordFactsGroup label="Tags">
           <Flex vertical gap={10}>
             {categories.map((category) => (
@@ -85,6 +94,15 @@ const ProductFacts = ({ product }: ProductFactsProps) => {
                 </Flex>
               </LabeledContent>
             ))}
+            {freeTagNames.length > 0 && (
+              <LabeledContent label="Free tags">
+                <Flex wrap gap={4}>
+                  {freeTagNames.map((name) => (
+                    <Tag key={name}>{name}</Tag>
+                  ))}
+                </Flex>
+              </LabeledContent>
+            )}
           </Flex>
         </RecordFactsGroup>
       )}

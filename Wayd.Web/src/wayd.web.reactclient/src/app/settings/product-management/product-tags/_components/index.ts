@@ -6,6 +6,7 @@ export { default as DeleteProductTagCategoryForm } from './delete-product-tag-ca
 export { default as DeleteProductTagForm } from './delete-product-tag-form'
 export { default as EditProductTagCategoryForm } from './edit-product-tag-category-form'
 export { default as EditProductTagForm } from './edit-product-tag-form'
+export { default as FreeProductTagsSection } from './free-product-tags-section'
 export { default as ProductTagsList } from './product-tags-list'
 export { default as useProductTagCategoryActions } from './use-product-tag-category-actions'
 export type { ProductTagCategoryActionTarget } from './types'

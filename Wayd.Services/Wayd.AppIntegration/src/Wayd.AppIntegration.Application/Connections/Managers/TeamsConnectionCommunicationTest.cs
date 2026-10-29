@@ -14,6 +14,9 @@ public sealed class TeamsConnectionCommunicationTest(IDispatcher dispatcher) : I
 
     public Connector Connector => Connector.Teams;
 
-    public Task<Result> Run(Guid connectionId, CancellationToken cancellationToken) =>
-        _dispatcher.Send(new TestTeamsConnectionCommand(connectionId), cancellationToken);
+    public Task<Result> Run(
+        Guid connectionId,
+        string? userAssertion,
+        CancellationToken cancellationToken) =>
+        _dispatcher.Send(new TestTeamsConnectionCommand(connectionId, userAssertion ?? string.Empty), cancellationToken);
 }

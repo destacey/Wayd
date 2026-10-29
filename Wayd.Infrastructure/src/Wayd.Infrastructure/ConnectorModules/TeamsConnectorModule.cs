@@ -15,6 +15,10 @@ public sealed class TeamsConnectorModule : IConnectorModule
 
     public void Register(IServiceCollection services)
     {
+        services.AddHttpClient(nameof(TeamsGraphUserTokenExchange));
+        services.AddScoped<ITeamsGraphUserTokenExchange, TeamsGraphUserTokenExchange>();
+        services.AddScoped<ITeamsDelegatedChatMessaging, TeamsDelegatedChatMessaging>();
+        services.AddScoped<ITeamsUserChatMessageSender, TeamsUserChatMessageSender>();
         services.AddScoped<ITeamsCommunicationGraphClient, TeamsCommunicationGraphClient>();
         services.AddKeyedTransient<IConnectionCommunicationTest, TeamsConnectionCommunicationTest>(Connector.Teams);
     }

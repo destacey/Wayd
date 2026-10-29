@@ -153,8 +153,11 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Connections)]
     [EndpointSummary("Verify Microsoft Teams connection credentials before create.")]
     [EndpointDescription(
-        "Runs the same hello-world Graph test as communication-test using credentials from the create form. "
-        + "Does not persist a connection.")]
+        "Runs the same hello-world Graph test as communication-test using credentials from the create form: "
+        + "resolve the signed-in user's email in the tenant (application), create a Teams chat (application), "
+        + "post a hello-world chat message as the signed-in user (delegated ChatMessage.Send via on-behalf-of), "
+        + "and create a calendar event (application). Requires subjectToken, the Entra access token from the "
+        + "user's Wayd sign-in session. Does not persist a connection.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> VerifyTeamsCommunicationConnection(
@@ -333,14 +336,16 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
     [EndpointSummary("Run the hello-world communication test for a connection.")]
     [EndpointDescription(
-        "Uses the connection's own Microsoft Graph app registration to send a Teams chat message "
-        + "and create a hello-world calendar event for the signed-in user's Wayd account email. "
+        "Uses the connection's Microsoft Graph app registration: application permissions resolve the signed-in "
+        + "user's Wayd email, create a Teams chat, and create a hello-world calendar event; delegated "
+        + "ChatMessage.Send (via subjectToken and on-behalf-of) posts the hello-world chat message as that user. "
         + "Supported when the connector registers a communication test (currently Microsoft Teams).")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> TestCommunicationConnection(
         Guid id,
+        [FromBody] TestCommunicationConnectionRequest? request,
         [FromServices] IServiceProvider serviceProvider,
         CancellationToken cancellationToken)
     {
@@ -353,7 +358,7 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(
                 $"The '{connection.Connector.Name}' connector does not support a communication test.", HttpContext));
 
-        var result = await test.Run(id, cancellationToken);
+        var result = await test.Run(id, request?.SubjectToken, cancellationToken);
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 

@@ -2,7 +2,10 @@
 
 import { Card, Table, Typography } from 'antd'
 import Link from 'next/link'
-import { TEAMS_GRAPH_APPLICATION_PERMISSIONS } from './teams-permissions'
+import {
+  TEAMS_GRAPH_APPLICATION_PERMISSIONS,
+  TEAMS_GRAPH_DELEGATED_PERMISSIONS,
+} from './teams-permissions'
 
 const { Paragraph, Title } = Typography
 
@@ -46,6 +49,10 @@ export const TeamsSetupGuide = () => (
         select <strong>Grant admin consent</strong> for the tenant.
       </li>
       <li>
+        Add the <strong>Delegated</strong> permission listed below on the same app registration so
+        Wayd can send chat messages as the signed-in approver when that flow is enabled.
+      </li>
+      <li>
         In Wayd, open <strong>Settings → System → Connections</strong>, choose{' '}
         <strong>Microsoft Teams</strong>, and enter the tenant ID, client ID, and secret.
       </li>
@@ -56,7 +63,7 @@ export const TeamsSetupGuide = () => (
       </li>
     </ol>
     <Card
-      title="Required permissions"
+      title="Application permissions"
       size="small"
       style={{ marginTop: 8 }}
       styles={{ body: { paddingTop: 12 } }}
@@ -67,6 +74,26 @@ export const TeamsSetupGuide = () => (
       <Table
         columns={permissionColumns}
         dataSource={[...TEAMS_GRAPH_APPLICATION_PERMISSIONS]}
+        pagination={false}
+        bordered
+        size="small"
+        rowKey="key"
+      />
+    </Card>
+    <Card
+      title="Delegated permission"
+      size="small"
+      style={{ marginTop: 12 }}
+      styles={{ body: { paddingTop: 12 } }}
+    >
+      <Paragraph style={{ marginBottom: 12 }}>
+        Delegated permission on Microsoft Graph for the signed-in Wayd user who approves sending
+        communication — not an application permission and not used by Verify or Test connection
+        today:
+      </Paragraph>
+      <Table
+        columns={permissionColumns}
+        dataSource={[...TEAMS_GRAPH_DELEGATED_PERMISSIONS]}
         pagination={false}
         bordered
         size="small"

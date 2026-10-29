@@ -39,7 +39,7 @@ public sealed class TestTeamsConnectionCommandHandlerTests
 
         // Act
         var result = await _sut.Handle(
-            new TestTeamsConnectionCommand(connection.Id),
+            new TestTeamsConnectionCommand(connection.Id, "assertion"),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -49,6 +49,7 @@ public sealed class TestTeamsConnectionCommandHandlerTests
             .Verify(
                 c => c.RunHelloWorldTestAsync(
                     It.IsAny<TeamsGraphCredentials>(),
+                    It.IsAny<string>(),
                     It.IsAny<string>(),
                     It.IsAny<CancellationToken>()),
                 Times.Never);
@@ -65,7 +66,7 @@ public sealed class TestTeamsConnectionCommandHandlerTests
 
         // Act
         var result = await _sut.Handle(
-            new TestTeamsConnectionCommand(Guid.NewGuid()),
+            new TestTeamsConnectionCommand(Guid.NewGuid(), "assertion"),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -89,12 +90,13 @@ public sealed class TestTeamsConnectionCommandHandlerTests
             .Setup(c => c.RunHelloWorldTestAsync(
                 It.IsAny<TeamsGraphCredentials>(),
                 "admin@contoso.com",
+                "assertion",
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
 
         // Act
         var result = await _sut.Handle(
-            new TestTeamsConnectionCommand(connection.Id),
+            new TestTeamsConnectionCommand(connection.Id, "assertion"),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -106,6 +108,7 @@ public sealed class TestTeamsConnectionCommandHandlerTests
                     && cred.ClientId == connection.Configuration.ClientId
                     && cred.ClientSecret == connection.Configuration.ClientSecret),
                 "admin@contoso.com",
+                "assertion",
                 It.IsAny<CancellationToken>()),
             Times.Once);
         _db.SaveChangesCallCount.Should().Be(0);
@@ -126,12 +129,13 @@ public sealed class TestTeamsConnectionCommandHandlerTests
             .Setup(c => c.RunHelloWorldTestAsync(
                 It.IsAny<TeamsGraphCredentials>(),
                 It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Failure("No user with email 'missing@contoso.com' was found in the Teams connection's tenant."));
 
         // Act
         var result = await _sut.Handle(
-            new TestTeamsConnectionCommand(connection.Id),
+            new TestTeamsConnectionCommand(connection.Id, "assertion"),
             TestContext.Current.CancellationToken);
 
         // Assert

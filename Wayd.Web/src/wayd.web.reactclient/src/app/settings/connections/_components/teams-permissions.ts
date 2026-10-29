@@ -1,5 +1,5 @@
 /**
- * Microsoft Graph application permissions for the Teams communication connector.
+ * Microsoft Graph permissions for the Teams communication connector.
  * Keep docs/reference/integrations/teams.mdx aligned when these change.
  */
 export const TEAMS_GRAPH_APPLICATION_PERMISSIONS = [
@@ -7,22 +7,27 @@ export const TEAMS_GRAPH_APPLICATION_PERMISSIONS = [
     key: 'User.Read.All',
     permission: 'User.Read.All',
     reason:
-      'Look up tenant users by email so Wayd can address Teams messages and calendar events to the right people.',
+      'Resolve tenant users by email when Wayd opens chats or writes calendar events for them.',
   },
   {
     key: 'Chat.Create',
     permission: 'Chat.Create',
-    reason: 'Open Teams chats when Wayd sends communication through this connection.',
-  },
-  {
-    key: 'ChatMessage.Send',
-    permission: 'ChatMessage.Send',
-    reason: 'Send messages in Teams chats on behalf of this connection.',
+    reason: 'Create Teams chats for Wayd communication through this connection.',
   },
   {
     key: 'Calendars.ReadWrite',
     permission: 'Calendars.ReadWrite',
     reason:
       'Create and update Outlook calendar events when Wayd sends scheduling-related communication.',
+  },
+] as const
+
+/** Delegated only — not granted as an application permission. */
+export const TEAMS_GRAPH_DELEGATED_PERMISSIONS = [
+  {
+    key: 'ChatMessage.Send',
+    permission: 'ChatMessage.Send',
+    reason:
+      'Send the first message in a Wayd-created chat as the signed-in user who approved the action (Verify, Test connection, and future incident communication).',
   },
 ] as const

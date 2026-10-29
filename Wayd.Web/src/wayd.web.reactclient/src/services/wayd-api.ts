@@ -52460,19 +52460,24 @@ export class ConnectionsClient {
 
     /**
      * Run the hello-world communication test for a connection.
+     * @param request (optional) 
      * @return No Content
      */
-    testCommunicationConnection(id: string, cancelToken?: CancelToken): Promise<void> {
+    testCommunicationConnection(id: string, request?: TestCommunicationConnectionRequest | undefined, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/app-integrations/connections/{id}/communication-test";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
         url_ = url_.replace(/[?&]$/, "");
 
+        const content_ = JSON.stringify(request);
+
         let options_: AxiosRequestConfig = {
+            data: content_,
             method: "POST",
             url: url_,
             headers: {
+                "Content-Type": "application/json",
             },
             cancelToken
         };
@@ -58669,6 +58674,8 @@ export interface CreateTeamsConnectionRequest extends CreateConnectionRequest {
     tenantId: string;
     clientId: string;
     clientSecret: string;
+    /** Entra access token from the signed-in user's OIDC session for the hello-world chat message. */
+    subjectToken: string;
 }
 
 export interface CreateUserRequest {
@@ -65798,6 +65805,12 @@ export interface TestAzureOpenAIConnectionRequest {
     deploymentName: string;
 }
 
+/** Optional body for `POST …/communication-test` when the connector needs a delegated Entra token. */
+export interface TestCommunicationConnectionRequest {
+    /** Entra access token from the signed-in user's OIDC session (on-behalf-of assertion). */
+    subjectToken?: string | undefined;
+}
+
 /** Outcome of fetching an OIDC provider's discovery document. On success, `issuer` echoes the value from the discovery document so it can be checked against expectations, and `jwksKeyCount` is how many signing keys the JWKS endpoint returned (zero indicates a misconfigured provider that can never validate a token). On failure, `error` says what went wrong. */
 export interface TestOidcProviderDiscoveryResult {
     success: boolean;
@@ -66898,6 +66911,8 @@ export interface VerifyTeamsConnectionRequest {
     clientId: string;
     /** Client secret for the Teams communication app registration. */
     clientSecret: string;
+    /** Entra access token from the signed-in user's OIDC session, exchanged on-behalf-of for Graph. */
+    subjectToken: string;
 }
 
 /** A version of one product. */

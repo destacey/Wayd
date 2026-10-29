@@ -9,5 +9,12 @@ public interface IConnectionCommunicationTest
 {
     Connector Connector { get; }
 
-    Task<Result> Run(Guid connectionId, CancellationToken cancellationToken);
+    /// <param name="userAssertion">
+    /// Entra access token from the signed-in user's OIDC session, when the connector needs
+    /// delegated Graph permissions for the test.
+    /// </param>
+    Task<Result> Run(
+        Guid connectionId,
+        string? userAssertion,
+        CancellationToken cancellationToken);
 }

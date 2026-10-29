@@ -10,7 +10,8 @@ namespace Wayd.AppIntegration.Application.Connections.Commands.Teams;
 public sealed record VerifyTeamsConnectionCommand(
     string TenantId,
     string ClientId,
-    string ClientSecret) : ICommand;
+    string ClientSecret,
+    string UserAssertion) : ICommand;
 
 public sealed class VerifyTeamsConnectionCommandValidator : CustomValidator<VerifyTeamsConnectionCommand>
 {
@@ -21,6 +22,9 @@ public sealed class VerifyTeamsConnectionCommandValidator : CustomValidator<Veri
         RuleFor(c => c.TenantId).NotEmpty().MaximumLength(64);
         RuleFor(c => c.ClientId).NotEmpty().MaximumLength(64);
         RuleFor(c => c.ClientSecret).NotEmpty().MaximumLength(512);
+        RuleFor(c => c.UserAssertion)
+            .NotEmpty()
+            .WithMessage(TeamsConnectionTestTokens.MissingUserAssertionMessage);
     }
 }
 
@@ -43,6 +47,10 @@ public sealed class VerifyTeamsConnectionCommandHandler(
                 "Your Wayd account has no email address; the connection test addresses you by that email.");
         }
 
+        var assertionCheck = TeamsConnectionTestTokens.RequireUserAssertion(request.UserAssertion);
+        if (assertionCheck.IsFailure)
+            return assertionCheck;
+
         var credentials = new TeamsGraphCredentials(
             request.TenantId.Trim(),
             request.ClientId.Trim(),
@@ -53,6 +61,7 @@ public sealed class VerifyTeamsConnectionCommandHandler(
             return await _teamsCommunicationGraphClient.RunHelloWorldTestAsync(
                 credentials,
                 email.Trim(),
+                request.UserAssertion.Trim(),
                 cancellationToken);
         }
         catch (Exception ex)

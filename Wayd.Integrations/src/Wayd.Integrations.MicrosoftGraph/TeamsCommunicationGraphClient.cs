@@ -11,7 +11,9 @@ namespace Wayd.Integrations.MicrosoftGraph;
 /// Graph client for Teams communication connections. Builds a per-connection
 /// <see cref="GraphServiceClient"/>; does not share state with people sync.
 /// </summary>
-public sealed class TeamsCommunicationGraphClient(ILogger<TeamsCommunicationGraphClient> logger)
+public sealed class TeamsCommunicationGraphClient(
+    ITeamsUserChatMessageSender teamsUserChatMessageSender,
+    ILogger<TeamsCommunicationGraphClient> logger)
     : ITeamsCommunicationGraphClient
 {
     private const string HelloWorldChatTopic = "Wayd connection test";
@@ -21,26 +23,38 @@ public sealed class TeamsCommunicationGraphClient(ILogger<TeamsCommunicationGrap
     private const string HelloWorldEventBody =
         "This all-day event confirms your Wayd Microsoft Teams connection can write to your calendar.";
 
+    private readonly ITeamsUserChatMessageSender _teamsUserChatMessageSender = teamsUserChatMessageSender;
     private readonly ILogger<TeamsCommunicationGraphClient> _logger = logger;
 
     /// <inheritdoc />
     public async Task<Result> RunHelloWorldTestAsync(
         TeamsGraphCredentials credentials,
         string recipientEmail,
+        string userAssertion,
         CancellationToken cancellationToken)
     {
         try
         {
-            var client = BuildClient(credentials);
-            var user = await FindUserByEmailAsync(client, recipientEmail, cancellationToken);
+            var appClient = BuildAppClient(credentials);
+            var user = await FindUserByEmailAsync(appClient, recipientEmail, cancellationToken);
             if (user?.Id is null)
             {
                 return Result.Failure(
                     $"No user with email '{recipientEmail}' was found in the Teams connection's tenant.");
             }
 
-            await SendHelloWorldChatMessageAsync(client, user.Id, cancellationToken);
-            await CreateHelloWorldCalendarEventAsync(client, user.Id, cancellationToken);
+            var chatId = await CreateHelloWorldChatAsync(appClient, user.Id, cancellationToken);
+
+            var send = await _teamsUserChatMessageSender.SendAsSignedInUserAsync(
+                credentials,
+                chatId,
+                HelloWorldChatBody,
+                userAssertion,
+                cancellationToken);
+            if (send.IsFailure)
+                return send;
+
+            await CreateHelloWorldCalendarEventAsync(appClient, user.Id, cancellationToken);
 
             return Result.Success();
         }
@@ -51,7 +65,7 @@ public sealed class TeamsCommunicationGraphClient(ILogger<TeamsCommunicationGrap
         }
     }
 
-    private static GraphServiceClient BuildClient(TeamsGraphCredentials credentials)
+    private static GraphServiceClient BuildAppClient(TeamsGraphCredentials credentials)
     {
         var credential = new ClientSecretCredential(
             credentials.TenantId,
@@ -80,7 +94,7 @@ public sealed class TeamsCommunicationGraphClient(ILogger<TeamsCommunicationGrap
         return response?.Value?.FirstOrDefault();
     }
 
-    private async Task SendHelloWorldChatMessageAsync(
+    private static async Task<string> CreateHelloWorldChatAsync(
         GraphServiceClient client,
         string userId,
         CancellationToken cancellationToken)
@@ -104,21 +118,12 @@ public sealed class TeamsCommunicationGraphClient(ILogger<TeamsCommunicationGrap
         };
 
         var createdChat = await client.Chats.PostAsync(chat, cancellationToken: cancellationToken)
-            ?? throw new InvalidOperationException("Graph did not return a chat id for the hello-world message.");
+            ?? throw new InvalidOperationException("Graph did not return a chat id for the hello-world test.");
 
         if (string.IsNullOrEmpty(createdChat.Id))
-            throw new InvalidOperationException("Graph returned a chat without an id for the hello-world message.");
+            throw new InvalidOperationException("Graph returned a chat without an id for the hello-world test.");
 
-        var message = new ChatMessage
-        {
-            Body = new ItemBody
-            {
-                ContentType = BodyType.Text,
-                Content = HelloWorldChatBody,
-            },
-        };
-
-        await client.Chats[createdChat.Id].Messages.PostAsync(message, cancellationToken: cancellationToken);
+        return createdChat.Id;
     }
 
     private static async Task CreateHelloWorldCalendarEventAsync(

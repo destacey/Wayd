@@ -1,6 +1,8 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
+import useAuth from '@/src/components/contexts/auth'
+import { useGetAuthProvidersQuery } from '@/src/store/features/common/auth-providers-api'
 import {
   EmployeeMatchProperty,
   WorkdayOrgExclusionRequest,
@@ -17,6 +19,10 @@ import {
   useVerifyTeamsConnectionMutation,
 } from '@/src/store/features/app-integration/connections-api'
 import { useModalForm } from '@/src/hooks'
+import {
+  getOidcSubjectAccessToken,
+  TEAMS_MISSING_ENTRA_TOKEN_MESSAGE,
+} from './teams-entra-token'
 
 export interface CreateConnectionFormProps {
   onFormCreate: () => void
@@ -88,6 +94,8 @@ const CreateConnectionForm = ({
   } | null>(null)
   const [isVerifyingTeams, setIsVerifyingTeams] = useState(false)
   const messageApi = useMessage()
+  const { loginProvider } = useAuth()
+  const { data: authProviders } = useGetAuthProvidersQuery()
 
   const [createConnection] = useCreateConnectionMutation()
   const [verifyTeamsConnection] = useVerifyTeamsConnectionMutation()
@@ -107,6 +115,23 @@ const CreateConnectionForm = ({
           }
 
           try {
+            const subjectToken =
+              selectedConnector === ConnectorType.Teams
+                ? await getOidcSubjectAccessToken(
+                    loginProvider,
+                    authProviders?.oidc,
+                  )
+                : null
+            if (selectedConnector === ConnectorType.Teams && !subjectToken) {
+              setTeamsVerifyState({
+                fingerprint: teamsCredentialFingerprint,
+                ok: false,
+                error: TEAMS_MISSING_ENTRA_TOKEN_MESSAGE,
+              })
+              messageApi.error(TEAMS_MISSING_ENTRA_TOKEN_MESSAGE)
+              return false
+            }
+
             // System.Text.Json polymorphism requires the discriminator to be the FIRST property
             // in the JSON payload — otherwise it throws "must specify a type discriminator" even
             // when the discriminator is present. Spread $type before the form values so it
@@ -125,6 +150,9 @@ const CreateConnectionForm = ({
               $type: getDiscriminator(selectedConnector),
               ...values,
               orgExclusions: cleanedExclusions,
+              ...(selectedConnector === ConnectorType.Teams && subjectToken
+                ? { subjectToken }
+                : {}),
             }
 
             const response = await createConnection(request)
@@ -208,17 +236,32 @@ const CreateConnectionForm = ({
 
     setIsVerifyingTeams(true)
     try {
+      const subjectToken = await getOidcSubjectAccessToken(
+        loginProvider,
+        authProviders?.oidc,
+      )
+      if (!subjectToken) {
+        setTeamsVerifyState({
+          fingerprint,
+          ok: false,
+          error: TEAMS_MISSING_ENTRA_TOKEN_MESSAGE,
+        })
+        messageApi.error(TEAMS_MISSING_ENTRA_TOKEN_MESSAGE)
+        return
+      }
+
       const response = await verifyTeamsConnection({
         tenantId: values.tenantId!.trim(),
         clientId: values.clientId!.trim(),
         clientSecret: values.clientSecret!.trim(),
+        subjectToken,
       })
       if (response.error) {
         throw response.error
       }
       setTeamsVerifyState({ fingerprint, ok: true })
       messageApi.success(
-        'Connection verified. Check Teams and your calendar for the hello-world message and event, then create the connection.',
+        'Connection verified. Check Teams for the hello-world message and your calendar for the test event, then create the connection.',
       )
     } catch (error: unknown) {
       const apiError = toApiError(error)

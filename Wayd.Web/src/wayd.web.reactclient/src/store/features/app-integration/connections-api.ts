@@ -217,11 +217,16 @@ export const connectionsApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    testCommunicationConnection: builder.mutation<void, string>({
-      queryFn: async (id) => {
+    testCommunicationConnection: builder.mutation<
+      void,
+      { id: string; subjectToken?: string }
+    >({
+      queryFn: async ({ id, subjectToken }) => {
         try {
-          const data =
-            await getConnectionsClient().testCommunicationConnection(id)
+          const data = await getConnectionsClient().testCommunicationConnection(
+            id,
+            subjectToken ? { subjectToken } : undefined,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -232,7 +237,12 @@ export const connectionsApi = apiSlice.injectEndpoints({
 
     verifyTeamsConnection: builder.mutation<
       void,
-      { tenantId: string; clientId: string; clientSecret: string }
+      {
+        tenantId: string
+        clientId: string
+        clientSecret: string
+        subjectToken: string
+      }
     >({
       queryFn: async (request) => {
         try {

@@ -20,7 +20,7 @@ The Administration area provides tools for configuring Wayd, managing users, con
 | **Demand Management** | Channels, Tag Axes (with the `demand-management` flag) |
 | **PPM** | Expenditure Categories, Project Lifecycles, Scoring Models |
 | **Work Management** | Work Types, Work Statuses, Work Processes |
-| **System** | Scheduling, Sprint Metrics, Feature Flags, Status Workflows, Connections, Imports, Background Jobs, Messaging |
+| **System** | Scheduling, Sprint Metrics, Product Tags, Feature Flags, Status Workflows, Connections, Imports, Background Jobs, Messaging |
 
 The menu shows only the pages your permissions open, and hides a group with none; the filter box above it narrows the list. Opening **Settings** takes you to the first page you can use.
 
@@ -262,6 +262,14 @@ The window is the same for every team, so their figures compare. It is read, not
 
 Every change is recorded in the page's **Activity** section, with who made it and the value before and after.
 
+### Product Tag Settings
+
+Navigate to **Settings > System > Product Tags** to set:
+
+- **Allow free tags on products** — whether anyone who can tag a product may also give it [free tags](../product-management/products.mdx#free-tags), typed in while tagging (off by default).
+
+Turning it off stops new free tags being added; products keep the ones they carry. Every change is recorded in the page's **Activity** section.
+
 ## Organization Settings
 
 ### Holiday Calendars
@@ -346,12 +354,22 @@ Tags themselves carry no order — they display alphabetically wherever they app
 - **Deleting is only for what nothing uses.** A category that products are tagged along, or a tag that any product carries, cannot be deleted — deactivate it instead. A tag's **Delete** action only appears while its product count is zero.
 - **Reordering needs a clean grid.** The grab handle is disabled while the list is sorted, filtered or searched, because the order on screen is not the stored order then and a drop would write a sequence you never saw. Clear all three and the handle comes back. A move saves the whole list at once, so the positions can never overlap.
 
+#### Free tags
+
+The **Free tags** section lists the [free tags](../product-management/products.mdx#free-tags) people have added to products — tags on no category — with how many products carry each. A note shows whether free tags are on; they are turned on and off in [Settings → System → Product Tags](#product-tag-settings).
+
+- **Rename** changes a free tag's name or description. Names are unique among free tags, ignoring case.
+- **Merge** moves every product carrying a free tag to another tag and deletes the free tag. Merge into another free tag to fold near-duplicates together, or into a tag on a category to promote it: add the tag to its category first, then merge into it. On a category that allows one value, a product's existing tag there is replaced.
+- **Delete** takes a free tag off every product carrying it and deletes it. Unlike a tag on a category, it does not have to be unused first.
+
+A free tag nothing carries is deleted on its own, so there is nothing to deactivate.
+
 | To do this | You need |
 |---|---|
 | Open the page | `Permissions.ProductTagCategories.View` |
 | Create a category | `Permissions.ProductTagCategories.Create` |
-| Edit a category, activate or deactivate it, add or change its tags | `Permissions.ProductTagCategories.Update` |
-| Delete a category or a tag | `Permissions.ProductTagCategories.Delete` |
+| Edit a category, activate or deactivate it, add or change its tags, rename or merge a free tag | `Permissions.ProductTagCategories.Update` |
+| Delete a category, a tag or a free tag | `Permissions.ProductTagCategories.Delete` |
 
 ## Demand Management Settings
 
@@ -363,7 +381,7 @@ Tags themselves carry no order — they display alphabetically wherever they app
 
 ### Tag Axes
 
-**Tag Axes** are the axes reviewers tag intake requests along, such as Area, and the tags on each, managed by the Demand Management Admin (`Permissions.IntakeRequests.Administer`). Add, rename, reorder, deactivate and delete axes and their tags here; an axis or tag that requests carry is deactivated rather than deleted. See [Demand Management: managing tag axes](../demand-management/index.mdx#managing-tag-axes).
+**Tag Axes** are the axes reviewers tag intake requests along, such as Area, and the tags on each, managed by the Demand Management Admin (`Permissions.IntakeRequests.Administer`). Add, rename, reorder, deactivate and delete axes and their tags here; an axis or tag that requests carry is deactivated rather than deleted. The page also lists the free tags agents have added, to rename, merge or delete. See [Demand Management: managing tag axes](../demand-management/index.mdx#managing-tag-axes).
 
 ## PPM Settings
 

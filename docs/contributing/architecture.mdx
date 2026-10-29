@@ -316,6 +316,16 @@ A planning interval's capacity crosses three modules. Planning owns the interval
 `GetTeamsCapacityByPeriodQuery`, passing those days off per team. Neither read grows with the number of teams or
 iterations.
 
+### Tagging
+
+Every module that tags its records builds on `Wayd.Common.Domain/Tagging`, so tagging behaves the same everywhere while each module keeps its own tables, events and authorization.
+
+- **`TagCategoryBase<TTag>`** is an axis and owns its tags: name uniqueness on the axis, the system-axis guard, activation, reordering and deletion. The derived axis supplies its tag list, its "in use" messages and one factory per event, so the base raises the module's own events.
+- **`TagBase`** is a tag. One on an axis changes only through the axis. A **free tag** has no `CategoryId` and is its own aggregate: created by typing a name, renamed, merged or deleted by an admin, never deactivated. Its name is unique among the module's free tags through the `(CategoryId, Name)` unique index, mapped with `HasFilter(null)` so SQL Server compares the null axes as equal.
+- **`TagSet`** holds the set rules a tagged aggregate applies to its own assignment list — skip a tag already carried, replace on a single-value axis, never displace on a free tag, swap one tag for another in a merge — and reports a `TagChange` for the aggregate's event. Whether the record may be tagged at all (an inactive tag, an axis a desk does not offer, free tags turned off) is the aggregate's or handler's to check first.
+
+A handler that removes tags from a record — untagging, deleting the record — also deletes any free tag nothing else carries, in the same save. To add tagging to another module, derive its axis and tag from these bases, give its assignment `ITagAssignment`, route its `Tag`/`Untag`/`ReplaceTag` through `TagSet`, and follow the Products and Demand Management handlers for tag-by-name, merge and free-tag clean-up.
+
 ### Domain events and the activity log
 
 Every domain event drained by `SaveChanges` is captured in the activity log, and events follow one set of

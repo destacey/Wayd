@@ -14,7 +14,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Commands;
 public sealed class TagProductCommandHandlerTests : ProductCommandTestBase
 {
     private TagProductCommandHandler CreateSut() =>
-        new(DbContext, TagSettings.Object, CurrentUser.Object, Logger<TagProductCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, TagSettings.Object, CurrentUser.Object, CurrentPrincipal.Object, Logger<TagProductCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldApplyTheTag()

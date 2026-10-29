@@ -117,15 +117,21 @@ public abstract partial class TagBase : BaseAuditableEntity
     }
 
     /// <summary>
-    /// The form a typed free tag name is stored and compared in: trimmed, with each run of whitespace inside it
-    /// collapsed to one space, so "migration  wave" and "migration wave" are one tag.
+    /// The form every tag name is stored and compared in: trimmed, with each run of whitespace inside it collapsed
+    /// to one space, so "migration  wave" and "migration wave" are one tag — and a name typed while tagging matches
+    /// a tag on an axis however its spaces were typed.
+    /// </summary>
+    public static string NormalizeName(string name) => Whitespace().Replace(name.Trim(), " ");
+
+    /// <summary>
+    /// A typed free tag name in its stored form (see <see cref="NormalizeName"/>), or why it cannot be one.
     /// </summary>
     public static Result<string> ValidateFreeName(string? name)
     {
         if (string.IsNullOrWhiteSpace(name))
             return Result.Failure<string>(TagErrors.TagNameRequired);
 
-        var normalized = Whitespace().Replace(name.Trim(), " ");
+        var normalized = NormalizeName(name);
         if (normalized.Length > NameMaxLength)
             return Result.Failure<string>(TagErrors.TagNameTooLong);
 

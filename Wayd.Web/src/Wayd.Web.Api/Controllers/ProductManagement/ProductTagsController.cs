@@ -1,4 +1,6 @@
 using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Application.SystemSettings.ProductTags.Dtos;
+using Wayd.Common.Application.SystemSettings.ProductTags.Queries;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.ProductManagement.Application.ProductTags.Commands;
 using Wayd.ProductManagement.Application.ProductTags.Dtos;
@@ -38,6 +40,20 @@ public class ProductTagsController(IDispatcher dispatcher) : ControllerBase
         var tags = await _dispatcher.Send(new GetProductTagsQuery(search, isFree, includeInactive), cancellationToken);
 
         return Ok(tags);
+    }
+
+    [HttpGet("settings")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.ProductTagCategories)]
+    [EndpointSummary("Get whether free tags are turned on for products.")]
+    [EndpointDescription(
+        "Read-only, for whoever tags products: the same `allowsFreeTags` the product tag system settings hold, readable without the system settings permission. Changed through the system settings.")]
+    [McpTool("ProductTags_GetSettings", "Get product tag settings")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ProductTagSettingsDto>> GetSettings(CancellationToken cancellationToken)
+    {
+        var settings = await _dispatcher.Send(new GetProductTagSettingsQuery(), cancellationToken);
+
+        return Ok(settings);
     }
 
     [HttpPut("{id}")]

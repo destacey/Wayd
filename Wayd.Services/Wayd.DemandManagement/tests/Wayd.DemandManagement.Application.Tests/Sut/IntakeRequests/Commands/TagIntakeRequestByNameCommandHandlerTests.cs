@@ -91,7 +91,9 @@ public sealed class TagIntakeRequestByNameCommandHandlerTests
         created.IsFree.Should().BeTrue();
         created.Name.Should().Be("follow up");
         request.Tags.Should().ContainSingle().Which.CategoryId.Should().BeNull();
-        _scenario.DbContext.SaveChangesCallCount.Should().Be(1);
+        // The tag is saved before the request is tagged, so a name created by someone else meanwhile costs a
+        // lookup rather than the caller's change.
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(2);
     }
 
     [Fact]

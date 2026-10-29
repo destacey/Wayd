@@ -24,6 +24,7 @@ public sealed class DeleteFreeProductTagCommandValidator : AbstractValidator<Del
 public sealed class DeleteFreeProductTagCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<DeleteFreeProductTagCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<DeleteFreeProductTagCommand>
@@ -32,6 +33,7 @@ public sealed class DeleteFreeProductTagCommandHandler(
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<DeleteFreeProductTagCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -47,7 +49,7 @@ public sealed class DeleteFreeProductTagCommandHandler(
             if (!tag.IsFree)
                 return Result.Failure(TagErrors.NotAFreeTag);
 
-            var actor = EventActor.User(_currentUser.GetUserId());
+            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
             var now = _dateTimeProvider.Now;
 
             var products = await _productManagementDbContext.Products

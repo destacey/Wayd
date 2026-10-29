@@ -11,7 +11,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTags.Commands;
 public sealed class UpdateFreeProductTagCommandHandlerTests : ProductCommandTestBase
 {
     private UpdateFreeProductTagCommandHandler CreateSut() =>
-        new(DbContext, CurrentUser.Object, Logger<UpdateFreeProductTagCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, CurrentUser.Object, CurrentPrincipal.Object, Logger<UpdateFreeProductTagCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldRenameTheFreeTag()

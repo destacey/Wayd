@@ -52,12 +52,13 @@ public sealed class DeleteIntakeRequestCommandHandler(
         if (result.IsFailure)
             return result;
 
-        // Its tag assignments go with it, so a free tag only it carried would be left unused.
-        await FreeIntakeRequestTags.DeleteUnused(_dbContext, [.. intakeRequest.Tags.Select(t => t.TagId)], intakeRequest.Id,
-            actor, now, cancellationToken);
+        Guid[] tagIds = [.. intakeRequest.Tags.Select(t => t.TagId)];
 
         _dbContext.IntakeRequests.Remove(intakeRequest);
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        // Its tag assignments went with it, so a free tag only it carried is now unused.
+        await FreeIntakeRequestTags.DeleteUnused(_dbContext, tagIds, actor, now, cancellationToken);
 
         return Result.Success();
     }

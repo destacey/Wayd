@@ -13,7 +13,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTags.Commands;
 public sealed class DeleteFreeProductTagCommandHandlerTests : ProductCommandTestBase
 {
     private DeleteFreeProductTagCommandHandler CreateSut() =>
-        new(DbContext, CurrentUser.Object, Logger<DeleteFreeProductTagCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, CurrentUser.Object, CurrentPrincipal.Object, Logger<DeleteFreeProductTagCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldUntagEveryCarrierAndDeleteTheTag()

@@ -189,4 +189,39 @@ public sealed class TagIntakeRequestCommandHandlerTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(TagIntakeRequestCommandHandler.TagsChangedError);
     }
+
+    [Fact]
+    public async Task Handle_AFreeTagOnADeskAllowingThem_TagsTheRequestWithNoAxis()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.Request(_scenario.AllowingFreeTags(_scenario.Desk(agentIds: [agent.Id])), _scenario.Employee());
+        var free = _scenario.FreeTag();
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new TagIntakeRequestCommand(request.Id, free.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        request.Tags.Should().ContainSingle().Which.CategoryId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_AFreeTagOnADeskNotAllowingThem_Fails()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(agentIds: [agent.Id]), _scenario.Employee());
+        var free = _scenario.FreeTag();
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new TagIntakeRequestCommand(request.Id, free.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.FreeTagsNotAllowedError);
+        request.Tags.Should().BeEmpty();
+    }
 }

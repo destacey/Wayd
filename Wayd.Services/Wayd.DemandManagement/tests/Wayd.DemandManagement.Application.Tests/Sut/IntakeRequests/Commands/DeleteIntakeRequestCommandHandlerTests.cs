@@ -118,4 +118,44 @@ public sealed class DeleteIntakeRequestCommandHandlerTests
         _scenario.DbContext.IntakeRequests.Should().ContainSingle();
         _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
     }
+
+    [Fact]
+    public async Task Handle_DeletesAFreeTagOnlyTheDeletedRequestCarried()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var request = _scenario.Request(_scenario.AllowingFreeTags(_scenario.DeskAdministeredBy(deskAdmin.Id)), _scenario.Employee());
+        var free = _scenario.FreeTag();
+        _scenario.TaggedFree(request, free);
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(new DeleteIntakeRequestCommand(request.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _scenario.DbContext.IntakeRequestTags.Should().NotContain(free);
+        free.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestFreeTagDeletedEvent>();
+    }
+
+    [Fact]
+    public async Task Handle_KeepsAFreeTagAnotherRequestCarries()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var desk = _scenario.AllowingFreeTags(_scenario.DeskAdministeredBy(deskAdmin.Id));
+        var request = _scenario.Request(desk, _scenario.Employee());
+        var other = _scenario.Request(desk, _scenario.Employee());
+        var free = _scenario.FreeTag();
+        _scenario.TaggedFree(request, free);
+        _scenario.TaggedFree(other, free);
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(new DeleteIntakeRequestCommand(request.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _scenario.DbContext.IntakeRequestTags.Should().Contain(free);
+    }
 }

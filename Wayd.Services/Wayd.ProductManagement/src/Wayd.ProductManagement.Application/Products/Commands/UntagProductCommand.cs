@@ -19,6 +19,7 @@ public sealed class UntagProductCommandValidator : AbstractValidator<UntagProduc
 public sealed class UntagProductCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<UntagProductCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UntagProductCommand>
@@ -27,6 +28,7 @@ public sealed class UntagProductCommandHandler(
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<UntagProductCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -46,7 +48,7 @@ public sealed class UntagProductCommandHandler(
 
             // Removing a tag the product never carried succeeds without an event, so no existence
             // check on the tag itself is needed.
-            var actor = EventActor.User(_currentUser.GetUserId());
+            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
             var now = _dateTimeProvider.Now;
             var untagResult = product.Untag(request.TagId, actor, now);
 
@@ -60,18 +62,9 @@ public sealed class UntagProductCommandHandler(
                 return Result.Failure(untagResult.Error);
             }
 
-            await FreeProductTags.DeleteUnused(_productManagementDbContext, [request.TagId], product.Id, actor, now,
-                cancellationToken);
+            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
 
-            try
-            {
-                await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateException)
-            {
-                // Only a free tag deleted for being unused can fail here: another product was given it since.
-                return Result.Failure(ProductTagErrors.ChangedWhileSaving);
-            }
+            await FreeProductTags.DeleteUnused(_productManagementDbContext, [request.TagId], actor, now, cancellationToken);
 
             _logger.LogInformation("Product {ProductId} untagged from {TagId}.", request.Id, request.TagId);
 

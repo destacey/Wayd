@@ -33,6 +33,7 @@ public sealed class MergeProductTagCommandValidator : AbstractValidator<MergePro
 public sealed class MergeProductTagCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<MergeProductTagCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<MergeProductTagCommand>
@@ -41,6 +42,7 @@ public sealed class MergeProductTagCommandHandler(
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<MergeProductTagCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -70,7 +72,7 @@ public sealed class MergeProductTagCommandHandler(
             if (!target.IsActive || category is { IsActive: false })
                 return Result.Failure(ProductTagErrors.InactiveMergeTarget);
 
-            var actor = EventActor.User(_currentUser.GetUserId());
+            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
             var now = _dateTimeProvider.Now;
 
             var products = await _productManagementDbContext.Products

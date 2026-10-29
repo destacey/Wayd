@@ -33,6 +33,7 @@ public sealed class TagProductByNameCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     ISettings<ProductTagSettings> settings,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<TagProductByNameCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<TagProductByNameCommand, Guid>
@@ -42,6 +43,7 @@ public sealed class TagProductByNameCommandHandler(
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ISettings<ProductTagSettings> _settings = settings;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<TagProductByNameCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -62,7 +64,7 @@ public sealed class TagProductByNameCommandHandler(
                 return Result.Failure<Guid>("Product not found.");
             }
 
-            var actor = EventActor.User(_currentUser.GetUserId());
+            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
             var now = _dateTimeProvider.Now;
 
             var lowered = name.Value.ToLower();
@@ -87,18 +89,11 @@ public sealed class TagProductByNameCommandHandler(
                 if (!(await _settings.Get(cancellationToken)).AllowsFreeTags)
                     return Result.Failure<Guid>(ProductTagErrors.FreeTagsTurnedOff);
 
-                var existing = await FreeProductTags.FindByName(_productManagementDbContext, name.Value, cancellationToken);
-                if (existing is null)
-                {
-                    var created = ProductTag.CreateFree(name.Value, actor, now);
-                    if (created.IsFailure)
-                        return Result.Failure<Guid>(created.Error);
+                var found = await FreeProductTags.FindOrCreate(_productManagementDbContext, name.Value, actor, now, cancellationToken);
+                if (found.IsFailure)
+                    return Result.Failure<Guid>(found.Error);
 
-                    existing = created.Value;
-                    _productManagementDbContext.ProductTags.Add(existing);
-                }
-
-                tag = existing;
+                tag = found.Value;
                 tagResult = product.Tag(tag, null, actor, now);
             }
 
@@ -111,7 +106,7 @@ public sealed class TagProductByNameCommandHandler(
             }
             catch (DbUpdateException)
             {
-                // The name was looked up above, so a failed save is the same free tag created meanwhile.
+                // The product was given the tag, or the free tag was deleted for being unused, since the lookups.
                 return Result.Failure<Guid>(ProductTagErrors.ChangedWhileSaving);
             }
 

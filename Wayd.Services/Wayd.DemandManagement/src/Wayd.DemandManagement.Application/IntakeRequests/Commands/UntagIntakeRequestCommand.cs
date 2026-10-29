@@ -51,17 +51,9 @@ public sealed class UntagIntakeRequestCommandHandler(
         if (result.IsFailure)
             return result;
 
-        await FreeIntakeRequestTags.DeleteUnused(_dbContext, [request.TagId], intakeRequest.Id, actor, now, cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
-        try
-        {
-            await _dbContext.SaveChangesAsync(cancellationToken);
-        }
-        catch (DbUpdateException)
-        {
-            // Only a free tag deleted for being unused can fail here: another request was given it since.
-            return Result.Failure(IntakeRequestTagErrors.ChangedWhileSaving);
-        }
+        await FreeIntakeRequestTags.DeleteUnused(_dbContext, [request.TagId], actor, now, cancellationToken);
 
         return Result.Success();
     }

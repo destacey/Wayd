@@ -14,7 +14,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTags.Commands;
 public sealed class MergeProductTagCommandHandlerTests : ProductCommandTestBase
 {
     private MergeProductTagCommandHandler CreateSut() =>
-        new(DbContext, CurrentUser.Object, Logger<MergeProductTagCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, CurrentUser.Object, CurrentPrincipal.Object, Logger<MergeProductTagCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldMoveEveryProductToTheTargetAndDeleteTheFreeTag()

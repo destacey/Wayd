@@ -56,7 +56,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 defaultValue: false);
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Puts the axis columns back to required. Runs only while no free tag exists: a null axis cannot be made
+        /// required, and the foreign keys refuse the empty id the generated default would write. Delete free tags
+        /// through the application first, so each deletion is recorded, rather than here.
+        /// </summary>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(

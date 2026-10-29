@@ -88,18 +88,11 @@ public sealed class TagIntakeRequestByNameCommandHandler(
             if (!desk.AllowsFreeTags)
                 return Result.Failure<Guid>(IntakeRequest.FreeTagsNotAllowedError);
 
-            var existing = await FreeIntakeRequestTags.FindByName(_dbContext, name.Value, cancellationToken);
-            if (existing is null)
-            {
-                var created = IntakeRequestTag.CreateFree(name.Value, actor, now);
-                if (created.IsFailure)
-                    return Result.Failure<Guid>(created.Error);
+            var found = await FreeIntakeRequestTags.FindOrCreate(_dbContext, name.Value, actor, now, cancellationToken);
+            if (found.IsFailure)
+                return Result.Failure<Guid>(found.Error);
 
-                existing = created.Value;
-                _dbContext.IntakeRequestTags.Add(existing);
-            }
-
-            tag = existing;
+            tag = found.Value;
         }
 
         var result = intakeRequest.Tag(tag, category, desk, actor, now);
@@ -112,7 +105,7 @@ public sealed class TagIntakeRequestByNameCommandHandler(
         }
         catch (DbUpdateException)
         {
-            // The name was looked up above, so a failed save is the same free tag created, or the tag applied, meanwhile.
+            // The request was given the tag, or the free tag was deleted for being unused, since the lookups.
             return Result.Failure<Guid>(IntakeRequestTagErrors.ChangedWhileSaving);
         }
 

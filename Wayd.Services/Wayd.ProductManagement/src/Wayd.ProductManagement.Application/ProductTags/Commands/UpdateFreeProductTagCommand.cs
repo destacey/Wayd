@@ -29,6 +29,7 @@ public sealed class UpdateFreeProductTagCommandValidator : AbstractValidator<Upd
 public sealed class UpdateFreeProductTagCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<UpdateFreeProductTagCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateFreeProductTagCommand>
@@ -37,6 +38,7 @@ public sealed class UpdateFreeProductTagCommandHandler(
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<UpdateFreeProductTagCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -58,7 +60,7 @@ public sealed class UpdateFreeProductTagCommandHandler(
                 return Result.Failure(TagErrors.DuplicateFreeTagName);
 
             var result = tag.UpdateFreeTagDetails(name.Value, request.Description,
-                EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+                EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken)), _dateTimeProvider.Now);
             if (result.IsFailure)
                 return result;
 

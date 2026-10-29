@@ -92,12 +92,13 @@ public sealed class RemoveProductCommandHandler(
                 [product.Id],
                 cancellationToken);
 
-            // Its tag assignments go with it, so a free tag only it carried would be left unused.
-            await FreeProductTags.DeleteUnused(_productManagementDbContext, [.. product.Tags.Select(t => t.TagId)],
-                product.Id, actor, now, cancellationToken);
+            Guid[] tagIds = [.. product.Tags.Select(t => t.TagId)];
 
             _productManagementDbContext.Products.Remove(product);
             await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+            // Its tag assignments went with it, so a free tag only it carried is now unused.
+            await FreeProductTags.DeleteUnused(_productManagementDbContext, tagIds, actor, now, cancellationToken);
 
             _logger.LogInformation("Product {ProductId} removed.", request.Id);
 

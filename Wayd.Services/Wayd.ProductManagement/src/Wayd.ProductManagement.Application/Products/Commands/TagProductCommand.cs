@@ -23,6 +23,7 @@ public sealed class TagProductCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     ISettings<ProductTagSettings> settings,
     ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
     ILogger<TagProductCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<TagProductCommand>
@@ -32,6 +33,7 @@ public sealed class TagProductCommandHandler(
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ISettings<ProductTagSettings> _settings = settings;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ILogger<TagProductCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -88,7 +90,7 @@ public sealed class TagProductCommandHandler(
             var tagResult = product.Tag(
                 tag,
                 category,
-                EventActor.User(_currentUser.GetUserId()),
+                EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken)),
                 _dateTimeProvider.Now);
 
             if (tagResult.IsFailure)

@@ -13,10 +13,10 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Commands;
 public sealed class UntagProductCommandHandlerTests : ProductCommandTestBase
 {
     private UntagProductCommandHandler CreateSut() =>
-        new(DbContext, CurrentUser.Object, Logger<UntagProductCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, CurrentUser.Object, CurrentPrincipal.Object, Logger<UntagProductCommandHandler>(), DateTimeProvider.Object);
 
     private TagProductCommandHandler TagSut() =>
-        new(DbContext, TagSettings.Object, CurrentUser.Object, Logger<TagProductCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, TagSettings.Object, CurrentUser.Object, CurrentPrincipal.Object, Logger<TagProductCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldRemoveTheTag()

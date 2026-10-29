@@ -203,14 +203,14 @@ public abstract class TagCategoryBase<TTag> : BaseAuditableEntity where TTag : T
         if (string.IsNullOrWhiteSpace(name))
             return Result.Failure(TagErrors.TagNameRequired);
 
-        var trimmed = name.Trim();
-        if (HasTagNamed(trimmed, exceptTagId: tagId))
+        var normalized = TagBase.NormalizeName(name);
+        if (HasTagNamed(normalized, exceptTagId: tagId))
             return Result.Failure(TagErrors.DuplicateTagName);
 
         var previousName = tag.Name;
         var previousDescription = tag.Description;
 
-        tag.UpdateDetails(trimmed, description);
+        tag.UpdateDetails(normalized, description);
 
         if (tag.Name == previousName && tag.Description == previousDescription)
             return Result.Success();
@@ -298,11 +298,11 @@ public abstract class TagCategoryBase<TTag> : BaseAuditableEntity where TTag : T
         if (string.IsNullOrWhiteSpace(name))
             return Result.Failure<TTag>(TagErrors.TagNameRequired);
 
-        var trimmed = name.Trim();
-        if (HasTagNamed(trimmed, exceptTagId: null))
+        var normalized = TagBase.NormalizeName(name);
+        if (HasTagNamed(normalized, exceptTagId: null))
             return Result.Failure<TTag>(TagErrors.DuplicateTagName);
 
-        var tag = CreateTag(trimmed, description);
+        var tag = CreateTag(normalized, description);
         TagList.Add(tag);
 
         AddDomainEvent(TagAddedEvent(tag, actor, timestamp));

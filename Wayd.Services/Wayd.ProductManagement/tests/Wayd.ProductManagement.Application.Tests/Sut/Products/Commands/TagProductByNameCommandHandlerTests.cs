@@ -12,7 +12,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Commands;
 public sealed class TagProductByNameCommandHandlerTests : ProductCommandTestBase
 {
     private TagProductByNameCommandHandler CreateSut() =>
-        new(DbContext, TagSettings.Object, CurrentUser.Object, Logger<TagProductByNameCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, TagSettings.Object, CurrentUser.Object, CurrentPrincipal.Object, Logger<TagProductByNameCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldApplyTheTagOnAnAxis_WhenExactlyOneHasTheName()
@@ -87,7 +87,9 @@ public sealed class TagProductByNameCommandHandlerTests : ProductCommandTestBase
         created.IsFree.Should().BeTrue();
         created.Name.Should().Be("migration wave");
         product.Tags.Should().ContainSingle().Which.TagId.Should().Be(created.Id);
-        DbContext.SaveChangesCallCount.Should().Be(1);
+        // The tag is saved before the product is tagged, so a name created by someone else meanwhile costs a
+        // lookup rather than the caller's change.
+        DbContext.SaveChangesCallCount.Should().Be(2);
     }
 
     [Fact]

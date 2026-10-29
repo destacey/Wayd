@@ -6,6 +6,7 @@ import FreeProductTagsSection, {
 
 const mockHasPermissionClaim = jest.fn()
 let mockAllowsFreeTags: boolean | undefined = true
+let mockSearchFailed = false
 
 jest.mock('@/src/components/contexts/auth', () => ({
   __esModule: true,
@@ -14,14 +15,12 @@ jest.mock('@/src/components/contexts/auth', () => ({
 
 jest.mock('@/src/store/features/product-management/product-tags-api', () => ({
   useSearchProductTagsQuery: () => ({
-    data: [tag],
+    data: mockSearchFailed ? undefined : [tag],
     isLoading: false,
+    isError: mockSearchFailed,
     refetch: jest.fn(),
   }),
-}))
-
-jest.mock('@/src/store/features/admin/system-settings-api', () => ({
-  useGetProductTagSettingsQuery: () => ({
+  useGetProductTagsSettingsQuery: () => ({
     data:
       mockAllowsFreeTags === undefined
         ? undefined
@@ -99,6 +98,7 @@ describe('FreeProductTagsSection', () => {
   beforeEach(() => {
     mockHasPermissionClaim.mockReset().mockReturnValue(true)
     mockAllowsFreeTags = true
+    mockSearchFailed = false
   })
 
   it('says free tags are on and links to the setting', () => {
@@ -123,20 +123,35 @@ describe('FreeProductTagsSection', () => {
     expect(screen.getByText(/Free tags are off/)).toBeInTheDocument()
   })
 
-  it('leaves out the setting and its link for a viewer who cannot see settings', () => {
+  it('tells a viewer who cannot see settings whether free tags are on, without the link', () => {
+    // The setting is read from the product tags endpoint, open to anyone on this page.
     // Arrange
     mockHasPermissionClaim.mockImplementation(
       (claim: string) => claim !== 'Permissions.SystemSettings.View',
     )
-    mockAllowsFreeTags = undefined
 
     // Act
     render(<FreeProductTagsSection />)
 
     // Assert
-    expect(screen.queryByText(/Free tags are (on|off)/)).not.toBeInTheDocument()
+    expect(screen.getByText(/Free tags are on/)).toBeInTheDocument()
     expect(
       screen.queryByRole('link', { name: 'Change the setting' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('says the free tags could not be loaded rather than showing an empty list', () => {
+    // Arrange
+    mockSearchFailed = true
+
+    // Act
+    render(<FreeProductTagsSection />)
+
+    // Assert
+    expect(
+      screen.getByText(
+        'Could not load the free tags. Use refresh to try again.',
+      ),
+    ).toBeInTheDocument()
   })
 })

@@ -3,6 +3,7 @@ import { apiSlice } from '../apiSlice'
 import {
   MergeProductTagRequest,
   ProductTagListItemDto,
+  ProductTagSettingsDto,
   UpdateFreeProductTagRequest,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
@@ -38,6 +39,25 @@ const changedTags = [
 
 export const productTagsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    /**
+     * Whether free tags are on for products, readable by anyone who can tag them.
+     * Shares the system settings section's cache tag, so saving the setting
+     * refreshes it.
+     */
+    getProductTagsSettings: builder.query<ProductTagSettingsDto, void>({
+      queryFn: async () => {
+        try {
+          const data = await getProductTagsClient().getSettings()
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: () => [
+        { type: QueryTags.SystemSettings, id: 'product-tags' },
+      ],
+    }),
     /** Product tags on categories and free, sorted by name, each with its product count. */
     searchProductTags: builder.query<
       ProductTagListItemDto[],
@@ -98,6 +118,7 @@ export const productTagsApi = apiSlice.injectEndpoints({
 })
 
 export const {
+  useGetProductTagsSettingsQuery,
   useSearchProductTagsQuery,
   useUpdateFreeProductTagMutation,
   useMergeProductTagMutation,

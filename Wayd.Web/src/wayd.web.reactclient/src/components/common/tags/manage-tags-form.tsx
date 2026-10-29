@@ -15,6 +15,14 @@ type ManageTagsFormValues = Record<string, string | string[] | undefined>
 /** The free tag field's name. Not a valid id, so no category can collide with it. */
 const FREE_TAGS_FIELD = '__freeTags'
 
+/** The longest tag name the server accepts, counted after whitespace is collapsed. */
+const MAX_TAG_NAME_LENGTH = 64
+
+const TAG_NAME_TOO_LONG = `A tag name can be at most ${MAX_TAG_NAME_LENGTH} characters.`
+
+/** A typed name as the server stores it: trimmed, with each run of whitespace collapsed. */
+const normalizeName = (raw: string) => raw.trim().replace(/\s+/g, ' ')
+
 export interface TagChanges {
   /** Tag ids to apply. */
   added: string[]
@@ -116,7 +124,8 @@ const optionsFor = (category: TagCategory, carried: string[]) =>
 const freeOptionsFor = (field: FreeTagsField, tags: TagAssignment[]) => {
   const byId = new Map(field.options.map((tag) => [tag.id, tag.name]))
   for (const tag of tags) {
-    if (!tag.categoryId && !byId.has(tag.tagId)) byId.set(tag.tagId, tag.tagName)
+    if (!tag.categoryId && !byId.has(tag.tagId))
+      byId.set(tag.tagId, tag.tagName)
   }
   return [...byId]
     .map(([value, label]) => ({ value, label }))
@@ -145,7 +154,7 @@ const splitFreeValues = (
       tagIds.add(raw)
       continue
     }
-    const name = raw.trim().replace(/\s+/g, ' ')
+    const name = normalizeName(raw)
     if (!name) continue
     const known = byName.get(name.toLowerCase())
     if (known) tagIds.add(known)
@@ -200,6 +209,14 @@ const ManageTagsForm = ({
             toTagIds(values[FREE_TAGS_FIELD]),
             freeOptions,
           )
+          // Refused here, before any change is sent: the server would refuse the
+          // name only after the other changes had already applied.
+          if (names.some((name) => name.length > MAX_TAG_NAME_LENGTH)) {
+            form.setFields([
+              { name: FREE_TAGS_FIELD, errors: [TAG_NAME_TOO_LONG] },
+            ])
+            return false
+          }
           added.push(...tagIds.filter((id) => !before.includes(id)))
           removed.push(...before.filter((id) => !tagIds.includes(id)))
           addedNames.push(...names)
@@ -267,7 +284,20 @@ const ManageTagsForm = ({
             <Form.Item
               name={FREE_TAGS_FIELD}
               label="Free tags"
-              extra="Pick an existing tag or type a new one and press Enter. A tag nothing carries any more is removed."
+              extra="Pick an existing tag or type a new one and press Enter."
+              rules={[
+                {
+                  validator: async (_, value: string[] | undefined) => {
+                    const known = new Set(freeOptions.map((o) => o.value))
+                    const tooLong = (value ?? []).some(
+                      (v) =>
+                        !known.has(v) &&
+                        normalizeName(v).length > MAX_TAG_NAME_LENGTH,
+                    )
+                    if (tooLong) throw new Error(TAG_NAME_TOO_LONG)
+                  },
+                },
+              ]}
             >
               <Select
                 mode="tags"

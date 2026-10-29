@@ -96,6 +96,7 @@ jest.mock(
     useGetIntakeDesksQuery: () => ({ data: mockDesks }),
     useGetIntakeChannelsQuery: () => ({ data: [] }),
     useGetIntakeRequestTagCategoriesQuery: () => ({ data: [] }),
+    useSearchIntakeRequestTagsQuery: () => ({ data: undefined }),
   }),
 )
 

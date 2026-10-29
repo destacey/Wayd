@@ -11,6 +11,7 @@ import {
   IntakeRequestTagCategoryDto,
 } from '@/src/services/wayd-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
+import { useSearchIntakeRequestTagsQuery } from '@/src/store/features/demand-management/demand-management-api'
 import { WaydTooltip } from '@/src/components/common'
 import { ClearOutlined, FilterOutlined } from '@ant-design/icons'
 import {
@@ -106,6 +107,24 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
       perTag.set(t.id, (perTag.get(t.id) ?? 0) + 1)
       if (!t.categoryId) freeTags.set(t.id, t.name)
     }
+
+  // A selected free tag no request in scope carries — after switching scope, or
+  // from a shared link — still needs its name, or its chip reads as an id. The
+  // search returns only free tags the reader may see, so it discloses nothing.
+  const axisTagIds = new Set(
+    (tagCategories ?? []).flatMap((c) => c.tags.map((t) => t.id)),
+  )
+  const unlabelled = filters.tagIds.filter(
+    (id) => !axisTagIds.has(id) && !freeTags.has(id),
+  )
+  const { data: searchedFreeTags } = useSearchIntakeRequestTagsQuery(
+    { isFree: true },
+    { skip: unlabelled.length === 0 },
+  )
+  for (const id of unlabelled) {
+    const known = searchedFreeTags?.find((t) => t.id === id)
+    freeTags.set(id, known?.name ?? 'Unavailable tag')
+  }
   const freeTagOptions = [...freeTags]
     .sort(([, a], [, b]) => caseInsensitiveCompare(a, b))
     .map(([id, name]) => ({
@@ -247,9 +266,11 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
           { value: NOT_RECORDED_CHANNEL, label: NOT_RECORDED_CHANNEL_LABEL },
         ]}
       />
-      {/* Hidden until there is a tag to pick: the seeded axis starts empty. */}
+      {/* Hidden until there is a tag to pick, since the seeded axis starts empty — but
+          never while a tag filter is applied, or it could not be cleared. */}
       {(tagCategories?.some((c) => c.tags.length > 0) ||
-        freeTagOptions.length > 0) && (
+        freeTagOptions.length > 0 ||
+        filters.tagIds.length > 0) && (
         <Select
           className={controlClass}
           mode="multiple"

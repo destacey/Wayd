@@ -343,7 +343,11 @@ export const productsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.Product, id: 'LIST' }],
+      invalidatesTags: () => [
+        { type: QueryTags.Product, id: 'LIST' },
+        // Deleting a product deletes the free tags only it carried.
+        { type: QueryTags.ProductTag, id: 'LIST' },
+      ],
     }),
 
     /**

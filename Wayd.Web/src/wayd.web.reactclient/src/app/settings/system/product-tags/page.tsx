@@ -1,8 +1,8 @@
 'use client'
 
-import { Card, Flex } from 'antd'
+import { Alert, Card, Flex } from 'antd'
 import PageTitle from '@/src/components/common/page-title'
-import { authorizePage } from '@/src/components/hoc'
+import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import useAuth from '@/src/components/contexts/auth'
 import { useDocumentTitle } from '@/src/hooks'
 import {
@@ -25,7 +25,7 @@ const ProductTagSettingsPage = () => {
   const { hasPermissionClaim } = useAuth()
   const canUpdate = hasPermissionClaim('Permissions.SystemSettings.Update')
 
-  const { data: settings, isLoading } = useGetProductTagSettingsQuery()
+  const { data: settings, isLoading, isError } = useGetProductTagSettingsQuery()
 
   const activitiesQuery = useGetProductTagSettingsActivitiesQuery({
     idOrKey: PRODUCT_TAG_SETTINGS_ACTIVITY_ID,
@@ -48,11 +48,20 @@ const ProductTagSettingsPage = () => {
       />
       <Flex vertical gap="middle">
         <Card title="Free tags" size="small">
-          <ProductTagSettingsForm
-            settings={settings}
-            isLoading={isLoading}
-            canUpdate={canUpdate}
-          />
+          {/* An unloaded setting would show as an unchecked switch, which reads as off. */}
+          {isError ? (
+            <Alert
+              type="error"
+              showIcon
+              title="Could not load the product tag settings. Reload the page to try again."
+            />
+          ) : (
+            <ProductTagSettingsForm
+              settings={settings}
+              isLoading={isLoading}
+              canUpdate={canUpdate}
+            />
+          )}
         </Card>
         <Card
           title="Activity"
@@ -69,8 +78,11 @@ const ProductTagSettingsPage = () => {
   )
 }
 
-export default authorizePage(
-  ProductTagSettingsPage,
-  'Permission',
-  'Permissions.SystemSettings.View',
+export default requireFeatureFlag(
+  authorizePage(
+    ProductTagSettingsPage,
+    'Permission',
+    'Permissions.SystemSettings.View',
+  ),
+  'product-management',
 )

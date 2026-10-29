@@ -77,6 +77,8 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
+        // The tag search lists every tag on every category, with counts.
+        { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),
     updateProductTagCategory: builder.mutation<
@@ -97,6 +99,8 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
+        // The tag search lists every tag on every category, with counts.
+        { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),
     setProductTagCategoryActive: builder.mutation<
@@ -117,6 +121,8 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
+        // The tag search lists every tag on every category, with counts.
+        { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),
     // Takes every category, not the moved one: position is relative, so the API
@@ -136,6 +142,8 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
+        // The tag search lists every tag on every category, with counts.
+        { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),
     deleteProductTagCategory: builder.mutation<void, string>({
@@ -150,6 +158,8 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
+        // The tag search lists every tag on every category, with counts.
+        { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),
     // The tag endpoints hang off their category, and the list query is the only
@@ -170,6 +180,8 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
+        // The tag search lists every tag on every category, with counts.
+        { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),
     renameProductTag: builder.mutation<void, RenameProductTagArgs>({
@@ -188,6 +200,8 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
+        // The tag search lists every tag on every category, with counts.
+        { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),
     setProductTagActive: builder.mutation<void, SetProductTagActiveArgs>({
@@ -206,6 +220,8 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
+        // The tag search lists every tag on every category, with counts.
+        { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),
     deleteProductTag: builder.mutation<void, DeleteProductTagArgs>({
@@ -223,6 +239,8 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
+        // The tag search lists every tag on every category, with counts.
+        { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),
   }),

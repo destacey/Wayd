@@ -72,4 +72,24 @@ describe('FreeTagsList', () => {
     // Assert — Delete is offered on a tag in use, unlike a tag on an axis
     expect(screen.getByText(dialog)).toBeInTheDocument()
   })
+
+  it('says the free tags could not be loaded rather than showing an empty list', () => {
+    // Arrange
+    mockSearch.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      refetch: jest.fn(),
+    })
+
+    // Act
+    render(<FreeTagsList />)
+
+    // Assert
+    expect(
+      screen.getByText(
+        'Could not load the free tags. Use refresh to try again.',
+      ),
+    ).toBeInTheDocument()
+  })
 })

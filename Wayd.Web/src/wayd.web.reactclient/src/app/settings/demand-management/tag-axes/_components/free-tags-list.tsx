@@ -7,6 +7,8 @@ import {
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { IntakeRequestTagListItemDto } from '@/src/services/wayd-api'
 import { useSearchIntakeRequestTagsQuery } from '@/src/store/features/demand-management/demand-management-api'
+import { Alert } from 'antd'
+
 import { ItemType } from 'antd/es/menu/interface'
 import { useState } from 'react'
 import DeleteFreeTagForm from './delete-free-tag-form'
@@ -25,6 +27,7 @@ const FreeTagsList = () => {
   const {
     data: tags,
     isLoading,
+    isError,
     refetch,
   } = useSearchIntakeRequestTagsQuery({
     isFree: true,
@@ -80,6 +83,14 @@ const FreeTagsList = () => {
 
   return (
     <>
+      {/* Without this a failed load reads as no free tags at all. */}
+      {isError && (
+        <Alert
+          type="error"
+          showIcon
+          title="Could not load the free tags. Use refresh to try again."
+        />
+      )}
       <WaydGrid
         columns={columns}
         data={tags ?? []}

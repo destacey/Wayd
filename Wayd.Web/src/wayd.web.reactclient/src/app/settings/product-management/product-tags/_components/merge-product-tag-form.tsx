@@ -80,7 +80,7 @@ const MergeProductTagForm = ({
 
   return (
     <Modal
-      title={`Merge "${tag.name}"`}
+      title="Merge Free Tag"
       open={isOpen}
       onOk={handleOk}
       okButtonProps={{ disabled: !isValid }}

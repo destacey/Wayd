@@ -73,6 +73,8 @@ const mockTagProduct = jest.fn()
 const mockTagProductByName = jest.fn()
 const mockUntagProduct = jest.fn()
 let mockAllowsFreeTags = false
+let mockSettingsFailed = false
+const mockMessageError = jest.fn()
 
 // Not spread from the real barrel: it re-exports store-bound hooks, and pulling those
 // in initialises a store this form never touches. The form instance is real, though —
@@ -104,7 +106,7 @@ jest.mock('@/src/hooks', () => {
 })
 
 jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+  useMessage: () => ({ error: mockMessageError, success: jest.fn() }),
 }))
 
 jest.mock(
@@ -123,14 +125,14 @@ jest.mock('@/src/store/features/product-management/products-api', () => ({
   useUntagProductMutation: () => [mockUntagProduct],
 }))
 
-jest.mock('@/src/store/features/admin/system-settings-api', () => ({
-  useGetProductTagSettingsQuery: () => ({
-    data: { allowsFreeTags: mockAllowsFreeTags },
-    isLoading: false,
-  }),
-}))
-
 jest.mock('@/src/store/features/product-management/product-tags-api', () => ({
+  useGetProductTagsSettingsQuery: () => ({
+    data: mockSettingsFailed
+      ? undefined
+      : { allowsFreeTags: mockAllowsFreeTags },
+    isLoading: false,
+    isError: mockSettingsFailed,
+  }),
   useSearchProductTagsQuery: (_: unknown, options: { skip: boolean }) => ({
     data: options.skip ? undefined : FREE_TAGS,
     isLoading: false,
@@ -196,6 +198,8 @@ describe('ManageProductTagsForm', () => {
     mockTagProductByName.mockReset().mockResolvedValue({ data: 'free-new' })
     mockUntagProduct.mockReset().mockResolvedValue({ data: undefined })
     mockAllowsFreeTags = false
+    mockSettingsFailed = false
+    mockMessageError.mockReset()
   })
 
   it('renders a select for every active category', async () => {
@@ -367,5 +371,20 @@ describe('ManageProductTagsForm', () => {
       tagId: 'free-wave',
     })
     expect(mockTagProductByName).not.toHaveBeenCalled()
+  })
+
+  it('says so when it cannot tell whether free tags are on, and offers no free tag field', async () => {
+    // Treating a failed load as "off" would hide free tags with no explanation.
+    // Arrange
+    mockSettingsFailed = true
+
+    // Act
+    await renderForm()
+
+    // Assert
+    expect(screen.queryByText('Free tags')).not.toBeInTheDocument()
+    expect(mockMessageError).toHaveBeenCalledWith(
+      expect.stringContaining('free tags cannot be changed right now'),
+    )
   })
 })

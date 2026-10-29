@@ -3,15 +3,18 @@
 import { ManageTagsForm, TagChanges } from '@/src/components/common/tags'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { ProductDto } from '@/src/services/wayd-api'
-import { useGetProductTagSettingsQuery } from '@/src/store/features/admin/system-settings-api'
 import { useGetProductTagCategoriesQuery } from '@/src/store/features/product-management/product-tag-categories-api'
-import { useSearchProductTagsQuery } from '@/src/store/features/product-management/product-tags-api'
+import {
+  useGetProductTagsSettingsQuery,
+  useSearchProductTagsQuery,
+} from '@/src/store/features/product-management/product-tags-api'
 import {
   useTagProductByNameMutation,
   useTagProductMutation,
   useUntagProductMutation,
 } from '@/src/store/features/product-management/products-api'
 import { isApiError, type ApiError } from '@/src/utils'
+import { useEffect } from 'react'
 
 export interface ManageProductTagsFormProps {
   product: ProductDto
@@ -43,10 +46,25 @@ const ManageProductTagsForm = ({
   const { data: categories, isLoading } = useGetProductTagCategoriesQuery(true)
 
   // With free tags off the field is not offered, so the product's existing free
-  // tags are left alone rather than stripped by the next save.
-  const { data: tagSettings, isLoading: settingsLoading } =
-    useGetProductTagSettingsQuery()
+  // tags are left alone rather than stripped by the next save. Read from the
+  // product tags endpoint, which tagging permission can reach, not the admin
+  // system settings.
+  const {
+    data: tagSettings,
+    isLoading: settingsLoading,
+    isError: settingsFailed,
+  } = useGetProductTagsSettingsQuery()
   const allowsFreeTags = tagSettings?.allowsFreeTags ?? false
+
+  // A failed load is said out loud: silently hiding the field would read as free
+  // tags being off. The field stays hidden, which leaves free tags untouched.
+  useEffect(() => {
+    if (settingsFailed) {
+      messageApi.error(
+        'Could not check whether free tags are on, so free tags cannot be changed right now.',
+      )
+    }
+  }, [settingsFailed, messageApi])
   const { data: freeTags, isLoading: freeTagsLoading } =
     useSearchProductTagsQuery({ isFree: true }, { skip: !allowsFreeTags })
 

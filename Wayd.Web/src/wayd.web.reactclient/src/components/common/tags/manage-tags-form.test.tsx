@@ -148,18 +148,27 @@ describe('ManageTagsForm', () => {
   it('leaves a carried free tag alone when free tags are not offered', async () => {
     // Free tags turned off must not strip the ones a record already carries.
     // Arrange
-    const { onSave } = renderForm({ tags: [carried('free-wave', 'migration wave')] })
+    const { onSave } = renderForm({
+      tags: [carried('free-wave', 'migration wave')],
+    })
 
     // Act
     await save()
 
     // Assert
-    expect(onSave).toHaveBeenCalledWith({ added: [], removed: [], addedNames: [] })
+    expect(onSave).toHaveBeenCalledWith({
+      added: [],
+      removed: [],
+      addedNames: [],
+    })
   })
 
   it('shows the free tags a record carries by name', () => {
     // Arrange / Act
-    renderForm({ freeTags: { options: [] }, tags: [carried('free-q3', 'follow up')] })
+    renderForm({
+      freeTags: { options: [] },
+      tags: [carried('free-q3', 'follow up')],
+    })
 
     // Assert
     expect(screen.getByText('Free tags')).toBeInTheDocument()
@@ -186,5 +195,24 @@ describe('ManageTagsForm', () => {
       removed: [],
       addedNames: ['follow up'],
     })
+  })
+
+  it('refuses a typed name longer than the server accepts, before saving anything', async () => {
+    // The server refuses it only after the other changes have applied.
+    // Arrange
+    const { onSave } = renderForm({ freeTags })
+    const input = document.querySelector<HTMLInputElement>(
+      '#manage-tags-form___freeTags',
+    )!
+
+    // Act
+    await userEvent.type(input, `${'a'.repeat(65)},`)
+    await save()
+
+    // Assert
+    expect(onSave).not.toHaveBeenCalled()
+    expect(
+      await screen.findByText('A tag name can be at most 64 characters.'),
+    ).toBeInTheDocument()
   })
 })

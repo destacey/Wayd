@@ -7,9 +7,11 @@ import {
 } from '@/src/components/common/wayd-grid-core'
 import useAuth from '@/src/components/contexts/auth'
 import { ProductTagListItemDto } from '@/src/services/wayd-api'
-import { useGetProductTagSettingsQuery } from '@/src/store/features/admin/system-settings-api'
-import { useSearchProductTagsQuery } from '@/src/store/features/product-management/product-tags-api'
-import { Card, Typography } from 'antd'
+import {
+  useGetProductTagsSettingsQuery,
+  useSearchProductTagsQuery,
+} from '@/src/store/features/product-management/product-tags-api'
+import { Alert, Card, Typography } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -33,7 +35,7 @@ export const freeTagActionItems = (
   if (permissions.canUpdate) {
     items.push(
       { key: 'edit', label: 'Edit', onClick: () => open('edit', tag) },
-      { key: 'merge', label: 'Merge', onClick: () => open('merge', tag) },
+      { key: 'merge', label: 'Merge into…', onClick: () => open('merge', tag) },
     )
   }
   if (permissions.canDelete) {
@@ -72,25 +74,29 @@ const FreeProductTagsSection = () => {
   const {
     data: freeTags,
     isLoading,
+    isError,
     refetch,
   } = useSearchProductTagsQuery({
     isFree: true,
   })
-  const { data: settings } = useGetProductTagSettingsQuery(undefined, {
-    skip: !canViewSettings,
-  })
+  const { data: settings } = useGetProductTagsSettingsQuery()
 
   const open = (dialog: DialogId, tag: ProductTagListItemDto) =>
     setActive({ dialog, tag })
   const close = () => setActive(null)
 
+  // No actions column for a viewer who can take none, rather than a menu with nothing in it.
   const columns: ColumnDef<ProductTagListItemDto, any>[] = [
-    createActionsColumn<ProductTagListItemDto>({
-      getItems: (tag) =>
-        freeTagActionItems(tag, { canUpdate, canDelete }, open),
-      ariaLabel: 'Free tag actions',
-      size: 70,
-    }),
+    ...(canUpdate || canDelete
+      ? [
+          createActionsColumn<ProductTagListItemDto>({
+            getItems: (tag) =>
+              freeTagActionItems(tag, { canUpdate, canDelete }, open),
+            ariaLabel: 'Free tag actions',
+            size: 70,
+          }),
+        ]
+      : []),
     { id: 'name', accessorKey: 'name', header: 'Name' },
     {
       id: 'description',
@@ -117,7 +123,7 @@ const FreeProductTagsSection = () => {
     )
 
   return (
-    <Card title="Free tags" size="small">
+    <Card title="Free Tags" size="small">
       <Typography.Paragraph type="secondary">
         Informal labels on no category, added by typing a name while tagging.
         Merge one into a tag on a category to promote it. {status}
@@ -125,6 +131,15 @@ const FreeProductTagsSection = () => {
           <Link href="/settings/system/product-tags">Change the setting</Link>
         )}
       </Typography.Paragraph>
+
+      {/* Without this a failed load reads as no free tags at all. */}
+      {isError && (
+        <Alert
+          type="error"
+          showIcon
+          title="Could not load the free tags. Use refresh to try again."
+        />
+      )}
 
       <WaydGrid
         columns={columns}

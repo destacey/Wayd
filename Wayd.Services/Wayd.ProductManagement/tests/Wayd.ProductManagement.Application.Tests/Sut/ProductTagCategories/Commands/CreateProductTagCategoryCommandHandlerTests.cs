@@ -12,7 +12,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTagCategories.Comm
 public sealed class CreateProductTagCategoryCommandHandlerTests : ProductCommandTestBase
 {
     private CreateProductTagCategoryCommandHandler CreateSut() =>
-        new(DbContext, Logger<CreateProductTagCategoryCommandHandler>());
+        new(DbContext, CurrentUser.Object, CurrentPrincipal.Object, DateTimeProvider.Object, Logger<CreateProductTagCategoryCommandHandler>());
 
     [Fact]
     public async Task Create_ShouldAddTheAxis()

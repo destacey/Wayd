@@ -12,11 +12,11 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTagCategories.Comm
 public sealed class UpdateProductTagCategoryCommandHandlerTests : ProductCommandTestBase
 {
     private UpdateProductTagCategoryCommandHandler UpdateSut() =>
-        new(DbContext, Logger<UpdateProductTagCategoryCommandHandler>());
+        new(DbContext, CurrentUser.Object, CurrentPrincipal.Object, DateTimeProvider.Object, Logger<UpdateProductTagCategoryCommandHandler>());
 
     private ProductTagCategory SeedSystemCategory(string name = "Platform")
     {
-        var category = ProductTagCategory.CreateSystem(name, null, true, 1);
+        var category = ProductTagCategory.CreateSystem(name, null, true, 1, EventActor.System, Now);
         DbContext.AddProductTagCategory(category);
 
         return category;
@@ -53,7 +53,7 @@ public sealed class UpdateProductTagCategoryCommandHandlerTests : ProductCommand
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("System tag categories cannot be modified.");
+        result.Error.Should().Be(ProductTagCategory.SystemAxisError);
         category.Name.Should().Be("Platform");
     }
 

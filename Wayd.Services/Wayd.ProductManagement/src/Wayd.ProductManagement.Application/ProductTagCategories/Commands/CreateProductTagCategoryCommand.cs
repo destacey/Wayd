@@ -36,12 +36,18 @@ public sealed class CreateProductTagCategoryCommandValidator : AbstractValidator
 
 public sealed class CreateProductTagCategoryCommandHandler(
     IProductManagementDbContext productManagementDbContext,
+    ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
+    IDateTimeProvider dateTimeProvider,
     ILogger<CreateProductTagCategoryCommandHandler> logger)
     : ICommandHandler<CreateProductTagCategoryCommand, ObjectIdAndKey>
 {
     private const string AppRequestName = nameof(CreateProductTagCategoryCommand);
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<CreateProductTagCategoryCommandHandler> _logger = logger;
 
     public async Task<Result<ObjectIdAndKey>> Handle(
@@ -60,7 +66,9 @@ public sealed class CreateProductTagCategoryCommandHandler(
                 .Select(c => (int?)c.Order)
                 .MaxAsync(cancellationToken) ?? 0;
 
-            var category = ProductTagCategory.Create(name, request.Description, request.AllowsMany, order + 1);
+            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+            var category = ProductTagCategory.Create(name, request.Description, request.AllowsMany, order + 1,
+                actor, _dateTimeProvider.Now);
 
             await _productManagementDbContext.ProductTagCategories.AddAsync(category, cancellationToken);
             await _productManagementDbContext.SaveChangesAsync(cancellationToken);

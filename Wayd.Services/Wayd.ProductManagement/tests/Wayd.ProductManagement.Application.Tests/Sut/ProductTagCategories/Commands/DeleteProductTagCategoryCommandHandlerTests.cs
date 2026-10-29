@@ -12,11 +12,11 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTagCategories.Comm
 public sealed class DeleteProductTagCategoryCommandHandlerTests : ProductCommandTestBase
 {
     private DeleteProductTagCategoryCommandHandler DeleteSut() =>
-        new(DbContext, Logger<DeleteProductTagCategoryCommandHandler>());
+        new(DbContext, CurrentUser.Object, CurrentPrincipal.Object, DateTimeProvider.Object, Logger<DeleteProductTagCategoryCommandHandler>());
 
     private ProductTagCategory SeedSystemCategory(string name = "Platform")
     {
-        var category = ProductTagCategory.CreateSystem(name, null, true, 1);
+        var category = ProductTagCategory.CreateSystem(name, null, true, 1, EventActor.System, Now);
         DbContext.AddProductTagCategory(category);
 
         return category;
@@ -59,7 +59,7 @@ public sealed class DeleteProductTagCategoryCommandHandlerTests : ProductCommand
         // Assert
         // Deleting cascades to the tags and would strip the labels from every product carrying them.
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Products are tagged along this axis and it cannot be deleted. Deactivate it instead.");
+        result.Error.Should().Be(ProductTagCategory.AxisInUseError);
         DbContext.ProductTagCategories.Should().ContainSingle();
     }
 
@@ -76,6 +76,6 @@ public sealed class DeleteProductTagCategoryCommandHandlerTests : ProductCommand
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("System tag categories cannot be deleted. Deactivate it instead.");
+        result.Error.Should().Be(ProductTagCategory.SystemAxisError);
     }
 }

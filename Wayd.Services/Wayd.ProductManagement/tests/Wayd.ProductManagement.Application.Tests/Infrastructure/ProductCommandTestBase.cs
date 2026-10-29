@@ -268,19 +268,20 @@ public abstract class ProductCommandTestBase
         bool categoryActive = true,
         bool tagActive = true)
     {
-        var category = ProductTagCategory.Create(categoryName, null, allowsMany, 1);
-        var tag = category.AddTag(tagName).Value;
+        var category = ProductTagCategory.Create(categoryName, null, allowsMany, 1, EventActor.System, Now);
+        var tag = category.AddTag(tagName, null, EventActor.System, Now).Value;
 
         if (!tagActive)
         {
-            tag.Deactivate();
+            category.DeactivateTag(tag.Id, EventActor.System, Now);
         }
 
         if (!categoryActive)
         {
-            category.Deactivate();
+            category.Deactivate(EventActor.System, Now);
         }
 
+        category.ClearDomainEvents();
         DbContext.AddProductTagCategory(category);
         DbContext.AddProductTag(tag);
 

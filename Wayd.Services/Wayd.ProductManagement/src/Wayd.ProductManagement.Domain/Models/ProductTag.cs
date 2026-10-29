@@ -1,5 +1,4 @@
 using Ardalis.GuardClauses;
-using CSharpFunctionalExtensions;
 
 namespace Wayd.ProductManagement.Domain.Models;
 
@@ -13,6 +12,7 @@ namespace Wayd.ProductManagement.Domain.Models;
 /// Descriptive only. Nothing in the domain branches on a tag — behaviour comes from the product's type
 /// — so adding one can never change what a node is allowed to do.
 /// </para>
+/// <para>Changed only through <see cref="ProductTagCategory"/>.</para>
 /// </remarks>
 public sealed class ProductTag : BaseAuditableEntity
 {
@@ -47,39 +47,11 @@ public sealed class ProductTag : BaseAuditableEntity
     /// </summary>
     public bool IsActive { get; private set; } = true;
 
-    /// <summary>
-    /// Renames the tag. Safe: products reference it by id, so the new name shows everywhere at once —
-    /// which is the point of a curated list over free text.
-    /// </summary>
-    internal void Rename(string name, string? description)
+    internal void UpdateDetails(string name, string? description)
     {
         Name = name;
         Description = description;
     }
 
-    /// <summary>Takes the tag out of use without removing it from what already carries it.</summary>
-    public Result Deactivate()
-    {
-        if (!IsActive)
-        {
-            return Result.Failure("This tag is already inactive.");
-        }
-
-        IsActive = false;
-
-        return Result.Success();
-    }
-
-    /// <summary>Puts the tag back into use.</summary>
-    public Result Activate()
-    {
-        if (IsActive)
-        {
-            return Result.Failure("This tag is already active.");
-        }
-
-        IsActive = true;
-
-        return Result.Success();
-    }
+    internal void SetActive(bool isActive) => IsActive = isActive;
 }

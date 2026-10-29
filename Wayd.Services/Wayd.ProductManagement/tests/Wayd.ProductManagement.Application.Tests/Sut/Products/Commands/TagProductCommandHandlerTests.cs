@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.ProductManagement.Application.Products.Commands;
 using Wayd.ProductManagement.Application.Tests.Infrastructure;
@@ -37,7 +38,7 @@ public sealed class TagProductCommandHandlerTests : ProductCommandTestBase
         // Arrange
         var product = SeedProduct();
         var (category, ios) = SeedTag(allowsMany: true);
-        var android = category.AddTag("android").Value;
+        var android = category.AddTag("android", null, EventActor.System, Now).Value;
         DbContext.AddProductTag(android);
         var sut = CreateSut();
 
@@ -56,7 +57,7 @@ public sealed class TagProductCommandHandlerTests : ProductCommandTestBase
         // Arrange
         var product = SeedProduct();
         var (category, ios) = SeedTag(allowsMany: false);
-        var android = category.AddTag("android").Value;
+        var android = category.AddTag("android", null, EventActor.System, Now).Value;
         DbContext.AddProductTag(android);
         var sut = CreateSut();
 

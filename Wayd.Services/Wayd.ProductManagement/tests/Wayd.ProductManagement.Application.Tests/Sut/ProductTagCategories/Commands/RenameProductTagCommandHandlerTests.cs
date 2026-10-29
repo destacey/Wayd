@@ -12,7 +12,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTagCategories.Comm
 public sealed class RenameProductTagCommandHandlerTests : ProductCommandTestBase
 {
     private RenameProductTagCommandHandler RenameSut() =>
-        new(DbContext, Logger<RenameProductTagCommandHandler>());
+        new(DbContext, CurrentUser.Object, CurrentPrincipal.Object, DateTimeProvider.Object, Logger<RenameProductTagCommandHandler>());
 
     [Fact]
     public async Task Rename_ShouldChangeTheName()
@@ -44,6 +44,6 @@ public sealed class RenameProductTagCommandHandlerTests : ProductCommandTestBase
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("That tag does not belong to this axis.");
+        result.Error.Should().Be(ProductTagCategory.TagNotFoundError);
     }
 }

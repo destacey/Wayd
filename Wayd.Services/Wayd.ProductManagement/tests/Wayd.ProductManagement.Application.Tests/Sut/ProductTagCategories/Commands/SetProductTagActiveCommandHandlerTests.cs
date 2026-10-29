@@ -12,7 +12,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTagCategories.Comm
 public sealed class SetProductTagActiveCommandHandlerTests : ProductCommandTestBase
 {
     private SetProductTagActiveCommandHandler ActivationSut() =>
-        new(DbContext, Logger<SetProductTagActiveCommandHandler>());
+        new(DbContext, CurrentUser.Object, CurrentPrincipal.Object, DateTimeProvider.Object, Logger<SetProductTagActiveCommandHandler>());
 
     [Fact]
     public async Task Deactivate_ShouldTakeTheTagOutOfUse()
@@ -45,7 +45,7 @@ public sealed class SetProductTagActiveCommandHandlerTests : ProductCommandTestB
         // Assert
         // Scoped to the category so a tag id from another axis cannot be reached through this route.
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("That tag does not belong to this axis.");
+        result.Error.Should().Be(ProductTagCategory.TagNotFoundError);
         foreign.IsActive.Should().BeTrue();
     }
 }

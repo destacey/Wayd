@@ -32,12 +32,18 @@ public sealed class UpdateProductTagCategoryCommandValidator : AbstractValidator
 
 public sealed class UpdateProductTagCategoryCommandHandler(
     IProductManagementDbContext productManagementDbContext,
+    ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
+    IDateTimeProvider dateTimeProvider,
     ILogger<UpdateProductTagCategoryCommandHandler> logger)
     : ICommandHandler<UpdateProductTagCategoryCommand>
 {
     private const string AppRequestName = nameof(UpdateProductTagCategoryCommand);
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<UpdateProductTagCategoryCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateProductTagCategoryCommand request, CancellationToken cancellationToken)
@@ -61,7 +67,8 @@ public sealed class UpdateProductTagCategoryCommandHandler(
                 return Result.Failure($"A tag category named '{name}' already exists.");
             }
 
-            var result = category.Update(name, request.Description);
+            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+            var result = category.UpdateDetails(name, request.Description, actor, _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogInformation(

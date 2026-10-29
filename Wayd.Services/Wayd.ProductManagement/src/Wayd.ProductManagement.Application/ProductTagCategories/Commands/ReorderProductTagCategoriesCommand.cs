@@ -26,12 +26,18 @@ public sealed class ReorderProductTagCategoriesCommandValidator
 
 public sealed class ReorderProductTagCategoriesCommandHandler(
     IProductManagementDbContext productManagementDbContext,
+    ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
+    IDateTimeProvider dateTimeProvider,
     ILogger<ReorderProductTagCategoriesCommandHandler> logger)
     : ICommandHandler<ReorderProductTagCategoriesCommand>
 {
     private const string AppRequestName = nameof(ReorderProductTagCategoriesCommand);
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ReorderProductTagCategoriesCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(
@@ -57,9 +63,11 @@ public sealed class ReorderProductTagCategoriesCommandHandler(
 
             // Validated in full before anything moves, so a rejected request leaves no half-renumbered
             // axes on the tracked entities.
+            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+            var now = _dateTimeProvider.Now;
             for (var position = 0; position < orderedIds.Count; position++)
             {
-                categoriesById[orderedIds[position]].SetOrder(position + 1);
+                categoriesById[orderedIds[position]].Reorder(position + 1, actor, now);
             }
 
             await _productManagementDbContext.SaveChangesAsync(cancellationToken);

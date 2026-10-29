@@ -1,5 +1,8 @@
 ﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
+using NodaTime;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.ProductManagement;
 
 namespace Wayd.ProductManagement.Domain.Models;
 
@@ -15,6 +18,10 @@ namespace Wayd.ProductManagement.Domain.Models;
 /// <para>
 /// The axes an organization needs are not predictable — the type system deliberately carries only what
 /// changes behaviour, and this carries everything else — so they are data rather than an enum.
+/// </para>
+/// <para>
+/// Tags are reached only through their axis, because the rules a tag change can break — no two tags on one
+/// axis sharing a name, a system axis staying as seeded — are the axis's to enforce.
 /// </para>
 /// </remarks>
 public sealed class ProductTagCategory : BaseAuditableEntity, IHasIdAndKey
@@ -52,231 +59,308 @@ public sealed class ProductTagCategory : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Whether a product can carry several tags from this axis.
+    /// Whether a product can carry several tags from this axis. Fixed once the axis exists.
     /// </summary>
     /// <remarks>
     /// True for Platform, because a cross-platform app genuinely targets iOS and Android and forcing a
-    /// choice would record something false. An axis where a node can only be one thing sets this false
-    /// and the domain refuses a second.
+    /// choice would record something false. On an axis that takes one tag, tagging a product replaces the
+    /// tag it held rather than refusing, because choosing another value is a correction, not an error.
     /// </remarks>
-    public bool AllowsMany { get; private set; }
+    public bool AllowsMany { get; private init; }
 
-    /// <summary>Display position when presenting the axes. Presentation only.</summary>
+    /// <summary>Display position when presenting the axes, lowest first. Presentation only.</summary>
     public int Order { get; private set; }
 
     /// <summary>
-    /// Whether this is a platform-seeded axis. System categories cannot be edited or deleted; an
-    /// organization wanting different axes adds its own.
+    /// Whether this is a platform-seeded axis. A system axis cannot be renamed, given tags or deleted, and
+    /// its tags cannot be changed; it can still be reordered and deactivated, which are the organization's
+    /// calls.
     /// </summary>
     public bool IsSystem { get; private init; }
 
     /// <summary>
-    /// Whether products can still be tagged along this axis.
+    /// Whether products can still be tagged along this axis. Products already tagged keep their tags.
     /// </summary>
     public bool IsActive { get; private set; } = true;
 
     /// <summary>
-    /// The tags on this axis, in no particular order.
+    /// The tags on this axis, in no particular order: a tag holds no position, so whoever presents them sorts
+    /// them.
     /// </summary>
-    /// <remarks>
-    /// A set, not a sequence: a tag's position carries no meaning, so presenting them is the caller's
-    /// business — and every caller so far wants them alphabetically, which the order they were added
-    /// in would not give.
-    /// </remarks>
     public IReadOnlyCollection<ProductTag> Tags => _tags.AsReadOnly();
 
     /// <summary>
-    /// Adds a tag to this axis.
+    /// Renames the axis or changes its description.
     /// </summary>
-    public Result<ProductTag> AddTag(string name, string? description = null)
+    public Result UpdateDetails(string name, string? description, EventActor actor, Instant timestamp)
     {
         if (IsSystem)
-        {
-            return Result.Failure<ProductTag>("System tag categories cannot be modified.");
-        }
+            return Result.Failure(SystemAxisError);
 
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return Result.Failure<ProductTag>("A tag must have a name.");
-        }
-
-        var trimmed = name.Trim();
-
-        if (_tags.Any(t => string.Equals(t.Name, trimmed, StringComparison.OrdinalIgnoreCase)))
-        {
-            return Result.Failure<ProductTag>($"A tag named '{trimmed}' already exists on this axis.");
-        }
-
-        var tag = new ProductTag(Id, trimmed, description);
-        _tags.Add(tag);
-
-        return Result.Success(tag);
-    }
-
-    /// <summary>
-    /// Renames a tag on this axis.
-    /// </summary>
-    /// <remarks>
-    /// On the category rather than on <see cref="ProductTag"/> because the rule a rename can break —
-    /// no two tags on one axis sharing a name — is the category's to enforce; the tag cannot see its
-    /// siblings.
-    /// </remarks>
-    public Result RenameTag(Guid tagId, string name, string? description = null)
-    {
-        if (IsSystem)
-        {
-            return Result.Failure("System tag categories cannot be modified.");
-        }
-
-        var tag = _tags.FirstOrDefault(t => t.Id == tagId);
-        if (tag is null)
-        {
-            return Result.Failure("That tag does not belong to this axis.");
-        }
-
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return Result.Failure("A tag must have a name.");
-        }
-
-        var trimmed = name.Trim();
-
-        if (_tags.Any(t => t.Id != tagId && string.Equals(t.Name, trimmed, StringComparison.OrdinalIgnoreCase)))
-        {
-            return Result.Failure($"A tag named '{trimmed}' already exists on this axis.");
-        }
-
-        tag.Rename(trimmed, description);
-
-        return Result.Success();
-    }
-
-    /// <summary>
-    /// Takes one of the axis's tags out of use, or puts it back.
-    /// </summary>
-    /// <remarks>
-    /// On the category for the same reason as <see cref="RenameTag"/>, though for a different rule:
-    /// the system flag lives here and a tag cannot see it. Reaching the tag directly would let a
-    /// seeded tag be deactivated, leaving products untaggable along that axis with no way to restore
-    /// it — the seeder does not re-add it.
-    /// </remarks>
-    public Result SetTagActive(Guid tagId, bool isActive)
-    {
-        if (IsSystem)
-        {
-            return Result.Failure("System tag categories cannot be modified.");
-        }
-
-        var tag = _tags.FirstOrDefault(t => t.Id == tagId);
-        if (tag is null)
-        {
-            return Result.Failure("That tag does not belong to this axis.");
-        }
-
-        return isActive ? tag.Activate() : tag.Deactivate();
-    }
-
-    /// <summary>
-    /// Removes one of the axis's tags outright.
-    /// </summary>
-    /// <remarks>
-    /// The category cannot see which products carry the tag, so the caller must establish that none do
-    /// first; a tag in use is deactivated instead. The database refuses the delete regardless — the
-    /// assignment's foreign key is restrictive — but that surfaces as an exception, not an answer.
-    /// </remarks>
-    public Result RemoveTag(Guid tagId)
-    {
-        if (IsSystem)
-        {
-            return Result.Failure("System tag categories cannot be modified.");
-        }
-
-        var tag = _tags.FirstOrDefault(t => t.Id == tagId);
-        if (tag is null)
-        {
-            return Result.Failure("That tag does not belong to this axis.");
-        }
-
-        _tags.Remove(tag);
-
-        return Result.Success();
-    }
-
-    /// <summary>Renames the axis.</summary>
-    /// <remarks>
-    /// Position is not editable here — see <see cref="SetOrder"/>. Ordering an axis is a statement about
-    /// the whole list, so it arrives as one, rather than as a number each edit has to guess right.
-    /// </remarks>
-    public Result Update(string name, string? description)
-    {
-        if (IsSystem)
-        {
-            return Result.Failure("System tag categories cannot be modified.");
-        }
+        var previousName = Name;
+        var previousDescription = Description;
 
         Name = name;
         Description = description;
 
+        if (Name == previousName && Description == previousDescription)
+            return Result.Success();
+
+        AddDomainEvent(new ProductTagCategoryDetailsUpdatedEvent(Id, Name, Description, previousName,
+            previousDescription, actor, timestamp));
+
         return Result.Success();
     }
-
-    /// <summary>Moves the axis to a position in the list.</summary>
-    /// <remarks>
-    /// Deliberately not guarded by <see cref="IsSystem"/>, unlike everything else that writes to a
-    /// category. The guard protects what a seeded axis <em>means</em> — its name, its tags, whether it
-    /// takes many — none of which this touches. Where it sits among the others is the organization's
-    /// call, and refusing it would pin every seeded axis above the organization's own for good.
-    /// </remarks>
-    public void SetOrder(int order) => Order = order;
 
     /// <summary>
-    /// Takes the axis out of use, so nothing new can be tagged along it.
+    /// Moves the axis to another position in the list.
     /// </summary>
     /// <remarks>
-    /// Products already tagged keep their tags — this is deactivation, not deletion, for the same reason
-    /// a product type is: the labels stay meaningful on what already carries them.
+    /// Allowed on a system axis: where it sits among the others is the organization's call, and refusing
+    /// it would pin every seeded axis above the organization's own for good.
     /// </remarks>
-    public Result Deactivate()
+    public Result Reorder(int order, EventActor actor, Instant timestamp)
+    {
+        if (order == Order)
+            return Result.Success();
+
+        var fromOrder = Order;
+        Order = order;
+
+        AddDomainEvent(new ProductTagCategoryReorderedEvent(Id, fromOrder, Order, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Takes the axis out of use: nothing new is tagged along it, and products already tagged keep their tags.
+    /// </summary>
+    public Result Deactivate(EventActor actor, Instant timestamp)
     {
         if (!IsActive)
-        {
-            return Result.Failure("This tag category is already inactive.");
-        }
+            return Result.Success();
 
         IsActive = false;
+        AddDomainEvent(new ProductTagCategoryDeactivatedEvent(Id, actor, timestamp));
 
         return Result.Success();
     }
 
-    /// <summary>Puts the axis back into use.</summary>
-    public Result Activate()
+    /// <summary>
+    /// Puts the axis back into use.
+    /// </summary>
+    public Result Activate(EventActor actor, Instant timestamp)
     {
         if (IsActive)
-        {
-            return Result.Failure("This tag category is already active.");
-        }
+            return Result.Success();
 
         IsActive = true;
+        AddDomainEvent(new ProductTagCategoryActivatedEvent(Id, actor, timestamp));
 
         return Result.Success();
     }
 
-    /// <summary>Creates an organization-defined axis.</summary>
-    public static ProductTagCategory Create(string name, string? description, bool allowsMany, int order) =>
-        new(name, description, allowsMany, order, isSystem: false);
+    /// <summary>
+    /// Records that the axis is being deleted, or refuses. Removing it, and its tags with it, is the caller's.
+    /// </summary>
+    /// <param name="isInUse">Whether any product carries a tag from this axis, which the axis cannot see.</param>
+    public Result Delete(bool isInUse, EventActor actor, Instant timestamp)
+    {
+        if (IsSystem)
+            return Result.Failure(SystemAxisError);
 
-    /// <summary>Creates a platform-seeded axis.</summary>
-    public static ProductTagCategory CreateSystem(string name, string? description, bool allowsMany, int order) =>
-        new(name, description, allowsMany, order, isSystem: true);
+        if (isInUse)
+            return Result.Failure(AxisInUseError);
+
+        AddDomainEvent(new ProductTagCategoryDeletedEvent(Id, Name, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Adds a tag to the axis. Needs <see cref="Tags"/> loaded.
+    /// </summary>
+    public Result<ProductTag> AddTag(string name, string? description, EventActor actor, Instant timestamp)
+    {
+        if (IsSystem)
+            return Result.Failure<ProductTag>(SystemAxisError);
+
+        return AddTagCore(name, description, actor, timestamp);
+    }
+
+    /// <summary>
+    /// Renames one of the axis's tags or changes its description. Needs <see cref="Tags"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// Products refer to the tag by id, so every product carrying it reads the new name at once.
+    /// </remarks>
+    public Result UpdateTagDetails(Guid tagId, string name, string? description, EventActor actor, Instant timestamp)
+    {
+        if (IsSystem)
+            return Result.Failure(SystemAxisError);
+
+        if (FindTag(tagId) is not { } tag)
+            return Result.Failure(TagNotFoundError);
+
+        if (string.IsNullOrWhiteSpace(name))
+            return Result.Failure(TagNameRequiredError);
+
+        var trimmed = name.Trim();
+        if (HasTagNamed(trimmed, exceptTagId: tagId))
+            return Result.Failure(DuplicateTagNameError);
+
+        var previousName = tag.Name;
+        var previousDescription = tag.Description;
+
+        tag.UpdateDetails(trimmed, description);
+
+        if (tag.Name == previousName && tag.Description == previousDescription)
+            return Result.Success();
+
+        AddDomainEvent(new ProductTagDetailsUpdatedEvent(Id, tag.Id, tag.Name, tag.Description, previousName,
+            previousDescription, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Takes one of the axis's tags out of use. Products already carrying it keep it and can still have it
+    /// removed. Needs <see cref="Tags"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// Refused on a system axis: a seeded tag deactivated would leave products untaggable with it and no
+    /// way to restore it, because the seeder does not re-add it.
+    /// </remarks>
+    public Result DeactivateTag(Guid tagId, EventActor actor, Instant timestamp)
+    {
+        if (IsSystem)
+            return Result.Failure(SystemAxisError);
+
+        if (FindTag(tagId) is not { } tag)
+            return Result.Failure(TagNotFoundError);
+
+        if (!tag.IsActive)
+            return Result.Success();
+
+        tag.SetActive(false);
+        AddDomainEvent(new ProductTagDeactivatedEvent(Id, tag.Id, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Puts one of the axis's tags back into use. Needs <see cref="Tags"/> loaded.
+    /// </summary>
+    public Result ActivateTag(Guid tagId, EventActor actor, Instant timestamp)
+    {
+        if (IsSystem)
+            return Result.Failure(SystemAxisError);
+
+        if (FindTag(tagId) is not { } tag)
+            return Result.Failure(TagNotFoundError);
+
+        if (tag.IsActive)
+            return Result.Success();
+
+        tag.SetActive(true);
+        AddDomainEvent(new ProductTagActivatedEvent(Id, tag.Id, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Removes one of the axis's tags outright. Needs <see cref="Tags"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// A tag a product carries is deactivated instead, which stops new use without stripping it from the
+    /// products labelled with it.
+    /// </remarks>
+    /// <param name="isInUse">Whether any product carries the tag, which the axis cannot see.</param>
+    public Result RemoveTag(Guid tagId, bool isInUse, EventActor actor, Instant timestamp)
+    {
+        if (IsSystem)
+            return Result.Failure(SystemAxisError);
+
+        if (FindTag(tagId) is not { } tag)
+            return Result.Failure(TagNotFoundError);
+
+        if (isInUse)
+            return Result.Failure(TagInUseError);
+
+        _tags.Remove(tag);
+        AddDomainEvent(new ProductTagRemovedEvent(Id, tag.Id, tag.Name, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>The failure for changing what a system axis means.</summary>
+    public const string SystemAxisError = "System tag axes cannot be changed.";
+
+    /// <summary>The failure for a tag id that is not on this axis.</summary>
+    public const string TagNotFoundError = "That tag does not belong to this axis.";
+
+    /// <summary>The failure for a tag with a blank name.</summary>
+    public const string TagNameRequiredError = "A tag must have a name.";
+
+    /// <summary>The failure for a tag name another tag on the axis already has.</summary>
+    public const string DuplicateTagNameError = "A tag with this name already exists on this axis.";
+
+    /// <summary>The failure for deleting a tag a product carries.</summary>
+    public const string TagInUseError = "Products carry this tag, so it cannot be deleted. Deactivate it instead.";
+
+    /// <summary>The failure for deleting an axis products are tagged along.</summary>
+    public const string AxisInUseError = "Products are tagged along this axis, so it cannot be deleted. Deactivate it instead.";
+
+    private Result<ProductTag> AddTagCore(string name, string? description, EventActor actor, Instant timestamp)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return Result.Failure<ProductTag>(TagNameRequiredError);
+
+        var trimmed = name.Trim();
+        if (HasTagNamed(trimmed, exceptTagId: null))
+            return Result.Failure<ProductTag>(DuplicateTagNameError);
+
+        var tag = new ProductTag(Id, trimmed, description);
+        _tags.Add(tag);
+
+        AddDomainEvent(new ProductTagAddedEvent(Id, tag.Id, tag.Name, tag.Description, actor, timestamp));
+
+        return tag;
+    }
+
+    private ProductTag? FindTag(Guid tagId) => _tags.FirstOrDefault(t => t.Id == tagId);
+
+    private bool HasTagNamed(string name, Guid? exceptTagId) =>
+        _tags.Any(t => t.Id != exceptTagId && string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Defines an axis the organization manages.
+    /// </summary>
+    public static ProductTagCategory Create(string name, string? description, bool allowsMany, int order,
+        EventActor actor, Instant timestamp) =>
+        CreateCore(name, description, allowsMany, order, isSystem: false, actor, timestamp);
+
+    /// <summary>
+    /// Defines a platform-seeded axis. For the seeder.
+    /// </summary>
+    public static ProductTagCategory CreateSystem(string name, string? description, bool allowsMany, int order,
+        EventActor actor, Instant timestamp) =>
+        CreateCore(name, description, allowsMany, order, isSystem: true, actor, timestamp);
 
     /// <summary>
     /// Adds a tag to a seeded axis, bypassing the read-only guard. For the seeder that builds it.
     /// </summary>
-    public ProductTag AddSystemTag(string name, string? description = null)
-    {
-        var tag = new ProductTag(Id, name, description);
-        _tags.Add(tag);
+    public Result<ProductTag> AddSystemTag(string name, string? description, EventActor actor, Instant timestamp) =>
+        AddTagCore(name, description, actor, timestamp);
 
-        return tag;
+    private static ProductTagCategory CreateCore(string name, string? description, bool allowsMany, int order,
+        bool isSystem, EventActor actor, Instant timestamp)
+    {
+        var category = new ProductTagCategory(name, description, allowsMany, order, isSystem);
+
+        category.AddDomainEvent(new ProductTagCategoryCreatedEvent(category.Id, category.Name,
+            category.Description, category.AllowsMany, category.Order, actor, timestamp));
+
+        return category;
     }
 }

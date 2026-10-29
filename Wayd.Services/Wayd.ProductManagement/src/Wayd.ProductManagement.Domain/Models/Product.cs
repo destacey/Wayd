@@ -112,7 +112,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     /// <param name="category">
     /// The tag's axis, supplied by the caller because the aggregate cannot load it. Its
     /// <see cref="ProductTagCategory.AllowsMany"/> decides whether this replaces an existing tag on the
-    /// same axis or joins it.
+    /// same axis or joins it. Must be the tag's own axis; any other is a caller bug, so it throws.
     /// </param>
     public Result Tag(ProductTag tag, ProductTagCategory category, EventActor actor, Instant timestamp)
     {
@@ -120,13 +120,11 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
         Guard.Against.Null(category, nameof(category));
 
         if (tag.CategoryId != category.Id)
-        {
-            return Result.Failure("That tag does not belong to the supplied axis.");
-        }
+            throw new ArgumentException("The tag must belong to the supplied axis.", nameof(category));
 
         if (!tag.IsActive || !category.IsActive)
         {
-            return Result.Failure("An inactive tag cannot be applied.");
+            return Result.Failure(InactiveTagError);
         }
 
         if (_tags.Any(t => t.TagId == tag.Id))
@@ -149,6 +147,11 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// The failure for applying a tag, or a tag on an axis, that has been deactivated.
+    /// </summary>
+    public const string InactiveTagError = "An inactive tag cannot be applied.";
 
     /// <summary>
     /// Removes a tag. Succeeds whether or not the node carried it.

@@ -53,6 +53,8 @@ public class IncidentSeveritySetsController(IDispatcher dispatcher) : Controller
     [EndpointSummary("Create a custom incident severity set.")]
     [EndpointDescription("Requires at least two level names, ordered most severe first.")]
     [McpTool("IncidentSeveritySets_CreateSet", "Create incident severity set", Destructive = false)]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<Guid>> Create(
         [FromBody] CreateIncidentSeveritySetRequest request,
         CancellationToken cancellationToken)

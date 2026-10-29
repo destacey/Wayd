@@ -10166,13 +10166,23 @@
           "x-position": 1
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "201": {
+            "description": "Created",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "string",
                   "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }

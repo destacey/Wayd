@@ -55,8 +55,11 @@ export const incidentSeveritySetsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          await getIncidentSeveritySetsClient().update(request.id, request)
-          return { data: undefined }
+          const data = await getIncidentSeveritySetsClient().update(
+            request.id,
+            request,
+          )
+          return { data }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -73,11 +76,11 @@ export const incidentSeveritySetsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          await getIncidentSeveritySetsClient().setActiveStatus(
+          const data = await getIncidentSeveritySetsClient().setActiveStatus(
             request.id,
             request,
           )
-          return { data: undefined }
+          return { data }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -94,8 +97,9 @@ export const incidentSeveritySetsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          await getIncidentSeveritySetsClient().selectSet(request)
-          return { data: undefined }
+          const data =
+            await getIncidentSeveritySetsClient().selectSet(request)
+          return { data }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -109,8 +113,8 @@ export const incidentSeveritySetsApi = apiSlice.injectEndpoints({
     deleteIncidentSeveritySet: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          await getIncidentSeveritySetsClient().delete(id)
-          return { data: undefined }
+          const data = await getIncidentSeveritySetsClient().delete(id)
+          return { data }
         } catch (error) {
           console.error('API Error:', error)
           return { error }

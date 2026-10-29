@@ -13057,7 +13057,7 @@ export class IncidentSeveritySetsClient {
 
     /**
      * Create a custom incident severity set.
-     * @return OK
+     * @return Created
      */
     create(request: CreateIncidentSeveritySetRequest, cancelToken?: CancelToken): Promise<string> {
         let url_ = this.baseUrl + "/api/product-management/incident-severity-sets";
@@ -13097,12 +13097,19 @@ export class IncidentSeveritySetsClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<string>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;

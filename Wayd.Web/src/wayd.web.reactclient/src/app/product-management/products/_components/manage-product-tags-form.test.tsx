@@ -55,11 +55,26 @@ const product = {
       categoryId: 'cat-platform',
       categoryName: 'Platform',
     },
+    { tagId: 'free-wave', tagName: 'migration wave' },
   ],
 } as unknown as ProductDto
 
+const FREE_TAGS = [
+  {
+    id: 'free-wave',
+    name: 'migration wave',
+    isFree: true,
+    isActive: true,
+    productCount: 3,
+  },
+]
+
 const mockTagProduct = jest.fn()
+const mockTagProductByName = jest.fn()
 const mockUntagProduct = jest.fn()
+let mockAllowsFreeTags = false
+let mockSettingsFailed = false
+const mockMessageError = jest.fn()
 
 // Not spread from the real barrel: it re-exports store-bound hooks, and pulling those
 // in initialises a store this form never touches. The form instance is real, though —
@@ -91,7 +106,7 @@ jest.mock('@/src/hooks', () => {
 })
 
 jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+  useMessage: () => ({ error: mockMessageError, success: jest.fn() }),
 }))
 
 jest.mock(
@@ -106,7 +121,22 @@ jest.mock(
 
 jest.mock('@/src/store/features/product-management/products-api', () => ({
   useTagProductMutation: () => [mockTagProduct],
+  useTagProductByNameMutation: () => [mockTagProductByName],
   useUntagProductMutation: () => [mockUntagProduct],
+}))
+
+jest.mock('@/src/store/features/product-management/product-tags-api', () => ({
+  useGetProductTagsSettingsQuery: () => ({
+    data: mockSettingsFailed
+      ? undefined
+      : { allowsFreeTags: mockAllowsFreeTags },
+    isLoading: false,
+    isError: mockSettingsFailed,
+  }),
+  useSearchProductTagsQuery: (_: unknown, options: { skip: boolean }) => ({
+    data: options.skip ? undefined : FREE_TAGS,
+    isLoading: false,
+  }),
 }))
 
 const renderForm = async () =>
@@ -165,7 +195,11 @@ const save = async () => {
 describe('ManageProductTagsForm', () => {
   beforeEach(() => {
     mockTagProduct.mockReset().mockResolvedValue({ data: undefined })
+    mockTagProductByName.mockReset().mockResolvedValue({ data: 'free-new' })
     mockUntagProduct.mockReset().mockResolvedValue({ data: undefined })
+    mockAllowsFreeTags = false
+    mockSettingsFailed = false
+    mockMessageError.mockReset()
   })
 
   it('renders a select for every active category', async () => {
@@ -275,5 +309,82 @@ describe('ManageProductTagsForm', () => {
     // Assert
     expect(mockTagProduct).not.toHaveBeenCalled()
     expect(mockUntagProduct).not.toHaveBeenCalled()
+  })
+
+  it('offers no free tag field while free tags are off, and keeps the ones carried', async () => {
+    // Arrange / Act
+    await renderForm()
+    await save()
+
+    // Assert
+    expect(screen.queryByText('Free tags')).not.toBeInTheDocument()
+    expect(mockUntagProduct).not.toHaveBeenCalled()
+  })
+
+  it('applies a typed free tag by name, after the other changes', async () => {
+    // Arrange
+    mockAllowsFreeTags = true
+    await renderForm()
+    const input = fieldFor('Free tags').querySelector(
+      'input[role="combobox"]',
+    ) as HTMLInputElement
+
+    // Act — the field's comma separator commits each entry, which jsdom drives reliably
+    await selectOption('Tier', 'gold')
+    await act(async () => {
+      await userEvent.type(input, 'follow up,')
+    })
+    await save()
+
+    // Assert
+    expect(mockTagProduct).toHaveBeenCalledWith({
+      id: 'product-1',
+      tagId: 'tag-gold',
+    })
+    expect(mockTagProductByName).toHaveBeenCalledWith({
+      id: 'product-1',
+      name: 'follow up',
+    })
+    expect(mockTagProduct.mock.invocationCallOrder[0]).toBeLessThan(
+      mockTagProductByName.mock.invocationCallOrder[0],
+    )
+    expect(mockUntagProduct).not.toHaveBeenCalled()
+  })
+
+  it('untags a free tag the user cleared', async () => {
+    // Arrange
+    mockAllowsFreeTags = true
+    await renderForm()
+    const removeButton = fieldFor('Free tags').querySelector(
+      '.ant-select-selection-item-remove',
+    ) as HTMLElement
+
+    // Act
+    await act(async () => {
+      await userEvent.click(removeButton)
+    })
+    await save()
+
+    // Assert
+    expect(mockUntagProduct).toHaveBeenCalledWith({
+      id: 'product-1',
+      tagId: 'free-wave',
+    })
+    expect(mockTagProductByName).not.toHaveBeenCalled()
+  })
+
+  it('says so when it cannot tell whether free tags are on, and offers no free tag field', async () => {
+    // Treating a failed load as "off" would hide free tags with no explanation.
+    // Arrange
+    mockSettingsFailed = true
+
+    // Act
+    await renderForm()
+
+    // Assert
+    expect(screen.queryByText('Free tags')).not.toBeInTheDocument()
+    expect(mockMessageError).toHaveBeenCalledWith(
+      expect.stringContaining('free tags cannot be changed right now'),
+    )
   })
 })

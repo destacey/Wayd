@@ -35,6 +35,7 @@ internal static class IntakeDeskProjections
                 .Select(c => c.Id)
                 .ToList(),
             OffersAllTagCategories = d.OffersAllTagCategories,
+            AllowsFreeTags = d.AllowsFreeTags,
             TagCategoryIds = d.TagCategories
                 .Join(tagCategories, dt => dt.CategoryId, c => c.Id, (dt, c) => c)
                 .OrderBy(c => c.Order).ThenBy(c => c.Name).ThenBy(c => c.Id)

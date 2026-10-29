@@ -2,8 +2,10 @@
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Settings;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain.Models;
@@ -32,6 +34,9 @@ public abstract class ProductCommandTestBase
     protected readonly Mock<ICurrentPrincipal> CurrentPrincipal = new();
     protected readonly Mock<IDateTimeProvider> DateTimeProvider = new();
 
+    /// <summary>The product tag settings in effect: free tags off, as a new install has them.</summary>
+    protected readonly Mock<ISettings<ProductTagSettings>> TagSettings = new();
+
     protected ProductCommandTestBase()
     {
         CurrentUser.Setup(u => u.GetUserId()).Returns(Guid.CreateVersion7().ToString());
@@ -40,6 +45,32 @@ public abstract class ProductCommandTestBase
             .ReturnsAsync(ActingEmployeeId);
         DateTimeProvider.SetupGet(d => d.Now).Returns(Now);
         DateTimeProvider.SetupGet(d => d.Today).Returns(Today);
+        TagSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new ProductTagSettings());
+    }
+
+    /// <summary>Turns free tags on for products.</summary>
+    protected void AllowFreeTags() =>
+        TagSettings.Setup(s => s.Get(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductTagSettings { AllowsFreeTags = true });
+
+    /// <summary>A saved free tag.</summary>
+    protected ProductTag SeedFreeTag(string name = "migration wave")
+    {
+        var tag = ProductTag.CreateFree(name, EventActor.System, Now).Value;
+        tag.ClearDomainEvents();
+        DbContext.AddProductTag(tag);
+
+        return tag;
+    }
+
+    /// <summary>
+    /// Records the tags the product carries as saved assignments. The fake keeps no link between a product's own
+    /// collection and the assignment set, which is what "does anything else carry this tag" reads.
+    /// </summary>
+    protected void SaveAssignments(Product product)
+    {
+        foreach (var assignment in product.Tags)
+            DbContext.AddProductTagAssignment(assignment);
     }
 
     protected static ILogger<T> Logger<T>() => Mock.Of<ILogger<T>>();
@@ -268,19 +299,20 @@ public abstract class ProductCommandTestBase
         bool categoryActive = true,
         bool tagActive = true)
     {
-        var category = ProductTagCategory.Create(categoryName, null, allowsMany, 1);
-        var tag = category.AddTag(tagName).Value;
+        var category = ProductTagCategory.Create(categoryName, null, allowsMany, 1, EventActor.System, Now);
+        var tag = category.AddTag(tagName, null, EventActor.System, Now).Value;
 
         if (!tagActive)
         {
-            tag.Deactivate();
+            category.DeactivateTag(tag.Id, EventActor.System, Now);
         }
 
         if (!categoryActive)
         {
-            category.Deactivate();
+            category.Deactivate(EventActor.System, Now);
         }
 
+        category.ClearDomainEvents();
         DbContext.AddProductTagCategory(category);
         DbContext.AddProductTag(tag);
 

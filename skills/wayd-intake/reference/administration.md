@@ -43,3 +43,14 @@ Reviewers file requests under tags, grouped on axes (Area, Segment…). One comp
 - A system axis cannot be renamed, deleted or have its tags changed.
 
 Deactivating an axis or a tag stops it being applied; requests that carry it keep it.
+
+### Free tags
+
+Agents add free tags — tags on no axis — by typing a name while tagging, on desks that allow it: `allowsFreeTags` on `IntakeDesks_Update`, off for a new desk. The Demand Management Admin keeps them tidy:
+
+- `IntakeRequestTags_Search` with `isFree: true` lists them with `requestCount`. A free tag is listed only to someone who can see a request carrying it, or to the Demand Management Admin.
+- `IntakeRequestTags_UpdateFreeTag` renames one; names are unique among free tags, ignoring case.
+- `IntakeRequestTags_Merge` moves every request carrying a free tag, on every desk, to another tag and deletes it — to fold near-duplicates together, or to promote a free tag onto an axis: add the tag with `IntakeRequestTagCategories_AddTag`, then merge into it. On an axis that takes one tag it replaces each request's existing tag there; say so first.
+- `IntakeRequestTags_DeleteFreeTag` removes a free tag from every request carrying it, then deletes it — unlike `IntakeRequestTagCategories_DeleteTag`, it does not refuse a tag in use. Say how many requests carry it first.
+
+A free tag nothing carries is deleted on its own, so there is nothing to deactivate.

@@ -91,19 +91,20 @@ public sealed class ProductImportDefinitionTests
         bool categoryActive = true,
         bool tagActive = true)
     {
-        var category = ProductTagCategory.Create(categoryName, null, allowsMany, 1);
-        var tag = category.AddTag(tagName).Value;
+        var category = ProductTagCategory.Create(categoryName, null, allowsMany, 1, EventActor.System, Now);
+        var tag = category.AddTag(tagName, null, EventActor.System, Now).Value;
 
         if (!tagActive)
         {
-            tag.Deactivate();
+            category.DeactivateTag(tag.Id, EventActor.System, Now);
         }
 
         if (!categoryActive)
         {
-            category.Deactivate();
+            category.Deactivate(EventActor.System, Now);
         }
 
+        category.ClearDomainEvents();
         _dbContext.AddProductTagCategory(category);
         _dbContext.AddProductTag(tag);
 
@@ -440,7 +441,7 @@ public sealed class ProductImportDefinitionTests
         // Arrange
         SeedType();
         var (category, ios) = SeedTag();
-        var android = category.AddTag("android").Value;
+        var android = category.AddTag("android", null, EventActor.System, Now).Value;
         _dbContext.AddProductTag(android);
 
         // Act
@@ -476,7 +477,7 @@ public sealed class ProductImportDefinitionTests
         // Arrange
         SeedType();
         var (category, _) = SeedTag(allowsMany: false);
-        var android = category.AddTag("android").Value;
+        var android = category.AddTag("android", null, EventActor.System, Now).Value;
         _dbContext.AddProductTag(android);
 
         // Act

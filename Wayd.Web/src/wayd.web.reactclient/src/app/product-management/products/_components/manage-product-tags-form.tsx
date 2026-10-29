@@ -5,10 +5,16 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { ProductDto } from '@/src/services/wayd-api'
 import { useGetProductTagCategoriesQuery } from '@/src/store/features/product-management/product-tag-categories-api'
 import {
+  useGetProductTagsSettingsQuery,
+  useSearchProductTagsQuery,
+} from '@/src/store/features/product-management/product-tags-api'
+import {
+  useTagProductByNameMutation,
   useTagProductMutation,
   useUntagProductMutation,
 } from '@/src/store/features/product-management/products-api'
 import { isApiError, type ApiError } from '@/src/utils'
+import { useEffect } from 'react'
 
 export interface ManageProductTagsFormProps {
   product: ProductDto
@@ -19,8 +25,9 @@ export interface ManageProductTagsFormProps {
 /**
  * Applies a product's tags, over the shared tag manager.
  *
- * This adapter owns the two things that are Product Management's rather than
- * tagging's: where the axes come from, and how a change is saved.
+ * This adapter owns the things that are Product Management's rather than
+ * tagging's: where the axes and free tags come from, whether free tags are
+ * offered at all, and how a change is saved.
  */
 const ManageProductTagsForm = ({
   product,
@@ -30,6 +37,7 @@ const ManageProductTagsForm = ({
   const messageApi = useMessage()
 
   const [tagProduct] = useTagProductMutation()
+  const [tagProductByName] = useTagProductByNameMutation()
   const [untagProduct] = useUntagProductMutation()
 
   // Active axes only. A tag on a deactivated axis is therefore never offered and
@@ -37,12 +45,35 @@ const ManageProductTagsForm = ({
   // new use rather than stripping what already carries it.
   const { data: categories, isLoading } = useGetProductTagCategoriesQuery(true)
 
-  const onSave = async ({ added, removed }: TagChanges) => {
+  // With free tags off the field is not offered, so the product's existing free
+  // tags are left alone rather than stripped by the next save. Read from the
+  // product tags endpoint, which tagging permission can reach, not the admin
+  // system settings.
+  const {
+    data: tagSettings,
+    isLoading: settingsLoading,
+    isError: settingsFailed,
+  } = useGetProductTagsSettingsQuery()
+  const allowsFreeTags = tagSettings?.allowsFreeTags ?? false
+
+  // A failed load is said out loud: silently hiding the field would read as free
+  // tags being off. The field stays hidden, which leaves free tags untouched.
+  useEffect(() => {
+    if (settingsFailed) {
+      messageApi.error(
+        'Could not check whether free tags are on, so free tags cannot be changed right now.',
+      )
+    }
+  }, [settingsFailed, messageApi])
+  const { data: freeTags, isLoading: freeTagsLoading } =
+    useSearchProductTagsQuery({ isFree: true }, { skip: !allowsFreeTags })
+
+  const onSave = async ({ added, removed, addedNames }: TagChanges) => {
     // Each change is its own request, so a failure part-way through leaves the
     // earlier ones applied. Counting them is what lets the failure path say so
     // instead of implying nothing happened.
     let applied = 0
-    const total = removed.length + added.length
+    const total = removed.length + added.length + addedNames.length
 
     try {
       // Removals first: on a single-value axis, tagging before untagging would
@@ -54,6 +85,13 @@ const ManageProductTagsForm = ({
       }
       for (const tagId of added) {
         const response = await tagProduct({ id: product.id, tagId })
+        if (response.error) throw response.error
+        applied++
+      }
+      // Names last: one may resolve to a tag on an axis, which should replace
+      // rather than be replaced by an id applied above.
+      for (const name of addedNames) {
+        const response = await tagProductByName({ id: product.id, name })
         if (response.error) throw response.error
         applied++
       }
@@ -87,8 +125,21 @@ const ManageProductTagsForm = ({
   return (
     <ManageTagsForm
       categories={categories ?? []}
-      categoriesLoading={isLoading}
+      categoriesLoading={isLoading || settingsLoading}
       tags={product.tags ?? []}
+      freeTags={
+        allowsFreeTags
+          ? {
+              options: (freeTags ?? []).map((tag) => ({
+                id: tag.id,
+                name: tag.name,
+                description: tag.description,
+                isActive: tag.isActive,
+              })),
+              loading: freeTagsLoading,
+            }
+          : undefined
+      }
       onSave={onSave}
       onFormComplete={onFormComplete}
       onFormCancel={onFormCancel}

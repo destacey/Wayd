@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Wayd.Common.Domain.Events;
 using Wayd.ProductManagement.Application.ProductTagCategories.Commands;
 using Wayd.ProductManagement.Application.Tests.Infrastructure;
 using Wayd.ProductManagement.Domain.Models;
@@ -16,13 +17,13 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTagCategories.Comm
 public sealed class ReorderProductTagCategoriesCommandHandlerTests : ProductCommandTestBase
 {
     private ReorderProductTagCategoriesCommandHandler ReorderSut() =>
-        new(DbContext, Logger<ReorderProductTagCategoriesCommandHandler>());
+        new(DbContext, CurrentUser.Object, CurrentPrincipal.Object, DateTimeProvider.Object, Logger<ReorderProductTagCategoriesCommandHandler>());
 
     private ProductTagCategory SeedCategory(string name, int order, bool isSystem = false)
     {
         var category = isSystem
-            ? ProductTagCategory.CreateSystem(name, null, true, order)
-            : ProductTagCategory.Create(name, null, true, order);
+            ? ProductTagCategory.CreateSystem(name, null, true, order, EventActor.System, Now)
+            : ProductTagCategory.Create(name, null, true, order, EventActor.System, Now);
         DbContext.AddProductTagCategory(category);
 
         return category;

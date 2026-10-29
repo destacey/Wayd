@@ -26,6 +26,7 @@ internal static class IntakeRequestProjections
         var employees = dbContext.Employees;
         var transitions = dbContext.IntakeRequestStatusTransitions;
         var tagCategories = dbContext.IntakeRequestTagCategories;
+        var tags = dbContext.IntakeRequestTags;
 
         // Every request records its initial status as its first transition, so both reads always find a row.
         return r => new IntakeRequestSummaryDto
@@ -58,16 +59,20 @@ internal static class IntakeRequestProjections
                         .FirstOrDefault(),
                     CommittedOn = r.NeedBy.CommittedOn,
                 },
-            Tags = tagCategories
-                .SelectMany(c => c.Tags, (c, t) => new { Category = c, Tag = t })
-                .Where(x => r.Tags.Any(a => a.TagId == x.Tag.Id))
-                .OrderBy(x => x.Category.Order).ThenBy(x => x.Category.Name).ThenBy(x => x.Tag.Name).ThenBy(x => x.Tag.Id)
+            // Tags on axes first, in the axes' order; free tags, which have none, after them by name.
+            Tags = tags
+                .Where(t => r.Tags.Any(a => a.TagId == t.Id))
+                .Select(t => new { Tag = t, Category = tagCategories.FirstOrDefault(c => c.Id == t.CategoryId) })
+                .OrderBy(x => x.Category == null)
+                .ThenBy(x => x.Category == null ? 0 : x.Category.Order)
+                .ThenBy(x => x.Category == null ? null : x.Category.Name)
+                .ThenBy(x => x.Tag.Name).ThenBy(x => x.Tag.Id)
                 .Select(x => new IntakeRequestTagNavigationDto
                 {
                     Id = x.Tag.Id,
                     Name = x.Tag.Name,
-                    CategoryId = x.Category.Id,
-                    CategoryName = x.Category.Name,
+                    CategoryId = x.Tag.CategoryId,
+                    CategoryName = x.Category == null ? null : x.Category.Name,
                 })
                 .ToList(),
             SubmittedOn = transitions.Where(t => t.RecordId == r.Id)

@@ -72,6 +72,12 @@ public sealed record UpdateIntakeDeskRequest
     public List<Guid>? TagCategoryIds { get; set; }
 
     /// <summary>
+    /// Whether the desk's agents may add free tags — tags on no axis, typed in while tagging. A new desk does not.
+    /// Leave it out to keep the desk's setting. Requests already carrying free tags keep them when it is turned off.
+    /// </summary>
+    public bool? AllowsFreeTags { get; set; }
+
+    /// <summary>
     /// Everyone on the desk after the change, each with their role. Naming, removing or re-roling a Desk Admin
     /// needs the Demand Management Admin.
     /// </summary>
@@ -86,7 +92,7 @@ public sealed record UpdateIntakeDeskRequest
     public UpdateIntakeDeskCommand ToUpdateIntakeDeskCommand() =>
         new(Id, Name, Description, Visibility, IsRequesterSelectable, IsOpen, RequesterMayAddParticipants,
             OffersAllChannels, ChannelIds, [.. Members.Select(m => m.ToMemberDetails())], ExpectedRevision,
-            OffersAllTagCategories, TagCategoryIds);
+            OffersAllTagCategories, TagCategoryIds, AllowsFreeTags);
 }
 
 public sealed class UpdateIntakeDeskRequestValidator : CustomValidator<UpdateIntakeDeskRequest>

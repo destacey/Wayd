@@ -7,6 +7,7 @@ using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.Common.Domain.Interfaces.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Common.Domain.Tagging;
 using Wayd.Common.Models;
 
 namespace Wayd.ProductManagement.Domain.Models;
@@ -107,60 +108,69 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     public IReadOnlyCollection<ProductTagAssignment> Tags => _tags.AsReadOnly();
 
     /// <summary>
-    /// Applies a tag.
+    /// Applies a tag, on an axis or free.
     /// </summary>
+    /// <remarks>
+    /// Whether free tags are turned on is an organization setting, which the caller checks.
+    /// </remarks>
     /// <param name="category">
-    /// The tag's axis, supplied by the caller because the aggregate cannot load it. Its
+    /// The tag's axis, supplied by the caller because the aggregate cannot load it, or null for a free tag. Its
     /// <see cref="ProductTagCategory.AllowsMany"/> decides whether this replaces an existing tag on the
-    /// same axis or joins it.
+    /// same axis or joins it. Must be the tag's own axis; any other is a caller bug, so it throws.
     /// </param>
-    public Result Tag(ProductTag tag, ProductTagCategory category, EventActor actor, Instant timestamp)
+    public Result Tag(ProductTag tag, ProductTagCategory? category, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(tag, nameof(tag));
-        Guard.Against.Null(category, nameof(category));
 
-        if (tag.CategoryId != category.Id)
+        if (!tag.IsActive || category is { IsActive: false })
         {
-            return Result.Failure("That tag does not belong to the supplied axis.");
+            return Result.Failure(InactiveTagError);
         }
 
-        if (!tag.IsActive || !category.IsActive)
+        if (TagSet.Apply(_tags, tag, category, (tagId, categoryId) => new ProductTagAssignment(Id, tagId, categoryId)) is { } change)
         {
-            return Result.Failure("An inactive tag cannot be applied.");
+            AddDomainEvent(new ProductTagsChangedEventV2(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
         }
-
-        if (_tags.Any(t => t.TagId == tag.Id))
-        {
-            return Result.Success();
-        }
-
-        // A single-value axis holds one tag: applying another replaces it rather than failing, since
-        // "this is a mobile app, not a web app" is a correction, not an error.
-        Guid[] removed = [];
-        if (!category.AllowsMany)
-        {
-            removed = [.. _tags.Where(t => t.CategoryId == category.Id).Select(t => t.TagId)];
-            _tags.RemoveAll(t => t.CategoryId == category.Id);
-        }
-
-        _tags.Add(new ProductTagAssignment(Id, tag.Id, category.Id));
-
-        AddDomainEvent(new ProductTagsChangedEventV2(Id, Key, [tag.Id], removed, [.. _tags.Select(t => t.TagId)], actor, timestamp));
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// The failure for applying a tag, or a tag on an axis, that has been deactivated.
+    /// </summary>
+    public const string InactiveTagError = TagErrors.InactiveTag;
 
     /// <summary>
     /// Removes a tag. Succeeds whether or not the node carried it.
     /// </summary>
     public Result Untag(Guid tagId, EventActor actor, Instant timestamp)
     {
-        if (_tags.RemoveAll(t => t.TagId == tagId) == 0)
+        if (TagSet.Remove(_tags, tagId) is { } change)
         {
-            return Result.Success();
+            AddDomainEvent(new ProductTagsChangedEventV2(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
         }
 
-        AddDomainEvent(new ProductTagsChangedEventV2(Id, Key, [], [tagId], [.. _tags.Select(t => t.TagId)], actor, timestamp));
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Swaps a tag the product carries for another in one change, as merging a free tag does. Succeeds, changing
+    /// nothing, when the product did not carry <paramref name="fromTagId"/>.
+    /// </summary>
+    /// <param name="category">The new tag's axis, or null for a free tag, as for <see cref="Tag"/>.</param>
+    public Result ReplaceTag(Guid fromTagId, ProductTag tag, ProductTagCategory? category, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(tag, nameof(tag));
+
+        if (!tag.IsActive || category is { IsActive: false })
+        {
+            return Result.Failure(InactiveTagError);
+        }
+
+        if (TagSet.Replace(_tags, fromTagId, tag, category, (tagId, categoryId) => new ProductTagAssignment(Id, tagId, categoryId)) is { } change)
+        {
+            AddDomainEvent(new ProductTagsChangedEventV2(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
+        }
 
         return Result.Success();
     }

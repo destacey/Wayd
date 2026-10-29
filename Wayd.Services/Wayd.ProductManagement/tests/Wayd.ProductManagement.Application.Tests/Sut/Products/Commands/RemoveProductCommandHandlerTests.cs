@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using Wayd.Common.Domain.Events;
+using FluentAssertions;
 using NodaTime;
 using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.ProductManagement.Application.Products.Commands;
@@ -200,5 +201,44 @@ public sealed class RemoveProductCommandHandlerTests : ProductCommandTestBase
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("Product not found.");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldDeleteAFreeTagOnlyTheRemovedProductCarried()
+    {
+        // Arrange
+        var product = SeedProduct();
+        var free = SeedFreeTag();
+        product.Tag(free, null, EventActor.System, Now);
+        product.ClearDomainEvents();
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new RemoveProductCommand(product.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        // The product goes first, in its own save; the clean-up then finds nothing carrying the tag.
+        result.IsSuccess.Should().BeTrue();
+        DbContext.ProductTags.Should().NotContain(free);
+        DbContext.SaveChangesCallCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldKeepAFreeTagAnotherProductCarries()
+    {
+        // Arrange
+        var product = SeedProduct();
+        var other = SeedProduct("Billing");
+        var free = SeedFreeTag();
+        product.Tag(free, null, EventActor.System, Now);
+        other.Tag(free, null, EventActor.System, Now);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new RemoveProductCommand(product.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        DbContext.ProductTags.Should().Contain(free);
     }
 }

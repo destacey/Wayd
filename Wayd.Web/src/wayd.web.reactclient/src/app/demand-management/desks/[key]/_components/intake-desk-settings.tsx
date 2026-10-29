@@ -121,6 +121,11 @@ const IntakeDeskSettings: FC<IntakeDeskSettingsProps> = ({
           </Flex>
         )}
       </LabeledContent>
+      <LabeledContent label="Free Tags">
+        {desk.allowsFreeTags
+          ? 'Agents may add their own tags'
+          : 'Only tags on the tag axes'}
+      </LabeledContent>
       <LabeledContent label="Open to New Requests">
         {yesNo(desk.isOpen)}
       </LabeledContent>

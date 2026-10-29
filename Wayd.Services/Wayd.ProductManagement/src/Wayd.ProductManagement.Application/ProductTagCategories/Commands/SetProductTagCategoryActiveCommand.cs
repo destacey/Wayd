@@ -21,12 +21,18 @@ public sealed class SetProductTagCategoryActiveCommandValidator
 
 public sealed class SetProductTagCategoryActiveCommandHandler(
     IProductManagementDbContext productManagementDbContext,
+    ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
+    IDateTimeProvider dateTimeProvider,
     ILogger<SetProductTagCategoryActiveCommandHandler> logger)
     : ICommandHandler<SetProductTagCategoryActiveCommand>
 {
     private const string AppRequestName = nameof(SetProductTagCategoryActiveCommand);
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<SetProductTagCategoryActiveCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(
@@ -43,7 +49,10 @@ public sealed class SetProductTagCategoryActiveCommandHandler(
                 return Result.Failure("Tag category not found.");
             }
 
-            var result = request.IsActive ? category.Activate() : category.Deactivate();
+            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+            var result = request.IsActive
+                ? category.Activate(actor, _dateTimeProvider.Now)
+                : category.Deactivate(actor, _dateTimeProvider.Now);
 
             if (result.IsFailure)
             {

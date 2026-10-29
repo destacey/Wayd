@@ -7,6 +7,7 @@ import type {
   SortingState,
 } from '@/src/components/common/wayd-grid-core'
 import EntityLink from '@/src/components/common/entity-link'
+import { tagText } from '@/src/components/common/tags'
 import {
   statusCategoryDescription,
   WorkflowStatusTag,
@@ -222,8 +223,12 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       header: 'Tags',
       size: 260,
       // Qualified by axis, as the request page's chips are, so the set filter picks one axis's tag rather
-      // than every tag sharing a name. Kept in the server's order: by axis, then name.
-      getValues: (r) => r.tags.map((t) => `${t.categoryName} | ${t.name}`),
+      // than every tag sharing a name; a free tag reads as its name. Kept in the server's order: by axis,
+      // then name, with free tags last.
+      getValues: (r) =>
+        r.tags.map((t) =>
+          tagText({ name: t.name, categoryName: t.categoryName }),
+        ),
     }),
     {
       id: 'needByBasis',

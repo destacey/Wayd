@@ -111,6 +111,7 @@ A **channel** records where a request came from: business stakeholder, customer 
 - **An axis takes one tag or several.** On an axis that takes several, tagging adds to what the request has. On one that takes a single tag, choosing another replaces it. This is set when the axis is created and cannot change.
 - **Reviewers apply them.** An agent on the request's desk adds and removes tags, along the axes that desk uses. Everyone who can see the request sees its tags, including on a **Summary Only** desk, but the requester and participants cannot change them.
 - **Deactivating keeps what is already tagged.** A deactivated tag, or every tag on a deactivated axis, can no longer be applied, but requests that carry it keep it, and it can still be removed from them.
+- **Free tags sit on no axis.** On a desk that [allows free tags](#allowing-free-tags), agents can also give a request informal labels — *follow up in Q3*, *batch 7* — by typing them into **Free tags** in **Manage Tags**. A typed name that is already a tag on an axis the desk uses applies that tag instead. Free tags show after the tags on axes, never replace one, and are deleted once no request carries them. A free tag is listed in pickers and filters only to people who can see a request carrying it.
 
 ### Need-by date and its basis
 
@@ -323,6 +324,10 @@ Changing what a desk offers changes only what new requests and edits can choose.
 
 Changing what a desk uses changes only what its agents can apply. Requests keep every tag they already have, and anyone who can see a request still sees all its tags; the **Tags** filter on **Requests** still lists every axis.
 
+#### Allowing free tags
+
+**Allow free tags** in the desk's Settings lets the desk's agents add [free tags](#tags) — tags on no axis, typed in while tagging. It is off for a new desk, so a desk's filing stays on the company axes unless its Desk Admin chooses otherwise. Turning it off stops new free tags being added on the desk; requests keep the ones they carry, and they can still be removed.
+
 #### Choosing a desk's scoring model
 
 **Scoring Model** in the desk's Settings names the model the desk's agents [score its requests](#scoring-a-request) with, or **None**. **Change Scoring Model** lets a Desk Admin or the Demand Management Admin choose any active model, or clear it to stop scoring. Models are built in [Settings → Scoring Models](../settings/scoring-models.mdx), which needs the scoring model permissions; choosing one for a desk does not.
@@ -359,6 +364,12 @@ The Demand Management Admin keeps the [tag](#tags) axes in **Settings → Demand
 - **Drag a row by its grab handle** to reorder the axes, which is the order a request's tags are listed in.
 - **Deactivate** an axis or a tag to stop it being applied; requests that carry it keep it. **Activate** puts it back.
 - **Delete** removes an axis or a tag that no request carries. Once a request has it, deactivate it instead.
+
+The **Free tags** section of the same page lists the free tags agents have added, with how many requests carry each:
+
+- **Edit** changes a free tag's name or description. Names are unique among free tags, ignoring case.
+- **Merge into…** moves every request carrying a free tag, on every desk, to another tag and deletes the free tag — into another free tag to fold near-duplicates together, or into a tag on an axis to promote it: add the tag to its axis first, then merge into it.
+- **Delete** takes a free tag off every request carrying it and deletes it, without having to be unused first.
 
 Every change is recorded in the activity log.
 

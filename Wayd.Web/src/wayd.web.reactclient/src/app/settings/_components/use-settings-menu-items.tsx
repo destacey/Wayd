@@ -185,6 +185,17 @@ const buildSettingsMenuItems = (
       'system.sprint-metrics',
       '/settings/system/sprint-metrics',
     ),
+    // A Product Management setting, so hidden with the rest of that area.
+    ...(options.productManagement
+      ? [
+          restrictedPermissionMenuItem(
+            'Permissions.SystemSettings.View',
+            'Product Tags',
+            'system.product-tags',
+            '/settings/system/product-tags',
+          ),
+        ]
+      : []),
     restrictedPermissionMenuItem(
       'Permissions.FeatureFlags.View',
       'Feature Flags',

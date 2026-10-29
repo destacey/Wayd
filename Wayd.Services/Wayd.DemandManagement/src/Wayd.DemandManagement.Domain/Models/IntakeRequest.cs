@@ -7,6 +7,7 @@ using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Common.Domain.Tagging;
 using Wayd.DemandManagement.Domain.Models.Scoring;
 
 namespace Wayd.DemandManagement.Domain.Models;
@@ -730,42 +731,29 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// Needs an agent on the request's desk, which the caller checks: tagging is the reviewers' call, and the
     /// request's own people see tags without changing them. On an axis that takes one tag, this replaces the
     /// tag the request held there. Allowed whatever the request's status, because filing a closed request is
-    /// still filing. The axis must be one the request's desk offers; a tag already carried along an axis the desk
-    /// does not offer stays, and can be removed.
+    /// still filing. The axis must be one the request's desk offers, and a free tag needs a desk that allows them; a
+    /// tag already carried that the desk would no longer allow stays, and can be removed.
     /// </remarks>
     /// <param name="desk">The request's desk.</param>
-    /// <param name="category">The tag's axis, loaded by the caller; its <see cref="IntakeRequestTagCategory.AllowsMany"/> decides whether this replaces or adds.</param>
-    public Result Tag(IntakeRequestTag tag, IntakeRequestTagCategory category, IntakeDesk desk, EventActor actor, Instant timestamp)
+    /// <param name="category">
+    /// The tag's axis, loaded by the caller, or null for a free tag; its <see cref="IntakeRequestTagCategory.AllowsMany"/>
+    /// decides whether this replaces or adds.
+    /// </param>
+    public Result Tag(IntakeRequestTag tag, IntakeRequestTagCategory? category, IntakeDesk desk, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(tag);
-        Guard.Against.Null(category);
         Guard.Against.Null(desk);
-        if (tag.CategoryId != category.Id)
-            throw new ArgumentException("The tag must belong to the supplied axis.", nameof(category));
         if (desk.Id != DeskId)
             throw new ArgumentException("The desk must be the request's own.", nameof(desk));
 
-        if (!tag.IsActive || !category.IsActive)
+        if (!tag.IsActive || category is { IsActive: false })
             return Result.Failure(InactiveTagError);
 
-        if (!desk.Offers(category))
-            return Result.Failure(TagAxisNotOfferedError);
+        if (category is null ? !desk.AllowsFreeTags : !desk.Offers(category))
+            return Result.Failure(category is null ? FreeTagsNotAllowedError : TagAxisNotOfferedError);
 
-        if (_tags.Any(t => t.TagId == tag.Id))
-            return Result.Success();
-
-        Guid[] removed = [];
-        if (!category.AllowsMany)
-        {
-            removed = [.. _tags.Where(t => t.CategoryId == category.Id).Select(t => t.TagId)];
-            _tags.RemoveAll(t => t.CategoryId == category.Id);
-        }
-
-        _tags.Add(new IntakeRequestTagAssignment(Id, tag.Id, category.Id));
-
-        Guid[] added = [tag.Id];
-        var tagIds = TagIds();
-        RaiseWhenKeyed(() => new IntakeRequestTagsChangedEvent(Id, Key, added, removed, tagIds, actor, timestamp));
+        if (TagSet.Apply(_tags, tag, category, (tagId, categoryId) => new IntakeRequestTagAssignment(Id, tagId, categoryId)) is { } change)
+            RaiseWhenKeyed(() => new IntakeRequestTagsChangedEvent(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
 
         return Result.Success();
     }
@@ -773,12 +761,17 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// <summary>
     /// The failure for applying a tag, or a tag on an axis, that has been deactivated.
     /// </summary>
-    public const string InactiveTagError = "An inactive tag cannot be applied.";
+    public const string InactiveTagError = TagErrors.InactiveTag;
 
     /// <summary>
     /// The failure for applying a tag along an axis the request's desk does not offer.
     /// </summary>
     public const string TagAxisNotOfferedError = "This desk does not use that tag axis.";
+
+    /// <summary>
+    /// The failure for applying a free tag on a desk that does not allow them.
+    /// </summary>
+    public const string FreeTagsNotAllowedError = "This desk does not allow free tags.";
 
     /// <summary>
     /// Takes a tag off the request, inactive ones included. Succeeds whether or not the request carried it.
@@ -789,12 +782,30 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// </remarks>
     public Result Untag(Guid tagId, EventActor actor, Instant timestamp)
     {
-        if (_tags.RemoveAll(t => t.TagId == tagId) == 0)
-            return Result.Success();
+        if (TagSet.Remove(_tags, tagId) is { } change)
+            RaiseWhenKeyed(() => new IntakeRequestTagsChangedEvent(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
 
-        Guid[] removed = [tagId];
-        var tagIds = TagIds();
-        RaiseWhenKeyed(() => new IntakeRequestTagsChangedEvent(Id, Key, [], removed, tagIds, actor, timestamp));
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Swaps a tag the request carries for another in one change, as merging a free tag does. Succeeds, changing
+    /// nothing, when the request did not carry <paramref name="fromTagId"/>. Needs <see cref="Tags"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// An admin's correction across every desk, so the request's desk is not consulted: a merge files requests
+    /// under the tag they already meant, whatever their desk offers.
+    /// </remarks>
+    /// <param name="category">The new tag's axis, or null for a free tag, as for <see cref="Tag"/>.</param>
+    public Result ReplaceTag(Guid fromTagId, IntakeRequestTag tag, IntakeRequestTagCategory? category, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(tag);
+
+        if (!tag.IsActive || category is { IsActive: false })
+            return Result.Failure(InactiveTagError);
+
+        if (TagSet.Replace(_tags, fromTagId, tag, category, (tagId, categoryId) => new IntakeRequestTagAssignment(Id, tagId, categoryId)) is { } change)
+            RaiseWhenKeyed(() => new IntakeRequestTagsChangedEvent(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
 
         return Result.Success();
     }
@@ -1042,8 +1053,6 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     }
 
     private Guid[] ParticipantIds() => [.. _participants.Select(p => p.EmployeeId)];
-
-    private Guid[] TagIds() => [.. _tags.Select(t => t.TagId)];
 
     private Guid[] OutcomeTargetIds() => [.. _outcomes.Select(o => o.TargetId)];
 

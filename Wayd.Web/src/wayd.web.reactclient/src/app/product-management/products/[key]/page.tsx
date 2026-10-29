@@ -2,9 +2,8 @@
 
 import { PageActions } from '@/src/components/common'
 import { RecordLayout } from '@/src/components/common/record'
-import { TagList } from '@/src/components/common/tags'
+import { compareTags, TagList } from '@/src/components/common/tags'
 import { StatusHistoryTag } from '@/src/components/common/status-workflows'
-import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import type { RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
@@ -427,13 +426,14 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
                 // The axis rides on the chip as its qualifier: a bare "gold" does
                 // not say whether it is a tier, a platform or a compliance scope.
                 tags={[...(product.tags ?? [])]
-                  // By axis, then by tag — the same order the grid's Tags column
-                  // uses, so a product reads the same way in both places. Tag
-                  // assignments come back unordered.
-                  .sort(
-                    (a, b) =>
-                      caseInsensitiveCompare(a.categoryName, b.categoryName) ||
-                      caseInsensitiveCompare(a.tagName, b.tagName),
+                  // By axis, then by tag, with free tags after the axes — the same
+                  // order the details panel uses. Tag assignments come back
+                  // unordered.
+                  .sort((a, b) =>
+                    compareTags(
+                      { name: a.tagName, categoryName: a.categoryName },
+                      { name: b.tagName, categoryName: b.categoryName },
+                    ),
                   )
                   .map((tag) => ({
                     id: tag.tagId,

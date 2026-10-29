@@ -43,6 +43,7 @@ interface EditIntakeDeskSettingsFormValues {
   channelIds?: string[]
   offersAllTagCategories: boolean
   tagCategoryIds?: string[]
+  allowsFreeTags: boolean
 }
 
 /**
@@ -109,6 +110,7 @@ const EditIntakeDeskSettingsForm: FC<EditIntakeDeskSettingsFormProps> = ({
               tagCategoryIds: values.offersAllTagCategories
                 ? []
                 : (values.tagCategoryIds ?? desk.tagCategoryIds),
+              allowsFreeTags: values.allowsFreeTags,
             }),
           ).unwrap()
           messageApi.success('Desk updated.')
@@ -158,6 +160,7 @@ const EditIntakeDeskSettingsForm: FC<EditIntakeDeskSettingsFormProps> = ({
           channelIds: desk.channelIds,
           offersAllTagCategories: desk.offersAllTagCategories,
           tagCategoryIds: desk.tagCategoryIds,
+          allowsFreeTags: desk.allowsFreeTags,
         }}
       >
         <Item
@@ -299,6 +302,14 @@ const EditIntakeDeskSettingsForm: FC<EditIntakeDeskSettingsFormProps> = ({
               </Item>
             )
           }
+        </Item>
+        <Item
+          name="allowsFreeTags"
+          label="Allow free tags"
+          valuePropName="checked"
+          extra="Lets agents add their own tags, outside the tag axes, by typing a name. Turning it off keeps the free tags requests already carry."
+        >
+          <Switch />
         </Item>
         <Item
           name="isRequesterSelectable"

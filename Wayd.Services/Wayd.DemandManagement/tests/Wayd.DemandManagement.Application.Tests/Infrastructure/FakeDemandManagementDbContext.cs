@@ -20,6 +20,7 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
     private readonly List<IntakeDesk> _desks = [];
     private readonly List<IntakeRequest> _requests = [];
     private readonly List<IntakeRequestTagCategory> _tagCategories = [];
+    private readonly List<IntakeRequestTag> _tags = [];
     private readonly List<Employee> _employees = [];
     private readonly List<StatusTransition> _transitions = [];
     private readonly List<DemandProject> _projects = [];
@@ -30,6 +31,18 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
     public DbSet<IntakeDesk> IntakeDesks => _desks.AsDbSet();
     public DbSet<IntakeRequest> IntakeRequests => _requests.AsDbSet();
     public DbSet<IntakeRequestTagCategory> IntakeRequestTagCategories => _tagCategories.AsDbSet();
+    /// <summary>
+    /// Every tag: those added with <see cref="AddTags"/>, and those on the seeded axes, picked up on each read so a
+    /// test seeding an axis need not seed its tags twice.
+    /// </summary>
+    public DbSet<IntakeRequestTag> IntakeRequestTags
+    {
+        get
+        {
+            _tags.AddRange(_tagCategories.SelectMany(c => c.Tags).Where(t => !_tags.Contains(t)).ToList());
+            return _tags.AsDbSet();
+        }
+    }
     public IQueryable<Employee> Employees => _employees.AsDbSet();
     public IQueryable<StatusTransition> IntakeRequestStatusTransitions => _transitions.AsDbSet();
     public IQueryable<ScoringModel> ScoringModels => _scoringModels.AsDbSet();
@@ -62,6 +75,12 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
     public void AddEmployees(params Employee[] employees) => _employees.AddRange(employees);
     public void AddScoringModels(params ScoringModel[] models) => _scoringModels.AddRange(models);
     public void AddTagCategories(params IntakeRequestTagCategory[] categories) => _tagCategories.AddRange(categories);
+
+    /// <summary>
+    /// Adds tags to the set queries read. Kept apart from <see cref="AddTagCategories"/>: the fake does not see a
+    /// category's tags through this set, so a test seeds whichever tags its handler looks up here.
+    /// </summary>
+    public void AddTags(params IntakeRequestTag[] tags) => _tags.AddRange(tags);
     public void AddProjects(params DemandProject[] projects) => _projects.AddRange(projects);
 
     /// <summary>

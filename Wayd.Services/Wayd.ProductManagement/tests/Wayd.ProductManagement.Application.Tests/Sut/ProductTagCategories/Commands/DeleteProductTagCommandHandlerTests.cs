@@ -12,7 +12,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTagCategories.Comm
 public sealed class DeleteProductTagCommandHandlerTests : ProductCommandTestBase
 {
     private DeleteProductTagCommandHandler DeleteSut() =>
-        new(DbContext, Logger<DeleteProductTagCommandHandler>());
+        new(DbContext, CurrentUser.Object, CurrentPrincipal.Object, DateTimeProvider.Object, Logger<DeleteProductTagCommandHandler>());
 
     [Fact]
     public async Task Delete_ShouldRemoveAnUnusedTag()
@@ -51,7 +51,7 @@ public sealed class DeleteProductTagCommandHandlerTests : ProductCommandTestBase
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Products carry this tag and it cannot be deleted. Deactivate it instead.");
+        result.Error.Should().Be(ProductTagCategory.TagInUseError);
         category.Tags.Should().ContainSingle();
         DbContext.SaveChangesCallCount.Should().Be(0);
     }
@@ -70,7 +70,7 @@ public sealed class DeleteProductTagCommandHandlerTests : ProductCommandTestBase
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("That tag does not belong to this axis.");
+        result.Error.Should().Be(ProductTagCategory.TagNotFoundError);
         foreignCategory.Tags.Should().ContainSingle();
     }
 

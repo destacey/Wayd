@@ -1916,6 +1916,77 @@ public sealed class IntakeRequestTests
         act.Should().Throw<ArgumentException>();
     }
 
+    [Fact]
+    public void Tag_WithAFreeTagOnADeskAllowingThem_AddsItWithNoAxis()
+    {
+        // Arrange
+        var desk = new IntakeDeskFaker().WithAllowsFreeTags(true).Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(desk.Id).Generate();
+        var free = IntakeRequestTag.CreateFree("follow up in Q3", EventActor.System, _dateTimeProvider.Now).Value;
+
+        // Act
+        var result = sut.Tag(free, null, desk, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Tags.Should().ContainSingle().Which.CategoryId.Should().BeNull();
+        sut.DomainEvents.OfType<IntakeRequestTagsChangedEvent>().Should().ContainSingle().Which.Added.Should().Equal(free.Id);
+    }
+
+    [Fact]
+    public void Tag_WithAFreeTagOnADeskNotAllowingThem_Fails()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().WithDeskId(_tagDesk.Id).Generate();
+        var free = IntakeRequestTag.CreateFree("follow up in Q3", EventActor.System, _dateTimeProvider.Now).Value;
+
+        // Act
+        var result = sut.Tag(free, null, _tagDesk, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.FreeTagsNotAllowedError);
+        sut.Tags.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ReplaceTag_SwapsAFreeTagForATagOnAnAxisInOneEvent()
+    {
+        // Arrange
+        var desk = new IntakeDeskFaker().WithAllowsFreeTags(true).Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(desk.Id).Generate();
+        var free = IntakeRequestTag.CreateFree("payment", EventActor.System, _dateTimeProvider.Now).Value;
+        var area = new IntakeRequestTagCategoryFaker().WithTags("Payments").Generate();
+        sut.Tag(free, null, desk, EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.ReplaceTag(free.Id, area.Tags.Single(), area, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Tags.Should().ContainSingle().Which.TagId.Should().Be(area.Tags.Single().Id);
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestTagsChangedEvent>().Subject;
+        changed.Added.Should().Equal(area.Tags.Single().Id);
+        changed.Removed.Should().Equal(free.Id);
+    }
+
+    [Fact]
+    public void ReplaceTag_WhenTheRequestDoesNotCarryTheOldTag_RaisesNothing()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker().WithDeskId(_tagDesk.Id).Generate();
+        var area = new IntakeRequestTagCategoryFaker().WithTags("Payments").Generate();
+
+        // Act
+        var result = sut.ReplaceTag(Guid.NewGuid(), area.Tags.Single(), area, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Tags.Should().BeEmpty();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
     #endregion Tags
 
     #region Scoring

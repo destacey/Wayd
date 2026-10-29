@@ -30,12 +30,18 @@ public sealed class RenameProductTagCommandValidator : AbstractValidator<RenameP
 
 public sealed class RenameProductTagCommandHandler(
     IProductManagementDbContext productManagementDbContext,
+    ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
+    IDateTimeProvider dateTimeProvider,
     ILogger<RenameProductTagCommandHandler> logger)
     : ICommandHandler<RenameProductTagCommand>
 {
     private const string AppRequestName = nameof(RenameProductTagCommand);
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<RenameProductTagCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(RenameProductTagCommand request, CancellationToken cancellationToken)
@@ -52,7 +58,8 @@ public sealed class RenameProductTagCommandHandler(
                 return Result.Failure("Tag category not found.");
             }
 
-            var result = category.RenameTag(request.TagId, request.Name, request.Description);
+            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+            var result = category.UpdateTagDetails(request.TagId, request.Name, request.Description, actor, _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogInformation(

@@ -1,3 +1,4 @@
+using Wayd.DemandManagement.Application.IntakeRequestTags;
 using Wayd.Common.Domain.Events;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
@@ -44,12 +45,15 @@ public sealed class UntagIntakeRequestCommandHandler(
         if (!reader.IsAgentOn(intakeRequest.DeskId))
             return Result.Failure(IntakeRequestAuthorization.NotAnAgentError);
 
-        var result = intakeRequest.Untag(request.TagId,
-            EventActor.User(_currentUser.GetUserId(), reader.EmployeeId), _dateTimeProvider.Now);
+        var actor = EventActor.User(_currentUser.GetUserId(), reader.EmployeeId);
+        var now = _dateTimeProvider.Now;
+        var result = intakeRequest.Untag(request.TagId, actor, now);
         if (result.IsFailure)
             return result;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await FreeIntakeRequestTags.DeleteUnused(_dbContext, [request.TagId], actor, now, cancellationToken);
 
         return Result.Success();
     }

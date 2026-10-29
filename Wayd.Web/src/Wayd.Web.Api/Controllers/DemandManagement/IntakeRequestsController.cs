@@ -293,18 +293,36 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     [McpTool("IntakeRequests_Tag", "Tag intake request")]
     [Authorize]
     [EndpointSummary("File an intake request under a tag.")]
-    [EndpointDescription("Needs an agent on the request's desk. The tag must be active, on an active axis. On an axis that takes one tag, this replaces the tag the request held there. Applying a tag the request already carries changes nothing.")]
+    [EndpointDescription("Needs an agent on the request's desk. The tag must be active, on an active axis the desk offers. On an axis that takes one tag, this replaces the tag the request held there. Applying a tag the request already carries changes nothing.\n\nA free tag — one on no axis, from `IntakeRequestTags_Search` with `isFree` — can be applied too, on a desk that allows free tags. To apply one by name, creating it if needed, use `IntakeRequests_TagByName`.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult> Tag(Guid id, Guid tagId, CancellationToken cancellationToken) =>
         NoContentOrError(await _dispatcher.Send(new TagIntakeRequestCommand(id, tagId), cancellationToken));
 
+    [HttpPost("{id}/tags")]
+    [McpTool("IntakeRequests_TagByName", "Tag intake request by name")]
+    [Authorize]
+    [EndpointSummary("File an intake request under a typed name, creating a free tag when no tag has it.")]
+    [EndpointDescription("Needs an agent on the request's desk. Returns the id of the tag applied. **When exactly one active tag on an axis the desk offers has the name, ignoring case, that tag is applied** — with the same single-value replacement as `IntakeRequests_Tag`. When more than one such axis has it the call is refused: apply the one meant with `IntakeRequests_Tag`.\n\nOtherwise the free tag with the name is applied — a tag on no axis — and created when none has it yet. That needs a desk that allows free tags (`allowsFreeTags` on the desk); otherwise this is refused. Names are trimmed and runs of whitespace collapsed, at most 64 characters.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<Guid>> TagByName(Guid id, [FromBody] TagIntakeRequestByNameRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new TagIntakeRequestByNameCommand(id, request.Name), cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : ErrorResult(result);
+    }
+
     [HttpDelete("{id}/tags/{tagId}")]
     [McpTool("IntakeRequests_Untag", "Untag intake request")]
     [Authorize]
     [EndpointSummary("Take a tag off an intake request.")]
-    [EndpointDescription("Needs an agent on the request's desk. Works for an inactive tag too. Removing a tag the request does not carry changes nothing.")]
+    [EndpointDescription("Needs an agent on the request's desk. Works for an inactive tag too. Removing a tag the request does not carry changes nothing. A free tag no other request carries is deleted with it.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

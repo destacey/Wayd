@@ -287,6 +287,32 @@ export const productsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.Product, id: 'LIST' },
         { type: QueryTags.Product, id: arg.id },
+        // Product counts on every tag list.
+        { type: QueryTags.ProductTag, id: 'LIST' },
+        { type: QueryTags.ProductTagCategory, id: 'LIST' },
+      ],
+    }),
+    /**
+     * Tags a product by a typed name: the tag on a category with that name when
+     * exactly one has it, otherwise the free tag, created when none has it yet.
+     * Returns the id of the tag applied.
+     */
+    tagProductByName: builder.mutation<string, { id: string; name: string }>({
+      queryFn: async ({ id, name }) => {
+        try {
+          const data = await getProductsClient().tagByName(id, { name })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.Product, id: 'LIST' },
+        { type: QueryTags.Product, id: arg.id },
+        // A new free tag appears in the free tag list; any tag's count changes.
+        { type: QueryTags.ProductTag, id: 'LIST' },
+        { type: QueryTags.ProductTagCategory, id: 'LIST' },
       ],
     }),
     untagProduct: builder.mutation<void, { id: string; tagId: string }>({
@@ -302,6 +328,9 @@ export const productsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.Product, id: 'LIST' },
         { type: QueryTags.Product, id: arg.id },
+        // Counts change, and a free tag nothing carries any more is deleted.
+        { type: QueryTags.ProductTag, id: 'LIST' },
+        { type: QueryTags.ProductTagCategory, id: 'LIST' },
       ],
     }),
     deleteProduct: builder.mutation<void, string>({
@@ -314,7 +343,11 @@ export const productsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: () => [{ type: QueryTags.Product, id: 'LIST' }],
+      invalidatesTags: () => [
+        { type: QueryTags.Product, id: 'LIST' },
+        // Deleting a product deletes the free tags only it carried.
+        { type: QueryTags.ProductTag, id: 'LIST' },
+      ],
     }),
 
     /**
@@ -479,6 +512,7 @@ export const {
   useChangeProductStatusMutation,
   useTagProductMutation,
   useUntagProductMutation,
+  useTagProductByNameMutation,
   useDeleteProductMutation,
   useGetProductDependenciesQuery,
   useAddProductDependencyMutation,

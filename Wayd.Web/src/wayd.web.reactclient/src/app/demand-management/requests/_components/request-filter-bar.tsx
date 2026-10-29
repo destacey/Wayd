@@ -11,6 +11,7 @@ import {
   IntakeRequestTagCategoryDto,
 } from '@/src/services/wayd-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
+import { useSearchIntakeRequestTagsQuery } from '@/src/store/features/demand-management/demand-management-api'
 import { WaydTooltip } from '@/src/components/common'
 import { ClearOutlined, FilterOutlined } from '@ant-design/icons'
 import {
@@ -98,8 +99,38 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
   const perDesk = countBy(requests, (r) => r.desk.id)
   const perStatus = countBy(requests, (r) => r.status.name)
   const perTag = new Map<string, number>()
+  // Free tags have no axis to list them under, so they come from the requests in scope — which also keeps
+  // the list to free tags the reader can already see.
+  const freeTags = new Map<string, string>()
   for (const r of requests ?? [])
-    for (const t of r.tags) perTag.set(t.id, (perTag.get(t.id) ?? 0) + 1)
+    for (const t of r.tags) {
+      perTag.set(t.id, (perTag.get(t.id) ?? 0) + 1)
+      if (!t.categoryId) freeTags.set(t.id, t.name)
+    }
+
+  // A selected free tag no request in scope carries — after switching scope, or
+  // from a shared link — still needs its name, or its chip reads as an id. The
+  // search returns only free tags the reader may see, so it discloses nothing.
+  const axisTagIds = new Set(
+    (tagCategories ?? []).flatMap((c) => c.tags.map((t) => t.id)),
+  )
+  const unlabelled = filters.tagIds.filter(
+    (id) => !axisTagIds.has(id) && !freeTags.has(id),
+  )
+  const { data: searchedFreeTags } = useSearchIntakeRequestTagsQuery(
+    { isFree: true },
+    { skip: unlabelled.length === 0 },
+  )
+  for (const id of unlabelled) {
+    const known = searchedFreeTags?.find((t) => t.id === id)
+    freeTags.set(id, known?.name ?? 'Unavailable tag')
+  }
+  const freeTagOptions = [...freeTags]
+    .sort(([, a], [, b]) => caseInsensitiveCompare(a, b))
+    .map(([id, name]) => ({
+      value: id,
+      label: `${name} (${perTag.get(id) ?? 0})`,
+    }))
   const controlClass = stacked ? styles.stackedControl : styles.control
   const current = matchingView(filters)
 
@@ -235,8 +266,11 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
           { value: NOT_RECORDED_CHANNEL, label: NOT_RECORDED_CHANNEL_LABEL },
         ]}
       />
-      {/* Hidden until some axis has a tag: the seeded axis starts empty. */}
-      {tagCategories?.some((c) => c.tags.length > 0) && (
+      {/* Hidden until there is a tag to pick, since the seeded axis starts empty — but
+          never while a tag filter is applied, or it could not be cleared. */}
+      {(tagCategories?.some((c) => c.tags.length > 0) ||
+        freeTagOptions.length > 0 ||
+        filters.tagIds.length > 0) && (
         <Select
           className={controlClass}
           mode="multiple"
@@ -247,17 +281,28 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
           value={filters.tagIds}
           onChange={(tagIds) => set({ tagIds })}
           optionFilterProp="label"
-          // Grouped by axis, since the same label can sit on two axes.
-          options={(tagCategories ?? [])
-            .filter((c) => c.tags.length > 0)
-            .map((c) => ({
-              label: c.name,
-              title: c.name,
-              options: c.tags.map((t) => ({
-                value: t.id,
-                label: `${t.isActive ? t.name : `${t.name} (Inactive)`} (${perTag.get(t.id) ?? 0})`,
+          // Grouped by axis, since the same label can sit on two axes; free tags, on none, last.
+          options={[
+            ...(tagCategories ?? [])
+              .filter((c) => c.tags.length > 0)
+              .map((c) => ({
+                label: c.name,
+                title: c.name,
+                options: c.tags.map((t) => ({
+                  value: t.id,
+                  label: `${t.isActive ? t.name : `${t.name} (Inactive)`} (${perTag.get(t.id) ?? 0})`,
+                })),
               })),
-            }))}
+            ...(freeTagOptions.length > 0
+              ? [
+                  {
+                    label: 'Free tags',
+                    title: 'Free tags',
+                    options: freeTagOptions,
+                  },
+                ]
+              : []),
+          ]}
         />
       )}
     </>

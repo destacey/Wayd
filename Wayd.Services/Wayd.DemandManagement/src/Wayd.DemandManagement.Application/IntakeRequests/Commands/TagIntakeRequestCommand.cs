@@ -1,3 +1,4 @@
+using Wayd.DemandManagement.Domain.Models;
 using Wayd.Common.Domain.Events;
 using Wayd.DemandManagement.Application.IntakeRequestTagCategories;
 
@@ -50,12 +51,18 @@ public sealed class TagIntakeRequestCommandHandler(
         if (!reader.IsAgentOn(intakeRequest.DeskId))
             return Result.Failure(IntakeRequestAuthorization.NotAnAgentError);
 
-        var category = await _dbContext.IntakeRequestTagCategories
-            .Include(c => c.Tags)
-            .FirstOrDefaultAsync(c => c.Tags.Any(t => t.Id == request.TagId), cancellationToken);
-        var tag = category?.Tags.First(t => t.Id == request.TagId);
-        if (category is null || tag is null)
+        var tag = await _dbContext.IntakeRequestTags.FirstOrDefaultAsync(t => t.Id == request.TagId, cancellationToken);
+        if (tag is null)
             return Result.Failure(IntakeRequestTagCategoryErrors.TagNotFoundError);
+
+        IntakeRequestTagCategory? category = null;
+        if (!tag.IsFree)
+        {
+            category = await _dbContext.IntakeRequestTagCategories
+                .FirstOrDefaultAsync(c => c.Id == tag.CategoryId, cancellationToken);
+            if (category is null)
+                return Result.Failure(IntakeRequestTagCategoryErrors.TagNotFoundError);
+        }
 
         var desk = await _dbContext.IntakeDesks
             .Include(d => d.TagCategories)

@@ -12,7 +12,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTagCategories.Comm
 public sealed class SetProductTagCategoryActiveCommandHandlerTests : ProductCommandTestBase
 {
     private SetProductTagCategoryActiveCommandHandler ActivationSut() =>
-        new(DbContext, Logger<SetProductTagCategoryActiveCommandHandler>());
+        new(DbContext, CurrentUser.Object, CurrentPrincipal.Object, DateTimeProvider.Object, Logger<SetProductTagCategoryActiveCommandHandler>());
 
     [Fact]
     public async Task Deactivate_ShouldTakeTheAxisOutOfUse()
@@ -31,7 +31,7 @@ public sealed class SetProductTagCategoryActiveCommandHandlerTests : ProductComm
     }
 
     [Fact]
-    public async Task Activate_ShouldFail_WhenAlreadyActive()
+    public async Task Activate_ShouldSucceedAndChangeNothing_WhenAlreadyActive()
     {
         // Arrange
         var (category, _) = SeedTag();
@@ -42,7 +42,9 @@ public sealed class SetProductTagCategoryActiveCommandHandlerTests : ProductComm
             new SetProductTagCategoryActiveCommand(category.Id, true), TestContext.Current.CancellationToken);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("This tag category is already active.");
+        // Asking for the state it is already in is not an error, and an event would claim a change that did not happen.
+        result.IsSuccess.Should().BeTrue();
+        category.IsActive.Should().BeTrue();
+        category.DomainEvents.Should().BeEmpty();
     }
 }

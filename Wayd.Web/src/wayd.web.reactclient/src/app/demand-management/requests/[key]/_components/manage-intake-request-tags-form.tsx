@@ -4,7 +4,10 @@ import { ManageTagsForm, TagChanges } from '@/src/components/common/tags'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { IntakeRequestDetailsDto } from '@/src/services/wayd-api'
 import {
+  useGetIntakeDeskQuery,
   useGetIntakeRequestTagCategoriesQuery,
+  useSearchIntakeRequestTagsQuery,
+  useTagIntakeRequestByNameMutation,
   useTagIntakeRequestMutation,
   useUntagIntakeRequestMutation,
 } from '@/src/store/features/demand-management/demand-management-api'
@@ -30,6 +33,16 @@ const ManageIntakeRequestTagsForm = ({
 
   const [tagRequest] = useTagIntakeRequestMutation()
   const [untagRequest] = useUntagIntakeRequestMutation()
+  const [tagRequestByName] = useTagIntakeRequestByNameMutation()
+
+  // Free tags are the desk's choice. Where it does not allow them the field is not offered, and the free
+  // tags the request carries are left alone rather than offered for removal.
+  const { data: desk, isLoading: deskLoading } = useGetIntakeDeskQuery(
+    summary.desk.id,
+  )
+  const allowsFreeTags = !!desk?.allowsFreeTags
+  const { data: freeTags, isLoading: freeTagsLoading } =
+    useSearchIntakeRequestTagsQuery({ isFree: true }, { skip: !allowsFreeTags })
 
   // The axes the request's desk offers, so its agents choose only from what applies to them.
   const { data: offered, isLoading: offeredLoading } =
@@ -38,7 +51,7 @@ const ManageIntakeRequestTagsForm = ({
   // here keeps it — so that tag can still be removed. Not offered for new tags beyond what it carries.
   const { data: all, isLoading: allLoading } =
     useGetIntakeRequestTagCategoriesQuery({ includeInactive: true })
-  const isLoading = offeredLoading || allLoading
+  const isLoading = offeredLoading || allLoading || deskLoading
   const offeredIds = new Set((offered ?? []).map((c) => c.id))
   const carriedOnly = (all ?? [])
     .filter(
@@ -52,10 +65,10 @@ const ManageIntakeRequestTagsForm = ({
     }))
   const categories = [...(offered ?? []), ...carriedOnly]
 
-  const onSave = async ({ added, removed }: TagChanges) => {
+  const onSave = async ({ added, removed, addedNames }: TagChanges) => {
     // Each change is its own request, so a failure part-way leaves the earlier ones applied.
     let applied = 0
-    const total = removed.length + added.length
+    const total = removed.length + added.length + addedNames.length
 
     try {
       // Removals first: on a single-value axis, tagging first would replace the tag and the untag would
@@ -67,6 +80,12 @@ const ManageIntakeRequestTagsForm = ({
       }
       for (const tagId of added) {
         const response = await tagRequest({ requestId: summary.id, tagId })
+        if (response.error) throw response.error
+        applied++
+      }
+      // Typed names last: the server applies a matching tag or creates the free tag.
+      for (const name of addedNames) {
+        const response = await tagRequestByName({ requestId: summary.id, name })
         if (response.error) throw response.error
         applied++
       }
@@ -103,6 +122,19 @@ const ManageIntakeRequestTagsForm = ({
         tags: c.tags,
       }))}
       categoriesLoading={isLoading}
+      freeTags={
+        allowsFreeTags
+          ? {
+              options: (freeTags ?? []).map((t) => ({
+                id: t.id,
+                name: t.name,
+                description: t.description,
+                isActive: t.isActive,
+              })),
+              loading: freeTagsLoading,
+            }
+          : undefined
+      }
       tags={summary.tags.map((t) => ({
         tagId: t.id,
         tagName: t.name,

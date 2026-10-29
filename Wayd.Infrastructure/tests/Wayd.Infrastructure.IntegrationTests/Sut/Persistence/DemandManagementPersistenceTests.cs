@@ -423,6 +423,81 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
             .Should().Be(2);
     }
 
+    [Fact]
+    public async Task SaveChanges_AFreeTagOnARequest_RoundTripsWithNoAxisAndRecordsItsCreation()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await using var context = _fixture.CreateContext();
+        var (desk, _) = await SeedDeskAndChannel(context);
+        desk.ChangeFreeTags(true, EventActor.System, Now).IsSuccess.Should().BeTrue();
+        var requester = await SeedEmployee(context);
+        var request = IntakeRequest.Create("Title", "Description", null, requester.Id, requester.Id, desk, null, null,
+            null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
+        context.IntakeRequests.Add(request);
+        await context.SaveChangesAsync(ct);
+        var free = IntakeRequestTag.CreateFree(UniqueName("follow up"), EventActor.System, Now).Value;
+
+        // Act
+        context.IntakeRequestTags.Add(free);
+        request.Tag(free, null, desk, EventActor.System, Now).IsSuccess.Should().BeTrue();
+        await context.SaveChangesAsync(ct);
+
+        // Assert
+        await using var reader = _fixture.CreateContext();
+        (await reader.IntakeDesks.AsNoTracking().SingleAsync(d => d.Id == desk.Id, ct)).AllowsFreeTags.Should().BeTrue();
+        (await reader.IntakeRequestTags.AsNoTracking().SingleAsync(t => t.Id == free.Id, ct)).CategoryId.Should().BeNull();
+        var saved = await reader.IntakeRequests.AsNoTracking().Include(r => r.Tags).SingleAsync(r => r.Id == request.Id, ct);
+        saved.Tags.Should().ContainSingle().Which.CategoryId.Should().BeNull();
+        (await reader.ActivityLogs.AsNoTracking()
+            .AnyAsync(a => a.AggregateId == free.Id && a.EventType == nameof(IntakeRequestFreeTagCreatedEvent), ct))
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SaveChanges_ASecondFreeTagWithTheSameNameInAnotherCase_IsRefused()
+    {
+        // Arrange — the unique index must treat free tags' empty axes as equal
+        var ct = TestContext.Current.CancellationToken;
+        var name = UniqueName("wave");
+        await using (var context = _fixture.CreateContext())
+        {
+            context.IntakeRequestTags.Add(IntakeRequestTag.CreateFree(name, EventActor.System, Now).Value);
+            await context.SaveChangesAsync(ct);
+        }
+
+        // Act
+        Func<Task> act = async () =>
+        {
+            await using var context = _fixture.CreateContext();
+            context.IntakeRequestTags.Add(IntakeRequestTag.CreateFree(name.ToUpperInvariant(), EventActor.System, Now).Value);
+            await context.SaveChangesAsync(ct);
+        };
+
+        // Assert
+        await act.Should().ThrowAsync<DbUpdateException>();
+    }
+
+    [Fact]
+    public async Task SaveChanges_AFreeTagNamedLikeATagOnAnAxis_IsAllowed()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var name = UniqueName("Payments");
+        await using var context = _fixture.CreateContext();
+        var category = IntakeRequestTagCategory.Create(UniqueName("Axis"), null, allowsMany: true, 1, EventActor.System, Now);
+        category.AddTag(name, null, EventActor.System, Now).IsSuccess.Should().BeTrue();
+        context.IntakeRequestTagCategories.Add(category);
+        await context.SaveChangesAsync(ct);
+
+        // Act
+        context.IntakeRequestTags.Add(IntakeRequestTag.CreateFree(name, EventActor.System, Now).Value);
+        var act = async () => await context.SaveChangesAsync(ct);
+
+        // Assert
+        await act.Should().NotThrowAsync();
+    }
+
     private static async Task<ScoringModel> SeedActiveScoringModel(WaydDbContext context)
     {
         var model = ScoringModel.Create(UniqueName("Model"), "Scores intake requests.", EventActor.System, Now,

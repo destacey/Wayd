@@ -20,12 +20,18 @@ public sealed class DeleteProductTagCategoryCommandValidator : AbstractValidator
 
 public sealed class DeleteProductTagCategoryCommandHandler(
     IProductManagementDbContext productManagementDbContext,
+    ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
+    IDateTimeProvider dateTimeProvider,
     ILogger<DeleteProductTagCategoryCommandHandler> logger)
     : ICommandHandler<DeleteProductTagCategoryCommand>
 {
     private const string AppRequestName = nameof(DeleteProductTagCategoryCommand);
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<DeleteProductTagCategoryCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeleteProductTagCategoryCommand request, CancellationToken cancellationToken)
@@ -42,15 +48,16 @@ public sealed class DeleteProductTagCategoryCommandHandler(
                 return Result.Failure("Tag category not found.");
             }
 
-            if (category.IsSystem)
-            {
-                return Result.Failure("System tag categories cannot be deleted. Deactivate it instead.");
-            }
+            var isInUse = await _productManagementDbContext.ProductTagAssignments
+                .AnyAsync(a => a.CategoryId == request.Id, cancellationToken);
 
-            if (await _productManagementDbContext.ProductTagAssignments
-                    .AnyAsync(a => a.CategoryId == request.Id, cancellationToken))
+            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+            var result = category.Delete(isInUse, actor, _dateTimeProvider.Now);
+            if (result.IsFailure)
             {
-                return Result.Failure("Products are tagged along this axis and it cannot be deleted. Deactivate it instead.");
+                _logger.LogInformation(
+                    "Unable to delete Product Tag Category {CategoryId}. Error message: {Error}", request.Id, result.Error);
+                return result;
             }
 
             _productManagementDbContext.ProductTagCategories.Remove(category);

@@ -69,6 +69,13 @@ public static class IntakeDeskFakerExtensions
         return faker;
     }
 
+    public static IntakeDeskFaker WithAllowsFreeTags(this IntakeDeskFaker faker, bool allowsFreeTags)
+    {
+        faker.RuleFor(x => x.AllowsFreeTags, allowsFreeTags);
+
+        return faker;
+    }
+
     public static IntakeDeskFaker WithRequesterMayAddParticipants(this IntakeDeskFaker faker, bool requesterMayAddParticipants)
     {
         faker.RuleFor(x => x.RequesterMayAddParticipants, requesterMayAddParticipants);

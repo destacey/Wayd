@@ -1,85 +1,56 @@
-using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
+using NodaTime;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.ProductManagement;
+using Wayd.Common.Domain.Tagging;
 
 namespace Wayd.ProductManagement.Domain.Models;
 
 /// <summary>
-/// One label on one axis — <c>ios</c> on Platform, <c>pci-scope</c> on Compliance.
+/// One label on one product axis — <c>ios</c> on Platform, <c>pci-scope</c> on Compliance — or a free tag on no
+/// axis, such as "migration wave 2".
 /// </summary>
 /// <remarks>
-/// A row rather than a string on the product, so the list can populate a picker, a rename happens once
-/// rather than across every product, and "everything tagged ios" is a join rather than a scan.
-/// <para>
-/// Descriptive only. Nothing in the domain branches on a tag — behaviour comes from the product's type
-/// — so adding one can never change what a node is allowed to do.
-/// </para>
+/// Descriptive only. Nothing in the domain branches on a tag — behaviour comes from the product's type — so adding
+/// one can never change what a node is allowed to do. A tag on an axis changes only through
+/// <see cref="ProductTagCategory"/>.
 /// </remarks>
-public sealed class ProductTag : BaseAuditableEntity
+public sealed class ProductTag : TagBase
 {
     private ProductTag() { }
 
     internal ProductTag(Guid categoryId, string name, string? description)
+        : base(categoryId, name, description)
     {
-        CategoryId = categoryId;
-        Name = name;
-        Description = description;
     }
 
-    /// <summary>The axis this tag belongs to.</summary>
-    public Guid CategoryId { get; private init; }
-
-    /// <summary>The label. Unique within its axis.</summary>
-    public string Name
+    private ProductTag(string normalizedName)
+        : base(normalizedName)
     {
-        get;
-        private set => field = Guard.Against.NullOrWhiteSpace(value, nameof(Name)).Trim();
-    } = default!;
-
-    /// <summary>What the label means, where it is not obvious.</summary>
-    public string? Description
-    {
-        get;
-        private set => field = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     /// <summary>
-    /// Whether products can still be tagged with this. Products already carrying it keep it.
+    /// Creates a free tag from a name someone typed while tagging. The caller checks that no free tag already has
+    /// the name, and applies that one instead; the database refuses a duplicate regardless.
     /// </summary>
-    public bool IsActive { get; private set; } = true;
-
-    /// <summary>
-    /// Renames the tag. Safe: products reference it by id, so the new name shows everywhere at once —
-    /// which is the point of a curated list over free text.
-    /// </summary>
-    internal void Rename(string name, string? description)
+    public static Result<ProductTag> CreateFree(string name, EventActor actor, Instant timestamp)
     {
-        Name = name;
-        Description = description;
+        var validated = ValidateFreeName(name);
+        if (validated.IsFailure)
+            return Result.Failure<ProductTag>(validated.Error);
+
+        var tag = new ProductTag(validated.Value);
+        tag.RaiseFreeTagCreated(actor, timestamp);
+
+        return tag;
     }
 
-    /// <summary>Takes the tag out of use without removing it from what already carries it.</summary>
-    public Result Deactivate()
-    {
-        if (!IsActive)
-        {
-            return Result.Failure("This tag is already inactive.");
-        }
+    protected override DomainEvent FreeTagCreatedEvent(EventActor actor, Instant timestamp) =>
+        new ProductFreeTagCreatedEvent(Id, Name, actor, timestamp);
 
-        IsActive = false;
+    protected override DomainEvent FreeTagDetailsUpdatedEvent(string previousName, string? previousDescription, EventActor actor, Instant timestamp) =>
+        new ProductFreeTagDetailsUpdatedEvent(Id, Name, Description, previousName, previousDescription, actor, timestamp);
 
-        return Result.Success();
-    }
-
-    /// <summary>Puts the tag back into use.</summary>
-    public Result Activate()
-    {
-        if (IsActive)
-        {
-            return Result.Failure("This tag is already active.");
-        }
-
-        IsActive = true;
-
-        return Result.Success();
-    }
+    protected override DomainEvent FreeTagDeletedEvent(Guid? mergedIntoTagId, EventActor actor, Instant timestamp) =>
+        new ProductFreeTagDeletedEvent(Id, Name, mergedIntoTagId, actor, timestamp);
 }

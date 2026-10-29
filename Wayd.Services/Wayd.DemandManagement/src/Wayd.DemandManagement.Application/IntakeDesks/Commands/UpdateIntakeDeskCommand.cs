@@ -48,6 +48,10 @@ namespace Wayd.DemandManagement.Application.IntakeDesks.Commands;
 /// The tag axes the desk offers when it does not offer them all; empty means none, and null keeps the ones it has.
 /// Ignored unless <paramref name="OffersAllTagCategories"/> is false. A newly chosen axis must be active.
 /// </param>
+/// <param name="AllowsFreeTags">
+/// Whether the desk's agents may add free tags — tags on no axis, typed in while tagging; null keeps the desk's
+/// setting.
+/// </param>
 public sealed record UpdateIntakeDeskCommand(
     Guid Id,
     string Name,
@@ -61,7 +65,8 @@ public sealed record UpdateIntakeDeskCommand(
     IReadOnlyList<IntakeDeskMemberDetails> Members,
     int ExpectedRevision,
     bool? OffersAllTagCategories = null,
-    IReadOnlyList<Guid>? TagCategoryIds = null) : ICommand;
+    IReadOnlyList<Guid>? TagCategoryIds = null,
+    bool? AllowsFreeTags = null) : ICommand;
 
 public sealed class UpdateIntakeDeskCommandValidator : CustomValidator<UpdateIntakeDeskCommand>
 {
@@ -173,6 +178,7 @@ public sealed class UpdateIntakeDeskCommandHandler(
             desk.ChangeRequesterSettings(request.IsRequesterSelectable, request.RequesterMayAddParticipants, actor, now),
             desk.ChangeChannels(offersAllChannels, channelIds, actor, now),
             desk.ChangeTagCategories(offersAllTagCategories, tagCategoryIds, actor, now),
+            desk.ChangeFreeTags(request.AllowsFreeTags ?? desk.AllowsFreeTags, actor, now),
             desk.ChangeMembers(request.Members, actor, now));
         if (result.IsFailure)
             return result;

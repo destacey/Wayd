@@ -12,7 +12,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTagCategories.Comm
 public sealed class AddProductTagCommandHandlerTests : ProductCommandTestBase
 {
     private AddProductTagCommandHandler AddSut() =>
-        new(DbContext, Logger<AddProductTagCommandHandler>());
+        new(DbContext, CurrentUser.Object, CurrentPrincipal.Object, DateTimeProvider.Object, Logger<AddProductTagCommandHandler>());
 
     [Fact]
     public async Task Add_ShouldAddTheTag()
@@ -45,7 +45,7 @@ public sealed class AddProductTagCommandHandlerTests : ProductCommandTestBase
         // Only caught because the handler loaded the existing tags - the category cannot compare
         // against siblings it has not got.
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("A tag named 'iOS' already exists on this axis.");
+        result.Error.Should().Be(ProductTagCategory.DuplicateTagNameError);
     }
 
     [Fact]

@@ -5,6 +5,7 @@ using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Common.Domain.Tagging;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.DemandManagement.Domain.Models.Scoring;
 using Wayd.Infrastructure.Persistence.Converters;
@@ -51,6 +52,7 @@ public class IntakeDeskConfiguration : IEntityTypeConfiguration<IntakeDesk>
         builder.Property(d => d.RequesterMayAddParticipants).IsRequired();
         builder.Property(d => d.OffersAllChannels).IsRequired();
         builder.Property(d => d.OffersAllTagCategories).IsRequired();
+        builder.Property(d => d.AllowsFreeTags).IsRequired();
 
         builder.HasIndex(d => d.ScoringModelId);
         builder.HasOne<ScoringModel>()
@@ -469,10 +471,13 @@ public class IntakeRequestTagConfiguration : IEntityTypeConfiguration<IntakeRequ
         builder.ToTable("IntakeRequestTags", SchemaNames.DemandManagement);
 
         builder.HasKey(t => t.Id);
-        builder.HasIndex(t => new { t.CategoryId, t.Name }).IsUnique();
+
+        // Free tags have no axis and are unique among themselves: no filter, so SQL Server treats their null axes
+        // as equal.
+        builder.HasIndex(t => new { t.CategoryId, t.Name }).IsUnique().HasFilter(null);
 
         builder.Property(t => t.Id).ValueGeneratedNever();
-        builder.Property(t => t.Name).IsRequired().HasMaxLength(64);
+        builder.Property(t => t.Name).IsRequired().HasMaxLength(TagBase.NameMaxLength);
         builder.Property(t => t.Description).HasMaxLength(512);
         builder.Property(t => t.IsActive).IsRequired();
     }

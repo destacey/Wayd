@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Wayd.Common.Domain.Events;
+using Wayd.Infrastructure.Persistence.Activities;
 using Wayd.ProductManagement.Domain.Models;
 
 namespace Wayd.Infrastructure.Persistence.Initialization;
@@ -34,7 +36,7 @@ public class ProductTypeSeeder : ICustomSeeder
         // Guarded on its own count rather than sharing the types guard below: an install holding types
         // but no axes would otherwise never get the Platform axis, and there is no recovery — the axis
         // is IsSystem, and the create command only makes non-system ones.
-        var seededAxes = await SeedTagCategories(dbContext, cancellationToken);
+        var seededAxes = await SeedTagCategories(dbContext, dateTimeProvider, cancellationToken);
 
         if (await dbContext.ProductTypes.AnyAsync(cancellationToken))
         {
@@ -87,9 +89,14 @@ public class ProductTypeSeeder : ICustomSeeder
     /// which ones an organization needs is exactly what cannot be guessed, and an unwanted seeded axis is
     /// something every organization has to remove.
     /// </para>
+    /// <para>
+    /// The axis's events are written straight into the activity log rather than left for <c>SaveChanges</c>
+    /// to drain, because draining also publishes and Wolverine cannot route while seeders run.
+    /// </para>
     /// </remarks>
     /// <returns>Whether anything was added.</returns>
-    private static async Task<bool> SeedTagCategories(WaydDbContext dbContext, CancellationToken cancellationToken)
+    private static async Task<bool> SeedTagCategories(WaydDbContext dbContext, IDateTimeProvider dateTimeProvider,
+        CancellationToken cancellationToken)
     {
         if (await dbContext.ProductTagCategories.AnyAsync(cancellationToken))
         {
@@ -102,7 +109,9 @@ public class ProductTypeSeeder : ICustomSeeder
             "Platform",
             "What a node runs on or targets.",
             allowsMany: true,
-            order: 1);
+            order: 1,
+            EventActor.System,
+            dateTimeProvider.Now);
 
         foreach (var (name, description) in new[]
         {
@@ -114,9 +123,14 @@ public class ProductTypeSeeder : ICustomSeeder
             ("server", "Runs on infrastructure rather than a user's device."),
         })
         {
-            platform.AddSystemTag(name, description);
+            platform.AddSystemTag(name, description, EventActor.System, dateTimeProvider.Now);
         }
 
+        var ordinal = 0;
+        foreach (var domainEvent in platform.DomainEvents)
+            dbContext.ActivityLogs.Add(ActivityLogEntryFactory.CreateActivityLogEntry(domainEvent, platform, ordinal++, correlationId: null));
+
+        platform.ClearDomainEvents();
         dbContext.ProductTagCategories.Add(platform);
 
         return true;

@@ -23,12 +23,18 @@ public sealed class DeleteProductTagCommandValidator : AbstractValidator<DeleteP
 
 public sealed class DeleteProductTagCommandHandler(
     IProductManagementDbContext productManagementDbContext,
+    ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
+    IDateTimeProvider dateTimeProvider,
     ILogger<DeleteProductTagCommandHandler> logger)
     : ICommandHandler<DeleteProductTagCommand>
 {
     private const string AppRequestName = nameof(DeleteProductTagCommand);
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<DeleteProductTagCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeleteProductTagCommand request, CancellationToken cancellationToken)
@@ -47,13 +53,11 @@ public sealed class DeleteProductTagCommandHandler(
                 return Result.Failure("Tag category not found.");
             }
 
-            if (await _productManagementDbContext.ProductTagAssignments
-                    .AnyAsync(a => a.TagId == request.TagId, cancellationToken))
-            {
-                return Result.Failure("Products carry this tag and it cannot be deleted. Deactivate it instead.");
-            }
+            var isInUse = await _productManagementDbContext.ProductTagAssignments
+                .AnyAsync(a => a.TagId == request.TagId, cancellationToken);
 
-            var result = category.RemoveTag(request.TagId);
+            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+            var result = category.RemoveTag(request.TagId, isInUse, actor, _dateTimeProvider.Now);
 
             if (result.IsFailure)
             {

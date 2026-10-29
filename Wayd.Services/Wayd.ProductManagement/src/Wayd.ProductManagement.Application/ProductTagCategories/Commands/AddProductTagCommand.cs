@@ -27,12 +27,18 @@ public sealed class AddProductTagCommandValidator : AbstractValidator<AddProduct
 
 public sealed class AddProductTagCommandHandler(
     IProductManagementDbContext productManagementDbContext,
+    ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
+    IDateTimeProvider dateTimeProvider,
     ILogger<AddProductTagCommandHandler> logger)
     : ICommandHandler<AddProductTagCommand, Guid>
 {
     private const string AppRequestName = nameof(AddProductTagCommand);
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<AddProductTagCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(AddProductTagCommand request, CancellationToken cancellationToken)
@@ -51,7 +57,8 @@ public sealed class AddProductTagCommandHandler(
                 return Result.Failure<Guid>("Tag category not found.");
             }
 
-            var result = category.AddTag(request.Name, request.Description);
+            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+            var result = category.AddTag(request.Name, request.Description, actor, _dateTimeProvider.Now);
             if (result.IsFailure)
             {
                 _logger.LogInformation(

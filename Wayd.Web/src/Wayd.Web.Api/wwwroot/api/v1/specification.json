@@ -11106,7 +11106,7 @@
           "Products"
         ],
         "summary": "Apply a tag to a product.",
-        "description": "Tags live in categories — axes such as Platform or Compliance — and a category decides whether a product may carry more than one of its tags.\n\n**On a single-value axis this silently replaces the existing tag rather than refusing.** The call succeeds, and the tag the product previously carried on that axis is gone. Read the product first if that matters. On a multi-value axis the tag joins the others.\n\nBoth the tag and its category must be active. Applying a tag the product already carries succeeds and changes nothing.",
+        "description": "Tags live in categories — axes such as Platform or Compliance — and a category decides whether a product may carry more than one of its tags.\n\n**On a single-value axis this silently replaces the existing tag rather than refusing.** The call succeeds, and the tag the product previously carried on that axis is gone. Read the product first if that matters. On a multi-value axis the tag joins the others.\n\nBoth the tag and its category must be active. Applying a tag the product already carries succeeds and changes nothing.\n\nA free tag — one on no category, from `ProductTags_Search` with `isFree` — can be applied too, when free tags are turned on for products. To apply one by name, creating it if needed, use `Products_TagByName`.",
         "operationId": "Products_Tag",
         "parameters": [
           {
@@ -11156,7 +11156,7 @@
           "Products"
         ],
         "summary": "Remove a tag from a product.",
-        "description": "Succeeds whether or not the product carried it, and an inactive tag can still be removed.",
+        "description": "Succeeds whether or not the product carried it, and an inactive tag can still be removed. A free tag no other product carries is deleted with it.",
         "operationId": "Products_Untag",
         "parameters": [
           {
@@ -11190,6 +11190,78 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/{id}/tags": {
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Tag a product by name, creating a free tag when no tag has the name.",
+        "description": "Returns the id of the tag applied. **When exactly one active tag on an active category has the name, ignoring case, that tag is applied** — with the same single-value replacement as `Products_Tag`. When more than one category has it the call is refused: apply the one meant with `Products_Tag`.\n\nOtherwise the free tag with the name is applied — a tag on no category — and created when none has it yet. Free tags need to be turned on for products (`allowsFreeTags` in the product tag settings); with them off this is refused. Names are trimmed and runs of whitespace collapsed, at most 64 characters.",
+        "operationId": "Products_TagByName",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagProductByNameRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -12191,6 +12263,233 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/product-tags": {
+      "get": {
+        "tags": [
+          "ProductTags"
+        ],
+        "summary": "Search product tags, on categories and free, with how many products carry each.",
+        "description": "Sorted by name. `search` keeps tags whose name contains it, ignoring case. `isFree` true returns only free tags — tags on no category, added by typing a name while tagging — and false only tags on categories. A free tag has no `categoryId` or `categoryName`.\n\nTags that cannot be applied — inactive ones, and those on inactive categories — are left out unless `includeInactive` is true.",
+        "operationId": "ProductTags_Search",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "isFree",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "includeInactive",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductTagListItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/product-tags/{id}": {
+      "put": {
+        "tags": [
+          "ProductTags"
+        ],
+        "summary": "Rename a free tag or change its description.",
+        "description": "**Free tags only**; a tag on a category is renamed with `ProductTagCategories_RenameTag`. **An omitted description is cleared.** Names are unique among free tags, ignoring case — to fold a free tag into one that already has the name, use `ProductTags_Merge`.\n\nProducts carrying the tag report the new name at once.",
+        "operationId": "ProductTags_UpdateFreeTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFreeProductTagRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "ProductTags"
+        ],
+        "summary": "Delete a free tag, taking it off every product that carries it.",
+        "description": "**Free tags only**; a tag on a category is deleted with `ProductTagCategories_DeleteTag`. **Unlike that call, this succeeds while products carry the tag: it removes the tag from each of them**, and each records the change. To keep those products filed under another tag, use `ProductTags_Merge` instead. A free tag is also deleted on its own once the last product carrying it loses it.",
+        "operationId": "ProductTags_DeleteFreeTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/product-tags/{id}/merge": {
+      "post": {
+        "tags": [
+          "ProductTags"
+        ],
+        "summary": "Merge a free tag into another tag.",
+        "description": "Every product carrying the free tag `id` carries `targetTagId` instead, and the free tag is deleted. The target may be another free tag, to fold near-duplicates together, or an active tag on an active category — which is how a free tag that caught on is promoted: add the tag to its category with `ProductTagCategories_AddTag`, then merge into it.\n\n**On a category that allows one tag, a product's existing tag there is replaced**, as tagging always does. Each product records the change in its history.",
+        "operationId": "ProductTags_Merge",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergeProductTagRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -42106,7 +42405,7 @@
           "IntakeRequests"
         ],
         "summary": "File an intake request under a tag.",
-        "description": "Needs an agent on the request's desk. The tag must be active, on an active axis. On an axis that takes one tag, this replaces the tag the request held there. Applying a tag the request already carries changes nothing.",
+        "description": "Needs an agent on the request's desk. The tag must be active, on an active axis the desk offers. On an axis that takes one tag, this replaces the tag the request held there. Applying a tag the request already carries changes nothing.\n\nA free tag — one on no axis, from `IntakeRequestTags_Search` with `isFree` — can be applied too, on a desk that allows free tags. To apply one by name, creating it if needed, use `IntakeRequests_TagByName`.",
         "operationId": "IntakeRequests_Tag",
         "parameters": [
           {
@@ -42166,7 +42465,7 @@
           "IntakeRequests"
         ],
         "summary": "Take a tag off an intake request.",
-        "description": "Needs an agent on the request's desk. Works for an inactive tag too. Removing a tag the request does not carry changes nothing.",
+        "description": "Needs an agent on the request's desk. Works for an inactive tag too. Removing a tag the request does not carry changes nothing. A free tag no other request carries is deleted with it.",
         "operationId": "IntakeRequests_Untag",
         "parameters": [
           {
@@ -42210,6 +42509,88 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{id}/tags": {
+      "post": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "File an intake request under a typed name, creating a free tag when no tag has it.",
+        "description": "Needs an agent on the request's desk. Returns the id of the tag applied. **When exactly one active tag on an axis the desk offers has the name, ignoring case, that tag is applied** — with the same single-value replacement as `IntakeRequests_Tag`. When more than one such axis has it the call is refused: apply the one meant with `IntakeRequests_Tag`.\n\nOtherwise the free tag with the name is applied — a tag on no axis — and created when none has it yet. That needs a desk that allows free tags (`allowsFreeTags` on the desk); otherwise this is refused. Names are trimmed and runs of whitespace collapsed, at most 64 characters.",
+        "operationId": "IntakeRequests_TagByName",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagIntakeRequestByNameRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -43119,6 +43500,263 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-request-tags": {
+      "get": {
+        "tags": [
+          "IntakeRequestTags"
+        ],
+        "summary": "Search intake request tags, on axes and free, with how many visible requests carry each.",
+        "description": "Sorted by name. `search` keeps tags whose name contains it, ignoring case. `isFree` true returns only free tags — tags on no axis, added by an agent typing a name while tagging — and false only tags on axes. A free tag has no `categoryId` or `categoryName`, and is listed only when the caller can see a request carrying it, or holds the Demand Management Admin permission. `requestCount` counts only requests the caller can see.\n\nTags that cannot be applied — inactive ones, and those on inactive axes — are left out unless `includeInactive` is true.",
+        "operationId": "IntakeRequestTags_Search",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "isFree",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "includeInactive",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeRequestTagListItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-request-tags/{id}": {
+      "put": {
+        "tags": [
+          "IntakeRequestTags"
+        ],
+        "summary": "Rename a free tag or change its description.",
+        "description": "Free tags only; a tag on an axis is renamed with `IntakeRequestTagCategories_UpdateTag`. Names are unique among free tags, ignoring case — to fold a free tag into one that already has the name, use `IntakeRequestTags_Merge`. Every request carrying the tag reads the new name.",
+        "operationId": "IntakeRequestTags_UpdateFreeTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFreeIntakeRequestTagRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "IntakeRequestTags"
+        ],
+        "summary": "Delete a free tag, taking it off every request that carries it.",
+        "description": "Free tags only; a tag on an axis is deleted with `IntakeRequestTagCategories_DeleteTag`. **Unlike that call, this succeeds while requests carry the tag: it removes the tag from each of them, on every desk**, and each records the change. To keep those requests filed under another tag, use `IntakeRequestTags_Merge` instead. A free tag is also deleted on its own once the last request carrying it loses it.",
+        "operationId": "IntakeRequestTags_DeleteFreeTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-request-tags/{id}/merge": {
+      "post": {
+        "tags": [
+          "IntakeRequestTags"
+        ],
+        "summary": "Merge a free tag into another tag.",
+        "description": "Every request carrying the free tag `id`, on every desk, carries `targetTagId` instead, and the free tag is deleted. The target may be another free tag, to fold near-duplicates together, or an active tag on an active axis — which is how a free tag that caught on is promoted: add the tag to its axis with `IntakeRequestTagCategories_AddTag`, then merge into it.\n\n**On an axis that takes one tag, a request's existing tag there is replaced**, as tagging always does. Each request records the change in its history.",
+        "operationId": "IntakeRequestTags_Merge",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergeIntakeRequestTagRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -47967,6 +48605,139 @@
         ],
         "summary": "Get the sprint metrics settings' change history.",
         "operationId": "SystemSettings_GetSprintMetricsSettingsActivities",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 1
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfActivityLogDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/admin/settings/product-tags": {
+      "get": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Get the product tag settings.",
+        "operationId": "SystemSettings_GetProductTagSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductTagSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Update the product tag settings.",
+        "operationId": "SystemSettings_UpdateProductTagSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductTagSettingsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/admin/settings/product-tags/activities": {
+      "get": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Get the product tag settings' change history.",
+        "operationId": "SystemSettings_GetProductTagSettingsActivities",
         "parameters": [
           {
             "name": "page",
@@ -57848,6 +58619,7 @@
           "offersAllChannels",
           "offersAllTagCategories",
           "tagCategoryIds",
+          "allowsFreeTags",
           "revision",
           "canManage",
           "canAdminister",
@@ -57916,6 +58688,10 @@
               "format": "uuid"
             },
             "description": "The tag axes the desk chose, in the company's order, while it does not offer them all; an inactive one\nstays chosen but is not offered. Empty with bool IntakeDeskDto.OffersAllTagCategories false means its agents tag\nalong none."
+          },
+          "allowsFreeTags": {
+            "type": "boolean",
+            "description": "Whether the desk's agents may add free tags — tags on no axis, typed in while tagging."
           },
           "scoringModel": {
             "oneOf": [
@@ -58992,12 +59768,62 @@
         "additionalProperties": false,
         "description": "A tag axis reviewers file intake requests along, with its tags."
       },
+      "IntakeRequestTagListItemDto": {
+        "required": [
+          "name",
+          "id",
+          "isFree",
+          "isActive",
+          "requestCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The tag's id, which a request refers to.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The label."
+          },
+          "description": {
+            "type": "string",
+            "description": "What the label means, when described.",
+            "nullable": true
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "The tag's axis, or null for a free tag.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "categoryName": {
+            "type": "string",
+            "description": "What the company calls the tag's axis, or null for a free tag.",
+            "nullable": true
+          },
+          "isFree": {
+            "type": "boolean",
+            "description": "Whether this is a free tag: one on no axis, created by an agent typing its name while tagging."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether requests can still be given the tag. Always true for a free tag."
+          },
+          "requestCount": {
+            "type": "integer",
+            "description": "How many requests the reader can see carry the tag. Counts only visible requests, so it never discloses a\nprivate desk's.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One intake request tag, on an axis or free, with how many requests the reader can see carry it."
+      },
       "IntakeRequestTagNavigationDto": {
         "required": [
           "name",
-          "categoryName",
-          "id",
-          "categoryId"
+          "id"
         ],
         "type": "object",
         "properties": {
@@ -59012,16 +59838,18 @@
           },
           "categoryId": {
             "type": "string",
-            "description": "The tag's axis.",
-            "format": "uuid"
+            "description": "The tag's axis, or null for a free tag.",
+            "format": "uuid",
+            "nullable": true
           },
           "categoryName": {
             "type": "string",
-            "description": "What the company calls the tag's axis."
+            "description": "What the company calls the tag's axis, or null for a free tag.",
+            "nullable": true
           }
         },
         "additionalProperties": false,
-        "description": "A tag an intake request carries, named with its axis."
+        "description": "A tag an intake request carries, named with its axis, or a free tag on none."
       },
       "IntakeRequestTagOptionDto": {
         "required": [
@@ -60097,6 +60925,38 @@
         },
         "additionalProperties": false,
         "description": "Who the caller is: their sign-in account and, more often what matters, the employee that account is\nlinked to. Wayd records people as employees, so roles, assignees, team memberships and allocations\nall name the employee, not the account."
+      },
+      "MergeIntakeRequestTagRequest": {
+        "required": [
+          "targetTagId"
+        ],
+        "type": "object",
+        "properties": {
+          "targetTagId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Another free tag, or an active tag on an active axis.",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The tag a free tag's requests move to."
+      },
+      "MergeProductTagRequest": {
+        "required": [
+          "targetTagId"
+        ],
+        "type": "object",
+        "properties": {
+          "targetTagId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The tag the free tag's products move to: another free tag, or an active tag on an active category.",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Merges a free tag into another tag."
       },
       "MessagingCountsResponse": {
         "required": [
@@ -63401,9 +64261,7 @@
       "ProductTagDto": {
         "required": [
           "tagId",
-          "tagName",
-          "categoryId",
-          "categoryName"
+          "tagName"
         ],
         "type": "object",
         "properties": {
@@ -63416,13 +64274,66 @@
           },
           "categoryId": {
             "type": "string",
-            "format": "uuid"
+            "description": "The tag's axis, or null for a free tag.",
+            "format": "uuid",
+            "nullable": true
           },
           "categoryName": {
-            "type": "string"
+            "type": "string",
+            "description": "The axis's name, or null for a free tag.",
+            "nullable": true
           }
         },
         "additionalProperties": false
+      },
+      "ProductTagListItemDto": {
+        "required": [
+          "id",
+          "name",
+          "isFree",
+          "isActive",
+          "productCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "The tag's axis, or null for a free tag.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "categoryName": {
+            "type": "string",
+            "description": "The axis's name, or null for a free tag.",
+            "nullable": true
+          },
+          "isFree": {
+            "type": "boolean",
+            "description": "Whether this is a free tag: one on no axis, created by typing its name while tagging."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether products can still be given this tag. Always true for a free tag."
+          },
+          "productCount": {
+            "type": "integer",
+            "description": "How many products carry the tag.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One product tag, on an axis or free, with how many products carry it."
       },
       "ProductTagOptionDto": {
         "required": [
@@ -63451,6 +64362,19 @@
             "type": "integer",
             "description": "How many products currently carry this tag, so a caller can see what deactivating would affect.",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProductTagSettingsDto": {
+        "required": [
+          "allowsFreeTags"
+        ],
+        "type": "object",
+        "properties": {
+          "allowsFreeTags": {
+            "type": "boolean",
+            "description": "Whether anyone who can tag a product may also give it free tags — tags on no axis, typed in while tagging."
           }
         },
         "additionalProperties": false
@@ -71903,6 +72827,38 @@
         ],
         "type": "string"
       },
+      "TagIntakeRequestByNameRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "The tag's name. When exactly one tag on an axis the request's desk offers has it, ignoring case, that tag is\napplied; otherwise the free tag with the name is applied, and created when none has it yet."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Files an intake request under a typed name."
+      },
+      "TagProductByNameRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "The tag's name. When exactly one tag on an active category has it, ignoring case, that tag is applied;\notherwise the free tag with the name is applied, and created when none has it yet."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Tags a product with a typed name."
+      },
       "TaskPriorityDto": {
         "required": [
           "name",
@@ -74850,6 +75806,50 @@
         },
         "additionalProperties": false
       },
+      "UpdateFreeIntakeRequestTagRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "The label, unique among free intake request tags, ignoring case."
+          },
+          "description": {
+            "maxLength": 512,
+            "type": "string",
+            "description": "What the label means, or null for no description.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A free tag's new name and description. Every request carrying the tag reads the new name."
+      },
+      "UpdateFreeProductTagRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the tag is called. Unique among free product tags, ignoring case."
+          },
+          "description": {
+            "maxLength": 512,
+            "type": "string",
+            "description": "What the tag means. Cleared when omitted.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Renames a free tag or changes its description."
+      },
       "UpdateHolidayCalendarRequest": {
         "required": [
           "id",
@@ -74989,6 +75989,11 @@
               "format": "uuid"
             },
             "description": "The tag axes the desk's agents tag along when `offersAllTagCategories` is false; empty means none. Leave\nit out to keep the ones it has. Ignored unless `offersAllTagCategories` is false. An axis already chosen\nmay stay after it is deactivated; a newly chosen one must be active. Requests keep tags along any axis.",
+            "nullable": true
+          },
+          "allowsFreeTags": {
+            "type": "boolean",
+            "description": "Whether the desk's agents may add free tags — tags on no axis, typed in while tagging. A new desk does not.\nLeave it out to keep the desk's setting. Requests already carrying free tags keep them when it is turned off.",
             "nullable": true
           },
           "members": {
@@ -75563,6 +76568,19 @@
         },
         "additionalProperties": false,
         "description": "Edits a tag axis."
+      },
+      "UpdateProductTagSettingsRequest": {
+        "required": [
+          "allowsFreeTags"
+        ],
+        "type": "object",
+        "properties": {
+          "allowsFreeTags": {
+            "type": "boolean",
+            "description": "Whether anyone who can tag a product may also give it free tags — tags on no category, typed in while\ntagging. Products already carrying free tags keep them when this is turned off."
+          }
+        },
+        "additionalProperties": false
       },
       "UpdateProductTypeRequest": {
         "required": [
@@ -80161,6 +81179,9 @@
       "name": "ProductTagCategories"
     },
     {
+      "name": "ProductTags"
+    },
+    {
       "name": "ProductTypes"
     },
     {
@@ -80258,6 +81279,9 @@
     },
     {
       "name": "IntakeRequestTagCategories"
+    },
+    {
+      "name": "IntakeRequestTags"
     },
     {
       "name": "AzureDevOpsConnections"

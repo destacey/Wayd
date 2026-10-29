@@ -14171,6 +14171,79 @@ export class ProductsClient {
     }
 
     /**
+     * Tag a product by name, creating a free tag when no tag has the name.
+     * @return OK
+     */
+    tagByName(id: string, request: TagProductByNameRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/product-management/products/{id}/tags";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processTagByName(_response);
+        });
+    }
+
+    protected processTagByName(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<string>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
      * Get what a product depends on (`dependsOn`) and what depends on it (`usedBy`).
      * @param includeEnded (optional) 
      * @return OK
@@ -15259,6 +15332,279 @@ export class ProductTagCategoriesClient {
             let resultData400  = _responseText;
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
+export class ProductTagsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Search product tags, on categories and free, with how many products carry each.
+     * @param search (optional) 
+     * @param isFree (optional) 
+     * @param includeInactive (optional) 
+     * @return OK
+     */
+    search(search?: string | null | undefined, isFree?: boolean | null | undefined, includeInactive?: boolean | undefined, cancelToken?: CancelToken): Promise<ProductTagListItemDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/product-tags?";
+        if (search !== undefined && search !== null)
+            url_ += "search=" + encodeURIComponent("" + search) + "&";
+        if (isFree !== undefined && isFree !== null)
+            url_ += "isFree=" + encodeURIComponent("" + isFree) + "&";
+        if (includeInactive === null)
+            throw new globalThis.Error("The parameter 'includeInactive' cannot be null.");
+        else if (includeInactive !== undefined)
+            url_ += "includeInactive=" + encodeURIComponent("" + includeInactive) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSearch(_response);
+        });
+    }
+
+    protected processSearch(response: AxiosResponse): Promise<ProductTagListItemDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ProductTagListItemDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ProductTagListItemDto[]>(null as any);
+    }
+
+    /**
+     * Rename a free tag or change its description.
+     * @return No Content
+     */
+    updateFreeTag(id: string, request: UpdateFreeProductTagRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/product-tags/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateFreeTag(_response);
+        });
+    }
+
+    protected processUpdateFreeTag(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Delete a free tag, taking it off every product that carries it.
+     * @return No Content
+     */
+    deleteFreeTag(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/product-tags/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteFreeTag(_response);
+        });
+    }
+
+    protected processDeleteFreeTag(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Merge a free tag into another tag.
+     * @return No Content
+     */
+    merge(id: string, request: MergeProductTagRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/product-tags/{id}/merge";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMerge(_response);
+        });
+    }
+
+    protected processMerge(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -48853,6 +49199,86 @@ export class IntakeRequestsClient {
     }
 
     /**
+     * File an intake request under a typed name, creating a free tag when no tag has it.
+     * @return OK
+     */
+    tagByName(id: string, request: TagIntakeRequestByNameRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}/tags";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processTagByName(_response);
+        });
+    }
+
+    protected processTagByName(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<string>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
      * Get the need-by basis values, with their codes and families.
      * @return OK
      */
@@ -49882,6 +50308,300 @@ export class IntakeRequestTagCategoriesClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
+export class IntakeRequestTagsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Search intake request tags, on axes and free, with how many visible requests carry each.
+     * @param search (optional) 
+     * @param isFree (optional) 
+     * @param includeInactive (optional) 
+     * @return OK
+     */
+    search(search?: string | null | undefined, isFree?: boolean | null | undefined, includeInactive?: boolean | undefined, cancelToken?: CancelToken): Promise<IntakeRequestTagListItemDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-request-tags?";
+        if (search !== undefined && search !== null)
+            url_ += "search=" + encodeURIComponent("" + search) + "&";
+        if (isFree !== undefined && isFree !== null)
+            url_ += "isFree=" + encodeURIComponent("" + isFree) + "&";
+        if (includeInactive === null)
+            throw new globalThis.Error("The parameter 'includeInactive' cannot be null.");
+        else if (includeInactive !== undefined)
+            url_ += "includeInactive=" + encodeURIComponent("" + includeInactive) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSearch(_response);
+        });
+    }
+
+    protected processSearch(response: AxiosResponse): Promise<IntakeRequestTagListItemDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeRequestTagListItemDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeRequestTagListItemDto[]>(null as any);
+    }
+
+    /**
+     * Rename a free tag or change its description.
+     * @return No Content
+     */
+    updateFreeTag(id: string, request: UpdateFreeIntakeRequestTagRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-request-tags/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateFreeTag(_response);
+        });
+    }
+
+    protected processUpdateFreeTag(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Delete a free tag, taking it off every request that carries it.
+     * @return No Content
+     */
+    deleteFreeTag(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-request-tags/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteFreeTag(_response);
+        });
+    }
+
+    protected processDeleteFreeTag(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Merge a free tag into another tag.
+     * @return No Content
+     */
+    merge(id: string, request: MergeIntakeRequestTagRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-request-tags/{id}/merge";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMerge(_response);
+        });
+    }
+
+    protected processMerge(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -55580,6 +56300,193 @@ export class SystemSettingsClient {
         }
         return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
     }
+
+    /**
+     * Get the product tag settings.
+     * @return OK
+     */
+    getProductTagSettings( cancelToken?: CancelToken): Promise<ProductTagSettingsDto> {
+        let url_ = this.baseUrl + "/api/admin/settings/product-tags";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetProductTagSettings(_response);
+        });
+    }
+
+    protected processGetProductTagSettings(response: AxiosResponse): Promise<ProductTagSettingsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ProductTagSettingsDto>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ProductTagSettingsDto>(null as any);
+    }
+
+    /**
+     * Update the product tag settings.
+     * @return No Content
+     */
+    updateProductTagSettings(request: UpdateProductTagSettingsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/admin/settings/product-tags";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateProductTagSettings(_response);
+        });
+    }
+
+    protected processUpdateProductTagSettings(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get the product tag settings' change history.
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     * @return OK
+     */
+    getProductTagSettingsActivities(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfActivityLogDto> {
+        let url_ = this.baseUrl + "/api/admin/settings/product-tags/activities?";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetProductTagSettingsActivities(_response);
+        });
+    }
+
+    protected processGetProductTagSettingsActivities(response: AxiosResponse): Promise<PagedResponseOfActivityLogDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PagedResponseOfActivityLogDto>(result200);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
+    }
 }
 
 export class WorkflowAssignmentsClient {
@@ -58916,6 +59823,8 @@ desk offers none. */
 stays chosen but is not offered. Empty with bool IntakeDeskDto.OffersAllTagCategories false means its agents tag
 along none. */
     tagCategoryIds: string[];
+    /** Whether the desk's agents may add free tags — tags on no axis, typed in while tagging. */
+    allowsFreeTags: boolean;
     /** The scoring model the desk's agents score its requests with, or null when the desk does not score them. */
     scoringModel?: NavigationDto | undefined;
     /** How many changes the desk has recorded; sent back with a change so a stale one is refused. */
@@ -59318,16 +60227,37 @@ it held on the axis. Fixed once the axis exists. */
     tags: IntakeRequestTagOptionDto[];
 }
 
-/** A tag an intake request carries, named with its axis. */
+/** One intake request tag, on an axis or free, with how many requests the reader can see carry it. */
+export interface IntakeRequestTagListItemDto {
+    /** The tag's id, which a request refers to. */
+    id: string;
+    /** The label. */
+    name: string;
+    /** What the label means, when described. */
+    description?: string | undefined;
+    /** The tag's axis, or null for a free tag. */
+    categoryId?: string | undefined;
+    /** What the company calls the tag's axis, or null for a free tag. */
+    categoryName?: string | undefined;
+    /** Whether this is a free tag: one on no axis, created by an agent typing its name while tagging. */
+    isFree: boolean;
+    /** Whether requests can still be given the tag. Always true for a free tag. */
+    isActive: boolean;
+    /** How many requests the reader can see carry the tag. Counts only visible requests, so it never discloses a
+private desk's. */
+    requestCount: number;
+}
+
+/** A tag an intake request carries, named with its axis, or a free tag on none. */
 export interface IntakeRequestTagNavigationDto {
     /** The tag's id. */
     id: string;
     /** The label. */
     name: string;
-    /** The tag's axis. */
-    categoryId: string;
-    /** What the company calls the tag's axis. */
-    categoryName: string;
+    /** The tag's axis, or null for a free tag. */
+    categoryId?: string | undefined;
+    /** What the company calls the tag's axis, or null for a free tag. */
+    categoryName?: string | undefined;
 }
 
 /** One tag on an axis, as the settings page and the pickers list it. */
@@ -59696,6 +60626,18 @@ nothing in Wayd is recorded against the caller as a person. */
     employee?: NavigationDto | undefined;
     /** The names of the roles that grant the caller's permissions. */
     roles: string[];
+}
+
+/** The tag a free tag's requests move to. */
+export interface MergeIntakeRequestTagRequest {
+    /** Another free tag, or an active tag on an active axis. */
+    targetTagId: string;
+}
+
+/** Merges a free tag into another tag. */
+export interface MergeProductTagRequest {
+    /** The tag the free tag's products move to: another free tag, or an active tag on an active category. */
+    targetTagId: string;
 }
 
 /** Snapshot of the Wolverine durable message store: how many envelopes are currently persisted in each lifecycle bucket. In a healthy system incoming/outgoing hover near zero — envelopes only linger during backlog, scheduled delivery, or after an unclean shutdown. */
@@ -60752,8 +61694,27 @@ export interface ProductTagCategoryDto {
 export interface ProductTagDto {
     tagId: string;
     tagName: string;
-    categoryId: string;
-    categoryName: string;
+    /** The tag's axis, or null for a free tag. */
+    categoryId?: string | undefined;
+    /** The axis's name, or null for a free tag. */
+    categoryName?: string | undefined;
+}
+
+/** One product tag, on an axis or free, with how many products carry it. */
+export interface ProductTagListItemDto {
+    id: string;
+    name: string;
+    description?: string | undefined;
+    /** The tag's axis, or null for a free tag. */
+    categoryId?: string | undefined;
+    /** The axis's name, or null for a free tag. */
+    categoryName?: string | undefined;
+    /** Whether this is a free tag: one on no axis, created by typing its name while tagging. */
+    isFree: boolean;
+    /** Whether products can still be given this tag. Always true for a free tag. */
+    isActive: boolean;
+    /** How many products carry the tag. */
+    productCount: number;
 }
 
 export interface ProductTagOptionDto {
@@ -60763,6 +61724,11 @@ export interface ProductTagOptionDto {
     isActive: boolean;
     /** How many products currently carry this tag, so a caller can see what deactivating would affect. */
     productCount: number;
+}
+
+export interface ProductTagSettingsDto {
+    /** Whether anyone who can tag a product may also give it free tags — tags on no axis, typed in while tagging. */
+    allowsFreeTags: boolean;
 }
 
 /** A product type as a catalog row. */
@@ -63394,6 +64360,20 @@ export enum SyncType {
     Differential = "Differential",
 }
 
+/** Files an intake request under a typed name. */
+export interface TagIntakeRequestByNameRequest {
+    /** The tag's name. When exactly one tag on an axis the request's desk offers has it, ignoring case, that tag is
+applied; otherwise the free tag with the name is applied, and created when none has it yet. */
+    name: string;
+}
+
+/** Tags a product with a typed name. */
+export interface TagProductByNameRequest {
+    /** The tag's name. When exactly one tag on an active category has it, ignoring case, that tag is applied;
+otherwise the free tag with the name is applied, and created when none has it yet. */
+    name: string;
+}
+
 export interface TaskPriorityDto {
     id: number;
     name: string;
@@ -64365,6 +65345,22 @@ export interface UpdateFeatureFlagRequest {
     description?: string | undefined;
 }
 
+/** A free tag's new name and description. Every request carrying the tag reads the new name. */
+export interface UpdateFreeIntakeRequestTagRequest {
+    /** The label, unique among free intake request tags, ignoring case. */
+    name: string;
+    /** What the label means, or null for no description. */
+    description?: string | undefined;
+}
+
+/** Renames a free tag or changes its description. */
+export interface UpdateFreeProductTagRequest {
+    /** What the tag is called. Unique among free product tags, ignoring case. */
+    name: string;
+    /** What the tag means. Cleared when omitted. */
+    description?: string | undefined;
+}
+
 export interface UpdateHolidayCalendarRequest {
     /** The calendar's id, which must match the route. */
     id: string;
@@ -64416,6 +65412,9 @@ new desk does. Leave it out to keep the desk's axes as they are. */
 it out to keep the ones it has. Ignored unless `offersAllTagCategories` is false. An axis already chosen
 may stay after it is deactivated; a newly chosen one must be active. Requests keep tags along any axis. */
     tagCategoryIds: string[] | undefined;
+    /** Whether the desk's agents may add free tags — tags on no axis, typed in while tagging. A new desk does not.
+Leave it out to keep the desk's setting. Requests already carrying free tags keep them when it is turned off. */
+    allowsFreeTags?: boolean | undefined;
     /** Everyone on the desk after the change, each with their role. Naming, removing or re-roling a Desk Admin
 needs the Demand Management Admin. */
     members: IntakeDeskMemberRequest[];
@@ -64581,6 +65580,12 @@ export interface UpdateProductTagCategoryRequest {
     name: string;
     /** What the axis is for. Cleared when omitted. */
     description?: string | undefined;
+}
+
+export interface UpdateProductTagSettingsRequest {
+    /** Whether anyone who can tag a product may also give it free tags — tags on no category, typed in while
+tagging. Products already carrying free tags keep them when this is turned off. */
+    allowsFreeTags: boolean;
 }
 
 /** A whole-record update of a product type. */

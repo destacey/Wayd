@@ -75,4 +75,47 @@ public sealed class UntagIntakeRequestCommandHandlerTests
         result.Error.Should().Be(IntakeRequestAuthorization.NotAnAgentError);
         request.Tags.Should().ContainSingle();
     }
+
+    [Fact]
+    public async Task Handle_TakingOffTheLastUseOfAFreeTag_DeletesTheTag()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.Request(_scenario.AllowingFreeTags(_scenario.Desk(agentIds: [agent.Id])), _scenario.Employee());
+        var free = _scenario.FreeTag();
+        _scenario.TaggedFree(request, free);
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new UntagIntakeRequestCommand(request.Id, free.Id),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _scenario.DbContext.IntakeRequestTags.Should().NotContain(free);
+        free.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestFreeTagDeletedEvent>();
+    }
+
+    [Fact]
+    public async Task Handle_WhenAnotherRequestCarriesTheFreeTag_KeepsIt()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var desk = _scenario.AllowingFreeTags(_scenario.Desk(agentIds: [agent.Id]));
+        var request = _scenario.Request(desk, _scenario.Employee());
+        var other = _scenario.Request(desk, _scenario.Employee());
+        var free = _scenario.FreeTag();
+        _scenario.TaggedFree(request, free);
+        _scenario.TaggedFree(other, free);
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new UntagIntakeRequestCommand(request.Id, free.Id),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _scenario.DbContext.IntakeRequestTags.Should().Contain(free);
+        free.DomainEvents.Should().BeEmpty();
+    }
 }

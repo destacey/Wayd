@@ -52,6 +52,9 @@ public sealed record IntakeDeskDto
     /// </summary>
     public IReadOnlyList<Guid> TagCategoryIds { get; init; } = [];
 
+    /// <summary>Whether the desk's agents may add free tags — tags on no axis, typed in while tagging.</summary>
+    public bool AllowsFreeTags { get; init; }
+
     /// <summary>
     /// The scoring model the desk's agents score its requests with, or null when the desk does not score them.
     /// </summary>

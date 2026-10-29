@@ -388,6 +388,41 @@ public sealed class UpdateIntakeDeskCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_TurningFreeTagsOn_AllowsThemAndRecordsOnlyThat()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var desk = _scenario.DeskWithMembers(Admin(deskAdmin.Id));
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(Unchanged(desk) with { AllowsFreeTags = true },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        desk.AllowsFreeTags.Should().BeTrue();
+        desk.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskFreeTagsChangedEvent>();
+    }
+
+    [Fact]
+    public async Task Handle_LeavingFreeTagsOut_KeepsTheDesksSetting()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var desk = _scenario.AllowingFreeTags(_scenario.DeskWithMembers(Admin(deskAdmin.Id)));
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(Unchanged(desk), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        desk.AllowsFreeTags.Should().BeTrue();
+        desk.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Handle_WithoutTagAxes_KeepsTheChoiceTheDeskMade()
     {
         // Arrange

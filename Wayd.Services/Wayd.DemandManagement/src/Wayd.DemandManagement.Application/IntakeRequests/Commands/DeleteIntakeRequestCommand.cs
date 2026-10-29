@@ -1,3 +1,4 @@
+using Wayd.DemandManagement.Application.IntakeRequestTags;
 using Wayd.Common.Domain.Events;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
@@ -36,7 +37,7 @@ public sealed class DeleteIntakeRequestCommandHandler(
     {
         var reader = await _currentPrincipal.ResolveIntakeRequestReader(_dbContext, cancellationToken);
 
-        var intakeRequest = await _dbContext.FindVisible(reader, request.Id, includeParticipants: false, cancellationToken);
+        var intakeRequest = await _dbContext.FindVisible(reader, request.Id, includeParticipants: false, cancellationToken, includeTags: true);
         if (intakeRequest is null)
             return Result.Failure(IntakeRequestAccess.NotFoundError);
 
@@ -45,9 +46,15 @@ public sealed class DeleteIntakeRequestCommandHandler(
 
         var hasDuplicates = await _dbContext.IntakeRequests.AnyAsync(r => r.DuplicateOfId == intakeRequest.Id, cancellationToken);
 
-        var result = intakeRequest.Delete(hasDuplicates, EventActor.User(_currentUser.GetUserId(), reader.EmployeeId), _dateTimeProvider.Now);
+        var actor = EventActor.User(_currentUser.GetUserId(), reader.EmployeeId);
+        var now = _dateTimeProvider.Now;
+        var result = intakeRequest.Delete(hasDuplicates, actor, now);
         if (result.IsFailure)
             return result;
+
+        // Its tag assignments go with it, so a free tag only it carried would be left unused.
+        await FreeIntakeRequestTags.DeleteUnused(_dbContext, [.. intakeRequest.Tags.Select(t => t.TagId)], intakeRequest.Id,
+            actor, now, cancellationToken);
 
         _dbContext.IntakeRequests.Remove(intakeRequest);
         await _dbContext.SaveChangesAsync(cancellationToken);

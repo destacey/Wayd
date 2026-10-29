@@ -31,7 +31,18 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
     public DbSet<IntakeDesk> IntakeDesks => _desks.AsDbSet();
     public DbSet<IntakeRequest> IntakeRequests => _requests.AsDbSet();
     public DbSet<IntakeRequestTagCategory> IntakeRequestTagCategories => _tagCategories.AsDbSet();
-    public DbSet<IntakeRequestTag> IntakeRequestTags => _tags.AsDbSet();
+    /// <summary>
+    /// Every tag: those added with <see cref="AddTags"/>, and those on the seeded axes, picked up on each read so a
+    /// test seeding an axis need not seed its tags twice.
+    /// </summary>
+    public DbSet<IntakeRequestTag> IntakeRequestTags
+    {
+        get
+        {
+            _tags.AddRange(_tagCategories.SelectMany(c => c.Tags).Where(t => !_tags.Contains(t)).ToList());
+            return _tags.AsDbSet();
+        }
+    }
     public IQueryable<Employee> Employees => _employees.AsDbSet();
     public IQueryable<StatusTransition> IntakeRequestStatusTransitions => _transitions.AsDbSet();
     public IQueryable<ScoringModel> ScoringModels => _scoringModels.AsDbSet();

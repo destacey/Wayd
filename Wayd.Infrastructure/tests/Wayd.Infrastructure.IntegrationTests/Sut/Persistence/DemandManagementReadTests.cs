@@ -17,6 +17,7 @@ using Wayd.Common.Models;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.DemandManagement.Application.IntakeDesks.Queries;
+using Wayd.DemandManagement.Application.IntakeRequestTags.Queries;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
@@ -400,6 +401,74 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
 
         // Assert
         result.Should().ContainSingle().Which.Tags.Select(t => t.Name).Should().Equal("Billing", "Payments", "Enterprise");
+    }
+
+    [Fact]
+    public async Task GetIntakeRequests_ProjectsAFreeTagAfterTheTagsOnAxes_WithNoAxis()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        var freeName = UniqueName("follow up");
+        await using (var arrange = _fixture.CreateContext())
+        {
+            var area = IntakeRequestTagCategory.Create(UniqueName("Area"), null, allowsMany: true, -3, EventActor.System, Now);
+            var payments = area.AddTag("Payments", null, EventActor.System, Now).Value;
+            arrange.IntakeRequestTagCategories.Add(area);
+            var free = IntakeRequestTag.CreateFree(freeName, EventActor.System, Now).Value;
+            arrange.IntakeRequestTags.Add(free);
+            await arrange.SaveChangesAsync(ct);
+
+            var request = await arrange.IntakeRequests.Include(r => r.Tags).SingleAsync(r => r.Id == scenario.OnOpen.Id, ct);
+            var desk = await arrange.IntakeDesks.Include(d => d.TagCategories).SingleAsync(d => d.Id == request.DeskId, ct);
+            desk.ChangeFreeTags(true, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            request.Tag(free, null, desk, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            request.Tag(payments, area, desk, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            await arrange.SaveChangesAsync(ct);
+        }
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var result = await new GetIntakeRequestsQueryHandler(context, Principal(scenario.Agent.Id))
+            .Handle(new GetIntakeRequestsQuery(scenario.Open.Id), ct);
+
+        // Assert
+        var tags = result.Should().ContainSingle().Which.Tags;
+        tags.Select(t => t.Name).Should().Equal("Payments", freeName);
+        tags[1].CategoryId.Should().BeNull();
+        tags[1].CategoryName.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetIntakeRequestTags_ForAnOutsider_HidesAFreeTagOnlyAPrivateDesksRequestsCarry()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        var name = UniqueName("acme reorg");
+        await using (var arrange = _fixture.CreateContext())
+        {
+            var free = IntakeRequestTag.CreateFree(name, EventActor.System, Now).Value;
+            arrange.IntakeRequestTags.Add(free);
+            await arrange.SaveChangesAsync(ct);
+
+            var request = await arrange.IntakeRequests.Include(r => r.Tags).SingleAsync(r => r.Id == scenario.OnPrivate.Id, ct);
+            var desk = await arrange.IntakeDesks.Include(d => d.TagCategories).SingleAsync(d => d.Id == request.DeskId, ct);
+            desk.ChangeFreeTags(true, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            request.Tag(free, null, desk, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            await arrange.SaveChangesAsync(ct);
+        }
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var outsider = await new GetIntakeRequestTagsQueryHandler(context, Principal(Guid.NewGuid()))
+            .Handle(new GetIntakeRequestTagsQuery(Search: name), ct);
+        var admin = await new GetIntakeRequestTagsQueryHandler(context, Principal(Guid.NewGuid(), holdsAdminister: true))
+            .Handle(new GetIntakeRequestTagsQuery(Search: name), ct);
+
+        // Assert
+        outsider.Should().BeEmpty();
+        admin.Should().ContainSingle().Which.RequestCount.Should().Be(1);
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using Wayd.DemandManagement.Application.IntakeRequestTags;
 using Wayd.Common.Domain.Events;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
@@ -44,12 +45,23 @@ public sealed class UntagIntakeRequestCommandHandler(
         if (!reader.IsAgentOn(intakeRequest.DeskId))
             return Result.Failure(IntakeRequestAuthorization.NotAnAgentError);
 
-        var result = intakeRequest.Untag(request.TagId,
-            EventActor.User(_currentUser.GetUserId(), reader.EmployeeId), _dateTimeProvider.Now);
+        var actor = EventActor.User(_currentUser.GetUserId(), reader.EmployeeId);
+        var now = _dateTimeProvider.Now;
+        var result = intakeRequest.Untag(request.TagId, actor, now);
         if (result.IsFailure)
             return result;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await FreeIntakeRequestTags.DeleteUnused(_dbContext, [request.TagId], intakeRequest.Id, actor, now, cancellationToken);
+
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // Only a free tag deleted for being unused can fail here: another request was given it since.
+            return Result.Failure(IntakeRequestTagErrors.ChangedWhileSaving);
+        }
 
         return Result.Success();
     }

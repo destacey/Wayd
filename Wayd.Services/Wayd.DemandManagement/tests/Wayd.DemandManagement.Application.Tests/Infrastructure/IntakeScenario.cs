@@ -205,6 +205,34 @@ public sealed class IntakeScenario
         request.ClearPostPersistenceActions();
     }
 
+    /// <summary>A saved free tag: one on no axis.</summary>
+    public IntakeRequestTag FreeTag(string name = "follow up")
+    {
+        var tag = IntakeRequestTag.CreateFree(name, EventActor.System, Instant.MinValue).Value;
+        tag.ClearDomainEvents();
+        DbContext.AddTags(tag);
+        return tag;
+    }
+
+    /// <summary>Lets the desk's agents add free tags, as already saved.</summary>
+    public IntakeDesk AllowingFreeTags(IntakeDesk desk)
+    {
+        desk.ChangeFreeTags(true, EventActor.System, Instant.MinValue);
+        desk.ClearDomainEvents();
+        desk.ClearPostPersistenceActions();
+        return desk;
+    }
+
+    /// <summary>Gives the request the free tag as already saved, raising nothing. Its desk must allow free tags.</summary>
+    public void TaggedFree(IntakeRequest request, IntakeRequestTag tag)
+    {
+        var desk = DbContext.IntakeDesks.Single(d => d.Id == request.DeskId);
+        var result = request.Tag(tag, null, desk, EventActor.System, Instant.MinValue);
+        if (result.IsFailure)
+            throw new InvalidOperationException(result.Error);
+        request.ClearDomainEvents();
+    }
+
     /// <summary>Files the request under the tag as already saved, raising nothing.</summary>
     public void Tagged(IntakeRequest request, IntakeRequestTagCategory category, string tagName)
     {

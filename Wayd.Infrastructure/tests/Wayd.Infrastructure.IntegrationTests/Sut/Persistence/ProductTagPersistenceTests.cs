@@ -78,7 +78,18 @@ public sealed class ProductTagPersistenceTests(SqlServerDbContextFixture fixture
         var act = async () => await context.SaveChangesAsync(ct);
 
         // Assert
-        await act.Should().NotThrowAsync();
+        try
+        {
+            await act.Should().NotThrowAsync();
+        }
+        finally
+        {
+            // The product type seeder only seeds axes into a database that has none, and the seeding tests share
+            // this database, so an axis left behind stops them getting Platform.
+            await using var cleanup = _fixture.CreateContext();
+            await cleanup.ProductTags.Where(t => t.Name == name).ExecuteDeleteAsync(ct);
+            await cleanup.ProductTagCategories.Where(c => c.Id == category.Id).ExecuteDeleteAsync(ct);
+        }
     }
 
     private static string UniqueName(string prefix) => $"{prefix}-{Guid.NewGuid():N}"[..30];

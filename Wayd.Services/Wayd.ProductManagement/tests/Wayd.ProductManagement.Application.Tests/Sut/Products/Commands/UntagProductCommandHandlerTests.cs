@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.ProductManagement.Application.Products.Commands;
 using Wayd.ProductManagement.Application.Tests.Infrastructure;
@@ -15,7 +16,7 @@ public sealed class UntagProductCommandHandlerTests : ProductCommandTestBase
         new(DbContext, CurrentUser.Object, Logger<UntagProductCommandHandler>(), DateTimeProvider.Object);
 
     private TagProductCommandHandler TagSut() =>
-        new(DbContext, CurrentUser.Object, Logger<TagProductCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, TagSettings.Object, CurrentUser.Object, Logger<TagProductCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldRemoveTheTag()
@@ -103,5 +104,47 @@ public sealed class UntagProductCommandHandlerTests : ProductCommandTestBase
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("Product not found.");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldDeleteAFreeTagNothingElseCarries()
+    {
+        // Arrange
+        var product = SeedProduct();
+        var free = SeedFreeTag();
+        product.Tag(free, null, EventActor.System, Now);
+        SaveAssignments(product);
+        product.ClearDomainEvents();
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new UntagProductCommand(product.Id, free.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        DbContext.ProductTags.Should().NotContain(free);
+        free.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<ProductFreeTagDeletedEvent>();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldKeepAFreeTagAnotherProductCarries()
+    {
+        // Arrange
+        var product = SeedProduct();
+        var other = SeedProduct("Billing");
+        var free = SeedFreeTag();
+        product.Tag(free, null, EventActor.System, Now);
+        other.Tag(free, null, EventActor.System, Now);
+        SaveAssignments(product);
+        SaveAssignments(other);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new UntagProductCommand(product.Id, free.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        DbContext.ProductTags.Should().Contain(free);
+        free.DomainEvents.Should().BeEmpty();
     }
 }

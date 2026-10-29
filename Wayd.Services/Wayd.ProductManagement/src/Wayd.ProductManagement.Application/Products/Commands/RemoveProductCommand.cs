@@ -1,4 +1,5 @@
-﻿using Wayd.ProductManagement.Domain;
+﻿using Wayd.ProductManagement.Application.ProductTags;
+using Wayd.ProductManagement.Domain;
 
 namespace Wayd.ProductManagement.Application.Products.Commands;
 
@@ -63,6 +64,9 @@ public sealed class RemoveProductCommandHandler(
             var isDependedOn = await _productManagementDbContext.ProductDependencies
                 .AnyAsync(d => d.DependsOnProductId == request.Id, cancellationToken);
 
+            var actor = EventActor.User(_currentUser.GetUserId());
+            var now = _dateTimeProvider.Now;
+
             // Raises the event; the delete itself is the handler's, since the aggregate cannot remove
             // itself from a set it does not know about.
             var removeResult = product.Remove(
@@ -71,8 +75,8 @@ public sealed class RemoveProductCommandHandler(
                 isInAManifest,
                 hasDependencies,
                 isDependedOn,
-                EventActor.User(_currentUser.GetUserId()),
-                _dateTimeProvider.Now);
+                actor,
+                now);
 
             if (removeResult.IsFailure)
             {
@@ -87,6 +91,10 @@ public sealed class RemoveProductCommandHandler(
                 ProductWorkflowOwners.Product.Key,
                 [product.Id],
                 cancellationToken);
+
+            // Its tag assignments go with it, so a free tag only it carried would be left unused.
+            await FreeProductTags.DeleteUnused(_productManagementDbContext, [.. product.Tags.Select(t => t.TagId)],
+                product.Id, actor, now, cancellationToken);
 
             _productManagementDbContext.Products.Remove(product);
             await _productManagementDbContext.SaveChangesAsync(cancellationToken);

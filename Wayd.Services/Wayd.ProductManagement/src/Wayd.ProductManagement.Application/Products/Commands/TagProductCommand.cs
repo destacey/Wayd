@@ -1,4 +1,9 @@
-﻿namespace Wayd.ProductManagement.Application.Products.Commands;
+﻿using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Settings;
+using Wayd.ProductManagement.Application.ProductTags;
+using Wayd.ProductManagement.Domain.Models;
+
+namespace Wayd.ProductManagement.Application.Products.Commands;
 
 public sealed record TagProductCommand(Guid Id, Guid TagId) : ICommand;
 
@@ -16,6 +21,7 @@ public sealed class TagProductCommandValidator : AbstractValidator<TagProductCom
 
 public sealed class TagProductCommandHandler(
     IProductManagementDbContext productManagementDbContext,
+    ISettings<ProductTagSettings> settings,
     ICurrentUser currentUser,
     ILogger<TagProductCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
@@ -24,6 +30,7 @@ public sealed class TagProductCommandHandler(
     private const string AppRequestName = nameof(TagProductCommand);
 
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly ISettings<ProductTagSettings> _settings = settings;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<TagProductCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -52,19 +59,30 @@ public sealed class TagProductCommandHandler(
             }
 
             // The axis decides whether this replaces an existing tag or joins it, so the aggregate
-            // needs it loaded alongside the tag.
-            var category = await _productManagementDbContext.ProductTagCategories
-                .FirstOrDefaultAsync(c => c.Id == tag.CategoryId, cancellationToken);
-
-            if (category is null)
+            // needs it loaded alongside the tag. A free tag has none, and needs free tags turned on.
+            ProductTagCategory? category = null;
+            if (tag.IsFree)
             {
-                _logger.LogError("Tag {TagId} references missing category {CategoryId}.", request.TagId, tag.CategoryId);
-                return Result.Failure("That tag's category no longer exists.");
+                if (!(await _settings.Get(cancellationToken)).AllowsFreeTags)
+                {
+                    return Result.Failure(ProductTagErrors.FreeTagsTurnedOff);
+                }
             }
-
-            if (!category.IsActive)
+            else
             {
-                return Result.Failure($"'{category.Name}' is inactive and cannot be used to tag products.");
+                category = await _productManagementDbContext.ProductTagCategories
+                    .FirstOrDefaultAsync(c => c.Id == tag.CategoryId, cancellationToken);
+
+                if (category is null)
+                {
+                    _logger.LogError("Tag {TagId} references missing category {CategoryId}.", request.TagId, tag.CategoryId);
+                    return Result.Failure("That tag's category no longer exists.");
+                }
+
+                if (!category.IsActive)
+                {
+                    return Result.Failure($"'{category.Name}' is inactive and cannot be used to tag products.");
+                }
             }
 
             var tagResult = product.Tag(

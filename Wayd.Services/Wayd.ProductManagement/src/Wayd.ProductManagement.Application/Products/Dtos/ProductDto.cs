@@ -78,7 +78,7 @@ public sealed record ProductDto
             .Map(dto => dto.CategoryName, a => dbContext.ProductTagCategories
                 .Where(c => c.Id == a.CategoryId)
                 .Select(c => c.Name)
-                .FirstOrDefault()!);
+                .FirstOrDefault());
 
         config.NewConfig<Product, ProductDto>()
             .Map(dto => dto.Type, p => NavigationDto.Create(p.ProductType!.Id, p.ProductType.Key, p.ProductType.Name))
@@ -99,6 +99,10 @@ public sealed record ProductTagDto
 {
     public Guid TagId { get; init; }
     public string TagName { get; init; } = default!;
-    public Guid CategoryId { get; init; }
-    public string CategoryName { get; init; } = default!;
+
+    /// <summary>The tag's axis, or null for a free tag.</summary>
+    public Guid? CategoryId { get; init; }
+
+    /// <summary>The axis's name, or null for a free tag.</summary>
+    public string? CategoryName { get; init; }
 }

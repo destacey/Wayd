@@ -385,7 +385,7 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
     [EndpointSummary("Apply a tag to a product.")]
     [EndpointDescription(
-        "Tags live in categories — axes such as Platform or Compliance — and a category decides whether a product may carry more than one of its tags.\n\n**On a single-value axis this silently replaces the existing tag rather than refusing.** The call succeeds, and the tag the product previously carried on that axis is gone. Read the product first if that matters. On a multi-value axis the tag joins the others.\n\nBoth the tag and its category must be active. Applying a tag the product already carries succeeds and changes nothing.")]
+        "Tags live in categories — axes such as Platform or Compliance — and a category decides whether a product may carry more than one of its tags.\n\n**On a single-value axis this silently replaces the existing tag rather than refusing.** The call succeeds, and the tag the product previously carried on that axis is gone. Read the product first if that matters. On a multi-value axis the tag joins the others.\n\nBoth the tag and its category must be active. Applying a tag the product already carries succeeds and changes nothing.\n\nA free tag — one on no category, from `ProductTags_Search` with `isFree` — can be applied too, when free tags are turned on for products. To apply one by name, creating it if needed, use `Products_TagByName`.")]
     [McpTool("Products_Tag", "Tag a product")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -398,10 +398,29 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPost("{id}/tags")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
+    [EndpointSummary("Tag a product by name, creating a free tag when no tag has the name.")]
+    [EndpointDescription(
+        "Returns the id of the tag applied. **When exactly one active tag on an active category has the name, ignoring case, that tag is applied** — with the same single-value replacement as `Products_Tag`. When more than one category has it the call is refused: apply the one meant with `Products_Tag`.\n\nOtherwise the free tag with the name is applied — a tag on no category — and created when none has it yet. Free tags need to be turned on for products (`allowsFreeTags` in the product tag settings); with them off this is refused. Names are trimmed and runs of whitespace collapsed, at most 64 characters.")]
+    [McpTool("Products_TagByName", "Tag a product by name")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<Guid>> TagByName(
+        Guid id, [FromBody] TagProductByNameRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToTagProductByNameCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpDelete("{id}/tags/{tagId}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
     [EndpointSummary("Remove a tag from a product.")]
-    [EndpointDescription("Succeeds whether or not the product carried it, and an inactive tag can still be removed.")]
+    [EndpointDescription("Succeeds whether or not the product carried it, and an inactive tag can still be removed. A free tag no other product carries is deleted with it.")]
     [McpTool("Products_Untag", "Remove a tag from a product", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

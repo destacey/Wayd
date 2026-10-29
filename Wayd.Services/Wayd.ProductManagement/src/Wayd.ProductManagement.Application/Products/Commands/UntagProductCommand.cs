@@ -1,4 +1,6 @@
-﻿namespace Wayd.ProductManagement.Application.Products.Commands;
+﻿using Wayd.ProductManagement.Application.ProductTags;
+
+namespace Wayd.ProductManagement.Application.Products.Commands;
 
 public sealed record UntagProductCommand(Guid Id, Guid TagId) : ICommand;
 
@@ -44,10 +46,9 @@ public sealed class UntagProductCommandHandler(
 
             // Removing a tag the product never carried succeeds without an event, so no existence
             // check on the tag itself is needed.
-            var untagResult = product.Untag(
-                request.TagId,
-                EventActor.User(_currentUser.GetUserId()),
-                _dateTimeProvider.Now);
+            var actor = EventActor.User(_currentUser.GetUserId());
+            var now = _dateTimeProvider.Now;
+            var untagResult = product.Untag(request.TagId, actor, now);
 
             if (untagResult.IsFailure)
             {
@@ -59,7 +60,18 @@ public sealed class UntagProductCommandHandler(
                 return Result.Failure(untagResult.Error);
             }
 
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+            await FreeProductTags.DeleteUnused(_productManagementDbContext, [request.TagId], product.Id, actor, now,
+                cancellationToken);
+
+            try
+            {
+                await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                // Only a free tag deleted for being unused can fail here: another product was given it since.
+                return Result.Failure(ProductTagErrors.ChangedWhileSaving);
+            }
 
             _logger.LogInformation("Product {ProductId} untagged from {TagId}.", request.Id, request.TagId);
 

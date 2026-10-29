@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProductManagement;
+using Wayd.ProductManagement.Application.ProductTags;
 using Wayd.ProductManagement.Application.Products.Commands;
 using Wayd.ProductManagement.Application.Tests.Infrastructure;
 
@@ -13,7 +14,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Commands;
 public sealed class TagProductCommandHandlerTests : ProductCommandTestBase
 {
     private TagProductCommandHandler CreateSut() =>
-        new(DbContext, CurrentUser.Object, Logger<TagProductCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, TagSettings.Object, CurrentUser.Object, Logger<TagProductCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldApplyTheTag()
@@ -168,5 +169,39 @@ public sealed class TagProductCommandHandlerTests : ProductCommandTestBase
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("Product not found.");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRefuseAFreeTag_WhenFreeTagsAreOff()
+    {
+        // Arrange
+        var product = SeedProduct();
+        var free = SeedFreeTag();
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new TagProductCommand(product.Id, free.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(ProductTagErrors.FreeTagsTurnedOff);
+        product.Tags.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldApplyAFreeTag_WhenFreeTagsAreOn()
+    {
+        // Arrange
+        AllowFreeTags();
+        var product = SeedProduct();
+        var free = SeedFreeTag();
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new TagProductCommand(product.Id, free.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        product.Tags.Should().ContainSingle().Which.CategoryId.Should().BeNull();
     }
 }

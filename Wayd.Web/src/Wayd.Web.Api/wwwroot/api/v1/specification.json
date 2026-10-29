@@ -12334,6 +12334,33 @@
         ]
       }
     },
+    "/api/product-management/product-tags/settings": {
+      "get": {
+        "tags": [
+          "ProductTags"
+        ],
+        "summary": "Get whether free tags are turned on for products.",
+        "description": "Read-only, for whoever tags products: the same `allowsFreeTags` the product tag system settings hold, readable without the system settings permission. Changed through the system settings.",
+        "operationId": "ProductTags_GetSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductTagSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/product-management/product-tags/{id}": {
       "put": {
         "tags": [

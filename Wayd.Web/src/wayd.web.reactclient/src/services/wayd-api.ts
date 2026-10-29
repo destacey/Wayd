@@ -15418,6 +15418,58 @@ export class ProductTagsClient {
     }
 
     /**
+     * Get whether free tags are turned on for products.
+     * @return OK
+     */
+    getSettings( cancelToken?: CancelToken): Promise<ProductTagSettingsDto> {
+        let url_ = this.baseUrl + "/api/product-management/product-tags/settings";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSettings(_response);
+        });
+    }
+
+    protected processGetSettings(response: AxiosResponse): Promise<ProductTagSettingsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ProductTagSettingsDto>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ProductTagSettingsDto>(null as any);
+    }
+
+    /**
      * Rename a free tag or change its description.
      * @return No Content
      */

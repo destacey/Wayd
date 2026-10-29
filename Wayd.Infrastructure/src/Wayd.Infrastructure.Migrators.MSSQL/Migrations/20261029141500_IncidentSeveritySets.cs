@@ -1,108 +1,127 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
+namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations;
+
+/// <inheritdoc />
+public partial class IncidentSeveritySets : Migration
 {
     /// <inheritdoc />
-    public partial class IncidentSeveritySets : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.CreateTable(
-                name: "IncidentSeveritySetAssignments",
-                schema: "ProductManagement",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SeveritySetId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SystemCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    SystemCreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
-                    SystemLastModified = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    SystemLastModifiedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_IncidentSeveritySetAssignments", x => x.Id);
-                });
+        // Replacing 20261028190911 left some databases with these tables but a different history row.
+        // Create only when missing so startup succeeds without dropping data.
+        migrationBuilder.Sql(
+            """
+            IF EXISTS (
+                SELECT 1
+                FROM [dbo].[__EFMigrationsHistory]
+                WHERE [MigrationId] = N'20261028190911_IncidentSeveritySets')
+            BEGIN
+                DELETE FROM [dbo].[__EFMigrationsHistory]
+                WHERE [MigrationId] = N'20261028190911_IncidentSeveritySets';
+            END
 
-            migrationBuilder.CreateTable(
-                name: "IncidentSeveritySets",
-                schema: "ProductManagement",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(512)", maxLength: 512, nullable: true),
-                    IsSystem = table.Column<bool>(type: "bit", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    SystemCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    SystemCreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
-                    SystemLastModified = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    SystemLastModifiedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_IncidentSeveritySets", x => x.Id);
-                });
+            IF NOT EXISTS (
+                SELECT 1
+                FROM sys.tables t
+                INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+                WHERE s.name = N'ProductManagement' AND t.name = N'IncidentSeveritySetAssignments')
+            BEGIN
+                CREATE TABLE [ProductManagement].[IncidentSeveritySetAssignments] (
+                    [Id] uniqueidentifier NOT NULL,
+                    [SeveritySetId] uniqueidentifier NOT NULL,
+                    [SystemCreated] datetime2 NOT NULL,
+                    [SystemCreatedBy] nvarchar(450) NULL,
+                    [SystemLastModified] datetime2 NOT NULL,
+                    [SystemLastModifiedBy] nvarchar(450) NULL,
+                    CONSTRAINT [PK_IncidentSeveritySetAssignments] PRIMARY KEY ([Id])
+                );
+            END
 
-            migrationBuilder.CreateTable(
-                name: "IncidentSeverityLevels",
-                schema: "ProductManagement",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SetId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    SortOrder = table.Column<int>(type: "int", nullable: false),
-                    SystemCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    SystemCreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
-                    SystemLastModified = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    SystemLastModifiedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_IncidentSeverityLevels", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_IncidentSeverityLevels_IncidentSeveritySets_SetId",
-                        column: x => x.SetId,
-                        principalSchema: "ProductManagement",
-                        principalTable: "IncidentSeveritySets",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+            IF NOT EXISTS (
+                SELECT 1
+                FROM sys.tables t
+                INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+                WHERE s.name = N'ProductManagement' AND t.name = N'IncidentSeveritySets')
+            BEGIN
+                CREATE TABLE [ProductManagement].[IncidentSeveritySets] (
+                    [Id] uniqueidentifier NOT NULL,
+                    [Name] nvarchar(64) NOT NULL,
+                    [Description] nvarchar(512) NULL,
+                    [IsSystem] bit NOT NULL,
+                    [IsActive] bit NOT NULL,
+                    [SystemCreated] datetime2 NOT NULL,
+                    [SystemCreatedBy] nvarchar(450) NULL,
+                    [SystemLastModified] datetime2 NOT NULL,
+                    [SystemLastModifiedBy] nvarchar(450) NULL,
+                    CONSTRAINT [PK_IncidentSeveritySets] PRIMARY KEY ([Id])
+                );
+            END
 
-            migrationBuilder.CreateIndex(
-                name: "IX_IncidentSeverityLevels_SetId_Name",
-                schema: "ProductManagement",
-                table: "IncidentSeverityLevels",
-                columns: new[] { "SetId", "Name" },
-                unique: true);
+            IF NOT EXISTS (
+                SELECT 1
+                FROM sys.tables t
+                INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+                WHERE s.name = N'ProductManagement' AND t.name = N'IncidentSeverityLevels')
+            BEGIN
+                CREATE TABLE [ProductManagement].[IncidentSeverityLevels] (
+                    [Id] uniqueidentifier NOT NULL,
+                    [SetId] uniqueidentifier NOT NULL,
+                    [Name] nvarchar(64) NOT NULL,
+                    [SortOrder] int NOT NULL,
+                    [SystemCreated] datetime2 NOT NULL,
+                    [SystemCreatedBy] nvarchar(450) NULL,
+                    [SystemLastModified] datetime2 NOT NULL,
+                    [SystemLastModifiedBy] nvarchar(450) NULL,
+                    CONSTRAINT [PK_IncidentSeverityLevels] PRIMARY KEY ([Id]),
+                    CONSTRAINT [FK_IncidentSeverityLevels_IncidentSeveritySets_SetId] FOREIGN KEY ([SetId])
+                        REFERENCES [ProductManagement].[IncidentSeveritySets] ([Id]) ON DELETE CASCADE
+                );
+            END
 
-            migrationBuilder.CreateIndex(
-                name: "IX_IncidentSeveritySets_Name",
-                schema: "ProductManagement",
-                table: "IncidentSeveritySets",
-                column: "Name",
-                unique: true);
-        }
+            IF NOT EXISTS (
+                SELECT 1
+                FROM sys.indexes i
+                INNER JOIN sys.tables t ON i.object_id = t.object_id
+                INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+                WHERE s.name = N'ProductManagement'
+                  AND t.name = N'IncidentSeverityLevels'
+                  AND i.name = N'IX_IncidentSeverityLevels_SetId_Name')
+            BEGIN
+                CREATE UNIQUE INDEX [IX_IncidentSeverityLevels_SetId_Name]
+                    ON [ProductManagement].[IncidentSeverityLevels] ([SetId], [Name]);
+            END
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropTable(
-                name: "IncidentSeverityLevels",
-                schema: "ProductManagement");
+            IF NOT EXISTS (
+                SELECT 1
+                FROM sys.indexes i
+                INNER JOIN sys.tables t ON i.object_id = t.object_id
+                INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+                WHERE s.name = N'ProductManagement'
+                  AND t.name = N'IncidentSeveritySets'
+                  AND i.name = N'IX_IncidentSeveritySets_Name')
+            BEGIN
+                CREATE UNIQUE INDEX [IX_IncidentSeveritySets_Name]
+                    ON [ProductManagement].[IncidentSeveritySets] ([Name]);
+            END
+            """);
+    }
 
-            migrationBuilder.DropTable(
-                name: "IncidentSeveritySetAssignments",
-                schema: "ProductManagement");
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.DropTable(
+            name: "IncidentSeverityLevels",
+            schema: "ProductManagement");
 
-            migrationBuilder.DropTable(
-                name: "IncidentSeveritySets",
-                schema: "ProductManagement");
-        }
+        migrationBuilder.DropTable(
+            name: "IncidentSeveritySetAssignments",
+            schema: "ProductManagement");
+
+        migrationBuilder.DropTable(
+            name: "IncidentSeveritySets",
+            schema: "ProductManagement");
     }
 }

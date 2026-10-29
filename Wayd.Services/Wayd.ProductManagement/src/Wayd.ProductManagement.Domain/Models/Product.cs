@@ -7,6 +7,7 @@ using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.Common.Domain.Interfaces.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Common.Domain.Tagging;
 using Wayd.Common.Models;
 
 namespace Wayd.ProductManagement.Domain.Models;
@@ -119,31 +120,15 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
         Guard.Against.Null(tag, nameof(tag));
         Guard.Against.Null(category, nameof(category));
 
-        if (tag.CategoryId != category.Id)
-            throw new ArgumentException("The tag must belong to the supplied axis.", nameof(category));
-
         if (!tag.IsActive || !category.IsActive)
         {
             return Result.Failure(InactiveTagError);
         }
 
-        if (_tags.Any(t => t.TagId == tag.Id))
+        if (TagSet.Apply(_tags, tag, category, (tagId, categoryId) => new ProductTagAssignment(Id, tagId, categoryId)) is { } change)
         {
-            return Result.Success();
+            AddDomainEvent(new ProductTagsChangedEventV2(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
         }
-
-        // A single-value axis holds one tag: applying another replaces it rather than failing, since
-        // "this is a mobile app, not a web app" is a correction, not an error.
-        Guid[] removed = [];
-        if (!category.AllowsMany)
-        {
-            removed = [.. _tags.Where(t => t.CategoryId == category.Id).Select(t => t.TagId)];
-            _tags.RemoveAll(t => t.CategoryId == category.Id);
-        }
-
-        _tags.Add(new ProductTagAssignment(Id, tag.Id, category.Id));
-
-        AddDomainEvent(new ProductTagsChangedEventV2(Id, Key, [tag.Id], removed, [.. _tags.Select(t => t.TagId)], actor, timestamp));
 
         return Result.Success();
     }
@@ -151,19 +136,17 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     /// <summary>
     /// The failure for applying a tag, or a tag on an axis, that has been deactivated.
     /// </summary>
-    public const string InactiveTagError = "An inactive tag cannot be applied.";
+    public const string InactiveTagError = TagErrors.InactiveTag;
 
     /// <summary>
     /// Removes a tag. Succeeds whether or not the node carried it.
     /// </summary>
     public Result Untag(Guid tagId, EventActor actor, Instant timestamp)
     {
-        if (_tags.RemoveAll(t => t.TagId == tagId) == 0)
+        if (TagSet.Remove(_tags, tagId) is { } change)
         {
-            return Result.Success();
+            AddDomainEvent(new ProductTagsChangedEventV2(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
         }
-
-        AddDomainEvent(new ProductTagsChangedEventV2(Id, Key, [], [tagId], [.. _tags.Select(t => t.TagId)], actor, timestamp));
 
         return Result.Success();
     }

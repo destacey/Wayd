@@ -1,4 +1,5 @@
 using Ardalis.GuardClauses;
+using Wayd.Common.Domain.Tagging;
 
 namespace Wayd.ProductManagement.Domain.Models;
 
@@ -9,7 +10,7 @@ namespace Wayd.ProductManagement.Domain.Models;
 /// Carries the tag's category so that "what platform is this product?" is answerable without loading
 /// the tag and its axis — the same denormalization reasoning as a record's status category.
 /// </remarks>
-public sealed class ProductTagAssignment : BaseAuditableEntity
+public sealed class ProductTagAssignment : BaseAuditableEntity, ITagAssignment
 {
     private ProductTagAssignment() { }
 

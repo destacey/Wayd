@@ -1,3 +1,5 @@
+using Wayd.Common.Domain.Tagging;
+
 namespace Wayd.DemandManagement.Domain.Models;
 
 /// <summary>
@@ -7,7 +9,7 @@ namespace Wayd.DemandManagement.Domain.Models;
 /// Carries the tag's axis so that a single-value axis can be enforced, and a request filtered by axis,
 /// without loading the tag.
 /// </remarks>
-public sealed class IntakeRequestTagAssignment
+public sealed class IntakeRequestTagAssignment : ITagAssignment
 {
     private IntakeRequestTagAssignment() { }
 

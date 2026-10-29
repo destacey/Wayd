@@ -7,6 +7,7 @@ using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Common.Domain.Tagging;
 using Wayd.DemandManagement.Domain.Models.Scoring;
 
 namespace Wayd.DemandManagement.Domain.Models;
@@ -740,8 +741,6 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         Guard.Against.Null(tag);
         Guard.Against.Null(category);
         Guard.Against.Null(desk);
-        if (tag.CategoryId != category.Id)
-            throw new ArgumentException("The tag must belong to the supplied axis.", nameof(category));
         if (desk.Id != DeskId)
             throw new ArgumentException("The desk must be the request's own.", nameof(desk));
 
@@ -751,21 +750,8 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         if (!desk.Offers(category))
             return Result.Failure(TagAxisNotOfferedError);
 
-        if (_tags.Any(t => t.TagId == tag.Id))
-            return Result.Success();
-
-        Guid[] removed = [];
-        if (!category.AllowsMany)
-        {
-            removed = [.. _tags.Where(t => t.CategoryId == category.Id).Select(t => t.TagId)];
-            _tags.RemoveAll(t => t.CategoryId == category.Id);
-        }
-
-        _tags.Add(new IntakeRequestTagAssignment(Id, tag.Id, category.Id));
-
-        Guid[] added = [tag.Id];
-        var tagIds = TagIds();
-        RaiseWhenKeyed(() => new IntakeRequestTagsChangedEvent(Id, Key, added, removed, tagIds, actor, timestamp));
+        if (TagSet.Apply(_tags, tag, category, (tagId, categoryId) => new IntakeRequestTagAssignment(Id, tagId, categoryId)) is { } change)
+            RaiseWhenKeyed(() => new IntakeRequestTagsChangedEvent(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
 
         return Result.Success();
     }
@@ -773,7 +759,7 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// <summary>
     /// The failure for applying a tag, or a tag on an axis, that has been deactivated.
     /// </summary>
-    public const string InactiveTagError = "An inactive tag cannot be applied.";
+    public const string InactiveTagError = TagErrors.InactiveTag;
 
     /// <summary>
     /// The failure for applying a tag along an axis the request's desk does not offer.
@@ -789,12 +775,8 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// </remarks>
     public Result Untag(Guid tagId, EventActor actor, Instant timestamp)
     {
-        if (_tags.RemoveAll(t => t.TagId == tagId) == 0)
-            return Result.Success();
-
-        Guid[] removed = [tagId];
-        var tagIds = TagIds();
-        RaiseWhenKeyed(() => new IntakeRequestTagsChangedEvent(Id, Key, [], removed, tagIds, actor, timestamp));
+        if (TagSet.Remove(_tags, tagId) is { } change)
+            RaiseWhenKeyed(() => new IntakeRequestTagsChangedEvent(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
 
         return Result.Success();
     }
@@ -1042,8 +1024,6 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     }
 
     private Guid[] ParticipantIds() => [.. _participants.Select(p => p.EmployeeId)];
-
-    private Guid[] TagIds() => [.. _tags.Select(t => t.TagId)];
 
     private Guid[] OutcomeTargetIds() => [.. _outcomes.Select(o => o.TargetId)];
 

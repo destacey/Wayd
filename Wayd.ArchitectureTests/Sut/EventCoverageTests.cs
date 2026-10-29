@@ -84,6 +84,7 @@ public partial class EventCoverageTests
         typeof(IntakeChannel),
         typeof(IntakeDesk),
         typeof(IntakeRequest),
+        typeof(IntakeRequestTag),
         typeof(IntakeRequestTagCategory),
 
         // Organization
@@ -102,6 +103,7 @@ public partial class EventCoverageTests
         typeof(Deployment),
         typeof(DeploymentEnvironment),
         typeof(Product),
+        typeof(ProductTag),
         typeof(ProductTagCategory),
         typeof(Release),
         typeof(ReleasePackage),
@@ -256,7 +258,6 @@ public partial class EventCoverageTests
         [typeof(PlanningIntervalIterationSprint)] = typeof(PlanningInterval),
         [typeof(PlanningIntervalObjectiveHealthCheck)] = typeof(PlanningIntervalObjective),
         [typeof(ProductDependency)] = typeof(Product),
-        [typeof(ProductTag)] = typeof(ProductTagCategory),
         [typeof(ProductTagAssignment)] = typeof(Product),
         [typeof(ProjectHealthCheck)] = typeof(Project),
         [typeof(ProjectScore)] = typeof(Project),

@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Common.Domain.Tagging;
 using Wayd.Infrastructure.Persistence.Converters;
 using Wayd.ProductManagement.Domain.Models;
 
@@ -69,12 +70,12 @@ public class ProductTagConfiguration : IEntityTypeConfiguration<ProductTag>
 
         builder.HasKey(t => t.Id);
 
-        // Unique per axis, not globally: "ios" on Platform and "ios" on Tech Stack are different tags.
-        builder.HasIndex(t => new { t.CategoryId, t.Name }).IsUnique();
+        // Unique per axis, not globally: "ios" on Platform and "ios" on Tech Stack are different tags. Free tags
+        // have no axis and are unique among themselves: no filter, so SQL Server treats their null axes as equal.
+        builder.HasIndex(t => new { t.CategoryId, t.Name }).IsUnique().HasFilter(null);
 
         builder.Property(t => t.Id).ValueGeneratedNever();
-        builder.Property(t => t.CategoryId).IsRequired();
-        builder.Property(t => t.Name).IsRequired().HasMaxLength(64);
+        builder.Property(t => t.Name).IsRequired().HasMaxLength(TagBase.NameMaxLength);
         builder.Property(t => t.Description).HasMaxLength(512);
         builder.Property(t => t.IsActive).IsRequired();
     }
@@ -98,7 +99,6 @@ public class ProductTagAssignmentConfiguration : IEntityTypeConfiguration<Produc
         builder.Property(a => a.Id).ValueGeneratedNever();
         builder.Property(a => a.ProductId).IsRequired();
         builder.Property(a => a.TagId).IsRequired();
-        builder.Property(a => a.CategoryId).IsRequired();
 
         builder.HasOne(a => a.Tag)
             .WithMany()

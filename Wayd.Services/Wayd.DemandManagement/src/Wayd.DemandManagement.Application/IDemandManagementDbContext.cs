@@ -36,6 +36,12 @@ public interface IDemandManagementDbContext
     DbSet<IntakeRequestTagCategory> IntakeRequestTagCategories { get; }
 
     /// <summary>
+    /// Every intake request tag: those on an axis, which change only through it, and free tags, which are their own
+    /// aggregate.
+    /// </summary>
+    DbSet<IntakeRequestTag> IntakeRequestTags { get; }
+
+    /// <summary>
     /// The module's same-Id copies of PPM projects, which outcomes point at. Written only by the replication
     /// handlers.
     /// </summary>

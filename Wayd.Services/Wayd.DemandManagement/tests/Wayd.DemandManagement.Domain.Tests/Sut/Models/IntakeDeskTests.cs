@@ -622,6 +622,37 @@ public sealed class IntakeDeskTests
     }
 
     [Fact]
+    public void ChangeFreeTags_WhenTurnedOn_AllowsThemAndRaisesBothEnds()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().Generate();
+
+        // Act
+        var result = sut.ChangeFreeTags(true, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.AllowsFreeTags.Should().BeTrue();
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskFreeTagsChangedEvent>().Subject;
+        changed.AllowsFreeTags.Should().BeTrue();
+        changed.PreviousAllowsFreeTags.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ChangeFreeTags_ToTheCurrentSetting_RaisesNothing()
+    {
+        // Arrange
+        var sut = new IntakeDeskFaker().WithAllowsFreeTags(true).Generate();
+
+        // Act
+        var result = sut.ChangeFreeTags(true, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
     public void ChangeTagCategories_ToChosenOnes_OffersOnlyThoseAndRaisesBothEnds()
     {
         // Arrange

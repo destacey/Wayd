@@ -13,7 +13,7 @@ public sealed class IntakeRequestTagAssignment : ITagAssignment
 {
     private IntakeRequestTagAssignment() { }
 
-    internal IntakeRequestTagAssignment(Guid requestId, Guid tagId, Guid categoryId)
+    internal IntakeRequestTagAssignment(Guid requestId, Guid tagId, Guid? categoryId)
     {
         RequestId = requestId;
         TagId = tagId;
@@ -26,6 +26,6 @@ public sealed class IntakeRequestTagAssignment : ITagAssignment
     /// <summary>The tag it carries.</summary>
     public Guid TagId { get; private init; }
 
-    /// <summary>The tag's axis, denormalized from the tag.</summary>
-    public Guid CategoryId { get; private init; }
+    /// <summary>The tag's axis, denormalized from the tag. Null for a free tag.</summary>
+    public Guid? CategoryId { get; private init; }
 }

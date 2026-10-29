@@ -243,4 +243,48 @@ public sealed class ProductTaggingTests
     }
 
     #endregion Events
+
+    #region Free tags
+
+    [Fact]
+    public void Tag_WithAFreeTag_AddsItWithNoAxisBesideTheOthers()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var (platform, ios, _) = Axis(allowsMany: false);
+        sut.Tag(ios, platform, EventActor.System, _dateTimeProvider.Now);
+        var free = ProductTag.CreateFree("migration wave 2", EventActor.System, _dateTimeProvider.Now).Value;
+
+        // Act
+        var result = sut.Tag(free, null, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        // A free tag is on no axis, so it never displaces a tag on one, even on an axis that takes one.
+        result.IsSuccess.Should().BeTrue();
+        sut.Tags.Should().HaveCount(2);
+        sut.Tags.Single(t => t.TagId == free.Id).CategoryId.Should().BeNull();
+    }
+
+    [Fact]
+    public void ReplaceTag_SwapsAFreeTagForATagOnAnAxisInOneEvent()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+        var (platform, ios, _) = Axis(allowsMany: true);
+        var free = ProductTag.CreateFree("iphone", EventActor.System, _dateTimeProvider.Now).Value;
+        sut.Tag(free, null, EventActor.System, _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.ReplaceTag(free.Id, ios, platform, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Tags.Should().ContainSingle().Which.TagId.Should().Be(ios.Id);
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<ProductTagsChangedEventV2>().Subject;
+        changed.Added.Should().Equal(ios.Id);
+        changed.Removed.Should().Equal(free.Id);
+    }
+
+    #endregion Free tags
 }

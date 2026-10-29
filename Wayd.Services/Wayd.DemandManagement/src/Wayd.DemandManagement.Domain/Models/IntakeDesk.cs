@@ -160,6 +160,16 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     public IReadOnlyCollection<IntakeDeskTagCategory> TagCategories => _tagCategories.AsReadOnly();
 
     /// <summary>
+    /// Whether the desk's agents may give its requests free tags — tags on no axis, typed in while tagging. Off
+    /// until a Desk Admin turns it on, so a desk's filing stays curated unless it chooses otherwise.
+    /// </summary>
+    /// <remarks>
+    /// Only adding a free tag is held to this: a request keeps, shows and can lose free tags whatever its desk's
+    /// setting.
+    /// </remarks>
+    public bool AllowsFreeTags { get; private set; }
+
+    /// <summary>
     /// Whether the desk's agents may tag its requests along the axis. Needs <see cref="TagCategories"/> loaded.
     /// </summary>
     /// <remarks>
@@ -420,6 +430,22 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         Guid[] resulting = [.. _tagCategories.Select(c => c.CategoryId)];
         RaiseWhenKeyed(() => new IntakeDeskTagCategoriesChangedEvent(Id, Key, offersAllTagCategories,
             previousOffersAllTagCategories, added, removed, resulting, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Turns free tags on or off for the desk's agents. Requests already carrying free tags keep them.
+    /// </summary>
+    public Result ChangeFreeTags(bool allowsFreeTags, EventActor actor, Instant timestamp)
+    {
+        if (allowsFreeTags == AllowsFreeTags)
+            return Result.Success();
+
+        var previousAllowsFreeTags = AllowsFreeTags;
+        AllowsFreeTags = allowsFreeTags;
+
+        RaiseWhenKeyed(() => new IntakeDeskFreeTagsChangedEvent(Id, Key, allowsFreeTags, previousAllowsFreeTags, actor, timestamp));
 
         return Result.Success();
     }

@@ -34,7 +34,7 @@ public sealed class NotificationReasonsTests
     [InlineData(NotificationReason.Following, true)]
     [InlineData(NotificationReason.Following | NotificationReason.Mentioned, true)]
     [InlineData((NotificationReason)0, false)]
-    [InlineData((NotificationReason)128, false)]
+    [InlineData((NotificationReason)256, false)]
     public void IsValid_ShouldAcceptOnlyNonEmptySetsOfDefinedReasons(NotificationReason reasons, bool expected)
     {
         // Act

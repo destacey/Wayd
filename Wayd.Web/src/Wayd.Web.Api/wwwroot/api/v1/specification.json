@@ -45138,6 +45138,58 @@
         ]
       }
     },
+    "/api/app-integrations/connections/{id}/communication-test": {
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Run the hello-world communication test for a connection.",
+        "description": "Uses the connection's own Microsoft Graph app registration to send a Teams chat message and create a hello-world calendar event for the signed-in user's Wayd account email. Supported when the connector registers a communication test (currently Microsoft Teams).",
+        "operationId": "Connections_TestCommunicationConnection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/app-integrations/connections/{id}/workday/orgs": {
       "get": {
         "tags": [

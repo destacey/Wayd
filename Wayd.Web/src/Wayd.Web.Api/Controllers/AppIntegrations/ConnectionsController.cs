@@ -313,6 +313,34 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPost("{id}/communication-test")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
+    [EndpointSummary("Run the hello-world communication test for a connection.")]
+    [EndpointDescription(
+        "Uses the connection's own Microsoft Graph app registration to send a Teams chat message "
+        + "and create a hello-world calendar event for the signed-in user's Wayd account email. "
+        + "Supported when the connector registers a communication test (currently Microsoft Teams).")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> TestCommunicationConnection(
+        Guid id,
+        [FromServices] IServiceProvider serviceProvider,
+        CancellationToken cancellationToken)
+    {
+        var connection = await _dispatcher.Send(new GetConnectionQuery(id), cancellationToken);
+        if (connection is null)
+            return NotFound();
+
+        var test = serviceProvider.GetKeyedService<IConnectionCommunicationTest>((Connector)connection.Connector.Id);
+        if (test is null)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(
+                $"The '{connection.Connector.Name}' connector does not support a communication test.", HttpContext));
+
+        var result = await test.Run(id, cancellationToken);
+        return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpGet("{id}/workday/orgs")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
     [EndpointSummary("List Workday organizations of a given type.")]

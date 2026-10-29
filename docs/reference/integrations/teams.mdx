@@ -9,11 +9,51 @@ audience: [developer, agent, admin]
 
 The Microsoft Teams connector stores an Entra app registration (tenant ID, client ID, and client secret) used to send chats and calendar events through Microsoft Graph. It does **not** sync data into Wayd.
 
+Register a **dedicated** Entra application for Wayd Teams communication. It is separate from sign-in and from the [Entra people-sync](./entra.mdx) app registration.
+
 - **Category:** Communication
 - **Status:** Preview
 - **Auth:** App registration (client secret)
 - **Sync direction:** None
 
-Setup steps and a hello-world Graph test arrive in a follow-up issue; this connector is configuration and connection listing only.
-
 See the shared [integrations index](./index.mdx) for credentials, activation, and capability behavior.
+
+## Setup
+
+1. In the Entra admin portal, **register a new application** for Wayd Teams communication (not the people-sync or sign-in apps). Note the **Tenant ID** and **Application (client) ID**.
+2. Under **Certificates & secrets**, create a **client secret**. Copy the value immediately — Entra only shows it once.
+3. Grant the **Application permissions** listed in [Required permissions](#required-permissions) on Microsoft Graph, then select **Grant admin consent** for the tenant.
+4. In Wayd, open **Settings → System → Connections** and create or edit a **Microsoft Teams** connection with the tenant ID, client ID, and secret.
+5. On the connection detail page, choose **Test connection** in the Actions menu. Wayd sends you a Teams chat message and creates a hello-world all-day calendar event using the email on your Wayd account. If Graph cannot find that user in the tenant, the test fails and creates nothing else.
+
+Wayd does not run the hello-world test when you save the connection; use **Test connection** after admin consent is in place.
+
+## Required permissions
+
+Application permissions on Microsoft Graph (not Delegated), with admin consent:
+
+| Permission | Why Wayd needs it |
+|---|---|
+| **User.Read.All** | Find your Wayd account email in the tenant before sending the test message and event. |
+| **Chat.Create** | Create the short-lived Teams chat used for the hello-world message. |
+| **ChatMessage.Send** | Post the hello-world Teams message in that chat. |
+| **Calendars.ReadWrite** | Create the hello-world all-day calendar event on your calendar. |
+
+## Configuration options
+
+| Option | Default | Notes |
+|---|---|---|
+| Tenant ID | — | Required. Non-empty, up to 64 characters. |
+| Client ID | — | Required. Non-empty, up to 64 characters. |
+| Client Secret | — | Required on create. Encrypted at rest; on edit, leave blank to keep the stored secret. Up to 512 characters. |
+
+## Connection test behavior
+
+The **Test connection** action uses the connection's own app registration (client credentials). It does not prompt for a second sign-in.
+
+1. Resolve the signed-in user's Wayd account email.
+2. Look up that address in the connection's tenant (`mail` or `userPrincipalName`).
+3. Create a one-member Teams chat and post a short hello-world message.
+4. Create an all-day calendar event for the current UTC date on that user's calendar.
+
+If step 2 finds no user, the test returns an error and does not send a message or create an event.

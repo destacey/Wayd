@@ -36,4 +36,7 @@ public enum McpToolset
 
     /// <summary>Demand Management: intake requests and their review, and the desks, channels and tag axes behind them.</summary>
     Intake,
+
+    /// <summary>Incident severity scales and, later, incident records under product management.</summary>
+    Incidents,
 }

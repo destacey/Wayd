@@ -16,7 +16,7 @@ The Administration area provides tools for configuring Wayd, managing users, con
 | **Access** | Users, Roles, Identity Providers |
 | **Organization** | Holiday Calendars, Team Member Roles |
 | **Planning** | Estimation Scales (with the `planning-poker` flag) |
-| **Product Management** | Product Tags (with the `product-management` flag) |
+| **Product Management** | Product Tags (with the `product-management` flag); Incident Severity Sets (with `product-management` and `incident-management`) |
 | **Demand Management** | Channels, Tag Axes (with the `demand-management` flag) |
 | **PPM** | Expenditure Categories, Project Lifecycles, Scoring Models |
 | **Work Management** | Work Types, Work Statuses, Work Processes |
@@ -223,6 +223,7 @@ The flags Wayd defines:
 | Planning Poker | `planning-poker` | The Planning Poker feature, including **Settings → Planning → Estimation Scales** |
 | Story Maps | `story-maps` | The Story Maps feature |
 | Product Management | `product-management` | The Product Management module, including **Settings → Product Management** |
+| Incident Management | `incident-management` | Incident severity scales and, when enabled with product management, incident records under Product Management |
 | Delivery Forecasting | `delivery-forecasting` | Monte Carlo delivery forecasts |
 | MCP Server | `mcp-server` | The hosted MCP endpoint (`/mcp`) that exposes the API as agent tools |
 | Team Capacity Management | `team-capacity-management` | Employee allocation to teams and team capacity planning |
@@ -370,6 +371,21 @@ A free tag nothing carries is deleted on its own, so there is nothing to deactiv
 | Create a category | `Permissions.ProductTagCategories.Create` |
 | Edit a category, activate or deactivate it, add or change its tags, rename or merge a free tag | `Permissions.ProductTagCategories.Update` |
 | Delete a category, a tag or a free tag | `Permissions.ProductTagCategories.Delete` |
+
+### Incident severity sets
+
+> Shown when both the `product-management` and `incident-management` feature flags are on.
+
+**Incident severity sets** chooses the scale incidents use — seeded SEV-1 through SEV-4 (selected by default) or Critical / High / Medium / Low, or a custom scale the organization adds. Configured in **Settings → Product Management → Incident Severity Sets**. Selecting a different scale changes the levels offered when opening an incident; incidents already open keep the level they were given.
+
+System scales cannot be renamed or deleted. A custom scale that is not the organization default can be deactivated to hide it from the picker; the selected set cannot be deactivated.
+
+| To do this | You need |
+|---|---|
+| Open the page | `Permissions.IncidentSeveritySets.View` |
+| Create a custom set | `Permissions.IncidentSeveritySets.Create` |
+| Edit levels, activate or deactivate a set, or select the organization scale | `Permissions.IncidentSeveritySets.Update` |
+| Delete a custom set | `Permissions.IncidentSeveritySets.Delete` |
 
 ## Demand Management Settings
 

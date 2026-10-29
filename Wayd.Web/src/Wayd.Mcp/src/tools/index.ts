@@ -26,6 +26,7 @@ import { definitions as workspaces } from './workspaces.js';
 import { definitions as activities } from './activities.js';
 import { definitions as imports } from './imports.js';
 import { definitions as importFiles } from './import-files.js';
+import { definitions as incidents } from './incidents.js';
 
 export const toolDefinitionMap: Map<string, McpToolDefinition> = new Map([
   ...portfolios,
@@ -55,4 +56,5 @@ export const toolDefinitionMap: Map<string, McpToolDefinition> = new Map([
   ...activities,
   ...imports,
   ...importFiles,
+  ...incidents,
 ]);

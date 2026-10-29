@@ -1,0 +1,131 @@
+[
+  {
+    "id": "incidents-list-scales",
+    "skill": "wayd-incidents",
+    "prompt": "Which incident severity scales do we have, and which one is selected for new incidents?",
+    "traps": [],
+    "fixtures": [
+      {
+        "tool": "IncidentSeveritySets_GetSets",
+        "result": [
+          {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "name": "SEV",
+            "description": null,
+            "isSystem": true,
+            "isActive": true,
+            "isSelected": true,
+            "levels": [
+              { "id": "22222222-2222-4222-8222-222222222222", "name": "SEV-1", "sortOrder": 0 },
+              { "id": "33333333-3333-4333-8333-333333333333", "name": "SEV-2", "sortOrder": 1 }
+            ]
+          },
+          {
+            "id": "44444444-4444-4444-8444-444444444444",
+            "name": "Critical / High / Medium / Low",
+            "description": null,
+            "isSystem": true,
+            "isActive": true,
+            "isSelected": false,
+            "levels": []
+          }
+        ]
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "IncidentSeveritySets_GetSets",
+        "because": "Listing scales is the first step before explaining which is selected."
+      },
+      {
+        "type": "says",
+        "pattern": "SEV|selected",
+        "because": "The answer should name the selected scale."
+      }
+    ],
+    "expected": "The agent calls IncidentSeveritySets_GetSets and tells the user that SEV is the selected scale for new incidents, mentioning the other available scale if useful."
+  },
+  {
+    "id": "incidents-select-scale",
+    "skill": "wayd-incidents",
+    "prompt": "Switch our incident severity scale to Critical / High / Medium / Low for new incidents.",
+    "replies": ["Yes, please select that scale."],
+    "traps": ["confirm-destructive"],
+    "fixtures": [
+      {
+        "tool": "IncidentSeveritySets_GetSets",
+        "after": "IncidentSeveritySets_SelectSet",
+        "result": [
+          {
+            "id": "44444444-4444-4444-8444-444444444444",
+            "name": "Critical / High / Medium / Low",
+            "description": null,
+            "isSystem": true,
+            "isActive": true,
+            "isSelected": false,
+            "levels": []
+          }
+        ]
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "IncidentSeveritySets_GetSets",
+        "because": "The agent needs the scale id before selecting it."
+      },
+      {
+        "type": "confirmedBefore",
+        "tool": "IncidentSeveritySets_SelectSet",
+        "because": "Selecting a scale is a destructive write and requires user confirmation."
+      },
+      {
+        "type": "called",
+        "tool": "IncidentSeveritySets_SelectSet",
+        "with": {
+          "requestBody": {
+            "severitySetId": "44444444-4444-4444-8444-444444444444"
+          }
+        },
+        "because": "The user asked to select the Critical / High / Medium / Low scale."
+      }
+    ],
+    "expected": "The agent lists scales, confirms with the user, then calls IncidentSeveritySets_SelectSet with the Critical / High / Medium / Low scale id."
+  },
+  {
+    "id": "incidents-refuse-system-edit",
+    "skill": "wayd-incidents",
+    "prompt": "Rename the SEV incident severity scale to P1 through P4.",
+    "replies": ["Yes, update it."],
+    "traps": ["confirm-destructive"],
+    "fixtures": [
+      {
+        "tool": "IncidentSeveritySets_GetSets",
+        "result": [
+          {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "name": "SEV",
+            "isSystem": true,
+            "isActive": true,
+            "isSelected": true,
+            "levels": []
+          }
+        ]
+      }
+    ],
+    "expect": [
+      {
+        "type": "notCalled",
+        "tool": "IncidentSeveritySets_UpdateSet",
+        "because": "System severity sets cannot be edited."
+      },
+      {
+        "type": "says",
+        "pattern": "system|cannot|can't|refus",
+        "because": "The agent should explain that seeded system scales cannot be renamed."
+      }
+    ],
+    "expected": "The agent refuses to rename the seeded SEV scale and explains that system severity sets cannot be edited; it does not call IncidentSeveritySets_UpdateSet."
+  }
+]

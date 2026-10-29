@@ -15,6 +15,7 @@ public static class FeatureFlags
     public static readonly FeatureFlagDefinition TeamCapacityManagement = new(Names.TeamCapacityManagement, "Team Capacity Management", "Controls availability of employee allocation to teams and team capacity planning.");
     public static readonly FeatureFlagDefinition DemandManagement = new(Names.DemandManagement, "Demand Management", "Controls availability of the Demand Management module: intake requests and the desks that review them.");
     public static readonly FeatureFlagDefinition Following = new(Names.Following, "Following", "Controls availability of following projects, programs, planning interval objectives and intake requests, the Following list, and in-app notifications about changes to those records.");
+    public static readonly FeatureFlagDefinition IncidentManagement = new(Names.IncidentManagement, "Incident Management", "Controls availability of incident management under product management, including severity scales and incident records.");
 
     /// <summary>
     /// Compile-time constant names for use in attributes (e.g., [FeatureGate]).
@@ -29,6 +30,7 @@ public static class FeatureFlags
         public const string TeamCapacityManagement = "team-capacity-management";
         public const string DemandManagement = "demand-management";
         public const string Following = "following";
+        public const string IncidentManagement = "incident-management";
     }
 }
 

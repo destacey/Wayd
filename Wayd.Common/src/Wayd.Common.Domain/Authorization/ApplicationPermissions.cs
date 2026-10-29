@@ -92,6 +92,7 @@ public static class ApplicationResource
     public const string Products = nameof(Products);
     public const string ProductTypes = nameof(ProductTypes);
     public const string ProductTagCategories = nameof(ProductTagCategories);
+    public const string IncidentSeveritySets = nameof(IncidentSeveritySets);
 
     // One resource for the whole engineering chain — versions, packages, deployments. They are not
     // three features but one causal story: a version is cut, it goes into a package, the package
@@ -481,6 +482,11 @@ public static class ApplicationPermissions
         new ("Create Product Tag Categories", ApplicationAction.Create, ApplicationResource.ProductTagCategories, ProductManagementCategory),
         new ("Update Product Tag Categories", ApplicationAction.Update, ApplicationResource.ProductTagCategories, ProductManagementCategory),
         new ("Delete Product Tag Categories", ApplicationAction.Delete, ApplicationResource.ProductTagCategories, ProductManagementCategory),
+
+        new ("View Incident Severity Sets", ApplicationAction.View, ApplicationResource.IncidentSeveritySets, ProductManagementCategory),
+        new ("Create Incident Severity Sets", ApplicationAction.Create, ApplicationResource.IncidentSeveritySets, ProductManagementCategory),
+        new ("Update Incident Severity Sets", ApplicationAction.Update, ApplicationResource.IncidentSeveritySets, ProductManagementCategory),
+        new ("Delete Incident Severity Sets", ApplicationAction.Delete, ApplicationResource.IncidentSeveritySets, ProductManagementCategory),
     ];
 
     private static readonly ApplicationPermission[] _all = [.. _common

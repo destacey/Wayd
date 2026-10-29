@@ -487,6 +487,120 @@
       ]
     },
     {
+      "name": "IncidentSeveritySets_CreateSet",
+      "title": "Create incident severity set",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody"
+      ],
+      "required": [
+        "requestBody"
+      ]
+    },
+    {
+      "name": "IncidentSeveritySets_DeleteSet",
+      "title": "Delete incident severity set",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "IncidentSeveritySets_GetSet",
+      "title": "Get incident severity set",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "IncidentSeveritySets_GetSets",
+      "title": "List incident severity sets",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "includeInactive"
+      ],
+      "required": []
+    },
+    {
+      "name": "IncidentSeveritySets_SelectSet",
+      "title": "Select incident severity set",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "requestBody"
+      ],
+      "required": [
+        "requestBody"
+      ]
+    },
+    {
+      "name": "IncidentSeveritySets_SetActiveStatus",
+      "title": "Activate or deactivate incident severity set",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
+      "name": "IncidentSeveritySets_UpdateSet",
+      "title": "Update incident severity set",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "arguments": [
+        "id",
+        "requestBody"
+      ],
+      "required": [
+        "id",
+        "requestBody"
+      ]
+    },
+    {
       "name": "PlanningIntervals_CreateObjectiveHealthCheck",
       "title": "Log a PI objective health check",
       "annotations": {

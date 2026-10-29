@@ -5,6 +5,7 @@ using Wayd.Common.Application.FeatureManagement;
 using Wayd.Links;
 using Wayd.Planning.Application.Persistence;
 using Wayd.ProductManagement.Application;
+using Wayd.ProductManagement.Application.IncidentSeveritySets;
 using Wayd.ProjectPortfolioManagement.Application;
 using Wayd.StrategicManagement.Application;
 using Wayd.DemandManagement.Application;
@@ -141,6 +142,7 @@ internal static class ConfigureServices
         services.AddScoped<IProjectPortfolioManagementDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IStrategicManagementDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IWorkDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
+        services.AddScoped<IIncidentSeverityLevelUsageQuery, IncidentSeverityLevelUsageQuery>();
 
         return services;
     }

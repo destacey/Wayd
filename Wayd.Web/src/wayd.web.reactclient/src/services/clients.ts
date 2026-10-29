@@ -52,6 +52,7 @@ import {
   WorkflowAssignmentsClient,
   SprintsClient,
   EstimationScalesClient,
+  IncidentSeveritySetsClient,
   PokerSessionsClient,
   StoryMapsClient,
   ConnectionsClient,
@@ -490,6 +491,8 @@ export const getProductTypesClient = () =>
 export const getProductTagCategoriesClient = () =>
   new ProductTagCategoriesClient('', axiosClient)
 export const getProductTagsClient = () => new ProductTagsClient('', axiosClient)
+export const getIncidentSeveritySetsClient = () =>
+  new IncidentSeveritySetsClient('', axiosClient)
 
 // DELIVERY
 export const getReleasesClient = () => new ReleasesClient('', axiosClient)

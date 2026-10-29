@@ -607,3 +607,55 @@ public class DeploymentConfiguration : IEntityTypeConfiguration<Deployment>
         builder.Ignore(d => d.IsChangeFailure);
     }
 }
+
+public class IncidentSeveritySetConfiguration : IEntityTypeConfiguration<IncidentSeveritySet>
+{
+    public void Configure(EntityTypeBuilder<IncidentSeveritySet> builder)
+    {
+        builder.ToTable("IncidentSeveritySets", SchemaNames.ProductManagement);
+
+        builder.HasKey(s => s.Id);
+        builder.HasIndex(s => s.Name).IsUnique();
+
+        builder.Property(s => s.Id).ValueGeneratedNever();
+        builder.Property(s => s.Name).IsRequired().HasMaxLength(64);
+        builder.Property(s => s.Description).HasMaxLength(512);
+        builder.Property(s => s.IsSystem).IsRequired();
+        builder.Property(s => s.IsActive).IsRequired();
+
+        builder.HasMany(s => s.Levels)
+            .WithOne()
+            .HasForeignKey(l => l.SetId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(s => s.Levels).HasField("_levels").UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class IncidentSeverityLevelConfiguration : IEntityTypeConfiguration<IncidentSeverityLevel>
+{
+    public void Configure(EntityTypeBuilder<IncidentSeverityLevel> builder)
+    {
+        builder.ToTable("IncidentSeverityLevels", SchemaNames.ProductManagement);
+
+        builder.HasKey(l => l.Id);
+        builder.HasIndex(l => new { l.SetId, l.Name }).IsUnique();
+
+        builder.Property(l => l.Id).ValueGeneratedNever();
+        builder.Property(l => l.SetId).IsRequired();
+        builder.Property(l => l.Name).IsRequired().HasMaxLength(64);
+        builder.Property(l => l.SortOrder).IsRequired();
+    }
+}
+
+public class IncidentSeveritySetAssignmentConfiguration : IEntityTypeConfiguration<IncidentSeveritySetAssignment>
+{
+    public void Configure(EntityTypeBuilder<IncidentSeveritySetAssignment> builder)
+    {
+        builder.ToTable("IncidentSeveritySetAssignments", SchemaNames.ProductManagement);
+
+        builder.HasKey(a => a.Id);
+        builder.Property(a => a.Id).ValueGeneratedNever();
+        builder.Property(a => a.SeveritySetId).IsRequired();
+    }
+}

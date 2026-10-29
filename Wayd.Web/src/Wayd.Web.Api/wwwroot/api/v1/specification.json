@@ -10106,6 +10106,331 @@
         ]
       }
     },
+    "/api/product-management/incident-severity-sets": {
+      "get": {
+        "tags": [
+          "IncidentSeveritySets"
+        ],
+        "summary": "List incident severity sets and their ordered levels.",
+        "description": "Returns every scale and which one is selected for the organization. Pass `includeInactive=true` to include deactivated custom scales. System scales cannot be edited or deleted.",
+        "operationId": "IncidentSeveritySets_GetSets",
+        "parameters": [
+          {
+            "name": "includeInactive",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IncidentSeveritySetDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "IncidentSeveritySets"
+        ],
+        "summary": "Create a custom incident severity set.",
+        "description": "Requires at least two level names, ordered most severe first.",
+        "operationId": "IncidentSeveritySets_Create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIncidentSeveritySetRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incident-severity-sets/{id}": {
+      "get": {
+        "tags": [
+          "IncidentSeveritySets"
+        ],
+        "summary": "Get one incident severity set.",
+        "operationId": "IncidentSeveritySets_GetSet",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentSeveritySetDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "IncidentSeveritySets"
+        ],
+        "summary": "Update a custom severity set.",
+        "description": "Replaces name, description, and the full ordered level list. Omitting an existing level id removes that level unless an incident still uses it. Refused on system sets.",
+        "operationId": "IncidentSeveritySets_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIncidentSeveritySetRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "IncidentSeveritySets"
+        ],
+        "summary": "Delete a custom severity set.",
+        "description": "Refused for system sets, the selected set, or when an incident still uses a level in the set.",
+        "operationId": "IncidentSeveritySets_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incident-severity-sets/{id}/active": {
+      "put": {
+        "tags": [
+          "IncidentSeveritySets"
+        ],
+        "summary": "Activate or deactivate a custom severity set.",
+        "description": "Only custom sets that are not the organization default may be deactivated. The selected set cannot be deactivated.",
+        "operationId": "IncidentSeveritySets_SetActiveStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetIncidentSeveritySetActiveStatusRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incident-severity-sets/selection": {
+      "put": {
+        "tags": [
+          "IncidentSeveritySets"
+        ],
+        "summary": "Select which severity set new incidents use.",
+        "description": "Changes the levels offered when opening an incident. Incidents already open keep the level they were given.",
+        "operationId": "IncidentSeveritySets_SelectSet",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectIncidentSeveritySetRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/product-management/products": {
       "get": {
         "tags": [
@@ -51829,6 +52154,35 @@
         },
         "additionalProperties": false
       },
+      "CreateIncidentSeveritySetRequest": {
+        "required": [
+          "name",
+          "levelNames"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 512,
+            "type": "string",
+            "nullable": true
+          },
+          "levelNames": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateIntakeChannelRequest": {
         "required": [
           "name"
@@ -58491,6 +58845,87 @@
         },
         "additionalProperties": false,
         "description": "A single CSV row for the version import.\nThe product is referenced by id, and a version is identified by that product together with its\n`Number` — version strings are free text and only meaningful within one product, so two\nproducts may each hold a `1.0.0`.\nThere is no status column: the moments decide where the version ends up. A row with neither is\nplanned, a `CutAt` makes it ready, and a `ReleasedAt` makes it\nreleased. A released moment without a cut moment is legitimate — a version recorded after the fact\noften has no record of when scope froze.\nBoth moments are instants and must carry their offset (see `OffsetTimestamp`): copy the\nCI/CD timestamps as-is."
+      },
+      "IncidentSeverityLevelDto": {
+        "required": [
+          "name",
+          "id",
+          "sortOrder"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "IncidentSeveritySetDto": {
+        "required": [
+          "name",
+          "id",
+          "isSystem",
+          "isActive",
+          "isSelected",
+          "levels"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isSystem": {
+            "type": "boolean"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isSelected": {
+            "type": "boolean"
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IncidentSeverityLevelDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "IncidentSeveritySetLevelRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Existing level id, or omitted when adding a level.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One level in a severity set payload."
       },
       "InitWorkProcessIntegrationRequest": {
         "required": [
@@ -69154,6 +69589,20 @@
         },
         "additionalProperties": false
       },
+      "SelectIncidentSeveritySetRequest": {
+        "required": [
+          "severitySetId"
+        ],
+        "type": "object",
+        "properties": {
+          "severitySetId": {
+            "minLength": 1,
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
       "SetChecklistItemCheckedRequest": {
         "required": [
           "isChecked"
@@ -69246,6 +69695,23 @@
               "format": "uuid"
             },
             "description": "Every persona tagged on the goal. A list rather than a read-only one so a JSON Patch can append to it."
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetIncidentSeveritySetActiveStatusRequest": {
+        "required": [
+          "id",
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "isActive": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -75905,6 +76371,39 @@
         },
         "additionalProperties": false
       },
+      "UpdateIncidentSeveritySetRequest": {
+        "required": [
+          "id",
+          "name",
+          "levels"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "minLength": 1,
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 512,
+            "type": "string",
+            "nullable": true
+          },
+          "levels": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IncidentSeveritySetLevelRequest"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "UpdateIntakeChannelRequest": {
         "required": [
           "id",
@@ -81198,6 +81697,9 @@
     },
     {
       "name": "Deployments"
+    },
+    {
+      "name": "IncidentSeveritySets"
     },
     {
       "name": "Products"

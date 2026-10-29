@@ -136,19 +136,24 @@ Then use `wayd-mcp` as the command instead of `npx -y @wayd/mcp` in any of the c
 
 Skills are prompt files that guide Claude on how to efficiently use the Wayd MCP tools — which tools to call in sequence, how to resolve IDs, and what the entity relationships look like. Without them, agents tend to make redundant calls or miss non-obvious patterns (e.g. project lifecycle transitions use separate action endpoints, not a status field).
 
-Nine self-contained skills are available:
+Fourteen self-contained skills are available:
 
 | Skill             | Trigger                                                                                                                        |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `wayd-ppm`        | Portfolios, programs, projects — lookup, plans, health checks, task management                                                 |
 | `wayd-delivery`   | Releases, versions, packages, deployments — what was announced, built, shipped together, and deployed where                    |
 | `wayd-products`   | The product catalog — the typed tree, dependencies, types, tags, environments, what is running where, and delivery measures    |
+| `wayd-incidents`  | Incident severity scales — list and select organization scales, manage custom sets and levels (requires incident-management)   |
 | `wayd-pi`         | Planning intervals, iterations, objectives, health reports, risks                                                              |
 | `wayd-roadmaps`   | Roadmap exploration — activities, timeboxes, milestones                                                                        |
 | `wayd-story-maps` | Story maps — analyze, create, and manage goals, steps, tasks, swim lanes, personas                                             |
 | `wayd-teams`      | Team lookup — resolve a team name to an ID; grade backlog health; forecast delivery; team and team of teams work distribution reports |
 | `wayd-users`      | User lookup — resolve a user name to a UUID for assignees and project roles                                                    |
 | `wayd-imports`    | CSV imports — write a file in the right format, preflight it, import the rows it checked, and follow or re-run import runs     |
+| `wayd-employees`  | Employees, managers, direct reports, and time away (hosted endpoint only)                                                      |
+| `wayd-estimation` | Planning poker sessions and estimation scales (hosted endpoint only)                                                           |
+| `wayd-intake`     | Intake requests, desks, channels, and tag axes (hosted endpoint only)                                                          |
+| `wayd-work`       | Workspaces, work items, sprints, processes, types, and statuses (hosted endpoint only, apart from work item forecasts)         |
 
 ### Installing the skills
 
@@ -215,6 +220,8 @@ Records that raise domain events expose an **activity history** — every record
 The catalog is one typed tree, and a product's type carries the flag that decides whether versions can be cut against it. Type, parent and status each have their own tool rather than being fields on the update, because each carries a rule the domain enforces. Two behaviours the `wayd-products` skill covers: tagging a single-value axis **silently replaces** the existing tag rather than refusing, and deleting a product is a **hard delete**, refused while anything depends on it.
 
 Types and tag categories are administrator-managed configuration, and two rules run through all of it. **Seeded system records cannot be modified or deleted** — but they _can_ be deactivated, so an organization can hide a type it does not use without the seeder recreating it. And **nothing in use can be deleted**; deactivation is the answer there too, stopping new use while leaving existing records resolvable. Two sharp edges: a category's `allowsMany` is **fixed at creation**, and `ProductTypes_Update` **requires `isReleasable`**, so a rename that resends the wrong value silently changes whether versions can be cut against every product of that type.
+
+**Incident severity sets** (`IncidentSeveritySets_*`) configure ordered scales for incidents (seeded SEV-1–4 and Critical / High / Medium / Low, plus custom sets). System sets cannot be edited or deleted; the selected set cannot be deactivated or deleted; levels in use on incidents cannot be removed until those incidents are gone. Requires the `incident-management` feature flag alongside product management.
 
 ### Product Delivery
 

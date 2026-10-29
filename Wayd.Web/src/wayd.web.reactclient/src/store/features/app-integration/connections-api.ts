@@ -230,6 +230,24 @@ export const connectionsApi = apiSlice.injectEndpoints({
       },
     }),
 
+    verifyTeamsConnection: builder.mutation<
+      void,
+      { tenantId: string; clientId: string; clientSecret: string }
+    >({
+      queryFn: async (request) => {
+        try {
+          const data =
+            await getConnectionsClient().verifyTeamsCommunicationConnection(
+              request,
+            )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+    }),
+
     getConnectionIdentities: builder.query<
       ExternalIdentityMappingDto[],
       GetConnectionIdentitiesRequest
@@ -325,6 +343,7 @@ export const {
   useRunSyncMutation,
   useInitConnectionMutation,
   useTestCommunicationConnectionMutation,
+  useVerifyTeamsConnectionMutation,
   useGetConnectionIdentitiesQuery,
   useUpdateConnectionIdentityMutation,
   useGetConnectionActivitiesQuery,

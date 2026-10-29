@@ -1,9 +1,24 @@
 'use client'
 
-import { Typography } from 'antd'
+import { Card, Table, Typography } from 'antd'
 import Link from 'next/link'
+import { TEAMS_GRAPH_APPLICATION_PERMISSIONS } from './teams-permissions'
 
 const { Paragraph, Title } = Typography
+
+const permissionColumns = [
+  {
+    title: 'Permission',
+    dataIndex: 'permission',
+    key: 'permission',
+    render: (value: string) => <strong>{value}</strong>,
+  },
+  {
+    title: 'Why Wayd needs it',
+    dataIndex: 'reason',
+    key: 'reason',
+  },
+]
 
 /**
  * Setup steps for the Teams communication connector. Kept in one component so the connection
@@ -31,54 +46,33 @@ export const TeamsSetupGuide = () => (
         select <strong>Grant admin consent</strong> for the tenant.
       </li>
       <li>
-        In Wayd, open <strong>Settings → System → Connections</strong> and create or edit a{' '}
-        <strong>Microsoft Teams</strong> connection with the tenant ID, client ID, and secret.
+        In Wayd, open <strong>Settings → System → Connections</strong>, choose{' '}
+        <strong>Microsoft Teams</strong>, and enter the tenant ID, client ID, and secret.
       </li>
       <li>
-        On the connection detail page, choose <strong>Test connection</strong> in the Actions menu.
-        Wayd sends you a Teams chat message and creates a hello-world all-day calendar event using
-        the email on your Wayd account. If Graph cannot find that user in the tenant, the test
-        fails and creates nothing else.
+        Choose <strong>Verify</strong> on the create form. Wayd runs the same hello-world Graph check
+        as <strong>Test connection</strong> on the detail page. After verification succeeds, save the
+        connection.
       </li>
     </ol>
-    <Title level={5}>Required permissions</Title>
-    <Paragraph>
-      Application permissions on Microsoft Graph (not Delegated), with admin consent:
-    </Paragraph>
-    <table>
-      <thead>
-        <tr>
-          <th>Permission</th>
-          <th>Why Wayd needs it</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>
-            <strong>User.Read.All</strong>
-          </td>
-          <td>Find your Wayd account email in the tenant before sending the test message and event.</td>
-        </tr>
-        <tr>
-          <td>
-            <strong>Chat.Create</strong>
-          </td>
-          <td>Create the short-lived Teams chat used for the hello-world message.</td>
-        </tr>
-        <tr>
-          <td>
-            <strong>ChatMessage.Send</strong>
-          </td>
-          <td>Post the hello-world Teams message in that chat.</td>
-        </tr>
-        <tr>
-          <td>
-            <strong>Calendars.ReadWrite</strong>
-          </td>
-          <td>Create the hello-world all-day calendar event on your calendar.</td>
-        </tr>
-      </tbody>
-    </table>
+    <Card
+      title="Required permissions"
+      size="small"
+      style={{ marginTop: 8 }}
+      styles={{ body: { paddingTop: 12 } }}
+    >
+      <Paragraph style={{ marginBottom: 12 }}>
+        Application permissions on Microsoft Graph (not Delegated), with admin consent:
+      </Paragraph>
+      <Table
+        columns={permissionColumns}
+        dataSource={[...TEAMS_GRAPH_APPLICATION_PERMISSIONS]}
+        pagination={false}
+        bordered
+        size="small"
+        rowKey="key"
+      />
+    </Card>
     <Paragraph style={{ marginTop: 16 }}>
       Full reference:{' '}
       <Link href="/docs/reference/integrations/teams">Microsoft Teams integration</Link>

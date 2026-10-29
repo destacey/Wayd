@@ -52059,6 +52059,65 @@ export class ConnectionsClient {
     }
 
     /**
+     * Verify Microsoft Teams connection credentials before create.
+     * @return No Content
+     */
+    verifyTeamsCommunicationConnection(request: VerifyTeamsConnectionRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/app-integrations/connections/teams/verify-communication";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processVerifyTeamsCommunicationConnection(_response);
+        });
+    }
+
+    protected processVerifyTeamsCommunicationConnection(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get activity history for the connection.
      * @param page (optional) 
      * @param pageSize (optional) 
@@ -66829,6 +66888,16 @@ export interface UserSessionResponse {
 export interface UserThemeConfigDto {
     colorPrimary?: string | undefined;
     useCompactAlgorithm: boolean;
+}
+
+/** Credentials for verifying a Microsoft Teams connection before create. */
+export interface VerifyTeamsConnectionRequest {
+    /** Entra directory tenant ID for the Teams communication app registration. */
+    tenantId: string;
+    /** Application (client) ID for the Teams communication app registration. */
+    clientId: string;
+    /** Client secret for the Teams communication app registration. */
+    clientSecret: string;
 }
 
 /** A version of one product. */

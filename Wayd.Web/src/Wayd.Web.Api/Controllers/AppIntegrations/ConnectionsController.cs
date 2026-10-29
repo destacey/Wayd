@@ -149,6 +149,22 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPost("teams/verify-communication")]
+    [MustHavePermission(ApplicationAction.Create, ApplicationResource.Connections)]
+    [EndpointSummary("Verify Microsoft Teams connection credentials before create.")]
+    [EndpointDescription(
+        "Runs the same hello-world Graph test as communication-test using credentials from the create form. "
+        + "Does not persist a connection.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> VerifyTeamsCommunicationConnection(
+        [FromBody] VerifyTeamsConnectionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToCommand(), cancellationToken);
+        return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpPut("{id}")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
     [EndpointSummary("Update a connection.")]

@@ -44842,6 +44842,48 @@
         ]
       }
     },
+    "/api/app-integrations/connections/teams/verify-communication": {
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Verify Microsoft Teams connection credentials before create.",
+        "description": "Runs the same hello-world Graph test as communication-test using credentials from the create form. Does not persist a connection.",
+        "operationId": "Connections_VerifyTeamsCommunicationConnection",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyTeamsConnectionRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/app-integrations/connections/{id}/activities": {
       "get": {
         "tags": [
@@ -79393,6 +79435,36 @@
           }
         },
         "additionalProperties": false
+      },
+      "VerifyTeamsConnectionRequest": {
+        "required": [
+          "tenantId",
+          "clientId",
+          "clientSecret"
+        ],
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "Entra directory tenant ID for the Teams communication app registration."
+          },
+          "clientId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "Application (client) ID for the Teams communication app registration."
+          },
+          "clientSecret": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string",
+            "description": "Client secret for the Teams communication app registration."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Credentials for verifying a Microsoft Teams connection before create."
       },
       "VersionDto": {
         "required": [

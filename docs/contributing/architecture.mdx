@@ -410,10 +410,49 @@ set, and when it was read. The wording is produced when the list is read, from t
 - **Not an audit trail.** A nightly job (`notification-retention-sweep`, 03:30) deletes notifications more than
   90 days old, read or not; the activity log keeps what happened.
 
-`Mentioned` and `Desk` (a request waiting unassigned on a desk you work on) are defined, but nothing produces
-them yet. Only the reasons in
+`Mentioned`, `Desk` (a request waiting unassigned on a desk you work on) and `Thread` (you started or replied in
+a conversation thread) are defined, but nothing produces them yet. Only the reasons in
 `NotificationReasons.Produced` can be muted; a producer of a new reason adds it there first — the writer throws
 for any other reason — or its mute would be refused.
+
+### Discussions
+
+A conversation on a record (`Common.Domain/Discussions`, schema `Discussions`) is a **channel** — one per record,
+keyed by a channel type string and the record's id, opened by the first post — holding **messages**. A top-level
+message may carry a subject and starts a **thread**; replies go one level deep and take their parent's kind,
+`Reply` or `InternalNote`, so a thread is wholly one or the other and its reply count never reveals a hidden note.
+A **section** groups channels for a later chat area and is never stored. Making a record discussable is a
+registration in its module, not a schema change:
+
+1. Declare a `DiscussionChannelTypeDescriptor` as a static field in the module's domain project — key, display
+   name, section, whether it supports internal notes and subjects — and register it with `DiscussionChannelTypes`.
+   Spell the key as the record's follow owner type; it is persisted, so never rename it.
+2. Implement `IDiscussionChannelType` (`Common.Application/Discussions`) in the module's Application project:
+   - `Resolve(ownerId)` returns what the caller may do — read and post internal notes, post, moderate — or null
+     when they cannot read the record, which every caller reports as 404. Decide from the record as it is now,
+     by the same rule as its own read endpoints, and return null when the module's feature flag is off: the
+     discussion endpoints sit outside the module's controllers.
+   - `MentionableAmong(ownerId, ids, kind)` narrows a message's mentions to those its author may make. Keep a
+     mention in an internal note to the internal audience, or the mention tells someone a note exists.
+   - `OnPosted(channel, message)` applies what posting means to the module's own aggregate — adding a participant —
+     tracked in the same save, because it can grant access.
+3. Register both in `Infrastructure/Discussions/ConfigureServices.AddDiscussions`, beside the record's read rule:
+   the conversation reads the record's activity through `IRecordReadRule.ReadActivity`.
+
+**`IDiscussionWriter` is the only way to change a conversation.** The discussion endpoints, a module's own
+commands and agent tools all post through it, so the rules live in one place; it stages and never saves, so a
+module can change its record and post in one transaction, as an intake request's "ask and move" does. Reads go
+through `DiscussionReading`, which filters messages by the kinds `Resolve` allows.
+
+**A message is never quietly rewritten.** Every edit keeps the version it replaced as a revision, and deleting
+leaves a tombstone — who deleted it and when — with the text, revisions and mentions cleared. It is not
+`ISoftDelete`, whose query filter would hide the row; rows leave only with their channel, through
+`IDiscussionWriter.DeleteChannel` when a module hard-deletes the record.
+
+**No text leaves through a side door.** Discussion events carry ids and mention lists, never a subject or body,
+and messages are not `ISystemAuditable`, so an internal note never reaches an event, the outbox, the audit trail
+or a log line. A module notifies from `DiscussionMessagePostedEvent`, filtered on its channel type, with
+`ReplyPosted` or `InternalNotePosted` mapped to the tiers its `VisibleNotifications` uses.
 
 ## Connector framework
 

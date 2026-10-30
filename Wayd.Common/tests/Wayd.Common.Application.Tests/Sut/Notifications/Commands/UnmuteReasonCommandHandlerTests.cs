@@ -57,7 +57,7 @@ public sealed class UnmuteReasonCommandHandlerTests
     [InlineData(NotificationReason.Following, true)]
     [InlineData(NotificationReason.Mentioned, true)]
     [InlineData(NotificationReason.Following | NotificationReason.Role, true)]
-    [InlineData((NotificationReason)128, false)]
+    [InlineData((NotificationReason)256, false)]
     [InlineData((NotificationReason)999, false)]
     public void Validator_ShouldAcceptOnlyDefinedReasons(NotificationReason reason, bool expected)
     {

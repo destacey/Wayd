@@ -115,8 +115,9 @@ public sealed class NotificationWriterTests
     [InlineData(NotificationReason.Desk)]
     [InlineData(NotificationReason.Mentioned)]
     [InlineData(NotificationReason.Role | NotificationReason.Desk)]
+    [InlineData(NotificationReason.Thread)]
     [InlineData((NotificationReason)0)]
-    [InlineData((NotificationReason)128)]
+    [InlineData((NotificationReason)256)]
     public async Task Notify_ShouldThrow_ForAReasonNothingProducesYet(NotificationReason reason)
     {
         // Arrange

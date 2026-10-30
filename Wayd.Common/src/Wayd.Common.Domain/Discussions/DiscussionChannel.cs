@@ -15,8 +15,9 @@ namespace Wayd.Common.Domain.Discussions;
 /// a moved project never leaves a stale channel. <see cref="OwnerId"/> is deliberately not a foreign key: it points
 /// at a different table per channel type, as a follow's owner does.
 /// <para>
-/// Opened by the first message posted on a record, never ahead of one. Its messages are a separate aggregate and are
-/// never loaded through it, since a conversation can run to thousands of them.
+/// Opened by the first message posted on a record, or by a moderator locking a record nobody has posted on yet.
+/// Its messages are a separate aggregate and are never loaded through it, since a conversation can run to thousands
+/// of them.
 /// </para>
 /// </remarks>
 public sealed class DiscussionChannel : BaseEntity

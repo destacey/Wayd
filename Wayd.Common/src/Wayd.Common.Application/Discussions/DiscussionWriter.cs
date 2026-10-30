@@ -140,8 +140,15 @@ public sealed class DiscussionWriter(
         }
 
         var mentions = await Mentionable(type, ownerId, body, message.Kind, cancellationToken);
+        Guid[] added = [.. mentions.Except(message.Mentions.Select(m => m.EmployeeId)).Where(id => id != employeeId)];
 
-        return message.Edit(channel, employeeId, subject, body, mentions, Actor(employeeId), _dateTimeProvider.Now);
+        var edited = message.Edit(channel, employeeId, subject, body, mentions, Actor(employeeId), _dateTimeProvider.Now);
+        if (edited.IsSuccess && added.Length > 0)
+        {
+            await type.OnEdited(channel, message, added, cancellationToken);
+        }
+
+        return edited;
     }
 
     /// <inheritdoc/>

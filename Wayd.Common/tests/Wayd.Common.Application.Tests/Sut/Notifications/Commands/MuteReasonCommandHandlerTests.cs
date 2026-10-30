@@ -87,7 +87,8 @@ public sealed class MuteReasonCommandHandlerTests
     [InlineData(NotificationReason.Requester, true)]
     [InlineData(NotificationReason.Assigned, true)]
     [InlineData(NotificationReason.Desk, false)]
-    [InlineData(NotificationReason.Mentioned, false)]
+    [InlineData(NotificationReason.Mentioned, true)]
+    [InlineData(NotificationReason.Thread, true)]
     [InlineData(NotificationReason.Following | NotificationReason.Role, false)]
     public void Validator_ShouldAcceptOnlyAReasonThatCanBeMuted(NotificationReason reason, bool expected)
     {
@@ -106,6 +107,6 @@ public sealed class MuteReasonCommandHandlerTests
 
         // Assert
         result.Errors.Should().ContainSingle()
-            .Which.ErrorMessage.Should().Be("'Reason' must be one of: Following, Requester, Participant, Assigned, Role.");
+            .Which.ErrorMessage.Should().Be("'Reason' must be one of: Following, Requester, Participant, Assigned, Mentioned, Role, Thread.");
     }
 }

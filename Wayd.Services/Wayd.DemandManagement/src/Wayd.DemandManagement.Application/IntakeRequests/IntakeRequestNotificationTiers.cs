@@ -27,6 +27,8 @@ internal static class IntakeRequestNotificationTiers
             [NotificationEvent.ChannelChanged] = IntakeRequestReadTier.Summary,
             [NotificationEvent.DetailsChanged] = IntakeRequestReadTier.Substance,
             [NotificationEvent.ParticipantsChanged] = IntakeRequestReadTier.Substance,
+            [NotificationEvent.MessagePosted] = IntakeRequestReadTier.Substance,
+            [NotificationEvent.InternalNotePosted] = IntakeRequestReadTier.Internal,
         };
 
     /// <summary>The tier a reader must hold to be told of the change.</summary>

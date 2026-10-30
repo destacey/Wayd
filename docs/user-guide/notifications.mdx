@@ -23,7 +23,7 @@ Each entry is one record, and it says:
 
 - **What happened and who did it**, such as "Ada Lovelace changed the status of Apollo". When the record has changed more than once, the entry adds "and 2 other updates" rather than listing each one. When more than one of those changes is unread, the number beside the entry says how many.
 - **Where**: the kind of record, its key, an objective's planning interval, how long ago, and the record's status now.
-- **Why you were told**: "You follow this", "You work on this", "You requested this", "You take part in this", "It is assigned to you", or several of these together.
+- **Why you were told**: "You follow this", "You work on this", "You requested this", "You take part in this", "It is assigned to you", "You were mentioned", "You are in the thread", or several of these together.
 
 | Change | Example |
 |--------|---------|
@@ -63,7 +63,7 @@ You are told about a change when you follow the record, and also when you are pa
 | Project | Created, status changed, lifecycle replaced, health check added, dates changed, roles changed, moved, scored |
 | Program | Created, status changed, dates changed, roles changed |
 | PI objective | Created, status changed, health check added, dates changed |
-| Intake request | Status changed, withdrawn, renamed, details changed, need-by changed, assignee changed, moved to another desk, participants changed, channel changed |
+| Intake request | Status changed, withdrawn, renamed, details changed, need-by changed, assignee changed, moved to another desk, participants changed, channel changed, reply posted, internal note posted |
 
 Nobody can follow a record before it exists, so "Created" reaches only the people who work on it. A project's first status, the one it starts in, tells nobody.
 
@@ -77,8 +77,12 @@ An intake request tells its people for different reasons, read from the request 
 | Moved to another desk | Yes | Yes | Yes | Yes |
 | Participant added or removed | No | Yes | Only the person added or removed | Yes |
 | Channel changed | Yes | Yes | No | Yes |
+| Reply posted | Yes | Yes | Yes | Yes |
+| Internal note posted | No | Yes | No | Only those who can read internal notes |
 
 Someone who entered a request on the requester's behalf is told as a participant. Creating, tagging and deleting a request tells nobody. You are told only about changes you can see on the request: a follower who sees only a request's summary is not told that its details or participants changed, and is not shown who made a change. Someone removed as a participant is told only on an open desk; on any other desk they can no longer see who takes part.
+
+A message in a request's conversation also tells the people it mentions, and a reply in a thread tells everyone who started or replied in that thread. An internal note can mention only the desk's agents, so it never tells anyone outside the desk that it exists. Editing a message tells nobody; a mention added by editing that makes someone a participant tells them they were added.
 
 You see a notification only while you can still see its record. If you lose access to a record, or it is deleted, its notifications leave your list and the unread count. Notifications are kept for 90 days.
 
@@ -105,6 +109,8 @@ Muting a reason stops you being told for that reason on every record. Open **Not
 - **Requests you made**, to stop hearing about intake requests you asked for.
 - **Requests assigned to you**, to stop hearing about intake requests you are assigned.
 - **Requests you take part in**, to stop hearing about intake requests you were given access to or submitted for someone else.
+- **Mentions**, to stop hearing about messages that mention you.
+- **Threads you are in**, to stop hearing about replies in conversation threads you started or replied in.
 
 You are still told when another reason applies. If you follow a project and also manage it, muting **Records you work on** still tells you about it, because you follow it.
 

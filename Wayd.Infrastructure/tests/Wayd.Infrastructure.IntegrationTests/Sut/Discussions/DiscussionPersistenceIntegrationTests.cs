@@ -253,5 +253,8 @@ public sealed class DiscussionPersistenceIntegrationTests(SqlServerDbContextFixt
             Task.FromResult<IReadOnlySet<Guid>>(employeeIds.ToHashSet());
 
         public Task OnPosted(DiscussionChannel channel, DiscussionMessage message, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task OnEdited(DiscussionChannel channel, DiscussionMessage message, IReadOnlyCollection<Guid> addedMentionIds, CancellationToken cancellationToken) =>
+            Task.CompletedTask;
     }
 }

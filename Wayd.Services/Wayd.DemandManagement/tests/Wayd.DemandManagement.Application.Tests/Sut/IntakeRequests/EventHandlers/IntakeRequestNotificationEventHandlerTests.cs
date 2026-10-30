@@ -2,9 +2,11 @@ using FluentAssertions;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Notifications;
+using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.Events.Discussions;
 using Wayd.Common.Domain.Notifications;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Application.IntakeRequests;
@@ -22,6 +24,7 @@ public sealed class IntakeRequestNotificationEventHandlerTests
     private static readonly EventActor Actor = EventActor.User("actor-user", Guid.NewGuid());
 
     private readonly FakeDemandManagementDbContext _dbContext = new();
+    private readonly FakeDiscussionsDbContext _discussions = new();
     private readonly Mock<INotificationWriter> _writer = new();
     private readonly List<(RecordChange Change, IReadOnlyCollection<NotificationRecipient> Involved)> _notified = [];
 
@@ -32,13 +35,14 @@ public sealed class IntakeRequestNotificationEventHandlerTests
 
     public IntakeRequestNotificationEventHandlerTests()
     {
+        DemandManagementDiscussionChannels.Register();
         _writer.Setup(w => w.ShouldNotify(It.IsAny<DomainEvent>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _writer.Setup(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<NotificationRecipient>>(), It.IsAny<CancellationToken>()))
             .Callback((RecordChange change, IReadOnlyCollection<NotificationRecipient> involved, CancellationToken _) => _notified.Add((change, involved)))
             .ReturnsAsync(1);
     }
 
-    private IntakeRequestNotificationEventHandler CreateHandler() => new(_dbContext, _writer.Object);
+    private IntakeRequestNotificationEventHandler CreateHandler() => new(_dbContext, _discussions, _writer.Object);
 
     /// <summary>
     /// Every event the handler notifies on, with what it should be called. The tier is the event's own, which the
@@ -268,6 +272,132 @@ public sealed class IntakeRequestNotificationEventHandlerTests
             new(_assignee, NotificationReason.Assigned),
         });
     }
+
+    [Theory]
+    [InlineData(DiscussionMessageKind.Public, NotificationEvent.MessagePosted)]
+    [InlineData(DiscussionMessageKind.InternalNote, NotificationEvent.InternalNotePosted)]
+    public async Task Handle_ShouldNotifyAMessageAsItsKind(DiscussionMessageKind kind, NotificationEvent expected)
+    {
+        // Arrange
+        var request = AddRequest();
+        var @event = Posted(request.Id, kind);
+
+        // Act
+        await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        var (change, _) = _notified.Should().ContainSingle().Subject;
+        change.Should().Be(new RecordChange(DemandManagementFollowOwners.IntakeRequest.Key, request.Id, expected, @event));
+    }
+
+    [Theory]
+    [InlineData(NotificationEvent.MessagePosted, IntakeRequestReadTier.Substance)]
+    [InlineData(NotificationEvent.InternalNotePosted, IntakeRequestReadTier.Internal)]
+    public void NotificationTier_OfAMessage_ShouldBeTheTierOfWhatItSays(NotificationEvent notificationEvent, IntakeRequestReadTier expected)
+    {
+        // Act
+        var tier = IntakeRequestNotificationTiers.TierOf(notificationEvent);
+
+        // Assert
+        // A note told at substance tier would tell a requester following their own request that a note exists.
+        tier.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldTellTheRequestsPeopleAndThoseMentioned_OfAReply()
+    {
+        // Arrange
+        var request = AddRequest();
+        var mentioned = Guid.NewGuid();
+
+        // Act
+        await CreateHandler().Handle(Posted(request.Id, DiscussionMessageKind.Public, mentioned: [mentioned]), TestContext.Current.CancellationToken);
+
+        // Assert
+        Involved().Should().BeEquivalentTo(new NotificationRecipient[]
+        {
+            new(_requester, NotificationReason.Requester),
+            new(_assignee, NotificationReason.Assigned),
+            new(_participant, NotificationReason.Participant),
+            new(_submitter, NotificationReason.Participant),
+            new(mentioned, NotificationReason.Mentioned),
+        });
+    }
+
+    [Fact]
+    public async Task Handle_ShouldTellOnlyTheAssigneeAndThoseMentioned_OfAnInternalNote()
+    {
+        // Arrange — never the requester or the participants, who cannot read it
+        var request = AddRequest();
+        var mentionedAgent = Guid.NewGuid();
+
+        // Act
+        await CreateHandler().Handle(Posted(request.Id, DiscussionMessageKind.InternalNote, mentioned: [mentionedAgent]), TestContext.Current.CancellationToken);
+
+        // Assert
+        Involved().Should().BeEquivalentTo(new NotificationRecipient[]
+        {
+            new(_assignee, NotificationReason.Assigned),
+            new(mentionedAgent, NotificationReason.Mentioned),
+        });
+    }
+
+    [Fact]
+    public async Task Handle_ShouldTellTheThreadsPeople_OfAReplyInIt()
+    {
+        // Arrange
+        var request = AddRequest();
+        var starter = Guid.NewGuid();
+        var earlierReplier = Guid.NewGuid();
+        var elsewhere = Guid.NewGuid();
+        var channel = DiscussionChannel.OpenForRecord(DemandManagementDiscussionChannels.IntakeRequest.Key, request.Id, Actor, Now).Value;
+        var parent = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, starter, null, "Question", [], Actor, Now).Value;
+        var earlier = DiscussionMessage.Reply(channel, parent, earlierReplier, "Answer", [], Actor, Now).Value;
+        var otherThread = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, elsewhere, null, "Unrelated", [], Actor, Now).Value;
+        _discussions.AddMessages(parent, earlier, otherThread);
+
+        // Act
+        await CreateHandler().Handle(Posted(request.Id, DiscussionMessageKind.Public, parentId: parent.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        Involved().Where(r => r.Reason == NotificationReason.Thread).Select(r => r.EmployeeId)
+            .Should().BeEquivalentTo([starter, earlierReplier]);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldIgnoreAMessageOnAnotherKindOfRecord()
+    {
+        // Arrange
+        var request = AddRequest();
+        var @event = new DiscussionMessagePostedEvent(Guid.NewGuid(), Guid.NewGuid(), "ppm.project", request.Id, null,
+            DiscussionMessageKind.Public, Actor.EmployeeId!.Value, [], Actor, Now);
+
+        // Act
+        await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        _notified.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotNotifyAMessage_WhenTheChangeCannotNotifyAnyone()
+    {
+        // Arrange
+        var request = AddRequest();
+        var @event = Posted(request.Id, DiscussionMessageKind.Public);
+        _writer.Setup(w => w.ShouldNotify(@event, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+
+        // Act
+        await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        _notified.Should().BeEmpty();
+    }
+
+    private static DiscussionMessagePostedEvent Posted(Guid requestId, DiscussionMessageKind kind, Guid? parentId = null,
+        IReadOnlyList<Guid>? mentioned = null) =>
+        new(Guid.NewGuid(), Guid.NewGuid(), DemandManagementDiscussionChannels.IntakeRequest.Key, requestId, parentId, kind,
+            Actor.EmployeeId!.Value, mentioned ?? [], Actor, Now);
 
     private IReadOnlyCollection<NotificationRecipient> Involved() => _notified.Should().ContainSingle().Subject.Involved;
 

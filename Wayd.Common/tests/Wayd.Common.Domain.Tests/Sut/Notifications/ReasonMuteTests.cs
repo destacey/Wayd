@@ -29,7 +29,7 @@ public sealed class ReasonMuteTests
     }
 
     [Theory]
-    [InlineData(NotificationReason.Mentioned)]
+    [InlineData(NotificationReason.Following | NotificationReason.Mentioned)]
     [InlineData(NotificationReason.Following | NotificationReason.Role)]
     [InlineData((NotificationReason)0)]
     [InlineData(NotificationReason.Desk)]

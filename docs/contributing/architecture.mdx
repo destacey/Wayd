@@ -410,8 +410,8 @@ set, and when it was read. The wording is produced when the list is read, from t
 - **Not an audit trail.** A nightly job (`notification-retention-sweep`, 03:30) deletes notifications more than
   90 days old, read or not; the activity log keeps what happened.
 
-`Mentioned`, `Desk` (a request waiting unassigned on a desk you work on) and `Thread` (you started or replied in
-a conversation thread) are defined, but nothing produces them yet. Only the reasons in
+`Mentioned` and `Thread` (you started or replied in a conversation thread) are produced by an intake request's
+conversation. `Desk` (a request waiting unassigned on a desk you work on) is defined, but nothing produces it yet. Only the reasons in
 `NotificationReasons.Produced` can be muted; a producer of a new reason adds it there first — the writer throws
 for any other reason — or its mute would be refused.
 
@@ -435,7 +435,8 @@ registration in its module, not a schema change:
    - `MentionableAmong(ownerId, ids, kind)` narrows a message's mentions to those its author may make. Keep a
      mention in an internal note to the internal audience, or the mention tells someone a note exists.
    - `OnPosted(channel, message)` applies what posting means to the module's own aggregate — adding a participant —
-     tracked in the same save, because it can grant access.
+     tracked in the same save, because it can grant access. `OnEdited(channel, message, addedMentionIds)` does the
+     same for mentions an edit adds, so editing is no way around the rule for who may widen a record.
 3. Register both in `Infrastructure/Discussions/ConfigureServices.AddDiscussions`. Make the implementation
    `public` — Wolverine's generated handlers construct it directly — and give it the same key as the record's
    `IRecordReadRule`: the conversation shows the record's activity through that rule, once the rule admits the

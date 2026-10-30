@@ -186,6 +186,46 @@ public sealed class DiscussionWriterTests
     }
 
     [Fact]
+    public async Task Edit_ShouldTellTheChannelTypeOnlyTheMentionsItAdded()
+    {
+        // Arrange
+        var ownerId = _gadgets.AddRecord();
+        var kept = Guid.NewGuid();
+        var added = Guid.NewGuid();
+        var refused = Guid.NewGuid();
+        _gadgets.Unmentionable.Add(refused);
+        var writer = CreateWriter();
+        var messageId = (await writer.Post(new PostDiscussionMessage(GadgetType, ownerId, DiscussionMessageKind.Public, null,
+            $"Over to @[Kim Kept](employee:{kept})."), TestContext.Current.CancellationToken)).Value;
+
+        // Act
+        var result = await writer.Edit(GadgetType, ownerId, messageId, null,
+            $"Over to @[Kim Kept](employee:{kept}), @[Ada Added](employee:{added}) and @[Rex Refused](employee:{refused}).",
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        _gadgets.Edited.Should().ContainSingle();
+        _gadgets.Edited[0].Message.Id.Should().Be(messageId);
+        _gadgets.Edited[0].AddedMentionIds.Should().BeEquivalentTo([added]);
+    }
+
+    [Fact]
+    public async Task Edit_ShouldNotTellTheChannelType_WhenNoMentionWasAdded()
+    {
+        // Arrange
+        var ownerId = _gadgets.AddRecord();
+        var writer = CreateWriter();
+        var messageId = (await writer.Post(new PostDiscussionMessage(GadgetType, ownerId, DiscussionMessageKind.Public, null, "Draft"), TestContext.Current.CancellationToken)).Value;
+
+        // Act
+        await writer.Edit(GadgetType, ownerId, messageId, null, "Final", TestContext.Current.CancellationToken);
+
+        // Assert
+        _gadgets.Edited.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Edit_ShouldBeRefused_WhenTheCallerCanNoLongerWriteThatKind()
     {
         // Arrange

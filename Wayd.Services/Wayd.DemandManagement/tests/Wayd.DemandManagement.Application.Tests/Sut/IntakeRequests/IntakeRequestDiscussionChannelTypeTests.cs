@@ -41,12 +41,27 @@ public sealed class IntakeRequestDiscussionChannelTypeTests
     /// <summary>Posts a message on the request as the author, mentioning the given employees, and runs OnPosted.</summary>
     private async Task Post(IntakeRequest request, Guid authorId, DiscussionMessageKind kind, params Guid[] mentionIds)
     {
+        var (channel, message) = Message(request, authorId, kind, mentionIds);
+
+        await CreateSut().OnPosted(channel, message, TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>Edits a message the author posted earlier to mention the given employees, and runs OnEdited.</summary>
+    private async Task EditToMention(IntakeRequest request, Guid authorId, DiscussionMessageKind kind, params Guid[] addedMentionIds)
+    {
+        var (channel, message) = Message(request, authorId, kind);
+
+        await CreateSut().OnEdited(channel, message, addedMentionIds, TestContext.Current.CancellationToken);
+    }
+
+    private (DiscussionChannel Channel, DiscussionMessage Message) Message(IntakeRequest request, Guid authorId,
+        DiscussionMessageKind kind, params Guid[] mentionIds)
+    {
         var channel = DiscussionChannel.OpenForRecord(DemandManagementDiscussionChannels.IntakeRequest.Key, request.Id,
             EventActor.System, _scenario.Clock.Now).Value;
         var message = DiscussionMessage.Post(channel, kind, authorId, null, "Can you say more?", mentionIds,
             EventActor.System, _scenario.Clock.Now).Value;
-
-        await CreateSut().OnPosted(channel, message, TestContext.Current.CancellationToken);
+        return (channel, message);
     }
 
     [Fact]
@@ -443,5 +458,53 @@ public sealed class IntakeRequestDiscussionChannelTypeTests
 
         // Assert
         request.Participants.Should().ContainSingle().Which.EmployeeId.Should().Be(participant.Id);
+    }
+
+
+    [Fact]
+    public async Task OnEdited_AMentionAddedByTheRequesterOnAnOpenDesk_MakesThePersonAParticipant()
+    {
+        // Arrange
+        var requester = _scenario.Employee();
+        var colleague = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), requester);
+        _scenario.SignedInAs(requester);
+
+        // Act
+        await EditToMention(request, requester.Id, DiscussionMessageKind.Public, colleague.Id);
+
+        // Assert
+        request.Participants.Should().ContainSingle(p => p.EmployeeId == colleague.Id && p.AddedById == requester.Id);
+    }
+
+    [Fact]
+    public async Task OnEdited_ByAViewerWhoIsNotYetAParticipant_DoesNotAddTheAuthor()
+    {
+        // Arrange — editing only reaches the people it newly mentions
+        var viewer = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), _scenario.Employee());
+        _scenario.SignedInAs(viewer, IntakeScenario.View);
+
+        // Act
+        await EditToMention(request, viewer.Id, DiscussionMessageKind.Public);
+
+        // Assert
+        request.Participants.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task OnEdited_AMentionAddedToAnInternalNote_AddsNobody()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var outsider = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open, agentIds: [agent.Id]), _scenario.Employee());
+        _scenario.SignedInAs(agent);
+
+        // Act
+        await EditToMention(request, agent.Id, DiscussionMessageKind.InternalNote, outsider.Id);
+
+        // Assert
+        request.Participants.Should().BeEmpty();
     }
 }

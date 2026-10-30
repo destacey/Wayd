@@ -71,7 +71,9 @@ public static class NotificationReasons
         | NotificationReason.Requester
         | NotificationReason.Participant
         | NotificationReason.Assigned
-        | NotificationReason.Role;
+        | NotificationReason.Mentioned
+        | NotificationReason.Role
+        | NotificationReason.Thread;
 
     /// <summary>Whether the set holds at least one reason and nothing that is not a defined reason.</summary>
     public static bool IsValid(NotificationReason reasons) => reasons != 0 && (reasons & ~All) == 0;

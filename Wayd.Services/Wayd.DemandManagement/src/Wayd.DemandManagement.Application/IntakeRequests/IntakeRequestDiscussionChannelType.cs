@@ -105,7 +105,32 @@ public sealed class IntakeRequestDiscussionChannelType(
     /// Adds the participants a reply accrues, tracked on the request so they are saved with the message and can open
     /// the conversation the moment it is posted.
     /// </remarks>
-    public async Task OnPosted(DiscussionChannel channel, DiscussionMessage message, CancellationToken cancellationToken)
+    public Task OnPosted(DiscussionChannel channel, DiscussionMessage message, CancellationToken cancellationToken) =>
+        Accrue(channel, message, includeAuthor: true, message.Mentions.Select(m => m.EmployeeId), message.PostedOn, cancellationToken);
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// A mention written into a reply later adds its subject as one written at once would, so editing is no way
+    /// around the rule for who may widen a request.
+    /// </remarks>
+    public Task OnEdited(
+        DiscussionChannel channel,
+        DiscussionMessage message,
+        IReadOnlyCollection<Guid> addedMentionIds,
+        CancellationToken cancellationToken) =>
+        Accrue(channel, message, includeAuthor: false, addedMentionIds, message.EditedOn ?? message.PostedOn, cancellationToken);
+
+    /// <summary>
+    /// Makes participants of a reply's author, when <paramref name="includeAuthor"/>, and of the people it mentions
+    /// whom the author could add directly. Nothing for an internal note or on a private desk.
+    /// </summary>
+    private async Task Accrue(
+        DiscussionChannel channel,
+        DiscussionMessage message,
+        bool includeAuthor,
+        IEnumerable<Guid> mentionIds,
+        Instant timestamp,
+        CancellationToken cancellationToken)
     {
         if (message.Kind != DiscussionMessageKind.Public || channel.OwnerId is not { } ownerId)
             return;
@@ -119,15 +144,11 @@ public sealed class IntakeRequestDiscussionChannelType(
         List<Guid> joining = [];
 
         // An agent works the request through the desk; making one a participant would only add noise to the list.
-        if (!facts.IsInvolved(author) && !reader.IsAgentOn(facts.People.DeskId))
+        if (includeAuthor && !facts.IsInvolved(author) && !reader.IsAgentOn(facts.People.DeskId))
             joining.Add(author);
 
         if (await MayAddByMention(facts, cancellationToken))
-        {
-            joining.AddRange(message.Mentions
-                .Select(m => m.EmployeeId)
-                .Where(id => !facts.IsInvolved(id) && id != author));
-        }
+            joining.AddRange(mentionIds.Where(id => !facts.IsInvolved(id) && id != author));
 
         if (joining.Count == 0)
             return;
@@ -140,7 +161,7 @@ public sealed class IntakeRequestDiscussionChannelType(
         foreach (var employeeId in joining.Distinct())
         {
             // Refused only for someone already on the request, which leaves nothing to add.
-            request.AddParticipant(employeeId, author, actor, message.PostedOn);
+            request.AddParticipant(employeeId, author, actor, timestamp);
         }
     }
 

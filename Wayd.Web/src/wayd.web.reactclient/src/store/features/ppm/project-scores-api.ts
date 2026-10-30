@@ -7,7 +7,7 @@ import {
   RecordProjectScoreRequest,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
-import { ppmActivityTag } from './ppm-activity-tags'
+import { projectActivityTags } from './ppm-activity-tags'
 
 export interface ProjectScoreScope {
   projectId: string
@@ -98,7 +98,7 @@ export const projectScoresApi = apiSlice.injectEndpoints({
         // The project's denormalized currentScore appears on the detail DTO and every ProjectListDto
         // view, so refresh the detail (by id) and the project lists it can appear in.
         { type: QueryTags.Project, id: projectId },
-        ppmActivityTag(projectId),
+        ...projectActivityTags(projectId),
         { type: QueryTags.Project, id: 'LIST' },
         { type: QueryTags.PortfolioProjects, id: 'LIST' },
         { type: QueryTags.PortfolioRankingScoreboard, id: 'LIST' },

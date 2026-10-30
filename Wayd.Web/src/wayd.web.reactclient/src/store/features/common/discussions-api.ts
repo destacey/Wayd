@@ -9,24 +9,15 @@ import {
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
+import {
+  DiscussionChannelType,
+  DiscussionChannelTypes,
+  DiscussionTarget,
+  discussionTag,
+} from './discussion-tags'
 
-/**
- * The kinds of record people can discuss, as the API names them. Each is
- * registered on the server with the rules for who may read and post.
- */
-export const DiscussionChannelTypes = {
-  IntakeRequest: 'demand.intake-request',
-  Project: 'ppm.project',
-} as const
-
-export type DiscussionChannelType =
-  (typeof DiscussionChannelTypes)[keyof typeof DiscussionChannelTypes]
-
-/** One record's conversation. */
-export interface DiscussionTarget {
-  channelType: DiscussionChannelType
-  ownerId: string
-}
+export { DiscussionChannelTypes, discussionTag }
+export type { DiscussionChannelType, DiscussionTarget }
 
 /** What a page of a conversation shows. Paging is the infinite query's. */
 export interface GetDiscussionEntriesRequest extends DiscussionTarget {
@@ -57,15 +48,6 @@ export interface DiscussionMessageArgs extends DiscussionTarget {
 
 /** How many top-level messages each page of a conversation loads. */
 export const DiscussionPageSize = 25
-
-/**
- * Everything read about one conversation carries one tag, so any change to it
- * refreshes what is on screen: its page of entries, its threads, its access.
- */
-export const discussionTag = ({ channelType, ownerId }: DiscussionTarget) => ({
-  type: QueryTags.Discussion,
-  id: `${channelType}:${ownerId}`,
-})
 
 /**
  * What writing a message changes on the record it is about, by kind of record.

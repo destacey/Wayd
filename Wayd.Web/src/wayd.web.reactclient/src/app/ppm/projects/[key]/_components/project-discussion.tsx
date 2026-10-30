@@ -4,6 +4,7 @@ import {
   MentionCandidate,
   RecordDiscussion,
 } from '@/src/components/common/discussions'
+import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid-core/grid-sorting'
 import useAuth from '@/src/components/contexts/auth'
 import {
   DiscussionMessageKind,
@@ -23,9 +24,11 @@ const candidate = (person: EmployeeNavigationDto): MentionCandidate => ({
   key: person.key,
 })
 
-const distinct = (people: MentionCandidate[]) => [
-  ...new Map(people.map((p) => [p.id, p])).values(),
-]
+/** Each person once, by name, as the full employee list comes. */
+const byName = (people: MentionCandidate[]) =>
+  [...new Map(people.map((p) => [p.id, p])).values()].sort((a, b) =>
+    caseInsensitiveCompare(a.name, b.name),
+  )
 
 export interface ProjectDiscussionProps {
   project: ProjectDetailsDto
@@ -42,7 +45,7 @@ const ProjectDiscussion = ({ project }: ProjectDiscussionProps) => {
     skip: !canViewEmployees,
   })
 
-  const projectPeople = distinct(
+  const projectPeople = byName(
     [
       ...project.projectSponsors,
       ...project.projectOwners,

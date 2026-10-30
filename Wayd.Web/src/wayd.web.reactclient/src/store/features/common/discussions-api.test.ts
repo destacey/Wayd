@@ -55,6 +55,7 @@ describe('discussionsApi', () => {
     await waitFor(() => expect(getStatusOptions).toHaveBeenCalledTimes(2))
     subscription.unsubscribe()
   })
+
   it('leaves the project alone after a post, since posting changes nothing on it', async () => {
     // Arrange
     const store = createStore()

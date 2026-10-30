@@ -6,7 +6,7 @@ import {
   UpdateProjectHealthCheckRequest,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
-import { ppmActivityTag } from './ppm-activity-tags'
+import { projectActivityTags } from './ppm-activity-tags'
 
 export interface ProjectHealthCheckScope {
   projectId: string
@@ -92,7 +92,7 @@ export const projectHealthChecksApi = apiSlice.injectEndpoints({
         { type: QueryTags.Project, id: projectId },
         { type: QueryTags.PortfolioProjects, id: 'LIST' },
         { type: QueryTags.ProgramProjects, id: 'LIST' },
-        ppmActivityTag(projectId),
+        ...projectActivityTags(projectId),
       ],
     }),
 
@@ -120,7 +120,7 @@ export const projectHealthChecksApi = apiSlice.injectEndpoints({
         { type: QueryTags.Project, id: projectId },
         { type: QueryTags.PortfolioProjects, id: 'LIST' },
         { type: QueryTags.ProgramProjects, id: 'LIST' },
-        ppmActivityTag(projectId),
+        ...projectActivityTags(projectId),
       ],
     }),
 
@@ -146,7 +146,7 @@ export const projectHealthChecksApi = apiSlice.injectEndpoints({
         { type: QueryTags.Project, id: projectId },
         { type: QueryTags.PortfolioProjects, id: 'LIST' },
         { type: QueryTags.ProgramProjects, id: 'LIST' },
-        ppmActivityTag(projectId),
+        ...projectActivityTags(projectId),
       ],
     }),
   }),

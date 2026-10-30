@@ -36,7 +36,7 @@ public class DiscussionsController(IDispatcher dispatcher) : ControllerBase
     [HttpGet]
     [EndpointSummary("Get what you may do in a record's conversation.")]
     [EndpointDescription(
-        $"{ChannelTypeDocs} Returns `canPost`, `canPostInternal` (false means you are offered no internal notes at all), `canModerate` (lock the conversation and delete anyone's message) whether the conversation `isLocked`, and how many threads (`threadCount`) and messages (`messageCount`, threads and replies together) you can read, leaving out deleted ones and any internal notes you may not read. Read its messages from the entries endpoint. A record nobody has posted on is an empty, unlocked conversation. Returns 404 when the record does not exist or you cannot read it.")]
+        $"{ChannelTypeDocs} Returns `canPost`, `canPostInternal` (false means you are offered no internal notes at all), `canModerate` (lock the conversation and delete anyone's message), whether the conversation `isLocked`, and how many threads (`threadCount`) and messages (`messageCount`, threads and replies together) you can read, leaving out deleted ones and any internal notes you may not read. Read its messages from the entries endpoint. A record nobody has posted on is an empty, unlocked conversation. Returns 404 when the record does not exist or you cannot read it.")]
     [McpTool("Discussions_Get", "Get what I may do in a conversation")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

@@ -176,6 +176,15 @@ const DiscussionComposer = ({
           value={text}
           onChange={setText}
           placement={suggestionsPlacement}
+          // Names have spaces, so the search runs on past one while it still starts someone's name, and
+          // stops once the text after the @ is plainly the rest of a sentence.
+          validateSearch={(search) =>
+            !/[\r\n]/.test(search) &&
+            (!search.includes(' ') ||
+              [...texts.values()].some((t) =>
+                t.toLowerCase().startsWith(search.toLowerCase()),
+              ))
+          }
           notFoundContent="No one by that name can be mentioned here"
           onSelect={(option) => {
             const person = candidates.find(

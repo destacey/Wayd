@@ -32,7 +32,8 @@ const DiscussionRevisionsModal = ({
         <Spin />
       ) : (
         <ol className={styles.entries}>
-          {[...(data ?? [])].reverse().map((revision, index) => (
+          {/* The server returns them newest first. */}
+          {(data ?? []).map((revision, index) => (
             <li
               // Two edits in one second share a timestamp, so the position keeps the key unique.
               key={`${index}-${String(revision.replacedOn)}`}

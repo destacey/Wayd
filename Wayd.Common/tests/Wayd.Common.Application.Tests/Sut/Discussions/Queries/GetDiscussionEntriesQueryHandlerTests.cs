@@ -289,6 +289,25 @@ public sealed class GetDiscussionEntriesQueryHandlerTests
         result.Value!.Items.Should().ContainSingle().Which.Message!.RecordChange.Should().BeNull();
     }
 
+    [Fact]
+    public async Task Handle_ShouldShowTheChangeOfADeletedMessageOnItsOwn()
+    {
+        // Arrange — the message is a tombstone, so the change it was posted with must not vanish with it
+        var channel = OpenChannel();
+        var eventId = Guid.NewGuid();
+        var message = Post(channel, DiscussionMessageKind.Public, "Could you add the budget?", Start, recordChangeEventId: eventId);
+        message.Delete(channel, _employeeId, Actor, Start.Plus(Duration.FromMinutes(1)));
+        AddActivity("StatusChanged", Start, logId: 41, eventId: eventId);
+
+        // Act
+        var result = await CreateHandler().Handle(Query(_ownerId), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value!.Items.Select(e => e.Type).Should().Equal(DiscussionEntryType.Message, DiscussionEntryType.Activity);
+        result.Value.Items[0].Message!.RecordChange.Should().BeNull();
+        result.Value.Items[1].Activity!.EventType.Should().Be("StatusChanged");
+    }
+
     private static string Describe(DiscussionEntryDto entry) =>
         entry.Type == DiscussionEntryType.Message ? entry.Message!.Body! : entry.Activity!.EventType;
 

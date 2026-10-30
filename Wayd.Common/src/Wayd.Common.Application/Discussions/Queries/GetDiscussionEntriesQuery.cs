@@ -87,7 +87,9 @@ public sealed class GetDiscussionEntriesQueryHandler(
 
         var (page, hasMore) = await ReadMessages(view, request.Paging.PageSize, oldestFirst, cursor, cancellationToken);
         var described = await DiscussionReading.Describe(_dbContext, page, view, cancellationToken);
-        var hasRecordChanges = page.Any(m => m.RecordChangeEventId is not null);
+        // A deleted message shows as a tombstone, so the change it was posted with is shown on its own.
+        var withRecordChanges = page.Where(m => m.RecordChangeEventId is not null && !m.IsDeleted).ToList();
+        var hasRecordChanges = withRecordChanges.Count > 0;
 
         var readRule = _readRules.FirstOrDefault(r => string.Equals(r.OwnerType, view.Type.ChannelType, StringComparison.OrdinalIgnoreCase));
         List<ActivityLogDto> activity = [];
@@ -113,7 +115,7 @@ public sealed class GetDiscussionEntriesQueryHandler(
 
         if (hasRecordChanges && activity.Count > 0)
         {
-            (described, activity) = await AttachRecordChanges(page, described, activity, cancellationToken);
+            (described, activity) = await AttachRecordChanges(withRecordChanges, described, activity, cancellationToken);
         }
 
         var entries = described
@@ -147,14 +149,12 @@ public sealed class GetDiscussionEntriesQueryHandler(
     /// which entry each event is. A message takes its change's timestamp, so the change is always in the same window.
     /// </remarks>
     private async Task<(List<DiscussionMessageDto> Messages, List<ActivityLogDto> Activity)> AttachRecordChanges(
-        IReadOnlyList<DiscussionMessage> page,
+        IReadOnlyList<DiscussionMessage> withRecordChanges,
         List<DiscussionMessageDto> messages,
         List<ActivityLogDto> activity,
         CancellationToken cancellationToken)
     {
-        var messageByEvent = page
-            .Where(m => m.RecordChangeEventId is not null)
-            .ToDictionary(m => m.RecordChangeEventId!.Value, m => m.Id);
+        var messageByEvent = withRecordChanges.ToDictionary(m => m.RecordChangeEventId!.Value, m => m.Id);
         Guid[] eventIds = [.. messageByEvent.Keys];
 
         var entries = await _activityLogDbContext.ActivityLogs

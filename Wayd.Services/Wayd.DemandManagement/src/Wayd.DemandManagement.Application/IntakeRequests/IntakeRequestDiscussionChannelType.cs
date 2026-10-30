@@ -153,12 +153,22 @@ public sealed class IntakeRequestDiscussionChannelType(
         if (joining.Count == 0)
             return;
 
+        // Every participant must be an active employee, as when one is added directly; a reader whose employee
+        // has left can still be signed in.
+        Guid[] candidates = [.. joining.Distinct()];
+        var active = await _dbContext.Employees
+            .Where(e => candidates.Contains(e.Id) && e.IsActive)
+            .Select(e => e.Id)
+            .ToListAsync(cancellationToken);
+        if (active.Count == 0)
+            return;
+
         var request = await _dbContext.IntakeRequests
             .Include(r => r.Participants)
             .FirstAsync(r => r.Id == ownerId, cancellationToken);
 
         var actor = EventActor.User(_currentUser.GetUserId(), author);
-        foreach (var employeeId in joining.Distinct())
+        foreach (var employeeId in active)
         {
             // Refused only for someone already on the request, which leaves nothing to add.
             request.AddParticipant(employeeId, author, actor, timestamp);

@@ -350,6 +350,21 @@ public sealed class IntakeRequestDiscussionChannelTypeTests
     }
 
     [Fact]
+    public async Task OnPosted_AReplyByAViewerWhoseEmployeeHasLeft_AddsNobody()
+    {
+        // Arrange — every participant must be an active employee, however they joined
+        var leaver = _scenario.Employee(isActive: false);
+        var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), _scenario.Employee());
+        _scenario.SignedInAs(leaver, IntakeScenario.View);
+
+        // Act
+        await Post(request, leaver.Id, DiscussionMessageKind.Public);
+
+        // Assert
+        request.Participants.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task OnPosted_AReplyByAnAgent_AddsNobody()
     {
         // Arrange

@@ -66,6 +66,21 @@ export const discussionTag = ({ channelType, ownerId }: DiscussionTarget) => ({
   id: `${channelType}:${ownerId}`,
 })
 
+/**
+ * What writing a message changes: its conversation, and on a record that gains
+ * participants by posting, the record and its history too, so the record's
+ * people and Activity show who joined.
+ */
+const writeTags = (target: DiscussionTarget) => [
+  discussionTag(target),
+  ...(target.channelType === DiscussionChannelTypes.IntakeRequest
+    ? [
+        { type: QueryTags.IntakeRequest, id: target.ownerId },
+        { type: QueryTags.ActivityLog, id: target.ownerId },
+      ]
+    : []),
+]
+
 const run = async <T>(call: () => Promise<T>) => {
   try {
     return { data: await call() }
@@ -148,7 +163,7 @@ export const discussionsApi = apiSlice.injectEndpoints({
             body,
           }),
         ),
-      invalidatesTags: (result, error, args) => [discussionTag(args)],
+      invalidatesTags: (result, error, args) => writeTags(args),
     }),
 
     replyToDiscussionMessage: builder.mutation<
@@ -161,7 +176,7 @@ export const discussionsApi = apiSlice.injectEndpoints({
             body,
           }),
         ),
-      invalidatesTags: (result, error, args) => [discussionTag(args)],
+      invalidatesTags: (result, error, args) => writeTags(args),
     }),
 
     editDiscussionMessage: builder.mutation<null, EditDiscussionMessageArgs>({
@@ -172,7 +187,7 @@ export const discussionsApi = apiSlice.injectEndpoints({
             body,
           }),
         ),
-      invalidatesTags: (result, error, args) => [discussionTag(args)],
+      invalidatesTags: (result, error, args) => writeTags(args),
     }),
 
     deleteDiscussionMessage: builder.mutation<null, DiscussionMessageArgs>({

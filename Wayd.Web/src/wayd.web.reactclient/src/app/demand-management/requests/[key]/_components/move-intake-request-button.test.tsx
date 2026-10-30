@@ -21,6 +21,14 @@ jest.mock(
           needsSurvivingRequest: false,
         },
         {
+          id: 's-waiting',
+          name: 'Waiting on Requester',
+          category: 'Proposed',
+          alias: 2,
+          needsReason: false,
+          needsSurvivingRequest: false,
+        },
+        {
           id: 's-declined',
           name: 'Declined',
           category: 'Removed',
@@ -89,6 +97,24 @@ describe('MoveIntakeRequestButton', () => {
 
     // Assert
     expect(onNeedsDetail).toHaveBeenCalledWith('s-declined')
+    expect(mockChangeStatus).not.toHaveBeenCalled()
+  })
+
+  it('opens the status form for Waiting on Requester, to ask the question', async () => {
+    // Arrange
+    const onNeedsDetail = jest.fn()
+    render(
+      <MoveIntakeRequestButton
+        request={request}
+        onNeedsDetail={onNeedsDetail}
+      />,
+    )
+
+    // Act
+    await pick('Waiting on Requester')
+
+    // Assert
+    expect(onNeedsDetail).toHaveBeenCalledWith('s-waiting')
     expect(mockChangeStatus).not.toHaveBeenCalled()
   })
 })

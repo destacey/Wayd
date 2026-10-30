@@ -1,13 +1,9 @@
 'use client'
 
-import { Checkbox } from 'antd'
-import { useState } from 'react'
 import {
-  DiscussionComposerValue,
   MentionCandidate,
   RecordDiscussion,
 } from '@/src/components/common/discussions'
-import { useMessage } from '@/src/components/contexts/messaging'
 import {
   DiscussionMessageKind,
   EmployeeNavigationDto,
@@ -15,23 +11,11 @@ import {
   IntakeRequestDetailsDto,
   IntakeRequestSubstanceDto,
 } from '@/src/services/wayd-api'
+import { DiscussionChannelTypes } from '@/src/store/features/common/discussions-api'
 import {
-  DiscussionChannelTypes,
-  usePostDiscussionMessageMutation,
-} from '@/src/store/features/common/discussions-api'
-import {
-  useChangeIntakeRequestStatusMutation,
   useGetIntakeDeskQuery,
   useGetIntakeEmployeeOptionsQuery,
-  useGetIntakeRequestStatusOptionsQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
-import { toApiError } from '@/src/utils'
-
-/**
- * The status alias meaning Waiting on Requester. A value of the server's `IntakeRequestStatusAlias`, which the
- * generated client carries only as a number; matched by meaning so a desk that renames the status still has it.
- */
-export const WAITING_ON_REQUESTER = 2
 
 const audience = {
   [DiscussionMessageKind.Public]:
@@ -55,17 +39,14 @@ export interface IntakeRequestDiscussionProps {
 }
 
 /**
- * The request's conversation. An agent replying can move the request to Waiting on Requester in the same action,
- * so asking the requester a question and setting the status to wait for them is one step, saved together.
+ * The request's conversation, with who can be mentioned in it. Asking the requester a question and moving the
+ * request to Waiting on Requester is done from the status form, which posts the question here.
  */
 const IntakeRequestDiscussion = ({
   request,
   substance,
 }: IntakeRequestDiscussionProps) => {
   const { summary } = request
-  const messageApi = useMessage()
-  // Off until asked for: a reply that also moves the request should be the agent's choice each time.
-  const [moveToWaiting, setMoveToWaiting] = useState(false)
 
   const { data: desk } = useGetIntakeDeskQuery(summary.desk.id)
   const mayMentionAnyone =
@@ -75,12 +56,6 @@ const IntakeRequestDiscussion = ({
   const { data: everyone } = useGetIntakeEmployeeOptionsQuery(undefined, {
     skip: !mayMentionAnyone,
   })
-  const { data: statusOptions } = useGetIntakeRequestStatusOptionsQuery(
-    summary.id,
-    { skip: !request.canChangeStatus },
-  )
-  const [postMessage] = usePostDiscussionMessageMutation()
-  const [changeStatus] = useChangeIntakeRequestStatusMutation()
 
   const deskMembers = (desk?.members ?? []).map((m) => candidate(m.employee))
   const requestPeople = distinct([
@@ -94,35 +69,6 @@ const IntakeRequestDiscussion = ({
     ? (everyone ?? []).map(candidate)
     : requestPeople
 
-  const waiting = statusOptions?.find(
-    (s) => s.alias === WAITING_ON_REQUESTER && !s.needsReason,
-  )
-
-  const post = async (value: DiscussionComposerValue) => {
-    const askAndMove =
-      waiting && moveToWaiting && value.kind === DiscussionMessageKind.Public
-    const response = askAndMove
-      ? await changeStatus({
-          requestId: summary.id,
-          statusId: waiting.id,
-          reply: { subject: value.subject, body: value.body },
-        })
-      : await postMessage({
-          channelType: DiscussionChannelTypes.IntakeRequest,
-          ownerId: summary.id,
-          ...value,
-        })
-    if ('error' in response) {
-      messageApi.error(
-        toApiError(response.error).detail ?? 'Could not post the message.',
-      )
-      return false
-    }
-    // The move is the agent's choice for each reply, never carried to the next.
-    setMoveToWaiting(false)
-    return true
-  }
-
   return (
     <RecordDiscussion
       channelType={DiscussionChannelTypes.IntakeRequest}
@@ -130,17 +76,6 @@ const IntakeRequestDiscussion = ({
       mentionCandidates={replyCandidates}
       noteMentionCandidates={deskMembers}
       audience={audience}
-      replyExtra={
-        waiting && (
-          <Checkbox
-            checked={moveToWaiting}
-            onChange={(e) => setMoveToWaiting(e.target.checked)}
-          >
-            Move the request to {waiting.name}
-          </Checkbox>
-        )
-      }
-      onPost={post}
     />
   )
 }

@@ -55,6 +55,7 @@ const option = (
 const mockChangeStatus = jest.fn()
 const mockOptions = [
   option('s-review', 'In Review'),
+  option('s-waiting', 'Waiting on Requester', { alias: 2 }),
   option('s-declined', 'Declined', {
     category: StatusCategory.Removed,
     needsReason: true,
@@ -136,6 +137,42 @@ describe('ChangeIntakeRequestStatusForm', () => {
       reason: undefined,
       duplicateOfId: undefined,
     })
+  })
+
+  it('asks the requester a question with a move to Waiting on Requester, in place of a reason', async () => {
+    // Arrange
+    await renderForm()
+    await choose(0, 'Waiting on Requester')
+    await userEvent.type(
+      screen.getByRole('textbox', { name: 'Question for the Requester' }),
+      '  Could you add the budget? ',
+    )
+
+    // Act
+    await submit()
+
+    // Assert
+    expect(screen.queryByRole('textbox', { name: 'Reason' })).toBeNull()
+    expect(mockChangeStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusId: 's-waiting',
+        reply: { body: 'Could you add the budget?' },
+      }),
+    )
+  })
+
+  it('moves to Waiting on Requester without a reply when no question is written', async () => {
+    // Arrange
+    await renderForm()
+    await choose(0, 'Waiting on Requester')
+
+    // Act
+    await submit()
+
+    // Assert
+    expect(mockChangeStatus).toHaveBeenCalledWith(
+      expect.objectContaining({ statusId: 's-waiting', reply: undefined }),
+    )
   })
 
   it('refuses to decline without a reason', async () => {

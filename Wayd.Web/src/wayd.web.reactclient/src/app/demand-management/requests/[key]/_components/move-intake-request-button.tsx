@@ -10,17 +10,21 @@ import { toApiError } from '@/src/utils'
 import { DownOutlined } from '@ant-design/icons'
 import { Button, Dropdown } from 'antd'
 import { FC, useState } from 'react'
+import { asksTheRequester } from './change-intake-request-status-form'
 
 export interface MoveIntakeRequestButtonProps {
   request: IntakeRequestDetailsDto
-  /** Opens the status form on a move that needs more than a click: a reason, or the surviving request. */
+  /**
+   * Opens the status form on a move that needs more than a click: a reason, the surviving request, or for Waiting
+   * on Requester the question to ask.
+   */
   onNeedsDetail: (statusId: string) => void
 }
 
 /**
  * The request's workflow at hand: every status it can move to, in the workflow's order. A move that needs
- * nothing happens on the click; one that needs a reason the requester reads, or the request a duplicate
- * gives way to, opens the status form on that status. The statuses are fetched when the menu first opens.
+ * nothing happens on the click; one that needs a reason the requester reads, the request a duplicate gives way
+ * to, or, for Waiting on Requester, the question being asked, opens the status form on that status. The statuses are fetched when the menu first opens.
  */
 const MoveIntakeRequestButton: FC<MoveIntakeRequestButtonProps> = ({
   request,
@@ -38,7 +42,11 @@ const MoveIntakeRequestButton: FC<MoveIntakeRequestButtonProps> = ({
   const move = async (statusId: string) => {
     const option = options?.find((o) => o.id === statusId)
     if (!option) return
-    if (option.needsReason || option.needsSurvivingRequest) {
+    if (
+      option.needsReason ||
+      option.needsSurvivingRequest ||
+      asksTheRequester(option)
+    ) {
       onNeedsDetail(statusId)
       return
     }

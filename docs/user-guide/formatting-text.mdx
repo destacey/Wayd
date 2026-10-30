@@ -19,20 +19,20 @@ Whichever editor you use, Wayd stores the text as markdown. Detail pages, the AP
 | Bold, Italic, Underline, Strikethrough | Format the selection | Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+Shift+S |
 | Inline code | Format the selection as code | Ctrl+E, or wrap text in backticks |
 | Link | Add, change or remove a link | |
-| Bulleted, Numbered and Task list | Turn lines into a list | Type `-`, `1.` or `[ ]` and a space |
-| Quote | Indent as a quotation | Type `>` and a space |
-| Code block | A block of code | Type three backticks, optionally a language such as `sql`, then a space |
+| Bulleted, Numbered and Task list | Turn lines into a list | Ctrl+Shift+8, Ctrl+Shift+7, Ctrl+Shift+9, or type `-`, `1.` or `[ ]` and a space |
+| Quote | Indent as a quotation | Ctrl+Shift+B, or type `>` and a space |
+| Code block | A block of code | Ctrl+Alt+C, or type three backticks, optionally a language such as `sql`, then a space |
 | Table | Insert a table, then add or delete rows and columns | |
 | Horizontal rule | A dividing line | Type `---` |
 | Undo, Redo | Step back or forward through your edits | Ctrl+Z, Ctrl+Shift+Z |
 
-On a Mac, use ⌘ in place of Ctrl.
+On a Mac, use ⌘ in place of Ctrl. In the toolbar, Tab reaches the first button and the arrow keys move between buttons; Tab again moves on to the text.
 
-A link must be a web address (`https://…`), an email link (`mailto:…`) or a path in Wayd (`/…`). Typing `wayd.dev` adds `https://` for you; other kinds of address are refused.
+A link must be a web address (`https://…`), an email link (`mailto:…`) or a path in Wayd (`/…`). Typing `wayd.dev` adds `https://` for you, while a file name such as `report.pdf` is kept as a relative link; other kinds of address are refused.
 
 Pasting from Word, Outlook, a web page or Azure DevOps keeps headings, bold, italic, lists, links and tables, and drops fonts, colors and spacing. Images are kept only when they come from a web address; an image pasted from a file on your computer is left out.
 
-The count under the editor is the length of the stored markdown, which is a little longer than the text you see. Once it reaches the field's limit, the editor stops accepting additions.
+The count under the editor is the length of the stored markdown, which is a little longer than the text you see. An edit that would take it past the field's limit is refused whole, with a message under the editor saying how long the text would have been; a paste that would cross the limit inserts nothing. Once you edit a record, the editor writes all of it in its own style, which can make it slightly longer (tables are padded to even columns), so a record close to its limit may need trimming before it takes more text.
 
 ## Text you never edit is never rewritten
 
@@ -40,4 +40,4 @@ Opening a record's edit form and saving it without changing the text keeps the t
 
 ## Formatting the editor cannot keep
 
-A few kinds of markdown display on detail pages but have no equivalent in the document editor: footnotes, collapsible sections, keyboard keys, HTML comments and blocks, and special characters written as HTML entities (`&nbsp;`). When a field holds any of them, a warning above the editor names what it found. Editing that field removes them; to keep them, close the form without saving.
+A few kinds of markdown display on detail pages but have no equivalent in the document editor: footnotes, HTML comments, HTML elements such as `<details>`, `<kbd>` and `<div>`, images whose address is not a web address, and special characters written as HTML entities (`&nbsp;`). When a field holds any of them, a warning above the editor names what it found, and stays while you edit. Editing that field removes them; to keep them, close the form without saving.

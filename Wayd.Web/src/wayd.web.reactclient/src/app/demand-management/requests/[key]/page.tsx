@@ -35,6 +35,7 @@ import ChangeIntakeRequestAssigneeForm from './_components/change-intake-request
 import ChangeIntakeRequestStatusForm from './_components/change-intake-request-status-form'
 import EditIntakeRequestForm from './_components/edit-intake-request-form'
 import IntakeRequestDetails from './_components/intake-request-details'
+import IntakeRequestDiscussion from './_components/intake-request-discussion'
 import IntakeRequestFacts from './_components/intake-request-facts'
 import IntakeRequestOutcomes from './_components/intake-request-outcomes'
 import IntakeRequestParticipants from './_components/intake-request-participants'
@@ -49,6 +50,7 @@ import IntakeRequestDetailsLoading from './loading'
 
 enum RequestSection {
   Details = 'details',
+  Discussion = 'discussion',
   Outcomes = 'outcomes',
   Participants = 'participants',
   Score = 'score',
@@ -147,6 +149,10 @@ const IntakeRequestDetailsPage = (props: {
 
   const sections: RecordSection[] = [
     { id: RequestSection.Details, label: 'Details' },
+    // Replies are substance, read by the rule the description is; a summary-only reader has no conversation.
+    ...(substance
+      ? [{ id: RequestSection.Discussion, label: 'Discussion' }]
+      : []),
     // Summary tier: everyone who sees the request sees what it became.
     {
       id: RequestSection.Outcomes,
@@ -272,6 +278,10 @@ const IntakeRequestDetailsPage = (props: {
             }
           />
         )
+      case RequestSection.Discussion:
+        return substance ? (
+          <IntakeRequestDiscussion request={request} substance={substance} />
+        ) : null
       case RequestSection.Outcomes:
         return <IntakeRequestOutcomes request={request} />
       case RequestSection.StatusHistory:

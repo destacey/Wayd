@@ -7,6 +7,10 @@ import {
   getIntakeRequestTagsClient,
 } from '@/src/services/clients'
 import {
+  discussionTag,
+  DiscussionChannelTypes,
+} from '../common/discussions-api'
+import {
   AddIntakeRequestOutcomeRequest,
   AddIntakeRequestTagRequest,
   ProjectIntakeRequestDto,
@@ -464,8 +468,18 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           return toError(error)
         }
       },
-      invalidatesTags: (_result, _error, { requestId }) =>
-        statusMoveTags(requestId),
+      invalidatesTags: (_result, _error, { requestId, reply }) => [
+        ...statusMoveTags(requestId),
+        // A reply posted with the move lands in the request's conversation.
+        ...(reply
+          ? [
+              discussionTag({
+                channelType: DiscussionChannelTypes.IntakeRequest,
+                ownerId: requestId,
+              }),
+            ]
+          : []),
+      ],
     }),
 
     withdrawIntakeRequest: builder.mutation<void, WithdrawIntakeRequestArgs>({

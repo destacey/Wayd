@@ -376,7 +376,23 @@ Sanitizing before `rehypeRaw` leaves the raw HTML unparsed at that point, so it 
 Anything added to `tagNames` or `attributes` must be checked against clickjacking. An attacker who can set `style` on any element can cover the page with a full-viewport overlay — that is same-origin, so no CSP prevents it. `sanitize-schema.test.ts` covers this case explicitly; keep it passing.
 :::
 
-`MarkdownEditor`'s preview pane (`@uiw/react-md-editor`) runs its own pipeline, which always parses raw HTML and passes link URLs through unchecked. It gets the same `[rehypeSanitize, sanitizeSchema]` through `previewOptions.rehypePlugins`, which the library runs after its `rehype-raw`. Keep the two in step: a stored description is shown to other users in both places.
+`MarkdownEditor` shows one of two editors, chosen by the `wysiwyg-markdown-editor` feature flag; both take `value`, `onChange` and `maxLength`, so forms do not know which they get.
+
+With the flag off it is `LegacyMarkdownEditor` (`@uiw/react-md-editor`), whose preview pane runs its own pipeline, which always parses raw HTML and passes link URLs through unchecked. It gets the same `[rehypeSanitize, sanitizeSchema]` through `previewOptions.rehypePlugins`, which the library runs after its `rehype-raw`. Keep the two in step: a stored description is shown to other users in both places.
+
+### The document editor
+
+With the flag on it is `WysiwygMarkdownEditor` (`markdown/wysiwyg/`), a [Tiptap](https://tiptap.dev) editor loaded with `next/dynamic` and `ssr: false`. It parses the stored markdown into a document and serializes it back with `@tiptap/markdown`. The rules it keeps:
+
+- **Unedited text is never rewritten.** The editor keeps the markdown it loaded and the document that parsed to; while the document still equals it (`doc.eq`), it reports the loaded text rather than re-serializing, so opening and saving a record, or undoing every edit, raises no `…DetailsUpdated` event.
+- **`onChange` fires only for user edits.** Content is loaded with `emitUpdate: false` and kept out of the undo history; the value the editor itself reported is not loaded back, so typing never resets the cursor.
+- **The length limit counts the stored markdown** (`MarkdownLengthLimit`), which is longer than the visible text, and refuses an edit that would pass it.
+- **Nothing the sanitizer would strip is stored.** Pasted HTML goes through the editor's schema, which has no `style` or event attributes; links and images use the sanitizer's own allow-lists (`safe-urls.ts`).
+- **One extension set**, `markdownEditorExtensions()`, used by the editor and by the round-trip harness in `markdown/round-trip/`. The harness loads hand-written markdown and a sample of seeded text, serializes it back, and pins how faithfully each survives as judged by `MarkdownRenderer`. Run it after any change to the extensions or a Tiptap upgrade; `ROUND_TRIP_SEED_DIR` points it at a full `wayd-data generate` folder and `ROUND_TRIP_REPORT` writes the results table.
+
+Tiptap writes `&`, `<`, `>` and intraword `_` escaped in every text node and has no option to stop it, so `installMinimalMarkdownEscaping` wraps its private `MarkdownManager.encodeTextForMarkdown` to escape them only where they would change meaning. That is why the Tiptap packages are pinned to an exact version: an upgrade that renames or changes that method fails the harness rather than silently rewriting stored text.
+
+Some markdown the renderer displays has no node in the editor — footnotes, `<details>`, `<kbd>`, HTML comments and blocks, named entities. `findUnsupportedMarkdown` detects it so the editor can warn before an edit removes it; the harness checks the detector against every case that loses something.
 
 The docs viewer is a **separate** pipeline (`next-mdx-remote` / `MDXRemote`) rendering repo-authored content, and does not go through `MarkdownRenderer`.
 
@@ -393,5 +409,6 @@ The `docs/` folder is rendered by Docusaurus and by the in-app docs viewer, so w
 | Redux Toolkit | State management |
 | react-markdown | Markdown rendering |
 | rehype-sanitize | Sanitizes raw HTML in user-supplied markdown (see above) |
+| Tiptap | The document editor behind `MarkdownEditor` when `wysiwyg-markdown-editor` is on (see above) |
 | dayjs | Date formatting |
 | oidc-client-ts | OIDC authentication (Entra ID and generic providers) |

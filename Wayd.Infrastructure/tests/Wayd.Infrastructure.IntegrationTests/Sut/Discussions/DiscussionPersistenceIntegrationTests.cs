@@ -153,20 +153,20 @@ public sealed class DiscussionPersistenceIntegrationTests(SqlServerDbContextFixt
         var handler = NewQueryHandler(context, author.Id, canReadInternal: false);
 
         // Act
-        var first = await handler.Handle(new GetDiscussionQuery(GadgetType, ownerId, new CursorRequest(null, 2), MessagesOnly: true), cancellationToken);
-        var second = await handler.Handle(new GetDiscussionQuery(GadgetType, ownerId, new CursorRequest(first.Value!.Entries.NextCursor, 2), MessagesOnly: true), cancellationToken);
+        var first = await handler.Handle(new GetDiscussionEntriesQuery(GadgetType, ownerId, new CursorRequest(null, 2), MessagesOnly: true), cancellationToken);
+        var second = await handler.Handle(new GetDiscussionEntriesQuery(GadgetType, ownerId, new CursorRequest(first.Value!.NextCursor, 2), MessagesOnly: true), cancellationToken);
 
         // Assert
-        var bodies = first.Value.Entries.Items.Concat(second.Value!.Entries.Items).Select(e => e.Message!.Body).ToList();
+        var bodies = first.Value.Items.Concat(second.Value!.Items).Select(e => e.Message!.Body).ToList();
         bodies.Should().HaveCount(3).And.OnlyHaveUniqueItems().And.NotContain("Note");
         bodies[0].Should().Be("Message 0");
-        second.Value.Entries.NextCursor.Should().BeNull();
+        second.Value.NextCursor.Should().BeNull();
     }
 
     private static DiscussionWriter NewWriter(WaydDbContext context, Guid employeeId) =>
         new(context, [new OpenChannelType(canReadInternal: true)], Principal(employeeId), Mock.Of<ICurrentUser>(u => u.GetUserId() == "user-1"), Mock.Of<IDateTimeProvider>(d => d.Now == Timestamp));
 
-    private static GetDiscussionQueryHandler NewQueryHandler(WaydDbContext context, Guid employeeId, bool canReadInternal) =>
+    private static GetDiscussionEntriesQueryHandler NewQueryHandler(WaydDbContext context, Guid employeeId, bool canReadInternal) =>
         new(context, [new OpenChannelType(canReadInternal)], [], Mock.Of<IActivityLogReader>(), Principal(employeeId));
 
     private static ICurrentPrincipal Principal(Guid employeeId)

@@ -6,7 +6,7 @@ using Wayd.Common.Domain.Discussions;
 namespace Wayd.Common.Application.Discussions.Dtos;
 
 /// <summary>
-/// A record's conversation as the caller may see it: one page of it, and what they may do in it.
+/// A record's conversation as the caller may use it: what they may do in it, and whether it is locked.
 /// </summary>
 public sealed record DiscussionDto
 {
@@ -23,9 +23,6 @@ public sealed record DiscussionDto
 
     /// <summary>Whether the conversation is locked: nothing new can be posted, replied or edited.</summary>
     public bool IsLocked { get; init; }
-
-    /// <summary>One page of the conversation: its top-level messages, and the record's activity between them unless only messages were asked for.</summary>
-    public required CursorPage<DiscussionEntryDto> Entries { get; init; }
 }
 
 /// <summary>What one entry in a conversation is.</summary>

@@ -498,6 +498,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<DateTime>("PostedOn")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("RecordChangeEventId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()

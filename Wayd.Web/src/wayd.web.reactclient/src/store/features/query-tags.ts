@@ -39,6 +39,7 @@ export enum QueryTags {
   UnreadNotificationCount = 'Common.UnreadNotificationCount',
   RecordMuteStatus = 'Common.RecordMuteStatus',
   MyMutes = 'Common.MyMutes',
+  Discussion = 'Common.Discussion',
   HealthCheck = 'Common.HealthCheck',
   HealthChecksHealthReport = 'Common.HealthChecks.HealthReport',
   HealthChecksStatusOptions = 'Common.HealthChecks.StatusOptions',

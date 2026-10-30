@@ -1,0 +1,184 @@
+/* A record's conversation: its entries, threads and composer. */
+
+.discussion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin);
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ant-margin-sm);
+}
+
+.toolbarSpacer {
+  flex: 1;
+}
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-margin-sm);
+  padding: 0 var(--ant-padding);
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}
+
+.activityDot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  margin: 0 var(--ant-margin-sm);
+  border-radius: 50%;
+  background: var(--ant-color-text-quaternary);
+}
+
+.activityActor {
+  color: var(--ant-color-text);
+  font-weight: 500;
+}
+
+.message {
+  display: flex;
+  gap: var(--ant-margin-sm);
+  padding: var(--ant-padding);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-bg-container);
+}
+
+/* An internal note reads differently from a reply wherever it appears, so it
+ * is never mistaken for something the requester can see. */
+.note {
+  border-color: var(--ant-color-warning-border);
+  background: var(--ant-color-warning-bg);
+}
+
+.reply {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.messageBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--ant-margin-xxs);
+  min-width: 0;
+}
+
+.messageHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ant-margin-xs);
+}
+
+.author {
+  font-weight: 600;
+}
+
+.meta {
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}
+
+.subject {
+  font-size: var(--ant-font-size-lg);
+  font-weight: 600;
+}
+
+.recordChange {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: var(--ant-margin-xxs);
+  padding: 0 var(--ant-padding-xs);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-sm);
+  background: var(--ant-color-fill-quaternary);
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}
+
+.tombstone {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-margin-sm);
+  padding: var(--ant-padding-xs) var(--ant-padding);
+  border: 1px dashed var(--ant-color-border);
+  border-radius: var(--ant-border-radius-lg);
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin-sm);
+  margin-top: var(--ant-margin-xxs);
+  padding: var(--ant-padding-sm);
+  border-radius: var(--ant-border-radius);
+  background: var(--ant-color-fill-quaternary);
+}
+
+.threadSummary {
+  align-self: flex-start;
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin-xs);
+}
+
+.composerBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin-xs);
+  padding: var(--ant-padding-sm);
+  border: 1px solid var(--ant-color-border);
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-bg-container);
+}
+
+.composerBoxNote {
+  border-color: var(--ant-color-warning-border);
+  background: var(--ant-color-warning-bg);
+}
+
+.composerHeader,
+.composerFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ant-margin-sm);
+}
+
+.audience {
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}
+
+.mentionOption {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ant-margin-xs);
+}
+
+.audienceNote {
+  color: var(--ant-color-warning-text);
+}

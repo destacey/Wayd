@@ -23,6 +23,12 @@ public sealed record DiscussionDto
 
     /// <summary>Whether the conversation is locked: nothing new can be posted, replied or edited.</summary>
     public bool IsLocked { get; init; }
+
+    /// <summary>How many threads the caller can read: top-level messages not deleted, of the kinds they may read.</summary>
+    public int ThreadCount { get; init; }
+
+    /// <summary>How many messages the caller can read, top-level and replies, not deleted, of the kinds they may read.</summary>
+    public int MessageCount { get; init; }
 }
 
 /// <summary>What one entry in a conversation is.</summary>

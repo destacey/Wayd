@@ -5,8 +5,8 @@ using Wayd.Common.Domain.Discussions;
 namespace Wayd.Common.Application.Discussions.Queries;
 
 /// <summary>
-/// A record's conversation as the caller may use it: what they may do in it, and whether it is locked. Null when the
-/// record does not exist or the caller cannot read it. Its messages are read with <see cref="GetDiscussionEntriesQuery"/>.
+/// A record's conversation as the caller may use it: what they may do in it, whether it is locked, and how much of it they
+/// can read. Null when the record does not exist or the caller cannot read it. Its messages are read with <see cref="GetDiscussionEntriesQuery"/>.
 /// </summary>
 /// <param name="ChannelType">The record's registered channel type.</param>
 /// <param name="OwnerId">The record's id.</param>
@@ -46,12 +46,28 @@ public sealed class GetDiscussionQueryHandler(
             return Result.Success<DiscussionDto?>(null);
         }
 
+        // Counted over the kinds the caller may read, so the numbers never reveal a hidden note.
+        var counts = new { Threads = 0, Messages = 0 };
+        if (view.Channel is { } channel)
+        {
+            var kinds = view.Access.ReadableKinds();
+            var standing = _dbContext.DiscussionMessages
+                .Where(m => m.ChannelId == channel.Id && m.DeletedOn == null && kinds.Contains(m.Kind));
+            counts = new
+            {
+                Threads = await standing.CountAsync(m => m.ParentMessageId == null, cancellationToken),
+                Messages = await standing.CountAsync(cancellationToken),
+            };
+        }
+
         return new DiscussionDto
         {
             CanPost = view.Access.CanPost,
             CanPostInternal = view.Access.CanWrite(DiscussionMessageKind.InternalNote),
             CanModerate = view.Access.CanModerate,
             IsLocked = view.Channel?.IsLocked ?? false,
+            ThreadCount = counts.Threads,
+            MessageCount = counts.Messages,
         };
     }
 }

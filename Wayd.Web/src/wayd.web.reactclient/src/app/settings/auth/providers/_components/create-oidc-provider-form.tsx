@@ -24,6 +24,12 @@ import TagInput from './tag-input'
 
 const { Item } = Form
 
+// The API recognises a Microsoft Entra ID provider only by this name
+// (LoginProviders.MicrosoftEntraId); under any other name its sign-ins take the
+// generic OIDC path and are rejected. Fixing the name also limits a deployment to
+// one Entra provider.
+const ENTRA_PROVIDER_NAME = 'MicrosoftEntraId'
+
 export interface CreateOidcProviderFormProps {
   onFormComplete: () => void
   onFormCancel: () => void
@@ -108,6 +114,21 @@ const CreateOidcProviderForm = ({
     })
 
   const allowAutoRegistration = Form.useWatch('allowAutoRegistration', form)
+  const isEntra = providerType === OidcProviderType.MicrosoftEntraId
+
+  const handleProviderTypeChange = (value: OidcProviderType) => {
+    setProviderType(value)
+    form.setFields([
+      {
+        name: 'name',
+        value:
+          value === OidcProviderType.MicrosoftEntraId
+            ? ENTRA_PROVIDER_NAME
+            : '',
+        errors: [],
+      },
+    ])
+  }
 
   return (
     <Modal
@@ -137,34 +158,6 @@ const CreateOidcProviderForm = ({
         }}
       >
         <Item
-          label="Name"
-          name="name"
-          rules={[
-            { required: true, message: 'Name is required' },
-            {
-              pattern: /^[a-z0-9-]+$/,
-              message: 'Only lowercase letters, digits, and hyphens',
-            },
-            { max: 50 },
-          ]}
-          tooltip="Immutable identifier used in URLs and configuration. Only lowercase letters, digits, and hyphens."
-        >
-          <Input maxLength={50} />
-        </Item>
-
-        <Item
-          label="Display Name"
-          name="displayName"
-          rules={[
-            { required: true, message: 'Display name is required' },
-            { max: 100 },
-          ]}
-          tooltip="Label shown on the login page button."
-        >
-          <Input maxLength={100} />
-        </Item>
-
-        <Item
           label="Provider Type"
           name="providerType"
           rules={[{ required: true, message: 'Provider type is required' }]}
@@ -178,8 +171,44 @@ const CreateOidcProviderForm = ({
                 label: 'Microsoft Entra ID',
               },
             ]}
-            onChange={(val) => setProviderType(val)}
+            onChange={handleProviderTypeChange}
           />
+        </Item>
+
+        <Item
+          label="Name"
+          name="name"
+          rules={
+            isEntra
+              ? [{ required: true, message: 'Name is required' }]
+              : [
+                  { required: true, message: 'Name is required' },
+                  {
+                    pattern: /^[a-z0-9-]+$/,
+                    message: 'Only lowercase letters, digits, and hyphens',
+                  },
+                  { max: 50 },
+                ]
+          }
+          tooltip={
+            isEntra
+              ? `Microsoft Entra ID providers are always named ${ENTRA_PROVIDER_NAME}, so only one can be set up.`
+              : 'Immutable identifier used in URLs and configuration. Only lowercase letters, digits, and hyphens.'
+          }
+        >
+          <Input maxLength={50} disabled={isEntra} />
+        </Item>
+
+        <Item
+          label="Display Name"
+          name="displayName"
+          rules={[
+            { required: true, message: 'Display name is required' },
+            { max: 100 },
+          ]}
+          tooltip="Label shown on the login page button."
+        >
+          <Input maxLength={100} />
         </Item>
 
         <Item
@@ -303,7 +332,9 @@ const CreateOidcProviderForm = ({
             <Item
               label="Default role for new users"
               name="defaultRoleId"
-              rules={[{ required: true, message: 'A default role is required' }]}
+              rules={[
+                { required: true, message: 'A default role is required' },
+              ]}
               tooltip="Role assigned to users created automatically through this provider."
             >
               <Select

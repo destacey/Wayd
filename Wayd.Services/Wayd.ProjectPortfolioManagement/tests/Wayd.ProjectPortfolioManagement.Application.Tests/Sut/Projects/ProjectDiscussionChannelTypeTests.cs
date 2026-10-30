@@ -15,7 +15,7 @@ using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Projects;
 
-public sealed class ProjectDiscussionChannelTypeTests
+public sealed class ProjectDiscussionChannelTypeTests : IDisposable
 {
     private static readonly Instant Now = Instant.FromUtc(2026, 10, 29, 9, 0);
     private const string ViewPermission = "Permissions.Projects.View";
@@ -286,4 +286,6 @@ public sealed class ProjectDiscussionChannelTypeTests
         project.Roles.Should().BeEquivalentTo(rolesBefore);
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
+
+    public void Dispose() => _dbContext.Dispose();
 }

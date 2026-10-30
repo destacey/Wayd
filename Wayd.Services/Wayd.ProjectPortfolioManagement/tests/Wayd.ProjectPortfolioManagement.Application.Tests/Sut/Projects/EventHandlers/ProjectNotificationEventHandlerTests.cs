@@ -1,6 +1,6 @@
+using FluentAssertions;
 using Moq;
 using NodaTime;
-using FluentAssertions;
 using Wayd.Common.Application.Notifications;
 using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Enums;

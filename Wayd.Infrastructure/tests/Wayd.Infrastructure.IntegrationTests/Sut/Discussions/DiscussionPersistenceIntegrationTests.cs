@@ -208,7 +208,7 @@ public sealed class DiscussionPersistenceIntegrationTests(SqlServerDbContextFixt
         new(context, [new OpenChannelType(canReadInternal: true)], Principal(employeeId), Mock.Of<ICurrentUser>(u => u.GetUserId() == "user-1"), Mock.Of<IDateTimeProvider>(d => d.Now == Timestamp));
 
     private static GetDiscussionEntriesQueryHandler NewQueryHandler(WaydDbContext context, Guid employeeId, bool canReadInternal) =>
-        new(context, [new OpenChannelType(canReadInternal)], [], Mock.Of<IActivityLogReader>(), Principal(employeeId));
+        new(context, [new OpenChannelType(canReadInternal)], [], Mock.Of<IActivityLogReader>(), context, Principal(employeeId));
 
     private static ICurrentPrincipal Principal(Guid employeeId)
     {

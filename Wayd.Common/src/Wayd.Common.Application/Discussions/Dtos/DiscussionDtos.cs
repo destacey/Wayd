@@ -107,6 +107,13 @@ public sealed record DiscussionMessageDto
     /// <summary>Up to three people who replied most recently in the thread, newest first.</summary>
     public List<EmployeeNavigationDto> RecentRepliers { get; init; } = [];
 
+    /// <summary>
+    /// The change to the record the message was posted with, such as moving a request to Waiting on Requester, exactly as
+    /// the record's Activity section shows it to the caller. Null when there is none, the caller may not see it, or the
+    /// message was read on its own rather than in a page of the conversation.
+    /// </summary>
+    public ActivityLogDto? RecordChange { get; init; }
+
     /// <summary>Whether the caller may edit the message: their own, standing, in an unlocked conversation.</summary>
     public bool CanEdit { get; init; }
 

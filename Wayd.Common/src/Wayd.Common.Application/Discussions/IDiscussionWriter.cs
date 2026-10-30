@@ -64,4 +64,15 @@ public interface IDiscussionWriter : IScopedService
 /// <param name="Kind">Who the message is for.</param>
 /// <param name="Subject">An optional subject; blank means none.</param>
 /// <param name="Body">The message as markdown, mentions written <c>@[Name](employee:{id})</c>.</param>
-public sealed record PostDiscussionMessage(string ChannelType, Guid OwnerId, DiscussionMessageKind Kind, string? Subject, string Body);
+/// <param name="RecordChange">
+/// A change to the record the caller saves with the message, such as the status change of asking a requester a
+/// question; the conversation shows it on the message. The message takes the change's timestamp, so the two read as
+/// one moment. Null for a message posted on its own.
+/// </param>
+public sealed record PostDiscussionMessage(
+    string ChannelType,
+    Guid OwnerId,
+    DiscussionMessageKind Kind,
+    string? Subject,
+    string Body,
+    DomainEvent? RecordChange = null);

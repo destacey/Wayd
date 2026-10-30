@@ -168,6 +168,27 @@ public sealed class DiscussionWriterTests
     }
 
     [Fact]
+    public async Task Post_WithARecordChange_ShouldTakeItsTimestampAndNameItsEvent()
+    {
+        // Arrange — any event raised on the record in the same save; its timestamp is not the clock's
+        var ownerId = _gadgets.AddRecord();
+        var changedOn = Now.Minus(Duration.FromMilliseconds(3));
+        var change = DiscussionChannel.OpenForRecord(GadgetType, Guid.NewGuid(), EventActor.User("user-1"), changedOn).Value
+            .DomainEvents.Single();
+
+        // Act
+        var result = await CreateWriter().Post(
+            new PostDiscussionMessage(GadgetType, ownerId, DiscussionMessageKind.Public, null, "Asked", change),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        var message = _dbContext.DiscussionMessages.Should().ContainSingle().Subject;
+        message.PostedOn.Should().Be(changedOn);
+        message.RecordChangeEventId.Should().Be(change.EventId);
+    }
+
+    [Fact]
     public async Task Edit_ShouldEditTheCallersOwnMessage()
     {
         // Arrange

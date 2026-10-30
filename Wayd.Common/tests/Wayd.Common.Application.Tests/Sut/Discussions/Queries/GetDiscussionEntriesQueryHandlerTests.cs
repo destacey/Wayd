@@ -8,6 +8,8 @@ using Wayd.Common.Application.Discussions.Queries;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Tests.Infrastructure;
+using Wayd.Common.Domain.Activities;
+using Wayd.Common.Domain.Data;
 using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Tests.Data;
@@ -47,7 +49,7 @@ public sealed class GetDiscussionEntriesQueryHandlerTests
     }
 
     private GetDiscussionEntriesQueryHandler CreateHandler() =>
-        new(_dbContext, [_gadgets], [_readRule], _activityLogReader.Object, _currentPrincipal.Object);
+        new(_dbContext, [_gadgets], [_readRule], _activityLogReader.Object, _dbContext, _currentPrincipal.Object);
 
     [Fact]
     public async Task Handle_ShouldBeNull_WhenTheCallerCannotReadTheRecord()
@@ -235,6 +237,58 @@ public sealed class GetDiscussionEntriesQueryHandlerTests
         message.CanEdit.Should().BeTrue("the caller wrote it");
     }
 
+    [Fact]
+    public async Task Handle_ShouldShowAChangeOnTheMessageItWasPostedWith_NotAsAnEntryOfItsOwn()
+    {
+        // Arrange
+        var channel = OpenChannel();
+        var eventId = Guid.NewGuid();
+        Post(channel, DiscussionMessageKind.Public, "Could you add the budget?", Start, recordChangeEventId: eventId);
+        AddActivity("StatusChanged", Start, logId: 41, eventId: eventId);
+        AddActivity("Retitled", Start.Plus(Duration.FromMinutes(1)), logId: 42);
+
+        // Act
+        var result = await CreateHandler().Handle(Query(_ownerId), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value!.Items.Select(Describe).Should().Equal("Could you add the budget?", "Retitled");
+        result.Value.Items[0].Message!.RecordChange!.EventType.Should().Be("StatusChanged");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldShowAMessagesChange_WhenOnlyMessagesAreAsked()
+    {
+        // Arrange
+        var channel = OpenChannel();
+        var eventId = Guid.NewGuid();
+        Post(channel, DiscussionMessageKind.Public, "Could you add the budget?", Start, recordChangeEventId: eventId);
+        AddActivity("StatusChanged", Start, logId: 41, eventId: eventId);
+        AddActivity("Retitled", Start.Plus(Duration.FromMinutes(1)), logId: 42);
+
+        // Act
+        var result = await CreateHandler().Handle(Query(_ownerId, messagesOnly: true), TestContext.Current.CancellationToken);
+
+        // Assert
+        var message = result.Value!.Items.Should().ContainSingle().Subject.Message!;
+        message.RecordChange!.EventType.Should().Be("StatusChanged");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldShowNoChangeOnAMessage_WhenTheCallerMayNotSeeIt()
+    {
+        // Arrange — the change is in the log, but the record's rule leaves it out of what the caller reads
+        var channel = OpenChannel();
+        var eventId = Guid.NewGuid();
+        Post(channel, DiscussionMessageKind.Public, "Could you add the budget?", Start, recordChangeEventId: eventId);
+        AddLogEntry(logId: 41, eventId);
+
+        // Act
+        var result = await CreateHandler().Handle(Query(_ownerId), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value!.Items.Should().ContainSingle().Which.Message!.RecordChange.Should().BeNull();
+    }
+
     private static string Describe(DiscussionEntryDto entry) =>
         entry.Type == DiscussionEntryType.Message ? entry.Message!.Body! : entry.Activity!.EventType;
 
@@ -253,9 +307,10 @@ public sealed class GetDiscussionEntriesQueryHandlerTests
         return channel;
     }
 
-    private DiscussionMessage Post(DiscussionChannel channel, DiscussionMessageKind kind, string body, Instant postedOn)
+    private DiscussionMessage Post(DiscussionChannel channel, DiscussionMessageKind kind, string body, Instant postedOn,
+        Guid? recordChangeEventId = null)
     {
-        var message = DiscussionMessage.Post(channel, kind, _employeeId, null, body, [], Actor, postedOn).Value;
+        var message = DiscussionMessage.Post(channel, kind, _employeeId, null, body, [], Actor, postedOn, recordChangeEventId).Value;
         _dbContext.AddDiscussionMessage(message);
         return message;
     }
@@ -263,11 +318,20 @@ public sealed class GetDiscussionEntriesQueryHandlerTests
     private void Reply(DiscussionChannel channel, DiscussionMessage parent, Guid authorId, Instant postedOn) =>
         _dbContext.AddDiscussionMessage(DiscussionMessage.Reply(channel, parent, authorId, "Reply", [], Actor, postedOn).Value);
 
-    /// <summary>Adds a change to the record's activity, kept newest first as the log reads it.</summary>
-    private void AddActivity(string eventType, Instant timestamp)
+    /// <summary>
+    /// Adds a change to the record's activity, kept newest first as the log reads it, and, given an event, the log row
+    /// that names it.
+    /// </summary>
+    private void AddActivity(string eventType, Instant timestamp, long logId = 0, Guid? eventId = null)
     {
+        if (eventId is { } id)
+        {
+            AddLogEntry(logId, id);
+        }
+
         _activityNewestFirst.Add(new ActivityLogDto
         {
+            Id = logId,
             EventType = eventType,
             DomainArea = "Test",
             AggregateType = FakeRecordReadRule.ActivityType,
@@ -276,5 +340,14 @@ public sealed class GetDiscussionEntriesQueryHandlerTests
             Timestamp = timestamp,
         });
         _activityNewestFirst.Sort((a, b) => b.Timestamp.CompareTo(a.Timestamp));
+    }
+
+    /// <summary>A log row for the event, keyed as the database would key it.</summary>
+    private void AddLogEntry(long logId, Guid eventId)
+    {
+        var entry = new ActivityLogEntry(eventId, "StatusChanged", ActivityCategory.Updated, "Test", FakeRecordReadRule.ActivityType,
+            _ownerId, Actor, Start, 0, null, "{}");
+        typeof(BaseEntity<long>).GetProperty(nameof(BaseEntity<long>.Id))!.SetValue(entry, logId);
+        _dbContext.ActivityLogs.Add(entry);
     }
 }

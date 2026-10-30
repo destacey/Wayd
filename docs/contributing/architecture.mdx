@@ -445,8 +445,11 @@ registration in its module, not a schema change:
 
 **`IDiscussionWriter` is the only way to change a conversation.** The discussion endpoints, a module's own
 commands and agent tools all post through it, so the rules live in one place; it stages and never saves, so a
-module can change its record and post in one transaction, as an intake request's "ask and move" does. Reads go
-through `DiscussionReading`, which filters messages by the kinds `Resolve` allows.
+module can change its record and post in one transaction, as an intake request's "ask and move" does. Pass the
+change's domain event as the post's `RecordChange`: the message takes its timestamp and keeps its event id, and a page
+of the conversation shows that change on the message rather than as an entry of its own — still only when the record's
+read rule lets the caller see it. Reads go through `DiscussionReading`, which filters messages by the kinds `Resolve`
+allows.
 
 **A message is never quietly rewritten.** Every edit keeps the version it replaced as a revision, and deleting
 leaves a tombstone — who deleted it and when — with the text, revisions and mentions cleared. It is not

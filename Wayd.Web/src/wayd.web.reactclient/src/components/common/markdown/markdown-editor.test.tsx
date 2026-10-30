@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { useFeatureFlag } from '@/src/hooks'
-import MarkdownEditor, { WYSIWYG_MARKDOWN_EDITOR_FLAG } from './markdown-editor'
+import MarkdownEditor from './markdown-editor'
 
 jest.mock('@/src/hooks', () => ({ useFeatureFlag: jest.fn() }))
 
@@ -38,8 +38,8 @@ describe('MarkdownEditor', () => {
 
     // Assert
     expect(screen.getByText('wysiwyg text 100')).toBeInTheDocument()
-    expect(useFeatureFlag).toHaveBeenCalledWith(WYSIWYG_MARKDOWN_EDITOR_FLAG)
-    expect(WYSIWYG_MARKDOWN_EDITOR_FLAG).toBe('wysiwyg-markdown-editor')
+    // The name must match FeatureFlags.Names.WysiwygMarkdownEditor in Wayd.Common.Domain.
+    expect(useFeatureFlag).toHaveBeenCalledWith('wysiwyg-markdown-editor')
   })
 
   it('shows the markdown text editor when the flag is off', () => {
@@ -53,7 +53,7 @@ describe('MarkdownEditor', () => {
     expect(screen.getByText('legacy text 100')).toBeInTheDocument()
   })
 
-  it('shows neither editor until the flags have loaded', () => {
+  it('holds the space but shows neither editor until the flags have loaded', () => {
     // Arrange
     mockFlag({ isEnabled: false, isLoading: true })
 
@@ -63,6 +63,7 @@ describe('MarkdownEditor', () => {
     )
 
     // Assert
-    expect(container).toBeEmptyDOMElement()
+    expect(screen.queryByText(/legacy|wysiwyg/)).toBeNull()
+    expect(container.firstElementChild).toHaveAttribute('aria-busy', 'true')
   })
 })

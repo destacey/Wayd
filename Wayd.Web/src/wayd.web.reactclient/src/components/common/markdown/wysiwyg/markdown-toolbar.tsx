@@ -18,7 +18,15 @@ import Icon, {
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
 import { Button, Divider, Dropdown, type MenuProps } from 'antd'
-import type { MouseEvent, ReactNode } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FocusEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+} from 'react'
 import WaydTooltip from '../../wayd-tooltip'
 import LinkButton from './link-button'
 import styles from './wysiwyg-markdown-editor.module.css'
@@ -115,7 +123,54 @@ interface MarkdownToolbarProps {
 }
 
 /** Formatting controls for `WysiwygMarkdownEditor`, built from antd buttons and theme tokens only. */
+const NAVIGATION_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'Home', 'End'])
+
 const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
+  const toolbarRef = useRef<HTMLDivElement>(null)
+  // The toolbar is one tab stop: only the button last focused is tabbable, and arrow keys move
+  // between buttons, as the ARIA toolbar pattern expects.
+  const [activeIndex, setActiveIndex] = useState(0)
+
+  const enabledButtons = () => [
+    ...(toolbarRef.current?.querySelectorAll<HTMLButtonElement>(
+      'button:not(:disabled)',
+    ) ?? []),
+  ]
+
+  // Buttons come and go from the enabled set (Undo, Redo), so tab stops are set after each render.
+  useEffect(() => {
+    const buttons = enabledButtons()
+    const tabStop = buttons[Math.min(activeIndex, buttons.length - 1)]
+    toolbarRef.current
+      ?.querySelectorAll<HTMLButtonElement>('button')
+      .forEach((button) => {
+        button.tabIndex = button === tabStop ? 0 : -1
+      })
+  })
+
+  const onFocus = (event: FocusEvent<HTMLDivElement>) => {
+    // A focus event inside the toolbar targets the button, not the toolbar its type names.
+    const target: EventTarget = event.target
+    const index = enabledButtons().findIndex((button) => button === target)
+    if (index >= 0) setActiveIndex(index)
+  }
+
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!NAVIGATION_KEYS.has(event.key)) return
+    const buttons = enabledButtons()
+    const current = buttons.findIndex((button) => button === event.target)
+    if (current < 0) return
+    event.preventDefault()
+    const next =
+      event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? buttons.length - 1
+          : (current + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) %
+            buttons.length
+    buttons[next].focus()
+  }
+
   const state = useEditorState({
     editor,
     selector: ({ editor }) => ({
@@ -189,9 +244,12 @@ const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
   return (
     <div
       className={styles.toolbar}
+      ref={toolbarRef}
       role="toolbar"
       aria-label="Formatting"
       aria-controls={editorId}
+      onFocus={onFocus}
+      onKeyDown={onKeyDown}
     >
       {/* Icon only, so the toolbar fits one row in a form dialog; the tooltip and the checked menu
           item name the current style, and the button fills while a heading is selected. */}

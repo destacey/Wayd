@@ -18,6 +18,16 @@
   box-shadow: 0 0 0 2px var(--ant-color-primary-bg);
 }
 
+.invalid,
+.invalid:hover {
+  border-color: var(--ant-color-error);
+}
+
+.invalid:focus-within {
+  border-color: var(--ant-color-error);
+  box-shadow: 0 0 0 2px var(--ant-color-error-bg);
+}
+
 .warning {
   margin-bottom: var(--ant-margin-xs);
 }

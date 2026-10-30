@@ -12,6 +12,8 @@ describe('findUnsupportedMarkdown', () => {
       '',
       'Press <kbd>Esc</kbd> inside <div align="center">this</div>.',
       '',
+      '<img src="/files/diagram.png" alt="diagram">',
+      '',
       '[^a]: The note.',
     ].join('\n')
 
@@ -21,11 +23,40 @@ describe('findUnsupportedMarkdown', () => {
     // Assert
     expect(found).toEqual([
       'footnotes',
-      'collapsible sections',
-      'keyboard keys',
       'HTML comments',
-      'HTML blocks',
+      'HTML the editor does not support (<details>, <summary>, <kbd>, <div>)',
+      'images that are not web addresses',
       'special characters written as HTML entities',
+    ])
+  })
+
+  it.each([
+    ['a tag with attributes', '<ins cite="x">added</ins>', '<ins>'],
+    ['a tag inline in a sentence', 'Use <q>quotes</q> here', '<q>'],
+    [
+      'a tag the editor would show as literal text',
+      'Old <tt>mono</tt>',
+      '<tt>',
+    ],
+  ])('reports %s', (_, markdown, tag) => {
+    // Arrange / Act
+    const found = findUnsupportedMarkdown(markdown)
+
+    // Assert
+    expect(found).toEqual([`HTML the editor does not support (${tag})`])
+  })
+
+  it('reports text after a stray backtick, which opens no code span', () => {
+    // Arrange: one backtick, then a blank line, then HTML, then a real code span.
+    const markdown =
+      'Use a ` mark.\n\n<details><summary>S</summary>Hidden</details>\n\nAnd `x`'
+
+    // Act
+    const found = findUnsupportedMarkdown(markdown)
+
+    // Assert
+    expect(found).toEqual([
+      'HTML the editor does not support (<details>, <summary>)',
     ])
   })
 
@@ -35,11 +66,22 @@ describe('findUnsupportedMarkdown', () => {
     ['a numeric entity', 'Copyright &#169;'],
     ['a task list', '- [ ] todo\n- [x] done'],
     ['a link', '[Wayd](https://wayd.dev)'],
-    ['underline, sub and sup', '<u>u</u> H<sub>2</sub>O x<sup>2</sup>'],
+    [
+      'tags the editor keeps',
+      '<u>u</u> H<sub>2</sub>O <b>b</b> <em>e</em> <br>',
+    ],
+    [
+      'block HTML the editor converts',
+      '<h2>Title</h2>\n\n<ul><li>one</li></ul>',
+    ],
+    ['a web image in raw HTML', '<img src="https://wayd.dev/a.png" alt="a">'],
+    ['tags the sanitizer strips anyway', 'safe <script>alert(1)</script>'],
+    ['a footnote reference with no definition', 'Use [^0-9] to match'],
     [
       'constructs inside inline code',
       'Write `<details>` or `[^1]` or `&nbsp;`',
     ],
+    ['constructs inside double backticks', 'Write `` <kbd>`x` `` here'],
     ['constructs inside a fenced block', '```html\n<details>\n<!-- c -->\n```'],
     ['nothing', undefined],
   ])('finds nothing in %s', (_, markdown) => {

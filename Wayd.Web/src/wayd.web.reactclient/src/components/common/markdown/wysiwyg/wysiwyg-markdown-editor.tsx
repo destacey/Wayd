@@ -2,11 +2,11 @@
 
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 import { EditorContent, useEditor } from '@tiptap/react'
-import { Alert } from 'antd'
+import { Alert, Typography } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import MarkdownEditorFooter from '../markdown-editor-footer'
 import { markdownEditorExtensions } from './markdown-extensions'
-import { setMarkdownMaxLength } from './markdown-length-limit'
+import { setMarkdownLengthLimit } from './markdown-length-limit'
 import MarkdownToolbar from './markdown-toolbar'
 import { toStoredMarkdown } from './stored-markdown'
 import { findUnsupportedMarkdown } from './unsupported-markdown'
@@ -20,6 +20,12 @@ export interface WysiwygMarkdownEditorProps {
   onChange?: (value: string) => void
   /** Limit on the stored markdown, which is longer than the text shown. */
   maxLength: number
+  /** Set by `Form.Item` while the field shows validation help or errors. */
+  'aria-describedby'?: string
+  /** Set by `Form.Item` while the field is invalid; also turns the border to the error color. */
+  'aria-invalid'?: boolean | 'true' | 'false'
+  /** Set by `Form.Item` when the field is required. */
+  'aria-required'?: boolean | 'true' | 'false'
 }
 
 /** Markdown the editor loaded, and the document it parsed to. */
@@ -41,9 +47,16 @@ const WysiwygMarkdownEditor = ({
   value,
   onChange,
   maxLength,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
+  'aria-required': ariaRequired,
 }: WysiwygMarkdownEditorProps) => {
   const loadedRef = useRef<LoadedContent | null>(null)
   const lastReportedRef = useRef<string | null>(null)
+  // The text as loaded, for the warning: an edit removes what it warns about from `value`.
+  const [loadedMarkdown, setLoadedMarkdown] = useState(value ?? '')
+  // The length an edit would have reached when the limit last refused one; cleared by the next edit.
+  const [refusedLength, setRefusedLength] = useState<number | null>(null)
 
   // Created once: a new extensions array on each render makes Tiptap reconfigure the editor.
   const [extensions] = useState(markdownEditorExtensions)
@@ -60,9 +73,17 @@ const WysiwygMarkdownEditor = ({
         'aria-multiline': 'true',
         ...(id ? { id } : {}),
         ...(labelId ? { 'aria-labelledby': labelId } : {}),
+        ...(ariaDescribedBy ? { 'aria-describedby': ariaDescribedBy } : {}),
+        ...(ariaInvalid && ariaInvalid !== 'false'
+          ? { 'aria-invalid': 'true' }
+          : {}),
+        ...(ariaRequired && ariaRequired !== 'false'
+          ? { 'aria-required': 'true' }
+          : {}),
       },
     },
     onUpdate: ({ editor }) => {
+      setRefusedLength(null)
       const loaded = loadedRef.current
       const markdown =
         loaded && editor.state.doc.eq(loaded.document)
@@ -75,7 +96,7 @@ const WysiwygMarkdownEditor = ({
   })
 
   useEffect(() => {
-    if (editor) setMarkdownMaxLength(editor, maxLength)
+    if (editor) setMarkdownLengthLimit(editor, maxLength, setRefusedLength)
   }, [editor, maxLength])
 
   // Loads `value` when it is not what the editor last reported: on mount, and when the form resets
@@ -92,6 +113,8 @@ const WysiwygMarkdownEditor = ({
       .run()
     loadedRef.current = { markdown, document: editor.state.doc }
     lastReportedRef.current = markdown
+    setLoadedMarkdown(markdown)
+    setRefusedLength(null)
   }, [editor, value])
 
   // A label's `for` cannot point at a contenteditable, so the label is named instead, and a click
@@ -102,16 +125,21 @@ const WysiwygMarkdownEditor = ({
       `label[for="${CSS.escape(id)}"]`,
     )
     if (!label) return
+    const previousId = label.id
     label.id = labelId
     const focusEditor = (event: MouseEvent) => {
       event.preventDefault()
       editor.commands.focus()
     }
     label.addEventListener('click', focusEditor)
-    return () => label.removeEventListener('click', focusEditor)
+    return () => {
+      label.removeEventListener('click', focusEditor)
+      label.id = previousId
+    }
   }, [editor, id, labelId])
 
-  const unsupported = findUnsupportedMarkdown(value)
+  const unsupported = findUnsupportedMarkdown(loadedMarkdown)
+  const isInvalid = !!ariaInvalid && ariaInvalid !== 'false'
 
   return (
     <>
@@ -124,10 +152,20 @@ const WysiwygMarkdownEditor = ({
           description="Editing it removes that formatting. To keep it, close without saving."
         />
       )}
-      <div className={styles.editor}>
+      <div
+        className={
+          isInvalid ? `${styles.editor} ${styles.invalid}` : styles.editor
+        }
+      >
         {editor && <MarkdownToolbar editor={editor} editorId={id} />}
         <EditorContent editor={editor} />
       </div>
+      {refusedLength !== null && (
+        <Typography.Text type="danger" role="status">
+          That change would make the saved text {refusedLength} characters, over
+          the limit of {maxLength}.
+        </Typography.Text>
+      )}
       <MarkdownEditorFooter
         currentLength={value?.length ?? 0}
         maxLength={maxLength}

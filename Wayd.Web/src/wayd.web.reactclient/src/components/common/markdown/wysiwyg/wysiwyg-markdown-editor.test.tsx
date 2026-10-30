@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { Editor } from '@tiptap/core'
 import { Form } from 'antd'
 import { stubEditorLayout } from './editor-test-utils'
 import { MARKDOWN_VIEW_KEY } from './markdown-view-preference'
@@ -25,6 +26,12 @@ const toggleSource = () => clickToolbar('Markdown source')
 
 /** The source view's textarea; the hidden document view is not a visible textbox. */
 const sourceBox = () => screen.getByRole<HTMLTextAreaElement>('textbox')
+
+/** The textarea's own value setter, which React's change tracking sees, unlike a plain assignment. */
+const setTextareaValue = Object.getOwnPropertyDescriptor(
+  HTMLTextAreaElement.prototype,
+  'value',
+)!.set!
 
 /** Replaces the source view's text, as typing or pasting over all of it would. */
 const replaceSource = (markdown: string) =>
@@ -247,8 +254,88 @@ describe('WysiwygMarkdownEditor', () => {
 
     // Assert
     expect(sourceBox()).toHaveValue(original)
+    expect(sourceBox()).toHaveFocus()
     expect(screen.queryByRole('alert')).toBeNull()
     expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('shows the same warning again on switching back, so it is not announced anew', async () => {
+    // Arrange
+    render(
+      <WysiwygMarkdownEditor
+        value={'Note[^1]\n\n[^1]: Source.'}
+        maxLength={100}
+      />,
+    )
+    await findEditable()
+    const warning = screen.getByRole('alert')
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Edit in Markdown' }),
+    )
+
+    // Act
+    await toggleSource()
+
+    // Assert
+    expect(screen.getByRole('alert')).toBe(warning)
+    expect(warning).toHaveTextContent('To keep it, edit in Markdown.')
+  })
+
+  it('points at the source view again once a source edit replaces an edited document', async () => {
+    // Arrange
+    const onChange = jest.fn()
+    render(
+      <WysiwygMarkdownEditor
+        value="Press <kbd>Esc</kbd>"
+        onChange={onChange}
+        maxLength={100}
+      />,
+    )
+    await findEditable()
+    await clickToolbar('Bulleted list')
+    await toggleSource()
+    replaceSource('Press <kbd>Esc</kbd> now')
+
+    // Act
+    await toggleSource()
+
+    // Assert
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'To keep it, edit in Markdown.',
+    )
+  })
+
+  it('advises undoing, not the source view, once a document edit has removed the formatting', async () => {
+    // Arrange
+    const onChange = jest.fn()
+    render(
+      <WysiwygMarkdownEditor
+        value="Press <kbd>Esc</kbd>"
+        onChange={onChange}
+        maxLength={100}
+      />,
+    )
+    await findEditable()
+
+    // Act
+    await clickToolbar('Bulleted list')
+    const afterEdit = screen.getByRole('alert').textContent
+    const offeredAfterEdit = screen.queryByRole('button', {
+      name: 'Edit in Markdown',
+    })
+    await clickToolbar('Undo')
+
+    // Assert
+    expect(afterEdit).toContain(
+      'Your edit has removed that formatting. To keep it, undo your edits or close without saving.',
+    )
+    expect(offeredAfterEdit).toBeNull()
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'To keep it, edit in Markdown.',
+    )
+    expect(
+      screen.getByRole('button', { name: 'Edit in Markdown' }),
+    ).toBeInTheDocument()
   })
 
   it('keeps the warning after an edit has removed what it warns about', async () => {
@@ -423,6 +510,7 @@ describe('WysiwygMarkdownEditor', () => {
       '**Bold** and *italic* bad [good](https://wayd.dev)\n\n- one',
     )
   })
+
   describe('markdown source view', () => {
     it('shows the loaded text exactly and changes nothing when switched there and back', async () => {
       // Arrange: `*` bullets, which the serializer would write as `-`.
@@ -768,6 +856,145 @@ describe('WysiwygMarkdownEditor', () => {
 
       // Assert
       expect(await findEditable()).toHaveAttribute('contenteditable', 'true')
+    })
+
+    it('starts a new undo history when a source edit is switched back', async () => {
+      // Arrange: deleting the first paragraph leaves an undo step that would survive the replace.
+      const onChange = jest.fn()
+      render(
+        <WysiwygMarkdownEditor
+          value={'one\n\ntwo\n\nthree'}
+          onChange={onChange}
+          maxLength={100}
+        />,
+      )
+      const editable = await findEditable()
+      const editor = (editable as HTMLElement & { editor: Editor }).editor
+      act(() => {
+        editor.commands.deleteRange({ from: 0, to: 5 })
+      })
+      await toggleSource()
+      replaceSource('brand new')
+
+      // Act
+      await toggleSource()
+      await userEvent.click(editable)
+      await userEvent.keyboard('{Control>}z{/Control}')
+
+      // Assert
+      expect(onChange).toHaveBeenNthCalledWith(1, 'two\n\nthree')
+      expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled()
+      expect(editable).toHaveTextContent(/^brand new$/)
+      expect(onChange).toHaveBeenLastCalledWith('brand new')
+    })
+
+    it('starts a new undo history when the form loads another record', async () => {
+      // Arrange
+      const onChange = jest.fn()
+      const { rerender } = render(
+        <WysiwygMarkdownEditor
+          value={'one\n\ntwo'}
+          onChange={onChange}
+          maxLength={100}
+        />,
+      )
+      const editable = await findEditable()
+      await clickToolbar('Bulleted list')
+
+      // Act
+      rerender(
+        <WysiwygMarkdownEditor
+          value="record two"
+          onChange={onChange}
+          maxLength={100}
+        />,
+      )
+
+      // Assert
+      await waitFor(() => expect(editable).toHaveTextContent('record two'))
+      expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled()
+    })
+
+    it('reports text loaded with CRLF line endings unchanged when an edit is typed back out', async () => {
+      // Arrange
+      const original = 'a\r\nb'
+      const onChange = jest.fn()
+      render(
+        <WysiwygMarkdownEditor
+          value={original}
+          onChange={onChange}
+          maxLength={100}
+        />,
+      )
+      await findEditable()
+      await toggleSource()
+
+      // Act
+      await userEvent.type(sourceBox(), 'x{Backspace}')
+
+      // Assert
+      expect(onChange).toHaveBeenNthCalledWith(1, 'a\nbx')
+      expect(onChange).toHaveBeenLastCalledWith(original)
+    })
+
+    it('keeps the caret where it was when the limit refuses typing', async () => {
+      // Arrange
+      render(<WysiwygMarkdownEditor value="abc" maxLength={3} />)
+      await findEditable()
+      await toggleSource()
+
+      // Act: types `x` after `a`, as a browser delivers it: value and caret first, then the event.
+      const box = sourceBox()
+      act(() => {
+        setTextareaValue.call(box, 'axbc')
+        box.setSelectionRange(2, 2)
+        box.dispatchEvent(new Event('input', { bubbles: true }))
+      })
+
+      // Assert
+      expect(box).toHaveValue('abc')
+      expect(box.selectionStart).toBe(1)
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'That change would make the saved text 4 characters',
+      )
+    })
+
+    it('gives the field id and label back to the document view after the source view', async () => {
+      // Arrange: opens in the source view, so the document never had them.
+      jest.mocked(window.localStorage.getItem).mockReturnValue('source')
+      render(
+        <Form name="form">
+          <Form.Item name="description" label="Description">
+            <WysiwygMarkdownEditor maxLength={100} />
+          </Form.Item>
+        </Form>,
+      )
+      await screen.findByRole('button', { name: 'Markdown source' })
+
+      // Act
+      await toggleSource()
+
+      // Assert
+      const editable = await screen.findByRole('textbox', {
+        name: 'Description',
+      })
+      expect(editable).toHaveAttribute('contenteditable', 'true')
+      expect(editable).toHaveAttribute('id', 'form_description')
+    })
+
+    it('switches views when browser storage cannot be written', async () => {
+      // Arrange
+      jest.mocked(window.localStorage.setItem).mockImplementation(() => {
+        throw new Error('QuotaExceededError')
+      })
+      render(<WysiwygMarkdownEditor value="one" maxLength={100} />)
+      await findEditable()
+
+      // Act
+      await toggleSource()
+
+      // Assert
+      expect(sourceBox()).toHaveValue('one')
     })
   })
 })

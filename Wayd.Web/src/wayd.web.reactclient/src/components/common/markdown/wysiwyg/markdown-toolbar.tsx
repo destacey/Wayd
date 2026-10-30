@@ -22,7 +22,6 @@ import { Button, Divider, Dropdown, type MenuProps } from 'antd'
 import {
   useEffect,
   useRef,
-  useState,
   type FocusEvent,
   type KeyboardEvent,
   type MouseEvent,
@@ -129,6 +128,12 @@ interface MarkdownToolbarProps {
 
 const NAVIGATION_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'Home', 'End'])
 
+/**
+ * Names a toolbar button across renders by its accessible name. Text style's name changes with the
+ * style, but it is the first button, which is where a lost tab stop falls back to anyway.
+ */
+const keyOf = (button: HTMLButtonElement) => button.getAttribute('aria-label')
+
 /** Formatting controls for `WysiwygMarkdownEditor`, built from antd buttons and theme tokens only. */
 const MarkdownToolbar = ({
   editor,
@@ -138,8 +143,10 @@ const MarkdownToolbar = ({
 }: MarkdownToolbarProps) => {
   const toolbarRef = useRef<HTMLDivElement>(null)
   // The toolbar is one tab stop: only the button last focused is tabbable, and arrow keys move
-  // between buttons, as the ARIA toolbar pattern expects.
-  const [activeIndex, setActiveIndex] = useState(0)
+  // between buttons, as the ARIA toolbar pattern expects. The button is held by its key, not its
+  // position, because buttons are enabled and disabled under it (Undo, Redo, the source view), and
+  // antd may render a new element for the same button.
+  const activeKeyRef = useRef<string | null>(null)
 
   const enabledButtons = () => [
     ...(toolbarRef.current?.querySelectorAll<HTMLButtonElement>(
@@ -147,22 +154,28 @@ const MarkdownToolbar = ({
     ) ?? []),
   ]
 
-  // Buttons come and go from the enabled set (Undo, Redo), so tab stops are set after each render.
-  useEffect(() => {
+  /** Makes the last focused button the tab stop, or the first enabled one once it is disabled. */
+  const setTabStop = () => {
     const buttons = enabledButtons()
-    const tabStop = buttons[Math.min(activeIndex, buttons.length - 1)]
+    const tabStop =
+      buttons.find((button) => keyOf(button) === activeKeyRef.current) ??
+      buttons[0]
     toolbarRef.current
       ?.querySelectorAll<HTMLButtonElement>('button')
       .forEach((button) => {
         button.tabIndex = button === tabStop ? 0 : -1
       })
-  })
+  }
+
+  useEffect(setTabStop)
 
   const onFocus = (event: FocusEvent<HTMLDivElement>) => {
     // A focus event inside the toolbar targets the button, not the toolbar its type names.
     const target: EventTarget = event.target
-    const index = enabledButtons().findIndex((button) => button === target)
-    if (index >= 0) setActiveIndex(index)
+    const button = enabledButtons().find((button) => button === target)
+    if (!button) return
+    activeKeyRef.current = keyOf(button)
+    setTabStop()
   }
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {

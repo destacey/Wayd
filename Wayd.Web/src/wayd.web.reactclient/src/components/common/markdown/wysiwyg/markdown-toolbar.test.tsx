@@ -150,6 +150,7 @@ describe('MarkdownToolbar', () => {
     expect(document.activeElement).toBe(lastEnabled)
     expect(tabStops()).toEqual([lastEnabled])
   })
+
   it('offers the markdown source as a toggle, not pressed in the document view', async () => {
     // Arrange
     const onToggleSourceView = jest.fn()
@@ -165,8 +166,10 @@ describe('MarkdownToolbar', () => {
   })
 
   it('disables every button but the toggle in the source view, leaving the toggle the tab stop', () => {
-    // Arrange / Act: undo history, so Undo would otherwise be enabled.
+    // Arrange: undo history, so Undo would otherwise be enabled.
     renderToolbar('line', 'line', { sourceView: true })
+
+    // Act
     act(() => {
       editor.commands.insertContent('more')
     })
@@ -185,5 +188,49 @@ describe('MarkdownToolbar', () => {
     expect(
       screen.getAllByRole('button').filter((button) => button.tabIndex === 0),
     ).toEqual([toggle])
+  })
+  it('keeps the last focused button the tab stop while others are enabled or disabled', () => {
+    // Arrange
+    editor = createTestEditor('line')
+    selectText(editor, 'line')
+    const toolbar = (sourceView: boolean) => (
+      <MarkdownToolbar
+        editor={editor}
+        sourceView={sourceView}
+        onToggleSourceView={jest.fn()}
+      />
+    )
+    const { rerender } = render(toolbar(false))
+    const toggle = screen.getByRole('button', { name: 'Markdown source' })
+    const tabStops = () =>
+      screen.getAllByRole('button').filter((button) => button.tabIndex === 0)
+
+    // Act: the source view disables the rest; an edit then enables Undo, ahead of the toggle.
+    toggle.focus()
+    rerender(toolbar(true))
+    rerender(toolbar(false))
+    const afterSwitching = tabStops()
+    act(() => {
+      editor.commands.insertContent('more')
+    })
+
+    // Assert
+    expect(afterSwitching).toEqual([toggle])
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled()
+    expect(tabStops()).toEqual([toggle])
+  })
+  it('keeps the text style button the tab stop when its name changes with the style', async () => {
+    // Arrange
+    renderToolbar('Title', 'Title')
+    const textStyle = screen.getByRole('button', { name: /^Text style/ })
+    textStyle.focus()
+
+    // Act
+    await chooseMenuItem(/^Text style/, 'Heading 2')
+
+    // Assert
+    expect(
+      screen.getAllByRole('button').filter((button) => button.tabIndex === 0),
+    ).toEqual([screen.getByRole('button', { name: 'Text style: Heading 2' })])
   })
 })

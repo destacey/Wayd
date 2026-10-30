@@ -51,8 +51,11 @@ const config: Config = {
   // @tanstack/react-table v9 and its table-core dependency are ESM-only
   // ("type": "module", no CommonJS build — v8 shipped both), so they must be
   // transformed like the unified family below.
+  //
+  // marked (Tiptap's markdown parser) is ESM-only from v17. mermaid holds marked 16 at the top
+  // level, so @tiptap/markdown gets its own nested copy, which needs its own entry.
   transformIgnorePatterns: [
-    'node_modules/(?!(@tanstack/[a-z0-9-]+|@ungap/structured-clone|bail|ccount|character-entities[a-z0-9-]*|character-reference-invalid|comma-separated-tokens|decode-named-character-reference|devlop|escape-string-regexp|estree-util-[a-z0-9-]+|hast[a-z0-9-]*|html-url-attributes|html-void-elements|is-(alphabetical|alphanumerical|decimal|hexadecimal|plain-obj)|longest-streak|markdown-table|mdast[a-z0-9-]*|micromark[a-z0-9-]*|parse-entities|property-information|react-markdown|rehype[a-z0-9-]*|remark[a-z0-9-]*|space-separated-tokens|stringify-entities|trim-lines|trough|unified|unist[a-z0-9-]*|vfile[a-z0-9-]*|web-namespaces|zwitch)/)',
+    'node_modules/(?!(@tanstack/[a-z0-9-]+|@ungap/structured-clone|bail|ccount|character-entities[a-z0-9-]*|character-reference-invalid|comma-separated-tokens|decode-named-character-reference|devlop|escape-string-regexp|estree-util-[a-z0-9-]+|hast[a-z0-9-]*|html-url-attributes|html-void-elements|is-(alphabetical|alphanumerical|decimal|hexadecimal|plain-obj)|longest-streak|markdown-table|marked|@tiptap/markdown/node_modules/marked|mdast[a-z0-9-]*|micromark[a-z0-9-]*|parse-entities|property-information|react-markdown|rehype[a-z0-9-]*|remark[a-z0-9-]*|space-separated-tokens|stringify-entities|trim-lines|trough|unified|unist[a-z0-9-]*|vfile[a-z0-9-]*|web-namespaces|zwitch)/)',
   ],
   testPathIgnorePatterns: ['./.next/', './node_modules/'],
   moduleNameMapper: {

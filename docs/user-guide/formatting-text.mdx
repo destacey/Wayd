@@ -1,0 +1,53 @@
+---
+title: Formatting long text
+description: Format descriptions, business cases, notes and other long text with the document editor, and what it does to text you never edit.
+sidebar_position: 11
+audience: [user, agent]
+---
+
+# Formatting long text
+
+Descriptions, business cases, notes and every other long-text field can be edited in a **document editor**: bold, lists, links, tables and code look the way they will once saved, as you type. The document editor is behind the **WYSIWYG Markdown Editor** feature flag (`wysiwyg-markdown-editor`); an administrator turns it on in **Settings → Feature Flags**. With the flag off, those fields keep the markdown text box.
+
+Whichever editor you use, Wayd stores the text as markdown. Detail pages, the API and the MCP tools read it the same way, so nothing about existing records changes when the flag is turned on.
+
+## The toolbar
+
+| Button | What it does | Shortcut |
+|---|---|---|
+| Text style | Normal text, or heading 1, 2 or 3 | Type `#`, `##` or `###` and a space at the start of a line |
+| Bold, Italic, Underline, Strikethrough | Format the selection | Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+Shift+S |
+| Inline code | Format the selection as code | Ctrl+E, or wrap text in backticks |
+| Link | Add, change or remove a link | |
+| Bulleted, Numbered and Task list | Turn lines into a list | Ctrl+Shift+8, Ctrl+Shift+7, Ctrl+Shift+9, or type `-`, `1.` or `[ ]` and a space |
+| Quote | Indent as a quotation | Ctrl+Shift+B, or type `>` and a space |
+| Code block | A block of code | Ctrl+Alt+C, or type three backticks, optionally a language such as `sql`, then a space |
+| Table | Insert a table, then add or delete rows and columns | |
+| Horizontal rule | A dividing line | Type `---` |
+| Undo, Redo | Step back or forward through your edits | Ctrl+Z, Ctrl+Shift+Z |
+| Markdown source | Switch between the formatted document and its markdown | |
+
+On a Mac, use ⌘ in place of Ctrl. In the toolbar, Tab reaches the button you last used (at first, the first button) and the arrow keys move between buttons; Tab again moves on to the text. While the markdown is shown, the only button Tab reaches is **Markdown source**.
+
+A link must be a web address (`https://…`), an email link (`mailto:…`) or a path in Wayd (`/…`). Typing `wayd.dev` adds `https://` for you, while a file name such as `report.pdf` is kept as a relative link; other kinds of address are refused.
+
+Pasting from Word, Outlook, a web page or Azure DevOps keeps headings, bold, italic, lists, links and tables, and drops fonts, colors and spacing. Images are kept only when they come from a web address; an image pasted from a file on your computer is left out.
+
+The count under the editor is the length of the stored markdown, which is a little longer than the text you see. An edit that would take it past the field's limit is refused whole, with a message under the editor saying how long the text would have been; a paste that would cross the limit inserts nothing. Once you edit a record, the editor writes all of it in its own style, which can make it slightly longer (tables are padded to even columns), so a record close to its limit may need trimming before it takes more text.
+
+## Editing the markdown
+
+**Markdown source**, the last button on the toolbar, shows the field as the markdown Wayd stores, in a plain text box, for anyone who prefers to write the syntax or is pasting markdown from elsewhere. Press it again to return to the formatted document. While the markdown is shown, the formatting buttons are turned off; Ctrl+Z still undoes your typing. Text you change in the markdown starts a new undo history once you switch back, so Undo in the document cannot bring back what the markdown replaced.
+
+- Switching views never changes the text. With no edits, the markdown shown is the text exactly as it was loaded; after an edit in the document, it is the markdown the editor writes for it.
+- Text you type in the markdown is saved exactly as you typed it, even after you switch back to the document, until you edit the document again.
+- The same length limit applies, and the count under the editor is the same count.
+- Your browser remembers the view you last chose, and opens every long-text field in it. Clearing the browser's site data returns to the document view.
+
+## Text you never edit is never rewritten
+
+Opening a record's edit form and saving it without changing the text keeps the text exactly as it was, even where the editor would write it differently, such as `*` bullets it writes as `-`. Undoing every change you made has the same effect. Only an edit makes the editor write the field again, and the [activity log](./activity-log.mdx) records a change only then.
+
+## Formatting the editor cannot keep
+
+A few kinds of markdown display on detail pages but have no equivalent in the document editor: footnotes, HTML comments, HTML elements such as `<details>`, `<kbd>` and `<div>`, images whose address is not a web address, and special characters written as HTML entities (`&nbsp;`). When a field holds any of them, a warning above the document names what it found, and stays while you edit. Editing the document removes them. To keep them, choose **Edit in Markdown** in the warning, or the **Markdown source** button, and edit the markdown instead: it keeps everything you do not change. Once you have edited the document, the warning says so instead: undo your edits, or close the form without saving.

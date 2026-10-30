@@ -1,45 +1,69 @@
-import { render } from '@testing-library/react'
-import rehypeSanitize from 'rehype-sanitize'
+import { render, screen } from '@testing-library/react'
+import { useFeatureFlag } from '@/src/hooks'
 import MarkdownEditor from './markdown-editor'
-import { sanitizeSchema } from './sanitize-schema'
 
-let editorProps: Record<string, any> = {}
+jest.mock('@/src/hooks', () => ({ useFeatureFlag: jest.fn() }))
 
-// The real editor loads through next/dynamic with SSR off and pulls in an ESM Prism chain jsdom
-// cannot run, so the stub records the props the editor would receive.
+// Each stub shows which editor rendered and the props it received.
+jest.mock('./legacy-markdown-editor', () => ({
+  __esModule: true,
+  default: (props: { value?: string; maxLength: number }) => (
+    <div>
+      legacy {props.value} {props.maxLength}
+    </div>
+  ),
+}))
 jest.mock('next/dynamic', () => ({
   __esModule: true,
   default: () => {
-    const Component = (props: Record<string, any>) => {
-      editorProps = props
-      return null
-    }
-    Component.displayName = 'MockMDEditor'
-    return Component
+    const Wysiwyg = (props: { value?: string; maxLength: number }) => (
+      <div>
+        wysiwyg {props.value} {props.maxLength}
+      </div>
+    )
+    return Wysiwyg
   },
 }))
 
+const mockFlag = (flag: { isEnabled: boolean; isLoading: boolean }) =>
+  jest.mocked(useFeatureFlag).mockReturnValue(flag)
+
 describe('MarkdownEditor', () => {
-  beforeEach(() => {
-    editorProps = {}
-  })
+  it('shows the document editor when the flag is on', () => {
+    // Arrange
+    mockFlag({ isEnabled: true, isLoading: false })
 
-  it('sanitizes the preview with the same schema as MarkdownRenderer', () => {
-    // Arrange / Act
+    // Act
     render(<MarkdownEditor value="text" maxLength={100} />)
 
     // Assert
-    expect(editorProps.previewOptions.rehypePlugins).toContainEqual([
-      rehypeSanitize,
-      sanitizeSchema,
-    ])
+    expect(screen.getByText('wysiwyg text 100')).toBeInTheDocument()
+    // The name must match FeatureFlags.Names.WysiwygMarkdownEditor in Wayd.Common.Domain.
+    expect(useFeatureFlag).toHaveBeenCalledWith('wysiwyg-markdown-editor')
   })
 
-  it('turns off the preview copy button so code blocks keep a single child', () => {
-    // Arrange / Act
+  it('shows the markdown text editor when the flag is off', () => {
+    // Arrange
+    mockFlag({ isEnabled: false, isLoading: false })
+
+    // Act
     render(<MarkdownEditor value="text" maxLength={100} />)
 
     // Assert
-    expect(editorProps.previewOptions.disableCopy).toBe(true)
+    expect(screen.getByText('legacy text 100')).toBeInTheDocument()
+  })
+
+  it('holds the space but shows neither editor until the flags have loaded', () => {
+    // Arrange
+    mockFlag({ isEnabled: false, isLoading: true })
+
+    // Act
+    const { container } = render(
+      <MarkdownEditor value="text" maxLength={100} />,
+    )
+
+    // Assert
+    expect(screen.queryByText(/legacy|wysiwyg/)).toBeNull()
+    expect(container.firstElementChild).toHaveAttribute('aria-busy', 'true')
   })
 })

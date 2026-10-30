@@ -211,3 +211,16 @@
 .content :global(.ProseMirror-selectednode) {
   outline: 2px solid var(--ant-color-primary);
 }
+
+/* The source view: the field's markdown as plain text, in the same box as the document view. */
+.source,
+.source:focus {
+  min-height: 160px;
+  max-height: 60vh;
+  padding: var(--ant-padding-xs) var(--ant-padding-sm);
+  font-family: var(--ant-font-family-code);
+  font-size: var(--ant-font-size);
+  line-height: var(--ant-line-height);
+  /* The surrounding box shows focus, as it does for the document view. */
+  outline: none;
+}

@@ -71,3 +71,18 @@ export const setMarkdownLengthLimit = (
   editor.storage.markdownLengthLimit.maxLength = maxLength
   editor.storage.markdownLengthLimit.onRefuse = onRefuse
 }
+
+/**
+ * Undoes an input the length limit refused in a controlled `textarea`: puts back `previous` and
+ * leaves the caret where the refused input began. Left to React, the restored value would move the
+ * caret to the end.
+ */
+export const restoreRefusedInput = (
+  textarea: HTMLTextAreaElement,
+  previous: string,
+): void => {
+  const inserted = textarea.value.length - previous.length
+  const caret = Math.max(0, textarea.selectionStart - inserted)
+  textarea.value = previous
+  textarea.setSelectionRange(caret, caret)
+}

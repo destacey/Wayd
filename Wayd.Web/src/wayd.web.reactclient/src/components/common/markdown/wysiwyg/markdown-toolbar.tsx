@@ -4,6 +4,7 @@ import Icon, {
   BoldOutlined,
   CheckSquareOutlined,
   CodeOutlined,
+  FileMarkdownOutlined,
   FontSizeOutlined,
   ItalicOutlined,
   LineOutlined,
@@ -118,14 +119,23 @@ const headingItems = [
 
 interface MarkdownToolbarProps {
   editor: Editor
-  /** The editable element's id, for `aria-controls`. */
+  /** The id of the element being edited, for `aria-controls`. */
   editorId?: string
+  /** Set while the field shows its markdown source; every button but the toggle is disabled. */
+  sourceView: boolean
+  /** Switches between the document view and the markdown source. */
+  onToggleSourceView: () => void
 }
 
-/** Formatting controls for `WysiwygMarkdownEditor`, built from antd buttons and theme tokens only. */
 const NAVIGATION_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'Home', 'End'])
 
-const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
+/** Formatting controls for `WysiwygMarkdownEditor`, built from antd buttons and theme tokens only. */
+const MarkdownToolbar = ({
+  editor,
+  editorId,
+  sourceView,
+  onToggleSourceView,
+}: MarkdownToolbarProps) => {
   const toolbarRef = useRef<HTMLDivElement>(null)
   // The toolbar is one tab stop: only the button last focused is tabbable, and arrow keys move
   // between buttons, as the ARIA toolbar pattern expects.
@@ -256,6 +266,7 @@ const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
       <WaydTooltip title={`Text style: ${headingItems[state.heading].label}`}>
         <Dropdown
           trigger={['click']}
+          disabled={sourceView}
           menu={{
             items: headingItems,
             selectable: true,
@@ -281,6 +292,7 @@ const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
         shortcut="B"
         icon={<BoldOutlined />}
         pressed={state.bold}
+        disabled={sourceView}
         onClick={() => run().toggleBold().run()}
       />
       <ToolbarButton
@@ -288,6 +300,7 @@ const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
         shortcut="I"
         icon={<ItalicOutlined />}
         pressed={state.italic}
+        disabled={sourceView}
         onClick={() => run().toggleItalic().run()}
       />
       <ToolbarButton
@@ -295,6 +308,7 @@ const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
         shortcut="U"
         icon={<UnderlineOutlined />}
         pressed={state.underline}
+        disabled={sourceView}
         onClick={() => run().toggleUnderline().run()}
       />
       <ToolbarButton
@@ -302,6 +316,7 @@ const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
         shortcut="Shift+S"
         icon={<StrikethroughOutlined />}
         pressed={state.strike}
+        disabled={sourceView}
         onClick={() => run().toggleStrike().run()}
       />
       <ToolbarButton
@@ -309,9 +324,10 @@ const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
         shortcut="E"
         icon={<CodeOutlined />}
         pressed={state.code}
+        disabled={sourceView}
         onClick={() => run().toggleCode().run()}
       />
-      <LinkButton editor={editor} />
+      <LinkButton editor={editor} disabled={sourceView} />
 
       <Divider orientation="vertical" className={styles.divider} />
       <ToolbarButton
@@ -319,6 +335,7 @@ const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
         shortcut="Shift+8"
         icon={<UnorderedListOutlined />}
         pressed={state.bulletList}
+        disabled={sourceView}
         onClick={() => run().toggleBulletList().run()}
       />
       <ToolbarButton
@@ -326,6 +343,7 @@ const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
         shortcut="Shift+7"
         icon={<OrderedListOutlined />}
         pressed={state.orderedList}
+        disabled={sourceView}
         onClick={() => run().toggleOrderedList().run()}
       />
       <ToolbarButton
@@ -333,6 +351,7 @@ const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
         shortcut="Shift+9"
         icon={<CheckSquareOutlined />}
         pressed={state.taskList}
+        disabled={sourceView}
         onClick={() => run().toggleTaskList().run()}
       />
       <ToolbarButton
@@ -340,6 +359,7 @@ const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
         shortcut="Shift+B"
         icon={<Icon component={QuoteSvg} />}
         pressed={state.blockquote}
+        disabled={sourceView}
         onClick={() => run().toggleBlockquote().run()}
       />
       <ToolbarButton
@@ -347,6 +367,7 @@ const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
         shortcut="Alt+C"
         icon={<Icon component={CodeBlockSvg} />}
         pressed={state.codeBlock}
+        disabled={sourceView}
         onClick={() => run().toggleCodeBlock().run()}
       />
 
@@ -354,6 +375,7 @@ const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
       <WaydTooltip title="Table">
         <Dropdown
           trigger={['click']}
+          disabled={sourceView}
           menu={{ items: tableItems, onClick: onTable }}
         >
           <Button
@@ -370,6 +392,7 @@ const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
       <ToolbarButton
         label="Horizontal rule"
         icon={<LineOutlined />}
+        disabled={sourceView}
         onClick={() => run().setHorizontalRule().run()}
       />
 
@@ -378,15 +401,23 @@ const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
         label="Undo"
         shortcut="Z"
         icon={<UndoOutlined />}
-        disabled={!state.canUndo}
+        disabled={sourceView || !state.canUndo}
         onClick={() => run().undo().run()}
       />
       <ToolbarButton
         label="Redo"
         shortcut="Shift+Z"
         icon={<RedoOutlined />}
-        disabled={!state.canRedo}
+        disabled={sourceView || !state.canRedo}
         onClick={() => run().redo().run()}
+      />
+
+      <Divider orientation="vertical" className={styles.divider} />
+      <ToolbarButton
+        label="Markdown source"
+        icon={<FileMarkdownOutlined />}
+        pressed={sourceView}
+        onClick={onToggleSourceView}
       />
     </div>
   )

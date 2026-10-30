@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { Editor } from '@tiptap/core'
 import MarkdownToolbar from './markdown-toolbar'
@@ -18,10 +18,20 @@ describe('MarkdownToolbar', () => {
 
   const markdown = () => toStoredMarkdown(editor.getMarkdown())
 
-  const renderToolbar = (content: string, cursorOn: string) => {
+  const renderToolbar = (
+    content: string,
+    cursorOn: string,
+    { sourceView = false, onToggleSourceView = jest.fn() } = {},
+  ) => {
     editor = createTestEditor(content)
     selectText(editor, cursorOn)
-    render(<MarkdownToolbar editor={editor} />)
+    render(
+      <MarkdownToolbar
+        editor={editor}
+        sourceView={sourceView}
+        onToggleSourceView={onToggleSourceView}
+      />,
+    )
   }
 
   const chooseMenuItem = async (button: RegExp | string, item: string) => {
@@ -115,7 +125,7 @@ describe('MarkdownToolbar', () => {
     renderToolbar('line', 'line')
     const textStyle = screen.getByRole('button', { name: /^Text style/ })
     const bold = screen.getByRole('button', { name: 'Bold' })
-    const lastEnabled = screen.getByRole('button', { name: 'Horizontal rule' })
+    const lastEnabled = screen.getByRole('button', { name: 'Markdown source' })
     const tabStops = () =>
       screen.getAllByRole('button').filter((button) => button.tabIndex === 0)
     const initialStops = tabStops()
@@ -139,5 +149,41 @@ describe('MarkdownToolbar', () => {
     expect(afterWrap).toBe(textStyle)
     expect(document.activeElement).toBe(lastEnabled)
     expect(tabStops()).toEqual([lastEnabled])
+  })
+  it('offers the markdown source as a toggle, not pressed in the document view', async () => {
+    // Arrange
+    const onToggleSourceView = jest.fn()
+    renderToolbar('line', 'line', { onToggleSourceView })
+    const toggle = screen.getByRole('button', { name: 'Markdown source' })
+
+    // Act
+    await userEvent.click(toggle)
+
+    // Assert
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    expect(onToggleSourceView).toHaveBeenCalledTimes(1)
+  })
+
+  it('disables every button but the toggle in the source view, leaving the toggle the tab stop', () => {
+    // Arrange / Act: undo history, so Undo would otherwise be enabled.
+    renderToolbar('line', 'line', { sourceView: true })
+    act(() => {
+      editor.commands.insertContent('more')
+    })
+
+    // Assert
+    const toggle = screen.getByRole('button', { name: 'Markdown source' })
+    const others = screen
+      .getAllByRole('button')
+      .filter((button) => button !== toggle)
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    expect(toggle).toBeEnabled()
+    expect(others.map((button) => button.getAttribute('aria-label'))).toEqual(
+      expect.arrayContaining(['Bold', 'Link', 'Table', 'Undo']),
+    )
+    others.forEach((button) => expect(button).toBeDisabled())
+    expect(
+      screen.getAllByRole('button').filter((button) => button.tabIndex === 0),
+    ).toEqual([toggle])
   })
 })

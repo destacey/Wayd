@@ -57,10 +57,11 @@ export const toLinkHref = (input: string): string | null => {
 
 interface LinkButtonProps {
   editor: Editor
+  disabled?: boolean
 }
 
 /** Toolbar button that adds, changes or removes the link at the selection. */
-const LinkButton = ({ editor }: LinkButtonProps) => {
+const LinkButton = ({ editor, disabled }: LinkButtonProps) => {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -152,7 +153,7 @@ const LinkButton = ({ editor }: LinkButtonProps) => {
   return (
     <Popover
       trigger="click"
-      open={open}
+      open={open && !disabled}
       onOpenChange={onOpenChange}
       content={content}
       placement="bottomLeft"
@@ -168,6 +169,7 @@ const LinkButton = ({ editor }: LinkButtonProps) => {
             aria-label="Link"
             aria-pressed={isLink}
             aria-haspopup="dialog"
+            disabled={disabled}
             onMouseDown={(event) => event.preventDefault()}
           />
         </WaydTooltip>

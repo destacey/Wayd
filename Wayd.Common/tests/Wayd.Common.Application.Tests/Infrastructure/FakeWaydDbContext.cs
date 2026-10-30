@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Activities;
 using Wayd.Common.Domain.AppIntegrations;
+using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Following;
 using Wayd.Common.Domain.Identity;
@@ -18,7 +19,7 @@ namespace Wayd.Common.Application.Tests.Infrastructure;
 /// A test double for IWaydDbContext that provides in-memory collections for all DbSets.
 /// This eliminates the need for complex Moq setups in tests and is reusable across all Common domain tests.
 /// </summary>
-public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INotificationsDbContext, IActivityLogDbContext, IDisposable
+public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INotificationsDbContext, IDiscussionsDbContext, IActivityLogDbContext, IDisposable
 {
     // Common domain entities
     private readonly List<Employee> _employees = [];
@@ -42,6 +43,11 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     private readonly List<RecordMute> _recordMutes = [];
     private readonly List<ReasonMute> _reasonMutes = [];
 
+    // Discussions, for handlers that reach IDiscussionsDbContext. Messages carry their mentions and revisions in
+    // memory, so `.Include` is a no-op here; only an integration test catches a missing one.
+    private readonly List<DiscussionChannel> _discussionChannels = [];
+    private readonly List<DiscussionMessage> _discussionMessages = [];
+
     // DbSet properties
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
@@ -62,6 +68,9 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     public DbSet<RecordMute> RecordMutes => _recordMutes.AsDbSet();
     public DbSet<ReasonMute> ReasonMutes => _reasonMutes.AsDbSet();
 
+    public DbSet<DiscussionChannel> DiscussionChannels => _discussionChannels.AsDbSet();
+    public DbSet<DiscussionMessage> DiscussionMessages => _discussionMessages.AsDbSet();
+
     // ChangeTracker - we can't create a real one, so we return null and the handler uses defensive coding (_dbContext.ChangeTracker?.Clear())
     public ChangeTracker ChangeTracker => null!;
 
@@ -73,9 +82,21 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     /// </summary>
     public int SaveChangesCallCount { get; private set; }
 
+    /// <summary>
+    /// An exception the next save throws instead of saving, as a real context does on a unique-index or row-version
+    /// collision. Cleared once thrown.
+    /// </summary>
+    public Exception? FailNextSaveWith { get; set; }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         SaveChangesCallCount++;
+
+        if (FailNextSaveWith is { } failure)
+        {
+            FailNextSaveWith = null;
+            throw failure;
+        }
 
         // Return the total number of entities as a simple success indicator
         var count = _employees.Count + _externalEmployeeBlacklistItems.Count + _externalIdentityMappings.Count + _personalAccessTokens.Count;
@@ -115,6 +136,8 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     public void AddNotification(Notification notification) => _notifications.Add(notification);
     public void AddRecordMute(RecordMute mute) => _recordMutes.Add(mute);
     public void AddReasonMute(ReasonMute mute) => _reasonMutes.Add(mute);
+    public void AddDiscussionChannel(DiscussionChannel channel) => _discussionChannels.Add(channel);
+    public void AddDiscussionMessage(DiscussionMessage message) => _discussionMessages.Add(message);
 
     /// <summary>Removes a notification, as the store's set-based writes would replace or delete it.</summary>
     public void RemoveNotification(Notification notification) => _notifications.Remove(notification);

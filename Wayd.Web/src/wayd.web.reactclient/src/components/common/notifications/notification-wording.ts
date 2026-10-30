@@ -26,6 +26,8 @@ const actions: Record<NotificationEvent, string> = {
   [NotificationEvent.AssigneeChanged]: 'changed the assignee of',
   [NotificationEvent.ParticipantsChanged]: 'changed the participants of',
   [NotificationEvent.ChannelChanged]: 'changed the channel of',
+  [NotificationEvent.MessagePosted]: 'posted on',
+  [NotificationEvent.InternalNotePosted]: 'added an internal note to',
 }
 
 /** The words between the actor and the record for a change. */
@@ -65,6 +67,7 @@ const otherReasons: Partial<Record<NotificationReason, string>> = {
   [NotificationReason.Assigned]: 'It is assigned to you',
   [NotificationReason.Mentioned]: 'You were mentioned',
   [NotificationReason.Desk]: 'It is waiting on your desk',
+  [NotificationReason.Thread]: 'You are in the thread',
 }
 
 /** "follow", "follow and work on", "follow, work on and requested". */

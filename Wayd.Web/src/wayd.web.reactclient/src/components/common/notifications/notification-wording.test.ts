@@ -27,6 +27,8 @@ describe('notificationAction', () => {
     [NotificationEvent.AssigneeChanged, 'changed the assignee of'],
     [NotificationEvent.ParticipantsChanged, 'changed the participants of'],
     [NotificationEvent.ChannelChanged, 'changed the channel of'],
+    [NotificationEvent.MessagePosted, 'posted on'],
+    [NotificationEvent.InternalNotePosted, 'added an internal note to'],
   ])('words a %s change', (event, expected) => {
     // Act & Assert
     expect(notificationAction(event)).toBe(expected)
@@ -111,6 +113,10 @@ describe('notificationReasonText', () => {
       'You follow and work on this',
     ],
     [[NotificationReason.Desk], 'It is waiting on your desk'],
+    [
+      [NotificationReason.Following, NotificationReason.Thread],
+      'You follow this · You are in the thread',
+    ],
   ])('words %j', (reasons, expected) => {
     // Act & Assert
     expect(notificationReasonText(reasons)).toBe(expected)

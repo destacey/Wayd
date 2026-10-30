@@ -24,6 +24,997 @@
         ]
       }
     },
+    "/api/discussions/{channelType}/{ownerId}": {
+      "get": {
+        "tags": [
+          "Discussions"
+        ],
+        "summary": "Get what you may do in a record's conversation.",
+        "description": "`channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns `canPost`, `canPostInternal` (false means you are offered no internal notes at all), `canModerate` (lock the conversation and delete anyone's message) and whether the conversation `isLocked`. Read its messages from the entries endpoint. A record nobody has posted on is an empty, unlocked conversation. Returns 404 when the record does not exist or you cannot read it.",
+        "operationId": "Discussions_GetDiscussion",
+        "parameters": [
+          {
+            "name": "channelType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscussionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/discussions/{channelType}/{ownerId}/entries": {
+      "get": {
+        "tags": [
+          "Discussions"
+        ],
+        "summary": "Get one page of a record's conversation.",
+        "description": "`channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns one page of entries: top-level messages and, unless `messagesOnly` is true, the record's activity between them, as its Activity section shows it to you (activity older than the record's latest 2,000 entries is left out). Each entry has a `type` (`Message` or `Activity`), a `timestamp`, and its `message` or `activity`. A thread's replies are not in the page; each message carries `replyCount`, `lastReplyOn` and `recentRepliers`, and the replies come from the replies endpoint. Internal notes appear only if you may read them. `order` is `OldestFirst` (default) or `NewestFirst`; pass the previous page's `nextCursor` as `before` for the next page; `pageSize` counts top-level messages and is at most 500. Returns 404 when the record does not exist or you cannot read it.",
+        "operationId": "Discussions_GetEntries",
+        "parameters": [
+          {
+            "name": "channelType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            },
+            "x-position": 4
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/DiscussionOrder"
+                }
+              ],
+              "default": "OldestFirst"
+            },
+            "x-position": 5
+          },
+          {
+            "name": "messagesOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 6
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursorPageOfDiscussionEntryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/discussions/{channelType}/{ownerId}/messages": {
+      "post": {
+        "tags": [
+          "Discussions"
+        ],
+        "summary": "Post a message that starts a thread in a record's conversation.",
+        "description": "`channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Posts a top-level message, opening the conversation if nobody has posted on the record yet, and returns its id. `kind` is `Public` (everyone who can read the conversation) or `InternalNote` (its internal audience only); `subject` is optional, at most 200 characters; `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Mentions you may not make are dropped. Returns 403 when you may not post that kind of message, 404 when the record does not exist or you cannot read it, 400 when the conversation is locked, and 409 when someone else opened the conversation at the same moment (post again). Requires your account to be linked to an employee.",
+        "operationId": "Discussions_PostMessage",
+        "parameters": [
+          {
+            "name": "channelType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostDiscussionMessageRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 3
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/discussions/{channelType}/{ownerId}/messages/{messageId}/replies": {
+      "get": {
+        "tags": [
+          "Discussions"
+        ],
+        "summary": "Get the replies in a thread.",
+        "description": "`channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns every reply in the thread the top-level message `messageId` starts, oldest first, each with its author, mentions, and whether you may edit or delete it. Returns 404 when the record, the message or its thread does not exist or you cannot read it.",
+        "operationId": "Discussions_GetReplies",
+        "parameters": [
+          {
+            "name": "channelType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiscussionMessageDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Discussions"
+        ],
+        "summary": "Reply in a thread.",
+        "description": "`channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replies in the thread the top-level message `messageId` starts and returns the reply's id. The reply takes the thread's kind — a reply under an internal note is an internal note — and has no subject; replies go one level deep, so `messageId` must start a thread. `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Returns 403 when you may not write in that thread, 404 when the record or message does not exist or you cannot read it, and 400 when the conversation is locked or `messageId` is itself a reply. Requires your account to be linked to an employee.",
+        "operationId": "Discussions_Reply",
+        "parameters": [
+          {
+            "name": "channelType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 3
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplyToDiscussionMessageRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 4
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/discussions/{channelType}/{ownerId}/messages/{messageId}": {
+      "put": {
+        "tags": [
+          "Discussions"
+        ],
+        "summary": "Edit your own message.",
+        "description": "`channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replaces the subject and text of a message you wrote, keeping the version it replaces as a revision; nothing is recorded when nothing changed. `subject` must be blank on a reply in a thread. Returns 403 when you are not the author or may no longer write that kind of message, 404 when the record or message does not exist or you cannot read it, 400 when the message was deleted or the conversation is locked, and 409 when the message was edited or deleted at the same moment. Requires your account to be linked to an employee.",
+        "operationId": "Discussions_EditMessage",
+        "parameters": [
+          {
+            "name": "channelType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 3
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditDiscussionMessageRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 4
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Discussions"
+        ],
+        "summary": "Delete a message, leaving a tombstone.",
+        "description": "`channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Deletes a message: its subject, text, earlier versions and mentions are removed, and a tombstone naming who deleted it and when stays in the conversation, so a thread is never quietly rewritten. You may delete your own message; a moderator may delete anyone's. Returns 403 when you may not delete it, 404 when the record or message does not exist or you cannot read it, 400 when it was already deleted, and 409 when it was edited at the same moment. Requires your account to be linked to an employee.",
+        "operationId": "Discussions_DeleteMessage",
+        "parameters": [
+          {
+            "name": "channelType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/discussions/{channelType}/{ownerId}/messages/{messageId}/revisions": {
+      "get": {
+        "tags": [
+          "Discussions"
+        ],
+        "summary": "Get the earlier versions of a message.",
+        "description": "`channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns every version of the message its edits replaced, newest first, each with its `subject`, `body` and when it was `replacedOn`. Empty for a message never edited, or deleted. Returns 404 when the record or message does not exist or you cannot read it.",
+        "operationId": "Discussions_GetRevisions",
+        "parameters": [
+          {
+            "name": "channelType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiscussionMessageRevisionDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/discussions/{channelType}/{ownerId}/lock": {
+      "put": {
+        "tags": [
+          "Discussions"
+        ],
+        "summary": "Lock a record's conversation.",
+        "description": "`channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Locks the conversation: nothing can be posted, replied or edited until it is unlocked. Locking a record nobody has posted on opens its conversation locked. Moderators only: returns 403 otherwise, 404 when the record does not exist or you cannot read it, 400 when it is already locked, and 409 when the conversation changed at the same moment. Requires your account to be linked to an employee.",
+        "operationId": "Discussions_Lock",
+        "parameters": [
+          {
+            "name": "channelType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Discussions"
+        ],
+        "summary": "Unlock a record's conversation.",
+        "description": "`channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Unlocks the conversation so people can post again. Moderators only: returns 403 otherwise, 404 when the record does not exist or you cannot read it, 400 when it is not locked, and 409 when the conversation changed at the same moment. Requires your account to be linked to an employee.",
+        "operationId": "Discussions_Unlock",
+        "parameters": [
+          {
+            "name": "channelType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/feature-flags": {
       "get": {
         "tags": [
@@ -54138,6 +55129,28 @@
         "additionalProperties": false,
         "description": "Counts of jobs that exist now. Each agrees with the matching job list."
       },
+      "CursorPageOfDiscussionEntryDto": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiscussionEntryDto"
+            },
+            "description": "The items on this page, in the list's order."
+          },
+          "nextCursor": {
+            "type": "string",
+            "description": "Pass this back as the next request's cursor, or null when this page is the last. Opaque: its format is not part of the contract.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One page of a list read by cursor: the items, and where the next page starts."
+      },
       "CursorPageOfNotificationDto": {
         "required": [
           "items"
@@ -55015,6 +56028,263 @@
         },
         "additionalProperties": false,
         "description": "One Workday organization type discovered by the connection's init probe, with how many\norganizations of that type the tenant has."
+      },
+      "DiscussionDto": {
+        "required": [
+          "canPost",
+          "canPostInternal",
+          "canModerate",
+          "isLocked"
+        ],
+        "type": "object",
+        "properties": {
+          "canPost": {
+            "type": "boolean",
+            "description": "Whether the caller may post and reply."
+          },
+          "canPostInternal": {
+            "type": "boolean",
+            "description": "Whether the caller may post internal notes. When false, a composer offers no internal-note control at all."
+          },
+          "canModerate": {
+            "type": "boolean",
+            "description": "Whether the caller may lock the conversation and delete anyone's message."
+          },
+          "isLocked": {
+            "type": "boolean",
+            "description": "Whether the conversation is locked: nothing new can be posted, replied or edited."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A record's conversation as the caller may use it: what they may do in it, and whether it is locked."
+      },
+      "DiscussionEntryDto": {
+        "required": [
+          "type",
+          "timestamp"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DiscussionEntryType"
+              }
+            ],
+            "description": "Which of DiscussionMessageDto? DiscussionEntryDto.Message and ActivityLogDto? DiscussionEntryDto.Activity is set."
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "When the message was posted or the change happened; the conversation's order.",
+            "format": "date-time"
+          },
+          "message": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DiscussionMessageDto"
+              }
+            ],
+            "description": "The message, when DiscussionEntryType DiscussionEntryDto.Type is DiscussionEntryType.Message.",
+            "nullable": true
+          },
+          "activity": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActivityLogDto"
+              }
+            ],
+            "description": "The change, when DiscussionEntryType DiscussionEntryDto.Type is DiscussionEntryType.Activity, exactly as the record's own\nActivity section shows it to the caller.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One entry in a conversation: a top-level message, or a change to the record between messages."
+      },
+      "DiscussionEntryType": {
+        "enum": [
+          "Message",
+          "Activity"
+        ],
+        "type": "string",
+        "description": "What one entry in a conversation is."
+      },
+      "DiscussionMessageDto": {
+        "required": [
+          "author",
+          "id",
+          "kind",
+          "postedOn",
+          "isDeleted",
+          "mentions",
+          "replyCount",
+          "recentRepliers",
+          "canEdit",
+          "canDelete"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The message's id.",
+            "format": "uuid"
+          },
+          "parentMessageId": {
+            "type": "string",
+            "description": "The top-level message whose thread this is a reply in, or null for a top-level message.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "kind": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DiscussionMessageKind"
+              }
+            ],
+            "description": "Who the message is for."
+          },
+          "subject": {
+            "type": "string",
+            "description": "The optional subject of a top-level message. Null on a reply, and once deleted.",
+            "nullable": true
+          },
+          "body": {
+            "type": "string",
+            "description": "The message as markdown, mentions written `@[Name](employee:{id})`; show each mention by the current name\nin List&lt;EmployeeNavigationDto&gt; DiscussionMessageDto.Mentions. Null once deleted.",
+            "nullable": true
+          },
+          "author": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ],
+            "description": "Who wrote the message."
+          },
+          "postedOn": {
+            "type": "string",
+            "description": "When the message was posted.",
+            "format": "date-time"
+          },
+          "editedOn": {
+            "type": "string",
+            "description": "When the message was last edited, or null if it never was.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "Whether the message was deleted, leaving only who wrote it, who deleted it and when."
+          },
+          "deletedOn": {
+            "type": "string",
+            "description": "When the message was deleted, or null while it stands.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "deletedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ],
+            "description": "Who deleted the message, or null while it stands.",
+            "nullable": true
+          },
+          "mentions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeNavigationDto"
+            },
+            "description": "The people the message mentions, by their current names."
+          },
+          "replyCount": {
+            "type": "integer",
+            "description": "How many replies the thread this message starts holds. Zero on a reply.",
+            "format": "int32"
+          },
+          "lastReplyOn": {
+            "type": "string",
+            "description": "When the latest reply in the thread was posted, or null when there are none.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "recentRepliers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeNavigationDto"
+            },
+            "description": "Up to three people who replied most recently in the thread, newest first."
+          },
+          "canEdit": {
+            "type": "boolean",
+            "description": "Whether the caller may edit the message: their own, standing, in an unlocked conversation."
+          },
+          "canDelete": {
+            "type": "boolean",
+            "description": "Whether the caller may delete the message: their own, or anyone's as a moderator."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A message in a conversation, top-level or a reply, as the caller may see it."
+      },
+      "DiscussionMessageKind": {
+        "enum": [
+          "Public",
+          "InternalNote"
+        ],
+        "type": "string"
+      },
+      "DiscussionMessageRevisionDto": {
+        "required": [
+          "body",
+          "replacedOn"
+        ],
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "description": "The subject before the edit, or null when there was none.",
+            "nullable": true
+          },
+          "body": {
+            "type": "string",
+            "description": "The text before the edit, as markdown."
+          },
+          "replacedOn": {
+            "type": "string",
+            "description": "When the edit replaced this version.",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A version of a message that an edit replaced."
+      },
+      "DiscussionOrder": {
+        "enum": [
+          "OldestFirst",
+          "NewestFirst"
+        ],
+        "type": "string",
+        "description": "Which end of a conversation a page starts from."
+      },
+      "EditDiscussionMessageRequest": {
+        "required": [
+          "body"
+        ],
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "description": "The new subject, up to 200 characters; null or blank for none. Must be blank on a reply in a thread.",
+            "nullable": true
+          },
+          "body": {
+            "type": "string",
+            "description": "The new text as markdown, up to 10,000 characters. Mention someone as `@[Name](employee:{employeeId})`."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The new subject and text of the caller's own message. The version it replaces is kept."
       },
       "EmployeeAllocationChangeRequest": {
         "required": [
@@ -61952,7 +63222,9 @@
           "DetailsChanged",
           "AssigneeChanged",
           "ParticipantsChanged",
-          "ChannelChanged"
+          "ChannelChanged",
+          "MessagePosted",
+          "InternalNotePosted"
         ],
         "type": "string"
       },
@@ -61964,7 +63236,8 @@
           "Assigned",
           "Mentioned",
           "Desk",
-          "Role"
+          "Role",
+          "Thread"
         ],
         "type": "string",
         "x-enumFlags": true
@@ -64412,6 +65685,34 @@
         },
         "additionalProperties": false,
         "description": "Score breakdown for a portfolio's ranking board: the portfolio's current scoring model definition\nplus, per project, the criterion ratings and output values from that project's current score — but\nonly when the current score was produced by the portfolio's current model. Projects scored under a\ndifferent or older model, or not yet scored, are left out."
+      },
+      "PostDiscussionMessageRequest": {
+        "required": [
+          "kind",
+          "body"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DiscussionMessageKind"
+              }
+            ],
+            "description": "Who the message is for: `Public` for everyone who can read the conversation, `InternalNote` for its internal\naudience only, such as an intake desk's agents."
+          },
+          "subject": {
+            "type": "string",
+            "description": "An optional subject of up to 200 characters, so parallel topics on a busy record stay apart.",
+            "nullable": true
+          },
+          "body": {
+            "type": "string",
+            "description": "The message as markdown, up to 10,000 characters. Mention someone as `@[Name](employee:{employeeId})`."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A message that starts a conversation thread on a record."
       },
       "ProblemDetails": {
         "type": "object",
@@ -68004,6 +69305,20 @@
           }
         },
         "additionalProperties": false
+      },
+      "ReplyToDiscussionMessageRequest": {
+        "required": [
+          "body"
+        ],
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "description": "The reply as markdown, up to 10,000 characters. Mention someone as `@[Name](employee:{employeeId})`."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A reply in the thread a top-level message starts. It takes that message's kind and has no subject."
       },
       "RerouteIntakeRequestRequest": {
         "required": [
@@ -81608,6 +82923,9 @@
     }
   },
   "tags": [
+    {
+      "name": "Discussions"
+    },
     {
       "name": "FeatureFlags"
     },

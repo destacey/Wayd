@@ -71,6 +71,916 @@ export class Client {
     }
 }
 
+export class DiscussionsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get what you may do in a record's conversation.
+     * @return OK
+     */
+    getDiscussion(channelType: string, ownerId: string, cancelToken?: CancelToken): Promise<DiscussionDto> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDiscussion(_response);
+        });
+    }
+
+    protected processGetDiscussion(response: AxiosResponse): Promise<DiscussionDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DiscussionDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DiscussionDto>(null as any);
+    }
+
+    /**
+     * Get one page of a record's conversation.
+     * @param before (optional) 
+     * @param pageSize (optional) 
+     * @param order (optional) 
+     * @param messagesOnly (optional) 
+     * @return OK
+     */
+    getEntries(channelType: string, ownerId: string, before?: string | null | undefined, pageSize?: number | undefined, order?: DiscussionOrder | undefined, messagesOnly?: boolean | undefined, cancelToken?: CancelToken): Promise<CursorPageOfDiscussionEntryDto> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/entries?";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        if (before !== undefined && before !== null)
+            url_ += "before=" + encodeURIComponent("" + before) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (order === null)
+            throw new globalThis.Error("The parameter 'order' cannot be null.");
+        else if (order !== undefined)
+            url_ += "order=" + encodeURIComponent("" + order) + "&";
+        if (messagesOnly === null)
+            throw new globalThis.Error("The parameter 'messagesOnly' cannot be null.");
+        else if (messagesOnly !== undefined)
+            url_ += "messagesOnly=" + encodeURIComponent("" + messagesOnly) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetEntries(_response);
+        });
+    }
+
+    protected processGetEntries(response: AxiosResponse): Promise<CursorPageOfDiscussionEntryDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<CursorPageOfDiscussionEntryDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CursorPageOfDiscussionEntryDto>(null as any);
+    }
+
+    /**
+     * Post a message that starts a thread in a record's conversation.
+     * @return Created
+     */
+    postMessage(channelType: string, ownerId: string, request: PostDiscussionMessageRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/messages";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPostMessage(_response);
+        });
+    }
+
+    protected processPostMessage(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Get the replies in a thread.
+     * @return OK
+     */
+    getReplies(channelType: string, ownerId: string, messageId: string, cancelToken?: CancelToken): Promise<DiscussionMessageDto[]> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/messages/{messageId}/replies";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        if (messageId === undefined || messageId === null)
+            throw new globalThis.Error("The parameter 'messageId' must be defined.");
+        url_ = url_.replace("{messageId}", encodeURIComponent("" + messageId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetReplies(_response);
+        });
+    }
+
+    protected processGetReplies(response: AxiosResponse): Promise<DiscussionMessageDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DiscussionMessageDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DiscussionMessageDto[]>(null as any);
+    }
+
+    /**
+     * Reply in a thread.
+     * @return Created
+     */
+    reply(channelType: string, ownerId: string, messageId: string, request: ReplyToDiscussionMessageRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/messages/{messageId}/replies";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        if (messageId === undefined || messageId === null)
+            throw new globalThis.Error("The parameter 'messageId' must be defined.");
+        url_ = url_.replace("{messageId}", encodeURIComponent("" + messageId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processReply(_response);
+        });
+    }
+
+    protected processReply(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Edit your own message.
+     * @return No Content
+     */
+    editMessage(channelType: string, ownerId: string, messageId: string, request: EditDiscussionMessageRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/messages/{messageId}";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        if (messageId === undefined || messageId === null)
+            throw new globalThis.Error("The parameter 'messageId' must be defined.");
+        url_ = url_.replace("{messageId}", encodeURIComponent("" + messageId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processEditMessage(_response);
+        });
+    }
+
+    protected processEditMessage(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Delete a message, leaving a tombstone.
+     * @return No Content
+     */
+    deleteMessage(channelType: string, ownerId: string, messageId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/messages/{messageId}";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        if (messageId === undefined || messageId === null)
+            throw new globalThis.Error("The parameter 'messageId' must be defined.");
+        url_ = url_.replace("{messageId}", encodeURIComponent("" + messageId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteMessage(_response);
+        });
+    }
+
+    protected processDeleteMessage(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get the earlier versions of a message.
+     * @return OK
+     */
+    getRevisions(channelType: string, ownerId: string, messageId: string, cancelToken?: CancelToken): Promise<DiscussionMessageRevisionDto[]> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/messages/{messageId}/revisions";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        if (messageId === undefined || messageId === null)
+            throw new globalThis.Error("The parameter 'messageId' must be defined.");
+        url_ = url_.replace("{messageId}", encodeURIComponent("" + messageId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetRevisions(_response);
+        });
+    }
+
+    protected processGetRevisions(response: AxiosResponse): Promise<DiscussionMessageRevisionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DiscussionMessageRevisionDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DiscussionMessageRevisionDto[]>(null as any);
+    }
+
+    /**
+     * Lock a record's conversation.
+     * @return No Content
+     */
+    lock(channelType: string, ownerId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/lock";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "PUT",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processLock(_response);
+        });
+    }
+
+    protected processLock(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Unlock a record's conversation.
+     * @return No Content
+     */
+    unlock(channelType: string, ownerId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/lock";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUnlock(_response);
+        });
+    }
+
+    protected processUnlock(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
 export class FeatureFlagsClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -58659,6 +59569,14 @@ export interface CurrentJobCountsResponse {
 }
 
 /** One page of a list read by cursor: the items, and where the next page starts. */
+export interface CursorPageOfDiscussionEntryDto {
+    /** The items on this page, in the list's order. */
+    items: DiscussionEntryDto[];
+    /** Pass this back as the next request's cursor, or null when this page is the last. Opaque: its format is not part of the contract. */
+    nextCursor?: string | undefined;
+}
+
+/** One page of a list read by cursor: the items, and where the next page starts. */
 export interface CursorPageOfNotificationDto {
     /** The items on this page, in the list's order. */
     items: NotificationDto[];
@@ -58957,6 +59875,105 @@ export interface DiscoveredOrgType {
     typeId: string;
     displayName?: string | undefined;
     count: number;
+}
+
+/** A record's conversation as the caller may use it: what they may do in it, and whether it is locked. */
+export interface DiscussionDto {
+    /** Whether the caller may post and reply. */
+    canPost: boolean;
+    /** Whether the caller may post internal notes. When false, a composer offers no internal-note control at all. */
+    canPostInternal: boolean;
+    /** Whether the caller may lock the conversation and delete anyone's message. */
+    canModerate: boolean;
+    /** Whether the conversation is locked: nothing new can be posted, replied or edited. */
+    isLocked: boolean;
+}
+
+/** One entry in a conversation: a top-level message, or a change to the record between messages. */
+export interface DiscussionEntryDto {
+    /** Which of DiscussionMessageDto? DiscussionEntryDto.Message and ActivityLogDto? DiscussionEntryDto.Activity is set. */
+    type: DiscussionEntryType;
+    /** When the message was posted or the change happened; the conversation's order. */
+    timestamp: Date;
+    /** The message, when DiscussionEntryType DiscussionEntryDto.Type is DiscussionEntryType.Message. */
+    message?: DiscussionMessageDto | undefined;
+    /** The change, when DiscussionEntryType DiscussionEntryDto.Type is DiscussionEntryType.Activity, exactly as the record's own
+Activity section shows it to the caller. */
+    activity?: ActivityLogDto | undefined;
+}
+
+/** What one entry in a conversation is. */
+export enum DiscussionEntryType {
+    Message = "Message",
+    Activity = "Activity",
+}
+
+/** A message in a conversation, top-level or a reply, as the caller may see it. */
+export interface DiscussionMessageDto {
+    /** The message's id. */
+    id: string;
+    /** The top-level message whose thread this is a reply in, or null for a top-level message. */
+    parentMessageId?: string | undefined;
+    /** Who the message is for. */
+    kind: DiscussionMessageKind;
+    /** The optional subject of a top-level message. Null on a reply, and once deleted. */
+    subject?: string | undefined;
+    /** The message as markdown, mentions written `@[Name](employee:{id})`; show each mention by the current name
+in List&lt;EmployeeNavigationDto&gt; DiscussionMessageDto.Mentions. Null once deleted. */
+    body?: string | undefined;
+    /** Who wrote the message. */
+    author: EmployeeNavigationDto;
+    /** When the message was posted. */
+    postedOn: Date;
+    /** When the message was last edited, or null if it never was. */
+    editedOn?: Date | undefined;
+    /** Whether the message was deleted, leaving only who wrote it, who deleted it and when. */
+    isDeleted: boolean;
+    /** When the message was deleted, or null while it stands. */
+    deletedOn?: Date | undefined;
+    /** Who deleted the message, or null while it stands. */
+    deletedBy?: EmployeeNavigationDto | undefined;
+    /** The people the message mentions, by their current names. */
+    mentions: EmployeeNavigationDto[];
+    /** How many replies the thread this message starts holds. Zero on a reply. */
+    replyCount: number;
+    /** When the latest reply in the thread was posted, or null when there are none. */
+    lastReplyOn?: Date | undefined;
+    /** Up to three people who replied most recently in the thread, newest first. */
+    recentRepliers: EmployeeNavigationDto[];
+    /** Whether the caller may edit the message: their own, standing, in an unlocked conversation. */
+    canEdit: boolean;
+    /** Whether the caller may delete the message: their own, or anyone's as a moderator. */
+    canDelete: boolean;
+}
+
+export enum DiscussionMessageKind {
+    Public = "Public",
+    InternalNote = "InternalNote",
+}
+
+/** A version of a message that an edit replaced. */
+export interface DiscussionMessageRevisionDto {
+    /** The subject before the edit, or null when there was none. */
+    subject?: string | undefined;
+    /** The text before the edit, as markdown. */
+    body: string;
+    /** When the edit replaced this version. */
+    replacedOn: Date;
+}
+
+/** Which end of a conversation a page starts from. */
+export enum DiscussionOrder {
+    OldestFirst = "OldestFirst",
+    NewestFirst = "NewestFirst",
+}
+
+/** The new subject and text of the caller's own message. The version it replaces is kept. */
+export interface EditDiscussionMessageRequest {
+    /** The new subject, up to 200 characters; null or blank for none. Must be blank on a reply in a thread. */
+    subject?: string | undefined;
+    /** The new text as markdown, up to 10,000 characters. Mention someone as `@[Name](employee:{employeeId})`. */
+    body: string;
 }
 
 export interface EmployeeAllocationChangeRequest {
@@ -61337,6 +62354,8 @@ export enum NotificationEvent {
     AssigneeChanged = "AssigneeChanged",
     ParticipantsChanged = "ParticipantsChanged",
     ChannelChanged = "ChannelChanged",
+    MessagePosted = "MessagePosted",
+    InternalNotePosted = "InternalNotePosted",
 }
 
 export enum NotificationReason {
@@ -61347,6 +62366,7 @@ export enum NotificationReason {
     Mentioned = "Mentioned",
     Desk = "Desk",
     Role = "Role",
+    Thread = "Thread",
 }
 
 /** The record a notification is about, as its owner type describes it now. */
@@ -62114,6 +63134,17 @@ export interface PortfolioRankingScoreboardDto {
     scoringModel?: ScoringModelDetailsDto | undefined;
     /** Per-project score breakdown for the current model; projects with no current-model score are omitted. */
     projects: ProjectRankingScoreDto[];
+}
+
+/** A message that starts a conversation thread on a record. */
+export interface PostDiscussionMessageRequest {
+    /** Who the message is for: `Public` for everyone who can read the conversation, `InternalNote` for its internal
+audience only, such as an intake desk's agents. */
+    kind: DiscussionMessageKind;
+    /** An optional subject of up to 200 characters, so parallel topics on a busy record stay apart. */
+    subject?: string | undefined;
+    /** The message as markdown, up to 10,000 characters. Mention someone as `@[Name](employee:{employeeId})`. */
+    body: string;
 }
 
 /** One node of the catalog subtree, with its releases day by day. */
@@ -63210,6 +64241,12 @@ export interface ReparentProductRequest {
     id: string;
     /** The new parent, or null to make this a root node. */
     parentId?: string | undefined;
+}
+
+/** A reply in the thread a top-level message starts. It takes that message's kind and has no subject. */
+export interface ReplyToDiscussionMessageRequest {
+    /** The reply as markdown, up to 10,000 characters. Mention someone as `@[Name](employee:{employeeId})`. */
+    body: string;
 }
 
 /** The desk to move an intake request to. */

@@ -1,0 +1,78 @@
+using FluentAssertions;
+using NodaTime;
+using Wayd.Common.Application.Discussions;
+using Wayd.Common.Application.Discussions.Queries;
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Tests.Infrastructure;
+using Wayd.Common.Domain.Discussions;
+using Wayd.Common.Domain.Events;
+
+namespace Wayd.Common.Application.Tests.Sut.Discussions.Queries;
+
+public sealed class GetDiscussionQueryHandlerTests
+{
+    private const string GadgetType = "test.discussion-state.gadget";
+    private static readonly DiscussionChannelTypeDescriptor Gadget = new(GadgetType, "Gadget", "Gadgets", supportsInternalNotes: true);
+    private static readonly Instant Now = Instant.FromUtc(2026, 10, 29, 9, 30);
+
+    private readonly FakeWaydDbContext _dbContext = new();
+    private readonly FakeDiscussionChannelType _gadgets = new(GadgetType);
+    private readonly Mock<ICurrentPrincipal> _currentPrincipal = new();
+
+    public GetDiscussionQueryHandlerTests()
+    {
+        DiscussionChannelTypes.Register(Gadget);
+        _currentPrincipal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(Guid.NewGuid());
+    }
+
+    private GetDiscussionQueryHandler CreateHandler() => new(_dbContext, [_gadgets], _currentPrincipal.Object);
+
+    [Fact]
+    public async Task Handle_ShouldSayWhatTheCallerMayDo()
+    {
+        // Arrange
+        var ownerId = _gadgets.AddRecord();
+        _gadgets.Access = new DiscussionAccess(CanReadInternal: false, CanPost: true, CanPostInternal: true, CanModerate: false);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetDiscussionQuery(GadgetType, ownerId), TestContext.Current.CancellationToken);
+
+        // Assert
+        var discussion = result.Value!;
+        discussion.CanPost.Should().BeTrue();
+        // Writing a note needs reading notes too, so a caller who cannot read them is offered none.
+        discussion.CanPostInternal.Should().BeFalse();
+        discussion.CanModerate.Should().BeFalse();
+        discussion.IsLocked.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSayTheConversationIsLocked()
+    {
+        // Arrange
+        var ownerId = _gadgets.AddRecord();
+        var channel = DiscussionChannel.OpenForRecord(GadgetType, ownerId, EventActor.System, Now).Value;
+        channel.Lock(Guid.NewGuid(), EventActor.System, Now);
+        _dbContext.AddDiscussionChannel(channel);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetDiscussionQuery(GadgetType, ownerId), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value!.IsLocked.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldBeNull_WhenTheCallerCannotReadTheRecord()
+    {
+        // Arrange — a record the channel type does not know, so the caller cannot read it.
+        var unreadableId = Guid.NewGuid();
+
+        // Act
+        var result = await CreateHandler().Handle(new GetDiscussionQuery(GadgetType, unreadableId), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeNull();
+    }
+}

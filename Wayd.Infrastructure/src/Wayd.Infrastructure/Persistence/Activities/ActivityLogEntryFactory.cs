@@ -118,6 +118,8 @@ internal static partial class ActivityLogEntryFactory
             return "Identity";
         if (@namespace.Contains("Links"))
             return "Links";
+        if (@namespace.Contains("Discussions"))
+            return "Discussions";
 
         return null;
     }

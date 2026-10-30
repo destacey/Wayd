@@ -40,6 +40,9 @@ public enum NotificationReason
 
     [Display(Name = "Role", Description = "You hold a role on the record, or belong to the team that owns it.", Order = 7)]
     Role = 64,
+
+    [Display(Name = "Thread", Description = "You started or replied in a conversation thread on the record.", Order = 8)]
+    Thread = 128,
 }
 
 /// <summary>Checks on a <see cref="NotificationReason"/> set.</summary>
@@ -53,7 +56,8 @@ public static class NotificationReasons
         | NotificationReason.Assigned
         | NotificationReason.Mentioned
         | NotificationReason.Desk
-        | NotificationReason.Role;
+        | NotificationReason.Role
+        | NotificationReason.Thread;
 
     /// <summary>
     /// The reasons something tells people for today, and so the only reasons that can be muted.

@@ -410,8 +410,8 @@ set, and when it was read. The wording is produced when the list is read, from t
 - **Not an audit trail.** A nightly job (`notification-retention-sweep`, 03:30) deletes notifications more than
   90 days old, read or not; the activity log keeps what happened.
 
-`Mentioned` and `Thread` (you started or replied in a conversation thread) are produced by an intake request's
-conversation. `Desk` (a request waiting unassigned on a desk you work on) is defined, but nothing produces it yet. Only the reasons in
+`Mentioned` and `Thread` (you started or replied in a conversation thread) are produced by the conversations on
+intake requests and projects. `Desk` (a request waiting unassigned on a desk you work on) is defined, but nothing produces it yet. Only the reasons in
 `NotificationReasons.Produced` can be muted; a producer of a new reason adds it there first — the writer throws
 for any other reason — or its mute would be refused.
 
@@ -473,8 +473,10 @@ same.
 
 **No text leaves through a side door.** Discussion events carry ids and mention lists, never a subject or body,
 and messages are not `ISystemAuditable`, so an internal note never reaches an event, the outbox, the audit trail
-or a log line. A module notifies from `DiscussionMessagePostedEvent`, filtered on its channel type, with
-`MessagePosted` or `InternalNotePosted` mapped to the tiers its `VisibleNotifications` uses.
+or a log line. A module notifies from `DiscussionMessagePostedEvent`, filtered on its channel type, in the owner type's
+notification handler (`IntakeRequestNotificationEventHandler`, `ProjectNotificationEventHandler`). Where only some
+readers see internal notes, map `MessagePosted` and `InternalNotePosted` to the tiers its `VisibleNotifications`
+uses; a project holds no notes, so its handler never tells one and its read rule passes notifications through.
 
 ## Connector framework
 

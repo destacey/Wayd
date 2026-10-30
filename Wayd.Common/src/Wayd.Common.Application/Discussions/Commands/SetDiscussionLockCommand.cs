@@ -37,7 +37,16 @@ public sealed class SetDiscussionLockCommandHandler(IDiscussionWriter writer, ID
             return changed;
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // Locked, unlocked or first posted on in the same moment.
+            return Result.Failure(DiscussionAccessErrors.Conflict);
+        }
+
         return changed;
     }
 }

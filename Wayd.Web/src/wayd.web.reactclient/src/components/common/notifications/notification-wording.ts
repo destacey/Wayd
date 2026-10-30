@@ -26,7 +26,7 @@ const actions: Record<NotificationEvent, string> = {
   [NotificationEvent.AssigneeChanged]: 'changed the assignee of',
   [NotificationEvent.ParticipantsChanged]: 'changed the participants of',
   [NotificationEvent.ChannelChanged]: 'changed the channel of',
-  [NotificationEvent.ReplyPosted]: 'replied on',
+  [NotificationEvent.MessagePosted]: 'posted on',
   [NotificationEvent.InternalNotePosted]: 'added an internal note to',
 }
 

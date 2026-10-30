@@ -189,7 +189,7 @@ public sealed class DiscussionMessage : BaseEntity
 
         if (parent.ChannelId != channel.Id)
         {
-            return Result.Failure<DiscussionMessage>(DiscussionErrors.ParentInAnotherChannel);
+            return Result.Failure<DiscussionMessage>(DiscussionErrors.MessageInAnotherChannel);
         }
 
         if (!parent.IsTopLevel)
@@ -239,7 +239,7 @@ public sealed class DiscussionMessage : BaseEntity
 
         if (channel.Id != ChannelId)
         {
-            return Result.Failure(DiscussionErrors.ParentInAnotherChannel);
+            return Result.Failure(DiscussionErrors.MessageInAnotherChannel);
         }
 
         if (IsDeleted)
@@ -314,7 +314,7 @@ public sealed class DiscussionMessage : BaseEntity
 
         if (channel.Id != ChannelId)
         {
-            return Result.Failure(DiscussionErrors.ParentInAnotherChannel);
+            return Result.Failure(DiscussionErrors.MessageInAnotherChannel);
         }
 
         if (IsDeleted)

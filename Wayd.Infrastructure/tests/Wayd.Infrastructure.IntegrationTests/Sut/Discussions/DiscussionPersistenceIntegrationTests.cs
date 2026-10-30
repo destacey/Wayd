@@ -102,7 +102,7 @@ public sealed class DiscussionPersistenceIntegrationTests(SqlServerDbContextFixt
         await using (var seed = fixture.CreateContext())
         {
             var channel = DiscussionChannel.OpenForRecord(GadgetType, ownerId, Actor, Timestamp).Value;
-            var parent = DiscussionMessage.Post(channel, DiscussionMessageKind.Reply, author.Id, null, "Question", [mentioned.Id], Actor, Timestamp).Value;
+            var parent = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, author.Id, null, "Question", [mentioned.Id], Actor, Timestamp).Value;
             parentId = parent.Id;
             parent.Edit(channel, author.Id, null, "Question, edited", [], Actor, Timestamp);
             var reply = DiscussionMessage.Reply(channel, parent, author.Id, "Answer", [], Actor, Timestamp).Value;
@@ -115,7 +115,7 @@ public sealed class DiscussionPersistenceIntegrationTests(SqlServerDbContextFixt
         await using (var context = fixture.CreateContext())
         {
             // Act
-            await NewWriter(context, author.Id).DeleteChannel(GadgetType, ownerId, cancellationToken);
+            await NewWriter(context, author.Id).DeleteChannel(GadgetType, ownerId, Actor, cancellationToken);
             await context.SaveChangesAsync(cancellationToken);
         }
 
@@ -128,7 +128,48 @@ public sealed class DiscussionPersistenceIntegrationTests(SqlServerDbContextFixt
     }
 
     [Fact]
-    public async Task GetDiscussion_ShouldPageTopLevelMessagesInOrder()
+    public async Task Save_ShouldRefuseAnEditThatRacedADelete()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var author = await SeedEmployee();
+        Guid messageId;
+        await using (var seed = fixture.CreateContext())
+        {
+            var channel = DiscussionChannel.OpenForRecord(GadgetType, Guid.CreateVersion7(), Actor, Timestamp).Value;
+            var message = DiscussionMessage.Post(channel, DiscussionMessageKind.InternalNote, author.Id, null, "Sensitive", [], Actor, Timestamp).Value;
+            seed.DiscussionChannels.Add(channel);
+            seed.DiscussionMessages.Add(message);
+            await seed.SaveChangesAsync(cancellationToken);
+            messageId = message.Id;
+        }
+
+        // The author starts an edit and a moderator starts a delete, each from what they read.
+        await using var editing = fixture.CreateContext();
+        await using var deleting = fixture.CreateContext();
+        var toEdit = await editing.DiscussionMessages.Include(m => m.Mentions).Include(m => m.Revisions).SingleAsync(m => m.Id == messageId, cancellationToken);
+        var editChannel = await editing.DiscussionChannels.SingleAsync(c => c.Id == toEdit.ChannelId, cancellationToken);
+        var toDelete = await deleting.DiscussionMessages.Include(m => m.Mentions).Include(m => m.Revisions).SingleAsync(m => m.Id == messageId, cancellationToken);
+        var deleteChannel = await deleting.DiscussionChannels.SingleAsync(c => c.Id == toDelete.ChannelId, cancellationToken);
+
+        toDelete.Delete(deleteChannel, author.Id, Actor, Timestamp);
+        await deleting.SaveChangesAsync(cancellationToken);
+        toEdit.Edit(editChannel, author.Id, null, "Sensitive, edited", [], Actor, Timestamp);
+
+        // Act
+        var act = () => editing.SaveChangesAsync(cancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<DbUpdateConcurrencyException>();
+        await using var reader = fixture.CreateContext();
+        var stored = await reader.DiscussionMessages.Include(m => m.Revisions).SingleAsync(m => m.Id == messageId, cancellationToken);
+        stored.IsDeleted.Should().BeTrue();
+        stored.Body.Should().BeNull("an edit saved after a delete must not put text back on the tombstone");
+        stored.Revisions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetDiscussionEntries_ShouldPageTopLevelMessagesInOrder()
     {
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -142,7 +183,7 @@ public sealed class DiscussionPersistenceIntegrationTests(SqlServerDbContextFixt
             {
                 // Two share an instant, so the id breaks the tie on the database's own ordering.
                 var postedOn = Timestamp.Plus(Duration.FromMinutes(i == 2 ? 1 : i));
-                seed.DiscussionMessages.Add(DiscussionMessage.Post(channel, DiscussionMessageKind.Reply, author.Id, null, $"Message {i}", [], Actor, postedOn).Value);
+                seed.DiscussionMessages.Add(DiscussionMessage.Post(channel, DiscussionMessageKind.Public, author.Id, null, $"Message {i}", [], Actor, postedOn).Value);
             }
 
             seed.DiscussionMessages.Add(DiscussionMessage.Post(channel, DiscussionMessageKind.InternalNote, author.Id, null, "Note", [], Actor, Timestamp).Value);

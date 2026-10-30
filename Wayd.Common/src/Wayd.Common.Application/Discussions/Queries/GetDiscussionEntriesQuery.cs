@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Wayd.Common.Application.Activities;
 using Wayd.Common.Application.Discussions.Dtos;
+using Wayd.Common.Application.Following;
 using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.Records;
 using Wayd.Common.Domain.Discussions;
@@ -89,7 +90,11 @@ public sealed class GetDiscussionEntriesQueryHandler(
             .ToList();
 
         var readRule = _readRules.FirstOrDefault(r => string.Equals(r.OwnerType, view.Type.ChannelType, StringComparison.OrdinalIgnoreCase));
-        if (!request.MessagesOnly && readRule is not null)
+
+        // ReadActivity trusts its caller to have admitted the record through Readable. A channel type answers who may
+        // discuss the record, which need not be who may read its history, so the record's own rule is asked too.
+        if (!request.MessagesOnly && readRule is not null
+            && await FollowReadRules.CanRead(readRule, request.OwnerId, cancellationToken))
         {
             Instant? lastPosted = page.Count > 0 ? page[^1].PostedOn : null;
             Instant? edge = hasMore ? lastPosted : null;

@@ -65,8 +65,11 @@ public sealed class GetDiscussionQueryHandlerTests
     [Fact]
     public async Task Handle_ShouldBeNull_WhenTheCallerCannotReadTheRecord()
     {
+        // Arrange — a record the channel type does not know, so the caller cannot read it.
+        var unreadableId = Guid.NewGuid();
+
         // Act
-        var result = await CreateHandler().Handle(new GetDiscussionQuery(GadgetType, Guid.NewGuid()), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetDiscussionQuery(GadgetType, unreadableId), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();

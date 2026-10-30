@@ -65,7 +65,7 @@ public sealed class DiscussionChannel : BaseEntity
     /// </summary>
     public Guid? OwnerId { get; private init; }
 
-    /// <summary>When the first message opened the conversation.</summary>
+    /// <summary>When the conversation was opened: by its first message, or by a moderator locking it first.</summary>
     public Instant CreatedOn { get; private init; }
 
     /// <summary>When the conversation was locked, or null while it is open.</summary>
@@ -111,5 +111,19 @@ public sealed class DiscussionChannel : BaseEntity
         AddDomainEvent(new DiscussionChannelUnlockedEvent(Id, ChannelType, OwnerId, actor, timestamp));
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Records that the conversation is being removed, with every message in it, because its record is being deleted.
+    /// The caller then removes the channel; the database removes its messages, their revisions and mentions.
+    /// </summary>
+    /// <remarks>
+    /// One event for the conversation rather than one per message: the messages go because the record went, not
+    /// because anyone deleted them, and they leave no tombstones because there is no conversation left to show them in.
+    /// </remarks>
+    public void Delete(EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(actor, nameof(actor));
+        AddDomainEvent(new DiscussionChannelDeletedEvent(Id, ChannelType, OwnerId, actor, timestamp));
     }
 }

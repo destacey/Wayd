@@ -22,8 +22,11 @@ public sealed class DiscussionChannelTypesTests
     [Fact]
     public void Resolve_ShouldFail_ForAnUnregisteredType()
     {
+        // Arrange
+        const string key = "test.discussions.unregistered";
+
         // Act
-        var result = DiscussionChannelTypes.Resolve("test.discussions.unregistered");
+        var result = DiscussionChannelTypes.Resolve(key);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -35,6 +38,8 @@ public sealed class DiscussionChannelTypesTests
     [InlineData("  ")]
     public void Resolve_ShouldFail_WhenNoTypeIsGiven(string? key)
     {
+        // Arrange — the key comes from the theory's data.
+
         // Act
         var result = DiscussionChannelTypes.Resolve(key);
 
@@ -75,8 +80,11 @@ public sealed class DiscussionChannelTypesTests
     [Fact]
     public void Descriptor_ShouldThrow_WhenTheKeyIsLongerThanTheColumn()
     {
+        // Arrange
+        var key = new string('k', DiscussionChannelTypeDescriptor.KeyMaxLength + 1);
+
         // Act
-        Action act = () => _ = new DiscussionChannelTypeDescriptor(new string('k', DiscussionChannelTypeDescriptor.KeyMaxLength + 1), "Widget", "Widgets", supportsInternalNotes: false);
+        Action act = () => _ = new DiscussionChannelTypeDescriptor(key, "Widget", "Widgets", supportsInternalNotes: false);
 
         // Assert
         act.Should().Throw<ArgumentException>().WithParameterName("key");

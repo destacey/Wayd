@@ -57,11 +57,11 @@ public enum NotificationEvent
     [Display(Name = "Channel Changed", Description = "Where the record is recorded as coming from changed.", Order = 14)]
     ChannelChanged = 14,
 
-    [Display(Name = "Reply Posted", Description = "Someone replied in the record's conversation.", Order = 15)]
-    ReplyPosted = 15,
+    [Display(Name = "Message Posted", Description = "Someone posted in the record's conversation.", Order = 15)]
+    MessagePosted = 15,
 
     /// <remarks>
-    /// Its own member rather than <see cref="ReplyPosted"/> with a flag, because a record's read rule narrows
+    /// Its own member rather than <see cref="MessagePosted"/> with a flag, because a record's read rule narrows
     /// notifications by event: one about a note must reach only those who can read notes.
     /// </remarks>
     [Display(Name = "Internal Note Posted", Description = "Someone added an internal note to the record's conversation.", Order = 16)]

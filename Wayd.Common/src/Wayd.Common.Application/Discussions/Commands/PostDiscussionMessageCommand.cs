@@ -45,7 +45,16 @@ public sealed class PostDiscussionMessageCommandHandler(IDiscussionWriter writer
             return posted;
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // Another first post on the record opened its conversation in the same moment.
+            return Result.Failure<Guid>(DiscussionAccessErrors.Conflict);
+        }
+
         return posted;
     }
 }

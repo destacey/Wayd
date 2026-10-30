@@ -30,6 +30,8 @@ public sealed class DiscussionMentionsTests
     [InlineData(null)]
     public void Parse_ShouldFindNothing_InTextThatIsNotAMention(string? body)
     {
+        // Arrange — the text comes from the theory's data.
+
         // Act
         var mentions = DiscussionMentions.Parse(body);
 

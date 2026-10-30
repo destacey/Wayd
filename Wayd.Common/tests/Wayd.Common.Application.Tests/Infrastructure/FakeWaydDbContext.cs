@@ -82,9 +82,21 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     /// </summary>
     public int SaveChangesCallCount { get; private set; }
 
+    /// <summary>
+    /// An exception the next save throws instead of saving, as a real context does on a unique-index or row-version
+    /// collision. Cleared once thrown.
+    /// </summary>
+    public Exception? FailNextSaveWith { get; set; }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         SaveChangesCallCount++;
+
+        if (FailNextSaveWith is { } failure)
+        {
+            FailNextSaveWith = null;
+            throw failure;
+        }
 
         // Return the total number of entities as a simple success indicator
         var count = _employees.Count + _externalEmployeeBlacklistItems.Count + _externalIdentityMappings.Count + _personalAccessTokens.Count;

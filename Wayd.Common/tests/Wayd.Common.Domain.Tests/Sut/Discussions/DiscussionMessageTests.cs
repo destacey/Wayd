@@ -28,7 +28,7 @@ public sealed class DiscussionMessageTests
         var tom = Guid.NewGuid();
 
         // Act
-        var result = DiscussionMessage.Post(channel, DiscussionMessageKind.Reply, _authorId, "  Which fields?  ", "  Which fields does finance need?  ",
+        var result = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, _authorId, "  Which fields?  ", "  Which fields does finance need?  ",
             [dana, tom, dana, _authorId, Guid.Empty], Actor, Now);
 
         // Assert
@@ -37,7 +37,7 @@ public sealed class DiscussionMessageTests
         message.ChannelId.Should().Be(channel.Id);
         message.ParentMessageId.Should().BeNull();
         message.IsTopLevel.Should().BeTrue();
-        message.Kind.Should().Be(DiscussionMessageKind.Reply);
+        message.Kind.Should().Be(DiscussionMessageKind.Public);
         message.Subject.Should().Be("Which fields?");
         message.Body.Should().Be("Which fields does finance need?");
         message.AuthorEmployeeId.Should().Be(_authorId);
@@ -53,7 +53,7 @@ public sealed class DiscussionMessageTests
         posted.ChannelType.Should().Be(Gadget.Key);
         posted.OwnerId.Should().Be(channel.OwnerId);
         posted.ParentMessageId.Should().BeNull();
-        posted.Kind.Should().Be(DiscussionMessageKind.Reply);
+        posted.Kind.Should().Be(DiscussionMessageKind.Public);
         posted.AuthorEmployeeId.Should().Be(_authorId);
         posted.MentionedEmployeeIds.Should().BeEquivalentTo([dana, tom]);
         posted.Timestamp.Should().Be(Now);
@@ -62,8 +62,11 @@ public sealed class DiscussionMessageTests
     [Fact]
     public void Post_ShouldStoreNoSubject_WhenTheSubjectIsBlank()
     {
+        // Arrange
+        var channel = OpenChannel(Gadget);
+
         // Act
-        var result = DiscussionMessage.Post(OpenChannel(Gadget), DiscussionMessageKind.Reply, _authorId, "   ", "Hello", [], Actor, Now);
+        var result = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, _authorId, "   ", "Hello", [], Actor, Now);
 
         // Assert
         result.Value.Subject.Should().BeNull();
@@ -72,8 +75,11 @@ public sealed class DiscussionMessageTests
     [Fact]
     public void Post_ShouldPostAnInternalNote_WhenTheChannelTypeSupportsThem()
     {
+        // Arrange
+        var channel = OpenChannel(Gadget);
+
         // Act
-        var result = DiscussionMessage.Post(OpenChannel(Gadget), DiscussionMessageKind.InternalNote, _authorId, null, "Between us", [], Actor, Now);
+        var result = DiscussionMessage.Post(channel, DiscussionMessageKind.InternalNote, _authorId, null, "Between us", [], Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
@@ -84,8 +90,11 @@ public sealed class DiscussionMessageTests
     [Fact]
     public void Post_ShouldFail_ForAnInternalNote_WhenTheChannelTypeHasNone()
     {
+        // Arrange
+        var channel = OpenChannel(Plain);
+
         // Act
-        var result = DiscussionMessage.Post(OpenChannel(Plain), DiscussionMessageKind.InternalNote, _authorId, null, "Between us", [], Actor, Now);
+        var result = DiscussionMessage.Post(channel, DiscussionMessageKind.InternalNote, _authorId, null, "Between us", [], Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -100,7 +109,7 @@ public sealed class DiscussionMessageTests
         channel.Lock(Guid.NewGuid(), Actor, Now);
 
         // Act
-        var result = DiscussionMessage.Post(channel, DiscussionMessageKind.Reply, _authorId, null, "Hello", [], Actor, Now);
+        var result = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, _authorId, null, "Hello", [], Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -112,8 +121,11 @@ public sealed class DiscussionMessageTests
     [InlineData("   ", DiscussionErrors.BodyRequired)]
     public void Post_ShouldFail_WhenTheBodyIsBlank(string body, string error)
     {
+        // Arrange
+        var channel = OpenChannel(Gadget);
+
         // Act
-        var result = DiscussionMessage.Post(OpenChannel(Gadget), DiscussionMessageKind.Reply, _authorId, null, body, [], Actor, Now);
+        var result = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, _authorId, null, body, [], Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -127,8 +139,8 @@ public sealed class DiscussionMessageTests
         var channel = OpenChannel(Gadget);
 
         // Act
-        var atLimit = DiscussionMessage.Post(channel, DiscussionMessageKind.Reply, _authorId, null, new string('a', DiscussionMessage.BodyMaxLength), [], Actor, Now);
-        var over = DiscussionMessage.Post(channel, DiscussionMessageKind.Reply, _authorId, null, new string('a', DiscussionMessage.BodyMaxLength + 1), [], Actor, Now);
+        var atLimit = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, _authorId, null, new string('a', DiscussionMessage.BodyMaxLength), [], Actor, Now);
+        var over = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, _authorId, null, new string('a', DiscussionMessage.BodyMaxLength + 1), [], Actor, Now);
 
         // Assert
         atLimit.IsSuccess.Should().BeTrue();
@@ -143,8 +155,8 @@ public sealed class DiscussionMessageTests
         var channel = OpenChannel(Gadget);
 
         // Act
-        var atLimit = DiscussionMessage.Post(channel, DiscussionMessageKind.Reply, _authorId, new string('s', DiscussionMessage.SubjectMaxLength), "Hello", [], Actor, Now);
-        var over = DiscussionMessage.Post(channel, DiscussionMessageKind.Reply, _authorId, new string('s', DiscussionMessage.SubjectMaxLength + 1), "Hello", [], Actor, Now);
+        var atLimit = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, _authorId, new string('s', DiscussionMessage.SubjectMaxLength), "Hello", [], Actor, Now);
+        var over = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, _authorId, new string('s', DiscussionMessage.SubjectMaxLength + 1), "Hello", [], Actor, Now);
 
         // Assert
         atLimit.IsSuccess.Should().BeTrue();
@@ -155,8 +167,11 @@ public sealed class DiscussionMessageTests
     [Fact]
     public void Post_ShouldFail_ForASubject_WhenTheChannelTypeHasNone()
     {
+        // Arrange
+        var channel = OpenChannel(Plain);
+
         // Act
-        var result = DiscussionMessage.Post(OpenChannel(Plain), DiscussionMessageKind.Reply, _authorId, "Topic", "Hello", [], Actor, Now);
+        var result = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, _authorId, "Topic", "Hello", [], Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -196,7 +211,7 @@ public sealed class DiscussionMessageTests
     {
         // Arrange
         var channel = OpenChannel(Gadget);
-        var first = PostTopLevel(channel, DiscussionMessageKind.Reply);
+        var first = PostTopLevel(channel, DiscussionMessageKind.Public);
         var reply = DiscussionMessage.Reply(channel, first, Guid.NewGuid(), "One level", [], Actor, Now).Value;
 
         // Act
@@ -211,14 +226,14 @@ public sealed class DiscussionMessageTests
     public void Reply_ShouldFail_WhenTheParentIsInAnotherChannel()
     {
         // Arrange
-        var parent = PostTopLevel(OpenChannel(Gadget), DiscussionMessageKind.Reply);
+        var parent = PostTopLevel(OpenChannel(Gadget), DiscussionMessageKind.Public);
 
         // Act
         var result = DiscussionMessage.Reply(OpenChannel(Gadget), parent, Guid.NewGuid(), "Hello", [], Actor, Later);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(DiscussionErrors.ParentInAnotherChannel);
+        result.Error.Should().Be(DiscussionErrors.MessageInAnotherChannel);
     }
 
     [Fact]
@@ -226,7 +241,7 @@ public sealed class DiscussionMessageTests
     {
         // Arrange
         var channel = OpenChannel(Gadget);
-        var parent = PostTopLevel(channel, DiscussionMessageKind.Reply);
+        var parent = PostTopLevel(channel, DiscussionMessageKind.Public);
         channel.Lock(Guid.NewGuid(), Actor, Now);
 
         // Act
@@ -244,7 +259,7 @@ public sealed class DiscussionMessageTests
         var channel = OpenChannel(Gadget);
         var dana = Guid.NewGuid();
         var tom = Guid.NewGuid();
-        var message = DiscussionMessage.Post(channel, DiscussionMessageKind.Reply, _authorId, "Fields", "First draft", [dana], Actor, Now).Value;
+        var message = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, _authorId, "Fields", "First draft", [dana], Actor, Now).Value;
         message.ClearDomainEvents();
 
         // Act
@@ -275,7 +290,7 @@ public sealed class DiscussionMessageTests
     {
         // Arrange
         var channel = OpenChannel(Gadget);
-        var message = DiscussionMessage.Post(channel, DiscussionMessageKind.Reply, _authorId, null, "Same text", [], Actor, Now).Value;
+        var message = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, _authorId, null, "Same text", [], Actor, Now).Value;
         message.ClearDomainEvents();
         var tom = Guid.NewGuid();
 
@@ -297,7 +312,7 @@ public sealed class DiscussionMessageTests
         // Arrange
         var channel = OpenChannel(Gadget);
         var dana = Guid.NewGuid();
-        var message = DiscussionMessage.Post(channel, DiscussionMessageKind.Reply, _authorId, "Topic", "Same text", [dana], Actor, Now).Value;
+        var message = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, _authorId, "Topic", "Same text", [dana], Actor, Now).Value;
         message.ClearDomainEvents();
 
         // Act
@@ -315,7 +330,7 @@ public sealed class DiscussionMessageTests
     {
         // Arrange
         var channel = OpenChannel(Gadget);
-        var message = PostTopLevel(channel, DiscussionMessageKind.Reply);
+        var message = PostTopLevel(channel, DiscussionMessageKind.Public);
 
         // Act
         var result = message.Edit(channel, Guid.NewGuid(), null, "Rewritten", [], Actor, Later);
@@ -332,7 +347,7 @@ public sealed class DiscussionMessageTests
     {
         // Arrange
         var channel = OpenChannel(Gadget);
-        var message = PostTopLevel(channel, DiscussionMessageKind.Reply);
+        var message = PostTopLevel(channel, DiscussionMessageKind.Public);
         channel.Lock(Guid.NewGuid(), Actor, Now);
 
         // Act
@@ -349,7 +364,7 @@ public sealed class DiscussionMessageTests
     {
         // Arrange
         var channel = OpenChannel(Gadget);
-        var parent = PostTopLevel(channel, DiscussionMessageKind.Reply);
+        var parent = PostTopLevel(channel, DiscussionMessageKind.Public);
         var reply = DiscussionMessage.Reply(channel, parent, _authorId, "Reply", [], Actor, Now).Value;
 
         // Act
@@ -366,7 +381,7 @@ public sealed class DiscussionMessageTests
     {
         // Arrange
         var channel = OpenChannel(Gadget);
-        var message = PostTopLevel(channel, DiscussionMessageKind.Reply);
+        var message = PostTopLevel(channel, DiscussionMessageKind.Public);
         message.Delete(channel, _authorId, Actor, Now);
 
         // Act
@@ -383,7 +398,7 @@ public sealed class DiscussionMessageTests
     {
         // Arrange
         var channel = OpenChannel(Gadget);
-        var message = DiscussionMessage.Post(channel, DiscussionMessageKind.Reply, _authorId, "Topic", "First", [Guid.NewGuid()], Actor, Now).Value;
+        var message = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, _authorId, "Topic", "First", [Guid.NewGuid()], Actor, Now).Value;
         message.Edit(channel, _authorId, "Topic", "Second", [], Actor, Now);
         message.ClearDomainEvents();
         var moderatorId = Guid.NewGuid();
@@ -416,7 +431,7 @@ public sealed class DiscussionMessageTests
     {
         // Arrange
         var channel = OpenChannel(Gadget);
-        var message = PostTopLevel(channel, DiscussionMessageKind.Reply);
+        var message = PostTopLevel(channel, DiscussionMessageKind.Public);
         var firstDeleterId = Guid.NewGuid();
         message.Delete(channel, firstDeleterId, Actor, Now);
         message.ClearDomainEvents();

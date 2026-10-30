@@ -35,8 +35,8 @@ public static class DiscussionErrors
     /// <summary>An internal note on a kind of record that has none.</summary>
     public const string InternalNotesNotSupported = "Conversations on this kind of record cannot hold internal notes.";
 
-    /// <summary>A reply whose parent is in a different conversation.</summary>
-    public const string ParentInAnotherChannel = "That message is in a different conversation.";
+    /// <summary>A reply whose parent, or an edit or delete whose message, is in a different conversation.</summary>
+    public const string MessageInAnotherChannel = "That message is in a different conversation.";
 
     /// <summary>A reply to a reply.</summary>
     public const string ReplyToReply = "Replies go one level deep. Reply to the message that started the thread.";

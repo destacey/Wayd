@@ -119,8 +119,9 @@ internal static class DiscussionReading
                 Id = m.Id,
                 ParentMessageId = m.ParentMessageId,
                 Kind = m.Kind,
-                Subject = m.Subject,
-                Body = m.Body,
+                // The domain clears both on delete; never relying on it alone keeps a tombstone's text unreadable.
+                Subject = m.IsDeleted ? null : m.Subject,
+                Body = m.IsDeleted ? null : m.Body,
                 Author = Name(m.AuthorEmployeeId),
                 PostedOn = m.PostedOn,
                 EditedOn = m.EditedOn,

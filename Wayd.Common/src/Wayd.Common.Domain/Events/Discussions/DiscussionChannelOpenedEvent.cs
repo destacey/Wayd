@@ -4,7 +4,8 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.Discussions;
 
 /// <summary>
-/// A record's conversation was opened, by the first message posted on it.
+/// A record's conversation was opened: by the first message posted on it, or by a moderator locking it before anyone
+/// posted.
 /// </summary>
 public sealed record DiscussionChannelOpenedEvent : DomainEvent<DiscussionChannelOpenedEvent>, IDomainEventDescriptor, IDiscussionEvent
 {

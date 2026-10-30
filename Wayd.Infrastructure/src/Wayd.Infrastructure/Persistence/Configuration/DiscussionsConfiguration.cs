@@ -37,6 +37,10 @@ public class DiscussionChannelConfiguration : IEntityTypeConfiguration<Discussio
 
         builder.Ignore(c => c.IsLocked);
 
+        // Two moderators locking and unlocking at once, or a lock racing the record's deletion, collide here rather
+        // than the second silently undoing the first.
+        builder.Property<byte[]>("RowVersion").IsRowVersion();
+
         // No action: employees are only ever soft-deleted, so the constraint never has a row to act on.
         builder.HasOne<Employee>()
             .WithMany()
@@ -83,6 +87,10 @@ public class DiscussionMessageConfiguration : IEntityTypeConfiguration<Discussio
 
         builder.Ignore(m => m.IsDeleted);
         builder.Ignore(m => m.IsTopLevel);
+
+        // An edit and a delete of one message at once collide here. Without it, whichever saved second wins: an edit
+        // after a delete puts text back on the tombstone, and a delete after an edit leaves the edit's revision behind.
+        builder.Property<byte[]>("RowVersion").IsRowVersion();
 
         builder.HasOne<DiscussionChannel>()
             .WithMany()

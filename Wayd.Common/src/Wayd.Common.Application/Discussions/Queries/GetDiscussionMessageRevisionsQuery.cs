@@ -60,6 +60,11 @@ public sealed class GetDiscussionMessageRevisionsQueryHandler(
             return Result.Success<List<DiscussionMessageRevisionDto>?>(null);
         }
 
+        if (message.IsDeleted)
+        {
+            return new List<DiscussionMessageRevisionDto>();
+        }
+
         return message.Revisions
             .OrderByDescending(r => r.ReplacedOn)
             .ThenByDescending(r => r.Id)

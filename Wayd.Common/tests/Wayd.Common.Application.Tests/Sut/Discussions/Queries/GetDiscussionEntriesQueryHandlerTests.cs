@@ -35,6 +35,7 @@ public sealed class GetDiscussionEntriesQueryHandlerTests
         DiscussionChannelTypes.Register(Gadget);
         _currentPrincipal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_employeeId);
         _ownerId = _gadgets.AddRecord();
+        _readRule.Add("G-1", "Sprocket", id: _ownerId);
 
         _activityLogReader
             .Setup(r => r.Read(It.IsAny<Guid>(), FakeRecordReadRule.ActivityType, It.IsAny<PageRequest?>(), It.IsAny<CancellationToken>()))
@@ -51,8 +52,11 @@ public sealed class GetDiscussionEntriesQueryHandlerTests
     [Fact]
     public async Task Handle_ShouldBeNull_WhenTheCallerCannotReadTheRecord()
     {
+        // Arrange — a record the channel type does not know, so the caller cannot read it.
+        var unreadableId = Guid.NewGuid();
+
         // Act
-        var result = await CreateHandler().Handle(Query(Guid.NewGuid()), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(Query(unreadableId), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -62,6 +66,8 @@ public sealed class GetDiscussionEntriesQueryHandlerTests
     [Fact]
     public async Task Handle_ShouldReadAsAnEmptyConversation_WhenNobodyHasPosted()
     {
+        // Arrange — the record exists and is readable, but has no channel and no activity.
+
         // Act
         var result = await CreateHandler().Handle(Query(_ownerId), TestContext.Current.CancellationToken);
 
@@ -75,7 +81,7 @@ public sealed class GetDiscussionEntriesQueryHandlerTests
     {
         // Arrange
         var channel = OpenChannel();
-        Post(channel, DiscussionMessageKind.Reply, "Visible", Start);
+        Post(channel, DiscussionMessageKind.Public, "Visible", Start);
         Post(channel, DiscussionMessageKind.InternalNote, "Hidden", Start.Plus(Duration.FromMinutes(1)));
         _gadgets.Access = new DiscussionAccess(CanReadInternal: false, CanPost: true, CanPostInternal: false, CanModerate: false);
 
@@ -93,7 +99,7 @@ public sealed class GetDiscussionEntriesQueryHandlerTests
         var channel = OpenChannel();
         for (var i = 0; i < 5; i++)
         {
-            Post(channel, DiscussionMessageKind.Reply, $"Message {i}", Start.Plus(Duration.FromMinutes(i)));
+            Post(channel, DiscussionMessageKind.Public, $"Message {i}", Start.Plus(Duration.FromMinutes(i)));
         }
 
         // Act
@@ -115,7 +121,7 @@ public sealed class GetDiscussionEntriesQueryHandlerTests
         var channel = OpenChannel();
         for (var i = 0; i < 3; i++)
         {
-            Post(channel, DiscussionMessageKind.Reply, $"Message {i}", Start.Plus(Duration.FromMinutes(i)));
+            Post(channel, DiscussionMessageKind.Public, $"Message {i}", Start.Plus(Duration.FromMinutes(i)));
         }
 
         // Act
@@ -132,9 +138,9 @@ public sealed class GetDiscussionEntriesQueryHandlerTests
     {
         // Arrange
         var channel = OpenChannel();
-        Post(channel, DiscussionMessageKind.Reply, "Message 0", Start.Plus(Duration.FromMinutes(10)));
-        Post(channel, DiscussionMessageKind.Reply, "Message 1", Start.Plus(Duration.FromMinutes(20)));
-        Post(channel, DiscussionMessageKind.Reply, "Message 2", Start.Plus(Duration.FromMinutes(30)));
+        Post(channel, DiscussionMessageKind.Public, "Message 0", Start.Plus(Duration.FromMinutes(10)));
+        Post(channel, DiscussionMessageKind.Public, "Message 1", Start.Plus(Duration.FromMinutes(20)));
+        Post(channel, DiscussionMessageKind.Public, "Message 2", Start.Plus(Duration.FromMinutes(30)));
         AddActivity("Created", Start);
         AddActivity("Assigned", Start.Plus(Duration.FromMinutes(15)));
         AddActivity("Moved", Start.Plus(Duration.FromMinutes(25)));
@@ -155,9 +161,9 @@ public sealed class GetDiscussionEntriesQueryHandlerTests
         // Arrange
         var channel = OpenChannel();
         var askedOn = Start.Plus(Duration.FromMinutes(20));
-        Post(channel, DiscussionMessageKind.Reply, "Message 0", Start.Plus(Duration.FromMinutes(10)));
-        Post(channel, DiscussionMessageKind.Reply, "Question", askedOn);
-        Post(channel, DiscussionMessageKind.Reply, "Answer", Start.Plus(Duration.FromMinutes(30)));
+        Post(channel, DiscussionMessageKind.Public, "Message 0", Start.Plus(Duration.FromMinutes(10)));
+        Post(channel, DiscussionMessageKind.Public, "Question", askedOn);
+        Post(channel, DiscussionMessageKind.Public, "Answer", Start.Plus(Duration.FromMinutes(30)));
         // Asking and moving the request is one save, so the change shares the question's instant.
         AddActivity("Moved", askedOn);
 
@@ -171,11 +177,29 @@ public sealed class GetDiscussionEntriesQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldLeaveOutActivity_WhenTheRecordsOwnRuleDoesNotAdmitTheCaller()
+    {
+        // Arrange
+        var channel = OpenChannel();
+        Post(channel, DiscussionMessageKind.Public, "Message 0", Start.Plus(Duration.FromMinutes(10)));
+        AddActivity("Created", Start);
+        // The channel type lets the caller discuss the record, but the record's own read rule would not show them
+        // its history.
+        _readRule.Hide(_ownerId);
+
+        // Act
+        var result = await CreateHandler().Handle(Query(_ownerId), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value!.Items.Should().ContainSingle().Which.Type.Should().Be(DiscussionEntryType.Message);
+    }
+
+    [Fact]
     public async Task Handle_ShouldLeaveOutActivity_WhenOnlyMessagesAreAsked()
     {
         // Arrange
         var channel = OpenChannel();
-        Post(channel, DiscussionMessageKind.Reply, "Message 0", Start.Plus(Duration.FromMinutes(10)));
+        Post(channel, DiscussionMessageKind.Public, "Message 0", Start.Plus(Duration.FromMinutes(10)));
         AddActivity("Created", Start);
 
         // Act
@@ -194,7 +218,7 @@ public sealed class GetDiscussionEntriesQueryHandlerTests
         _dbContext.AddEmployee(author);
         _dbContext.AddEmployee(replier);
         var channel = OpenChannel();
-        var parent = Post(channel, DiscussionMessageKind.Reply, "Question", Start);
+        var parent = Post(channel, DiscussionMessageKind.Public, "Question", Start);
         Reply(channel, parent, replier.Id, Start.Plus(Duration.FromMinutes(5)));
         Reply(channel, parent, replier.Id, Start.Plus(Duration.FromMinutes(9)));
 

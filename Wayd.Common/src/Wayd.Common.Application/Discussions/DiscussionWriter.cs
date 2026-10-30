@@ -40,6 +40,7 @@ public sealed class DiscussionWriter(
         var actor = Actor(employeeId);
 
         var channel = await FindChannel(type.ChannelType, message.OwnerId, cancellationToken);
+        var opening = channel is null;
         if (channel is null)
         {
             var opened = DiscussionChannel.OpenForRecord(type.ChannelType, message.OwnerId, actor, now);
@@ -49,7 +50,6 @@ public sealed class DiscussionWriter(
             }
 
             channel = opened.Value;
-            _dbContext.DiscussionChannels.Add(channel);
         }
 
         var mentions = await Mentionable(type, message.OwnerId, message.Body, message.Kind, cancellationToken);
@@ -58,6 +58,13 @@ public sealed class DiscussionWriter(
         if (posted.IsFailure)
         {
             return Result.Failure<Guid>(posted.Error);
+        }
+
+        // Staged only once the message is valid, so a caller that saves its own work after a failed post never
+        // stores an empty conversation.
+        if (opening)
+        {
+            _dbContext.DiscussionChannels.Add(channel);
         }
 
         _dbContext.DiscussionMessages.Add(posted.Value);
@@ -126,6 +133,12 @@ public sealed class DiscussionWriter(
             return Result.Failure(DiscussionAccessErrors.CannotWrite);
         }
 
+        // Asked here as well as in the domain so it reads as a refusal, like every other "you may not".
+        if (message.AuthorEmployeeId != employeeId)
+        {
+            return Result.Failure(DiscussionAccessErrors.NotTheAuthor);
+        }
+
         var mentions = await Mentionable(type, ownerId, body, message.Kind, cancellationToken);
 
         return message.Edit(channel, employeeId, subject, body, mentions, Actor(employeeId), _dateTimeProvider.Now);
@@ -192,17 +205,20 @@ public sealed class DiscussionWriter(
     }
 
     /// <inheritdoc/>
-    public async Task DeleteChannel(string channelType, Guid ownerId, CancellationToken cancellationToken)
+    public async Task DeleteChannel(string channelType, Guid ownerId, EventActor actor, CancellationToken cancellationToken)
     {
+        // A module passing an unregistered type is a bug, not a request to refuse: its conversations would outlive it.
         var descriptor = DiscussionChannelTypes.Resolve(channelType);
         if (descriptor.IsFailure)
         {
-            return;
+            throw new ArgumentException(descriptor.Error, nameof(channelType));
         }
 
         var channel = await FindChannel(descriptor.Value.Key, ownerId, cancellationToken);
         if (channel is not null)
         {
+            channel.Delete(actor, _dateTimeProvider.Now);
+
             // The database cascades the channel's messages, their revisions and mentions.
             _dbContext.DiscussionChannels.Remove(channel);
         }

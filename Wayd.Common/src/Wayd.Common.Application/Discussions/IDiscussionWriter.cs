@@ -17,6 +17,11 @@ namespace Wayd.Common.Application.Discussions;
 /// <see cref="DiscussionAccessErrors.NotFound"/>, never a permission error, so a conversation never confirms that a
 /// hidden note exists.
 /// </para>
+/// <para>
+/// <strong>Saving can collide.</strong> Two first posts on a record meet at the one-conversation-per-record index, and
+/// an edit and a delete of one message at its row version. A caller turns the <c>DbUpdateException</c> its save
+/// throws into <see cref="DiscussionAccessErrors.Conflict"/>, as the discussion commands do.
+/// </para>
 /// </remarks>
 public interface IDiscussionWriter : IScopedService
 {
@@ -48,7 +53,9 @@ public interface IDiscussionWriter : IScopedService
     /// Removes a record's conversation and every message in it, for a module hard-deleting the record. Asks no
     /// access: the module has already decided the record may go. Does nothing when there is no conversation.
     /// </summary>
-    Task DeleteChannel(string channelType, Guid ownerId, CancellationToken cancellationToken);
+    /// <param name="actor">Who is deleting the record, as the module's own delete records it.</param>
+    /// <exception cref="ArgumentException">The channel type is not registered.</exception>
+    Task DeleteChannel(string channelType, Guid ownerId, EventActor actor, CancellationToken cancellationToken);
 }
 
 /// <summary>A top-level message to post on a record.</summary>

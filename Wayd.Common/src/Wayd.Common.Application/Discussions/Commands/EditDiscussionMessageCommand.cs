@@ -42,7 +42,16 @@ public sealed class EditDiscussionMessageCommandHandler(IDiscussionWriter writer
             return edited;
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Deleted or edited in the same moment; saving anyway could put text back on a tombstone.
+            return Result.Failure(DiscussionAccessErrors.Conflict);
+        }
+
         return edited;
     }
 }

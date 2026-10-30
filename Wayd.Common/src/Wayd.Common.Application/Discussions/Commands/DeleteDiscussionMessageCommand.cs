@@ -38,7 +38,16 @@ public sealed class DeleteDiscussionMessageCommandHandler(IDiscussionWriter writ
             return deleted;
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Edited in the same moment; deleting from the stale version could leave the edit's revision behind.
+            return Result.Failure(DiscussionAccessErrors.Conflict);
+        }
+
         return deleted;
     }
 }

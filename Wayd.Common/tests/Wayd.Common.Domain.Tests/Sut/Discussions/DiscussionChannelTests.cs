@@ -43,8 +43,11 @@ public sealed class DiscussionChannelTests
     [Fact]
     public void OpenForRecord_ShouldFail_ForAnUnregisteredType()
     {
+        // Arrange
+        var ownerId = Guid.NewGuid();
+
         // Act
-        var result = DiscussionChannel.OpenForRecord("test.discussions.nothing", Guid.NewGuid(), Actor, Now);
+        var result = DiscussionChannel.OpenForRecord("test.discussions.nothing", ownerId, Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -54,8 +57,11 @@ public sealed class DiscussionChannelTests
     [Fact]
     public void OpenForRecord_ShouldThrow_WhenTheOwnerIdIsEmpty()
     {
+        // Arrange
+        var ownerId = Guid.Empty;
+
         // Act
-        Action act = () => DiscussionChannel.OpenForRecord(Gadget.Key, Guid.Empty, Actor, Now);
+        Action act = () => DiscussionChannel.OpenForRecord(Gadget.Key, ownerId, Actor, Now);
 
         // Assert
         act.Should().Throw<ArgumentException>().WithParameterName("ownerId");
@@ -137,6 +143,24 @@ public sealed class DiscussionChannelTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(DiscussionErrors.NotLocked);
         channel.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Delete_ShouldRecordTheConversationsRemoval()
+    {
+        // Arrange
+        var channel = OpenChannel();
+        var later = Now.Plus(Duration.FromDays(3));
+
+        // Act
+        channel.Delete(Actor, later);
+
+        // Assert
+        var deleted = channel.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<DiscussionChannelDeletedEvent>().Subject;
+        deleted.Id.Should().Be(channel.Id);
+        deleted.ChannelType.Should().Be(Gadget.Key);
+        deleted.OwnerId.Should().Be(channel.OwnerId);
+        deleted.Timestamp.Should().Be(later);
     }
 
     private static DiscussionChannel OpenChannel()

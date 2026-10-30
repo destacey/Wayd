@@ -8,10 +8,10 @@ namespace Wayd.Web.Api.Models.Discussions;
 public sealed record PostDiscussionMessageRequest
 {
     /// <summary>
-    /// Who the message is for: `Reply` for everyone who can read the conversation, `InternalNote` for its internal
+    /// Who the message is for: `Public` for everyone who can read the conversation, `InternalNote` for its internal
     /// audience only, such as an intake desk's agents.
     /// </summary>
-    public DiscussionMessageKind Kind { get; set; } = DiscussionMessageKind.Reply;
+    public DiscussionMessageKind Kind { get; set; } = DiscussionMessageKind.Public;
 
     /// <summary>An optional subject of up to 200 characters, so parallel topics on a busy record stay apart.</summary>
     public string? Subject { get; set; }

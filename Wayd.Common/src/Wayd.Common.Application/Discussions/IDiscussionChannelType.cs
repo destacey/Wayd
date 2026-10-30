@@ -17,7 +17,12 @@ namespace Wayd.Common.Application.Discussions;
 /// </para>
 /// <para>
 /// <strong>Deliberately unmarked</strong>, like <c>IRecordReadRule</c>: the marker scan binds one implementation
-/// per interface, so several channel types would collapse to one. Registration is explicit.
+/// per interface, so several channel types would collapse to one. Registration is explicit, and the implementation
+/// must be <c>public</c>, because Wolverine's generated handlers construct it directly.
+/// </para>
+/// <para>
+/// <strong>Its key must be the record's read rule owner type.</strong> A conversation shows the record's activity
+/// through the <c>IRecordReadRule</c> registered under the same key; with none, it shows messages only.
 /// </para>
 /// </remarks>
 public interface IDiscussionChannelType
@@ -68,7 +73,7 @@ public interface IDiscussionChannelType
 public sealed record DiscussionAccess(bool CanReadInternal, bool CanPost, bool CanPostInternal, bool CanModerate)
 {
     /// <summary>Whether the caller may read messages of the given kind.</summary>
-    public bool CanRead(DiscussionMessageKind kind) => kind == DiscussionMessageKind.Reply || CanReadInternal;
+    public bool CanRead(DiscussionMessageKind kind) => kind == DiscussionMessageKind.Public || CanReadInternal;
 
     /// <summary>Whether the caller may write a message of the given kind: post, reply in its thread, or edit one.</summary>
     public bool CanWrite(DiscussionMessageKind kind) =>
@@ -76,5 +81,5 @@ public sealed record DiscussionAccess(bool CanReadInternal, bool CanPost, bool C
 
     /// <summary>The kinds of message the caller may read, for filtering a query.</summary>
     public DiscussionMessageKind[] ReadableKinds() =>
-        CanReadInternal ? [DiscussionMessageKind.Reply, DiscussionMessageKind.InternalNote] : [DiscussionMessageKind.Reply];
+        CanReadInternal ? [DiscussionMessageKind.Public, DiscussionMessageKind.InternalNote] : [DiscussionMessageKind.Public];
 }

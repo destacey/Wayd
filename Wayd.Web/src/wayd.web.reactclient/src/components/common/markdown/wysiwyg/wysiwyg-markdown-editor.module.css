@@ -221,4 +221,6 @@
   font-family: var(--ant-font-family-code);
   font-size: var(--ant-font-size);
   line-height: var(--ant-line-height);
+  /* The surrounding box shows focus, as it does for the document view. */
+  outline: none;
 }

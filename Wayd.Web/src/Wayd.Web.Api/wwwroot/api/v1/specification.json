@@ -30,7 +30,7 @@
           "Discussions"
         ],
         "summary": "Get what you may do in a record's conversation.",
-        "description": "`channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns `canPost`, `canPostInternal` (false means you are offered no internal notes at all), `canModerate` (lock the conversation and delete anyone's message) and whether the conversation `isLocked`. Read its messages from the entries endpoint. A record nobody has posted on is an empty, unlocked conversation. Returns 404 when the record does not exist or you cannot read it.",
+        "description": "`channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns `canPost`, `canPostInternal` (false means you are offered no internal notes at all), `canModerate` (lock the conversation and delete anyone's message) whether the conversation `isLocked`, and how many threads (`threadCount`) and messages (`messageCount`, threads and replies together) you can read, leaving out deleted ones and any internal notes you may not read. Read its messages from the entries endpoint. A record nobody has posted on is an empty, unlocked conversation. Returns 404 when the record does not exist or you cannot read it.",
         "operationId": "Discussions_GetDiscussion",
         "parameters": [
           {
@@ -56053,7 +56053,9 @@
           "canPost",
           "canPostInternal",
           "canModerate",
-          "isLocked"
+          "isLocked",
+          "threadCount",
+          "messageCount"
         ],
         "type": "object",
         "properties": {
@@ -56072,6 +56074,16 @@
           "isLocked": {
             "type": "boolean",
             "description": "Whether the conversation is locked: nothing new can be posted, replied or edited."
+          },
+          "threadCount": {
+            "type": "integer",
+            "description": "How many threads the caller can read: top-level messages not deleted, of the kinds they may read.",
+            "format": "int32"
+          },
+          "messageCount": {
+            "type": "integer",
+            "description": "How many messages the caller can read, top-level and replies, not deleted, of the kinds they may read.",
+            "format": "int32"
           }
         },
         "additionalProperties": false,

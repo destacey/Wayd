@@ -59897,6 +59897,10 @@ export interface DiscussionDto {
     canModerate: boolean;
     /** Whether the conversation is locked: nothing new can be posted, replied or edited. */
     isLocked: boolean;
+    /** How many threads the caller can read: top-level messages not deleted, of the kinds they may read. */
+    threadCount: number;
+    /** How many messages the caller can read, top-level and replies, not deleted, of the kinds they may read. */
+    messageCount: number;
 }
 
 /** One entry in a conversation: a top-level message, or a change to the record between messages. */

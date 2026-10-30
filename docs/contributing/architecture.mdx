@@ -436,12 +436,23 @@ registration in its module, not a schema change:
      mention in an internal note to the internal audience, or the mention tells someone a note exists.
    - `OnPosted(channel, message)` applies what posting means to the module's own aggregate — adding a participant —
      tracked in the same save, because it can grant access. `OnEdited(channel, message, addedMentionIds)` does the
-     same for mentions an edit adds, so editing is no way around the rule for who may widen a record.
+     same for mentions an edit adds, so editing is no way around the rule for who may widen a record. A record whose
+     access comes only from permissions and roles, as a project's does, leaves both empty.
 3. Register both in `Infrastructure/Discussions/ConfigureServices.AddDiscussions`. Make the implementation
    `public` — Wolverine's generated handlers construct it directly — and give it the same key as the record's
    `IRecordReadRule`: the conversation shows the record's activity through that rule, once the rule admits the
    caller, and shows messages only when no rule has the key. `DiscussionRegistrationTests` fails until every
    registered channel type has exactly one implementation.
+
+Two channel types are registered:
+
+- **Intake request** (`IntakeRequestDiscussionChannelType`): messages read by the rule the request's description
+  is, internal notes for the desk's agents, moderation by its Desk Admins. A message on a desk that is not private
+  can make its author and the people it mentions participants.
+- **Project** (`ProjectDiscussionChannelType`): read by anyone who can read the project, moderated by its delivery
+  leaders — Owner or Manager on the project, its program or its portfolio, or the PPM administrator. No internal
+  notes, and a mention only notifies. The ancestors' roles are loaded with `.Include`, which the in-memory fakes
+  ignore, so `ProjectDiscussionChannelTypeIntegrationTests` decides moderation against SQL Server.
 
 **`IDiscussionWriter` is the only way to change a conversation.** The discussion endpoints, a module's own
 commands and agent tools all post through it, so the rules live in one place; it stages and never saves, so a

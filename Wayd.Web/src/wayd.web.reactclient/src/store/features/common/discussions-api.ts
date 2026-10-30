@@ -16,6 +16,7 @@ import { QueryTags } from '../query-tags'
  */
 export const DiscussionChannelTypes = {
   IntakeRequest: 'demand.intake-request',
+  Project: 'ppm.project',
 } as const
 
 export type DiscussionChannelType =
@@ -67,18 +68,28 @@ export const discussionTag = ({ channelType, ownerId }: DiscussionTarget) => ({
 })
 
 /**
- * What writing a message changes: its conversation, and on a record that gains
- * participants by posting, the record and its history too, so the record's
- * people and Activity show who joined.
+ * What writing a message changes on the record it is about, by kind of record.
+ * Every kind needs an entry, so a new one decides what its posts refresh.
  */
+const ownerTags: Record<
+  DiscussionChannelType,
+  (ownerId: string) => { type: QueryTags; id: string }[]
+> = {
+  // Posting can make the author or the people mentioned participants, so the
+  // request's people and Activity show who joined.
+  [DiscussionChannelTypes.IntakeRequest]: (ownerId) => [
+    { type: QueryTags.IntakeRequest, id: ownerId },
+    { type: QueryTags.ActivityLog, id: ownerId },
+  ],
+  // Posting changes nothing on a project: access comes from its roles, never
+  // from a conversation.
+  [DiscussionChannelTypes.Project]: () => [],
+}
+
+/** What writing a message changes: its conversation, and its record's caches. */
 const writeTags = (target: DiscussionTarget) => [
   discussionTag(target),
-  ...(target.channelType === DiscussionChannelTypes.IntakeRequest
-    ? [
-        { type: QueryTags.IntakeRequest, id: target.ownerId },
-        { type: QueryTags.ActivityLog, id: target.ownerId },
-      ]
-    : []),
+  ...ownerTags[target.channelType](target.ownerId),
 ]
 
 const run = async <T>(call: () => Promise<T>) => {

@@ -390,14 +390,33 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
 
         // Assert
         Assert.NotEmpty(tools);
-        // A request's conversation is held through the discussion tools, in this toolset while requests are the only
-        // kind of record with one.
-        Assert.All(tools, name => Assert.True(
-            name.StartsWith("Intake", StringComparison.Ordinal) || name.StartsWith("Discussions_", StringComparison.Ordinal), name));
+        Assert.All(tools, name => Assert.StartsWith("Intake", name, StringComparison.Ordinal));
         Assert.Contains("IntakeRequests_Submit", offered);
-        Assert.Contains("Discussions_Post", offered);
         Assert.Contains("IntakeDesks_Update", offered);
         Assert.DoesNotContain(offered, name => name.StartsWith("Projects_", StringComparison.Ordinal));
+        Assert.DoesNotContain(offered, name => name.StartsWith("Discussions_", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task GetTools_OffersEveryDiscussionTool_InTheDiscussionsToolset()
+    {
+        // Arrange
+        var filter = new McpToolFilter(new HashSet<McpToolset> { McpToolset.Discussions }, false);
+
+        // Act
+        var tools = (await GetCatalog().GetToolsets())
+            .Where(t => t.Toolset == McpToolset.Discussions)
+            .Select(t => t.Tool.ProtocolTool.Name)
+            .ToList();
+        var offered = (await GetCatalog().GetTools(filter)).Select(t => t.ProtocolTool.Name).ToList();
+
+        // Assert
+        // One toolset for the conversation on every kind of record, so a project's needs no intake tools.
+        Assert.Equal(
+            ["Discussions_Get", "Discussions_GetEntries", "Discussions_GetReplies", "Discussions_Post", "Discussions_Reply"],
+            tools.Order(StringComparer.Ordinal));
+        Assert.Contains("Discussions_Post", offered);
+        Assert.DoesNotContain(offered, name => name.StartsWith("Intake", StringComparison.Ordinal));
     }
 
     [Fact]

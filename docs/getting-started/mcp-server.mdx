@@ -156,7 +156,8 @@ Every tool's description is loaded into the conversation before any work starts,
 | `organization` | Employees, holiday calendars, team member roles, team types, risks                                        |
 | `work`         | Workspaces, work items, sprints, work processes, work types and statuses                                  |
 | `imports`      | Checking, applying and following CSV imports                                                              |
-| `intake`       | Intake requests and their review and conversation, desks, channels, tag axes, free tags                   |
+| `intake`       | Intake requests and their review, desks, channels, tag axes, free tags                                    |
+| `discussions`  | The conversation on an intake request or a project: threads, messages, replies, internal notes            |
 
 Choose them on the URL, or in headers if your client sends them:
 
@@ -226,7 +227,8 @@ Beyond those, it covers these areas, which the npm package covers partly or not 
 | `Roadmaps_*`, `StoryMaps_*` | `planning` | Create, copy, update, archive and delete roadmaps and their items; rename a story map task or set its description |
 | `PokerSessions_*`, `EstimationScales_*` | `planning` | Run planning poker sessions — rounds, votes, reveal and consensus — and manage estimation scales |
 | `Portfolios_*`, `Programs_*`, `Projects_*`, `Tasks_*`, `ProjectLifecycles_*`, `StrategicInitiatives_*`, `ExpenditureCategories_*`, `ScoringModels_*` | `ppm` | Delete portfolios, programs and projects; list scoring models, assign them to portfolios and move projects on the ranking board; assign and change project lifecycles and manage the lifecycles themselves; record project scores; create, update and delete strategic initiatives and their KPIs; manage expenditure categories |
-| `IntakeRequests_*`, `IntakeDesks_*`, `IntakeChannels_*`, `IntakeRequestTagCategories_*`, `IntakeRequestTags_*`, `IntakeEmployeeOptions_*`, `Discussions_*` | `intake` | Submit, edit and withdraw intake requests and read where they stand; read and post in a request's conversation — replies and internal notes — and ask the requester a question while moving the request to Waiting on Requester; review them on a desk — change status, assign, tag, score and rank, move to another desk, manage participants, record the projects a request became; list the requests behind a project; set up desks, channels, tag axes and a desk's scoring model; rename, merge and delete free tags (`demand-management` feature flag) |
+| `IntakeRequests_*`, `IntakeDesks_*`, `IntakeChannels_*`, `IntakeRequestTagCategories_*`, `IntakeRequestTags_*`, `IntakeEmployeeOptions_*` | `intake` | Submit, edit and withdraw intake requests and read where they stand; ask the requester a question while moving the request to Waiting on Requester; review them on a desk — change status, assign, tag, score and rank, move to another desk, manage participants, record the projects a request became; list the requests behind a project; set up desks, channels, tag axes and a desk's scoring model; rename, merge and delete free tags (`demand-management` feature flag) |
+| `Discussions_*` | `discussions` | Read the conversation on an intake request or a project — its threads and the record's changes between them — post a message with a subject, reply in a thread, and write a request's internal notes |
 
 The patch tools take a JSON Patch (RFC 6902) and leave alone anything it does not name, so they avoid the [whole-record overwrite](#changes-that-ask-first) of the matching update tools.
 
@@ -344,7 +346,8 @@ For Claude Code users, fourteen pre-built skills provide guided workflows:
 - **`/wayd-estimation`** — Planning poker sessions and estimation scales (hosted endpoint only)
 - **`/wayd-imports`** — Loading CSV data: writing a file, checking it with a preflight, importing it, and following import runs
 - **`/wayd-incidents`** — Incident severity scales under Product Management — list seeded and custom sets, select which scale the organization uses, and manage custom sets (requires `product-management` and `incident-management` feature flags)
-- **`/wayd-intake`** — Raising intake requests, following what happened to them, reviewing them on a desk, holding their conversation, and setting up desks, channels and tag axes (hosted endpoint only)
+- **`/wayd-intake`** — Raising intake requests, following what happened to them, reviewing them on a desk, and setting up desks, channels and tag axes (hosted endpoint only)
+- **`/wayd-discussions`** — Holding the conversation on an intake request or a project: reading its threads, posting and replying, internal notes on requests, and mentions (hosted endpoint only)
 
 Install the skills:
 

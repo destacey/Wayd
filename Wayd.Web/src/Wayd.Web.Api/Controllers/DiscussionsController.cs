@@ -18,18 +18,18 @@ namespace Wayd.Web.Api.Controllers;
 /// write, from the record as it is now. A record the caller cannot read, and a message they may not see, are 404,
 /// never 403, so the conversation never confirms that a hidden note exists.
 /// <para>
-/// Its tools sit in the Intake toolset while intake requests are the only kind of record with a conversation.
+/// Its tools have a toolset of their own, since every kind of record with a conversation shares them.
 /// </para>
 /// </remarks>
 [Route("api/discussions/{channelType}/{ownerId:guid}")]
 [ApiVersionNeutral]
 [ApiController]
 [Authorize]
-[McpTools(McpToolset.Intake, "wayd-intake")]
+[McpTools(McpToolset.Discussions, "wayd-discussions")]
 public class DiscussionsController(IDispatcher dispatcher) : ControllerBase
 {
     private const string ChannelTypeDocs =
-        "`channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400.";
+        "`channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400.";
 
     private readonly IDispatcher _dispatcher = dispatcher;
 

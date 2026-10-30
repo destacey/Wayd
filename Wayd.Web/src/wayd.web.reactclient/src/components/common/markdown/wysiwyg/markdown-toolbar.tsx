@@ -193,7 +193,9 @@ const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
       aria-label="Formatting"
       aria-controls={editorId}
     >
-      <WaydTooltip title="Text style">
+      {/* Icon only, so the toolbar fits one row in a form dialog; the tooltip and the checked menu
+          item name the current style, and the button fills while a heading is selected. */}
+      <WaydTooltip title={`Text style: ${headingItems[state.heading].label}`}>
         <Dropdown
           trigger={['click']}
           menu={{
@@ -205,15 +207,13 @@ const MarkdownToolbar = ({ editor, editorId }: MarkdownToolbarProps) => {
         >
           <Button
             size="small"
-            variant="text"
-            color="default"
+            color={state.heading ? 'primary' : 'default'}
+            variant={state.heading ? 'filled' : 'text'}
             icon={<FontSizeOutlined />}
-            aria-label="Text style"
+            aria-label={`Text style: ${headingItems[state.heading].label}`}
             aria-haspopup="menu"
             onMouseDown={keepSelection}
-          >
-            {headingItems[state.heading].label}
-          </Button>
+          />
         </Dropdown>
       </WaydTooltip>
 

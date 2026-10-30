@@ -26,13 +26,14 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--ant-margin-xxs);
-  padding: var(--ant-padding-xxs) var(--ant-padding-xs);
+  /* Tight enough that every button fits one row in a standard form dialog; larger themes wrap. */
+  gap: calc(var(--ant-margin-xxs) / 2);
+  padding: var(--ant-padding-xxs);
   border-bottom: 1px solid var(--ant-color-border-secondary);
 }
 
 .divider {
-  margin: 0 var(--ant-margin-xxs);
+  margin: 0;
   height: 1.25em;
 }
 

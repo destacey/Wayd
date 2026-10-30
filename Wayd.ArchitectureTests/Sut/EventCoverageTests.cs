@@ -9,6 +9,7 @@ using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.ArchitectureTests.Helpers;
 using Wayd.Common.Domain.Activities;
 using Wayd.Common.Domain.AppIntegrations;
+using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.Following;
@@ -71,6 +72,8 @@ public partial class EventCoverageTests
         typeof(WorkdayConnection),
 
         // Common
+        typeof(DiscussionChannel),
+        typeof(DiscussionMessage),
         typeof(Employee),
         typeof(ExternalIdentityMapping),
         typeof(OidcProvider),

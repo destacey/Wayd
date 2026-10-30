@@ -10,7 +10,7 @@ import {
 } from '@/src/services/wayd-api'
 import { ConnectorType, CONNECTOR_NAMES } from '@/src/types/connectors'
 import { toApiError, toFormErrors } from '@/src/utils'
-import { Alert, Button, Flex, Form, Modal } from 'antd'
+import { Button, Flex, Form, Modal } from 'antd'
 import { useState } from 'react'
 import { ConnectionFormBase } from './connection-form-base'
 import { ConnectorTypeSelector } from './connector-type-selector'
@@ -340,19 +340,11 @@ const CreateConnectionForm = ({
           layout="vertical"
           name="create-connection-form"
         >
-          {isTeamsCreate && teamsVerifyError ? (
-            <Alert
-              type="error"
-              showIcon
-              message="Connection verification failed"
-              description={teamsVerifyError}
-              style={{ marginBottom: 16 }}
-            />
-          ) : null}
           <ConnectionFormBase
             connector={selectedConnector}
             mode="create"
             form={form}
+            teamsVerifyError={isTeamsCreate ? teamsVerifyError : null}
           />
         </Form>
       )}

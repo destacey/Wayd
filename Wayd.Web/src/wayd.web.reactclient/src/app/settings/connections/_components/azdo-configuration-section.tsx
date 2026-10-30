@@ -21,6 +21,8 @@ export interface ConfigSectionProps {
    * init probe) consume this; sections that don't can ignore it.
    */
   connection?: ConnectionDetailsDto
+  /** Microsoft Teams create form: last verify failure for the current credentials. */
+  teamsVerifyError?: string | null
 }
 
 export const AzureDevOpsConfigurationSection: React.FC<ConfigSectionProps> = ({

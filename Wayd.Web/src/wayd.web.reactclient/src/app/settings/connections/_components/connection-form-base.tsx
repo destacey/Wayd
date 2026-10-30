@@ -16,6 +16,8 @@ export interface ConnectionFormBaseProps {
   form: FormInstance
   /** The existing connection being edited; undefined on create. Forwarded to ConfigurationSection. */
   connection?: ConnectionDetailsDto
+  /** Microsoft Teams create form only; shown above credential fields. */
+  teamsVerifyError?: string | null
 }
 
 export const ConnectionFormBase: React.FC<ConnectionFormBaseProps> = ({
@@ -23,6 +25,7 @@ export const ConnectionFormBase: React.FC<ConnectionFormBaseProps> = ({
   mode,
   form,
   connection,
+  teamsVerifyError,
 }) => {
   const ConfigurationSection = CONNECTOR_FORM_REGISTRY[connector]
 
@@ -51,7 +54,12 @@ export const ConnectionFormBase: React.FC<ConnectionFormBaseProps> = ({
       </Divider>
 
       {/* Dynamic connector-specific configuration */}
-      <ConfigurationSection form={form} mode={mode} connection={connection} />
+      <ConfigurationSection
+        form={form}
+        mode={mode}
+        connection={connection}
+        teamsVerifyError={teamsVerifyError}
+      />
     </>
   )
 }

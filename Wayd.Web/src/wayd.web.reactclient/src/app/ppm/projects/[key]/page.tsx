@@ -40,6 +40,7 @@ import ChangeProjectLifecycleForm from '@/src/app/ppm/projects/_components/chang
 import { ProjectStatusAction } from '@/src/app/ppm/projects/_components/change-project-status-form'
 import ProjectDetailsLoading from './loading'
 import ProjectDefinition from './_components/project-definition'
+import ProjectDiscussion from './_components/project-discussion'
 import ProjectFacts from './_components/project-facts'
 import ProjectIntakeRequests from './_components/project-intake-requests'
 import ProjectOverview from './_components/project-overview'
@@ -69,6 +70,7 @@ const ProjectHealthReport = dynamic(
 
 enum ProjectSections {
   Overview = 'overview',
+  Discussion = 'discussion',
   Definition = 'definition',
   Team = 'team',
   Plan = 'plan',
@@ -417,6 +419,8 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   // one is assigned.
   const sections: RecordSection[] = [
     { id: ProjectSections.Overview, label: 'Overview' },
+    // Draws its own heading, with its counts and filters beside it.
+    { id: ProjectSections.Discussion, label: 'Discussion', hideHeading: true },
     { id: ProjectSections.Definition, label: 'Definition' },
     { id: ProjectSections.Team, label: 'Team' },
     ...(projectData.projectLifecycle
@@ -459,6 +463,8 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const renderSection = (section: ProjectSections) => {
     switch (section) {
+      case ProjectSections.Discussion:
+        return <ProjectDiscussion project={projectData} />
       case ProjectSections.Definition:
         return <ProjectDefinition project={projectData} />
       case ProjectSections.Team:

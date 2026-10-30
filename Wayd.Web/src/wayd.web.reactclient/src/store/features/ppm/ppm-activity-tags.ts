@@ -1,3 +1,7 @@
+import {
+  DiscussionChannelTypes,
+  discussionTag,
+} from '../common/discussion-tags'
 import { QueryTags } from '../query-tags'
 
 /**
@@ -16,3 +20,16 @@ import { QueryTags } from '../query-tags'
  */
 export const ppmActivityTag = (recordId: string) =>
   ({ type: QueryTags.ActivityLog, id: recordId }) as const
+
+/**
+ * What a change to a project has to refresh beyond the project itself: its
+ * activity log, and its conversation, which shows those changes between the
+ * messages and whose access follows the project's roles.
+ */
+export const projectActivityTags = (projectId: string) => [
+  ppmActivityTag(projectId),
+  discussionTag({
+    channelType: DiscussionChannelTypes.Project,
+    ownerId: projectId,
+  }),
+]

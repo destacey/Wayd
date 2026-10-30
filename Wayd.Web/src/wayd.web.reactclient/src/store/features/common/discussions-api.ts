@@ -9,23 +9,15 @@ import {
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
+import {
+  DiscussionChannelType,
+  DiscussionChannelTypes,
+  DiscussionTarget,
+  discussionTag,
+} from './discussion-tags'
 
-/**
- * The kinds of record people can discuss, as the API names them. Each is
- * registered on the server with the rules for who may read and post.
- */
-export const DiscussionChannelTypes = {
-  IntakeRequest: 'demand.intake-request',
-} as const
-
-export type DiscussionChannelType =
-  (typeof DiscussionChannelTypes)[keyof typeof DiscussionChannelTypes]
-
-/** One record's conversation. */
-export interface DiscussionTarget {
-  channelType: DiscussionChannelType
-  ownerId: string
-}
+export { DiscussionChannelTypes, discussionTag }
+export type { DiscussionChannelType, DiscussionTarget }
 
 /** What a page of a conversation shows. Paging is the infinite query's. */
 export interface GetDiscussionEntriesRequest extends DiscussionTarget {
@@ -58,27 +50,28 @@ export interface DiscussionMessageArgs extends DiscussionTarget {
 export const DiscussionPageSize = 25
 
 /**
- * Everything read about one conversation carries one tag, so any change to it
- * refreshes what is on screen: its page of entries, its threads, its access.
+ * What writing a message changes on the record it is about, by kind of record.
+ * Every kind needs an entry, so a new one decides what its posts refresh.
  */
-export const discussionTag = ({ channelType, ownerId }: DiscussionTarget) => ({
-  type: QueryTags.Discussion,
-  id: `${channelType}:${ownerId}`,
-})
+const ownerTags: Record<
+  DiscussionChannelType,
+  (ownerId: string) => { type: QueryTags; id: string }[]
+> = {
+  // Posting can make the author or the people mentioned participants, so the
+  // request's people and Activity show who joined.
+  [DiscussionChannelTypes.IntakeRequest]: (ownerId) => [
+    { type: QueryTags.IntakeRequest, id: ownerId },
+    { type: QueryTags.ActivityLog, id: ownerId },
+  ],
+  // Posting changes nothing on a project: access comes from its roles, never
+  // from a conversation.
+  [DiscussionChannelTypes.Project]: () => [],
+}
 
-/**
- * What writing a message changes: its conversation, and on a record that gains
- * participants by posting, the record and its history too, so the record's
- * people and Activity show who joined.
- */
+/** What writing a message changes: its conversation, and its record's caches. */
 const writeTags = (target: DiscussionTarget) => [
   discussionTag(target),
-  ...(target.channelType === DiscussionChannelTypes.IntakeRequest
-    ? [
-        { type: QueryTags.IntakeRequest, id: target.ownerId },
-        { type: QueryTags.ActivityLog, id: target.ownerId },
-      ]
-    : []),
+  ...ownerTags[target.channelType](target.ownerId),
 ]
 
 const run = async <T>(call: () => Promise<T>) => {

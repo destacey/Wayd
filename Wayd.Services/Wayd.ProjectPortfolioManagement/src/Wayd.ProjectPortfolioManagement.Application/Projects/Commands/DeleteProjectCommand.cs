@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Domain.Events;
+using Wayd.Common.Application.Discussions;
+using Wayd.Common.Domain.Events;
+using Wayd.ProjectPortfolioManagement.Domain;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 
@@ -13,13 +15,14 @@ public sealed class DeleteProjectCommandValidator : AbstractValidator<DeleteProj
     }
 }
 
-public sealed class DeleteProjectCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ICurrentUser currentUser, ILogger<DeleteProjectCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<DeleteProjectCommand>
+public sealed class DeleteProjectCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ICurrentUser currentUser, ILogger<DeleteProjectCommandHandler> logger, IDateTimeProvider dateTimeProvider, IDiscussionWriter discussionWriter) : ICommandHandler<DeleteProjectCommand>
 {
     private const string AppRequestName = nameof(DeleteProjectCommand);
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<DeleteProjectCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly IDiscussionWriter _discussionWriter = discussionWriter;
 
     public async Task<Result> Handle(DeleteProjectCommand request, CancellationToken cancellationToken)
     {
@@ -56,13 +59,16 @@ public sealed class DeleteProjectCommandHandler(IProjectPortfolioManagementDbCon
                 return Result.Failure("Portfolio not found.");
             }
 
-            var deleteResult = portfolio.DeleteProject(project.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+            var actor = EventActor.User(_currentUser.GetUserId());
+            var deleteResult = portfolio.DeleteProject(project.Id, actor, _dateTimeProvider.Now);
             if (deleteResult.IsFailure)
             {
                 _logger.LogError("Error deleting project {ProjectId}. Error message: {Error}", request.Id, deleteResult.Error);
                 return Result.Failure(deleteResult.Error);
             }
 
+            // A channel has no foreign key to its record, so its messages would outlive the project.
+            await _discussionWriter.DeleteChannel(PpmDiscussionChannels.Project.Key, project.Id, actor, cancellationToken);
             await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Project {ProjectId} deleted. Key: {ProjectKey}, Name: {ProjectName}", project.Id, project.Key.Value, project.Name);

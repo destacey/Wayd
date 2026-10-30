@@ -126,6 +126,8 @@ Warning alerts appear on Overview when requirements are missing:
 - *"Project Dates are required before activating"*
 - *"A Project Lifecycle is required before approving"*
 
+**Discussion** — The project's conversation: threads with subjects, read and posted by everyone who can see the project. See [Discussion](#discussion).
+
 **Definition** — Description, Business Case, and Expected Benefits, as expandable Markdown sections. Fields that have not been filled in read *Not provided* rather than being hidden, so a gap is visible on a project awaiting approval.
 
 **Team** — Grid of the people working on the project: everyone who holds a [project role](#project-roles), plus anyone assigned to an open task. Columns are Person, Roles, Assigned Stages, and Active Tasks — the Not Started and In Progress tasks assigned to that person, counting only tasks with no children.
@@ -160,6 +162,21 @@ Common keyboard shortcuts in Plan:
 **Health Report** — A report rather than a section, so it sits below the divider at the bottom of the rail. See [View the Health Report](#view-the-health-report).
 
 **Forecast** — A second report, shown when the `delivery-forecasting` feature flag is on: when the project's work items will be done, and the chance of finishing by the project's planned end. See [Delivery Forecasting](../work-management/delivery-forecasting.mdx#where-to-find-it).
+
+## Discussion
+
+A project's **Discussion** section holds its conversation, so the vendor contract, the scope cut and the risk being talked about each stay with the project instead of in email and chat, and the reasoning stays next to the record it changed. Everyone who can see the project reads it, and anyone whose account is linked to an employee can post in it, whatever the project's status. A project has no internal notes: every message is read by everyone who can see the project.
+
+The composer at the bottom is one box with a **Subject** and a **Message**. Enter starts a new line; **Ctrl+Enter** (**⌘+Enter** on a Mac) posts, in the composer, a thread's reply box and the edit box alike.
+
+- **Threads** — Give a message a subject to start a topic, so parallel conversations stay apart. Replies to it collapse under it ("2 replies · last reply 3 hours ago") and open in place with their own reply box. Replies go one level deep.
+- **Mentions** — Type **@** to mention someone, which tells them. A mention never gives anyone access to the project: someone who cannot see it is never shown the notification. If you can view employees you can mention anyone; otherwise you can mention the project's own people.
+- **Changes in between** — By default the conversation shows the project's changes between the messages, as its Activity section shows them. **Messages only** hides them.
+- **Order** — The conversation reads oldest first, with the composer at the bottom. The order button beside the heading switches to newest first, which puts the latest message at the top and the composer above it; Wayd remembers your choice in this browser. The heading also says how many threads and messages there are.
+- **Editing and deleting** — The **⋯** menu on a message, shown when you point at it, offers what you may do. You can edit and delete your own messages; every earlier version of an edited message is kept, and **edited** beside it shows them. A deleted message leaves a line saying who deleted it and when; its text and earlier versions are removed.
+- **Moderating** — The project's delivery leaders — an Owner or Manager of the project, its program or its portfolio — and the PPM administrator can delete anyone's message and lock the conversation, after which nothing new can be posted, replied or edited until they unlock it.
+
+Each message tells the project's role holders and followers, the people it mentions, and for a reply everyone who started or replied in its thread. See [Notifications](../notifications.mdx#who-is-told).
 
 ## Project Actions Menu
 

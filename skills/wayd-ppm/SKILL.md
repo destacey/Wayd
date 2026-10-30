@@ -105,6 +105,8 @@ The metrics tools return counts only; follow up with `Projects_GetProjects` when
 
 When surveying a portfolio or program, call `Projects_GetProjectsPlanSummaries` once with every project UUID and `allTasks: true` — not `Projects_GetProjectPlanSummary` per project. Without `allTasks` it counts only the tasks the caller can see.
 
+A project's conversation — threads with subjects, read and posted by everyone who can read the project — is held through the `Discussions_*` tools (hosted), with `channelType` `ppm.project` and the project's UUID as `ownerId`. Read the `wayd-discussions` skill before calling them.
+
 ## Creating and updating records
 
 | Goal                                             | Tool                                                                                                                       |

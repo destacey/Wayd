@@ -40,4 +40,58 @@ describe('DiscussionComposer', () => {
       body: `@[Marcus Lee](employee:${agent.id}) and @Tom Becker`,
     })
   })
+
+  it('clears what was written, and offers to only once something is', () => {
+    // Arrange
+    render(
+      <DiscussionComposer
+        canPostInternal={false}
+        showSubject
+        mentionCandidates={[]}
+        onSubmit={jest.fn()}
+      />,
+    )
+    expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull()
+    fireEvent.change(screen.getByLabelText('Subject'), {
+      target: { value: 'Budget' },
+    })
+    fireEvent.change(screen.getByLabelText('Message'), {
+      target: { value: 'Could you add it?' },
+    })
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+
+    // Assert
+    expect(screen.getByLabelText('Subject')).toHaveValue('')
+    expect(screen.getByLabelText('Message')).toHaveValue('')
+    expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull()
+  })
+
+  it.each([
+    ['Ctrl+Enter', { ctrlKey: true }, 1],
+    ['⌘+Enter', { metaKey: true }, 1],
+    ['Enter alone, which starts a new line', {}, 0],
+  ])('posts on %s only when asked', async (_, modifiers, posts) => {
+    // Arrange
+    const onSubmit = jest.fn().mockResolvedValue(true)
+    render(
+      <DiscussionComposer
+        canPostInternal={false}
+        showSubject={false}
+        mentionCandidates={[]}
+        onSubmit={onSubmit}
+      />,
+    )
+    const box = screen.getByLabelText('Message')
+    fireEvent.change(box, { target: { value: 'Could you add the budget?' } })
+
+    // Act
+    await act(async () => {
+      fireEvent.keyDown(box, { key: 'Enter', ...modifiers })
+    })
+
+    // Assert
+    expect(onSubmit).toHaveBeenCalledTimes(posts)
+  })
 })

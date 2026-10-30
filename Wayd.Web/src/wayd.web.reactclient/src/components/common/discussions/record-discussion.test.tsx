@@ -46,6 +46,8 @@ const access = (overrides: Partial<DiscussionDto> = {}): DiscussionDto => ({
   canPostInternal: false,
   canModerate: false,
   isLocked: false,
+  threadCount: 0,
+  messageCount: 0,
   ...overrides,
 })
 
@@ -118,7 +120,7 @@ describe('RecordDiscussion', () => {
     // Assert
     expect(screen.queryByText('Internal note')).toBeNull()
     expect(
-      screen.getByRole('button', { name: 'Post reply' }),
+      screen.getByRole('button', { name: 'Post message' }),
     ).toBeInTheDocument()
   })
 
@@ -153,7 +155,7 @@ describe('RecordDiscussion', () => {
       target: { value: 'Could you add the budget?' },
     })
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Post reply' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Post message' }))
     })
 
     // Assert
@@ -261,7 +263,7 @@ describe('RecordDiscussion', () => {
 
     // Act
     await act(async () => {
-      fireEvent.click(screen.getByText('Newest first'))
+      fireEvent.click(screen.getByRole('button', { name: /Oldest first/ }))
     })
 
     // Assert
@@ -336,7 +338,7 @@ describe('RecordDiscussion', () => {
 
     // Act
     await act(async () => {
-      fireEvent.click(screen.getByText('Newest first'))
+      fireEvent.click(screen.getByRole('button', { name: /Oldest first/ }))
     })
 
     // Assert
@@ -359,12 +361,65 @@ describe('RecordDiscussion', () => {
 
     // Act
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Post reply' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Post message' }))
     })
 
     // Assert
     expect(mockMessageInfo).toHaveBeenCalledWith(
       expect.stringContaining('Show newer'),
     )
+  })
+
+  it('heads the conversation with how many threads and messages the caller can read', () => {
+    // Arrange
+    mockUseDiscussion.mockReturnValue({
+      data: access({ threadCount: 2, messageCount: 4 }),
+      isError: false,
+    })
+
+    // Act
+    renderDiscussion()
+
+    // Assert
+    expect(
+      screen.getByRole('heading', { name: 'Discussion' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('2 threads · 4 messages')).toBeInTheDocument()
+  })
+
+  it('says a conversation nobody has posted in has no messages', () => {
+    // Act
+    renderDiscussion()
+
+    // Assert
+    expect(screen.getByText('No messages yet')).toBeInTheDocument()
+  })
+
+  it("offers a message's actions in one menu, holding only what the caller may do", async () => {
+    // Arrange
+    showEntries([
+      {
+        type: DiscussionEntryType.Message,
+        timestamp: new Date(),
+        message: message({ id: 'm-own', canEdit: true, canDelete: true }),
+      },
+      {
+        type: DiscussionEntryType.Message,
+        timestamp: new Date(),
+        message: message({ id: 'm-other', canEdit: false, canDelete: false }),
+      },
+    ])
+    renderDiscussion()
+
+    // Act
+    const menus = screen.getAllByRole('button', { name: 'Message actions' })
+    await act(async () => {
+      fireEvent.click(menus[0])
+    })
+
+    // Assert
+    expect(menus).toHaveLength(1)
+    expect(await screen.findByText('Edit')).toBeInTheDocument()
+    expect(screen.getByText('Delete')).toBeInTheDocument()
   })
 })

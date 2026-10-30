@@ -1,8 +1,8 @@
 'use client'
 
-import { LockOutlined } from '@ant-design/icons'
+import { CloseOutlined, LockOutlined } from '@ant-design/icons'
 import { Button, Input, Mentions, Segmented } from 'antd'
-import { ReactNode, useState } from 'react'
+import { KeyboardEvent, useState, useSyncExternalStore } from 'react'
 import PersonAvatar from '@/src/components/common/person-avatar'
 import { DiscussionMessageKind } from '@/src/services/wayd-api'
 import {
@@ -41,8 +41,6 @@ export interface DiscussionComposerProps {
   initial?: { subject?: string; text: string; mentioned: MentionCandidate[] }
   submitLabel?: (kind: DiscussionMessageKind) => string
   placeholder?: (kind: DiscussionMessageKind) => string
-  /** More controls beside the submit button, shown for a reply only. */
-  replyExtra?: ReactNode
   /**
    * Where the @ suggestions open: above the box when it sits at the bottom of
    * the conversation, so the list is not cut off by the page's end.
@@ -51,17 +49,32 @@ export interface DiscussionComposerProps {
   /** Posts the value; resolve true to clear the composer. */
   onSubmit: (value: DiscussionComposerValue) => Promise<boolean>
   onCancel?: () => void
+  /** A reply box inside a thread: one line to start, a small button, and no formatting note. */
+  compact?: boolean
 }
+
+const noSubscription = () => () => {}
+
+/**
+ * The key that posts with Enter: Ctrl, or ⌘ on a Mac. The server renders Ctrl, and the browser's first render
+ * agrees with it before switching, so hydration never mismatches.
+ */
+const usePostKey = () =>
+  useSyncExternalStore(
+    noSubscription,
+    () => (/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl'),
+    () => 'Ctrl',
+  )
 
 const defaultSubmitLabel = (kind: DiscussionMessageKind) =>
   kind === DiscussionMessageKind.InternalNote
     ? 'Add internal note'
-    : 'Post reply'
+    : 'Post message'
 
 const defaultPlaceholder = (kind: DiscussionMessageKind) =>
   kind === DiscussionMessageKind.InternalNote
     ? 'Write an internal note. Mentions here notify only people who can read notes.'
-    : 'Write a reply. Type @ to mention someone.'
+    : 'Write a message. Type @ to mention someone.'
 
 /**
  * Where a message is written. Switching to an internal note changes how the
@@ -78,10 +91,10 @@ const DiscussionComposer = ({
   initial,
   submitLabel = defaultSubmitLabel,
   placeholder = defaultPlaceholder,
-  replyExtra,
   suggestionsPlacement = 'bottom',
   onSubmit,
   onCancel,
+  compact = false,
 }: DiscussionComposerProps) => {
   const [chosenKind, setChosenKind] = useState(DiscussionMessageKind.Public)
   const [subject, setSubject] = useState(initial?.subject ?? '')
@@ -97,6 +110,16 @@ const DiscussionComposer = ({
     isNote && noteMentionCandidates ? noteMentionCandidates : mentionCandidates
   const hint = audience?.[kind]
   const texts = mentionTexts(candidates)
+
+  const postKey = usePostKey()
+
+  /** Ctrl+Enter or ⌘+Enter posts; Enter alone starts a new line, as in a ticket or work item comment. */
+  const postOnCtrlEnter = (event: KeyboardEvent) => {
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault()
+      void submit()
+    }
+  }
 
   const submit = async () => {
     if (!text.trim() || isSubmitting) return
@@ -136,7 +159,7 @@ const DiscussionComposer = ({
                 setChosenKind(value as DiscussionMessageKind)
               }
               options={[
-                { label: 'Reply', value: DiscussionMessageKind.Public },
+                { label: 'Message', value: DiscussionMessageKind.Public },
                 {
                   label: 'Internal note',
                   value: DiscussionMessageKind.InternalNote,
@@ -158,23 +181,42 @@ const DiscussionComposer = ({
         className={`${styles.composerBox} ${isNote ? styles.composerBoxNote : ''}`}
         data-kind={kind}
       >
+        {(subject || text) && !isSubmitting && (
+          <Button
+            type="text"
+            size="small"
+            icon={<CloseOutlined />}
+            aria-label="Clear"
+            title="Clear"
+            className={styles.composerClear}
+            onClick={() => {
+              setSubject('')
+              setText('')
+              setMentioned([])
+            }}
+          />
+        )}
         {showSubject && (
           <Input
             aria-label="Subject"
             variant="borderless"
+            className={styles.composerSubject}
             placeholder="Subject (optional)"
             maxLength={200}
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
+            onKeyDown={postOnCtrlEnter}
           />
         )}
         <Mentions
           aria-label={isNote ? 'Internal note' : 'Message'}
           variant="borderless"
-          autoSize={{ minRows: 2, maxRows: 12 }}
+          className={showSubject ? undefined : styles.composerFirstField}
+          autoSize={{ minRows: compact ? 1 : 2, maxRows: 12 }}
           placeholder={placeholder(kind)}
           value={text}
           onChange={setText}
+          onKeyDown={postOnCtrlEnter}
           placement={suggestionsPlacement}
           // Names have spaces, so the search runs on past one while it still starts someone's name, and
           // stops once the text after the @ is plainly the rest of a sentence.
@@ -215,14 +257,23 @@ const DiscussionComposer = ({
         />
       </div>
       <div className={styles.composerFooter}>
-        {!isNote && replyExtra}
         <span className={styles.toolbarSpacer} />
-        <span className={styles.audience}>Markdown supported</span>
-        {onCancel && <Button onClick={onCancel}>Cancel</Button>}
+        {!compact && (
+          <span className={styles.audience}>
+            Markdown supported · {postKey}+Enter to post
+          </span>
+        )}
+        {onCancel && (
+          <Button size={compact ? 'small' : undefined} onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
         <Button
           type="primary"
+          size={compact ? 'small' : undefined}
           loading={isSubmitting}
           disabled={!text.trim()}
+          title={`${postKey}+Enter`}
           onClick={submit}
         >
           {submitLabel(kind)}

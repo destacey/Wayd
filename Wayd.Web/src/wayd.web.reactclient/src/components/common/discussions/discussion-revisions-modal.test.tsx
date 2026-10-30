@@ -45,6 +45,8 @@ describe('DiscussionRevisionsModal', () => {
             canPostInternal: false,
             canModerate: false,
             isLocked: false,
+            threadCount: 0,
+            messageCount: 0,
           },
           mentionCandidates: [],
         }}

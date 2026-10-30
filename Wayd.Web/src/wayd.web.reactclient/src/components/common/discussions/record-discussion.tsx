@@ -1,13 +1,19 @@
 'use client'
 
-import { LockOutlined, UnlockOutlined } from '@ant-design/icons'
-import { Alert, Button, Segmented, Spin } from 'antd'
-import { ReactNode, useState } from 'react'
+import {
+  LockOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
+  UnlockOutlined,
+} from '@ant-design/icons'
+import { Alert, Button, Segmented, Spin, Tooltip, Typography } from 'antd'
+import { useState } from 'react'
 import { formatEventTitle } from '@/src/components/common/activities'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useLocalStorageState } from '@/src/hooks'
 import {
   ActivityLogDto,
+  DiscussionDto,
   DiscussionEntryType,
   DiscussionMessageKind,
   DiscussionOrder,
@@ -39,14 +45,16 @@ export interface RecordDiscussionProps extends DiscussionTarget {
   noteMentionCandidates?: MentionCandidate[]
   /** Who reads a message of each kind, said above the composer. */
   audience?: Partial<Record<DiscussionMessageKind, string>>
-  /** More controls beside the composer's submit button, for a reply only. */
-  replyExtra?: ReactNode
-  /**
-   * Posts a top-level message in place of the conversation's own endpoint, for
-   * a record that saves a change with it. Resolve true once posted.
-   */
-  onPost?: (value: DiscussionComposerValue) => Promise<boolean>
 }
+
+const plural = (count: number, one: string, many: string) =>
+  `${count} ${count === 1 ? one : many}`
+
+/** How much of the conversation the caller can read, beside its heading. */
+const countsText = ({ threadCount, messageCount }: DiscussionDto) =>
+  messageCount === 0
+    ? 'No messages yet'
+    : `${plural(threadCount, 'thread', 'threads')} · ${plural(messageCount, 'message', 'messages')}`
 
 const ActivityEntry = ({ activity }: { activity: ActivityLogDto }) => (
   <li className={styles.activity}>
@@ -77,8 +85,6 @@ const RecordDiscussion = ({
   mentionCandidates = [],
   noteMentionCandidates,
   audience,
-  replyExtra,
-  onPost,
 }: RecordDiscussionProps) => {
   const target: DiscussionTarget = { channelType, ownerId }
   const messageApi = useMessage()
@@ -124,18 +130,11 @@ const RecordDiscussion = ({
     canWrite(access, DiscussionMessageKind.InternalNote)
 
   const post = async (value: DiscussionComposerValue) => {
-    let posted: boolean
-    if (onPost) {
-      posted = await onPost(value)
-    } else {
-      const response = await postMessage({ ...target, ...value })
-      if ('error' in response) {
-        messageApi.error(
-          errorText(response.error, 'Could not post the message.'),
-        )
-      }
-      posted = !('error' in response)
+    const response = await postMessage({ ...target, ...value })
+    if ('error' in response) {
+      messageApi.error(errorText(response.error, 'Could not post the message.'))
     }
+    const posted = !('error' in response)
     // Read oldest first, a new message lands after the pages loaded so far.
     if (posted && !newestFirst && hasNextPage) {
       messageApi.info(
@@ -166,7 +165,6 @@ const RecordDiscussion = ({
       mentionCandidates={mentionCandidates}
       noteMentionCandidates={noteMentionCandidates}
       audience={audience}
-      replyExtra={replyExtra}
       suggestionsPlacement={newestFirst ? 'bottom' : 'top'}
       onSubmit={post}
     />
@@ -206,6 +204,47 @@ const RecordDiscussion = ({
     >
       <section className={styles.discussion} aria-label="Discussion">
         <div className={styles.toolbar}>
+          {/* The heading RecordLayout gives every other section, drawn here to sit the counts and filters beside it. */}
+          <Typography.Title level={5} style={{ margin: 0 }}>
+            Discussion
+          </Typography.Title>
+          <span className={styles.meta}>{countsText(access)}</span>
+          <span className={styles.toolbarSpacer} />
+          <Tooltip
+            title={newestFirst ? 'Show oldest first' : 'Show newest first'}
+          >
+            <Button
+              type="text"
+              size="small"
+              icon={
+                newestFirst ? (
+                  <SortDescendingOutlined />
+                ) : (
+                  <SortAscendingOutlined />
+                )
+              }
+              onClick={() =>
+                setOrder(
+                  newestFirst
+                    ? DiscussionOrder.OldestFirst
+                    : DiscussionOrder.NewestFirst,
+                )
+              }
+            >
+              {newestFirst ? 'Newest first' : 'Oldest first'}
+            </Button>
+          </Tooltip>
+          {access.canModerate && (
+            <Button
+              type="text"
+              size="small"
+              icon={access.isLocked ? <UnlockOutlined /> : <LockOutlined />}
+              loading={isLocking}
+              onClick={toggleLock}
+            >
+              {access.isLocked ? 'Unlock' : 'Lock'}
+            </Button>
+          )}
           <Segmented
             aria-label="Show"
             value={messagesOnly ? 'messages' : 'all'}
@@ -215,25 +254,6 @@ const RecordDiscussion = ({
               { label: 'Messages only', value: 'messages' },
             ]}
           />
-          <Segmented
-            aria-label="Order"
-            value={order}
-            onChange={(value) => setOrder(value as DiscussionOrder)}
-            options={[
-              { label: 'Oldest first', value: DiscussionOrder.OldestFirst },
-              { label: 'Newest first', value: DiscussionOrder.NewestFirst },
-            ]}
-          />
-          <span className={styles.toolbarSpacer} />
-          {access.canModerate && (
-            <Button
-              icon={access.isLocked ? <UnlockOutlined /> : <LockOutlined />}
-              loading={isLocking}
-              onClick={toggleLock}
-            >
-              {access.isLocked ? 'Unlock' : 'Lock'}
-            </Button>
-          )}
         </div>
 
         {access.isLocked && (
@@ -248,7 +268,15 @@ const RecordDiscussion = ({
         {/* The composer keeps one place in the tree, so switching the order never loses a draft;
             the conversation moves to the other side of it instead. */}
         {!newestFirst && conversation}
-        {composer}
+        {composer && (
+          <div
+            className={
+              newestFirst ? styles.composerAbove : styles.composerBelow
+            }
+          >
+            {composer}
+          </div>
+        )}
         {newestFirst && conversation}
       </section>
     </DiscussionContext.Provider>

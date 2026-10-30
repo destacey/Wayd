@@ -4,8 +4,18 @@ import {
   ArrowRightOutlined,
   DeleteOutlined,
   LockOutlined,
+  MoreOutlined,
 } from '@ant-design/icons'
-import { Avatar, Button, Popconfirm, Spin, Tag, Tooltip } from 'antd'
+import {
+  App,
+  Avatar,
+  Button,
+  Dropdown,
+  MenuProps,
+  Spin,
+  Tag,
+  Tooltip,
+} from 'antd'
 import { useState } from 'react'
 import { formatEventTitle } from '@/src/components/common/activities'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
@@ -56,6 +66,7 @@ const DiscussionMessage = ({
   const [editMessage] = useEditDiscussionMessageMutation()
   const [deleteMessage, { isLoading: isDeleting }] =
     useDeleteDiscussionMessageMutation()
+  const { modal } = App.useApp()
 
   if (message.isDeleted) {
     return (
@@ -101,6 +112,31 @@ const DiscussionMessage = ({
     }
   }
 
+  // Only what the caller may do; with nothing, there is no menu at all.
+  const actions: MenuProps['items'] = [
+    ...(message.canEdit && !isEditing
+      ? [{ key: 'edit', label: 'Edit', onClick: () => setIsEditing(true) }]
+      : []),
+    ...(message.canDelete
+      ? [
+          {
+            key: 'delete',
+            label: 'Delete',
+            danger: true,
+            onClick: () =>
+              modal.confirm({
+                title: 'Delete this message?',
+                content:
+                  'Its text and earlier versions are removed for everyone. Who deleted it, and when, stays in its place.',
+                okText: 'Delete',
+                okType: 'danger',
+                onOk: remove,
+              }),
+          },
+        ]
+      : []),
+  ]
+
   return (
     <article
       className={`${styles.message} ${isNote && !isReply ? styles.note : ''} ${isReply ? styles.reply : ''}`}
@@ -133,23 +169,18 @@ const DiscussionMessage = ({
             </Button>
           )}
           <span className={styles.toolbarSpacer} />
-          {message.canEdit && !isEditing && (
-            <Button type="link" size="small" onClick={() => setIsEditing(true)}>
-              Edit
-            </Button>
-          )}
-          {message.canDelete && (
-            <Popconfirm
-              title="Delete this message?"
-              description="Its text and earlier versions are removed for everyone."
-              okText="Delete"
-              okButtonProps={{ danger: true }}
-              onConfirm={remove}
-            >
-              <Button type="link" size="small" danger loading={isDeleting}>
-                Delete
-              </Button>
-            </Popconfirm>
+          {actions.length > 0 && (
+            <span className={styles.messageActions}>
+              <Dropdown trigger={['click']} menu={{ items: actions }}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<MoreOutlined />}
+                  aria-label="Message actions"
+                  loading={isDeleting}
+                />
+              </Dropdown>
+            </span>
           )}
         </div>
         {isEditing ? (
@@ -266,28 +297,32 @@ const DiscussionThread = ({ message }: { message: DiscussionMessageDto }) => {
     return true
   }
 
+  // The toggle closes the thread from under its last reply, in the message rather than inside the panel.
   return (
-    <div className={styles.thread}>
-      {isLoading && <Spin size="small" />}
-      {replies?.map((r) => (
-        <DiscussionMessage key={r.id} message={r} isReply />
-      ))}
-      {mayReply && (
-        <DiscussionComposer
-          canPostInternal={access.canPostInternal}
-          fixedKind={message.kind}
-          showSubject={false}
-          mentionCandidates={mentionCandidates}
-          noteMentionCandidates={noteMentionCandidates}
-          submitLabel={() => 'Reply'}
-          placeholder={(kind) =>
-            kind === DiscussionMessageKind.InternalNote
-              ? 'Reply in thread (internal)…'
-              : 'Reply in thread…'
-          }
-          onSubmit={post}
-        />
-      )}
+    <>
+      <div className={styles.thread}>
+        {isLoading && <Spin size="small" />}
+        {replies?.map((r) => (
+          <DiscussionMessage key={r.id} message={r} isReply />
+        ))}
+        {mayReply && (
+          <DiscussionComposer
+            canPostInternal={access.canPostInternal}
+            fixedKind={message.kind}
+            showSubject={false}
+            mentionCandidates={mentionCandidates}
+            noteMentionCandidates={noteMentionCandidates}
+            compact
+            submitLabel={() => 'Reply'}
+            placeholder={(kind) =>
+              kind === DiscussionMessageKind.InternalNote
+                ? 'Reply in thread (internal)…'
+                : 'Reply in thread…'
+            }
+            onSubmit={post}
+          />
+        )}
+      </div>
       <Button
         type="link"
         size="small"
@@ -295,9 +330,9 @@ const DiscussionThread = ({ message }: { message: DiscussionMessageDto }) => {
         onClick={() => setIsOpen(false)}
         aria-expanded
       >
-        Hide replies
+        {message.replyCount > 0 ? 'Hide replies' : 'Close'}
       </Button>
-    </div>
+    </>
   )
 }
 

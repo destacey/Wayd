@@ -151,7 +151,14 @@ const IntakeRequestDetailsPage = (props: {
     { id: RequestSection.Details, label: 'Details' },
     // Replies are substance, read by the rule the description is; a summary-only reader has no conversation.
     ...(substance
-      ? [{ id: RequestSection.Discussion, label: 'Discussion' }]
+      ? [
+          // Draws its own heading, with its counts and filters beside it.
+          {
+            id: RequestSection.Discussion,
+            label: 'Discussion',
+            hideHeading: true,
+          },
+        ]
       : []),
     // Summary tier: everyone who sees the request sees what it became.
     {

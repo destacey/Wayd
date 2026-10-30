@@ -207,21 +207,21 @@ The bell tells a request's people when it changes, without their having to follo
 
 A request's **Discussion** section holds its conversation, so the questions and answers that get a request ready to decide stay with the request instead of in email. It mixes two kinds of message:
 
-- **Replies** — Read by everyone who can read the request's detail: its requester, whoever submitted it, its participants, the desk's agents and, on an open desk, everyone who can view requests. Anyone who can read them can reply
+- **Messages** — Read by everyone who can read the request's detail: its requester, whoever submitted it, its participants, the desk's agents and, on an open desk, everyone who can view requests. Anyone who can read them can post one
 - **Internal notes** — Read only by the desk's agents and Desk Admins and the Demand Management Admin. Only they can write one, and nobody else is offered the choice at all
 
-The composer at the bottom starts as a reply. An agent switches it to **Internal note** with the control above it, and the whole box changes colour while it is one, so a note is never sent to a requester by mistake. A note shows a lock and **Internal note** wherever it appears.
+The composer at the bottom starts as a **Message**. An agent switches it to **Internal note** with the control above it, and the whole box changes colour while it is one, so a note is never sent to a requester by mistake. A note shows a lock and **Internal note** wherever it appears. Enter starts a new line; **Ctrl+Enter** (**⌘+Enter** on a Mac) posts, in the composer, a thread's reply box and the edit box alike.
 
 - **Threads** — A message can have a subject, and starts a thread. Replies to it collapse under it ("2 replies · last reply 3 hours ago") and open in place with their own reply box. Replies go one level deep, and a thread takes its first message's kind: everything under an internal note is internal.
 - **Mentions** — Type **@** to mention someone, which tells them. On a desk that is not private, mentioning someone you could add as a participant yourself makes them one, so they can read the request. A participant cannot add anyone by mentioning them. A mention in an internal note can name only the desk's members and adds nobody.
-- **Joining in** — On a desk that is not private, replying to a request you can read makes you a participant, so you hear about it from then on. On a private desk, people are added only by an agent or, where the desk allows it, the requester.
-- **Ask and move** — An agent replying can tick **Move the request to Waiting on Requester** (the desk's own name for that status). The reply is posted and the request moves together, and the conversation shows the move on the message. Leave it unticked to reply without moving the request.
+- **Joining in** — On a desk that is not private, posting on a request you can read makes you a participant, so you hear about it from then on. On a private desk, people are added only by an agent or, where the desk allows it, the requester.
+- **Asking the requester a question** — An agent does this from **Move to**, choosing Waiting on Requester (the desk's own name for that status): the question they write there is posted here as a message, saved with the move, and the conversation shows the move on it. See [Changing a request's status](#changing-a-requests-status).
 - **Changes in between** — By default the conversation shows the request's changes between the messages, as its Activity section shows them to you. **Messages only** hides them.
-- **Order** — The conversation reads oldest first, with the composer at the bottom. **Newest first** puts the latest message at the top and the composer above it; Wayd remembers your choice in this browser.
-- **Editing and deleting** — You can edit your own messages; every earlier version is kept, and **edited** beside a message shows them. You can delete your own messages, and the desk's admins can delete anyone's. A deleted message leaves a line saying who deleted it and when; its text and earlier versions are removed.
+- **Order** — The conversation reads oldest first, with the composer at the bottom. The order button beside the heading switches to newest first, which puts the latest message at the top and the composer above it; Wayd remembers your choice in this browser. The heading also says how many threads and messages you can read.
+- **Editing and deleting** — The **⋯** menu on a message, shown when you point at it, offers what you may do. You can edit your own messages; every earlier version is kept, and **edited** beside a message shows them. You can delete your own messages, and the desk's admins can delete anyone's. A deleted message leaves a line saying who deleted it and when; its text and earlier versions are removed.
 - **Locking** — The desk's admins can lock a conversation, after which nothing new can be posted, replied or edited until they unlock it. A request's status never locks it: a closed request can still be asked about.
 
-Each message notifies the request's people. [Notifications](../notifications.mdx#who-is-told) lists who is told about replies and internal notes.
+Each message notifies the request's people. [Notifications](../notifications.mdx#who-is-told) lists who is told about messages and internal notes.
 
 ### Scoring a request
 
@@ -243,7 +243,7 @@ The requester and participants read the score and its ratings on their own reque
 
 A closed request can be moved back to an open status the same way, which also lets it be edited again.
 
-To ask the requester a question, reply in the request's [Discussion](#discussing-a-request) with **Move the request to Waiting on Requester** ticked: the question and the move are saved together.
+Choosing Waiting on Requester always opens the form, which asks for a **Question for the Requester** in place of a reason. The question is posted in the request's [Discussion](#discussing-a-request), saved with the move, so the requester can answer it there. Leave it empty to move the request without asking anything.
 
 #### Duplicates
 

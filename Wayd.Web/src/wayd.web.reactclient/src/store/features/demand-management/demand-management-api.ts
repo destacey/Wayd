@@ -7,6 +7,10 @@ import {
   getIntakeRequestTagsClient,
 } from '@/src/services/clients'
 import {
+  discussionTag,
+  DiscussionChannelTypes,
+} from '../common/discussions-api'
+import {
   AddIntakeRequestOutcomeRequest,
   AddIntakeRequestTagRequest,
   ProjectIntakeRequestDto,
@@ -89,6 +93,11 @@ const projectRequestsTag = (projectId: string) =>
 const requestTags = (requestId: string) => [
   { type: QueryTags.IntakeRequest, id: requestId },
   { type: QueryTags.ActivityLog, id: requestId },
+  // The request's conversation shows its changes between the messages.
+  discussionTag({
+    channelType: DiscussionChannelTypes.IntakeRequest,
+    ownerId: requestId,
+  }),
 ]
 
 /**

@@ -390,8 +390,12 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
 
         // Assert
         Assert.NotEmpty(tools);
-        Assert.All(tools, name => Assert.StartsWith("Intake", name, StringComparison.Ordinal));
+        // A request's conversation is held through the discussion tools, in this toolset while requests are the only
+        // kind of record with one.
+        Assert.All(tools, name => Assert.True(
+            name.StartsWith("Intake", StringComparison.Ordinal) || name.StartsWith("Discussions_", StringComparison.Ordinal), name));
         Assert.Contains("IntakeRequests_Submit", offered);
+        Assert.Contains("Discussions_Post", offered);
         Assert.Contains("IntakeDesks_Update", offered);
         Assert.DoesNotContain(offered, name => name.StartsWith("Projects_", StringComparison.Ordinal));
     }

@@ -65,6 +65,16 @@ public sealed class DiscussionMessage : BaseEntity
     /// <summary>The conversation the message belongs to.</summary>
     public Guid ChannelId { get; private init; }
 
+    /// <summary>
+    /// The domain event of the change to the record that the message was posted with, in the same save, such as the
+    /// status change of asking a requester a question. Null for a message posted on its own.
+    /// </summary>
+    /// <remarks>
+    /// The event's id, which keys its activity log entry, so a conversation shows the change on the message rather than
+    /// as an entry of its own. Never shown by itself: the record's read rule still decides who may see the change.
+    /// </remarks>
+    public Guid? RecordChangeEventId { get; private init; }
+
     /// <summary>The top-level message whose thread this is a reply in, or null for a top-level message.</summary>
     public Guid? ParentMessageId { get; private init; }
 
@@ -115,6 +125,9 @@ public sealed class DiscussionMessage : BaseEntity
     /// <param name="mentionedEmployeeIds">
     /// The employees the message mentions, already narrowed to those the author may mention. The author is dropped.
     /// </param>
+    /// <param name="recordChangeEventId">
+    /// The event of a change to the record saved with the message, or null; see <see cref="RecordChangeEventId"/>.
+    /// </param>
     public static Result<DiscussionMessage> Post(
         DiscussionChannel channel,
         DiscussionMessageKind kind,
@@ -123,7 +136,8 @@ public sealed class DiscussionMessage : BaseEntity
         string body,
         IEnumerable<Guid> mentionedEmployeeIds,
         EventActor actor,
-        Instant timestamp)
+        Instant timestamp,
+        Guid? recordChangeEventId = null)
     {
         Guard.Against.Null(channel, nameof(channel));
         Guard.Against.EnumOutOfRange(kind, nameof(kind));
@@ -151,7 +165,10 @@ public sealed class DiscussionMessage : BaseEntity
             return Result.Failure<DiscussionMessage>(text.Error);
         }
 
-        var message = new DiscussionMessage(channel.Id, null, kind, text.Value.Subject, text.Value.Body, authorEmployeeId, timestamp);
+        var message = new DiscussionMessage(channel.Id, null, kind, text.Value.Subject, text.Value.Body, authorEmployeeId, timestamp)
+        {
+            RecordChangeEventId = recordChangeEventId,
+        };
         message.AddMentions(mentionedEmployeeIds, timestamp);
         message.RaisePosted(channel, actor, timestamp);
 

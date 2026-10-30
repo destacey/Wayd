@@ -288,7 +288,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get what you may do in a record's conversation.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns `canPost`, `canPostInternal` (false means you are offered no internal notes at all), `canModerate` (lock the conversation and delete anyone's message) and whether the conversation `isLocked`. Read its messages from the entries endpoint. A record nobody has posted on is an empty, unlocked conversation. Returns 404 when the record does not exist or you cannot read it.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns `canPost`, `canPostInternal` (false means you are offered no internal notes at all), `canModerate` (lock the conversation and delete anyone's message), whether the conversation `isLocked`, and how many threads (`threadCount`) and messages (`messageCount`, threads and replies together) you can read, leaving out deleted ones and any internal notes you may not read. Read its messages from the entries endpoint. A record nobody has posted on is an empty, unlocked conversation. Returns 404 when the record does not exist or you cannot read it.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -299,7 +299,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get one page of a record's conversation.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns one page of entries: top-level messages and, unless `messagesOnly` is true, the record's activity between them, as its Activity section shows it to you (activity older than the record's latest 2,000 entries is left out). Each entry has a `type` (`Message` or `Activity`), a `timestamp`, and its `message` or `activity`. A thread's replies are not in the page; each message carries `replyCount`, `lastReplyOn` and `recentRepliers`, and the replies come from the replies endpoint. Internal notes appear only if you may read them. `order` is `OldestFirst` (default) or `NewestFirst`; pass the previous page's `nextCursor` as `before` for the next page; `pageSize` counts top-level messages and is at most 500. Returns 404 when the record does not exist or you cannot read it.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns one page of entries: top-level messages and, unless `messagesOnly` is true, the record's activity between them, as its Activity section shows it to you (activity older than the record's latest 2,000 entries is left out). Each entry has a `type` (`Message` or `Activity`), a `timestamp`, and its `message` or `activity`. A thread's replies are not in the page; each message carries `replyCount`, `lastReplyOn` and `recentRepliers`, and the replies come from the replies endpoint. Internal notes appear only if you may read them. `order` is `OldestFirst` (default) or `NewestFirst`; pass the previous page's `nextCursor` as `before` for the next page; `pageSize` counts top-level messages and is at most 500. Returns 404 when the record does not exist or you cannot read it.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -310,7 +310,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Post a message that starts a thread in a record's conversation.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Posts a top-level message, opening the conversation if nobody has posted on the record yet, and returns its id. `kind` is `Public` (everyone who can read the conversation) or `InternalNote` (its internal audience only); `subject` is optional, at most 200 characters; `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Mentions you may not make are dropped. Returns 403 when you may not post that kind of message, 404 when the record does not exist or you cannot read it, 400 when the conversation is locked, and 409 when someone else opened the conversation at the same moment (post again). Requires your account to be linked to an employee.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Posts a top-level message, opening the conversation if nobody has posted on the record yet, and returns its id. `kind` is `Public` (everyone who can read the conversation) or `InternalNote` (its internal audience only); `subject` is optional, at most 200 characters; `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Mentions you may not make are dropped. Returns 403 when you may not post that kind of message, 404 when the record does not exist or you cannot read it, 400 when the conversation is locked, and 409 when someone else opened the conversation at the same moment (post again). Requires your account to be linked to an employee.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -321,7 +321,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the replies in a thread.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns every reply in the thread the top-level message `messageId` starts, oldest first, each with its author, mentions, and whether you may edit or delete it. Returns 404 when the record, the message or its thread does not exist or you cannot read it.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns every reply in the thread the top-level message `messageId` starts, oldest first, each with its author, mentions, and whether you may edit or delete it. Returns 404 when the record, the message or its thread does not exist or you cannot read it.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -332,7 +332,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Reply in a thread.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replies in the thread the top-level message `messageId` starts and returns the reply's id. The reply takes the thread's kind — a reply under an internal note is an internal note — and has no subject; replies go one level deep, so `messageId` must start a thread. `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Returns 403 when you may not write in that thread, 404 when the record or message does not exist or you cannot read it, and 400 when the conversation is locked or `messageId` is itself a reply. Requires your account to be linked to an employee.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replies in the thread the top-level message `messageId` starts and returns the reply's id. The reply takes the thread's kind — a reply under an internal note is an internal note — and has no subject; replies go one level deep, so `messageId` must start a thread. `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Returns 403 when you may not write in that thread, 404 when the record or message does not exist or you cannot read it, and 400 when the conversation is locked or `messageId` is itself a reply. Requires your account to be linked to an employee.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -343,7 +343,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Edit your own message.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replaces the subject and text of a message you wrote, keeping the version it replaces as a revision; nothing is recorded when nothing changed. `subject` must be blank on a reply in a thread. Returns 403 when you are not the author or may no longer write that kind of message, 404 when the record or message does not exist or you cannot read it, 400 when the message was deleted or the conversation is locked, and 409 when the message was edited or deleted at the same moment. Requires your account to be linked to an employee.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replaces the subject and text of a message you wrote, keeping the version it replaces as a revision; nothing is recorded when nothing changed. `subject` must be blank on a reply in a thread. Returns 403 when you are not the author or may no longer write that kind of message, 404 when the record or message does not exist or you cannot read it, 400 when the message was deleted or the conversation is locked, and 409 when the message was edited or deleted at the same moment. Requires your account to be linked to an employee.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -354,7 +354,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a message, leaving a tombstone.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Deletes a message: its subject, text, earlier versions and mentions are removed, and a tombstone naming who deleted it and when stays in the conversation, so a thread is never quietly rewritten. You may delete your own message; a moderator may delete anyone's. Returns 403 when you may not delete it, 404 when the record or message does not exist or you cannot read it, 400 when it was already deleted, and 409 when it was edited at the same moment. Requires your account to be linked to an employee.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Deletes a message: its subject, text, earlier versions and mentions are removed, and a tombstone naming who deleted it and when stays in the conversation, so a thread is never quietly rewritten. You may delete your own message; a moderator may delete anyone's. Returns 403 when you may not delete it, 404 when the record or message does not exist or you cannot read it, 400 when it was already deleted, and 409 when it was edited at the same moment. Requires your account to be linked to an employee.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -365,7 +365,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the earlier versions of a message.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns every version of the message its edits replaced, newest first, each with its `subject`, `body` and when it was `replacedOn`. Empty for a message never edited, or deleted. Returns 404 when the record or message does not exist or you cannot read it.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns every version of the message its edits replaced, newest first, each with its `subject`, `body` and when it was `replacedOn`. Empty for a message never edited, or deleted. Returns 404 when the record or message does not exist or you cannot read it.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -376,7 +376,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Lock a record's conversation.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Locks the conversation: nothing can be posted, replied or edited until it is unlocked. Locking a record nobody has posted on opens its conversation locked. Moderators only: returns 403 otherwise, 404 when the record does not exist or you cannot read it, 400 when it is already locked, and 409 when the conversation changed at the same moment. Requires your account to be linked to an employee.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Locks the conversation: nothing can be posted, replied or edited until it is unlocked. Locking a record nobody has posted on opens its conversation locked. Moderators only: returns 403 otherwise, 404 when the record does not exist or you cannot read it, 400 when it is already locked, and 409 when the conversation changed at the same moment. Requires your account to be linked to an employee.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -387,7 +387,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Unlock a record's conversation.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Unlocks the conversation so people can post again. Moderators only: returns 403 otherwise, 404 when the record does not exist or you cannot read it, 400 when it is not locked, and 409 when the conversation changed at the same moment. Requires your account to be linked to an employee.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Unlocks the conversation so people can post again. Moderators only: returns 403 otherwise, 404 when the record does not exist or you cannot read it, 400 when it is not locked, and 409 when the conversation changed at the same moment. Requires your account to be linked to an employee.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -448,7 +448,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get what you may do in a record's conversation.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns `canPost`, `canPostInternal` (false means you are offered no internal notes at all), `canModerate` (lock the conversation and delete anyone's message) and whether the conversation `isLocked`. Read its messages from the entries endpoint. A record nobody has posted on is an empty, unlocked conversation. Returns 404 when the record does not exist or you cannot read it.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns `canPost`, `canPostInternal` (false means you are offered no internal notes at all), `canModerate` (lock the conversation and delete anyone's message), whether the conversation `isLocked`, and how many threads (`threadCount`) and messages (`messageCount`, threads and replies together) you can read, leaving out deleted ones and any internal notes you may not read. Read its messages from the entries endpoint. A record nobody has posted on is an empty, unlocked conversation. Returns 404 when the record does not exist or you cannot read it.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -564,7 +564,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get one page of a record's conversation.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns one page of entries: top-level messages and, unless `messagesOnly` is true, the record's activity between them, as its Activity section shows it to you (activity older than the record's latest 2,000 entries is left out). Each entry has a `type` (`Message` or `Activity`), a `timestamp`, and its `message` or `activity`. A thread's replies are not in the page; each message carries `replyCount`, `lastReplyOn` and `recentRepliers`, and the replies come from the replies endpoint. Internal notes appear only if you may read them. `order` is `OldestFirst` (default) or `NewestFirst`; pass the previous page's `nextCursor` as `before` for the next page; `pageSize` counts top-level messages and is at most 500. Returns 404 when the record does not exist or you cannot read it.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns one page of entries: top-level messages and, unless `messagesOnly` is true, the record's activity between them, as its Activity section shows it to you (activity older than the record's latest 2,000 entries is left out). Each entry has a `type` (`Message` or `Activity`), a `timestamp`, and its `message` or `activity`. A thread's replies are not in the page; each message carries `replyCount`, `lastReplyOn` and `recentRepliers`, and the replies come from the replies endpoint. Internal notes appear only if you may read them. `order` is `OldestFirst` (default) or `NewestFirst`; pass the previous page's `nextCursor` as `before` for the next page; `pageSize` counts top-level messages and is at most 500. Returns 404 when the record does not exist or you cannot read it.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -699,7 +699,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Post a message that starts a thread in a record's conversation.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Posts a top-level message, opening the conversation if nobody has posted on the record yet, and returns its id. `kind` is `Public` (everyone who can read the conversation) or `InternalNote` (its internal audience only); `subject` is optional, at most 200 characters; `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Mentions you may not make are dropped. Returns 403 when you may not post that kind of message, 404 when the record does not exist or you cannot read it, 400 when the conversation is locked, and 409 when someone else opened the conversation at the same moment (post again). Requires your account to be linked to an employee.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Posts a top-level message, opening the conversation if nobody has posted on the record yet, and returns its id. `kind` is `Public` (everyone who can read the conversation) or `InternalNote` (its internal audience only); `subject` is optional, at most 200 characters; `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Mentions you may not make are dropped. Returns 403 when you may not post that kind of message, 404 when the record does not exist or you cannot read it, 400 when the conversation is locked, and 409 when someone else opened the conversation at the same moment (post again). Requires your account to be linked to an employee.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -843,7 +843,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the replies in a thread.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns every reply in the thread the top-level message `messageId` starts, oldest first, each with its author, mentions, and whether you may edit or delete it. Returns 404 when the record, the message or its thread does not exist or you cannot read it.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns every reply in the thread the top-level message `messageId` starts, oldest first, each with its author, mentions, and whether you may edit or delete it. Returns 404 when the record, the message or its thread does not exist or you cannot read it.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -965,7 +965,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Reply in a thread.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replies in the thread the top-level message `messageId` starts and returns the reply's id. The reply takes the thread's kind — a reply under an internal note is an internal note — and has no subject; replies go one level deep, so `messageId` must start a thread. `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Returns 403 when you may not write in that thread, 404 when the record or message does not exist or you cannot read it, and 400 when the conversation is locked or `messageId` is itself a reply. Requires your account to be linked to an employee.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replies in the thread the top-level message `messageId` starts and returns the reply's id. The reply takes the thread's kind — a reply under an internal note is an internal note — and has no subject; replies go one level deep, so `messageId` must start a thread. `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Returns 403 when you may not write in that thread, 404 when the record or message does not exist or you cannot read it, and 400 when the conversation is locked or `messageId` is itself a reply. Requires your account to be linked to an employee.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -1104,7 +1104,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Edit your own message.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replaces the subject and text of a message you wrote, keeping the version it replaces as a revision; nothing is recorded when nothing changed. `subject` must be blank on a reply in a thread. Returns 403 when you are not the author or may no longer write that kind of message, 404 when the record or message does not exist or you cannot read it, 400 when the message was deleted or the conversation is locked, and 409 when the message was edited or deleted at the same moment. Requires your account to be linked to an employee.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replaces the subject and text of a message you wrote, keeping the version it replaces as a revision; nothing is recorded when nothing changed. `subject` must be blank on a reply in a thread. Returns 403 when you are not the author or may no longer write that kind of message, 404 when the record or message does not exist or you cannot read it, 400 when the message was deleted or the conversation is locked, and 409 when the message was edited or deleted at the same moment. Requires your account to be linked to an employee.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -1246,7 +1246,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a message, leaving a tombstone.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Deletes a message: its subject, text, earlier versions and mentions are removed, and a tombstone naming who deleted it and when stays in the conversation, so a thread is never quietly rewritten. You may delete your own message; a moderator may delete anyone's. Returns 403 when you may not delete it, 404 when the record or message does not exist or you cannot read it, 400 when it was already deleted, and 409 when it was edited at the same moment. Requires your account to be linked to an employee.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Deletes a message: its subject, text, earlier versions and mentions are removed, and a tombstone naming who deleted it and when stays in the conversation, so a thread is never quietly rewritten. You may delete your own message; a moderator may delete anyone's. Returns 403 when you may not delete it, 404 when the record or message does not exist or you cannot read it, 400 when it was already deleted, and 409 when it was edited at the same moment. Requires your account to be linked to an employee.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -1381,7 +1381,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the earlier versions of a message.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns every version of the message its edits replaced, newest first, each with its `subject`, `body` and when it was `replacedOn`. Empty for a message never edited, or deleted. Returns 404 when the record or message does not exist or you cannot read it.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns every version of the message its edits replaced, newest first, each with its `subject`, `body` and when it was `replacedOn`. Empty for a message never edited, or deleted. Returns 404 when the record or message does not exist or you cannot read it.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -1503,7 +1503,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Lock a record's conversation.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Locks the conversation: nothing can be posted, replied or edited until it is unlocked. Locking a record nobody has posted on opens its conversation locked. Moderators only: returns 403 otherwise, 404 when the record does not exist or you cannot read it, 400 when it is already locked, and 409 when the conversation changed at the same moment. Requires your account to be linked to an employee.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Locks the conversation: nothing can be posted, replied or edited until it is unlocked. Locking a record nobody has posted on opens its conversation locked. Moderators only: returns 403 otherwise, 404 when the record does not exist or you cannot read it, 400 when it is already locked, and 409 when the conversation changed at the same moment. Requires your account to be linked to an employee.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -1635,7 +1635,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Unlock a record's conversation.
         /// </summary>
         /// <remarks>
-        /// `channelType` names the kind of record, such as `demand.intake-request` or `ppm.project`, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Unlocks the conversation so people can post again. Moderators only: returns 403 otherwise, 404 when the record does not exist or you cannot read it, 400 when it is not locked, and 409 when the conversation changed at the same moment. Requires your account to be linked to an employee.
+        /// `channelType` names the kind of record, such as `demand.intake-request` for an intake request, and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Unlocks the conversation so people can post again. Moderators only: returns 403 otherwise, 404 when the record does not exist or you cannot read it, 400 when it is not locked, and 409 when the conversation changed at the same moment. Requires your account to be linked to an employee.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -90649,7 +90649,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Move an intake request to another status of its desk's workflow.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk. Declining, deferring, marking a duplicate and finishing need a `reason` the requester can read; marking a duplicate needs `duplicateOfId`, a request you can see that is not itself a duplicate. Withdrawn is the requester's, through withdraw.
+        /// Needs an agent on the request's desk. Declining, deferring, marking a duplicate and finishing need a `reason` the requester can read; marking a duplicate needs `duplicateOfId`, a request you can see that is not itself a duplicate. Withdrawn is the requester's, through withdraw. A `reply` is posted in the request's conversation with the move and saved with it: ask the requester a question and move to Waiting on Requester in one call.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -91902,7 +91902,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Move an intake request to another status of its desk's workflow.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk. Declining, deferring, marking a duplicate and finishing need a `reason` the requester can read; marking a duplicate needs `duplicateOfId`, a request you can see that is not itself a duplicate. Withdrawn is the requester's, through withdraw.
+        /// Needs an agent on the request's desk. Declining, deferring, marking a duplicate and finishing need a `reason` the requester can read; marking a duplicate needs `duplicateOfId`, a request you can see that is not itself a duplicate. Withdrawn is the requester's, through withdraw. A `reply` is posted in the request's conversation with the move and saved with it: ask the requester a question and move to Waiting on Requester in one call.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -91979,6 +91979,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 422)
@@ -108302,6 +108312,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("duplicateOfId")]
         public System.Guid? DuplicateOfId { get; set; } = default!;
 
+        /// <summary>
+        /// A reply to post in the request's conversation with the move, such as a question for the requester when moving to
+        /// <br/>Waiting on Requester. Saved with the move, and shown with it on the message. Null for none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reply")]
+        public IntakeRequestReplyRequest? Reply { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -112115,6 +112132,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("isLocked")]
         public bool IsLocked { get; set; } = default!;
 
+        /// <summary>
+        /// How many threads the caller can read: top-level messages not deleted, of the kinds they may read.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("threadCount")]
+        public int ThreadCount { get; set; } = default!;
+
+        /// <summary>
+        /// How many messages the caller can read, top-level and replies, not deleted, of the kinds they may read.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("messageCount")]
+        public int MessageCount { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -112272,6 +112301,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("recentRepliers")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> RecentRepliers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// The change to the record the message was posted with, such as moving a request to Waiting on Requester, exactly as
+        /// <br/>the record's Activity section shows it to the caller. Null when there is none, the caller may not see it, or the
+        /// <br/>message was read on its own rather than in a page of the conversation.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("recordChange")]
+        public ActivityLogDto? RecordChange { get; set; } = default!;
 
         /// <summary>
         /// Whether the caller may edit the message: their own, standing, in an unlocked conversation.
@@ -117078,6 +117115,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("addedOn")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset AddedOn { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A top-level reply in an intake request's conversation, which the requester and participants read.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestReplyRequest
+    {
+
+        /// <summary>
+        /// An optional subject, up to 200 characters.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("subject")]
+        public string? Subject { get; set; } = default!;
+
+        /// <summary>
+        /// The reply as markdown, mentions written `@[Name](employee:{id})`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("body")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Body { get; set; } = default!;
 
     }
 

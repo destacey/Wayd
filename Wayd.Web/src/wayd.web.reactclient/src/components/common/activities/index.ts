@@ -1,4 +1,7 @@
-export { default as ActivityLogTimeline } from './activity-log-timeline'
+export {
+  default as ActivityLogTimeline,
+  formatEventTitle,
+} from './activity-log-timeline'
 export type { ActivityLogTimelineProps } from './activity-log-timeline'
 export { default as ActivityLogExportButton } from './activity-log-export-button'
 export type { ActivityLogExportButtonProps } from './activity-log-export-button'

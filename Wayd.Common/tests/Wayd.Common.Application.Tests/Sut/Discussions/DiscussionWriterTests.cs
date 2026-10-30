@@ -168,6 +168,27 @@ public sealed class DiscussionWriterTests
     }
 
     [Fact]
+    public async Task Post_WithARecordChange_ShouldTakeItsTimestampAndNameItsEvent()
+    {
+        // Arrange — any event raised on the record in the same save; its timestamp is not the clock's
+        var ownerId = _gadgets.AddRecord();
+        var changedOn = Now.Minus(Duration.FromMilliseconds(3));
+        var change = DiscussionChannel.OpenForRecord(GadgetType, Guid.NewGuid(), EventActor.User("user-1"), changedOn).Value
+            .DomainEvents.Single();
+
+        // Act
+        var result = await CreateWriter().Post(
+            new PostDiscussionMessage(GadgetType, ownerId, DiscussionMessageKind.Public, null, "Asked", change),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        var message = _dbContext.DiscussionMessages.Should().ContainSingle().Subject;
+        message.PostedOn.Should().Be(changedOn);
+        message.RecordChangeEventId.Should().Be(change.EventId);
+    }
+
+    [Fact]
     public async Task Edit_ShouldEditTheCallersOwnMessage()
     {
         // Arrange
@@ -183,6 +204,46 @@ public sealed class DiscussionWriterTests
         var message = _dbContext.DiscussionMessages.Single();
         message.Body.Should().Be("Final");
         message.Revisions.Should().ContainSingle().Which.Body.Should().Be("Draft");
+    }
+
+    [Fact]
+    public async Task Edit_ShouldTellTheChannelTypeOnlyTheMentionsItAdded()
+    {
+        // Arrange
+        var ownerId = _gadgets.AddRecord();
+        var kept = Guid.NewGuid();
+        var added = Guid.NewGuid();
+        var refused = Guid.NewGuid();
+        _gadgets.Unmentionable.Add(refused);
+        var writer = CreateWriter();
+        var messageId = (await writer.Post(new PostDiscussionMessage(GadgetType, ownerId, DiscussionMessageKind.Public, null,
+            $"Over to @[Kim Kept](employee:{kept})."), TestContext.Current.CancellationToken)).Value;
+
+        // Act
+        var result = await writer.Edit(GadgetType, ownerId, messageId, null,
+            $"Over to @[Kim Kept](employee:{kept}), @[Ada Added](employee:{added}) and @[Rex Refused](employee:{refused}).",
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        _gadgets.Edited.Should().ContainSingle();
+        _gadgets.Edited[0].Message.Id.Should().Be(messageId);
+        _gadgets.Edited[0].AddedMentionIds.Should().BeEquivalentTo([added]);
+    }
+
+    [Fact]
+    public async Task Edit_ShouldNotTellTheChannelType_WhenNoMentionWasAdded()
+    {
+        // Arrange
+        var ownerId = _gadgets.AddRecord();
+        var writer = CreateWriter();
+        var messageId = (await writer.Post(new PostDiscussionMessage(GadgetType, ownerId, DiscussionMessageKind.Public, null, "Draft"), TestContext.Current.CancellationToken)).Value;
+
+        // Act
+        await writer.Edit(GadgetType, ownerId, messageId, null, "Final", TestContext.Current.CancellationToken);
+
+        // Assert
+        _gadgets.Edited.Should().BeEmpty();
     }
 
     [Fact]

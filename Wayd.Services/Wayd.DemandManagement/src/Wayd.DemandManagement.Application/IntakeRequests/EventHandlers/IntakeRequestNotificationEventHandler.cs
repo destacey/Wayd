@@ -1,7 +1,10 @@
 using Wayd.Common.Application.Notifications;
+using Wayd.Common.Application.Persistence;
+using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.Events.Discussions;
 using Wayd.Common.Domain.Notifications;
 using Wayd.DemandManagement.Domain;
 
@@ -26,6 +29,13 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.EventHandlers;
 /// they can no longer read who takes part in the request, so the notification could never be shown to them. A channel change is told to the requester, who sees the channel, but
 /// not to the participants.
 /// <para>
+/// A message in the request's conversation is told by who it is for. A reply goes to the requester, the assignee and
+/// the participants; an internal note to the assignee alone, its followers being held to the notes they may read when
+/// the list is read. Either way the people it mentions are told as <see cref="NotificationReason.Mentioned"/>, and a
+/// reply in a thread tells everyone who started or replied in that thread as <see cref="NotificationReason.Thread"/>.
+/// An edit tells nobody: a mention written in later that makes someone a participant tells them through that.
+/// </para>
+/// <para>
 /// Who may be told of a change that only some readers see — details and participants are substance — is
 /// decided when the list is read, by <see cref="IntakeRequestReadRule.VisibleNotifications"/>.
 /// </para>
@@ -41,9 +51,11 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.EventHandlers;
 /// </remarks>
 public sealed class IntakeRequestNotificationEventHandler(
     IDemandManagementDbContext dbContext,
+    IDiscussionsDbContext discussionsDbContext,
     INotificationWriter notificationWriter)
 {
     private readonly IDemandManagementDbContext _dbContext = dbContext;
+    private readonly IDiscussionsDbContext _discussionsDbContext = discussionsDbContext;
     private readonly INotificationWriter _notificationWriter = notificationWriter;
 
     /// <summary>Tells the request's audience an agent moved it to another status.</summary>
@@ -90,6 +102,35 @@ public sealed class IntakeRequestNotificationEventHandler(
         Notify(@event.Id, NotificationEvent.ChannelChanged, @event,
             Audience.AssigneeOnly with { IncludeRequester = true }, cancellationToken);
 
+    /// <summary>
+    /// Tells the people a message in the request's conversation is for, the people it mentions, and in a thread the
+    /// people who started or replied in it.
+    /// </summary>
+    public async Task Handle(DiscussionMessagePostedEvent @event, CancellationToken cancellationToken)
+    {
+        if (@event.OwnerId is not { } requestId
+            || !string.Equals(@event.ChannelType, DemandManagementDiscussionChannels.IntakeRequest.Key, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        IReadOnlyCollection<Guid> thread = @event.ParentMessageId is { } parentId
+            ? await _discussionsDbContext.DiscussionMessages
+                .Where(m => m.Id == parentId || m.ParentMessageId == parentId)
+                .Select(m => m.AuthorEmployeeId)
+                .Distinct()
+                .ToListAsync(cancellationToken)
+            : [];
+
+        var isNote = @event.Kind == DiscussionMessageKind.InternalNote;
+        var audience = (isNote ? Audience.AssigneeOnly : Audience.Everyone) with
+        {
+            Mentioned = @event.MentionedEmployeeIds,
+            Thread = thread,
+        };
+
+        await Notify(requestId, isNote ? NotificationEvent.InternalNotePosted : NotificationEvent.MessagePosted,
+            @event, audience, cancellationToken);
+    }
+
     private async Task Notify(Guid requestId, NotificationEvent notificationEvent, DomainEvent @event, Audience audience, CancellationToken cancellationToken)
     {
         if (!await _notificationWriter.ShouldNotify(@event, cancellationToken))
@@ -130,6 +171,8 @@ public sealed class IntakeRequestNotificationEventHandler(
         involved.AddRange(NotificationRecipient.For(NotificationReason.Participant, audience.Participants));
         if (audience.RemovedParticipant is { } removedId && request.DeskVisibility == IntakeDeskVisibility.Open)
             involved.Add(new(removedId, NotificationReason.Participant));
+        involved.AddRange(NotificationRecipient.For(NotificationReason.Mentioned, audience.Mentioned ?? []));
+        involved.AddRange(NotificationRecipient.For(NotificationReason.Thread, audience.Thread ?? []));
 
         await _notificationWriter.Notify(
             new RecordChange(DemandManagementFollowOwners.IntakeRequest.Key, requestId, notificationEvent, @event),
@@ -143,12 +186,16 @@ public sealed class IntakeRequestNotificationEventHandler(
     /// <param name="Assigned">People told as assignees besides the current one, such as the one it had before.</param>
     /// <param name="Participants">People told as participants besides the current ones, such as one just added.</param>
     /// <param name="RemovedParticipant">A participant just removed, told only while the request's desk is open.</param>
+    /// <param name="Mentioned">People a message mentions.</param>
+    /// <param name="Thread">People who started or replied in the thread a message was posted in.</param>
     private sealed record Audience(
         bool IncludeRequester,
         bool IncludeParticipants,
         IReadOnlyCollection<Guid?> Assigned,
         IReadOnlyCollection<Guid> Participants,
-        Guid? RemovedParticipant = null)
+        Guid? RemovedParticipant = null,
+        IReadOnlyCollection<Guid>? Mentioned = null,
+        IReadOnlyCollection<Guid>? Thread = null)
     {
         /// <summary>The requester, the assignee and the participants.</summary>
         public static readonly Audience Everyone = new(true, true, [], []);

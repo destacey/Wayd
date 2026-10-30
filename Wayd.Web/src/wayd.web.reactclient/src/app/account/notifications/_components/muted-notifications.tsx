@@ -54,6 +54,16 @@ const reasonWording: Partial<
     description:
       'Changes to projects and programs you hold a role on, and objectives of your team. You keep your roles.',
   },
+  [NotificationReason.Mentioned]: {
+    title: 'Mentions',
+    description:
+      'Messages that mention you. You can still be mentioned, and you keep any access a mention gave you.',
+  },
+  [NotificationReason.Thread]: {
+    title: 'Threads you are in',
+    description:
+      'Replies in conversation threads you started or replied in. You can still read and reply.',
+  },
 }
 
 /** What the muted-records list says when there are none. */

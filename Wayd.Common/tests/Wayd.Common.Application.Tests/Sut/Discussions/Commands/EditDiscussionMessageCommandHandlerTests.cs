@@ -62,4 +62,21 @@ public sealed class EditDiscussionMessageCommandHandlerTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(DiscussionAccessErrors.Conflict);
     }
+
+    [Fact]
+    public async Task Handle_ShouldReportAConflict_WhenWhatTheEditChangesOnTheRecordCollides()
+    {
+        // Arrange — a participant the edit's new mention adds, added by another save at the same moment
+        var ownerId = _gadgets.AddRecord();
+        var messageId = (await _writer.Post(new PostDiscussionMessage(GadgetType, ownerId, DiscussionMessageKind.Public, null, "Draft"), TestContext.Current.CancellationToken)).Value;
+        _dbContext.FailNextSaveWith = new DbUpdateException("Duplicate participant.");
+
+        // Act
+        var result = await new EditDiscussionMessageCommandHandler(_writer, _dbContext)
+            .Handle(new EditDiscussionMessageCommand(GadgetType, ownerId, messageId, null, "Final"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(DiscussionAccessErrors.Conflict);
+    }
 }

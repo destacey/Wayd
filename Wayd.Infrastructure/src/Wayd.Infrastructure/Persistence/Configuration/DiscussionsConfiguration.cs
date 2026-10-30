@@ -70,6 +70,9 @@ public class DiscussionMessageConfiguration : IEntityTypeConfiguration<Discussio
 
         builder.HasIndex(m => m.AuthorEmployeeId);
 
+        // No foreign key: the activity log entry it names is written in the same save, and the log is never a parent.
+        builder.Property(m => m.RecordChangeEventId);
+
         builder.Property(m => m.Kind)
             .IsRequired()
             .HasConversion<EnumConverter<DiscussionMessageKind>>()

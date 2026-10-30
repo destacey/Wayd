@@ -60,6 +60,17 @@ public interface IDiscussionChannelType
     /// not sent here; they follow from the event.
     /// </remarks>
     Task OnPosted(DiscussionChannel channel, DiscussionMessage message, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Applies what an edit means for the record, tracked in the same unit of work, before the caller saves. Called
+    /// only when the edit added mentions, so a mention written in later reaches the record as one written at once.
+    /// </summary>
+    /// <param name="addedMentionIds">The employees the edit newly mentions, already narrowed by <see cref="MentionableAmong"/>.</param>
+    Task OnEdited(
+        DiscussionChannel channel,
+        DiscussionMessage message,
+        IReadOnlyCollection<Guid> addedMentionIds,
+        CancellationToken cancellationToken);
 }
 
 /// <summary>

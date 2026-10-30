@@ -41,7 +41,17 @@ public sealed class ReplyToDiscussionMessageCommandHandler(IDiscussionWriter wri
             return replied;
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // What the reply changes on the record collided with another save, such as the same participant
+            // added by two replies at once.
+            return Result.Failure<Guid>(DiscussionAccessErrors.Conflict);
+        }
+
         return replied;
     }
 }

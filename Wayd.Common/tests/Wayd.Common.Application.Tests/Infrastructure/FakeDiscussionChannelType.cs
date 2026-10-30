@@ -40,9 +40,18 @@ public sealed class FakeDiscussionChannelType(string channelType) : IDiscussionC
         CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlySet<Guid>>(employeeIds.Where(id => !Unmentionable.Contains(id)).ToHashSet());
 
+    /// <summary>The mentions <see cref="OnEdited"/> was called with, per message, in order.</summary>
+    public List<(DiscussionMessage Message, IReadOnlyCollection<Guid> AddedMentionIds)> Edited { get; } = [];
+
     public Task OnPosted(DiscussionChannel channel, DiscussionMessage message, CancellationToken cancellationToken)
     {
         Posted.Add(message);
+        return Task.CompletedTask;
+    }
+
+    public Task OnEdited(DiscussionChannel channel, DiscussionMessage message, IReadOnlyCollection<Guid> addedMentionIds, CancellationToken cancellationToken)
+    {
+        Edited.Add((message, addedMentionIds));
         return Task.CompletedTask;
     }
 }

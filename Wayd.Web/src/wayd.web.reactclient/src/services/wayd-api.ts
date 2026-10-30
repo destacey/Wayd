@@ -49835,6 +49835,13 @@ export class IntakeRequestsClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -58650,6 +58657,9 @@ request; the status options say which. */
     reason?: string | undefined;
     /** For a status meaning Duplicate, the request this one gives way to; otherwise null. */
     duplicateOfId?: string | undefined;
+    /** A reply to post in the request's conversation with the move, such as a question for the requester when moving to
+Waiting on Requester. Saved with the move, and shown with it on the message. Null for none. */
+    reply?: IntakeRequestReplyRequest | undefined;
 }
 
 export interface ChangePasswordRequest {
@@ -59887,6 +59897,10 @@ export interface DiscussionDto {
     canModerate: boolean;
     /** Whether the conversation is locked: nothing new can be posted, replied or edited. */
     isLocked: boolean;
+    /** How many threads the caller can read: top-level messages not deleted, of the kinds they may read. */
+    threadCount: number;
+    /** How many messages the caller can read, top-level and replies, not deleted, of the kinds they may read. */
+    messageCount: number;
 }
 
 /** One entry in a conversation: a top-level message, or a change to the record between messages. */
@@ -59941,6 +59955,10 @@ in List&lt;EmployeeNavigationDto&gt; DiscussionMessageDto.Mentions. Null once de
     lastReplyOn?: Date | undefined;
     /** Up to three people who replied most recently in the thread, newest first. */
     recentRepliers: EmployeeNavigationDto[];
+    /** The change to the record the message was posted with, such as moving a request to Waiting on Requester, exactly as
+the record's Activity section shows it to the caller. Null when there is none, the caller may not see it, or the
+message was read on its own rather than in a page of the conversation. */
+    recordChange?: ActivityLogDto | undefined;
     /** Whether the caller may edit the message: their own, standing, in an unlocked conversation. */
     canEdit: boolean;
     /** Whether the caller may delete the message: their own, or anyone's as a moderator. */
@@ -61601,6 +61619,14 @@ export interface IntakeRequestParticipantDto {
     addedBy?: EmployeeNavigationDto | undefined;
     /** When they were added. */
     addedOn: Date;
+}
+
+/** A top-level reply in an intake request's conversation, which the requester and participants read. */
+export interface IntakeRequestReplyRequest {
+    /** An optional subject, up to 200 characters. */
+    subject?: string | undefined;
+    /** The reply as markdown, mentions written `@[Name](employee:{id})`. */
+    body: string;
 }
 
 /** One of an intake request's scores: the frozen ratings and outputs it was given at a point in time. Substance tier. */

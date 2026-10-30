@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Wayd.Common.Application.Activities;
+using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Discussions.Dtos;
 using Wayd.Common.Application.Following;
 using Wayd.Common.Application.Persistence;
@@ -59,6 +60,7 @@ public sealed class GetDiscussionEntriesQueryHandler(
     IEnumerable<IDiscussionChannelType> channelTypes,
     IEnumerable<IRecordReadRule> readRules,
     IActivityLogReader activityLogReader,
+    IActivityLogDbContext activityLogDbContext,
     ICurrentPrincipal currentPrincipal)
     : IQueryHandler<GetDiscussionEntriesQuery, Result<CursorPage<DiscussionEntryDto>?>>
 {
@@ -66,6 +68,7 @@ public sealed class GetDiscussionEntriesQueryHandler(
     private readonly IEnumerable<IDiscussionChannelType> _channelTypes = channelTypes;
     private readonly IEnumerable<IRecordReadRule> _readRules = readRules;
     private readonly IActivityLogReader _activityLogReader = activityLogReader;
+    private readonly IActivityLogDbContext _activityLogDbContext = activityLogDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
 
     public async Task<Result<CursorPage<DiscussionEntryDto>?>> Handle(GetDiscussionEntriesQuery request, CancellationToken cancellationToken)
@@ -84,16 +87,17 @@ public sealed class GetDiscussionEntriesQueryHandler(
 
         var (page, hasMore) = await ReadMessages(view, request.Paging.PageSize, oldestFirst, cursor, cancellationToken);
         var described = await DiscussionReading.Describe(_dbContext, page, view, cancellationToken);
-
-        var entries = described
-            .Select(m => new DiscussionEntryDto { Type = DiscussionEntryType.Message, Timestamp = m.PostedOn, Message = m })
-            .ToList();
+        // A deleted message shows as a tombstone, so the change it was posted with is shown on its own.
+        var withRecordChanges = page.Where(m => m.RecordChangeEventId is not null && !m.IsDeleted).ToList();
+        var hasRecordChanges = withRecordChanges.Count > 0;
 
         var readRule = _readRules.FirstOrDefault(r => string.Equals(r.OwnerType, view.Type.ChannelType, StringComparison.OrdinalIgnoreCase));
+        List<ActivityLogDto> activity = [];
 
         // ReadActivity trusts its caller to have admitted the record through Readable. A channel type answers who may
         // discuss the record, which need not be who may read its history, so the record's own rule is asked too.
-        if (!request.MessagesOnly && readRule is not null
+        // Read for messages only too when a message carries a change, which it shows whatever the filter.
+        if ((!request.MessagesOnly || hasRecordChanges) && readRule is not null
             && await FollowReadRules.CanRead(readRule, request.OwnerId, cancellationToken))
         {
             Instant? lastPosted = page.Count > 0 ? page[^1].PostedOn : null;
@@ -101,15 +105,28 @@ public sealed class GetDiscussionEntriesQueryHandler(
 
             // Oldest first, a page covers (cursor, last message]; newest first, [last message, cursor). Either way the
             // edge a later page starts from is exclusive there, so no change is shown twice or skipped.
-            var activity = oldestFirst
+            activity = oldestFirst
                 ? await DiscussionActivityWindow.Read(readRule, _activityLogReader, request.OwnerId,
                     older: cursor?.PostedOn, olderInclusive: false, newer: edge, newerInclusive: true, cancellationToken)
                 : await DiscussionActivityWindow.Read(readRule, _activityLogReader, request.OwnerId,
                     older: edge, olderInclusive: true, newer: cursor?.PostedOn, newerInclusive: false, cancellationToken);
 
+        }
+
+        if (hasRecordChanges && activity.Count > 0)
+        {
+            (described, activity) = await AttachRecordChanges(withRecordChanges, described, activity, cancellationToken);
+        }
+
+        var entries = described
+            .Select(m => new DiscussionEntryDto { Type = DiscussionEntryType.Message, Timestamp = m.PostedOn, Message = m })
+            .ToList();
+
+        if (!request.MessagesOnly && activity.Count > 0)
+        {
             entries.AddRange(activity.Select(a => new DiscussionEntryDto { Type = DiscussionEntryType.Activity, Timestamp = a.Timestamp, Activity = a }));
 
-            // At one instant a message reads before the change it caused, as in "asked, and moved to Waiting".
+            // At one instant a message reads before a change made beside it.
             entries = oldestFirst
                 ? [.. entries.OrderBy(e => e.Timestamp).ThenBy(e => e.Type)]
                 : [.. entries.OrderByDescending(e => e.Timestamp).ThenByDescending(e => e.Type)];
@@ -121,6 +138,38 @@ public sealed class GetDiscussionEntriesQueryHandler(
             Items = entries,
             NextCursor = hasMore && last is not null ? new DiscussionCursor(last.PostedOn, last.Id).Encode() : null,
         };
+    }
+
+    /// <summary>
+    /// Moves each change a message was posted with from the activity onto the message. A change the caller may not see
+    /// is not in the activity, so the message carries none.
+    /// </summary>
+    /// <remarks>
+    /// The message names its change by event id, which the activity read does not publish, so the activity log is asked
+    /// which entry each event is. A message takes its change's timestamp, so the change is always in the same window.
+    /// </remarks>
+    private async Task<(List<DiscussionMessageDto> Messages, List<ActivityLogDto> Activity)> AttachRecordChanges(
+        IReadOnlyList<DiscussionMessage> withRecordChanges,
+        List<DiscussionMessageDto> messages,
+        List<ActivityLogDto> activity,
+        CancellationToken cancellationToken)
+    {
+        var messageByEvent = withRecordChanges.ToDictionary(m => m.RecordChangeEventId!.Value, m => m.Id);
+        Guid[] eventIds = [.. messageByEvent.Keys];
+
+        var entries = await _activityLogDbContext.ActivityLogs
+            .Where(a => eventIds.Contains(a.EventId))
+            .Select(a => new { a.Id, a.EventId })
+            .ToListAsync(cancellationToken);
+        var messageByEntry = entries.ToDictionary(e => e.Id, e => messageByEvent[e.EventId]);
+
+        var changes = activity
+            .Where(a => messageByEntry.ContainsKey(a.Id))
+            .ToDictionary(a => messageByEntry[a.Id]);
+
+        return (
+            [.. messages.Select(m => changes.TryGetValue(m.Id, out var change) ? m with { RecordChange = change } : m)],
+            [.. activity.Where(a => !messageByEntry.ContainsKey(a.Id))]);
     }
 
     private async Task<(List<DiscussionMessage> Page, bool HasMore)> ReadMessages(

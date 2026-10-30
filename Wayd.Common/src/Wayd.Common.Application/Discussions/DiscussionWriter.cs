@@ -36,7 +36,7 @@ public sealed class DiscussionWriter(
             return Result.Failure<Guid>(DiscussionAccessErrors.CannotWrite);
         }
 
-        var now = _dateTimeProvider.Now;
+        var now = message.RecordChange?.Timestamp ?? _dateTimeProvider.Now;
         var actor = Actor(employeeId);
 
         var channel = await FindChannel(type.ChannelType, message.OwnerId, cancellationToken);
@@ -54,7 +54,8 @@ public sealed class DiscussionWriter(
 
         var mentions = await Mentionable(type, message.OwnerId, message.Body, message.Kind, cancellationToken);
 
-        var posted = DiscussionMessage.Post(channel, message.Kind, employeeId, message.Subject, message.Body, mentions, actor, now);
+        var posted = DiscussionMessage.Post(channel, message.Kind, employeeId, message.Subject, message.Body, mentions, actor, now,
+            message.RecordChange?.EventId);
         if (posted.IsFailure)
         {
             return Result.Failure<Guid>(posted.Error);
@@ -140,8 +141,15 @@ public sealed class DiscussionWriter(
         }
 
         var mentions = await Mentionable(type, ownerId, body, message.Kind, cancellationToken);
+        Guid[] added = [.. mentions.Except(message.Mentions.Select(m => m.EmployeeId)).Where(id => id != employeeId)];
 
-        return message.Edit(channel, employeeId, subject, body, mentions, Actor(employeeId), _dateTimeProvider.Now);
+        var edited = message.Edit(channel, employeeId, subject, body, mentions, Actor(employeeId), _dateTimeProvider.Now);
+        if (edited.IsSuccess && added.Length > 0)
+        {
+            await type.OnEdited(channel, message, added, cancellationToken);
+        }
+
+        return edited;
     }
 
     /// <inheritdoc/>

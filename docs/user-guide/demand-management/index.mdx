@@ -188,6 +188,7 @@ The filters and the layout are kept in the page's address, so a view can be book
 Opening a request shows its number and title, with its status and [tags](#tags) beside the title; clicking the status opens its history. An agent on the request's desk changes the tags with the edit icon beside them or **Manage Tags** in the actions menu, choosing from the axes the desk uses. A tag the request carries along an axis the desk does not use — one it brought from another desk — can be removed there but not added to. The trail beneath the title leads back to **Requests** through the desk the request is on, and beneath that a line says who raised it, when, and where it came from when that was recorded. The panel opened from the header lists its desk, channel, requester and assignee and, where you can read them, who submitted it and where it came from.
 
 - **Details** — The reason for its current status, when it has one, then the description, the expected benefits and the need-by date, which says what makes it that date and whether it can move. On a desk that keeps its detail to itself, people outside it see a message saying the detail is limited to that desk, rather than empty fields
+- **Discussion** — The request's conversation with its requester, and the desk's internal notes. Shown only to people who can read the request's detail; see [Discussing a request](#discussing-a-request)
 - **Outcomes** — What the request became: the projects that deliver it. Shown to everyone who can see the request, as its status is. See [Outcomes](#outcomes)
 - **People** — The requester, the submitter when it is someone else, and the request's participants. Participants can read the request and reply to it, but cannot change it, and being one does not assign them any work. Shown only to people who can read the request's detail
 - **Score** — The request's current score, where it ranks among the open requests on its desk, the ratings behind it, and every earlier score. Shown only to people who can read the request's detail; see [Scoring a request](#scoring-a-request)
@@ -196,11 +197,31 @@ Opening a request shows its number and title, with its status and [tags](#tags) 
 
 Anyone who can see a request can **follow** it with the eye at the top of the page, to keep it in their [Following](../following.mdx) list; the Following feature flag must be on. Following grants nothing: a follower reads exactly what the tiers below allow, and loses the request from their list the moment they can no longer see it — when it moves to a private desk they are not on, they are removed from a private desk's request, or it is deleted. Its history in their Following list shows only what the request's own Activity section shows them.
 
-The bell tells a request's people when it changes, without their having to follow it: its requester, its assignee, its participants and anyone who entered it on the requester's behalf, as well as its followers. Each is told for their own reason and can mute that reason, and nobody is told about their own change. The requester hears when its status changes, when it is reassigned or moved to another desk, and when its title, details, need-by date or channel change; an agent hears when a request is assigned to them or taken off them. A follower who sees only a request's summary is not told about changes to its details or participants. [Notifications](../notifications.mdx#who-is-told) lists who is told about each change.
+The bell tells a request's people when it changes, without their having to follow it: its requester, its assignee, its participants and anyone who entered it on the requester's behalf, as well as its followers. Each is told for their own reason and can mute that reason, and nobody is told about their own change. The requester hears when its status changes, when it is reassigned or moved to another desk, when someone replies in its conversation, and when its title, details, need-by date or channel change; an agent hears when a request is assigned to them or taken off them. A follower who sees only a request's summary is not told about changes to its details or participants. [Notifications](../notifications.mdx#who-is-told) lists who is told about each change.
 
 **Edit** appears in the actions menu when you can change the request: the requester while it is proposed, or an agent on its desk while it is open. The desk cannot be changed here.
 
 **Change Assignee** appears for an agent on the request's desk. The assignee owns the next move on the request; assigning someone does not make them its approver. Anyone who works the desk can be assigned, **Assign to me** fills in yourself when you work it, and clearing the field unassigns the request.
+
+### Discussing a request
+
+A request's **Discussion** section holds its conversation, so the questions and answers that get a request ready to decide stay with the request instead of in email. It mixes two kinds of message:
+
+- **Replies** — Read by everyone who can read the request's detail: its requester, whoever submitted it, its participants, the desk's agents and, on an open desk, everyone who can view requests. Anyone who can read them can reply
+- **Internal notes** — Read only by the desk's agents and Desk Admins and the Demand Management Admin. Only they can write one, and nobody else is offered the choice at all
+
+The composer at the bottom starts as a reply. An agent switches it to **Internal note** with the control above it, and the whole box changes colour while it is one, so a note is never sent to a requester by mistake. A note shows a lock and **Internal note** wherever it appears.
+
+- **Threads** — A message can have a subject, and starts a thread. Replies to it collapse under it ("2 replies · last reply 3 hours ago") and open in place with their own reply box. Replies go one level deep, and a thread takes its first message's kind: everything under an internal note is internal.
+- **Mentions** — Type **@** to mention someone, which tells them. On a desk that is not private, mentioning someone you could add as a participant yourself makes them one, so they can read the request. A participant cannot add anyone by mentioning them. A mention in an internal note can name only the desk's members and adds nobody.
+- **Joining in** — On a desk that is not private, replying to a request you can read makes you a participant, so you hear about it from then on. On a private desk, people are added only by an agent or, where the desk allows it, the requester.
+- **Ask and move** — An agent replying can tick **Move the request to Waiting on Requester** (the desk's own name for that status). The reply is posted and the request moves together, and the conversation shows the move on the message. Leave it unticked to reply without moving the request.
+- **Changes in between** — By default the conversation shows the request's changes between the messages, as its Activity section shows them to you. **Messages only** hides them.
+- **Order** — The conversation reads oldest first, with the composer at the bottom. **Newest first** puts the latest message at the top and the composer above it; Wayd remembers your choice in this browser.
+- **Editing and deleting** — You can edit your own messages; every earlier version is kept, and **edited** beside a message shows them. You can delete your own messages, and the desk's admins can delete anyone's. A deleted message leaves a line saying who deleted it and when; its text and earlier versions are removed.
+- **Locking** — The desk's admins can lock a conversation, after which nothing new can be posted, replied or edited until they unlock it. A request's status never locks it: a closed request can still be asked about.
+
+Each message notifies the request's people. [Notifications](../notifications.mdx#who-is-told) lists who is told about replies and internal notes.
 
 ### Scoring a request
 
@@ -221,6 +242,8 @@ The requester and participants read the score and its ratings on their own reque
 - For **Duplicate**, the request this one gives way to — any other request you can see. One that is itself a duplicate is refused, so a duplicate always leads straight to the request that survives
 
 A closed request can be moved back to an open status the same way, which also lets it be edited again.
+
+To ask the requester a question, reply in the request's [Discussion](#discussing-a-request) with **Move the request to Waiting on Requester** ticked: the question and the move are saved together.
 
 #### Duplicates
 
@@ -389,7 +412,7 @@ Each desk sets how much of that reaches the rest of the company:
 | **Summary only** | Summary | Everything their role allows |
 | **Private** | Nothing. The request appears in no list, search or count | Everything their role allows |
 
-A request's own people are its **requester**, whoever **submitted** it on the requester's behalf, and any **participants** given access to it. Participants read the request and can join the discussion, but they cannot change it and never see internal notes.
+A request's own people are its **requester**, whoever **submitted** it on the requester's behalf, and any **participants** given access to it. Participants read the request and can join the discussion, but they cannot change it and never see internal notes. On a desk that is not private, someone becomes a participant by replying, or by being mentioned by someone who could have added them.
 
 Working one desk gives you nothing on another: an agent reads other desks' requests only as far as those desks let everyone. Someone who cannot view requests sees only their own requests and those on the desks they work.
 

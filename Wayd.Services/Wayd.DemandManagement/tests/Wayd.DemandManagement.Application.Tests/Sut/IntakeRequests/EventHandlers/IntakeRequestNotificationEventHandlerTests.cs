@@ -15,6 +15,7 @@ using Wayd.DemandManagement.Application.Tests.Infrastructure;
 using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.DemandManagement.Domain.Tests.Data;
+using Wayd.Tests.Shared.Infrastructure;
 
 namespace Wayd.DemandManagement.Application.Tests.Sut.IntakeRequests.EventHandlers;
 

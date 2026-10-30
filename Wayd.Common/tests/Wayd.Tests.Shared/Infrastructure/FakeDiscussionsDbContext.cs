@@ -2,12 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Employees;
-using Wayd.Tests.Shared.Infrastructure;
-
-namespace Wayd.DemandManagement.Application.Tests.Infrastructure;
+namespace Wayd.Tests.Shared.Infrastructure;
 
 /// <summary>
-/// An in-memory <see cref="IDiscussionsDbContext"/> for Demand Management handlers that read a request's conversation.
+/// An in-memory <see cref="IDiscussionsDbContext"/> for a module's handlers that read a record's conversation.
 /// </summary>
 public sealed class FakeDiscussionsDbContext : IDiscussionsDbContext
 {

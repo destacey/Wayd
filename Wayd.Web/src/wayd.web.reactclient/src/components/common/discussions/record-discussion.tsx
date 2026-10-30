@@ -19,6 +19,7 @@ import {
   usePostDiscussionMessageMutation,
   useSetDiscussionLockMutation,
 } from '@/src/store/features/common/discussions-api'
+import { toApiError } from '@/src/utils/problem-details'
 import { formatTimeAgo } from '@/src/utils/time-ago'
 import DiscussionComposer, {
   DiscussionComposerValue,
@@ -88,7 +89,7 @@ const RecordDiscussion = ({
   )
   const [messagesOnly, setMessagesOnly] = useState(false)
 
-  const { data: access, isError } = useGetDiscussionQuery(target)
+  const { data: access, error, refetch } = useGetDiscussionQuery(target)
   const {
     data: entries,
     isLoading,
@@ -102,7 +103,18 @@ const RecordDiscussion = ({
   const [postMessage] = usePostDiscussionMessageMutation()
   const [setLock, { isLoading: isLocking }] = useSetDiscussionLockMutation()
 
-  if (isError) return null
+  // Not found is how the server answers a reader who may not see the conversation: show nothing.
+  if (error && toApiError(error).status === 404) return null
+  if (error) {
+    return (
+      <Alert
+        type="error"
+        showIcon
+        title="The discussion could not be loaded."
+        action={<Button onClick={() => refetch()}>Try again</Button>}
+      />
+    )
+  }
   if (!access) return <Spin />
 
   const items = entries?.pages.flatMap((page) => page.items) ?? []
@@ -112,13 +124,25 @@ const RecordDiscussion = ({
     canWrite(access, DiscussionMessageKind.InternalNote)
 
   const post = async (value: DiscussionComposerValue) => {
-    if (onPost) return onPost(value)
-    const response = await postMessage({ ...target, ...value })
-    if ('error' in response) {
-      messageApi.error(errorText(response.error, 'Could not post the message.'))
-      return false
+    let posted: boolean
+    if (onPost) {
+      posted = await onPost(value)
+    } else {
+      const response = await postMessage({ ...target, ...value })
+      if ('error' in response) {
+        messageApi.error(
+          errorText(response.error, 'Could not post the message.'),
+        )
+      }
+      posted = !('error' in response)
     }
-    return true
+    // Read oldest first, a new message lands after the pages loaded so far.
+    if (posted && !newestFirst && hasNextPage) {
+      messageApi.info(
+        'Posted. It is at the end of the conversation: choose Show newer to see it.',
+      )
+    }
+    return posted
   }
 
   const toggleLock = async () => {
@@ -147,6 +171,34 @@ const RecordDiscussion = ({
       onSubmit={post}
     />
   ) : null
+
+  const conversation = (
+    <>
+      {isLoading ? (
+        <Spin />
+      ) : (
+        <ol className={styles.entries}>
+          {items.map((entry) =>
+            entry.type === DiscussionEntryType.Message && entry.message ? (
+              <li key={entry.message.id}>
+                <DiscussionMessage message={entry.message} />
+              </li>
+            ) : entry.activity ? (
+              <ActivityEntry
+                key={`activity-${entry.activity.id}`}
+                activity={entry.activity}
+              />
+            ) : null,
+          )}
+        </ol>
+      )}
+      {hasNextPage && (
+        <Button onClick={() => fetchNextPage()} loading={isFetchingNextPage}>
+          {newestFirst ? 'Show older' : 'Show newer'}
+        </Button>
+      )}
+    </>
+  )
 
   return (
     <DiscussionContext.Provider
@@ -193,34 +245,11 @@ const RecordDiscussion = ({
           />
         )}
 
-        {newestFirst && composer}
-
-        {isLoading ? (
-          <Spin />
-        ) : (
-          <ol className={styles.entries}>
-            {items.map((entry) =>
-              entry.type === DiscussionEntryType.Message && entry.message ? (
-                <li key={entry.message.id}>
-                  <DiscussionMessage message={entry.message} />
-                </li>
-              ) : entry.activity ? (
-                <ActivityEntry
-                  key={`activity-${entry.activity.id}`}
-                  activity={entry.activity}
-                />
-              ) : null,
-            )}
-          </ol>
-        )}
-
-        {hasNextPage && (
-          <Button onClick={() => fetchNextPage()} loading={isFetchingNextPage}>
-            {newestFirst ? 'Show older' : 'Show newer'}
-          </Button>
-        )}
-
-        {!newestFirst && composer}
+        {/* The composer keeps one place in the tree, so switching the order never loses a draft;
+            the conversation moves to the other side of it instead. */}
+        {!newestFirst && conversation}
+        {composer}
+        {newestFirst && conversation}
       </section>
     </DiscussionContext.Provider>
   )

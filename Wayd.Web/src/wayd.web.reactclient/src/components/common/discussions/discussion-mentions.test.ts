@@ -1,5 +1,6 @@
 import {
   fromComposerText,
+  mentionTexts,
   toComposerText,
   toDisplayMarkdown,
 } from './discussion-mentions'
@@ -99,5 +100,58 @@ describe('fromComposerText', () => {
 
     // Assert
     expect(fromComposerText(text, mentioned)).toBe(stored)
+  })
+})
+
+describe('mentionTexts', () => {
+  it('tells two people of one name apart by their number', () => {
+    // Arrange
+    const first = { id: 'a-1', name: 'John Smith', key: 7 }
+    const second = { id: 'a-2', name: 'John Smith', key: 9 }
+
+    // Act
+    const texts = mentionTexts([first, second, { ...dana }])
+
+    // Assert
+    expect(texts.get('a-1')).toBe('John Smith (7)')
+    expect(texts.get('a-2')).toBe('John Smith (9)')
+    expect(texts.get(dana.id)).toBe('Dana Ortiz')
+  })
+
+  it('mentions the second of two people of one name, not the first', () => {
+    // Arrange
+    const first = {
+      id: '01a18a77-484d-790c-ba91-93acff282601',
+      name: 'John Smith',
+      key: 7,
+    }
+    const second = {
+      id: '01a18a77-484d-790c-ba91-93acff282602',
+      name: 'John Smith',
+      key: 9,
+    }
+    const texts = mentionTexts([first, second])
+    const picked = { id: second.id, name: texts.get(second.id)! }
+
+    // Act
+    const body = fromComposerText(`Ask @${picked.name}`, [picked])
+
+    // Assert
+    expect(body).toBe(`Ask @[John Smith (9)](employee:${second.id})`)
+  })
+})
+
+describe('unknown people', () => {
+  it('reads a mention of someone the server could not find as plain text', () => {
+    // Arrange — key 0 is the server's stand-in for an employee it could not find
+    const unknown = { id: dana.id, key: 0, name: 'Unknown' }
+
+    // Act
+    const markdown = toDisplayMarkdown(`Hi @[Dana O](employee:${dana.id})`, [
+      unknown,
+    ])
+
+    // Assert
+    expect(markdown).toBe('Hi @Dana O')
   })
 })

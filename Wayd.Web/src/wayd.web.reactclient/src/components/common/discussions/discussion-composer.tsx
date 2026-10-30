@@ -5,7 +5,11 @@ import { Button, Input, Mentions, Segmented } from 'antd'
 import { ReactNode, useState } from 'react'
 import PersonAvatar from '@/src/components/common/person-avatar'
 import { DiscussionMessageKind } from '@/src/services/wayd-api'
-import { fromComposerText, MentionCandidate } from './discussion-mentions'
+import {
+  fromComposerText,
+  MentionCandidate,
+  mentionTexts,
+} from './discussion-mentions'
 import styles from './discussion.module.css'
 
 /** What a composer hands its owner to post. */
@@ -92,15 +96,23 @@ const DiscussionComposer = ({
   const candidates =
     isNote && noteMentionCandidates ? noteMentionCandidates : mentionCandidates
   const hint = audience?.[kind]
+  const texts = mentionTexts(candidates)
 
   const submit = async () => {
     if (!text.trim() || isSubmitting) return
+    // Someone picked while writing a reply stays plain text in a note unless the note may name them.
+    const mentionable =
+      isNote && noteMentionCandidates
+        ? mentioned.filter((m) =>
+            noteMentionCandidates.some((c) => c.id === m.id),
+          )
+        : mentioned
     setIsSubmitting(true)
     try {
       const posted = await onSubmit({
         kind,
         subject: showSubject && subject.trim() ? subject.trim() : undefined,
-        body: fromComposerText(text, mentioned),
+        body: fromComposerText(text, mentionable),
       })
       if (posted && !initial) {
         setSubject('')
@@ -166,14 +178,19 @@ const DiscussionComposer = ({
           placement={suggestionsPlacement}
           notFoundContent="No one by that name can be mentioned here"
           onSelect={(option) => {
-            const person = candidates.find((c) => c.name === option.value)
+            const person = candidates.find(
+              (c) => texts.get(c.id) === option.value,
+            )
             if (person && !mentioned.some((m) => m.id === person.id)) {
-              setMentioned([...mentioned, person])
+              setMentioned([
+                ...mentioned,
+                { id: person.id, name: option.value ?? person.name },
+              ])
             }
           }}
           options={candidates.map((c) => ({
             key: c.id,
-            value: c.name,
+            value: texts.get(c.id) ?? c.name,
             label: (
               <span className={styles.mentionOption}>
                 <PersonAvatar
@@ -182,7 +199,7 @@ const DiscussionComposer = ({
                   size={20}
                   showTooltip={false}
                 />
-                {c.name}
+                {texts.get(c.id) ?? c.name}
               </span>
             ),
           }))}

@@ -4,6 +4,29 @@ import { EmployeeNavigationDto } from '@/src/services/wayd-api'
 export interface MentionCandidate {
   id: string
   name: string
+  /** The person's employee number, which tells two people of one name apart. */
+  key?: number
+}
+
+/**
+ * What the composer writes for each candidate after the @: the name, or for
+ * someone who shares it with another candidate, the name and their employee
+ * number, so picking the second of two people with one name never mentions the
+ * first.
+ */
+export const mentionTexts = (
+  candidates: MentionCandidate[],
+): Map<string, string> => {
+  const counts = new Map<string, number>()
+  for (const c of candidates) counts.set(c.name, (counts.get(c.name) ?? 0) + 1)
+  return new Map(
+    candidates.map((c) => [
+      c.id,
+      (counts.get(c.name) ?? 0) > 1
+        ? `${c.name} (${c.key ?? c.id.slice(0, 8)})`
+        : c.name,
+    ]),
+  )
 }
 
 /**
@@ -32,7 +55,8 @@ export const toDisplayMarkdown = (
   const byId = new Map(mentions.map((m) => [m.id.toLowerCase(), m]))
   return body.replace(storedMention, (_, name: string, id: string) => {
     const person = byId.get(id.toLowerCase())
-    return person
+    // Key 0 is the server's stand-in for an employee it could not find.
+    return person && person.key
       ? `[@${escapeLinkText(person.name)}](/organizations/employees/${person.key})`
       : `@${name}`
   })
@@ -47,9 +71,11 @@ export const toComposerText = (
   mentions: EmployeeNavigationDto[],
 ): { text: string; mentioned: MentionCandidate[] } => {
   const byId = new Map(mentions.map((m) => [m.id.toLowerCase(), m]))
+  const texts = mentionTexts(mentions)
   const mentioned = new Map<string, MentionCandidate>()
   const text = body.replace(storedMention, (_, name: string, id: string) => {
-    const shown = byId.get(id.toLowerCase())?.name ?? name
+    const person = byId.get(id.toLowerCase())
+    const shown = (person && texts.get(person.id)) ?? name
     mentioned.set(id.toLowerCase(), { id, name: shown })
     return `@${shown}`
   })

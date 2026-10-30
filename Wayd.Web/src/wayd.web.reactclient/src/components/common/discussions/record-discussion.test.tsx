@@ -12,8 +12,9 @@ import {
 import RecordDiscussion from './record-discussion'
 
 const mockMessageError = jest.fn()
+const mockMessageInfo = jest.fn()
 jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: mockMessageError }),
+  useMessage: () => ({ error: mockMessageError, info: mockMessageInfo }),
 }))
 
 jest.mock('@/src/components/common/markdown', () => ({
@@ -294,12 +295,76 @@ describe('RecordDiscussion', () => {
 
   it('shows nothing when the conversation cannot be read', () => {
     // Arrange
-    mockUseDiscussion.mockReturnValue({ data: undefined, isError: true })
+    mockUseDiscussion.mockReturnValue({
+      data: undefined,
+      error: { status: 404 },
+    })
 
     // Act
     const { container } = renderDiscussion()
 
     // Assert
     expect(container).toBeEmptyDOMElement()
+  })
+
+  it('says the discussion could not be loaded when the server fails', () => {
+    // Arrange — anything but not found is a failure to show, not a conversation to hide
+    mockUseDiscussion.mockReturnValue({
+      data: undefined,
+      error: { status: 500 },
+      refetch: jest.fn(),
+    })
+
+    // Act
+    renderDiscussion()
+
+    // Assert
+    expect(
+      screen.getByText('The discussion could not be loaded.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Try again' }),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps a draft when the order is switched', async () => {
+    // Arrange
+    renderDiscussion()
+    fireEvent.change(screen.getByLabelText('Message'), {
+      target: { value: 'Half a thought' },
+    })
+
+    // Act
+    await act(async () => {
+      fireEvent.click(screen.getByText('Newest first'))
+    })
+
+    // Assert
+    expect(screen.getByLabelText('Message')).toHaveValue('Half a thought')
+  })
+
+  it('says where a new post went when newer messages are not loaded yet', async () => {
+    // Arrange
+    mockUseEntries.mockReturnValue({
+      data: { pages: [{ items: [] }] },
+      isLoading: false,
+      hasNextPage: true,
+      isFetchingNextPage: false,
+      fetchNextPage: jest.fn(),
+    })
+    renderDiscussion()
+    fireEvent.change(screen.getByLabelText('Message'), {
+      target: { value: 'Could you add the budget?' },
+    })
+
+    // Act
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Post reply' }))
+    })
+
+    // Assert
+    expect(mockMessageInfo).toHaveBeenCalledWith(
+      expect.stringContaining('Show newer'),
+    )
   })
 })

@@ -42,6 +42,7 @@ const audience = {
 const candidate = (person: EmployeeNavigationDto): MentionCandidate => ({
   id: person.id,
   name: person.name,
+  key: person.key,
 })
 
 const distinct = (people: MentionCandidate[]) => [
@@ -117,6 +118,8 @@ const IntakeRequestDiscussion = ({
       )
       return false
     }
+    // The move is the agent's choice for each reply, never carried to the next.
+    setMoveToWaiting(false)
     return true
   }
 

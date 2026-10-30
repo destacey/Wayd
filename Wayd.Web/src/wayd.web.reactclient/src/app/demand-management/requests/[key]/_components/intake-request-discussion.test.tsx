@@ -250,4 +250,34 @@ describe('IntakeRequestDiscussion', () => {
     expect(posted).toBe(false)
     expect(mockMessageError).toHaveBeenCalledWith('Locked.')
   })
+
+  it('clears the move after posting, so the next reply does not move the request again', async () => {
+    // Arrange
+    render(
+      <IntakeRequestDiscussion request={request()} substance={substance} />,
+    )
+    fireEvent.click(screen.getByRole('checkbox'))
+
+    // Act
+    await act(async () => {
+      await captured.onPost(reply)
+    })
+
+    // Assert
+    expect(screen.getByRole('checkbox')).not.toBeChecked()
+  })
+
+  it("offers the request's people with their numbers, to tell names apart", () => {
+    // Act
+    render(
+      <IntakeRequestDiscussion request={request()} substance={substance} />,
+    )
+
+    // Assert
+    expect(captured.mentionCandidates[0]).toEqual({
+      id: 'e-1',
+      name: 'Priya Natarajan',
+      key: 1,
+    })
+  })
 })

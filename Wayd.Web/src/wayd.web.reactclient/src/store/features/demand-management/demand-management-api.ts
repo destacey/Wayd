@@ -93,6 +93,11 @@ const projectRequestsTag = (projectId: string) =>
 const requestTags = (requestId: string) => [
   { type: QueryTags.IntakeRequest, id: requestId },
   { type: QueryTags.ActivityLog, id: requestId },
+  // The request's conversation shows its changes between the messages.
+  discussionTag({
+    channelType: DiscussionChannelTypes.IntakeRequest,
+    ownerId: requestId,
+  }),
 ]
 
 /**
@@ -468,18 +473,8 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           return toError(error)
         }
       },
-      invalidatesTags: (_result, _error, { requestId, reply }) => [
-        ...statusMoveTags(requestId),
-        // A reply posted with the move lands in the request's conversation.
-        ...(reply
-          ? [
-              discussionTag({
-                channelType: DiscussionChannelTypes.IntakeRequest,
-                ownerId: requestId,
-              }),
-            ]
-          : []),
-      ],
+      invalidatesTags: (_result, _error, { requestId }) =>
+        statusMoveTags(requestId),
     }),
 
     withdrawIntakeRequest: builder.mutation<void, WithdrawIntakeRequestArgs>({

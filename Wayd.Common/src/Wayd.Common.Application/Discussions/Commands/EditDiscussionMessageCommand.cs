@@ -46,9 +46,10 @@ public sealed class EditDiscussionMessageCommandHandler(IDiscussionWriter writer
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateException)
         {
-            // Deleted or edited in the same moment; saving anyway could put text back on a tombstone.
+            // Deleted or edited in the same moment, which saving anyway could put text back on a tombstone; or what
+            // the edit changes on the record, such as a participant its new mention adds, collided with another save.
             return Result.Failure(DiscussionAccessErrors.Conflict);
         }
 

@@ -1,0 +1,213 @@
+/* Themed only through antd's CSS variables, so every theme and mode applies without JS. */
+
+.editor {
+  border: 1px solid var(--ant-color-border);
+  border-radius: var(--ant-border-radius);
+  background-color: var(--ant-color-bg-container);
+  transition:
+    border-color 0.3s,
+    box-shadow 0.3s;
+}
+
+.editor:hover {
+  border-color: var(--ant-color-primary-hover);
+}
+
+.editor:focus-within {
+  border-color: var(--ant-color-primary);
+  box-shadow: 0 0 0 2px var(--ant-color-primary-bg);
+}
+
+.invalid,
+.invalid:hover {
+  border-color: var(--ant-color-error);
+}
+
+.invalid:focus-within {
+  border-color: var(--ant-color-error);
+  box-shadow: 0 0 0 2px var(--ant-color-error-bg);
+}
+
+.warning {
+  margin-bottom: var(--ant-margin-xs);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  /* Tight enough that every button fits one row in a standard form dialog; larger themes wrap. */
+  gap: calc(var(--ant-margin-xxs) / 2);
+  padding: var(--ant-padding-xxs);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+}
+
+.divider {
+  margin: 0;
+  height: 1.25em;
+}
+
+.content {
+  min-height: 160px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: var(--ant-padding-xs) var(--ant-padding-sm);
+  color: var(--ant-color-text);
+  font-size: var(--ant-font-size);
+  line-height: var(--ant-line-height);
+  outline: none;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.content > :first-child {
+  margin-top: 0;
+}
+
+.content p {
+  margin: 0 0 var(--ant-margin-xs);
+}
+
+.content h1,
+.content h2,
+.content h3,
+.content h4,
+.content h5,
+.content h6 {
+  margin: var(--ant-margin-sm) 0 var(--ant-margin-xs);
+  color: var(--ant-color-text-heading);
+  font-weight: var(--ant-font-weight-strong);
+  line-height: var(--ant-line-height-heading-3);
+}
+
+.content h1 {
+  font-size: var(--ant-font-size-heading-3);
+}
+
+.content h2 {
+  font-size: var(--ant-font-size-heading-4);
+}
+
+.content h3,
+.content h4,
+.content h5,
+.content h6 {
+  font-size: var(--ant-font-size-heading-5);
+}
+
+.content a {
+  color: var(--ant-color-link);
+  text-decoration: underline;
+}
+
+.content ul,
+.content ol {
+  margin: 0 0 var(--ant-margin-xs);
+  padding-left: var(--ant-padding-lg);
+}
+
+.content ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: var(--ant-padding-xxs);
+}
+
+.content ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ant-margin-xs);
+}
+
+.content ul[data-type='taskList'] li > label {
+  flex: none;
+  user-select: none;
+}
+
+.content ul[data-type='taskList'] li > div {
+  flex: 1;
+}
+
+.content ul[data-type='taskList'] input[type='checkbox'] {
+  accent-color: var(--ant-color-primary);
+}
+
+.content blockquote {
+  margin: 0 0 var(--ant-margin-xs);
+  padding: 0 var(--ant-padding-sm);
+  border-left: 4px solid var(--ant-color-border);
+  color: var(--ant-color-text-secondary);
+}
+
+.content code {
+  padding: 0.1em 0.3em;
+  border-radius: var(--ant-border-radius-sm);
+  background-color: var(--ant-color-fill-tertiary);
+  font-family: var(--ant-font-family-code);
+  font-size: 0.9em;
+}
+
+.content pre {
+  margin: 0 0 var(--ant-margin-xs);
+  padding: var(--ant-padding-xs) var(--ant-padding-sm);
+  border-radius: var(--ant-border-radius);
+  background-color: var(--ant-color-fill-quaternary);
+  overflow-x: auto;
+}
+
+.content pre code {
+  padding: 0;
+  background: none;
+}
+
+.content hr {
+  margin: var(--ant-margin-sm) 0;
+  border: none;
+  border-top: 1px solid var(--ant-color-split);
+}
+
+.content img {
+  max-width: 100%;
+}
+
+.content :global(.tableWrapper) {
+  margin: 0 0 var(--ant-margin-xs);
+  overflow-x: auto;
+}
+
+.content table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.content th,
+.content td {
+  position: relative;
+  min-width: 4em;
+  padding: var(--ant-padding-xxs) var(--ant-padding-xs);
+  border: 1px solid var(--ant-color-border-secondary);
+  vertical-align: top;
+}
+
+.content th {
+  background-color: var(--ant-color-fill-quaternary);
+  font-weight: var(--ant-font-weight-strong);
+  text-align: left;
+}
+
+.content th > p,
+.content td > p {
+  margin: 0;
+}
+
+.content :global(.selectedCell)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--ant-color-primary-bg);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.content :global(.ProseMirror-selectednode) {
+  outline: 2px solid var(--ant-color-primary);
+}

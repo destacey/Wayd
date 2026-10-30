@@ -6,8 +6,10 @@ import MarkdownRenderer from '../markdown-renderer'
  *
  * - `exact` — the text is byte for byte the same.
  * - `normalized` — the text changed but renders to the same HTML.
- * - `formatting-lost` — the rendering changed but every character a reader saw is still there.
- * - `content-lost` — something a reader saw is gone.
+ * - `formatting-lost` — the rendering changed but everything a reader saw, in order, is still there,
+ *   and so is every link and image address.
+ * - `content-lost` — something a reader saw is gone or out of order, or a link or image lost its
+ *   address.
  */
 export type Fidelity =
   'exact' | 'normalized' | 'formatting-lost' | 'content-lost'
@@ -22,8 +24,12 @@ export const fidelityOrder: readonly Fidelity[] = [
 
 interface Rendering {
   html: string
-  /** Every visible non-whitespace character, so a lost `&` counts as much as a lost word. */
+  /** Every visible non-whitespace character, in reading order. */
   characters: string[]
+  /** Link targets, image sources and image alt text: content a reader reaches but does not read. */
+  targets: string[]
+  /** The exact text of each code block, where whitespace is content. */
+  codeBlocks: string[]
 }
 
 const renderMarkdown = (markdown: string): Rendering => {
@@ -32,7 +38,8 @@ const renderMarkdown = (markdown: string): Rendering => {
   )
 
   // Whitespace between tags is not something a reader sees, and serializers move it freely; nor is
-  // a CR before a LF, which the browser drops when it lays out text.
+  // a CR before a LF, which the browser drops when it lays out text. Code blocks, where it is
+  // content, are compared separately.
   const html = container.innerHTML
     .replace(/\r\n/g, '\n')
     .replace(/>\s+</g, '><')
@@ -46,20 +53,29 @@ const renderMarkdown = (markdown: string): Rendering => {
     .forEach((element) => element.remove())
 
   const characters = [...(visible.textContent ?? '').replace(/\s/g, '')]
+  // Footnote reference links are chrome too: they point at the footnote section, not anywhere.
+  const targets = [
+    ...visible.querySelectorAll('a[href]:not([data-footnote-ref]), img'),
+  ].flatMap((element) =>
+    ['href', 'src', 'alt']
+      .map((name) => element.getAttribute(name))
+      .filter((value): value is string => !!value),
+  )
+  const codeBlocks = [...container.querySelectorAll('pre')].map(
+    (pre) => pre.textContent ?? '',
+  )
 
   unmount()
-  return { html, characters }
+  return { html, characters, targets, codeBlocks }
 }
 
-/** Every character of `expected` is present in `actual`, counting repeats. */
-const containsAll = (actual: string[], expected: string[]): boolean => {
-  const remaining = new Map<string, number>()
-  for (const char of actual) remaining.set(char, (remaining.get(char) ?? 0) + 1)
-  return expected.every((char) => {
-    const count = remaining.get(char) ?? 0
-    remaining.set(char, count - 1)
-    return count > 0
-  })
+/** `expected` appears in `actual` in the same order, with anything allowed in between. */
+const isSubsequence = (actual: string[], expected: string[]): boolean => {
+  let position = 0
+  for (const char of actual) {
+    if (char === expected[position]) position++
+  }
+  return position === expected.length
 }
 
 /** Classifies a round trip of `original` that produced `output`. */
@@ -71,9 +87,16 @@ export const classifyFidelity = (
 
   const before = renderMarkdown(original)
   const after = renderMarkdown(output)
-  if (before.html === after.html) return 'normalized'
+  if (
+    before.html === after.html &&
+    before.codeBlocks.join('\0') === after.codeBlocks.join('\0')
+  ) {
+    return 'normalized'
+  }
 
-  return containsAll(after.characters, before.characters)
-    ? 'formatting-lost'
-    : 'content-lost'
+  const keptText = isSubsequence(after.characters, before.characters)
+  const keptTargets = before.targets.every((target) =>
+    after.targets.includes(target),
+  )
+  return keptText && keptTargets ? 'formatting-lost' : 'content-lost'
 }

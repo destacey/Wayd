@@ -560,4 +560,38 @@ export const roundTripCases: RoundTripCase[] = [
     handling: 'preserve',
     note: 'Escaped to literal `\\[^1\\]` text; the footnote section is lost.',
   },
+  // Regressions found in review
+  {
+    name: 'indented greater-than',
+    markdown: '   &gt; not a quote',
+    expected: 'exact',
+    handling: 'configure',
+    note: 'A `>` after indentation still starts a quote, so it stays escaped.',
+  },
+  {
+    name: 'greater-than after a hard break',
+    markdown: 'x  \n  &gt; y',
+    expected: 'exact',
+    handling: 'configure',
+    note: 'The text after a hard break starts a line, so its `>` stays escaped.',
+  },
+  {
+    name: 'link address with an encoded space',
+    markdown: '[site](https://ex.com/my%20page)',
+    expected: 'exact',
+    handling: 'accept',
+  },
+  {
+    name: 'link address with an encoded parenthesis',
+    markdown: '[a](https://ex.com/a%29b)',
+    expected: 'exact',
+    handling: 'accept',
+  },
+  {
+    name: 'raw image with a relative source',
+    markdown: 'See <img src="/files/a.png" alt="diagram"> here',
+    expected: 'content-lost',
+    handling: 'preserve',
+    note: 'Only `http(s)` images are taken from raw HTML, so a relative one is dropped.',
+  },
 ]

@@ -112,6 +112,7 @@ const casesAnEditLoses = new Set([
   'aligned div',
   'HTML comment',
   'footnote',
+  'raw image with a relative source',
 ])
 
 let editor: Editor

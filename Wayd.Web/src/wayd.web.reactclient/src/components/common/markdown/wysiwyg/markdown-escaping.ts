@@ -17,10 +17,11 @@ const NEEDLESS_AMP = /&amp;(?!#?[a-z0-9]+;)/gi
 /** `&lt;` that would not start a tag, comment or autolink if written as `<`. */
 const NEEDLESS_LT = /&lt;(?![a-z/!?])/gi
 /**
- * `&gt;` anywhere but the start of a line, where `>` would open a quote. Only applied when no
+ * `&gt;` anywhere but the start of a line (after any indentation), where `>` would open a quote.
+ * A text node may start a line, after a hard break or at the start of a block. Only applied when no
  * `&lt;` was kept, so text written as `&lt;tag&gt;` keeps both halves.
  */
-const NEEDLESS_GT = /(?<!^|\n[ \t]*)&gt;/g
+const NEEDLESS_GT = /(?<!(?:^|\n)[ \t]*)&gt;/g
 /** `\_` between letters or digits: GFM never reads an intraword `_` as emphasis. */
 const NEEDLESS_UNDERSCORE = /(?<=[\p{L}\p{N}])\\_(?=[\p{L}\p{N}])/gu
 

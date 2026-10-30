@@ -1,4 +1,8 @@
-import { isSafeImageSrc, isSafeLinkHref } from './safe-urls'
+import {
+  isSafeImageSrc,
+  isSafeLinkHref,
+  toMarkdownDestination,
+} from './safe-urls'
 
 describe('isSafeLinkHref', () => {
   it.each([
@@ -22,6 +26,9 @@ describe('isSafeLinkHref', () => {
     'vbscript:msgbox(1)',
     'data:text/html,<script>alert(1)</script>',
     'file:///etc/passwd',
+    'javascript&colon;alert(1)',
+    'javascript&#58;alert(1)',
+    'javascript%3Aalert(1)',
     '',
     undefined,
   ])('refuses %p', (href) => {
@@ -42,5 +49,19 @@ describe('isSafeImageSrc', () => {
   ])('%p is %p', (src, expected) => {
     // Arrange / Act / Assert
     expect(isSafeImageSrc(src)).toBe(expected)
+  })
+})
+
+describe('toMarkdownDestination', () => {
+  it.each([
+    ['https://ex.com/my page', 'https://ex.com/my%20page'],
+    ['https://ex.com/a)b', 'https://ex.com/a%29b'],
+    ['https://ex.com/(x)', 'https://ex.com/%28x%29'],
+    ['https://ex.com/<x>', 'https://ex.com/%3Cx%3E'],
+    ['https://ex.com/a\tb', 'https://ex.com/a%09b'],
+    ['https://ex.com/ok?a=1&b=2#c', 'https://ex.com/ok?a=1&b=2#c'],
+  ])('writes %p as %p', (url, expected) => {
+    // Arrange / Act / Assert
+    expect(toMarkdownDestination(url)).toBe(expected)
   })
 })

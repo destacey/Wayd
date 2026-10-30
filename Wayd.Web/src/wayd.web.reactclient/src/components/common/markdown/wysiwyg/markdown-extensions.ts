@@ -1,6 +1,7 @@
 import type { Extensions } from '@tiptap/core'
 import CodeBlock from '@tiptap/extension-code-block'
 import Image from '@tiptap/extension-image'
+import Link from '@tiptap/extension-link'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
 import Subscript from '@tiptap/extension-subscript'
 import Superscript from '@tiptap/extension-superscript'
@@ -9,7 +10,11 @@ import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'
 import { installMinimalMarkdownEscaping } from './markdown-escaping'
 import { MarkdownLengthLimit } from './markdown-length-limit'
-import { isSafeImageSrc, isSafeLinkHref } from './safe-urls'
+import {
+  isSafeImageSrc,
+  isSafeLinkHref,
+  toMarkdownDestination,
+} from './safe-urls'
 
 installMinimalMarkdownEscaping()
 
@@ -42,7 +47,29 @@ const MarkdownSuperscript = Superscript.extend({
     `<sup>${helpers.renderChildren(node)}</sup>`,
 })
 
-/** Images that already sit in the text, inline as markdown writes them. Only `http(s)` sources. */
+/** A link title in quotes, with the quotes inside it escaped. */
+const markdownTitle = (title: string | null | undefined) =>
+  title ? ` "${title.replace(/"/g, '\\"')}"` : ''
+
+/**
+ * A link whose address is written so markdown reads it back whole: Tiptap writes `[text](href)`
+ * as is, so a space or `)` in the address (pasted, or typed in the link dialog) would end it early.
+ */
+const MarkdownLink = Link.extend({
+  renderMarkdown: (node, helpers) =>
+    `[${helpers.renderChildren(node)}](${toMarkdownDestination(node.attrs?.href ?? '')}${markdownTitle(node.attrs?.title)})`,
+}).configure({
+  // Clicking inside the editor places the cursor; following a link would leave the form.
+  openOnClick: false,
+  defaultProtocol: 'https',
+  isAllowedUri: (url) => isSafeLinkHref(url),
+  HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer nofollow' },
+})
+
+/**
+ * Images that already sit in the text, inline as markdown writes them, with only `http(s)` sources
+ * taken from pasted HTML. The address is written as `MarkdownLink` writes one.
+ */
 const MarkdownImage = Image.extend({
   parseHTML() {
     return [
@@ -55,6 +82,10 @@ const MarkdownImage = Image.extend({
       },
     ]
   },
+  renderMarkdown: (node) => {
+    const alt = (node.attrs?.alt ?? '').replace(/[[\]]/g, '\\$&')
+    return `![${alt}](${toMarkdownDestination(node.attrs?.src ?? '')}${markdownTitle(node.attrs?.title)})`
+  },
 }).configure({ inline: true })
 
 /**
@@ -64,14 +95,9 @@ const MarkdownImage = Image.extend({
 export const markdownEditorExtensions = (): Extensions => [
   StarterKit.configure({
     codeBlock: false,
-    link: {
-      // Clicking inside the editor places the cursor; following a link would leave the form.
-      openOnClick: false,
-      defaultProtocol: 'https',
-      isAllowedUri: (url) => isSafeLinkHref(url),
-      HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer nofollow' },
-    },
+    link: false,
   }),
+  MarkdownLink,
   FencedCodeBlock,
   TableKit,
   TaskList,

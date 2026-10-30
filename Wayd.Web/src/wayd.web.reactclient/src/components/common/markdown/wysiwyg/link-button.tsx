@@ -8,14 +8,50 @@ import { useState, type KeyboardEvent } from 'react'
 import WaydTooltip from '../../wayd-tooltip'
 import { isSafeLinkHref } from './safe-urls'
 
-/** Looks like a bare host (`wayd.dev/x`), which a browser would otherwise read as a relative path. */
-const BARE_HOST = /^[a-z0-9-]+(\.[a-z0-9-]+)+(?=[/:?#]|$)/i
+/**
+ * A bare host (`wayd.dev/x`), which a browser would otherwise read as a relative path. The last
+ * label must be letters, so `v1.2` is not a host.
+ */
+const BARE_HOST = /^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.([a-z]{2,})(?=[/:?#]|$)/i
 
-/** The href to store for what the user typed, or `null` when it is not allowed. */
+/** Endings that make `page.html` or `report.pdf` a file name rather than a host. */
+const FILE_EXTENSIONS = new Set([
+  'htm',
+  'html',
+  'php',
+  'asp',
+  'aspx',
+  'jsp',
+  'md',
+  'txt',
+  'csv',
+  'json',
+  'xml',
+  'pdf',
+  'doc',
+  'docx',
+  'xls',
+  'xlsx',
+  'ppt',
+  'pptx',
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'svg',
+  'zip',
+])
+
+/**
+ * The href to store for what the user typed, or `null` when it is not allowed. A bare host gets
+ * `https://`; anything else is kept as typed, so `page.html` stays a relative link.
+ */
 export const toLinkHref = (input: string): string | null => {
   const trimmed = input.trim()
   if (!trimmed) return null
-  const href = BARE_HOST.test(trimmed) ? `https://${trimmed}` : trimmed
+  const topLevel = BARE_HOST.exec(trimmed)?.[1]?.toLowerCase()
+  const isHost = !!topLevel && !FILE_EXTENSIONS.has(topLevel)
+  const href = isHost ? `https://${trimmed}` : trimmed
   return isSafeLinkHref(href) ? href : null
 }
 

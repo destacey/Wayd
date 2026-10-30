@@ -336,6 +336,13 @@ export class DiscussionsClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -600,6 +607,13 @@ export class DiscussionsClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -684,6 +698,13 @@ export class DiscussionsClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -849,6 +870,13 @@ export class DiscussionsClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -930,6 +958,13 @@ export class DiscussionsClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -59913,7 +59948,7 @@ in List&lt;EmployeeNavigationDto&gt; DiscussionMessageDto.Mentions. Null once de
 }
 
 export enum DiscussionMessageKind {
-    Reply = "Reply",
+    Public = "Public",
     InternalNote = "InternalNote",
 }
 
@@ -62319,7 +62354,7 @@ export enum NotificationEvent {
     AssigneeChanged = "AssigneeChanged",
     ParticipantsChanged = "ParticipantsChanged",
     ChannelChanged = "ChannelChanged",
-    ReplyPosted = "ReplyPosted",
+    MessagePosted = "MessagePosted",
     InternalNotePosted = "InternalNotePosted",
 }
 
@@ -63103,7 +63138,7 @@ export interface PortfolioRankingScoreboardDto {
 
 /** A message that starts a conversation thread on a record. */
 export interface PostDiscussionMessageRequest {
-    /** Who the message is for: `Reply` for everyone who can read the conversation, `InternalNote` for its internal
+    /** Who the message is for: `Public` for everyone who can read the conversation, `InternalNote` for its internal
 audience only, such as an intake desk's agents. */
     kind: DiscussionMessageKind;
     /** An optional subject of up to 200 characters, so parallel topics on a busy record stay apart. */

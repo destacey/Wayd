@@ -14,13 +14,17 @@ import React from 'react'
 
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false })
 
-interface MarkdownEditorProps {
+export interface MarkdownEditorProps {
   value?: string
   onChange?: (value: string) => void
   maxLength: number
 }
 
-const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
+/**
+ * The markdown text editor `MarkdownEditor` shows while the `wysiwyg-markdown-editor` flag is off.
+ * Removed with the flag in #1204.
+ */
+const LegacyMarkdownEditor: React.FC<MarkdownEditorProps> = ({
   value,
   onChange,
   maxLength,
@@ -119,6 +123,6 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   )
 }
 
-MarkdownEditor.displayName = 'MarkdownEditor'
+LegacyMarkdownEditor.displayName = 'LegacyMarkdownEditor'
 
-export default MarkdownEditor
+export default LegacyMarkdownEditor

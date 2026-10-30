@@ -1,26 +1,24 @@
 import type { Fidelity } from './classify-fidelity'
 
 /**
- * What the editor must do about a difference:
- * - `accept` — harmless; let the editor write it once the user edits.
- * - `configure` — fix in the editor's extensions or serializer.
- * - `preserve` — cannot be fixed by configuration; keep the original text unless the user edits.
+ * What the editor does about a difference:
+ * - `accept` — harmless; the editor writes it once the user edits.
+ * - `configure` — fixed in the editor's extensions or serializer (the note says where).
+ * - `preserve` — cannot be fixed by configuration; the original text is kept unless the user
+ *   edits, and `findUnsupportedMarkdown` warns before the edit when content would be lost.
  */
 export type Handling = 'accept' | 'configure' | 'preserve'
 
-/** A hand-written piece of markdown the renderer supports, and how Tiptap's round trip treats it. */
+/** A hand-written piece of markdown the renderer supports, and how the editor's round trip treats it. */
 export interface RoundTripCase {
   name: string
   markdown: string
   /** The fidelity the round trip has today. A change in either direction should be looked at. */
   expected: Fidelity
   handling: Handling
-  /** Why it changes, for the results table. Empty when it survives exactly. */
+  /** Why it changes, or what keeps it exact, for the results table. */
   note?: string
 }
-
-/** The one input whose round trip is not stable: the second pass differs from the first. */
-export const unstableCases = new Set(['fence containing a fence'])
 
 export const roundTripCases: RoundTripCase[] = [
   // Paragraphs and text
@@ -115,30 +113,63 @@ export const roundTripCases: RoundTripCase[] = [
   {
     name: 'ampersand',
     markdown: 'Deepen data & analytics.',
-    expected: 'normalized',
+    expected: 'exact',
     handling: 'configure',
-    note: '`&` written as `&amp;`. Renders the same, but agents reading through MCP see the entity.',
+    note: 'Tiptap writes `&amp;`; `installMinimalMarkdownEscaping` keeps `&`.',
   },
   {
     name: 'less-than and greater-than',
     markdown: 'Latency < 200ms and a > b',
-    expected: 'normalized',
+    expected: 'exact',
     handling: 'configure',
-    note: '`<` and `>` written as `&lt;` / `&gt;`.',
+    note: 'Tiptap writes `&lt;` / `&gt;`; kept as typed.',
+  },
+  {
+    name: 'entity typed as text',
+    markdown: 'Write &amp;copy; for ©',
+    expected: 'exact',
+    handling: 'configure',
+    note: 'An `&` that would start an entity stays escaped.',
+  },
+  {
+    name: 'tag typed as text',
+    markdown: 'Use &lt;b&gt; for bold',
+    expected: 'exact',
+    handling: 'configure',
+    note: 'A `<` that would start a tag stays escaped, and so does its `>`.',
+  },
+  {
+    name: 'leading greater-than',
+    markdown: '&gt; is not a quote here',
+    expected: 'exact',
+    handling: 'configure',
+    note: 'A `>` at the start of a line stays escaped, or it would open a quote.',
+  },
+  {
+    name: 'entities in inline code',
+    markdown: 'Run `a &amp; b`',
+    expected: 'exact',
+    handling: 'accept',
   },
   {
     name: 'literal asterisks',
     markdown: '2 * 3 * 4',
     expected: 'normalized',
-    handling: 'configure',
+    handling: 'accept',
     note: 'Every `*` backslash-escaped, even where it could not start emphasis.',
   },
   {
     name: 'intraword underscores',
     markdown: 'snake_case_name',
-    expected: 'normalized',
+    expected: 'exact',
     handling: 'configure',
-    note: '`snake\\_case\\_name`: GFM never treats intraword `_` as emphasis.',
+    note: 'Tiptap writes `snake\\_case\\_name`; kept, since GFM never reads an intraword `_` as emphasis.',
+  },
+  {
+    name: 'escaped emphasis underscores',
+    markdown: '\\_not emphasis\\_',
+    expected: 'exact',
+    handling: 'accept',
   },
   {
     name: 'backslash escapes',
@@ -288,7 +319,7 @@ export const roundTripCases: RoundTripCase[] = [
     name: 'loose list',
     markdown: '- one\n\n- two',
     expected: 'formatting-lost',
-    handling: 'preserve',
+    handling: 'accept',
     note: 'Made tight: the blank line between items, and the paragraph spacing it gives, is lost.',
   },
 
@@ -351,9 +382,9 @@ export const roundTripCases: RoundTripCase[] = [
   {
     name: 'fence containing a fence',
     markdown: '````md\n```js\nx\n```\n````',
-    expected: 'content-lost',
+    expected: 'exact',
     handling: 'configure',
-    note: 'Always written with three backticks, so an inner fence closes the block early. Unstable: each save changes it again.',
+    note: 'Tiptap always writes three backticks, which an inner fence would close early; `FencedCodeBlock` writes a longer fence.',
   },
   {
     name: 'inline code with a backtick',
@@ -437,9 +468,16 @@ export const roundTripCases: RoundTripCase[] = [
   {
     name: 'image',
     markdown: '![Logo](https://wayd.dev/logo.png)',
-    expected: 'formatting-lost',
+    expected: 'exact',
     handling: 'configure',
-    note: 'StarterKit has no image node, so only the alt text is kept. Add `@tiptap/extension-image`.',
+    note: 'StarterKit has no image node; `@tiptap/extension-image`, inline and `http(s)` only, keeps it.',
+  },
+  {
+    name: 'image inside text',
+    markdown: 'Before ![Logo](https://wayd.dev/logo.png) after',
+    expected: 'exact',
+    handling: 'configure',
+    note: 'Kept inline because the image node is configured inline.',
   },
 
   // Breaks
@@ -467,9 +505,9 @@ export const roundTripCases: RoundTripCase[] = [
   {
     name: 'subscript and superscript',
     markdown: 'H<sub>2</sub>O and x<sup>2</sup>',
-    expected: 'formatting-lost',
+    expected: 'exact',
     handling: 'configure',
-    note: 'Tags dropped. `@tiptap/extension-subscript` / `-superscript` keep them.',
+    note: 'Written back as raw `<sub>` / `<sup>`, which the sanitizer allows.',
   },
   {
     name: 'keyboard key',

@@ -6,7 +6,8 @@ import {
   fidelityOrder,
   type Fidelity,
 } from './classify-fidelity'
-import { roundTripCases, unstableCases } from './round-trip-cases'
+import { findUnsupportedMarkdown } from '../wysiwyg/unsupported-markdown'
+import { roundTripCases } from './round-trip-cases'
 import seededContent from './seeded-content.json'
 import { createHeadlessMarkdownEditor, roundTrip } from './tiptap-markdown'
 
@@ -16,7 +17,7 @@ jest.unmock('remark-gfm')
 jest.unmock('rehype-raw')
 
 /**
- * Markdown round-trip harness for the Tiptap editor (#1201).
+ * Markdown round-trip harness for the WYSIWYG editor (#1201, #1202).
  *
  * Every case loads markdown into a headless editor with the extensions the editor ships, serializes
  * it straight back, and judges the difference by what MarkdownRenderer shows. Each expectation pins
@@ -100,6 +101,19 @@ interface Outcome {
 
 const outcomes: Outcome[] = []
 
+/**
+ * Cases whose round trip drops something a reader sees or an author wrote. Other lossy-looking
+ * cases (a loose list made tight, a `<br>` turned into a markdown break) keep what the reader sees.
+ */
+const casesAnEditLoses = new Set([
+  'named and numeric entities',
+  'keyboard key',
+  'details and summary',
+  'aligned div',
+  'HTML comment',
+  'footnote',
+])
+
 let editor: Editor
 
 beforeAll(() => {
@@ -137,37 +151,40 @@ describe('Tiptap markdown round trip', () => {
 
     // Opening a record parses its text to a document; the editor can only tell "nothing was
     // edited" if serializing that document and parsing the result gives the same document back.
-    it.each(
-      roundTripCases.filter((testCase) => !unstableCases.has(testCase.name)),
-    )('$name settles after one round trip', ({ markdown }) => {
-      // Arrange / Act
-      const result = roundTrip(editor, markdown)
+    it.each(roundTripCases)(
+      '$name settles after one round trip',
+      ({ markdown }) => {
+        // Arrange / Act
+        const result = roundTrip(editor, markdown)
 
-      // Assert
-      expect(result.reparsedDocument).toEqual(result.document)
-      expect(result.secondOutput).toBe(result.output)
-    })
+        // Assert
+        expect(result.reparsedDocument).toEqual(result.document)
+        expect(result.secondOutput).toBe(result.output)
+      },
+    )
 
-    it('rewrites a fence containing a fence on every pass', () => {
-      // Arrange
-      const markdown = roundTripCases.find((testCase) =>
-        unstableCases.has(testCase.name),
-      )!.markdown
+    // The editor warns before an edit removes something. It must warn for exactly the content an
+    // edit loses, and stay quiet for content it keeps or only rewrites.
+    it.each(roundTripCases)(
+      '$name warns only if an edit loses it',
+      ({ name, markdown }) => {
+        // Arrange
+        const losesContent = casesAnEditLoses.has(name)
 
-      // Act
-      const result = roundTrip(editor, markdown)
+        // Act
+        const warnings = findUnsupportedMarkdown(markdown)
 
-      // Assert
-      expect(result.secondOutput).not.toBe(result.output)
-    })
+        // Assert
+        expect(warnings.length > 0).toBe(losesContent)
+      },
+    )
   })
 
   describe('seeded content', () => {
-    // Seeded text is plain prose. The only change the serializer makes to it is writing `&` as
-    // `&amp;`; anything else is a regression.
+    // Seeded text is plain prose, which must come back byte for byte.
     it.each(seededValues)('$field survives: $value', ({ field, value }) => {
       // Arrange
-      const expected = value.replace(/&/g, '&amp;')
+      const expected = value
 
       // Act
       const result = roundTrip(editor, value)

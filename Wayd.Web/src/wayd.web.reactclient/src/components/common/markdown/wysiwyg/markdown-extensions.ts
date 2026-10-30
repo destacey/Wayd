@@ -1,0 +1,84 @@
+import type { Extensions } from '@tiptap/core'
+import CodeBlock from '@tiptap/extension-code-block'
+import Image from '@tiptap/extension-image'
+import { TaskItem, TaskList } from '@tiptap/extension-list'
+import Subscript from '@tiptap/extension-subscript'
+import Superscript from '@tiptap/extension-superscript'
+import { TableKit } from '@tiptap/extension-table'
+import { Markdown } from '@tiptap/markdown'
+import StarterKit from '@tiptap/starter-kit'
+import { installMinimalMarkdownEscaping } from './markdown-escaping'
+import { MarkdownLengthLimit } from './markdown-length-limit'
+import { isSafeImageSrc, isSafeLinkHref } from './safe-urls'
+
+installMinimalMarkdownEscaping()
+
+/**
+ * A code block written with a fence longer than any backtick run inside it. Tiptap always writes
+ * three backticks, so a block that contains a fence (a markdown example) would be closed early.
+ */
+const FencedCodeBlock = CodeBlock.extend({
+  renderMarkdown: (node, helpers) => {
+    const language = node.attrs?.language || ''
+    const body = node.content ? helpers.renderChildren(node.content) : ''
+    const longestRun = Math.max(
+      0,
+      ...(body.match(/`+/g) ?? []).map((run) => run.length),
+    )
+    const fence = '`'.repeat(Math.max(3, longestRun + 1))
+    return `${fence}${language}\n${body}\n${fence}`
+  },
+})
+
+/** Kept as raw `<sub>` HTML, which `sanitizeSchema` allows; markdown has no syntax for it. */
+const MarkdownSubscript = Subscript.extend({
+  renderMarkdown: (node, helpers) =>
+    `<sub>${helpers.renderChildren(node)}</sub>`,
+})
+
+/** Kept as raw `<sup>` HTML, which `sanitizeSchema` allows; markdown has no syntax for it. */
+const MarkdownSuperscript = Superscript.extend({
+  renderMarkdown: (node, helpers) =>
+    `<sup>${helpers.renderChildren(node)}</sup>`,
+})
+
+/** Images that already sit in the text, inline as markdown writes them. Only `http(s)` sources. */
+const MarkdownImage = Image.extend({
+  parseHTML() {
+    return [
+      {
+        tag: 'img[src]',
+        getAttrs: (element) =>
+          isSafeImageSrc((element as HTMLElement).getAttribute('src'))
+            ? null
+            : false,
+      },
+    ]
+  },
+}).configure({ inline: true })
+
+/**
+ * The extensions `MarkdownEditor` edits with. The round-trip harness measures this exact set, so a
+ * change here is a change to what it proves.
+ */
+export const markdownEditorExtensions = (): Extensions => [
+  StarterKit.configure({
+    codeBlock: false,
+    link: {
+      // Clicking inside the editor places the cursor; following a link would leave the form.
+      openOnClick: false,
+      defaultProtocol: 'https',
+      isAllowedUri: (url) => isSafeLinkHref(url),
+      HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer nofollow' },
+    },
+  }),
+  FencedCodeBlock,
+  TableKit,
+  TaskList,
+  TaskItem.configure({ nested: true }),
+  MarkdownImage,
+  MarkdownSubscript,
+  MarkdownSuperscript,
+  MarkdownLengthLimit,
+  Markdown,
+]

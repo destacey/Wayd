@@ -184,6 +184,13 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       meta: { exportFormatter: (value: unknown) => `${value}` },
     },
     {
+      id: 'submittedOn',
+      accessorKey: 'submittedOn',
+      header: 'Submitted',
+      size: 180,
+      meta: { columnType: 'dateTime', hiddenByDefault: true },
+    },
+    {
       id: 'assignee',
       accessorFn: (request) => request.assignee?.name ?? '',
       header: 'Assignee',

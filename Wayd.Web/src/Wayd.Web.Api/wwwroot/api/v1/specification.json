@@ -43125,7 +43125,7 @@
           "IntakeRequests"
         ],
         "summary": "Move an intake request to another status of its desk's workflow.",
-        "description": "Needs an agent on the request's desk. Declining, deferring, marking a duplicate and finishing need a `reason` the requester can read; marking a duplicate needs `duplicateOfId`, a request you can see that is not itself a duplicate. Withdrawn is the requester's, through withdraw.",
+        "description": "Needs an agent on the request's desk. Declining, deferring, marking a duplicate and finishing need a `reason` the requester can read; marking a duplicate needs `duplicateOfId`, a request you can see that is not itself a duplicate. Withdrawn is the requester's, through withdraw. A `reply` is posted in the request's conversation with the move and saved with it: ask the requester a question and move to Waiting on Requester in one call.",
         "operationId": "IntakeRequests_ChangeStatus",
         "parameters": [
           {
@@ -43167,6 +43167,16 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
@@ -51967,6 +51977,15 @@
             "description": "For a status meaning Duplicate, the request this one gives way to; otherwise null.",
             "format": "uuid",
             "nullable": true
+          },
+          "reply": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRequestReplyRequest"
+              }
+            ],
+            "description": "A reply to post in the request's conversation with the move, such as a question for the requester when moving to\nWaiting on Requester. Saved with the move, and shown with it on the message. Null for none.",
+            "nullable": true
           }
         },
         "additionalProperties": false,
@@ -56214,6 +56233,15 @@
               "$ref": "#/components/schemas/EmployeeNavigationDto"
             },
             "description": "Up to three people who replied most recently in the thread, newest first."
+          },
+          "recordChange": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActivityLogDto"
+              }
+            ],
+            "description": "The change to the record the message was posted with, such as moving a request to Waiting on Requester, exactly as\nthe record's Activity section shows it to the caller. Null when there is none, the caller may not see it, or the\nmessage was read on its own rather than in a page of the conversation.",
+            "nullable": true
           },
           "canEdit": {
             "type": "boolean",
@@ -61073,6 +61101,25 @@
         },
         "additionalProperties": false,
         "description": "A participant on an intake request: who, and who added them when."
+      },
+      "IntakeRequestReplyRequest": {
+        "required": [
+          "body"
+        ],
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "description": "An optional subject, up to 200 characters.",
+            "nullable": true
+          },
+          "body": {
+            "type": "string",
+            "description": "The reply as markdown, mentions written `@[Name](employee:{id})`."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A top-level reply in an intake request's conversation, which the requester and participants read."
       },
       "IntakeRequestScoreDto": {
         "required": [

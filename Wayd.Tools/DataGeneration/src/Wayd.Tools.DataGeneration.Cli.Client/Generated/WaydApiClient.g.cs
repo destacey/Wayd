@@ -112274,6 +112274,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> RecentRepliers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
         /// <summary>
+        /// The change to the record the message was posted with, such as moving a request to Waiting on Requester, exactly as
+        /// <br/>the record's Activity section shows it to the caller. Null when there is none, the caller may not see it, or the
+        /// <br/>message was read on its own rather than in a page of the conversation.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("recordChange")]
+        public ActivityLogDto? RecordChange { get; set; } = default!;
+
+        /// <summary>
         /// Whether the caller may edit the message: their own, standing, in an unlocked conversation.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canEdit")]

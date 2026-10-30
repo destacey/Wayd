@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using CSharpFunctionalExtensions;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.Discussions;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Scoring.ScoringModels.Dtos;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
@@ -161,13 +162,22 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     [McpTool("IntakeRequests_ChangeStatus", "Change intake request status")]
     [Authorize]
     [EndpointSummary("Move an intake request to another status of its desk's workflow.")]
-    [EndpointDescription("Needs an agent on the request's desk. Declining, deferring, marking a duplicate and finishing need a `reason` the requester can read; marking a duplicate needs `duplicateOfId`, a request you can see that is not itself a duplicate. Withdrawn is the requester's, through withdraw.")]
+    [EndpointDescription("Needs an agent on the request's desk. Declining, deferring, marking a duplicate and finishing need a `reason` the requester can read; marking a duplicate needs `duplicateOfId`, a request you can see that is not itself a duplicate. Withdrawn is the requester's, through withdraw. A `reply` is posted in the request's conversation with the move and saved with it: ask the requester a question and move to Waiting on Requester in one call.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ChangeStatus(Guid id, [FromBody] ChangeIntakeRequestStatusRequest request, CancellationToken cancellationToken) =>
-        NoContentOrError(await _dispatcher.Send(new ChangeIntakeRequestStatusCommand(id, request.StatusId, request.Reason, request.DuplicateOfId), cancellationToken));
+    public async Task<ActionResult> ChangeStatus(Guid id, [FromBody] ChangeIntakeRequestStatusRequest request, CancellationToken cancellationToken)
+    {
+        var reply = request.Reply is { } r ? new IntakeRequestReply(r.Subject, r.Body) : null;
+        var result = await _dispatcher.Send(
+            new ChangeIntakeRequestStatusCommand(id, request.StatusId, request.Reason, request.DuplicateOfId, reply), cancellationToken);
+
+        return result.IsFailure && DiscussionAccessErrors.IsConflict(result.Error)
+            ? Conflict(ProblemDetailsExtensions.ForConflict(result.Error, HttpContext))
+            : NoContentOrError(result);
+    }
 
     [HttpPost("{id}/withdraw")]
     [McpTool("IntakeRequests_Withdraw", "Withdraw intake request")]

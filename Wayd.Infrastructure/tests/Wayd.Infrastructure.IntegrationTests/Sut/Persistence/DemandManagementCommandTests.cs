@@ -2,6 +2,7 @@ using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Wayd.Common.Application.Discussions;
+using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.StatusWorkflows;
@@ -440,7 +441,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         // Act
         await using var context = _fixture.CreateContext();
         var resolver = new StatusResolver(context);
-        var result = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver)
+        var result = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver, Discussions(context, agent.Id))
             .Handle(new ChangeIntakeRequestStatusCommand(requestId, await StatusId(resolver, desk.Id, "Declined", ct), "Budget went elsewhere", null), ct);
 
         // Assert
@@ -471,6 +472,34 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
     }
 
     [Fact]
+    public async Task ChangeIntakeRequestStatus_WithAReply_SavesTheMoveAndTheMessageTogether_AndTheMessageNamesTheMove()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (desk, requestId, _, agent) = await SeedOnTheDefaultWorkflow(ct, IntakeDeskRole.Agent);
+
+        // Act
+        await using var context = _fixture.CreateContext();
+        var resolver = new StatusResolver(context);
+        var result = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver, Discussions(context, agent.Id))
+            .Handle(new ChangeIntakeRequestStatusCommand(requestId, await StatusId(resolver, desk.Id, "Waiting on Requester", ct), null, null,
+                new IntakeRequestReply(null, "Could you add the budget?")), ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        await using var reader = _fixture.CreateContext();
+        (await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == requestId, ct))
+            .StatusAlias.Should().Be(IntakeRequestStatusAlias.WaitingOnRequester);
+        var message = await reader.DiscussionMessages.AsNoTracking()
+            .SingleAsync(m => reader.DiscussionChannels.Any(c => c.Id == m.ChannelId && c.OwnerId == requestId), ct);
+        message.Body.Should().Be("Could you add the budget?");
+        var move = await reader.ActivityLogs.AsNoTracking()
+            .SingleAsync(a => a.AggregateId == requestId && a.EventType == nameof(IntakeRequestStatusChangedEvent), ct);
+        message.RecordChangeEventId.Should().Be(move.EventId);
+        message.PostedOn.Should().Be(move.Timestamp);
+    }
+
+    [Fact]
     public async Task ChangeIntakeRequestStatus_ToDuplicate_PointsAtTheSurvivor_WhichThenCannotBeDeleted()
     {
         // Arrange
@@ -493,7 +522,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         // Act
         await using var context = _fixture.CreateContext();
         var resolver = new StatusResolver(context);
-        var marked = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver)
+        var marked = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver, Discussions(context, agent.Id))
             .Handle(new ChangeIntakeRequestStatusCommand(duplicateId, await StatusId(resolver, desk.Id, "Duplicate", ct), "Asked for already", survivorId), ct);
         await using var deleting = _fixture.CreateContext();
         var deleted = await new DeleteIntakeRequestCommandHandler(deleting, Principal(agent.Id), User(), _clock, Discussions(deleting, agent.Id))
@@ -750,7 +779,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         await using var context = _fixture.CreateContext();
         var resolver = new StatusResolver(context);
         var deskId = await context.IntakeRequests.Where(r => r.Id == requestId).Select(r => r.DeskId).SingleAsync(ct);
-        var result = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver)
+        var result = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver, Discussions(context, agent.Id))
             .Handle(new ChangeIntakeRequestStatusCommand(requestId, await StatusId(resolver, deskId, "Fulfilled", ct), null, null), ct);
 
         // Assert
@@ -773,7 +802,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         await context.SaveChangesAsync(ct);
 
         var resolver = new StatusResolver(context);
-        var accepted = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver)
+        var accepted = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver, Discussions(context, agent.Id))
             .Handle(new ChangeIntakeRequestStatusCommand(requestId, await StatusId(resolver, desk.Id, "Accepted", ct), null, null), ct);
         accepted.IsSuccess.Should().BeTrue();
 
@@ -808,9 +837,15 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         return clock.Object;
     }
 
-    /// <summary>The discussion writer a request's delete removes its conversation through.</summary>
-    private DiscussionWriter Discussions(WaydDbContext context, Guid employeeId) =>
-        new(context, [], Principal(employeeId), User(), _clock);
+    /// <summary>The discussion writer a request's commands post and remove its conversation through.</summary>
+    private DiscussionWriter Discussions(WaydDbContext context, Guid employeeId)
+    {
+        DemandManagementDiscussionChannels.Register();
+        var featureFlags = new Mock<IFeatureFlags>();
+        featureFlags.Setup(f => f.IsEnabled(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        var requests = new IntakeRequestDiscussionChannelType(context, Principal(employeeId), User(), featureFlags.Object);
+        return new(context, [requests], Principal(employeeId), User(), _clock);
+    }
 
     private static ICurrentUser User()
     {

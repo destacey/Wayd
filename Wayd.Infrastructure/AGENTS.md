@@ -6,6 +6,14 @@ The root [AGENTS.md](../AGENTS.md) applies here too. This file covers persistenc
 
 Single shared `WaydDbContext`. Entity configs in `Wayd.Infrastructure/Persistence/Configuration/`. Migrations in `Wayd.Infrastructure.Migrators.MSSQL`. Auto-applied on startup via `app.Services.InitializeDatabases()`.
 
+**Changing a migration that is not on `main`: roll back, remove, then add.** Startup has usually applied it to
+the local database already, so never delete its files or `git checkout` the snapshot — that leaves its tables and
+history row with no `Down` to undo them, and the next startup fails creating them again. Run `dotnet ef database
+update <PreviousMigration>` with `--connection` set to the database Aspire's API uses, confirmed with the user
+(the Web API's own config may name another), then `dotnet ef migrations remove`, then `migrations add` again.
+`migrations remove` takes no `--connection`; never pass it `--force`, which rolls back whatever database the
+config names. See [Changing an unmerged migration](../docs/contributing/database.mdx#changing-an-unmerged-migration).
+
 **A save commits its rows together with what records them** — audit trails, activity log entries and outbox
 envelopes — and dispatches only once that transaction commits. Spanning several saves goes through
 `BaseDbContext.BeginUnitOfWork`, whose `CommitAsync` commits *and* dispatches; a bare

@@ -14,10 +14,15 @@ import { toolDefinitionMap } from './tools/index.js';
 import { executeApiTool, securitySchemes } from './executor.js';
 import { annotationsFor } from './annotations.js';
 import { SERVER_INSTRUCTIONS } from './instructions.js';
+import { retirementNotice } from './retirement.js';
+
+const RETIREMENT_NOTICE = retirementNotice(API_BASE_URL);
 
 const server = new Server(
   { name: SERVER_NAME, version: SERVER_VERSION },
-  { capabilities: { tools: {} }, instructions: SERVER_INSTRUCTIONS }
+  { capabilities: { tools: {} }, instructions: `${RETIREMENT_NOTICE}
+
+${SERVER_INSTRUCTIONS}` }
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -30,19 +35,28 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return { tools: toolsForClient };
 });
 
+// Some clients never show the server instructions, so the first result of a session carries the notice too.
+let noticeSent = false;
+function withRetirementNotice(result: CallToolResult): CallToolResult {
+  if (noticeSent) return result;
+  noticeSent = true;
+  return { ...result, content: [...result.content, { type: 'text', text: RETIREMENT_NOTICE }] };
+}
+
 server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest): Promise<CallToolResult> => {
   const { name: toolName, arguments: toolArgs } = request.params;
   const toolDefinition = toolDefinitionMap.get(toolName);
   if (!toolDefinition) {
     console.error(`Error: Unknown tool requested: ${toolName}`);
-    return { content: [{ type: 'text', text: `Error: Unknown tool requested: ${toolName}` }], isError: true };
+    return withRetirementNotice({ content: [{ type: 'text', text: `Error: Unknown tool requested: ${toolName}` }], isError: true });
   }
-  return await executeApiTool(toolName, toolDefinition, toolArgs ?? {}, securitySchemes);
+  return withRetirementNotice(await executeApiTool(toolName, toolDefinition, toolArgs ?? {}, securitySchemes));
 });
 
 async function main() {
   if (!API_BASE_URL) {
     console.error('Error: WAYD_API_BASE_URL environment variable or --base-url argument is required.');
+    console.error(`Warning: ${RETIREMENT_NOTICE}`);
     process.exit(1);
   }
 
@@ -50,6 +64,7 @@ async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
     console.error(`${SERVER_NAME} MCP Server (v${SERVER_VERSION}) running on stdio${API_BASE_URL ? `, proxying API at ${API_BASE_URL}` : ''}`);
+    console.error(`Warning: ${RETIREMENT_NOTICE}`);
   } catch (error) {
     console.error('Error during server startup:', error);
     process.exit(1);

@@ -1,7 +1,7 @@
 {
   "name": "@wayd/mcp",
   "version": "0.22.0",
-  "description": "MCP server for the Wayd work management API",
+  "description": "Retired: the Wayd API serves MCP itself at /mcp. See https://wayd.dev/docs/getting-started/mcp-server",
   "type": "module",
   "main": "build/index.js",
   "bin": {

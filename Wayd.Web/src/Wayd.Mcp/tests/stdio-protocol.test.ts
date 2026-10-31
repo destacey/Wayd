@@ -296,6 +296,42 @@ describe('stdio transport', () => {
     assert.match(firstBlock.text, /Unknown tool/i);
   });
 
+  test('tells the model the package is retired, naming the hosted endpoint, before the cross-tool rules', async () => {
+    // Arrange & Act
+    const { responses } = await runServer();
+
+    // Assert
+    const instructions = responses.get(1)?.result?.instructions as string;
+    assert.match(instructions, /^@wayd\/mcp is retired/, 'instructions should open with the retirement notice');
+    assert.match(instructions, /https:\/\/api\.invalid\/mcp/, 'the notice should name the hosted endpoint on the configured API');
+  });
+
+  test('adds the retirement notice to the first tool result only', async () => {
+    // Arrange
+    const call = (id: number) => ({
+      jsonrpc: '2.0',
+      id,
+      method: 'tools/call',
+      params: { name: 'Tool_That_Does_Not_Exist', arguments: {} },
+    });
+
+    // Act
+    const { responses } = await runServer([call(2), call(3)]);
+
+    // Assert
+    const texts = (id: number) => (responses.get(id)?.result.content as { text: string }[]).map(b => b.text);
+    assert.equal(texts(2).filter(t => /is retired/.test(t)).length, 1, 'the first result should carry the notice once');
+    assert.equal(texts(3).some(t => /is retired/.test(t)), false, 'later results should not repeat it');
+  });
+
+  test('warns on stderr that the package is retired', async () => {
+    // Arrange & Act
+    const { stderr } = await runServer();
+
+    // Assert
+    assert.match(stderr, /Warning: @wayd\/mcp is retired.*https:\/\/api\.invalid\/mcp/);
+  });
+
   test('exits with a stderr message when base URL is unconfigured', async () => {
     // Arrange
     const envWithoutBaseUrl = { ...testEnv, WAYD_API_BASE_URL: '' };

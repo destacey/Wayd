@@ -256,5 +256,8 @@ public sealed class DiscussionPersistenceIntegrationTests(SqlServerDbContextFixt
 
         public Task OnEdited(DiscussionChannel channel, DiscussionMessage message, IReadOnlyCollection<Guid> addedMentionIds, CancellationToken cancellationToken) =>
             Task.CompletedTask;
+
+        public Task<DiscussionSettingsAccess?> ResolveSettings(Guid? scopeId, CancellationToken cancellationToken) =>
+            Task.FromResult<DiscussionSettingsAccess?>(null);
     }
 }

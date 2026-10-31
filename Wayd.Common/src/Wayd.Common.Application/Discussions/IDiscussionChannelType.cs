@@ -71,7 +71,18 @@ public interface IDiscussionChannelType
         DiscussionMessage message,
         IReadOnlyCollection<Guid> addedMentionIds,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// What the caller may do with the discussion settings of one scope, such as an intake desk, or of the channel
+    /// type's default when <paramref name="scopeId"/> is null. Null when the channel type has no settings, the scope
+    /// does not exist, or the caller cannot see it, which every caller reports as not found.
+    /// </summary>
+    Task<DiscussionSettingsAccess?> ResolveSettings(Guid? scopeId, CancellationToken cancellationToken);
 }
+
+/// <summary>What the caller may do with one scope's discussion settings, as its channel type answers it now.</summary>
+/// <param name="CanManage">Whether the caller may change them.</param>
+public sealed record DiscussionSettingsAccess(bool CanManage);
 
 /// <summary>
 /// What the caller may do in one record's conversation, as its channel type answers it now.
@@ -81,7 +92,11 @@ public interface IDiscussionChannelType
 /// <param name="CanPost">Whether the caller may post and reply.</param>
 /// <param name="CanPostInternal">Whether the caller may post internal notes and reply in their threads.</param>
 /// <param name="CanModerate">Whether the caller may lock the conversation and delete anyone's message.</param>
-public sealed record DiscussionAccess(bool CanReadInternal, bool CanPost, bool CanPostInternal, bool CanModerate)
+/// <param name="ScopeId">
+/// The record whose discussion settings apply to this one, such as an intake request's desk, as the record is now.
+/// Null when the channel type has no settings scope, so its default settings apply.
+/// </param>
+public sealed record DiscussionAccess(bool CanReadInternal, bool CanPost, bool CanPostInternal, bool CanModerate, Guid? ScopeId = null)
 {
     /// <summary>Whether the caller may read messages of the given kind.</summary>
     public bool CanRead(DiscussionMessageKind kind) => kind == DiscussionMessageKind.Public || CanReadInternal;

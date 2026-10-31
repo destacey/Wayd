@@ -12,7 +12,8 @@ namespace Wayd.Common.Application.Tests.Sut.Discussions.Queries;
 public sealed class GetDiscussionQueryHandlerTests
 {
     private const string GadgetType = "test.discussion-state.gadget";
-    private static readonly DiscussionChannelTypeDescriptor Gadget = new(GadgetType, "Gadget", "Gadgets", supportsInternalNotes: true);
+    private static readonly DiscussionChannelTypeDescriptor Gadget = new(GadgetType, "Gadget", "Gadgets", supportsInternalNotes: true,
+        settingsScopeType: "GadgetShop");
     private static readonly Instant Now = Instant.FromUtc(2026, 10, 29, 9, 30);
 
     private readonly FakeWaydDbContext _dbContext = new();
@@ -44,6 +45,25 @@ public sealed class GetDiscussionQueryHandlerTests
         discussion.CanPostInternal.Should().BeFalse();
         discussion.CanModerate.Should().BeFalse();
         discussion.IsLocked.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldOfferNoInternalNotes_WhenTheScopeTurnedThemOff()
+    {
+        // Arrange
+        var ownerId = _gadgets.AddRecord();
+        var shopId = Guid.NewGuid();
+        _gadgets.Access = _gadgets.Access with { ScopeId = shopId };
+        _dbContext.AddDiscussionSettings(DiscussionSettings.Create(Gadget, shopId, Gadget.DefaultSettings,
+            new DiscussionSettingValues(InternalNotesEnabled: false, MentionsGrantAccess: false),
+            EventActor.System, Now).Value!);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetDiscussionQuery(GadgetType, ownerId), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value!.CanPostInternal.Should().BeFalse();
+        result.Value.CanPost.Should().BeTrue();
     }
 
     [Fact]

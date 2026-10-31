@@ -3,6 +3,7 @@ using Moq;
 using Wayd.Common.Application.Discussions;
 using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Discussions;
 using Wayd.DemandManagement.Application;
 using Wayd.DemandManagement.Domain;
@@ -29,6 +30,7 @@ public sealed class DiscussionRegistrationTests
         var services = new ServiceCollection();
 
         services.AddScoped(_ => new Mock<IDemandManagementDbContext>().Object);
+        services.AddScoped(_ => new Mock<IDiscussionsDbContext>().Object);
         services.AddScoped(_ => new Mock<IProjectPortfolioManagementDbContext>().Object);
         services.AddScoped(_ => new Mock<IFeatureFlags>().Object);
         services.AddScoped(_ => new Mock<ICurrentPrincipal>().Object);

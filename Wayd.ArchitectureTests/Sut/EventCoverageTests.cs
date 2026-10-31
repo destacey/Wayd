@@ -74,6 +74,7 @@ public partial class EventCoverageTests
         // Common
         typeof(DiscussionChannel),
         typeof(DiscussionMessage),
+        typeof(DiscussionSettings),
         typeof(Employee),
         typeof(ExternalIdentityMapping),
         typeof(OidcProvider),

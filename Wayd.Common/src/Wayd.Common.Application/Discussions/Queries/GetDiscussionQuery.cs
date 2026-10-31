@@ -63,7 +63,7 @@ public sealed class GetDiscussionQueryHandler(
         return new DiscussionDto
         {
             CanPost = view.Access.CanPost,
-            CanPostInternal = view.Access.CanWrite(DiscussionMessageKind.InternalNote),
+            CanPostInternal = view.CanPostInternal,
             CanModerate = view.Access.CanModerate,
             IsLocked = view.Channel?.IsLocked ?? false,
             ThreadCount = counts.Threads,

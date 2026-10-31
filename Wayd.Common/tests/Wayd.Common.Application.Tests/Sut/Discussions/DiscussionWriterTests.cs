@@ -14,7 +14,8 @@ namespace Wayd.Common.Application.Tests.Sut.Discussions;
 public sealed class DiscussionWriterTests
 {
     private const string GadgetType = "test.discussion-writer.gadget";
-    private static readonly DiscussionChannelTypeDescriptor Gadget = new(GadgetType, "Gadget", "Gadgets", supportsInternalNotes: true);
+    private static readonly DiscussionChannelTypeDescriptor Gadget = new(GadgetType, "Gadget", "Gadgets", supportsInternalNotes: true,
+        settingsScopeType: "GadgetShop");
     private static readonly Instant Now = Instant.FromUtc(2026, 10, 29, 9, 30);
 
     private readonly FakeWaydDbContext _dbContext = new();
@@ -207,6 +208,91 @@ public sealed class DiscussionWriterTests
     }
 
     [Fact]
+    public async Task Post_ShouldRefuseAnInternalNote_WhenNotesAreTurnedOff()
+    {
+        // Arrange
+        var ownerId = _gadgets.AddRecord();
+        UseDefaultSettings(new DiscussionSettingValues(InternalNotesEnabled: false, MentionsGrantAccess: false));
+        var writer = CreateWriter();
+
+        // Act
+        var result = await writer.Post(new PostDiscussionMessage(GadgetType, ownerId, DiscussionMessageKind.InternalNote, null, "Note"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(DiscussionErrors.InternalNotesTurnedOff);
+        _dbContext.DiscussionMessages.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Post_ShouldStillPostAMessage_WhenNotesAreTurnedOff()
+    {
+        // Arrange
+        var ownerId = _gadgets.AddRecord();
+        UseDefaultSettings(new DiscussionSettingValues(InternalNotesEnabled: false, MentionsGrantAccess: false));
+        var writer = CreateWriter();
+
+        // Act
+        var result = await writer.Post(new PostDiscussionMessage(GadgetType, ownerId, DiscussionMessageKind.Public, null, "Hello"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+    }
+
+    [Fact]
+    public async Task Reply_ShouldRefuseAReplyInANotesThread_WhenNotesAreTurnedOff()
+    {
+        // Arrange
+        var ownerId = _gadgets.AddRecord();
+        var writer = CreateWriter();
+        var noteId = (await writer.Post(new PostDiscussionMessage(GadgetType, ownerId, DiscussionMessageKind.InternalNote, null, "Note"), TestContext.Current.CancellationToken)).Value;
+        UseDefaultSettings(new DiscussionSettingValues(InternalNotesEnabled: false, MentionsGrantAccess: false));
+
+        // Act
+        var result = await writer.Reply(GadgetType, ownerId, noteId, "Agreed", TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(DiscussionErrors.InternalNotesTurnedOff);
+    }
+
+    [Fact]
+    public async Task Edit_ShouldStillEditAnExistingNote_WhenNotesAreTurnedOff()
+    {
+        // Arrange
+        var ownerId = _gadgets.AddRecord();
+        var writer = CreateWriter();
+        var noteId = (await writer.Post(new PostDiscussionMessage(GadgetType, ownerId, DiscussionMessageKind.InternalNote, null, "Note"), TestContext.Current.CancellationToken)).Value;
+        UseDefaultSettings(new DiscussionSettingValues(InternalNotesEnabled: false, MentionsGrantAccess: false));
+
+        // Act
+        var result = await writer.Edit(GadgetType, ownerId, noteId, null, "Note, fixed", TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+    }
+
+    [Fact]
+    public async Task Post_ShouldUseTheScopesSettings_OverTheDefault()
+    {
+        // Arrange
+        var ownerId = _gadgets.AddRecord();
+        var shopId = Guid.NewGuid();
+        _gadgets.Access = _gadgets.Access with { ScopeId = shopId };
+        UseDefaultSettings(new DiscussionSettingValues(InternalNotesEnabled: true, MentionsGrantAccess: false));
+        _dbContext.AddDiscussionSettings(DiscussionSettings.Create(Gadget, shopId, Gadget.DefaultSettings,
+            new DiscussionSettingValues(InternalNotesEnabled: false, MentionsGrantAccess: false),
+            EventActor.System, Now).Value!);
+
+        // Act
+        var result = await CreateWriter().Post(new PostDiscussionMessage(GadgetType, ownerId, DiscussionMessageKind.InternalNote, null, "Note"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(DiscussionErrors.InternalNotesTurnedOff);
+    }
+
+    [Fact]
     public async Task Edit_ShouldTellTheChannelTypeOnlyTheMentionsItAdded()
     {
         // Arrange
@@ -381,6 +467,36 @@ public sealed class DiscussionWriterTests
     }
 
     [Fact]
+    public async Task DeleteSettings_ShouldRemoveTheScopesSettings_AndRecordIt()
+    {
+        // Arrange
+        var shopId = Guid.NewGuid();
+        var settings = DiscussionSettings.Create(Gadget, shopId, Gadget.DefaultSettings,
+            new DiscussionSettingValues(InternalNotesEnabled: false, MentionsGrantAccess: false), EventActor.System, Now).Value!;
+        settings.ClearDomainEvents();
+        _dbContext.AddDiscussionSettings(settings);
+
+        // Act
+        await CreateWriter().DeleteSettings(GadgetType, shopId, EventActor.System, TestContext.Current.CancellationToken);
+
+        // Assert
+        _dbContext.DiscussionSettings.Should().BeEmpty();
+        settings.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<DiscussionSettingsDeletedEvent>()
+            .Which.ScopeId.Should().Be(shopId);
+    }
+
+    [Fact]
+    public async Task DeleteSettings_ShouldDoNothing_ForAScopeWithNoneOfItsOwn()
+    {
+        // Act
+        var act = () => CreateWriter().DeleteSettings(GadgetType, Guid.NewGuid(), EventActor.System, TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().NotThrowAsync();
+        _dbContext.DiscussionSettings.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Post_ShouldStageNoConversation_WhenTheMessageIsRefused()
     {
         // Arrange
@@ -420,4 +536,7 @@ public sealed class DiscussionWriterTests
         var writer = new DiscussionWriter(_dbContext, [_gadgets], someoneElse.Object, _currentUser.Object, _dateTimeProvider);
         return (await writer.Post(new PostDiscussionMessage(GadgetType, ownerId, DiscussionMessageKind.Public, null, "Theirs"), TestContext.Current.CancellationToken)).Value;
     }
+
+    private void UseDefaultSettings(DiscussionSettingValues values) =>
+        _dbContext.AddDiscussionSettings(DiscussionSettings.Create(Gadget, null, Gadget.DefaultSettings, values, EventActor.System, Now).Value!);
 }

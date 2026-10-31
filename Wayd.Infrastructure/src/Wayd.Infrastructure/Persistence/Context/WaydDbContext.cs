@@ -158,6 +158,8 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
 
     public DbSet<DiscussionMessage> DiscussionMessages => Set<DiscussionMessage>();
 
+    public DbSet<DiscussionSettings> DiscussionSettings => Set<DiscussionSettings>();
+
     #endregion Discussions
 
     #region ProductManagement

@@ -54,4 +54,12 @@ public sealed class FakeDiscussionChannelType(string channelType) : IDiscussionC
         Edited.Add((message, addedMentionIds));
         return Task.CompletedTask;
     }
+
+    /// <summary>
+    /// What every caller may do with the settings of every scope, or null for none at all. Managing, by default.
+    /// </summary>
+    public DiscussionSettingsAccess? SettingsAccess { get; set; } = new(CanManage: true);
+
+    public Task<DiscussionSettingsAccess?> ResolveSettings(Guid? scopeId, CancellationToken cancellationToken) =>
+        Task.FromResult(SettingsAccess);
 }

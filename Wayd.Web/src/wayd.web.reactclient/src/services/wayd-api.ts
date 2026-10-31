@@ -981,6 +981,192 @@ export class DiscussionsClient {
     }
 }
 
+export class DiscussionSettingsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get how conversations behave in a scope.
+     * @param scopeId (optional) 
+     * @return OK
+     */
+    getSettings(channelType: string, scopeId?: string | null | undefined, cancelToken?: CancelToken): Promise<DiscussionSettingsDto> {
+        let url_ = this.baseUrl + "/api/discussion-settings/{channelType}?";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (scopeId !== undefined && scopeId !== null)
+            url_ += "scopeId=" + encodeURIComponent("" + scopeId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSettings(_response);
+        });
+    }
+
+    protected processGetSettings(response: AxiosResponse): Promise<DiscussionSettingsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DiscussionSettingsDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DiscussionSettingsDto>(null as any);
+    }
+
+    /**
+     * Save how conversations behave in a scope.
+     * @param scopeId (optional) 
+     * @return No Content
+     */
+    saveSettings(channelType: string, request: SaveDiscussionSettingsRequest, scopeId?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/discussion-settings/{channelType}?";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (scopeId !== undefined && scopeId !== null)
+            url_ += "scopeId=" + encodeURIComponent("" + scopeId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSaveSettings(_response);
+        });
+    }
+
+    protected processSaveSettings(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
 export class FeatureFlagsClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -59986,6 +60172,27 @@ export enum DiscussionOrder {
     NewestFirst = "NewestFirst",
 }
 
+/** How conversations behave in one scope, such as an intake desk, or by default for a kind of record: the settings in effect, where they come from, and which of them the kind of record supports. */
+export interface DiscussionSettingsDto {
+    /** The registered channel type, such as `demand.intake-request`. */
+    channelType: string;
+    /** The scope's record, or null for the default every scope inherits. */
+    scopeId?: string | undefined;
+    /** Whether new internal notes can be posted. Existing notes stay readable to their audience either way. */
+    internalNotesEnabled: boolean;
+    /** Whether mentioning someone can give them access to the record. When off, only the people who already have the record can be mentioned. */
+    mentionsGrantAccess: boolean;
+    /** Whether the scope has saved no settings of its own and follows its default. Saving values equal to the
+default keeps it following. */
+    isInherited: boolean;
+    /** Whether this kind of record can hold internal notes at all. When false, they cannot be turned on. */
+    supportsInternalNotes: boolean;
+    /** Whether a mention can give access on this kind of record at all. When false, it cannot be turned on. */
+    supportsMentionAccess: boolean;
+    /** Whether the caller may change these settings. */
+    canManage: boolean;
+}
+
 /** The new subject and text of the caller's own message. The version it replaces is kept. */
 export interface EditDiscussionMessageRequest {
     /** The new subject, up to 200 characters; null or blank for none. Must be blank on a reply in a thread. */
@@ -64569,6 +64776,16 @@ export interface RolloutItemDto {
     deployedAt: Date;
     /** Whether a later deployment touching this product failed or was rolled back here. */
     hasFailedAttemptSince: boolean;
+}
+
+/** How conversations should behave in one scope, such as an intake desk, or by default for a kind of record. */
+export interface SaveDiscussionSettingsRequest {
+    /** Whether new internal notes can be posted. Turning it off leaves existing notes readable to their audience. Can
+only be true where the kind of record holds internal notes. */
+    internalNotesEnabled: boolean;
+    /** Whether mentioning someone can give them access to the record. When false, only the people who already have
+the record can be mentioned. Can only be true where the kind of record allows it. */
+    mentionsGrantAccess: boolean;
 }
 
 export interface ScaleInput {

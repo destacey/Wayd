@@ -46,6 +46,23 @@ public sealed class TestImportDefinition(IImportPayloadSerializer serializer) : 
 
     public override ImportAtomicity Atomicity => AtomicityOverride;
 
+    /// <summary>What <see cref="DescribeCreatedRecords"/> knows about, standing in for a module's records.</summary>
+    public Dictionary<Guid, ImportRecordLink> Links { get; } = [];
+
+    /// <summary>The ids each lookup was asked about, so a test can see whether one was made at all.</summary>
+    public List<IReadOnlyCollection<Guid>> DescribeCalls { get; } = [];
+
+    /// <summary>Links the ids a test put in <see cref="Links"/>, and records what it was asked.</summary>
+    public override Task<IReadOnlyDictionary<Guid, ImportRecordLink>> DescribeCreatedRecords(
+        IReadOnlyCollection<Guid> createdEntityIds,
+        CancellationToken cancellationToken)
+    {
+        DescribeCalls.Add(createdEntityIds);
+
+        return Task.FromResult<IReadOnlyDictionary<Guid, ImportRecordLink>>(
+            Links.Where(l => createdEntityIds.Contains(l.Key)).ToDictionary(l => l.Key, l => l.Value));
+    }
+
     protected override IReadOnlyList<ImportPass<TestImportRow>> Steps =>
     [
         new("Create", ImportPassScope.Chunked, Create),

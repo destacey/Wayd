@@ -1,4 +1,5 @@
-﻿using CSharpFunctionalExtensions;
+﻿using System.Globalization;
+using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Domain.Authorization;
@@ -39,6 +40,19 @@ public sealed class ProjectPortfolioImportDefinition(
     private readonly ICurrentUser _currentUser = currentUser;
 
     public override string Key => ImportKey;
+
+    /// <inheritdoc />
+    public override async Task<IReadOnlyDictionary<Guid, ImportRecordLink>> DescribeCreatedRecords(
+        IReadOnlyCollection<Guid> createdEntityIds,
+        CancellationToken cancellationToken) =>
+        await _projectPortfolioManagementDbContext.Portfolios
+            .AsNoTracking()
+            .Where(x => createdEntityIds.Contains(x.Id))
+            .Select(x => new { x.Id, x.Key, Name = x.Name })
+            .ToDictionaryAsync(
+                x => x.Id,
+                x => new ImportRecordLink(ImportRecordType.Portfolio, x.Key.ToString(CultureInfo.InvariantCulture), x.Name),
+                cancellationToken);
     public override string DisplayName => "Portfolios";
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.ProjectPortfolios;

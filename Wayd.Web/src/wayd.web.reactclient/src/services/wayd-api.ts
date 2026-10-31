@@ -61432,10 +61432,15 @@ export interface ImportProcessRowDto {
     importId: string;
     rowNumber: number;
     status: ImportRowStatus;
+    /** The record this row created or changed. */
     createdEntityId?: string | undefined;
     error?: string | undefined;
     warning?: string | undefined;
     attemptedOn?: Date | undefined;
+    /** Where to see that record — or, for one with no page of its own, the record it belongs to. Null when the
+row created nothing, when that record or the one the link opens has since been deleted, and for a
+preflight, whose records were rolled back. */
+    createdRecord?: ImportRecordLink | undefined;
 }
 
 /** A page of row outcomes, with the total so a UI can page without a second call. */
@@ -61637,6 +61642,38 @@ row is known by its position instead, but the column itself must be in the file.
     estimatedEffortHours?: number | undefined;
     /** Semicolon-separated employee numbers assigned to the task. */
     assignees?: string | undefined;
+}
+
+/** Where a person goes to see what an import row did: the record it created, or — for a record with no page of its own, such as a membership or a dependency — the record it belongs to. */
+export interface ImportRecordLink {
+    /** The kind of record the link opens. */
+    type: ImportRecordType;
+    /** The key its page is addressed by. */
+    key: string;
+    /** What to call it, so the link reads as more than a number. */
+    name?: string | undefined;
+    /** The key of the record its page sits under — a planning interval objective's planning interval. Null for any other type. */
+    parentKey?: string | undefined;
+}
+
+export enum ImportRecordType {
+    Employee = "Employee",
+    Team = "Team",
+    TeamOfTeams = "TeamOfTeams",
+    PlanningInterval = "PlanningInterval",
+    PlanningIntervalObjective = "PlanningIntervalObjective",
+    Risk = "Risk",
+    Portfolio = "Portfolio",
+    Program = "Program",
+    Project = "Project",
+    StrategicInitiative = "StrategicInitiative",
+    StrategicTheme = "StrategicTheme",
+    Product = "Product",
+    Version = "Version",
+    Release = "Release",
+    ReleasePackage = "ReleasePackage",
+    Deployment = "Deployment",
+    DeploymentEnvironment = "DeploymentEnvironment",
 }
 
 /** A single CSV row for the contents file: one thing a release announces. */

@@ -38,6 +38,12 @@ public sealed class TeamImportDefinition(
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
 
     public override string Key => ImportKey;
+
+    /// <inheritdoc />
+    public override async Task<IReadOnlyDictionary<Guid, ImportRecordLink>> DescribeCreatedRecords(
+        IReadOnlyCollection<Guid> createdEntityIds,
+        CancellationToken cancellationToken) =>
+        await TeamImportLinks.ForTeams(_organizationDbContext, createdEntityIds, cancellationToken);
     public override string DisplayName => "Teams";
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.Teams;

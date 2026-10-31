@@ -29,6 +29,7 @@ const product = {
   status: { id: 'status-1', name: 'Concept', category: 1, alias: 0 },
   isReleasable: true,
   parent: { id: 'product-0', key: 1, name: 'Storefront Suite' },
+  teams: [{ id: 'team-payments', key: 3, name: 'Payments', code: 'PAY' }],
   tags: [
     {
       tagId: 'tag-1',
@@ -86,12 +87,18 @@ jest.mock('./_components/product-dependencies', () => ({
   default: () => <div data-testid="product-dependencies" />,
 }))
 
-jest.mock('../_components/product-team-links-grid', () => ({
+jest.mock('../_components/product-teams', () => ({
   __esModule: true,
+  ...jest.requireActual('../_components/product-teams'),
   default: () => <div data-testid="product-team-links" />,
 }))
 
-const teamLinks = [{ id: 'link-1' }, { id: 'link-2' }]
+// Payments is on the product itself and on a product beneath it; Atlas only beneath it.
+const teamLinks = [
+  { product: { id: 'product-1' }, team: { id: 'team-payments' } },
+  { product: { id: 'product-2' }, team: { id: 'team-payments' } },
+  { product: { id: 'product-2' }, team: { id: 'team-atlas' } },
+]
 
 let mockSearchParams = new URLSearchParams()
 const mockReplace = jest.fn((url: string) => {
@@ -235,7 +242,7 @@ jest.mock('@/src/store/features/product-management/products-api', () => ({
     isLoading: false,
     refetch: jest.fn(),
   }),
-  useLinkProductTeamMutation: () => [jest.fn()],
+  useSetProductTeamsMutation: () => [jest.fn()],
   useLazyGetProductActivitiesQuery: () => [jest.fn()],
   useGetProductStatusOptionsQuery: () => ({ data: [], isLoading: false }),
   useChangeProductStatusMutation: () => [jest.fn()],
@@ -446,7 +453,7 @@ describe('ProductDetailsPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('counts the linked teams on their section', async () => {
+  it('counts each team on the section once, its own and those beneath it', async () => {
     // Arrange / Act
     await renderPage()
 
@@ -455,7 +462,7 @@ describe('ProductDetailsPage', () => {
     expect(sectionEntry).toHaveTextContent('2')
   })
 
-  it('offers linking a team from the teams section', async () => {
+  it('offers managing the teams from the teams section', async () => {
     // Arrange
     mockSearchParams = new URLSearchParams('section=teams')
 
@@ -464,12 +471,12 @@ describe('ProductDetailsPage', () => {
 
     // Assert
     expect(
-      await screen.findByRole('button', { name: 'Link Team' }),
+      await screen.findByRole('button', { name: 'Manage Teams' }),
     ).toBeInTheDocument()
     expect(screen.getByTestId('product-team-links')).toBeInTheDocument()
   })
 
-  it('does not offer linking a team without permission to view teams', async () => {
+  it('does not offer managing the teams without permission to view teams', async () => {
     // Arrange — the picker lists teams through the Teams endpoints, so it would open empty
     mockSearchParams = new URLSearchParams('section=teams')
     mockMissingPermissions = ['Permissions.Teams.View']
@@ -480,7 +487,7 @@ describe('ProductDetailsPage', () => {
     // Assert
     expect(await screen.findByTestId('product-team-links')).toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Link Team' }),
+      screen.queryByRole('button', { name: 'Manage Teams' }),
     ).not.toBeInTheDocument()
   })
 

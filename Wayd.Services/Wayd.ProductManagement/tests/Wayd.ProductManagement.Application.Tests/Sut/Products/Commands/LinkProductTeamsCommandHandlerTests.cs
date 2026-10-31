@@ -12,12 +12,12 @@ using Wayd.ProductManagement.Application.Tests.Infrastructure;
 
 namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Commands;
 
-public sealed class LinkProductTeamCommandHandlerTests : ProductCommandTestBase
+public sealed class LinkProductTeamsCommandHandlerTests : ProductCommandTestBase
 {
     private readonly Mock<IDispatcher> _dispatcher = new();
 
-    private LinkProductTeamCommandHandler CreateSut() =>
-        new(DbContext, CurrentUser.Object, _dispatcher.Object, Logger<LinkProductTeamCommandHandler>(), DateTimeProvider.Object);
+    private LinkProductTeamsCommandHandler CreateSut() =>
+        new(DbContext, CurrentUser.Object, _dispatcher.Object, Logger<LinkProductTeamsCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
     public async Task Handle_ShouldLinkTheTeam()
@@ -28,7 +28,7 @@ public sealed class LinkProductTeamCommandHandlerTests : ProductCommandTestBase
         var sut = CreateSut();
 
         // Act
-        var result = await sut.Handle(new LinkProductTeamCommand(web.Id, team.Id), TestContext.Current.CancellationToken);
+        var result = await sut.Handle(new LinkProductTeamsCommand(web.Id, [team.Id]), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -47,7 +47,7 @@ public sealed class LinkProductTeamCommandHandlerTests : ProductCommandTestBase
         var sut = CreateSut();
 
         // Act
-        var result = await sut.Handle(new LinkProductTeamCommand(web.Id, team.Id), TestContext.Current.CancellationToken);
+        var result = await sut.Handle(new LinkProductTeamsCommand(web.Id, [team.Id]), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -67,7 +67,7 @@ public sealed class LinkProductTeamCommandHandlerTests : ProductCommandTestBase
         var sut = CreateSut();
 
         // Act
-        var result = await sut.Handle(new LinkProductTeamCommand(web.Id, source.Id), TestContext.Current.CancellationToken);
+        var result = await sut.Handle(new LinkProductTeamsCommand(web.Id, [source.Id]), TestContext.Current.CancellationToken);
 
         // Assert — the copy is saved on its own before the link, so a racing copy cannot fail the link's save
         result.IsSuccess.Should().BeTrue();
@@ -94,7 +94,7 @@ public sealed class LinkProductTeamCommandHandlerTests : ProductCommandTestBase
         var sut = CreateSut();
 
         // Act
-        await sut.Handle(new LinkProductTeamCommand(web.Id, source.Id), TestContext.Current.CancellationToken);
+        await sut.Handle(new LinkProductTeamsCommand(web.Id, [source.Id]), TestContext.Current.CancellationToken);
 
         // Assert
         DbContext.ProductTeams.Should().ContainSingle()
@@ -112,7 +112,7 @@ public sealed class LinkProductTeamCommandHandlerTests : ProductCommandTestBase
         var sut = CreateSut();
 
         // Act
-        var result = await sut.Handle(new LinkProductTeamCommand(web.Id, Guid.CreateVersion7()), TestContext.Current.CancellationToken);
+        var result = await sut.Handle(new LinkProductTeamsCommand(web.Id, [Guid.CreateVersion7()]), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -131,7 +131,7 @@ public sealed class LinkProductTeamCommandHandlerTests : ProductCommandTestBase
         var sut = CreateSut();
 
         // Act
-        var result = await sut.Handle(new LinkProductTeamCommand(web.Id, team.Id), TestContext.Current.CancellationToken);
+        var result = await sut.Handle(new LinkProductTeamsCommand(web.Id, [team.Id]), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -148,11 +148,49 @@ public sealed class LinkProductTeamCommandHandlerTests : ProductCommandTestBase
         var sut = CreateSut();
 
         // Act
-        var result = await sut.Handle(new LinkProductTeamCommand(Guid.CreateVersion7(), team.Id), TestContext.Current.CancellationToken);
+        var result = await sut.Handle(new LinkProductTeamsCommand(Guid.CreateVersion7(), [team.Id]), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("Product not found.");
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldLinkEveryTeamGiven_InOneSave()
+    {
+        // Arrange
+        var web = SeedProduct("Storefront Web");
+        var payments = SeedTeam("Payments", "PAY");
+        var atlas = SeedTeam("Atlas", "ATL");
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new LinkProductTeamsCommand(web.Id, [payments.Id, atlas.Id, payments.Id]), TestContext.Current.CancellationToken);
+
+        // Assert — the repeated id links once
+        result.IsSuccess.Should().BeTrue();
+        web.TeamLinks.Select(l => l.TeamId).Should().BeEquivalentTo([payments.Id, atlas.Id]);
+        web.DomainEvents.OfType<ProductTeamLinkedEvent>().Should().HaveCount(2);
+        DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_WhenOneTeamIsRefused_ShouldLinkNoneAndNameIt()
+    {
+        // Arrange
+        var web = SeedProduct("Storefront Web");
+        var payments = SeedTeam("Payments", "PAY");
+        var retired = SeedTeam("Legacy Ops", "LEG", isActive: false);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new LinkProductTeamsCommand(web.Id, [payments.Id, retired.Id]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Legacy Ops: An inactive team cannot be linked to a product.");
+        web.DomainEvents.Should().BeEmpty();
         DbContext.SaveChangesCallCount.Should().Be(0);
     }
 }

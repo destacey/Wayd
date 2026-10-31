@@ -364,7 +364,11 @@ See [Work Item Dependencies](../work-management/work-items.mdx#work-item-depende
 
 The **Products** section lists the products the team is linked to, with where each sits in the catalog (**Within**). A Team of Teams has the same section, for the products linked to the team of teams itself — it does not repeat the products of the teams beneath it.
 
-The section is shown when [Product Management](../product-management/index.mdx) is enabled and you have `Permissions.Products.View`. Links are made from the product's page — see [Teams](../product-management/products.mdx#teams) — and unlinked from either page with `Permissions.Products.Update`.
+The section is shown when [Product Management](../product-management/index.mdx) is enabled and you have `Permissions.Products.View`.
+
+With `Permissions.Products.Update`, **Manage Products** sets the team's products in one go. It shows the product catalog as a tree with the team's current products checked: check the products the team works on, uncheck the ones it no longer does, and **Save**. A parent and its children are checked separately, since a link is on one product — check the most specific products, as each product's parents show its teams too. The changes are saved together, and each product records its own linking or unlinking in its Activity.
+
+A product's teams can also be managed from the product's page — see [Teams](../product-management/products.mdx#teams). To unlink one product, choose **Unlink** from its row's menu.
 
 ### Risks
 

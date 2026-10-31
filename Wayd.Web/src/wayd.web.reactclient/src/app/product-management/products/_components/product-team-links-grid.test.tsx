@@ -27,9 +27,6 @@ const link = (
     ...overrides,
   }) as ProductTeamLinkDto
 
-const ids = (columns: ReturnType<typeof buildProductTeamLinkColumns>) =>
-  columns.map((c) => c.id)
-
 const column = (
   columns: ReturnType<typeof buildProductTeamLinkColumns>,
   id: string,
@@ -39,43 +36,18 @@ const column = (
   }
 
 describe('buildProductTeamLinkColumns', () => {
-  it('leads with the team on a product and with the product on a team', () => {
+  it('leads with the product', () => {
     // Arrange
-    const onProduct = buildProductTeamLinkColumns(
-      { kind: 'product', productId: web.id },
-      () => [],
-    )
-    const onTeam = buildProductTeamLinkColumns({ kind: 'team' }, () => [])
+    const columns = buildProductTeamLinkColumns(() => [])
 
     // Act / Assert
-    expect(ids(onProduct)).toContain('team')
-    expect(ids(onProduct)).not.toContain('product')
-    expect(column(onProduct, 'team').accessorFn(link())).toBe('Payments')
-
-    expect(ids(onTeam)).toContain('product')
-    expect(ids(onTeam)).not.toContain('team')
-    expect(column(onTeam, 'product').accessorFn(link())).toBe('Storefront Web')
+    expect(columns.map((c) => c.id)).toEqual(['actions', 'product', 'path'])
+    expect(column(columns, 'product').accessorFn(link())).toBe('Storefront Web')
   })
 
-  it('leaves On empty for the page product and names the descendant a rolled-up link is on', () => {
+  it('shows where each product sits in the catalog', () => {
     // Arrange
-    const onWeb = buildProductTeamLinkColumns(
-      { kind: 'product', productId: web.id },
-      () => [],
-    )
-    const onStorefront = buildProductTeamLinkColumns(
-      { kind: 'product', productId: storefront.id },
-      () => [],
-    )
-
-    // Act / Assert
-    expect(column(onWeb, 'on').accessorFn(link())).toBe('')
-    expect(column(onStorefront, 'on').accessorFn(link())).toBe('Storefront Web')
-  })
-
-  it("shows where each product sits on a team's list", () => {
-    // Arrange
-    const columns = buildProductTeamLinkColumns({ kind: 'team' }, () => [])
+    const columns = buildProductTeamLinkColumns(() => [])
 
     // Act / Assert
     expect(

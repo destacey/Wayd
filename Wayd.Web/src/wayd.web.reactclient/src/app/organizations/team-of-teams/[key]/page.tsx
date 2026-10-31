@@ -47,6 +47,7 @@ import DeactivateTeamOfTeamsForm from '@/src/app/organizations/_components/deact
 import TeamOfTeamsOperatingModelsGrid from './_components/team-of-teams-operating-models-grid'
 import SetTeamOfTeamsOperatingModelForm from './_components/set-team-of-teams-operating-model-form'
 import TeamProducts from '@/src/app/product-management/products/_components/team-products'
+import ManageTeamProductsButton from '@/src/app/product-management/products/_components/manage-team-products-button'
 import useCanViewTeamProducts from '@/src/app/product-management/products/_components/use-can-view-team-products'
 
 const WorkDistributionReport = dynamic(
@@ -388,6 +389,8 @@ const TeamOfTeamsDetailsPage = (props: {
         sectionActions={
           activeTab === TeamOfTeamsTabs.Activities ? (
             <ActivityLogExportButton activityLog={activityLog} />
+          ) : activeTab === TeamOfTeamsTabs.Products && canViewProducts ? (
+            <ManageTeamProductsButton teamId={team!.id} teamName={team.name} />
           ) : undefined
         }
       >

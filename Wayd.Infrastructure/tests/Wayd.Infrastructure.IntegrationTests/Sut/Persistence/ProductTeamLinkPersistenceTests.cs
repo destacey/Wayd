@@ -51,7 +51,7 @@ public sealed class ProductTeamLinkPersistenceTests(SqlServerDbContextFixture fi
         Result second;
         await using (var context = _fixture.CreateContext())
         {
-            second = await LinkHandler(context).Handle(new LinkProductTeamCommand(product.Id, team.Id), ct);
+            second = await LinkHandler(context).Handle(new LinkProductTeamsCommand(product.Id, [team.Id]), ct);
         }
 
         // Assert — no change, not the unique index turning the save into a generic error
@@ -116,9 +116,9 @@ public sealed class ProductTeamLinkPersistenceTests(SqlServerDbContextFixture fi
         Result result;
         await using (var context = _fixture.CreateContext())
         {
-            result = await new LinkProductTeamCommandHandler(
-                    context, CurrentUser(), Mock.Of<IDispatcher>(), Mock.Of<ILogger<LinkProductTeamCommandHandler>>(), clock.Object)
-                .Handle(new LinkProductTeamCommand(product.Id, team.Id), ct);
+            result = await new LinkProductTeamsCommandHandler(
+                    context, CurrentUser(), Mock.Of<IDispatcher>(), Mock.Of<ILogger<LinkProductTeamsCommandHandler>>(), clock.Object)
+                .Handle(new LinkProductTeamsCommand(product.Id, [team.Id]), ct);
         }
 
         // Assert — a repeat of a link is a no-op success, however close together the two arrive
@@ -197,9 +197,9 @@ public sealed class ProductTeamLinkPersistenceTests(SqlServerDbContextFixture fi
         Result result;
         await using (var context = _fixture.CreateContext())
         {
-            result = await new LinkProductTeamCommandHandler(
-                    context, CurrentUser(), dispatcher.Object, Mock.Of<ILogger<LinkProductTeamCommandHandler>>(), Clock())
-                .Handle(new LinkProductTeamCommand(product.Id, source.Id), ct);
+            result = await new LinkProductTeamsCommandHandler(
+                    context, CurrentUser(), dispatcher.Object, Mock.Of<ILogger<LinkProductTeamsCommandHandler>>(), Clock())
+                .Handle(new LinkProductTeamsCommand(product.Id, [source.Id]), ct);
         }
 
         // Assert
@@ -233,6 +233,66 @@ public sealed class ProductTeamLinkPersistenceTests(SqlServerDbContextFixture fi
         result.IsSuccess.Should().BeTrue();
         await using var verify = _fixture.CreateContext();
         (await verify.ProductTeamLinks.Where(l => l.ProductId == product.Id).Select(l => l.TeamId).ToListAsync(ct))
+            .Should().Equal(other.Id);
+    }
+
+    [Fact]
+    public async Task SetProductTeams_LinksTheNewTeamsAndUnlinksTheOmittedOnes()
+    {
+        // Arrange — a fresh context for the handler, so the product's links come only from its .Include
+        var ct = TestContext.Current.CancellationToken;
+        var product = await SeedProduct($"Storefront Web {Guid.CreateVersion7()}");
+        var kept = await SeedTeam();
+        var dropped = await SeedTeam();
+        var added = await SeedTeam();
+        await Link(product.Id, kept.Id);
+        await Link(product.Id, dropped.Id);
+
+        // Act
+        Result result;
+        await using (var context = _fixture.CreateContext())
+        {
+            result = await new SetProductTeamsCommandHandler(
+                    context, CurrentUser(), Mock.Of<IDispatcher>(), Mock.Of<ILogger<SetProductTeamsCommandHandler>>(), Clock())
+                .Handle(new SetProductTeamsCommand(product.Id, [kept.Id, added.Id]), ct);
+        }
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        await using var verify = _fixture.CreateContext();
+        (await verify.ProductTeamLinks.Where(l => l.ProductId == product.Id).Select(l => l.TeamId).ToListAsync(ct))
+            .Should().BeEquivalentTo([kept.Id, added.Id]);
+    }
+
+    [Fact]
+    public async Task SetTeamProducts_LinksAndUnlinksAcrossProducts_InOneSave()
+    {
+        // Arrange — a fresh context for the handler, so it finds the team's current products only by querying
+        var ct = TestContext.Current.CancellationToken;
+        var kept = await SeedProduct($"Checkout {Guid.CreateVersion7()}");
+        var dropped = await SeedProduct($"Legacy Cart {Guid.CreateVersion7()}");
+        var added = await SeedProduct($"Storefront Web {Guid.CreateVersion7()}");
+        var team = await SeedTeam();
+        var other = await SeedTeam();
+        await Link(kept.Id, team.Id);
+        await Link(dropped.Id, team.Id);
+        await Link(dropped.Id, other.Id);
+
+        // Act
+        Result result;
+        await using (var context = _fixture.CreateContext())
+        {
+            result = await new SetTeamProductsCommandHandler(
+                    context, CurrentUser(), Mock.Of<IDispatcher>(), Mock.Of<ILogger<SetTeamProductsCommandHandler>>(), Clock())
+                .Handle(new SetTeamProductsCommand(team.Id, [kept.Id, added.Id]), ct);
+        }
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        await using var verify = _fixture.CreateContext();
+        (await verify.ProductTeamLinks.Where(l => l.TeamId == team.Id).Select(l => l.ProductId).ToListAsync(ct))
+            .Should().BeEquivalentTo([kept.Id, added.Id]);
+        (await verify.ProductTeamLinks.Where(l => l.ProductId == dropped.Id).Select(l => l.TeamId).ToListAsync(ct))
             .Should().Equal(other.Id);
     }
 
@@ -296,13 +356,13 @@ public sealed class ProductTeamLinkPersistenceTests(SqlServerDbContextFixture fi
         await using var context = _fixture.CreateContext();
 
         var result = await LinkHandler(context).Handle(
-            new LinkProductTeamCommand(productId, teamId), TestContext.Current.CancellationToken);
+            new LinkProductTeamsCommand(productId, [teamId]), TestContext.Current.CancellationToken);
 
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
     }
 
-    private static LinkProductTeamCommandHandler LinkHandler(WaydDbContext context) =>
-        new(context, CurrentUser(), Mock.Of<IDispatcher>(), Mock.Of<ILogger<LinkProductTeamCommandHandler>>(), Clock());
+    private static LinkProductTeamsCommandHandler LinkHandler(WaydDbContext context) =>
+        new(context, CurrentUser(), Mock.Of<IDispatcher>(), Mock.Of<ILogger<LinkProductTeamsCommandHandler>>(), Clock());
 
     private static ICurrentUser CurrentUser()
     {

@@ -19,7 +19,7 @@ When the user approves, do exactly what they approved. An option you offered tha
 | --- | --- | --- |
 | Products | `Products_GetProducts`, `Products_GetProduct`, `Products_GetStatusOptions`, `Products_GetStatusHistory`, `Products_GetActivities` | `Products_Create`, `Products_Update` (name and description only), `Products_Retype`, `Products_Reparent`, `Products_ChangeStatus`, `Products_LinkExternally` (external identifier), `Products_Tag`, `Products_TagByName`, `Products_Untag`, `Products_Delete` |
 | Dependencies | `Products_GetDependencies` | `Products_AddDependency`, `Products_UpdateDependency`, `Products_ChangeDependencyTerms`, `Products_EndDependency`, `Products_RemoveDependency` |
-| Teams | `Products_GetTeams`, `Products_GetTeamProducts` | `Products_LinkTeam`, `Products_UnlinkTeam` |
+| Teams | `Products_GetTeams`, `Products_GetTeamProducts` | `Products_LinkTeam`, `Products_UnlinkTeam`, `Products_SetTeams`, `Products_SetTeamProducts` |
 | Product types | `ProductTypes_GetProductTypes` | `ProductTypes_Create`, `ProductTypes_Update`, `ProductTypes_SetActive`, `ProductTypes_Delete` |
 | Tag axes and tags | `ProductTagCategories_GetProductTagCategories` | `ProductTagCategories_Create`, `ProductTagCategories_Update`, `ProductTagCategories_SetActive`, `ProductTagCategories_Delete`, `ProductTagCategories_Reorder`, `ProductTagCategories_AddTag`, `ProductTagCategories_RenameTag`, `ProductTagCategories_SetTagActive`, `ProductTagCategories_DeleteTag` |
 | Free tags | `ProductTags_Search`, `ProductTags_GetSettings` (whether free tags are on) | `ProductTags_UpdateFreeTag`, `ProductTags_Merge`, `ProductTags_DeleteFreeTag` |

@@ -198,23 +198,26 @@ Every change is recorded in the Activity of **both** products — see [Activity]
 
 A product records which teams and teams of teams work on it. Any number of teams can be linked to a product, and a team to any number of products. A link says only that the team works on the product — there is no owner, no role, and no start or end date.
 
-The **Teams** section is rolled up like dependencies: a team linked to one of the product's children is listed on the product too, with **On** naming the product it is linked to. A product line therefore shows every team working anywhere beneath it, once for each product it is linked to — a team linked at two levels is listed, and counted on the tab, twice. Link a team to the **most specific product** it works on — a link on a product line cannot be rolled down to the products inside it.
+The **Teams** section shows the product's own teams as cards, each linking to the team's page and saying whether it is a team or a team of teams. A team that has since been deactivated is marked **Inactive**.
 
-The catalog's **Teams** column shows only each product's own links, since the tree already shows its children on their own rows.
+Below the cards, a product with children lists **Teams on products beneath**: each team linked to a product inside this one, once, with the products it is on. A product line therefore shows every team working anywhere beneath it. The count on the tab counts each team once, whether it is on the product itself, beneath it, or both. Link a team to the **most specific product** it works on — a link on a product line cannot be rolled down to the products inside it.
+
+The catalog's **Teams** column shows only each product's own teams, since the tree already shows its children on their own rows.
 
 The same links appear on the team's own page, under **Products** — see [Organizations](../organizations/index.mdx#products).
 
-### Linking a team
+### Managing the teams
 
 1. Open the product, and go to **Teams**
-2. Click **Link Team**
-3. Choose the **Team**
+2. Click **Manage Teams**
+3. Add the teams that work on the product and remove the ones that no longer do
+4. Click **Save**
 
-Only active teams can be linked, and teams already linked to the product are not offered.
+The dialog starts with the product's current teams selected and says how many will be linked and unlinked. Only active teams can be added; a team already linked that has since been deactivated can be kept or removed. The changes are saved together: if one team cannot be linked, nothing changes, and the message names it.
 
-### Unlinking a team
+Manage Teams changes only the product's own teams. A team listed under **Teams on products beneath** is managed on the product it is on.
 
-Choose **Unlink** from the row's menu. On a rolled-up row this unlinks the team from the product named under **On**, not from the product you are viewing.
+To link one team to many products, use **Manage Products** on the team's page instead — see [Organizations](../organizations/index.mdx#products).
 
 Linking and unlinking are recorded in the product's Activity. Deleting a product removes its team links.
 

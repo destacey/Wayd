@@ -524,10 +524,16 @@ export const productsApi = apiSlice.injectEndpoints({
       },
       providesTags: () => [{ type: QueryTags.ProductTeamLink, id: 'LIST' }],
     }),
-    linkProductTeam: builder.mutation<void, ProductTeamLinkMutationArgs>({
-      queryFn: async ({ productId, teamId }) => {
+    /** Sets a product's own teams as a whole, linking and unlinking in one change. */
+    setProductTeams: builder.mutation<
+      void,
+      { productId: string; teamIds: string[] }
+    >({
+      queryFn: async ({ productId, teamIds }) => {
         try {
-          const data = await getProductsClient().linkTeam(productId, teamId)
+          const data = await getProductsClient().setTeams(productId, {
+            teamIds,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -549,6 +555,32 @@ export const productsApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (result, error, arg) =>
         teamLinkChangeTags(arg.productId),
+    }),
+
+    /**
+     * Sets the products a team is linked to as a whole. It can touch any product, so it refreshes every product,
+     * team link list and Activity rather than naming each one.
+     */
+    setTeamProducts: builder.mutation<
+      void,
+      { teamId: string; productIds: string[] }
+    >({
+      queryFn: async ({ teamId, productIds }) => {
+        try {
+          const data = await getProductsClient().setTeamProducts(teamId, {
+            productIds,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: () => [
+        QueryTags.ProductTeamLink,
+        QueryTags.Product,
+        QueryTags.ActivityLog,
+      ],
     }),
 
     getProductActivities: builder.query<
@@ -599,8 +631,9 @@ export const {
   useRemoveProductDependencyMutation,
   useGetProductTeamsQuery,
   useGetTeamProductsQuery,
-  useLinkProductTeamMutation,
+  useSetProductTeamsMutation,
   useUnlinkProductTeamMutation,
+  useSetTeamProductsMutation,
   useGetProductActivitiesQuery,
   useLazyGetProductActivitiesQuery,
 } = productsApi

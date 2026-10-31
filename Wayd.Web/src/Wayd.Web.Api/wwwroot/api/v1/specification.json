@@ -13283,6 +13283,68 @@
             "ApiKey": [ ]
           }
         ]
+      },
+      "put": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Set the products a team or team of teams is linked to.",
+        "description": "**Replaces the team's links as a whole**: the team is linked to every product in `productIds` and **unlinked from every product not in it** — read the current set with `Products_GetTeamProducts` first, and send it back with your change. An empty list unlinks the team from everything.\n\nAll or nothing across every product it touches, and each product records its own linking or unlinking in its Activity. The team must be active to be linked to a new product; an inactive team can still be unlinked. At most 500 products. Link the **most specific products** the team works on, since each product's teams roll up to its ancestors.",
+        "operationId": "Products_SetTeamProducts",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetTeamProductsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
       }
     },
     "/api/product-management/products/{id}/teams/{teamId}": {
@@ -13375,6 +13437,70 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/{id}/teams": {
+      "put": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Set the teams and teams of teams linked to a product.",
+        "description": "**Replaces the product's own team links as a whole**: every team in `teamIds` is linked and **every team not in it is unlinked** — read the current set first (`Products_GetProduct` carries the product's own `teams`) and send it back with your change. An empty list unlinks them all. Teams linked to the products beneath it are not affected.\n\nAll or nothing: when a team cannot be linked — it is inactive, or does not exist — nothing changes, and the refusal names it. An inactive team already linked can stay. At most 100 teams. To add or remove one team, `Products_LinkTeam` and `Products_UnlinkTeam` touch only that team; to set the products of one team, use `Products_SetTeamProducts`.",
+        "operationId": "Products_SetTeams",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProductTeamsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -71674,6 +71800,25 @@
         "additionalProperties": false,
         "description": "Takes a tag axis out of use, or puts it back. Products already tagged keep their tags."
       },
+      "SetProductTeamsRequest": {
+        "required": [
+          "teamIds"
+        ],
+        "type": "object",
+        "properties": {
+          "teamIds": {
+            "type": "array",
+            "items": {
+              "minLength": 1,
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Every team that works on the product, at most 100. Teams not listed are unlinked; an empty list unlinks\nthem all. Teams linked to the products beneath it are not affected."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The whole set of teams and teams of teams linked to a product."
+      },
       "SetProductTypeActiveRequest": {
         "required": [
           "id",
@@ -71925,6 +72070,25 @@
           }
         },
         "additionalProperties": false
+      },
+      "SetTeamProductsRequest": {
+        "required": [
+          "productIds"
+        ],
+        "type": "object",
+        "properties": {
+          "productIds": {
+            "type": "array",
+            "items": {
+              "minLength": 1,
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Every product the team works on, at most 500. Products not listed are unlinked; an empty list unlinks the\nteam from every product."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The whole set of products a team or team of teams is linked to."
       },
       "SetupRequest": {
         "required": [

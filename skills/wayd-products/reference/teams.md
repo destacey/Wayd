@@ -32,5 +32,17 @@ UUID, and both succeed without change when there is nothing to do.
 - **Unlink from the product the link is on** — the row's `product`, which on a rolled-up row is a
   descendant, not the product you read.
 
+### Several at once
+
+- **One product's teams as a whole:** `Products_SetTeams` with the product and **every** team that should be
+  on it, up to 100. It **unlinks any team not listed** — read the product's own `teams` from
+  `Products_GetProduct` first and send them back with your change. Only the product's own links change; teams
+  on the products beneath it are untouched. All or nothing: when one team cannot be linked, nothing changes,
+  and the refusal names it.
+- **One team's products as a whole:** `Products_SetTeamProducts` with the team's UUID and **every** product
+  it should be linked to, up to 500. It **unlinks the team from any product not listed**, so read the current
+  set with `Products_GetTeamProducts` first and send it back with your change; an empty list unlinks the team
+  from everything. Confirm with the user before calling it with a list that drops products.
+
 There is no history beyond the product's Activity, which records each linking and unlinking. Deleting a
 product takes its links with it.

@@ -593,7 +593,43 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> LinkTeam(Guid id, Guid teamId, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(new LinkProductTeamCommand(id, teamId), cancellationToken);
+        var result = await _dispatcher.Send(new LinkProductTeamsCommand(id, [teamId]), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/teams")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
+    [EndpointSummary("Set the teams and teams of teams linked to a product.")]
+    [EndpointDescription(
+        "**Replaces the product's own team links as a whole**: every team in `teamIds` is linked and **every team not in it is unlinked** — read the current set first (`Products_GetProduct` carries the product's own `teams`) and send it back with your change. An empty list unlinks them all. Teams linked to the products beneath it are not affected.\n\nAll or nothing: when a team cannot be linked — it is inactive, or does not exist — nothing changes, and the refusal names it. An inactive team already linked can stay. At most 100 teams. To add or remove one team, `Products_LinkTeam` and `Products_UnlinkTeam` touch only that team; to set the products of one team, use `Products_SetTeamProducts`.")]
+    [McpTool("Products_SetTeams", "Set a product's teams")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> SetTeams(Guid id, [FromBody] SetProductTeamsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToSetProductTeamsCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("by-team/{teamId}")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
+    [EndpointSummary("Set the products a team or team of teams is linked to.")]
+    [EndpointDescription(
+        "**Replaces the team's links as a whole**: the team is linked to every product in `productIds` and **unlinked from every product not in it** — read the current set with `Products_GetTeamProducts` first, and send it back with your change. An empty list unlinks the team from everything.\n\nAll or nothing across every product it touches, and each product records its own linking or unlinking in its Activity. The team must be active to be linked to a new product; an inactive team can still be unlinked. At most 500 products. Link the **most specific products** the team works on, since each product's teams roll up to its ancestors.")]
+    [McpTool("Products_SetTeamProducts", "Set a team's products")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> SetTeamProducts(Guid teamId, [FromBody] SetTeamProductsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToSetTeamProductsCommand(teamId), cancellationToken);
 
         return result.IsSuccess
             ? NoContent()

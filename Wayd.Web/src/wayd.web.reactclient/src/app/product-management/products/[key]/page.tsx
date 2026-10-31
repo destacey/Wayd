@@ -38,9 +38,9 @@ import CreateProductForm from '../_components/create-product-form'
 import DeleteProductForm from '../_components/delete-product-form'
 import EditProductForm from '../_components/edit-product-form'
 import LinkProductExternallyForm from '../_components/link-product-externally-form'
-import LinkProductTeamForm from '../_components/link-product-team-form'
+import ManageProductTeamsForm from '../_components/manage-product-teams-form'
 import ManageProductTagsForm from '../_components/manage-product-tags-form'
-import ProductTeamLinksGrid from '../_components/product-team-links-grid'
+import ProductTeams, { productTeamCount } from '../_components/product-teams'
 import ReparentProductForm from '../_components/reparent-product-form'
 import RetypeProductForm from '../_components/retype-product-form'
 import PlanReleaseForm from '@/src/app/product-management/releases/_components/plan-release-form'
@@ -85,7 +85,7 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [isAddDependencyOpen, setIsAddDependencyOpen] = useState<boolean>(false)
   const [includeEndedDependencies, setIncludeEndedDependencies] =
     useState<boolean>(false)
-  const [isLinkTeamOpen, setIsLinkTeamOpen] = useState<boolean>(false)
+  const [isManageTeamsOpen, setIsManageTeamsOpen] = useState<boolean>(false)
   const router = useRouter()
 
   // The active section lives in the URL (?section=), owned by RecordLayout. Read
@@ -98,7 +98,7 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const canUpdateProduct = hasPermissionClaim('Permissions.Products.Update')
   const canDeleteProduct = hasPermissionClaim('Permissions.Products.Delete')
   // The team picker lists teams through the Teams endpoints, which need their own permission.
-  const canLinkTeam =
+  const canManageTeams =
     canUpdateProduct && hasPermissionClaim('Permissions.Teams.View')
   const canCreateProduct = hasPermissionClaim('Permissions.Products.Create')
   const canCreateVersion = hasPermissionClaim('Permissions.Delivery.Create')
@@ -171,12 +171,9 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     { skip: !product?.id },
   )
 
-  // Loaded here for the same reason: the tab's count.
-  const {
-    data: teamLinks,
-    isLoading: teamLinksLoading,
-    refetch: refetchTeamLinks,
-  } = useGetProductTeamsQuery(product?.id ?? '', { skip: !product?.id })
+  // Loaded here for the same reason: the tab's count, which includes the teams on products beneath.
+  const { data: teamLinks, isLoading: teamLinksLoading } =
+    useGetProductTeamsQuery(product?.id ?? '', { skip: !product?.id })
 
   const isNotFound = (error as { status?: number })?.status === 404
 
@@ -302,7 +299,9 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     {
       id: ProductSections.Teams,
       label: 'Teams',
-      count: teamLinks?.length || undefined,
+      count: product
+        ? productTeamCount(product.teams, teamLinks) || undefined
+        : undefined,
     },
     // Announcements before artifacts, as in the nav: what customers were told about this product is
     // the product-side question, and versions are the engineering record beneath it.
@@ -355,11 +354,11 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
     if (section === ProductSections.Teams) {
       return (
-        <ProductTeamLinksGrid
-          view={{ kind: 'product', productId: product.id }}
+        <ProductTeams
+          productId={product.id}
+          teams={product.teams}
           links={teamLinks}
           isLoading={teamLinksLoading}
-          refetch={refetchTeamLinks}
         />
       )
     }
@@ -495,8 +494,10 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             <Button onClick={() => setIsAddDependencyOpen(true)}>
               Add Dependency
             </Button>
-          ) : canLinkTeam && activeSection === ProductSections.Teams ? (
-            <Button onClick={() => setIsLinkTeamOpen(true)}>Link Team</Button>
+          ) : canManageTeams && activeSection === ProductSections.Teams ? (
+            <Button onClick={() => setIsManageTeamsOpen(true)}>
+              Manage Teams
+            </Button>
           ) : canCreateVersion && activeSection === ProductSections.Versions ? (
             <Button onClick={() => setIsPlanVersionOpen(true)}>
               Add Version
@@ -601,11 +602,11 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         />
       )}
 
-      {isLinkTeamOpen && (
-        <LinkProductTeamForm
+      {isManageTeamsOpen && (
+        <ManageProductTeamsForm
           product={product}
-          onFormComplete={() => setIsLinkTeamOpen(false)}
-          onFormCancel={() => setIsLinkTeamOpen(false)}
+          onFormComplete={() => setIsManageTeamsOpen(false)}
+          onFormCancel={() => setIsManageTeamsOpen(false)}
         />
       )}
 

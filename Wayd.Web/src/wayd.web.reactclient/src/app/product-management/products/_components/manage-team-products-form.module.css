@@ -1,0 +1,5 @@
+/* A scroll box rather than the tree's own virtual list: a catalog is a few hundred nodes at most. */
+.tree {
+  max-height: 360px;
+  overflow-y: auto;
+}

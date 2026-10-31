@@ -1,0 +1,4 @@
+/* Wide enough for a long team name on one line, narrow enough for several cards a row. */
+.card {
+  width: 240px;
+}

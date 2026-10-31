@@ -55,6 +55,7 @@ import {
   useActivityLog,
 } from '@/src/components/common/activities'
 import TeamProducts from '@/src/app/product-management/products/_components/team-products'
+import ManageTeamProductsButton from '@/src/app/product-management/products/_components/manage-team-products-button'
 import useCanViewTeamProducts from '@/src/app/product-management/products/_components/use-can-view-team-products'
 
 const CycleTimeReport = dynamic(
@@ -571,6 +572,8 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         sectionActions={
           activeTab === TeamTabs.Activities ? (
             <ActivityLogExportButton activityLog={activityLog} />
+          ) : activeTab === TeamTabs.Products && canViewProducts ? (
+            <ManageTeamProductsButton teamId={team!.id!} teamName={team.name} />
           ) : undefined
         }
         facts={<TeamFacts team={team} operatingModel={team.operatingModel} />}

@@ -188,6 +188,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<DateTime?>("FinishedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("MovedOutWorkItemsRemoved")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("datetime2");
 

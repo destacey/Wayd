@@ -732,7 +732,7 @@ public class AzureDevOpsWorkItemSourceTests
             .ReturnsAsync(Result.Success());
         _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<DeleteExternalWorkItemsCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success());
+            .ReturnsAsync(Result.Success(4));
 
         var target = new WorkspaceSyncTarget(
             Guid.CreateVersion7(), Guid.CreateVersion7(), "Project", "key", WorkItemSyncFilters.Empty);
@@ -770,7 +770,7 @@ public class AzureDevOpsWorkItemSourceTests
             .ReturnsAsync(Result.Success(new[] { 5 }));
         _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<DeleteExternalWorkItemsCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success());
+            .ReturnsAsync(Result.Success(1));
         var target = (await _sut.GetSyncPlan(CancellationToken.None)).Value.Single();
 
         // Act
@@ -782,6 +782,137 @@ public class AzureDevOpsWorkItemSourceTests
             .Verify(s => s.Send(It.Is<DeleteExternalWorkItemsCommand>(c =>
                 c.WorkspaceIds.Count == 2 && c.WorkspaceIds.Contains(syncedId) && c.WorkspaceIds.Contains(pausedId)
                 && c.WorkItemIds.SequenceEqual(new[] { 5 })), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // -------- RemoveWorkItemsMovedOut --------
+
+    /// <summary>
+    /// Plans a connection with a synced project, a paused one and one not set up, and returns the
+    /// set-up projects' Wayd workspace ids.
+    /// </summary>
+    private async Task<(Guid Synced, Guid Paused)> PlanThreeProjects()
+    {
+        var descriptor = BuildDescriptor();
+        _sut.Bind(descriptor);
+        var processId = Guid.CreateVersion7();
+        var syncedId = Guid.CreateVersion7();
+        var pausedId = Guid.CreateVersion7();
+        var paused = Workspace(processId, internalId: pausedId, name: "Paused");
+        paused.IntegrationState!.IsActive = false;
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildConnectionDetails(descriptor.ConnectionId,
+                processes: [Process(externalId: processId)],
+                workspaces: [Workspace(processId, internalId: syncedId, name: "Synced"), paused, Workspace(processId, name: "Not set up", isActive: false)]));
+        (await _sut.GetSyncPlan(CancellationToken.None)).IsSuccess.Should().BeTrue();
+        return (syncedId, pausedId);
+    }
+
+    [Fact]
+    public async Task RemoveWorkItemsMovedOut_WithAWindow_QueriesChangesOutsideEverySetUpProjectAndDeletesThem()
+    {
+        // Arrange
+        var (syncedId, pausedId) = await PlanThreeProjects();
+        var changedSince = Instant.FromUtc(2026, 10, 31, 9, 0);
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetIdsOfWorkItemsChangedOutsideProjects(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string[]>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new[] { 7, 8, 9 }));
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<DeleteExternalWorkItemsCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(1));
+
+        // Act
+        var result = await _sut.RemoveWorkItemsMovedOut(changedSince, Guid.CreateVersion7(), CancellationToken.None);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Be(1, "the delete skips the ids Wayd does not hold");
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Verify(s => s.GetIdsOfWorkItemsChangedOutsideProjects(It.IsAny<AzureDevOpsConnectionContext>(),
+                It.Is<string[]>(n => n.Length == 2 && n.Contains("Synced") && n.Contains("Paused")),
+                changedSince.ToDateTimeUtc(), It.IsAny<CancellationToken>()), Times.Once);
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.Is<DeleteExternalWorkItemsCommand>(c =>
+                c.WorkspaceIds.Count == 2 && c.WorkspaceIds.Contains(syncedId) && c.WorkspaceIds.Contains(pausedId)
+                && c.WorkItemIds.SequenceEqual(new[] { 7, 8, 9 })), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RemoveWorkItemsMovedOut_WithoutAWindow_LooksUpTheProjectOfEveryHeldItem()
+    {
+        // Arrange
+        var (syncedId, pausedId) = await PlanThreeProjects();
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetExternalWorkItemIdsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new[] { 1, 2, 3 }));
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetIdsOfWorkItemsOutsideProjects(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<int[]>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new[] { 2 }));
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<DeleteExternalWorkItemsCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(1));
+
+        // Act
+        var result = await _sut.RemoveWorkItemsMovedOut(null, Guid.CreateVersion7(), CancellationToken.None);
+
+        // Assert
+        result.Value.Should().Be(1);
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.Is<GetExternalWorkItemIdsQuery>(q =>
+                q.WorkspaceIds.Count == 2 && q.WorkspaceIds.Contains(syncedId) && q.WorkspaceIds.Contains(pausedId)), It.IsAny<CancellationToken>()), Times.Once);
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Verify(s => s.GetIdsOfWorkItemsOutsideProjects(It.IsAny<AzureDevOpsConnectionContext>(), new[] { 1, 2, 3 },
+                It.Is<string[]>(n => n.Length == 2), It.IsAny<CancellationToken>()), Times.Once);
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Verify(s => s.GetIdsOfWorkItemsChangedOutsideProjects(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string[]>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RemoveWorkItemsMovedOut_WhenNothingMovedOut_DeletesNothing()
+    {
+        // Arrange
+        await PlanThreeProjects();
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetIdsOfWorkItemsChangedOutsideProjects(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string[]>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(Array.Empty<int>()));
+
+        // Act
+        var result = await _sut.RemoveWorkItemsMovedOut(Instant.FromUtc(2026, 10, 31, 9, 0), Guid.CreateVersion7(), CancellationToken.None);
+
+        // Assert
+        result.Value.Should().Be(0);
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.IsAny<DeleteExternalWorkItemsCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RemoveWorkItemsMovedOut_WhenAzureDevOpsFails_ReturnsTheFailure()
+    {
+        // Arrange
+        await PlanThreeProjects();
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetIdsOfWorkItemsChangedOutsideProjects(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string[]>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Failure<int[]>("AzDO returned 500"));
+
+        // Act
+        var result = await _sut.RemoveWorkItemsMovedOut(Instant.FromUtc(2026, 10, 31, 9, 0), Guid.CreateVersion7(), CancellationToken.None);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("AzDO returned 500");
+    }
+
+    [Fact]
+    public async Task RemoveWorkItemsMovedOut_BeforeTheSyncPlan_Fails()
+    {
+        // Arrange
+        _sut.Bind(BuildDescriptor());
+
+        // Act
+        var result = await _sut.RemoveWorkItemsMovedOut(null, Guid.CreateVersion7(), CancellationToken.None);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
     }
 
     // -------- GetWorkItemHistory --------

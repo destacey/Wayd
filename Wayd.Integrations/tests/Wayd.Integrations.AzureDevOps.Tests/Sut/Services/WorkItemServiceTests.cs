@@ -149,6 +149,103 @@ public class WorkItemServiceTests
         result.Value.Should().ContainSingle().Which.Id.Should().Be(102);
     }
 
+    [Fact]
+    public async Task GetIdsOfWorkItemsChangedOutsideProjects_QueriesTheOrganizationExcludingEverySyncedProject()
+    {
+        // Arrange
+        _handler.EnqueueResponse(HttpStatusCode.OK, WiqlIdsJson(7, 9));
+        var changedSince = new DateTime(2026, 10, 31, 9, 15, 42, DateTimeKind.Utc);
+
+        // Act
+        var result = await _sut.GetIdsOfWorkItemsChangedOutsideProjects(["Atlas", "O'Brien Labs"], changedSince, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Equal(7, 9);
+        var request = _handler.Requests.Should().ContainSingle().Subject;
+        request.Uri!.AbsolutePath.Should().Be("/acme/_apis/wit/wiql");
+        GetWiqlQuery(request.Body!).Should().Be(
+            "SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] NOT IN ('Atlas','O''Brien Labs') AND [System.Id] > 0 AND [System.ChangedDate] > '2026-10-31T09:15:42Z' ORDER BY [System.Id] Asc");
+    }
+
+    [Fact]
+    public async Task GetIdsOfWorkItemsChangedOutsideProjects_ReadsEveryPage()
+    {
+        // Arrange - a full page of 10,000 ids means another page may follow
+        var firstPage = Enumerable.Range(1, 10_000).ToArray();
+        _handler.EnqueueResponse(HttpStatusCode.OK, WiqlIdsJson(firstPage));
+        _handler.EnqueueResponse(HttpStatusCode.OK, WiqlIdsJson(10_001));
+
+        // Act
+        var result = await _sut.GetIdsOfWorkItemsChangedOutsideProjects(["Atlas"], _lastChangedDate, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value.Should().HaveCount(10_001);
+        GetWiqlQuery(_handler.Requests[1].Body!).Should().Contain("[System.Id] > 10000");
+    }
+
+    [Fact]
+    public async Task GetIdsOfWorkItemsChangedOutsideProjects_WhenAzureDevOpsFails_ReturnsFailure()
+    {
+        // Arrange
+        _handler.EnqueueResponse(HttpStatusCode.BadRequest, """{"message":"TF51005: The query references a field that does not exist."}""");
+
+        // Act
+        var result = await _sut.GetIdsOfWorkItemsChangedOutsideProjects(["Atlas"], _lastChangedDate, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetIdsOfWorkItemsOutsideProjects_ReturnsTheItemsInAnUnsyncedProject()
+    {
+        // Arrange - project names compare case-insensitively; id 3 no longer exists
+        _handler.EnqueueResponse(HttpStatusCode.OK, ProjectsJson((1, "atlas"), (2, "Elsewhere")));
+
+        // Act
+        var result = await _sut.GetIdsOfWorkItemsOutsideProjects([1, 2, 3], ["Atlas"], TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Equal(2);
+        var request = _handler.Requests.Should().ContainSingle().Subject;
+        request.Uri!.AbsolutePath.Should().Be("/acme/_apis/wit/workitemsbatch");
+        request.Body.Should().Contain("System.TeamProject").And.Contain("\"omit\"");
+    }
+
+    [Fact]
+    public async Task GetIdsOfWorkItemsOutsideProjects_Reads200ItemsPerCall()
+    {
+        // Arrange
+        _handler.EnqueueResponse(HttpStatusCode.OK, ProjectsJson());
+        _handler.EnqueueResponse(HttpStatusCode.OK, ProjectsJson((201, "Elsewhere")));
+
+        // Act
+        var result = await _sut.GetIdsOfWorkItemsOutsideProjects([.. Enumerable.Range(1, 201)], ["Atlas"], TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value.Should().Equal(201);
+        _handler.Requests.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task GetIdsOfWorkItemsOutsideProjects_WithNoIds_CallsNothing()
+    {
+        // Act
+        var result = await _sut.GetIdsOfWorkItemsOutsideProjects([], ["Atlas"], TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value.Should().BeEmpty();
+        _handler.Requests.Should().BeEmpty();
+    }
+
+    private static string ProjectsJson(params (int Id, string Project)[] items)
+    {
+        var values = string.Join(",", items.Select(i => $$$"""{"id":{{{i.Id}}},"fields":{"System.Id":{{{i.Id}}},"System.TeamProject":"{{{i.Project}}}"}}"""));
+        return $$"""{"count":{{items.Length}},"value":[{{values}}]}""";
+    }
+
     private static string GetWiqlQuery(string requestBody)
     {
         using var document = JsonDocument.Parse(requestBody);

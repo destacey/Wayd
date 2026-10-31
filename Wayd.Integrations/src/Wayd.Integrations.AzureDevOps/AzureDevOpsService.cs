@@ -183,6 +183,12 @@ public class AzureDevOpsService(
             : Result.Failure<int[]>(result.Error);
     }
 
+    public Task<Result<int[]>> GetIdsOfWorkItemsChangedOutsideProjects(AzureDevOpsConnectionContext connection, string[] projectNames, DateTime changedSince, CancellationToken cancellationToken) =>
+        CreateWorkItemService(connection).GetIdsOfWorkItemsChangedOutsideProjects(projectNames, changedSince, cancellationToken);
+
+    public Task<Result<int[]>> GetIdsOfWorkItemsOutsideProjects(AzureDevOpsConnectionContext connection, int[] workItemIds, string[] projectNames, CancellationToken cancellationToken) =>
+        CreateWorkItemService(connection).GetIdsOfWorkItemsOutsideProjects(workItemIds, projectNames, cancellationToken);
+
     public async Task<Result<AzureDevOpsWorkItemRevisionsBatch>> GetWorkItemRevisions(AzureDevOpsConnectionContext connection, string projectName, string? continuationToken, string[] workItemTypes, CancellationToken cancellationToken)
     {
         var workItemService = CreateWorkItemService(connection);

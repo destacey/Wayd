@@ -16,6 +16,19 @@ public interface IAzureDevOpsService
     Task<Result<List<IExternalWorkItemLink>>> GetParentLinkChanges(AzureDevOpsConnectionContext connection, string projectName, DateTime lastChangedDate, string[] workItemTypes, CancellationToken cancellationToken);
     Task<Result<List<IExternalWorkItemLink>>> GetDependencyLinkChanges(AzureDevOpsConnectionContext connection, string projectName, DateTime lastChangedDate, string[] workItemTypes, CancellationToken cancellationToken);
     /// <summary>
+    /// The ids of the organization's work items changed after <paramref name="changedSince"/> that
+    /// are in none of <paramref name="projectNames"/>: those moved out of a synced project since then,
+    /// among others.
+    /// </summary>
+    Task<Result<int[]>> GetIdsOfWorkItemsChangedOutsideProjects(AzureDevOpsConnectionContext connection, string[] projectNames, DateTime changedSince, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Those of <paramref name="workItemIds"/> now in none of <paramref name="projectNames"/>, read
+    /// item by item. An item that no longer exists is left out.
+    /// </summary>
+    Task<Result<int[]>> GetIdsOfWorkItemsOutsideProjects(AzureDevOpsConnectionContext connection, int[] workItemIds, string[] projectNames, CancellationToken cancellationToken);
+
+    /// <summary>
     /// The ids of the project's work items in its recycle bin and, when <paramref name="typeChangedSince"/>
     /// is given, of those changed since then to a type outside <paramref name="workItemTypes"/>.
     /// </summary>

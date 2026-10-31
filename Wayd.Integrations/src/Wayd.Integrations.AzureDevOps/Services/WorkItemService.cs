@@ -191,6 +191,65 @@ internal sealed class WorkItemService(HttpClient httpClient, string organization
     }
 
     /// <summary>
+    /// The ids of the organization's work items, changed after <paramref name="changedSince"/>, that
+    /// are in none of <paramref name="projectNames"/>.
+    /// </summary>
+    public async Task<Result<int[]>> GetIdsOfWorkItemsChangedOutsideProjects(string[] projectNames, DateTime changedSince, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var ids = await _workItemClient.GetWorkItemIdsChangedOutsideProjects(projectNames, changedSince, cancellationToken).ConfigureAwait(false);
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+                _logger.LogDebug("{WorkItemIdCount} work items changed outside {ProjectCount} synced projects since {ChangedSince}", ids.Length, projectNames.Length, changedSince);
+
+            return Result.Success(ids);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception thrown getting work items changed outside the synced projects from Azure DevOps");
+            return Result.Failure<int[]>(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Those of <paramref name="workItemIds"/> that are now in none of <paramref name="projectNames"/>.
+    /// An item that no longer exists is left out: deletions are found through the recycle bin.
+    /// </summary>
+    public async Task<Result<int[]>> GetIdsOfWorkItemsOutsideProjects(int[] workItemIds, string[] projectNames, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (workItemIds.Length == 0)
+                return Result.Success<int[]>([]);
+
+            var projects = await _workItemClient.GetWorkItemProjects(workItemIds, cancellationToken).ConfigureAwait(false);
+
+            // Azure DevOps project names are case-insensitive.
+            var synced = new HashSet<string>(projectNames, StringComparer.OrdinalIgnoreCase);
+            int[] outside = [.. projects.Where(p => !synced.Contains(p.Value)).Select(p => p.Key).Order()];
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+                _logger.LogDebug("{OutsideCount} of {WorkItemCount} work items are outside the synced projects", outside.Length, workItemIds.Length);
+
+            return Result.Success(outside);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception thrown getting the projects of work items from Azure DevOps");
+            return Result.Failure<int[]>(ex.Message);
+        }
+    }
+
+    /// <summary>
     /// The project's recycle bin, plus, when <paramref name="typeChangedSince"/> is given, the items
     /// changed since then to a type outside <paramref name="syncedWorkItemTypes"/>.
     /// </summary>

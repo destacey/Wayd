@@ -7,7 +7,7 @@ namespace Wayd.Work.Application.WorkItems.Commands;
 /// <summary>
 /// Deletes external work items, with their links, from the managed workspaces the request names.
 /// </summary>
-public sealed class DeleteExternalWorkItemsCommandHandler(IWorkDbContext workDbContext, ILogger<DeleteExternalWorkItemsCommandHandler> logger) : ICommandHandler<DeleteExternalWorkItemsCommand>
+public sealed class DeleteExternalWorkItemsCommandHandler(IWorkDbContext workDbContext, ILogger<DeleteExternalWorkItemsCommandHandler> logger) : ICommandHandler<DeleteExternalWorkItemsCommand, int>
 {
     // Keeps each IN list well under SQL Server's parameter limit; a full sync can delete thousands.
     private const int BatchSize = 1000;
@@ -15,13 +15,13 @@ public sealed class DeleteExternalWorkItemsCommandHandler(IWorkDbContext workDbC
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly ILogger<DeleteExternalWorkItemsCommandHandler> _logger = logger;
 
-    public async Task<Result> Handle(DeleteExternalWorkItemsCommand request, CancellationToken cancellationToken)
+    public async Task<Result<int>> Handle(DeleteExternalWorkItemsCommand request, CancellationToken cancellationToken)
     {
         try
         {
             if (request.WorkItemIds.Length == 0 || request.WorkspaceIds.Count == 0)
             {
-                return Result.Success();
+                return 0;
             }
 
             var requestedWorkspaceIds = request.WorkspaceIds.Distinct().ToArray();
@@ -32,7 +32,7 @@ public sealed class DeleteExternalWorkItemsCommandHandler(IWorkDbContext workDbC
             if (workspaceIds.Length == 0)
             {
                 _logger.LogWarning("Unable to delete external work items because none of workspaces {WorkspaceIds} exist.", requestedWorkspaceIds);
-                return Result.Failure($"Unable to delete external work items because none of workspaces {string.Join(", ", requestedWorkspaceIds)} exist.");
+                return Result.Failure<int>($"Unable to delete external work items because none of workspaces {string.Join(", ", requestedWorkspaceIds)} exist.");
             }
 
             var deleted = 0;
@@ -61,7 +61,7 @@ public sealed class DeleteExternalWorkItemsCommandHandler(IWorkDbContext workDbC
 
             _logger.LogInformation("{WorkItemCount} of {RequestedCount} external work items deleted from workspaces {WorkspaceIds}.", deleted, request.WorkItemIds.Length, workspaceIds);
 
-            return Result.Success();
+            return deleted;
         }
         catch (Exception ex)
         {

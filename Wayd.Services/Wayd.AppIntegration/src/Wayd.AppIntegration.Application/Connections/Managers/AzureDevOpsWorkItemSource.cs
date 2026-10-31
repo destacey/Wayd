@@ -308,7 +308,7 @@ public sealed class AzureDevOpsWorkItemSource(
             }
             else
             {
-                deleted = deletedResult.Value.Length;
+                deleted = syncResult.Value;
             }
         }
 
@@ -319,6 +319,54 @@ public sealed class AzureDevOpsWorkItemSource(
             DeletedWorkItemsProcessed: deleted,
             HadPartialFailure: hadPartialFailure,
             PartialFailureMessage: hadPartialFailure ? string.Join("; ", failureMessages) : null));
+    }
+
+    /// <summary>
+    /// Removes the items Wayd holds in a set-up project that are now in a project this connection
+    /// does not set up. An item moved between two set-up projects is not touched: the new project's
+    /// sync moves it to its workspace.
+    /// </summary>
+    /// <remarks>
+    /// With a window, one organization-wide query returns the items changed since then outside the
+    /// set-up projects; most are items Wayd never held, which the delete skips. Without one, each
+    /// item Wayd holds is looked up: an unbounded window would return every item of every project
+    /// the connection does not sync.
+    /// </remarks>
+    public async Task<Result<int>> RemoveWorkItemsMovedOut(Instant? changedSince, Guid syncId, CancellationToken cancellationToken)
+    {
+        var ctx = RequireBound();
+        if (_setUpProjects is null)
+            return Result.Failure<int>("GetSyncPlan() must be invoked before RemoveWorkItemsMovedOut.");
+
+        if (_setUpProjects.Count == 0)
+            return 0;
+
+        var workspaceIds = _setUpProjects.Select(p => p.InternalWorkspaceId).ToArray();
+        string[] projectNames = [.. _setUpProjects.Select(p => p.Name).Distinct(StringComparer.OrdinalIgnoreCase)];
+
+        Result<int[]> movedOutResult;
+        if (changedSince.HasValue)
+        {
+            movedOutResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetWorkItemsChangedOutsideProjects",
+                () => _azureDevOpsService.GetIdsOfWorkItemsChangedOutsideProjects(ctx.Connection, projectNames, changedSince.Value.ToDateTimeUtc(), cancellationToken), syncId);
+        }
+        else
+        {
+            var heldResult = await _dispatcher.Send(new GetExternalWorkItemIdsQuery(workspaceIds), cancellationToken);
+            if (heldResult.IsFailure)
+                return heldResult.ConvertFailure<int>();
+
+            movedOutResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetWorkItemsOutsideProjects",
+                () => _azureDevOpsService.GetIdsOfWorkItemsOutsideProjects(ctx.Connection, heldResult.Value, projectNames, cancellationToken), syncId);
+        }
+
+        if (movedOutResult.IsFailure)
+            return movedOutResult.ConvertFailure<int>();
+
+        if (movedOutResult.Value.Length == 0)
+            return 0;
+
+        return await _dispatcher.Send(new DeleteExternalWorkItemsCommand(workspaceIds, movedOutResult.Value), cancellationToken);
     }
 
     /// <summary>

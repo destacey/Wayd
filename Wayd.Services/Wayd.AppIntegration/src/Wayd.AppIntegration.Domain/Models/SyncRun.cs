@@ -42,6 +42,13 @@ public sealed class SyncRun : BaseEntity
     public string? ErrorMessage { get; private set; }
     public string? DetailsJson { get; private set; }
 
+    /// <summary>
+    /// How many work items the run removed because they had moved to a part of the external system
+    /// the connection does not sync; null when the run did not complete that check. The next run
+    /// checks from the start of the last run that did.
+    /// </summary>
+    public int? MovedOutWorkItemsRemoved { get; private set; }
+
     public void SetWorkspacesPlanned(int count) => WorkspacesPlanned = count;
 
     public void RecordWorkspaceSuccess(int workItemsProcessed)
@@ -57,6 +64,9 @@ public sealed class SyncRun : BaseEntity
     }
 
     public void RecordError() => ErrorsCount++;
+
+    /// <summary>Records that the run completed its check for work items moved out of the synced set.</summary>
+    public void RecordMovedOutWorkItemsRemoved(int count) => MovedOutWorkItemsRemoved = count;
 
     public Result MarkSucceeded(Instant now)
     {

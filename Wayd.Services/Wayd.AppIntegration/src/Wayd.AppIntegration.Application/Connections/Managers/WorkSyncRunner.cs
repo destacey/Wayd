@@ -32,6 +32,9 @@ public sealed class WorkSyncRunner(
     // Each item costs a call of its own, so these bound how long one sync spends filling gaps.
     private const int MaxItemsFilledPerSync = 500;
     private const int ItemsFilledPerBatch = 50;
+    // Widens each moved-out check back past the previous run's start, so a clock difference with
+    // the external system cannot open a gap between two checks. An overlap only repeats a check.
+    private static readonly Duration MovedOutCheckOverlap = Duration.FromMinutes(15);
 
     private static readonly Action<ILogger, Exception?> _runStarted = LoggerMessage.Define(LogLevel.Information,
         AppEventId.AppIntegration_WorkSyncRunner_RunStarted.ToEventId(),
@@ -203,6 +206,10 @@ public sealed class WorkSyncRunner(
                     }
                 }
             }
+
+            // After every workspace's items: one that moved between two synced projects has reached its
+            // new workspace by now, so only items that left every synced project are removed.
+            await RemoveWorkItemsMovedOut(source, run, connectionId, syncType, syncId, cancellationToken);
 
             // After every workspace's own revisions: an item that moved between two synced projects
             // gets the revisions made in each through that project's stream, so only what no stream
@@ -407,6 +414,43 @@ public sealed class WorkSyncRunner(
         }
 
         return outcome;
+    }
+
+    /// <summary>
+    /// Removes the connection's items that moved out of every synced workspace. A differential checks
+    /// what changed since the last run that completed the check; a full sync, or a connection with
+    /// no such run, checks every item.
+    /// </summary>
+    /// <remarks>
+    /// The window starts at the last completed check, not at the newest item a workspace holds: a quiet
+    /// workspace's newest item can be months old, and the window would then cover months of changes.
+    /// </remarks>
+    private async Task RemoveWorkItemsMovedOut(IWorkItemSource source, SyncRun run, Guid connectionId, SyncType syncType, Guid syncId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        Instant? changedSince = null;
+        if (syncType != SyncType.Full)
+        {
+            var lastCheckedAt = await _db.SyncRuns
+                .Where(r => r.ConnectionId == connectionId && r.Id != run.Id && r.MovedOutWorkItemsRemoved != null)
+                .OrderByDescending(r => r.StartedAt)
+                .Select(r => (Instant?)r.StartedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+            changedSince = lastCheckedAt?.Minus(MovedOutCheckOverlap);
+        }
+
+        var result = await source.RemoveWorkItemsMovedOut(changedSince, syncId, cancellationToken);
+        if (result.IsFailure)
+        {
+            _logger.LogError("Removing work items moved out of the synced workspaces failed for connection {ConnectionId}: {Error}", connectionId, result.Error);
+            run.RecordError();
+            return;
+        }
+
+        run.RecordMovedOutWorkItemsRemoved(result.Value);
+        if (result.Value > 0)
+            _logger.LogInformation("Removed {WorkItemCount} work items that moved out of the synced workspaces for connection {ConnectionId}.", result.Value, connectionId);
     }
 
     /// <summary>What one workspace's history sync applied, and why it stopped early if it did.</summary>

@@ -20,7 +20,7 @@ export interface CreateConnectionFormProps {
   onFormCancel: () => void
 }
 
-interface CreateConnectionFormValues {
+export interface CreateConnectionFormValues {
   name: string
   description?: string
   // Azure DevOps specific
@@ -64,7 +64,38 @@ export const getDiscriminator = (connector: ConnectorType): string => {
     default:
       // A silent fallback would submit a request the backend can't deserialize —
       // fail loudly so a new connector can't ship without its discriminator.
-      throw new Error(`No request discriminator is registered for connector type '${connector}'.`)
+      throw new Error(
+        `No request discriminator is registered for connector type '${connector}'.`,
+      )
+  }
+}
+
+/**
+ * Builds the create request for the chosen connector, or null when no connector is chosen.
+ */
+export const buildCreateRequest = (
+  connector: ConnectorType | null,
+  values: CreateConnectionFormValues,
+) => {
+  // ConnectorType.AzureDevOps is 0, so a falsy check would reject it.
+  if (connector === null) return null
+
+  // Form.List leaves orgExclusions undefined when the admin never adds a row, and
+  // partially-filled rows (the admin opened a slot then canceled) come back with empty
+  // strings. Strip those before submit so they don't fail backend validation.
+  const cleanedExclusions = (values.orgExclusions ?? []).filter(
+    (e) =>
+      !!e?.organizationTypeId?.trim() && !!e?.organizationReference?.trim(),
+  )
+
+  // System.Text.Json polymorphism requires the discriminator to be the FIRST property
+  // in the JSON payload — otherwise it throws "must specify a type discriminator" even
+  // when the discriminator is present. Spread $type before the form values so it
+  // serializes first.
+  return {
+    $type: getDiscriminator(connector),
+    ...values,
+    orgExclusions: cleanedExclusions,
   }
 }
 
@@ -78,58 +109,45 @@ const CreateConnectionForm = ({
 
   const [createConnection] = useCreateConnectionMutation()
 
-  const { form, isOpen, isValid, isSaving, handleOk, handleCancel: hookCancel } =
-    useModalForm<CreateConnectionFormValues>({
-      onSubmit: async (values: CreateConnectionFormValues, form) => {
-          if (!selectedConnector) return false
+  const {
+    form,
+    isOpen,
+    isValid,
+    isSaving,
+    handleOk,
+    handleCancel: hookCancel,
+  } = useModalForm<CreateConnectionFormValues>({
+    onSubmit: async (values: CreateConnectionFormValues, form) => {
+      const request = buildCreateRequest(selectedConnector, values)
+      if (!request) return false
 
-          try {
-            // System.Text.Json polymorphism requires the discriminator to be the FIRST property
-            // in the JSON payload — otherwise it throws "must specify a type discriminator" even
-            // when the discriminator is present. Spread $type before the form values so it
-            // serializes first.
-            //
-            // Form.List leaves orgExclusions undefined when the admin never adds a row, and
-            // partially-filled rows (the admin opened a slot then canceled) come back with empty
-            // strings. Strip those before submit so they don't fail backend validation.
-            const cleanedExclusions = (values.orgExclusions ?? []).filter(
-              (e) =>
-                !!e?.organizationTypeId?.trim() &&
-                !!e?.organizationReference?.trim(),
-            )
-
-            const request = {
-              $type: getDiscriminator(selectedConnector),
-              ...values,
-              orgExclusions: cleanedExclusions,
-            }
-
-            const response = await createConnection(request)
-            if (response.error) {
-              throw response.error
-            }
-            setSelectedConnector(null)
-            messageApi.success('Successfully created connection.')
-            return true
-          } catch (error: any) {
-            if (error.status === 422 && error.errors) {
-              const formErrors = toFormErrors(error.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error('An error occurred while creating the connection.')
-            }
-            return false
-          }
-        },
-      onComplete: onFormCreate,
-      onCancel: () => {
+      try {
+        const response = await createConnection(request)
+        if (response.error) {
+          throw response.error
+        }
         setSelectedConnector(null)
-        onFormCancel()
-      },
-      errorMessage: 'An error occurred while creating the connection.',
-      permission: 'Permissions.Connections.Create',
-    })
+        messageApi.success('Successfully created connection.')
+        return true
+      } catch (error: any) {
+        if (error.status === 422 && error.errors) {
+          const formErrors = toFormErrors(error.errors)
+          form.setFields(formErrors)
+          messageApi.error('Correct the validation error(s) to continue.')
+        } else {
+          messageApi.error('An error occurred while creating the connection.')
+        }
+        return false
+      }
+    },
+    onComplete: onFormCreate,
+    onCancel: () => {
+      setSelectedConnector(null)
+      onFormCancel()
+    },
+    errorMessage: 'An error occurred while creating the connection.',
+    permission: 'Permissions.Connections.Create',
+  })
 
   const handleBack = () => {
     setSelectedConnector(null)

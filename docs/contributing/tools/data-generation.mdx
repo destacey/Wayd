@@ -558,8 +558,8 @@ rows automatically; you'll see a "Finalizing …" line at the end of a seed run 
 ### The Product Management dataset
 
 Unless `--skip-product-management` is passed, the generator builds a product catalog over the same
-delivery hierarchy, and the history of how it shipped. Wayd has no link between a product and a team, so
-the connection is in the names: a component is named for the team that owns it and its description says so.
+delivery hierarchy, and the history of how it shipped. A component is named for the team that owns it, its
+description says so, and the teams that work on each product are linked to it.
 
 - **Catalog** — a **Product Line** per value stream ("Growth Cloud"), a **Product** per ART, and under it
   the components each team owns. Every team owns something it deploys — a **Service** or a web
@@ -567,6 +567,15 @@ the connection is in the names: a component is named for the team that owns it a
   mobile app. Tags use the seeded `Platform` category. A few components are **Sunset** (shipping rarely
   since a sunset date) or **Retired** (nothing after a retirement date), and a few **Concept** services have
   only a planned first version.
+- **Teams** — every component is linked to the team that owns it. About one in three is shared with a second
+  team, and a quarter of those with a third — a sibling in the same ART as a rule, now and then a team
+  elsewhere in the line — so a delivery team works on a few related products, nearly all in its own product
+  line, and more of them as `--components-per-team` rises. A retired component has no team, and a team whose
+  own components have all retired picks up a sibling's, or failing that another component in its line. Links
+  go on the most specific products, since product pages roll them up: an ART's product carries none, and about
+  three product lines in five carry their value stream's team of teams (or, without that tier, one of their
+  ARTs). The links travel in the products file's `Teams` column, by team code, and are drawn under their own
+  seed, so the catalog and its history are the same with or without them.
 - **Environments** — each product line gets `-dev`, `-test`, `-staging` and `-prod` environments. About half
   also have a `-uat` environment retired partway through the history, which only finished deployments
   point at.
@@ -726,7 +735,7 @@ employees → portfolios → programs (+ strategic themes)
       → strategic initiatives (+ KPIs) → finalize (close historical programs/portfolios)
 
 product-management feature flag → deployment environments
-                                → products → product dependencies
+                    teams + flag → products → product dependencies
                                            → versions → release packages (+ manifests) → releases (+ contents)
                                                       → deployments (after environments and packages)
 
@@ -741,10 +750,11 @@ reproducible and reads top-down; independent areas interleave, so the settings b
 themes, for instance, post before team staffing does. An area that has nothing to do — one whose dataset was
 switched off, or that generated no rows — is skipped.
 
-Product Management depends on nothing in the organization or PPM areas — it references no employees — so
-it only needs its own order. Versions come before packages because a manifest line links to a version only
-if the version already exists, and releases come last because a release is accepted as released only once
-everything it carries has been saved as shipped.
+Product Management depends on nothing in the PPM areas and on only one in the organization: products wait for
+the teams import, because each product row names the teams that work on it by code. It references no
+employees, and otherwise only needs its own order. Versions come before packages because a manifest line links
+to a version only if the version already exists, and releases come last because a release is accepted as
+released only once everything it carries has been saved as shipped.
 
 Planning references teams and employees by id, but it resolves teams against Planning's own copy of them,
 which Organization fills asynchronously after the teams import. A team that has not landed there yet

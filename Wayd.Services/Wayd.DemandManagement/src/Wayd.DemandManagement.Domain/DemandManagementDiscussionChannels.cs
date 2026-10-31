@@ -13,10 +13,12 @@ namespace Wayd.DemandManagement.Domain;
 public static class DemandManagementDiscussionChannels
 {
     /// <summary>
-    /// An intake request's conversation: replies the requester reads, and internal notes for the desk's agents.
+    /// An intake request's conversation: replies the requester reads, and internal notes for the desk's agents. Its
+    /// settings are kept per desk.
     /// </summary>
     public static readonly DiscussionChannelTypeDescriptor IntakeRequest =
-        new(DemandManagementFollowOwners.IntakeRequest.Key, "Intake Request", "Requests", supportsInternalNotes: true);
+        new(DemandManagementFollowOwners.IntakeRequest.Key, "Intake Request", "Requests", supportsInternalNotes: true,
+            supportsMentionAccess: true, settingsScopeType: "IntakeDesk");
 
     /// <summary>Every Demand Management channel type, for registration.</summary>
     public static readonly DiscussionChannelTypeDescriptor[] All = [IntakeRequest];

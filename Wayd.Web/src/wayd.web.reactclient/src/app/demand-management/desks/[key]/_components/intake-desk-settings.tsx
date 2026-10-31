@@ -1,6 +1,7 @@
 'use client'
 
 import { LabeledContent } from '@/src/components/common/content'
+import { DiscussionSettingsPanel } from '@/src/components/common/discussions'
 import {
   IntakeDeskDto,
   IntakeDeskVisibility,
@@ -10,6 +11,7 @@ import {
   useGetIntakeChannelsQuery,
   useGetIntakeRequestTagCategoriesQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
+import { DiscussionChannelTypes } from '@/src/store/features/common/discussion-tags'
 import { Button, Flex, Skeleton, Typography } from 'antd'
 import { FC, useState } from 'react'
 import ChangeIntakeDeskScoringModelForm from './change-intake-desk-scoring-model-form'
@@ -125,6 +127,13 @@ const IntakeDeskSettings: FC<IntakeDeskSettingsProps> = ({
         {desk.allowsFreeTags
           ? 'Agents may add their own tags'
           : 'Only tags on the tag axes'}
+      </LabeledContent>
+      <LabeledContent label="Conversations">
+        <DiscussionSettingsPanel
+          channelType={DiscussionChannelTypes.IntakeRequest}
+          scopeId={desk.id}
+          scopeName={desk.name}
+        />
       </LabeledContent>
       <LabeledContent label="Open to New Requests">
         {yesNo(desk.isOpen)}

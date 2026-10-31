@@ -26,6 +26,9 @@ public static class DiscussionAccessErrors
     /// <summary>Deleting someone else's message, or locking, without moderating the conversation.</summary>
     public const string CannotModerate = "Only the conversation's moderators can do this.";
 
+    /// <summary>Changing a scope's discussion settings without running it.</summary>
+    public const string CannotManageSettings = "Only the people who run this can change how its conversations work.";
+
     /// <summary>
     /// Someone else changed the conversation or the message in the moment between reading and saving: two first posts
     /// on a record, or an edit and a delete of one message, at once.
@@ -36,7 +39,7 @@ public static class DiscussionAccessErrors
     public static bool IsNotFound(string? error) => error == NotFound;
 
     /// <summary>Whether a failure is the caller lacking permission rather than breaking a rule.</summary>
-    public static bool IsForbidden(string? error) => error is CannotWrite or NotTheAuthor or CannotModerate;
+    public static bool IsForbidden(string? error) => error is CannotWrite or NotTheAuthor or CannotModerate or CannotManageSettings;
 
     /// <summary>Whether a failure is <see cref="Conflict"/>.</summary>
     public static bool IsConflict(string? error) => error == Conflict;

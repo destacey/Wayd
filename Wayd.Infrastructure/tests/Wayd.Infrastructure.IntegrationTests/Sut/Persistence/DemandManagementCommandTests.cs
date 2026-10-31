@@ -273,7 +273,8 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         }
 
         // Act — the deleting context still tracks the desk as it read it
-        var result = await new DeleteIntakeDeskCommandHandler(deleting, Principal(administrator.Id), User(), _clock, new ScopedWorkflowAssignments(deleting))
+        var result = await new DeleteIntakeDeskCommandHandler(deleting, Principal(administrator.Id), User(), _clock, new ScopedWorkflowAssignments(deleting),
+            Discussions(deleting, administrator.Id))
             .Handle(new DeleteIntakeDeskCommand(desk.Id), ct);
 
         // Assert
@@ -347,7 +348,8 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
 
         // Act
         await using var context = _fixture.CreateContext();
-        var result = await new DeleteIntakeDeskCommandHandler(context, Principal(administrator.Id), User(), _clock, new ScopedWorkflowAssignments(context))
+        var result = await new DeleteIntakeDeskCommandHandler(context, Principal(administrator.Id), User(), _clock, new ScopedWorkflowAssignments(context),
+            Discussions(context, administrator.Id))
             .Handle(new DeleteIntakeDeskCommand(desk.Id), ct);
 
         // Assert
@@ -721,7 +723,8 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         }
         await using (var deleting = _fixture.CreateContext())
         {
-            (await new DeleteIntakeDeskCommandHandler(deleting, admin, User(), _clock, new ScopedWorkflowAssignments(deleting))
+            (await new DeleteIntakeDeskCommandHandler(deleting, admin, User(), _clock, new ScopedWorkflowAssignments(deleting),
+                    Discussions(deleting, administrator.Id))
                 .Handle(new DeleteIntakeDeskCommand(desk.Id), ct)).IsSuccess.Should().BeTrue();
         }
 
@@ -843,7 +846,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         DemandManagementDiscussionChannels.Register();
         var featureFlags = new Mock<IFeatureFlags>();
         featureFlags.Setup(f => f.IsEnabled(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        var requests = new IntakeRequestDiscussionChannelType(context, Principal(employeeId), User(), featureFlags.Object);
+        var requests = new IntakeRequestDiscussionChannelType(context, Principal(employeeId), User(), featureFlags.Object, context);
         return new(context, [requests], Principal(employeeId), User(), _clock);
     }
 

@@ -11,16 +11,20 @@ public sealed class FakeDiscussionsDbContext : IDiscussionsDbContext
 {
     private readonly List<DiscussionChannel> _channels = [];
     private readonly List<DiscussionMessage> _messages = [];
+    private readonly List<DiscussionSettings> _settings = [];
     private readonly List<Employee> _employees = [];
 
     public DbSet<DiscussionChannel> DiscussionChannels => _channels.AsDbSet();
     public DbSet<DiscussionMessage> DiscussionMessages => _messages.AsDbSet();
+    public DbSet<DiscussionSettings> DiscussionSettings => _settings.AsDbSet();
     public DbSet<Employee> Employees => _employees.AsDbSet();
 
     /// <summary>The number of times <see cref="SaveChangesAsync"/> has been called.</summary>
     public int SaveChangesCallCount { get; private set; }
 
     public void AddMessages(params DiscussionMessage[] messages) => _messages.AddRange(messages);
+
+    public void AddSettings(params DiscussionSettings[] settings) => _settings.AddRange(settings);
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken)
     {

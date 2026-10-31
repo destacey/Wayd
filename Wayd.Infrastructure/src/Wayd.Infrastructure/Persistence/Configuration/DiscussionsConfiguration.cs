@@ -180,3 +180,39 @@ public class DiscussionMentionConfiguration : IEntityTypeConfiguration<Discussio
             .OnDelete(DeleteBehavior.NoAction);
     }
 }
+
+/// <summary>
+/// Maps <see cref="DiscussionSettings"/> to <c>Discussions.Settings</c>: one row per channel type and scope that has
+/// saved settings, and one per channel type for its default.
+/// </summary>
+public class DiscussionSettingsConfiguration : IEntityTypeConfiguration<DiscussionSettings>
+{
+    /// <inheritdoc/>
+    public void Configure(EntityTypeBuilder<DiscussionSettings> builder)
+    {
+        builder.ToTable("Settings", SchemaNames.Discussions);
+
+        builder.HasKey(s => s.Id);
+        builder.Property(s => s.Id).ValueGeneratedNever();
+
+        // Unfiltered — EF filters a nullable unique index by default — so each channel type has one default row.
+        builder.HasIndex(s => new { s.ChannelType, s.ScopeId })
+            .IsUnique()
+            .HasFilter(null);
+
+        builder.Property(s => s.ChannelType).IsRequired()
+            .HasColumnType("varchar")
+            .HasMaxLength(DiscussionChannelTypeDescriptor.KeyMaxLength);
+
+        // No foreign key: the scope lives in a different table per channel type, such as a module's desks.
+        builder.Property(s => s.ScopeId);
+
+        builder.Property(s => s.InternalNotesEnabled).IsRequired();
+        builder.Property(s => s.MentionsGrantAccess).IsRequired();
+
+        builder.Ignore(s => s.Values);
+
+        // Two admins saving at once collide here rather than the second silently undoing the first.
+        builder.Property<byte[]>("RowVersion").IsRowVersion();
+    }
+}

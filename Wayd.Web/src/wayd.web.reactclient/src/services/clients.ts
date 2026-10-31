@@ -2,6 +2,7 @@ import axios from 'axios'
 import {
   AuthClient,
   BackgroundJobsClient,
+  DiscussionSettingsClient,
   DiscussionsClient,
   EmployeesClient,
   HealthChecksClient,
@@ -464,6 +465,9 @@ export const getMyNotificationMutesClient = () =>
   new MyNotificationMutesClient('', axiosClient)
 
 export const getDiscussionsClient = () => new DiscussionsClient('', axiosClient)
+
+export const getDiscussionSettingsClient = () =>
+  new DiscussionSettingsClient('', axiosClient)
 
 // ORGANIZATION
 export const getEmployeesClient = () => new EmployeesClient('', axiosClient)

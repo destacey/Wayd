@@ -413,7 +413,8 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
         // Assert
         // One toolset for the conversation on every kind of record, so a project's needs no intake tools.
         Assert.Equal(
-            ["Discussions_Get", "Discussions_GetEntries", "Discussions_GetReplies", "Discussions_Post", "Discussions_Reply"],
+            ["Discussions_Get", "Discussions_GetEntries", "Discussions_GetReplies", "Discussions_GetSettings", "Discussions_Post", "Discussions_Reply",
+                "Discussions_SaveSettings"],
             tools.Order(StringComparer.Ordinal));
         Assert.Contains("Discussions_Post", offered);
         Assert.DoesNotContain(offered, name => name.StartsWith("Intake", StringComparison.Ordinal));

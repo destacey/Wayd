@@ -11,7 +11,10 @@ import {
   IntakeRequestDetailsDto,
   IntakeRequestSubstanceDto,
 } from '@/src/services/wayd-api'
-import { DiscussionChannelTypes } from '@/src/store/features/common/discussions-api'
+import {
+  DiscussionChannelTypes,
+  useGetDiscussionSettingsQuery,
+} from '@/src/store/features/common/discussions-api'
 import {
   useGetIntakeDeskQuery,
   useGetIntakeEmployeeOptionsQuery,
@@ -49,10 +52,15 @@ const IntakeRequestDiscussion = ({
   const { summary } = request
 
   const { data: desk } = useGetIntakeDeskQuery(summary.desk.id)
+  const { data: settings } = useGetDiscussionSettingsQuery({
+    channelType: DiscussionChannelTypes.IntakeRequest,
+    scopeId: summary.desk.id,
+  })
   const mayMentionAnyone =
     request.canAddParticipants &&
     desk !== undefined &&
-    desk.visibility !== IntakeDeskVisibility.Private
+    desk.visibility !== IntakeDeskVisibility.Private &&
+    settings?.mentionsGrantAccess === true
   const { data: everyone } = useGetIntakeEmployeeOptionsQuery(undefined, {
     skip: !mayMentionAnyone,
   })

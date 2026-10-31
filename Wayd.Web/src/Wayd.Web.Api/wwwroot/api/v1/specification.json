@@ -227,7 +227,7 @@
           "Discussions"
         ],
         "summary": "Post a message that starts a thread in a record's conversation.",
-        "description": "`channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Posts a top-level message, opening the conversation if nobody has posted on the record yet, and returns its id. `kind` is `Public` (everyone who can read the conversation) or `InternalNote` (its internal audience only); `subject` is optional, at most 200 characters; `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Mentions you may not make are dropped. Returns 403 when you may not post that kind of message, 404 when the record does not exist or you cannot read it, 400 when the conversation is locked, and 409 when someone else opened the conversation at the same moment (post again). Requires your account to be linked to an employee.",
+        "description": "`channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Posts a top-level message, opening the conversation if nobody has posted on the record yet, and returns its id. `kind` is `Public` (everyone who can read the conversation) or `InternalNote` (its internal audience only); `subject` is optional, at most 200 characters; `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Mentions you may not make are dropped. Returns 403 when you may not post that kind of message, 404 when the record does not exist or you cannot read it, 400 when the conversation is locked or internal notes are turned off for the record's scope, and 409 when someone else opened the conversation at the same moment (post again). Requires your account to be linked to an employee.",
         "operationId": "Discussions_PostMessage",
         "parameters": [
           {
@@ -427,7 +427,7 @@
           "Discussions"
         ],
         "summary": "Reply in a thread.",
-        "description": "`channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replies in the thread the top-level message `messageId` starts and returns the reply's id. The reply takes the thread's kind — a reply under an internal note is an internal note — and has no subject; replies go one level deep, so `messageId` must start a thread. `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Returns 403 when you may not write in that thread, 404 when the record or message does not exist or you cannot read it, and 400 when the conversation is locked or `messageId` is itself a reply. Requires your account to be linked to an employee.",
+        "description": "`channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replies in the thread the top-level message `messageId` starts and returns the reply's id. The reply takes the thread's kind — a reply under an internal note is an internal note — and has no subject; replies go one level deep, so `messageId` must start a thread. `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Returns 403 when you may not write in that thread, 404 when the record or message does not exist or you cannot read it, and 400 when the conversation is locked, `messageId` is itself a reply, or it starts a thread of internal notes and they are turned off for the record's scope. Requires your account to be linked to an employee.",
         "operationId": "Discussions_Reply",
         "parameters": [
           {
@@ -953,6 +953,185 @@
             "x-position": 2
           }
         ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/discussion-settings/{channelType}": {
+      "get": {
+        "tags": [
+          "DiscussionSettings"
+        ],
+        "summary": "Get how conversations behave in a scope.",
+        "description": "`channelType` names the kind of record — `demand.intake-request` for intake requests, whose scope is a desk. `scopeId` is the scope's id, such as the desk's; leave it out for the default every scope without settings of its own follows. A `channelType` whose conversations have no settings returns 404. Returns the settings in effect — the scope's own, else the default — whether they are inherited, which settings the kind of record supports, and whether you may change them (`canManage`). `mentionsGrantAccess` false means only the people who already have a record can be mentioned in its conversation. Returns 404 when the scope does not exist or you cannot see it.",
+        "operationId": "DiscussionSettings_GetSettings",
+        "parameters": [
+          {
+            "name": "channelType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "scopeId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscussionSettingsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "DiscussionSettings"
+        ],
+        "summary": "Save how conversations behave in a scope.",
+        "description": "`channelType` names the kind of record — `demand.intake-request` for intake requests, whose scope is a desk. `scopeId` is the scope's id, such as the desk's; leave it out for the default every scope without settings of its own follows. A `channelType` whose conversations have no settings returns 404. Saves the settings and records each change, with its previous value, in the Activity log; nothing is recorded when nothing changed. Saving the values a scope would inherit leaves it following the default, removing settings of its own if it had them, so later changes to the default reach it. Turning internal notes off stops new notes only: existing notes stay readable to their audience. Returns 403 when you may not change them — a desk's are changed by its Desk Admins and the Demand Management Admin, the default by the Demand Management Admin — 404 when the scope does not exist or you cannot see it, 400 when a setting is one the kind of record does not support, and 409 when someone saved at the same moment.",
+        "operationId": "DiscussionSettings_SaveSettings",
+        "parameters": [
+          {
+            "name": "channelType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "scopeId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveDiscussionSettingsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 3
+        },
         "responses": {
           "204": {
             "description": "No Content"
@@ -56307,6 +56486,56 @@
         "type": "string",
         "description": "Which end of a conversation a page starts from."
       },
+      "DiscussionSettingsDto": {
+        "required": [
+          "channelType",
+          "internalNotesEnabled",
+          "mentionsGrantAccess",
+          "isInherited",
+          "supportsInternalNotes",
+          "supportsMentionAccess",
+          "canManage"
+        ],
+        "type": "object",
+        "properties": {
+          "channelType": {
+            "type": "string",
+            "description": "The registered channel type, such as `demand.intake-request`."
+          },
+          "scopeId": {
+            "type": "string",
+            "description": "The scope's record, or null for the default every scope inherits.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "internalNotesEnabled": {
+            "type": "boolean",
+            "description": "Whether new internal notes can be posted. Existing notes stay readable to their audience either way."
+          },
+          "mentionsGrantAccess": {
+            "type": "boolean",
+            "description": "Whether mentioning someone can give them access to the record. When off, only the people who already have the record can be mentioned."
+          },
+          "isInherited": {
+            "type": "boolean",
+            "description": "Whether the scope has saved no settings of its own and follows its default. Saving values equal to the\ndefault keeps it following."
+          },
+          "supportsInternalNotes": {
+            "type": "boolean",
+            "description": "Whether this kind of record can hold internal notes at all. When false, they cannot be turned on."
+          },
+          "supportsMentionAccess": {
+            "type": "boolean",
+            "description": "Whether a mention can give access on this kind of record at all. When false, it cannot be turned on."
+          },
+          "canManage": {
+            "type": "boolean",
+            "description": "Whether the caller may change these settings."
+          }
+        },
+        "additionalProperties": false,
+        "description": "How conversations behave in one scope, such as an intake desk, or by default for a kind of record: the settings in\neffect, where they come from, and which of them the kind of record supports."
+      },
       "EditDiscussionMessageRequest": {
         "required": [
           "body"
@@ -70383,6 +70612,25 @@
         "additionalProperties": false,
         "description": "One product currently live in an environment, and the deployment that put it there."
       },
+      "SaveDiscussionSettingsRequest": {
+        "required": [
+          "internalNotesEnabled",
+          "mentionsGrantAccess"
+        ],
+        "type": "object",
+        "properties": {
+          "internalNotesEnabled": {
+            "type": "boolean",
+            "description": "Whether new internal notes can be posted. Turning it off leaves existing notes readable to their audience. Can\nonly be true where the kind of record holds internal notes."
+          },
+          "mentionsGrantAccess": {
+            "type": "boolean",
+            "description": "Whether mentioning someone can give them access to the record. When false, only the people who already have\nthe record can be mentioned. Can only be true where the kind of record allows it."
+          }
+        },
+        "additionalProperties": false,
+        "description": "How conversations should behave in one scope, such as an intake desk, or by default for a kind of record."
+      },
       "ScaleInput": {
         "required": [
           "name",
@@ -82984,6 +83232,9 @@
   "tags": [
     {
       "name": "Discussions"
+    },
+    {
+      "name": "DiscussionSettings"
     },
     {
       "name": "FeatureFlags"

@@ -1,4 +1,7 @@
-import { getDiscussionsClient } from '@/src/services/clients'
+import {
+  getDiscussionSettingsClient,
+  getDiscussionsClient,
+} from '@/src/services/clients'
 import {
   CursorPageOfDiscussionEntryDto,
   DiscussionDto,
@@ -6,6 +9,8 @@ import {
   DiscussionMessageKind,
   DiscussionMessageRevisionDto,
   DiscussionOrder,
+  DiscussionSettingsDto,
+  SaveDiscussionSettingsRequest,
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
@@ -45,6 +50,23 @@ export interface EditDiscussionMessageArgs extends DiscussionTarget {
 export interface DiscussionMessageArgs extends DiscussionTarget {
   messageId: string
 }
+
+/**
+ * One scope's discussion settings, such as an intake desk's, or the default
+ * for a kind of record when `scopeId` is left out.
+ */
+export interface DiscussionSettingsTarget {
+  channelType: DiscussionChannelType
+  scopeId?: string
+}
+
+export interface SaveDiscussionSettingsArgs
+  extends DiscussionSettingsTarget, SaveDiscussionSettingsRequest {}
+
+const settingsTag = ({ channelType, scopeId }: DiscussionSettingsTarget) => ({
+  type: QueryTags.DiscussionSettings,
+  id: `${channelType}:${scopeId ?? 'default'}`,
+})
 
 /** How many top-level messages each page of a conversation loads. */
 export const DiscussionPageSize = 25
@@ -205,6 +227,34 @@ export const discussionsApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (result, error, args) => [discussionTag(args)],
     }),
+
+    getDiscussionSettings: builder.query<
+      DiscussionSettingsDto,
+      DiscussionSettingsTarget
+    >({
+      queryFn: ({ channelType, scopeId }) =>
+        run(() =>
+          getDiscussionSettingsClient().getSettings(channelType, scopeId),
+        ),
+      providesTags: (result, error, args) => [settingsTag(args)],
+    }),
+
+    saveDiscussionSettings: builder.mutation<null, SaveDiscussionSettingsArgs>({
+      queryFn: ({ channelType, scopeId, ...request }) =>
+        runVoid(() =>
+          getDiscussionSettingsClient().saveSettings(
+            channelType,
+            request,
+            scopeId,
+          ),
+        ),
+      // A default reaches every scope that follows it, and any setting can
+      // change what an open conversation offers, so every one is refreshed.
+      invalidatesTags: () => [
+        QueryTags.DiscussionSettings,
+        QueryTags.Discussion,
+      ],
+    }),
   }),
 })
 
@@ -218,4 +268,6 @@ export const {
   useEditDiscussionMessageMutation,
   useDeleteDiscussionMessageMutation,
   useSetDiscussionLockMutation,
+  useGetDiscussionSettingsQuery,
+  useSaveDiscussionSettingsMutation,
 } = discussionsApi

@@ -130,7 +130,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
 
         if (TagSet.Apply(_tags, tag, category, (tagId, categoryId) => new ProductTagAssignment(Id, tagId, categoryId)) is { } change)
         {
-            AddDomainEvent(new ProductTagsChangedEventV2(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
+            RaiseWhenKeyed(() => new ProductTagsChangedEventV2(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
         }
 
         return Result.Success();
@@ -148,7 +148,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     {
         if (TagSet.Remove(_tags, tagId) is { } change)
         {
-            AddDomainEvent(new ProductTagsChangedEventV2(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
+            RaiseWhenKeyed(() => new ProductTagsChangedEventV2(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
         }
 
         return Result.Success();
@@ -170,7 +170,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
 
         if (TagSet.Replace(_tags, fromTagId, tag, category, (tagId, categoryId) => new ProductTagAssignment(Id, tagId, categoryId)) is { } change)
         {
-            AddDomainEvent(new ProductTagsChangedEventV2(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
+            RaiseWhenKeyed(() => new ProductTagsChangedEventV2(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
         }
 
         return Result.Success();
@@ -492,9 +492,28 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
 
         _teamLinks.Add(new ProductTeamLink(Id, team.Id));
 
-        AddDomainEvent(new ProductTeamLinkedEvent(Id, Key, team.Id, actor, timestamp));
+        var teamId = team.Id;
+        RaiseWhenKeyed(() => new ProductTeamLinkedEvent(Id, Key, teamId, actor, timestamp));
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Raises the event now, or once the save assigns <see cref="Key"/> when the product is not yet persisted —
+    /// the import tags a product it has just created and links its teams, and an event raised before the first
+    /// save would carry Key 0. <paramref name="createEvent"/> runs at that point, so every value it reads other
+    /// than <see cref="Key"/> and <see cref="Id"/> must be captured before the call.
+    /// </summary>
+    private void RaiseWhenKeyed(Func<DomainEvent> createEvent)
+    {
+        if (Key == 0)
+        {
+            AddPostPersistenceAction(() => AddDomainEvent(createEvent()));
+        }
+        else
+        {
+            AddDomainEvent(createEvent());
+        }
     }
 
     /// <summary>

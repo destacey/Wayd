@@ -12,6 +12,7 @@ using Wayd.Common.Domain.Settings;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain.Models;
+using Wayd.Tests.Shared.Extensions;
 
 // The delivery artifact record, not System.Version.
 using Version = Wayd.ProductManagement.Domain.Models.Version;
@@ -117,12 +118,17 @@ public abstract class ProductCommandTestBase
             Now);
 
         // Created rows are already persisted as far as these tests are concerned, so the opening
-        // transition and the deferred creation event are not part of what the command under test did.
+        // transition and the deferred creation event are not part of what the command under test did. A saved
+        // product has its key, which an event the command raises carries.
         product.ClearDomainEvents();
+        product.ClearPostPersistenceActions();
+        product.SetPrivate(p => p.Key, ++_productKey);
         DbContext.AddProduct(product);
 
         return product;
     }
+
+    private int _productKey;
 
     /// <summary>
     /// A version against a product, for the handlers that refuse a change once one exists.

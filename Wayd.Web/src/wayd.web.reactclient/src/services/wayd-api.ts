@@ -61498,6 +61498,11 @@ initial status when the cell is blank. */
     /** The product's tags, as semicolon-separated `Category|Tag` pairs —
 `Platform|ios;Platform|android;Compliance|pci-scope`. */
     tags?: string | undefined;
+    /** The teams and teams of teams that work on the product, semicolon-separated, each by team code or
+team ID — `PAY;MOB;3f2a1c9e-…`. Every team named must exist and be active. Leave the cell
+blank for a product no team works on. They are linked to this row's product only, never to its
+parent or children. */
+    teams?: string | undefined;
 }
 
 /** A single CSV row for the program import. The owning portfolio is referenced by id and strategic themes by a semicolon-separated list of ids; role columns hold semicolon-separated employee numbers. `Status` is the status the program should end up in (case-insensitive), reached by replaying the real lifecycle transitions. */

@@ -49,6 +49,14 @@ public sealed class ImportProductRequest
     /// </remarks>
     public string? Tags { get; set; }
 
+    /// <summary>
+    /// The teams and teams of teams that work on the product, semicolon-separated, each by team code or
+    /// team ID — <c>PAY;MOB;3f2a1c9e-…</c>. Every team named must exist and be active. Leave the cell
+    /// blank for a product no team works on. They are linked to this row's product only, never to its
+    /// parent or children.
+    /// </summary>
+    public string? Teams { get; set; }
+
     public ImportProductDto ToImportProductDto() =>
         new(Name,
             Description,
@@ -56,7 +64,8 @@ public sealed class ImportProductRequest
             string.IsNullOrWhiteSpace(ParentImportId) ? null : ParentImportId,
             ExternalId,
             Status,
-            [.. CsvList.Split(Tags).Select(ParseTag)]);
+            [.. CsvList.Split(Tags).Select(ParseTag)],
+            [.. CsvList.Split(Teams)]);
 
     /// <summary>
     /// Splits one <c>Category|Tag</c> entry. A malformed entry keeps whatever it has, so the
@@ -104,5 +113,11 @@ public sealed class ImportProductRequestValidator : CustomValidator<ImportProduc
             .Must(t => CsvList.Split(t).All(e => e.Split('|', 2, StringSplitOptions.TrimEntries) is
                 [{ Length: > 0 }, { Length: > 0 }]))
                 .WithMessage("Each tag must be written as 'Category|Tag', separated by semicolons.");
+
+        RuleFor(p => p.Teams)
+            .Must(t => !CsvList.Split(t).Any(ProductTeamEntry.IsEmptyId))
+                .WithMessage("A team ID cannot be the empty ID, which names no team.")
+            .Must(t => CsvList.Split(t).All(ProductTeamEntry.IsWellFormed))
+                .WithMessage("Each team must be a team code or a team ID, separated by semicolons.");
     }
 }

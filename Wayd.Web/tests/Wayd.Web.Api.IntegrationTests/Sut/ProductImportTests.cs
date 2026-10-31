@@ -1,9 +1,15 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using NodaTime;
 using Wayd.Common.Application.Imports.Commands;
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Imports;
+using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Infrastructure.Auth;
+using Wayd.Organization.Application.Teams.Commands;
 using Wayd.ProductManagement.Application;
 using Wayd.ProductManagement.Application.Products.Commands;
 using Wayd.ProductManagement.Application.Products.Dtos;
@@ -42,8 +48,23 @@ public sealed class ProductImportTests(WaydSqlServerApiFactory factory)
             .Select(t => t.Name)
             .FirstAsync(TestContext.Current.CancellationToken);
 
-    private static ImportProductDto Row(string name, string typeName, string? parentImportId = null) =>
-        new(name, null, typeName, parentImportId, null, null, []);
+    private static ImportProductDto Row(string name, string typeName, string? parentImportId = null, string[]? teams = null) =>
+        new(name, null, typeName, parentImportId, null, null, [], teams);
+
+    /// <summary>
+    /// Creates an Organization team without waiting for its Product Management copy, which the import then
+    /// finds or builds itself — whichever wins the race with the <c>TeamCreated</c> handler.
+    /// </summary>
+    private static async Task<(Guid Id, string Code)> CreateTeam(IServiceScope scope)
+    {
+        var code = $"T{Guid.NewGuid():N}"[..8].ToUpperInvariant();
+        var created = await scope.ServiceProvider.GetRequiredService<IDispatcher>().Send(
+            new CreateTeamCommand($"Product Import Team {code}", new TeamCode(code), null, new LocalDate(2026, 1, 15)),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(created.IsSuccess, created.IsFailure ? created.Error : null);
+        return (created.Value.Id, code);
+    }
 
     private static Task<ImportProcess> Import(IServiceScope scope, IEnumerable<(string ImportId, ImportProductDto Row)> rows) =>
         ImportRuns.SubmitAndWait(scope, new ImportProductsCommand(
@@ -140,6 +161,59 @@ public sealed class ProductImportTests(WaydSqlServerApiFactory factory)
             var product = saved.Single(p => p.Id == createdByImportId[importId]);
             Assert.Equal(row.Name, product.Name);
             Assert.Equal(row.ParentImportId is null ? null : createdByImportId[row.ParentImportId], product.ParentId);
+        }
+    }
+
+    [Fact]
+    public async Task Import_LinksTheTeamsEachRowNames_ByCodeOrId_AndRecordsEachLinkUnderTheSavedKey()
+    {
+        // Arrange — both teams were created a moment ago, so either may still have no copy in the module.
+        // Gamma names a code no team has, which keeps its tree out and its team links with it.
+        using var scope = Scope();
+        var typeName = await ProductTypeName(scope);
+        var suffix = $"{Guid.NewGuid():N}"[..8];
+        var payments = await CreateTeam(scope);
+        var mobile = await CreateTeam(scope);
+
+        // Act
+        var run = await Import(scope,
+        [
+            ("a", Row($"Alpha {suffix}", typeName, teams: [payments.Code.ToLowerInvariant()])),
+            ("a1", Row($"Alpha child {suffix}", typeName, parentImportId: "a", teams: [mobile.Id.ToString(), payments.Code])),
+            ("g", Row($"Gamma {suffix}", typeName, teams: [mobile.Code])),
+            ("g1", Row($"Gamma child {suffix}", typeName, parentImportId: "g", teams: ["NOSUCH99"])),
+        ]);
+
+        // Assert
+        Assert.Equal(ImportProcessStatus.PartiallySucceeded, run.Status);
+
+        var saved = await scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>().Products
+            .AsNoTracking()
+            .Where(p => p.Name.EndsWith(suffix))
+            .Select(p => new { p.Id, p.Key, p.Name, Teams = p.TeamLinks.Select(l => l.TeamId).ToList() })
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(new HashSet<string> { $"Alpha {suffix}", $"Alpha child {suffix}" }, saved.Select(p => p.Name).ToHashSet());
+        var alpha = saved.Single(p => p.Name == $"Alpha {suffix}");
+        var child = saved.Single(p => p.Name == $"Alpha child {suffix}");
+        Assert.Equal([payments.Id], alpha.Teams);
+        Assert.Equal(new HashSet<Guid> { payments.Id, mobile.Id }, child.Teams.ToHashSet());
+
+        Assert.Equal("No team was found with the code or ID 'NOSUCH99'.", run.Rows.Single(r => r.ImportId == "g1").Error);
+
+        // A new product has no key until it is saved; the link events wait for it.
+        var linkPayloads = await scope.ServiceProvider.GetRequiredService<IActivityLogDbContext>().ActivityLogs
+            .AsNoTracking()
+            .Where(a => (a.AggregateId == alpha.Id || a.AggregateId == child.Id) && a.EventType == "ProductTeamLinkedEvent")
+            .Select(a => new { a.AggregateId, a.Payload })
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(3, linkPayloads.Count);
+        foreach (var entry in linkPayloads)
+        {
+            using var payload = JsonDocument.Parse(entry.Payload);
+            var key = payload.RootElement.EnumerateObject().Single(p => p.NameEquals("key") || p.NameEquals("Key")).Value.GetInt32();
+            Assert.Equal(saved.Single(p => p.Id == entry.AggregateId).Key, key);
         }
     }
 }

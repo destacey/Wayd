@@ -219,6 +219,28 @@ describe('useModalForm', () => {
       expect(result.current.isValid).toBe(false)
     })
 
+    it('validates again when a run is rejected as out of date, rather than counting it as invalid', async () => {
+      // Arrange — Ant Design rejects a run with outOfDate when another
+      // validation started while it was in flight. Every run the effects start
+      // is rejected that way, so only a retry can find the form valid.
+      let effectsHaveRun = false
+      mockValidateFields.mockImplementation(() =>
+        effectsHaveRun
+          ? Promise.resolve({})
+          : Promise.reject({ errorFields: [], outOfDate: true }),
+      )
+
+      // Act
+      const { result } = renderHook(() =>
+        useModalForm<TestFormValues>(createDefaultOptions()),
+      )
+      effectsHaveRun = true
+      await act(async () => {})
+
+      // Assert
+      expect(result.current.isValid).toBe(true)
+    })
+
     it('calls validateFields with validateOnly option', async () => {
       mockValidateFields.mockResolvedValue({})
 

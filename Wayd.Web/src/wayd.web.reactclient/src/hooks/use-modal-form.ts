@@ -48,6 +48,15 @@ export interface UseModalFormReturn<TValues> {
 }
 
 /**
+ * Whether a validation rejected only because a newer one started, which says
+ * nothing about whether the form is valid.
+ */
+const isOutOfDate = (errorInfo: unknown): boolean =>
+  typeof errorInfo === 'object' &&
+  errorInfo !== null &&
+  (errorInfo as { outOfDate?: unknown }).outOfDate === true
+
+/**
  * Manages boilerplate for Ant Design modal forms: form instance, permission
  * gating, validation state, saving state, and OK/Cancel handlers.
  *
@@ -96,11 +105,35 @@ function useModalForm<TValues = Record<string, unknown>>({
   // causing the infinite loop that onFieldsChange + validateFields creates.
   const formValues = Form.useWatch([], form)
 
+  // Only the latest run may set the result, and a run Ant Design rejects as
+  // `outOfDate` — another validation started while it was in flight, such as
+  // a field's own on-change rule — validates again rather than counting as a
+  // failure. Read as one, that rejection left a form whose fields are all
+  // optional disabled when it opened, since opening runs this twice: before
+  // its fields register and again once they have.
   useEffect(() => {
-    form
-      .validateFields({ validateOnly: true })
-      .then(() => setIsValid(true))
-      .catch(() => setIsValid(false))
+    let isLatest = true
+
+    const validate = () =>
+      form
+        .validateFields({ validateOnly: true })
+        .then(() => {
+          if (isLatest) setIsValid(true)
+        })
+        .catch((errorInfo: unknown) => {
+          if (!isLatest) return
+          if (isOutOfDate(errorInfo)) {
+            validate()
+            return
+          }
+          setIsValid(false)
+        })
+
+    validate()
+
+    return () => {
+      isLatest = false
+    }
   }, [form, formValues])
 
   const handleOk = async () => {

@@ -47,6 +47,7 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     // memory, so `.Include` is a no-op here; only an integration test catches a missing one.
     private readonly List<DiscussionChannel> _discussionChannels = [];
     private readonly List<DiscussionMessage> _discussionMessages = [];
+    private readonly List<DiscussionSettings> _discussionSettings = [];
 
     // DbSet properties
     public DbSet<Employee> Employees => _employees.AsDbSet();
@@ -70,6 +71,7 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
 
     public DbSet<DiscussionChannel> DiscussionChannels => _discussionChannels.AsDbSet();
     public DbSet<DiscussionMessage> DiscussionMessages => _discussionMessages.AsDbSet();
+    public DbSet<DiscussionSettings> DiscussionSettings => _discussionSettings.AsDbSet();
 
     // ChangeTracker - we can't create a real one, so we return null and the handler uses defensive coding (_dbContext.ChangeTracker?.Clear())
     public ChangeTracker ChangeTracker => null!;
@@ -138,6 +140,7 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     public void AddReasonMute(ReasonMute mute) => _reasonMutes.Add(mute);
     public void AddDiscussionChannel(DiscussionChannel channel) => _discussionChannels.Add(channel);
     public void AddDiscussionMessage(DiscussionMessage message) => _discussionMessages.Add(message);
+    public void AddDiscussionSettings(DiscussionSettings settings) => _discussionSettings.Add(settings);
 
     /// <summary>Removes a notification, as the store's set-based writes would replace or delete it.</summary>
     public void RemoveNotification(Notification notification) => _notifications.Remove(notification);

@@ -13,7 +13,20 @@ namespace Wayd.Common.Application.Discussions;
 /// <param name="Access">What the caller may do.</param>
 /// <param name="Channel">The conversation, untracked, or null when nobody has posted on the record yet.</param>
 /// <param name="EmployeeId">The caller's employee, or null when they are linked to none.</param>
-internal sealed record DiscussionView(IDiscussionChannelType Type, DiscussionAccess Access, DiscussionChannel? Channel, Guid? EmployeeId);
+/// <param name="Settings">The settings in effect for the record's scope.</param>
+internal sealed record DiscussionView(
+    IDiscussionChannelType Type,
+    DiscussionAccess Access,
+    DiscussionChannel? Channel,
+    Guid? EmployeeId,
+    DiscussionSettingValues Settings)
+{
+    /// <summary>
+    /// Whether the caller may start or continue a thread of internal notes: allowed to write them, and the record's
+    /// scope has not turned them off.
+    /// </summary>
+    public bool CanPostInternal => Access.CanWrite(DiscussionMessageKind.InternalNote) && Settings.InternalNotesEnabled;
+}
 
 /// <summary>
 /// What every discussion query shares: opening a record's conversation for the caller, and describing messages
@@ -52,7 +65,9 @@ internal static class DiscussionReading
 
         var employeeId = await currentPrincipal.GetEmployeeId(cancellationToken);
 
-        return new DiscussionView(type.Value, access, channel, employeeId);
+        var settings = await dbContext.DiscussionSettingsFor(key, access.ScopeId, cancellationToken);
+
+        return new DiscussionView(type.Value, access, channel, employeeId, settings);
     }
 
     /// <summary>

@@ -55,7 +55,7 @@ A **Team** is the fundamental organizational unit in Wayd. It represents a colle
 Every team has:
 - **Name** — A descriptive name (up to 128 characters)
 - **Code** — A unique 2-10 character uppercase alphanumeric identifier (e.g., `PLATFORM`, `MOBILE`)
-- **Description** — Optional, up to 1024 characters, written in Markdown
+- **Description** — Optional, formatted in the [document editor](../formatting-text.mdx); up to 1024 characters of the markdown it stores
 - **Active Date** — When the team was formed
 - **Inactive Date** — When the team was dissolved (if applicable)
 - **Operating Model** — How the team works (methodology and sizing)
@@ -512,7 +512,7 @@ Removing a member does not change their [allocation](#allocations) on its own. W
 2. Click **Create Team** (needs `Permissions.Teams.Create`)
 3. Set **Team Type** to **Team**
 4. Enter a **Name**, **Code**, and **Active Date**
-5. Optionally add a **Description** (supports Markdown)
+5. Optionally add a **Description** (see [Formatting long text](../formatting-text.mdx))
 6. Click **Create**. The team is created with a default operating model (Kanban and Count, with the time zone, grace period and working days from the scheduling settings)
 
 ### Creating a Team of Teams

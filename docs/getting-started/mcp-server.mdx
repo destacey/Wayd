@@ -9,11 +9,13 @@ audience: [user, developer, agent]
 
 Wayd provides an [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that lets AI assistants like Claude interact directly with your Wayd instance. The MCP server exposes Wayd's API as structured tools that AI agents can call to read and manage your delivery data.
 
-**Package:** [`@wayd/mcp`](https://www.npmjs.com/package/@wayd/mcp)
+**Endpoint:** `/mcp` on your Wayd API's address, such as `https://your-wayd-api.com/mcp`. Nothing to install.
+
+The `@wayd/mcp` npm package is retired. If you still use it, see [Moving from @wayd/mcp](#moving-from-waydmcp).
 
 ## What Can It Do?
 
-The MCP server exposes more than 250 tools across Wayd's core modules:
+The MCP server exposes more than 500 tools across Wayd's core modules:
 
 | Module                                                                             | Capabilities                                                                                                                                                                                                                                                                                                                                                                                              |
 | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -22,25 +24,25 @@ The MCP server exposes more than 250 tools across Wayd's core modules:
 | **[Planning](../user-guide/planning/index.mdx)**                                   | List/view planning intervals, iterations, objectives, risks, and the activity history of intervals and objectives. Get PI predictability and health reports. Review and log objective health checks. View calendars.                                                                                                                                                                                      |
 | **[Roadmaps](../user-guide/planning/roadmaps.mdx)**                                | List/view roadmaps and their items (activities, milestones, timeboxes).                                                                                                                                                                                                                                                                                                                                   |
 | **[Story Maps](../user-guide/planning/story-maps.mdx)**                            | List story maps and read a full map — goals, steps, tasks (with checklists, personas, and work item links), swim lanes, and personas. Create and manage maps: build out goals/steps/tasks, reorder and move cards, manage swim lanes, personas, checklists, and work item links.                                                                                                                          |
-| **[Organizations](../user-guide/organizations/index.mdx)**                         | List/view teams, teams of teams, and users. Review a team's activity history. Grade a team's backlog health. Read team sprint metrics, cadence velocity, and work distribution reports. |
+| **[Organizations](../user-guide/organizations/index.mdx)**                         | List/view teams, teams of teams, users, and employees with their managers and direct reports. Create and update teams and manage their members, capacity, and time away. Review a team's activity history. Grade a team's backlog health. Read team sprint metrics, cadence velocity, and work distribution reports. Record and manage risks. |
 | **[Product Catalog](../user-guide/product-management/products.mdx)**              | List/view products and their status and activity history. Create, retype, reparent, tag, and delete products, including free tags typed by name. Record and end dependencies between products, and link the teams that work on each product. Manage product types, tag categories, and free tags. |
 | **[Product Delivery](../user-guide/product-management/delivery.mdx)**             | Plan, cut, release, and withdraw versions, releases, and release packages. Record deployments and how they ended. Manage deployment environments. Read the rollout, delivery metrics, and delivery overview. |
+| **[Work Management](../user-guide/work-management/index.mdx)**                   | Read workspaces, work items, their children, dependencies, and metrics, and search work items. Read sprints and their backlogs, and start, complete, or reopen a sprint. Manage the work processes, types, and statuses work items are organized by. Run planning poker sessions. |
 | **[Delivery Forecasting](../user-guide/work-management/delivery-forecasting.mdx)** | Forecast when a work item, PI objective, or project will be done, and how many backlog work items a team finishes by a date.                                                                                                                                                                                                                                                                              |
 | **[Imports](../user-guide/settings/imports.mdx)**                                  | Check a CSV file before importing it, then import the rows it checked. Follow import runs and their row outcomes, and stop, resume, or retry a run.                                                                                                                                                                                                                                                       |
-| **[Demand Management](../user-guide/demand-management/index.mdx)**               | Hosted endpoint only. Submit, edit, and withdraw intake requests and read where they stand. Review requests on a desk: change status, assign, tag, move to another desk, manage participants, record the projects a request became, and hold a request's conversation: replies the requester reads and internal notes only the desk reads. Set up desks, channels, and tag axes, and manage free tags. |
+| **[Demand Management](../user-guide/demand-management/index.mdx)**               | Submit, edit, and withdraw intake requests and read where they stand. Review requests on a desk: change status, assign, tag, move to another desk, manage participants, record the projects a request became, and hold a request's conversation: replies the requester reads and internal notes only the desk reads. Set up desks, channels, and tag axes, and manage free tags. |
 
 ## Prerequisites
 
-There are two ways to connect: the [hosted endpoint](#hosted-endpoint-preview), which the Wayd API serves itself, and the [npm package](#setup), which runs on your machine.
+- A Wayd instance with the **MCP Server** feature flag on. An administrator turns it on in **Settings > System > Feature Flags**; while it is off, `/mcp` answers 404.
+- An assistant that connects to remote MCP servers over HTTP. One that can only start local servers connects [through `mcp-remote`](#clients-that-only-run-local-servers).
+- Your Wayd account to [sign in](#connecting-with-sign-in) with, or a [Personal Access Token](./your-profile.mdx#personal-access-tokens) created from your profile page.
 
-- **Hosted endpoint:** a Wayd instance with the **MCP Server** feature flag on, and an assistant that connects to remote MCP servers over HTTP. You can [sign in](#connecting-with-sign-in) with your Wayd account, so no token is needed, or [use a Personal Access Token](#connecting-with-a-personal-access-token).
-- **npm package:** a running Wayd instance, a **[Personal Access Token (PAT)](./your-profile.mdx#personal-access-tokens)** created from your profile page, and **Node.js 22+** installed on your machine.
+## Connecting
 
-## Hosted Endpoint (Preview)
+The Wayd API serves MCP at `/mcp` on the API's address, using Streamable HTTP. Each of the [agent skills](#agent-skills) is served there without installing it, two ways: as an MCP prompt named after the skill (`wayd-ppm`, `wayd-pi`, …) that you can pick in a client that lists prompts, and through a skills tool, which the assistant calls on its own. Every tool's description names the skill for its area, so the assistant is pointed to that guidance whichever toolsets you chose; whether it reads it is up to the assistant.
 
-The Wayd API also serves MCP itself, at `/mcp` on the API's address, using Streamable HTTP. It offers the same tools under the same names as the npm package, so skills and prompts written for one work with the other, and it needs no Node.js on your machine. It also offers [tools the package lacks](#hosted-only-tools): partial updates that change only the fields you name, single-call evidence reads for health checks, and whole areas the package never covered, such as work items and sprints, employees, team membership and capacity, risks, planning poker, and intake requests. Each of the [agent skills](#agent-skills) is served there without installing it, two ways: as an MCP prompt named after the skill (`wayd-ppm`, `wayd-pi`, …) that you can pick in a client that lists prompts, and through a skills tool, which the assistant calls on its own. Every tool's description names the skill for its area, so an assistant connected to the hosted endpoint is pointed to that guidance whichever toolsets you chose; whether it reads it is up to the assistant. The npm package will be retired a few weeks after the hosted endpoint is generally available.
-
-An administrator turns it on with the **MCP Server** feature flag (**Settings > System > Feature Flags**); while the flag is off, `/mcp` answers 404. Connect in one of two ways:
+Connect in one of two ways:
 
 - **[Sign in](#connecting-with-sign-in)** with your Wayd account and approve the assistant. Nothing to create, copy or store, and you can disconnect it from your profile at any time. Use this whenever your assistant supports it.
 - **[A Personal Access Token](#connecting-with-a-personal-access-token)** in the `x-api-key` header, for an assistant that cannot sign in or a script that runs unattended.
@@ -81,7 +83,7 @@ VS Code (`.vscode/mcp.json`):
 }
 ```
 
-claude.ai, ChatGPT and other hosted assistants: add a custom connector and give it the `/mcp` address. They cannot send a personal access token, so signing in is the only way they connect.
+claude.ai, Claude Desktop, ChatGPT and other hosted assistants: add a custom connector and give it the `/mcp` address. They cannot send a personal access token, so signing in is the only way they connect.
 
 When Wayd opens:
 
@@ -142,6 +144,26 @@ VS Code / Cursor (`.vscode/mcp.json`):
 }
 ```
 
+### Clients That Only Run Local Servers
+
+An assistant that can only start a local (stdio) server reaches the endpoint through [`mcp-remote`](https://www.npmjs.com/package/mcp-remote), which runs on your machine and needs **Node.js** installed. Give it a personal access token:
+
+```json
+{
+    "mcpServers": {
+        "wayd": {
+            "command": "npx",
+            "args": ["-y", "mcp-remote", "https://your-wayd-api.com/mcp", "--header", "x-api-key:${WAYD_API_KEY}"],
+            "env": {
+                "WAYD_API_KEY": "your-personal-access-token"
+            }
+        }
+    }
+}
+```
+
+Keep `x-api-key:${WAYD_API_KEY}` free of spaces: some clients split arguments on them.
+
 ### Choosing Tools
 
 Every tool's description is loaded into the conversation before any work starts, and with more than 500 tools across every toolset that is a large part of an assistant's context. Ask for only the tools your work needs by naming toolsets, and add read-only mode for an assistant that should look but never change anything.
@@ -157,7 +179,7 @@ Every tool's description is loaded into the conversation before any work starts,
 | `work`         | Workspaces, work items, sprints, work processes, work types and statuses                                  |
 | `imports`      | Checking, applying and following CSV imports                                                              |
 | `intake`       | Intake requests and their review, desks, channels, tag axes, free tags; add `discussions` for their conversation |
-| `discussions`  | The conversation on an intake request or a project: threads, messages, replies, internal notes            |
+| `discussions`  | The conversation on an intake request or a project: threads, messages, replies, internal notes; a desk's conversation settings |
 
 Choose them on the URL, or in headers if your client sends them:
 
@@ -189,149 +211,17 @@ The skills tool, `Skills_Get`, the skill prompts and the `Me_*` tools are offere
 
 A tool's answer is capped at about 20,000 tokens, so one call over a large project cannot fill the conversation. A list longer than that keeps its first items and says which ones it is showing, such as items 1–74 of 843. Tools whose answer is a list take an `offset` argument, and the note gives the value that continues it, so the assistant can read the rest a part at a time. A tool whose answer is one record holding a list, such as a summary with its work items, takes no `offset`; the assistant narrows it with the tool's filters (a status, a portfolio, a team) instead.
 
-### Hosted-Only Tools
+## Moving from @wayd/mcp
 
-Besides every tool in the [tables below](#available-tools), the hosted endpoint offers these:
+The `@wayd/mcp` npm package is retired and receives no further updates; its last version tells the assistant and your client's log where to move. The endpoint offers every tool the package had, under the same names, so skills and prompts keep working. Replace the `wayd` entry in your MCP configuration, the one that runs `npx -y @wayd/mcp`:
 
-| Tool | Toolset | Description |
-| --- | --- | --- |
-| `Skills_Get` | (every connection) | Read one of the [agent skills](#agent-skills), or one of its reference files |
-| `Me_GetProfile` | (every connection) | Who the signed-in person is: their user account and, more usefully, the employee it is linked to, whose id role and assignee fields take |
-| `Me_GetTeamMemberships` / `Me_GetAllocations` / `Me_GetWorkItems` | (every connection) | Your own teams, how your time is allocated to them, and the work items assigned to you, with no id to look up and no View Employees permission |
-| `Me_Follow` / `Me_Unfollow` / `Me_GetFollowStatus` | (every connection) | Follow or stop following a project, program, PI objective or intake request you can read, and check whether you follow one (`following` feature flag) |
-| `Me_GetFollows` / `Me_GetFollowCounts` / `Me_GetFollowedRecord` | (every connection) | List what you follow — filtered by kind, by what needs a look (unhealthy, changed this week, closed) or by name — count it, and read one followed record with what has happened since you followed it (`following` feature flag) |
-| `Me_GetNotifications` / `Me_GetUnreadNotificationCount` | (every connection) | Your notifications — one entry per project, program or PI objective that changed, with what happened, who did it and why you were told — and how many records have something unread (`following` feature flag) |
-| `Me_MarkNotificationRead` / `Me_MarkRecordNotificationsRead` / `Me_MarkAllNotificationsRead` | (every connection) | Mark one notification, everything about one record, or all of your notifications read (`following` feature flag) |
-| `Me_MuteRecord` / `Me_UnmuteRecord` / `Me_GetRecordMuteStatus` / `Me_GetMutedRecords` | (every connection) | Mute or unmute a project, program or PI objective you can read, check whether you muted one, and list what you muted; muting changes no access, role or follow (`following` feature flag) |
-| `Me_MuteReason` / `Me_UnmuteReason` / `Me_GetReasonMutes` | (every connection) | Stop or start being told for a whole reason — records you follow, or records you work on — and see which you muted (`following` feature flag) |
-| `Projects_GetHealthCheckEvidence` | `ppm` | Everything needed to recommend a project health check, in one read: the plan summary, overdue tasks, stages past their end, the forecast, the latest check, and activity since it |
-| `PlanningIntervals_GetObjectiveHealthCheckEvidence` | `planning` | Everything needed to recommend a PI objective health check, in one read: schedule, work items and metrics, the forecast, past checks, activity since the last one, and the team's risks |
-| `Portfolios_Patch` / `Programs_Patch` / `Projects_Patch` | `ppm` | Change some of a record's details, roles or strategic themes, leaving the rest as they are |
-| `Projects_PatchStage` / `Tasks_PatchProjectTask` | `ppm` | Change some of a project stage's or task's fields |
-| `Roadmaps_PatchItem` | `planning` | Change some of a roadmap item's fields |
-| `StoryMaps_PatchGoalPersonas` / `StoryMaps_PatchStepPersonas` / `StoryMaps_PatchTaskPersonas` | `planning` | Tag or untag personas on a goal, step or task, keeping the tags it does not name |
-| `Releases_PatchContents` | `delivery` | Add or remove packages and directly carried versions on a release, leaving the rest of its contents |
-| `ReleasePackages_PatchManifest` | `delivery` | Add, change or drop lines in a package's manifest, keeping every line it does not name |
-
-Beyond those, it covers these areas, which the npm package covers partly or not at all:
-
-| Tools | Toolset | Description |
-| --- | --- | --- |
-| `Workspaces_*`, `Sprints_*` | `work` | Read workspaces and their work items (children, dependencies, metrics, project links), search work items, link a work item to a project, set a workspace's external URL templates; read sprints and their backlogs, and start, complete or reopen a sprint |
-| `WorkProcesses_*`, `WorkTypes_*`, `WorkTypeLevels_*`, `WorkTypeTiers_*`, `WorkStatuses_*`, `WorkStatusCategories_*` | `work` | Read and manage the work processes, work types, backlog levels and statuses work items are organized by |
-| `Teams_*`, `TeamsOfTeams_*` | `teams` | Create, update and deactivate teams and teams of teams; manage their members and team-of-teams memberships; read capacity, operating models, sprints, backlogs, work items, dependencies and risks, and record team risks |
-| `Employees_*` | `organization` | Look up employees, their managers and direct reports, and record or change time away |
-| `HolidayCalendars_*`, `TeamMemberRoles_*`, `TeamTypes_*` | `organization` | Manage holiday calendars and team member roles; list team types |
-| `Risks_*` | `organization` | List risks across teams or your own, read a risk and its history, create and update risks, and list risk statuses, categories and grades |
-| `PlanningIntervals_*` | `planning` | Create and update planning intervals, their dates and teams, sprint mappings, objectives and their work items; read capacity, metrics and backlog |
-| `Roadmaps_*`, `StoryMaps_*` | `planning` | Create, copy, update, archive and delete roadmaps and their items; rename a story map task or set its description |
-| `PokerSessions_*`, `EstimationScales_*` | `planning` | Run planning poker sessions — rounds, votes, reveal and consensus — and manage estimation scales |
-| `Portfolios_*`, `Programs_*`, `Projects_*`, `Tasks_*`, `ProjectLifecycles_*`, `StrategicInitiatives_*`, `ExpenditureCategories_*`, `ScoringModels_*` | `ppm` | Delete portfolios, programs and projects; list scoring models, assign them to portfolios and move projects on the ranking board; assign and change project lifecycles and manage the lifecycles themselves; record project scores; create, update and delete strategic initiatives and their KPIs; manage expenditure categories |
-| `IntakeRequests_*`, `IntakeDesks_*`, `IntakeChannels_*`, `IntakeRequestTagCategories_*`, `IntakeRequestTags_*`, `IntakeEmployeeOptions_*` | `intake` | Submit, edit and withdraw intake requests and read where they stand; ask the requester a question while moving the request to Waiting on Requester; review them on a desk — change status, assign, tag, score and rank, move to another desk, manage participants, record the projects a request became; list the requests behind a project; set up desks, channels, tag axes and a desk's scoring model; rename, merge and delete free tags (`demand-management` feature flag) |
-| `Discussions_*` | `discussions` | Read the conversation on an intake request or a project — its threads and the record's changes between them — post a message with a subject, reply in a thread, and write a request's internal notes |
-
-The patch tools take a JSON Patch (RFC 6902) and leave alone anything it does not name, so they avoid the [whole-record overwrite](#changes-that-ask-first) of the matching update tools.
-
-## Setup
-
-### Claude Desktop
-
-Add the following to your Claude Desktop configuration file:
-
-- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
-
-```json
-{
-    "mcpServers": {
-        "wayd": {
-            "command": "npx",
-            "args": ["-y", "@wayd/mcp"],
-            "env": {
-                "WAYD_API_BASE_URL": "https://your-wayd-instance.com",
-                "WAYD_API_KEY": "your-personal-access-token"
-            }
-        }
-    }
-}
-```
-
-### Claude Code
-
-Add a `.mcp.json` file to your project root:
-
-```json
-{
-    "mcpServers": {
-        "wayd": {
-            "command": "npx",
-            "args": ["-y", "@wayd/mcp"],
-            "env": {
-                "WAYD_API_BASE_URL": "https://your-wayd-instance.com",
-                "WAYD_API_KEY": "your-personal-access-token"
-            }
-        }
-    }
-}
-```
-
-Or set environment variables in your shell and omit the `env` block:
-
-```bash
-export WAYD_API_BASE_URL="https://your-wayd-instance.com"
-export WAYD_API_KEY="your-personal-access-token"
-```
-
-### VS Code / Cursor
-
-Add to your `.vscode/mcp.json` or workspace settings:
-
-```json
-{
-    "inputs": [
-        {
-            "id": "waydBaseUrl",
-            "description": "Wayd API base URL",
-            "type": "promptString"
-        },
-        {
-            "id": "waydApiKey",
-            "description": "Wayd API key (Personal Access Token)",
-            "type": "promptString",
-            "password": true
-        }
-    ],
-    "servers": {
-        "wayd": {
-            "type": "stdio",
-            "command": "npx",
-            "args": [
-                "-y",
-                "@wayd/mcp",
-                "--base-url",
-                "${input:waydBaseUrl}",
-                "--api-key",
-                "${input:waydApiKey}"
-            ]
-        }
-    }
-}
-```
-
-## Configuration
-
-The MCP server accepts configuration via environment variables or CLI arguments:
-
-| Environment Variable | CLI Argument | Description                                                             |
-| -------------------- | ------------ | ----------------------------------------------------------------------- |
-| `WAYD_API_BASE_URL`  | `--base-url` | The base URL of your Wayd API instance                                  |
-| `WAYD_API_KEY`       | `--api-key`  | Your [Personal Access Token](./your-profile.mdx#personal-access-tokens) |
-
-CLI arguments take precedence over environment variables.
+1. Take the address you gave the package as `WAYD_API_BASE_URL` or `--base-url`, and add `/mcp`.
+2. Use one of the configurations under [Connecting](#connecting): [sign in](#connecting-with-sign-in), or keep your token and send it as [`x-api-key`](#connecting-with-a-personal-access-token). Nothing reads `WAYD_API_KEY` or `--api-key` any more.
+3. A client that can only start local servers uses [`mcp-remote`](#clients-that-only-run-local-servers) in place of the package.
 
 ## Agent Skills
 
-For Claude Code users, fifteen pre-built skills provide guided workflows:
+The endpoint serves fifteen pre-built skills that guide the assistant through common workflows, as prompts and through `Skills_Get`. In Claude Code you can also install them and run them as slash commands:
 
 - **`/wayd-ppm`** — Portfolio, program, project, and strategic initiative operations, including scoring, health checks, status changes, and tasks
 - **`/wayd-pi`** — Planning intervals, iterations, objectives, and risks
@@ -339,15 +229,15 @@ For Claude Code users, fifteen pre-built skills provide guided workflows:
 - **`/wayd-delivery`** — Releases, versions, release packages, deployments, environments, and delivery metrics
 - **`/wayd-roadmaps`** — Roadmap exploration with activities and milestones
 - **`/wayd-story-maps`** — Story map analysis and management with goals, steps, tasks, swim lanes, and personas
-- **`/wayd-teams`** — Team lookup and resolving team names to IDs, backlog health, team work distribution reports, and (on the hosted endpoint) managing teams, members, capacity, holiday calendars and risks
+- **`/wayd-teams`** — Team lookup and resolving team names to IDs, backlog health, team work distribution reports, and managing teams, members, capacity, holiday calendars and risks
 - **`/wayd-users`** — User lookup and resolving names to UUIDs for assignees and project roles
-- **`/wayd-employees`** — Employees, their managers and direct reports, and time away (hosted endpoint only)
-- **`/wayd-work`** — Workspaces, work items, sprints, and the work processes, types and statuses behind them (hosted endpoint only, apart from work item forecasts)
-- **`/wayd-estimation`** — Planning poker sessions and estimation scales (hosted endpoint only)
+- **`/wayd-employees`** — Employees, their managers and direct reports, and time away
+- **`/wayd-work`** — Workspaces, work items, sprints, and the work processes, types and statuses behind them
+- **`/wayd-estimation`** — Planning poker sessions and estimation scales
 - **`/wayd-imports`** — Loading CSV data: writing a file, checking it with a preflight, importing it, and following import runs
 - **`/wayd-incidents`** — Incident severity scales under Product Management — list seeded and custom sets, select which scale the organization uses, and manage custom sets (requires `product-management` and `incident-management` feature flags)
-- **`/wayd-intake`** — Raising intake requests, following what happened to them, reviewing them on a desk, and setting up desks, channels and tag axes (hosted endpoint only)
-- **`/wayd-discussions`** — Holding the conversation on an intake request or a project: reading its threads, posting and replying, internal notes on requests, and mentions (hosted endpoint only)
+- **`/wayd-intake`** — Raising intake requests, following what happened to them, reviewing them on a desk, and setting up desks, channels and tag axes
+- **`/wayd-discussions`** — Holding the conversation on an intake request or a project: reading its threads, posting and replying, internal notes on requests, mentions, and a desk's conversation settings
 
 Install the skills:
 
@@ -630,6 +520,51 @@ Every CSV file submitted to Wayd becomes a run with an outcome for each row — 
 
 Your assistant can't import a file in one step. It first runs a **preflight**, which checks every row the way a real import would and creates nothing, then shows you what would be imported and what would be refused. Only then can it import those rows with `Imports_Apply`, which asks for confirmation. A preflight reports what would have happened when it ran; each row is checked again when it is imported.
 
+### Every Connection, Partial Updates and Evidence Reads
+
+Besides the tools in the tables above, these are offered:
+
+| Tool | Toolset | Description |
+| --- | --- | --- |
+| `Skills_Get` | (every connection) | Read one of the [agent skills](#agent-skills), or one of its reference files |
+| `Me_GetProfile` | (every connection) | Who the signed-in person is: their user account and, more usefully, the employee it is linked to, whose id role and assignee fields take |
+| `Me_GetTeamMemberships` / `Me_GetAllocations` / `Me_GetWorkItems` | (every connection) | Your own teams, how your time is allocated to them, and the work items assigned to you, with no id to look up and no View Employees permission |
+| `Me_Follow` / `Me_Unfollow` / `Me_GetFollowStatus` | (every connection) | Follow or stop following a project, program, PI objective or intake request you can read, and check whether you follow one (`following` feature flag) |
+| `Me_GetFollows` / `Me_GetFollowCounts` / `Me_GetFollowedRecord` | (every connection) | List what you follow — filtered by kind, by what needs a look (unhealthy, changed this week, closed) or by name — count it, and read one followed record with what has happened since you followed it (`following` feature flag) |
+| `Me_GetNotifications` / `Me_GetUnreadNotificationCount` | (every connection) | Your notifications — one entry per project, program or PI objective that changed, with what happened, who did it and why you were told — and how many records have something unread (`following` feature flag) |
+| `Me_MarkNotificationRead` / `Me_MarkRecordNotificationsRead` / `Me_MarkAllNotificationsRead` | (every connection) | Mark one notification, everything about one record, or all of your notifications read (`following` feature flag) |
+| `Me_MuteRecord` / `Me_UnmuteRecord` / `Me_GetRecordMuteStatus` / `Me_GetMutedRecords` | (every connection) | Mute or unmute a project, program or PI objective you can read, check whether you muted one, and list what you muted; muting changes no access, role or follow (`following` feature flag) |
+| `Me_MuteReason` / `Me_UnmuteReason` / `Me_GetReasonMutes` | (every connection) | Stop or start being told for a whole reason — records you follow, or records you work on — and see which you muted (`following` feature flag) |
+| `Projects_GetHealthCheckEvidence` | `ppm` | Everything needed to recommend a project health check, in one read: the plan summary, overdue tasks, stages past their end, the forecast, the latest check, and activity since it |
+| `PlanningIntervals_GetObjectiveHealthCheckEvidence` | `planning` | Everything needed to recommend a PI objective health check, in one read: schedule, work items and metrics, the forecast, past checks, activity since the last one, and the team's risks |
+| `Portfolios_Patch` / `Programs_Patch` / `Projects_Patch` | `ppm` | Change some of a record's details, roles or strategic themes, leaving the rest as they are |
+| `Projects_PatchStage` / `Tasks_PatchProjectTask` | `ppm` | Change some of a project stage's or task's fields |
+| `Roadmaps_PatchItem` | `planning` | Change some of a roadmap item's fields |
+| `StoryMaps_PatchGoalPersonas` / `StoryMaps_PatchStepPersonas` / `StoryMaps_PatchTaskPersonas` | `planning` | Tag or untag personas on a goal, step or task, keeping the tags it does not name |
+| `Releases_PatchContents` | `delivery` | Add or remove packages and directly carried versions on a release, leaving the rest of its contents |
+| `ReleasePackages_PatchManifest` | `delivery` | Add, change or drop lines in a package's manifest, keeping every line it does not name |
+
+### Work, Teams, Employees and More
+
+The endpoint also covers these areas:
+
+| Tools | Toolset | Description |
+| --- | --- | --- |
+| `Workspaces_*`, `Sprints_*` | `work` | Read workspaces and their work items (children, dependencies, metrics, project links), search work items, link a work item to a project, set a workspace's external URL templates; read sprints and their backlogs, and start, complete or reopen a sprint |
+| `WorkProcesses_*`, `WorkTypes_*`, `WorkTypeLevels_*`, `WorkTypeTiers_*`, `WorkStatuses_*`, `WorkStatusCategories_*` | `work` | Read and manage the work processes, work types, backlog levels and statuses work items are organized by |
+| `Teams_*`, `TeamsOfTeams_*` | `teams` | Create, update and deactivate teams and teams of teams; manage their members and team-of-teams memberships; read capacity, operating models, sprints, backlogs, work items, dependencies and risks, and record team risks |
+| `Employees_*` | `organization` | Look up employees, their managers and direct reports, and record or change time away |
+| `HolidayCalendars_*`, `TeamMemberRoles_*`, `TeamTypes_*` | `organization` | Manage holiday calendars and team member roles; list team types |
+| `Risks_*` | `organization` | List risks across teams or your own, read a risk and its history, create and update risks, and list risk statuses, categories and grades |
+| `PlanningIntervals_*` | `planning` | Create and update planning intervals, their dates and teams, sprint mappings, objectives and their work items; read capacity, metrics and backlog |
+| `Roadmaps_*`, `StoryMaps_*` | `planning` | Create, copy, update, archive and delete roadmaps and their items; rename a story map task or set its description |
+| `PokerSessions_*`, `EstimationScales_*` | `planning` | Run planning poker sessions — rounds, votes, reveal and consensus — and manage estimation scales |
+| `Portfolios_*`, `Programs_*`, `Projects_*`, `Tasks_*`, `ProjectLifecycles_*`, `StrategicInitiatives_*`, `ExpenditureCategories_*`, `ScoringModels_*` | `ppm` | Delete portfolios, programs and projects; list scoring models, assign them to portfolios and move projects on the ranking board; assign and change project lifecycles and manage the lifecycles themselves; record project scores; create, update and delete strategic initiatives and their KPIs; manage expenditure categories |
+| `IntakeRequests_*`, `IntakeDesks_*`, `IntakeChannels_*`, `IntakeRequestTagCategories_*`, `IntakeRequestTags_*`, `IntakeEmployeeOptions_*` | `intake` | Submit, edit and withdraw intake requests and read where they stand; ask the requester a question while moving the request to Waiting on Requester; review them on a desk — change status, assign, tag, score and rank, move to another desk, manage participants, record the projects a request became; list the requests behind a project; set up desks, channels, tag axes and a desk's scoring model; rename, merge and delete free tags (`demand-management` feature flag) |
+| `Discussions_*` | `discussions` | Read the conversation on an intake request or a project — its threads and the record's changes between them — post a message with a subject, reply in a thread, write a request's internal notes, and read or change how an intake desk's conversations work |
+
+The patch tools take a JSON Patch (RFC 6902) and leave alone anything it does not name, so they avoid the [whole-record overwrite](#changes-that-ask-first) of the matching update tools.
+
 ## Changes That Ask First
 
 Most tools only read data. The ones that change something a colleague relies on — changing a record's status, updating a portfolio, program, or project, deleting anything, or importing, stopping, or re-running an import — are flagged so your AI assistant asks for confirmation before running them.
@@ -640,8 +575,6 @@ Two behaviours worth knowing before you approve one:
 
 - **Updates replace the whole record.** Anything not included in an update is cleared rather than left alone. This matters most for people: sponsors, owners, managers, and members are replaced as a set, so an update must carry the full team to keep it. Your assistant is instructed to read a record before updating it and pass back everything that should stay the same.
 - **Activating a portfolio sets its start date to today, and closing it sets its end date to today.** Neither can be backdated, so avoid using them to tidy up a portfolio that really started or ended earlier.
-
-Deleting a portfolio, program, project, or strategic initiative isn't available through the MCP server at all.
 
 ## Security
 

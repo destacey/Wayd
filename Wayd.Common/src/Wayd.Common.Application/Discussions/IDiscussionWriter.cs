@@ -56,6 +56,14 @@ public interface IDiscussionWriter : IScopedService
     /// <param name="actor">Who is deleting the record, as the module's own delete records it.</param>
     /// <exception cref="ArgumentException">The channel type is not registered.</exception>
     Task DeleteChannel(string channelType, Guid ownerId, EventActor actor, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Removes a scope's saved discussion settings, for a module hard-deleting the scope's record, such as an intake
+    /// desk. Asks no access, and does nothing when the scope saved none. The caller saves.
+    /// </summary>
+    /// <param name="actor">Who is deleting the scope, as the module's own delete records it.</param>
+    /// <exception cref="ArgumentException">The channel type is not registered.</exception>
+    Task DeleteSettings(string channelType, Guid scopeId, EventActor actor, CancellationToken cancellationToken);
 }
 
 /// <summary>A top-level message to post on a record.</summary>

@@ -160,7 +160,7 @@ Submitting needs your account to be linked to an employee record, because every 
 
 #### Through an AI assistant
 
-An assistant connected to Wayd's [hosted MCP endpoint](../../getting-started/mcp-server.mdx), with the `intake` toolset, can raise a request for you: it picks the desk from the descriptions of the desks taking requests, asks where the request came from when the desk records a channel, and shows you the request before submitting it. It can also list your requests and tell you where one stands — its status, the desk's reason for declining or finishing it, and its status history. It can edit or withdraw your request too. If you work a desk, it can review requests with you — change their status, assign, tag and move them, record the projects they became, and manage participants — and a Desk Admin or the Demand Management Admin can have it set up desks, channels and tag axes. It sees only what you can see in Wayd and can do only what you can do here, so it never reads a desk's internal notes unless you work that desk.
+An assistant connected to Wayd's [MCP server](../../getting-started/mcp-server.mdx), with the `intake` toolset, can raise a request for you: it picks the desk from the descriptions of the desks taking requests, asks where the request came from when the desk records a channel, and shows you the request before submitting it. It can also list your requests and tell you where one stands — its status, the desk's reason for declining or finishing it, and its status history. It can edit or withdraw your request too. If you work a desk, it can review requests with you — change their status, assign, tag and move them, record the projects they became, and manage participants — and a Desk Admin or the Demand Management Admin can have it set up desks, channels and tag axes. It sees only what you can see in Wayd and can do only what you can do here, so it never reads a desk's internal notes unless you work that desk.
 
 ### Finding requests
 
@@ -177,7 +177,7 @@ The same filters apply to both layouts, so switching between them never changes 
 
 The filters and the layout are kept in the page's address, so a view can be bookmarked or sent to someone. If you work a desk, the page opens on **My desks**; otherwise it opens on every open request. Switch between **List** and **Board** with the icons at the right of the toolbar. **Reset filters**, the clear icon at the end of the filters, puts them all back to every open request. On a phone the filters fold behind a **Filters** button.
 
-**List** shows each request's number, title, [score](#scoring-a-request) where you can read it, status, how long it has been in that status, its need-by date with what makes it that date, its age, assignee, desk, requester and channel, or **Not recorded** for a request with none, and its [tags](#tags), each named with its axis. Need-by dates are coloured by their basis — red for a date fixed for us, amber for a promise — and time in status and age turn amber after a week and red after three. Sorting **Need By** ascending puts the earliest date first, a fixed date before a chosen one on the same day, and requests with no date last; descending reverses that. Hovering a status shows its category. The desk links to its page, and the requester and assignee link to theirs if you can view employees; otherwise they are plain names.
+**List** shows each request's number, title, [score](#scoring-a-request) where you can read it, status, how long it has been in that status, its need-by date with what makes it that date, its age, assignee, desk, requester and channel, or **Not recorded** for a request with none, and its [tags](#tags), each named with its axis. **Submitted**, the date and time the request arrived, is hidden at first; turn it on from the grid's column chooser. Need-by dates are coloured by their basis — red for a date fixed for us, amber for a promise — and time in status and age turn amber after a week and red after three. Sorting **Need By** ascending puts the earliest date first, a fixed date before a chosen one on the same day, and requests with no date last; descending reverses that. Hovering a status shows its category. The desk links to its page, and the requester and assignee link to theirs if you can view employees; otherwise they are plain names.
 
 **Board** shows the same requests as cards in columns, one per stage of the desk's review workflow, in the workflow's order, so a stage with nothing in it still shows. A heading names the desk the board is for. Desks that follow different workflows have no single board, so with more than one such desk in scope the page asks you to pick one. Each card shows the number, its score where you can read it, the title, need-by date, requester and time in its stage, with a red edge when the date is fixed for us; opening it opens the request. Moving a request between stages is done from the request, since some moves ask for a reason. On a phone the board shows one stage at a time, chosen from a list with each stage's count.
 
@@ -208,12 +208,12 @@ The bell tells a request's people when it changes, without their having to follo
 A request's **Discussion** section holds its conversation, so the questions and answers that get a request ready to decide stay with the request instead of in email. It mixes two kinds of message:
 
 - **Messages** — Read by everyone who can read the request's detail: its requester, whoever submitted it, its participants, the desk's agents and, on an open desk, everyone who can view requests. Anyone who can read them can post one
-- **Internal notes** — Read only by the desk's agents and Desk Admins and the Demand Management Admin. Only they can write one, and nobody else is offered the choice at all
+- **Internal notes** — Read only by the desk's agents and Desk Admins and the Demand Management Admin. Only they can write one, and nobody else is offered the choice at all. A desk can [turn new notes off](#setting-how-a-desks-conversations-work)
 
 The composer at the bottom starts as a **Message**. An agent switches it to **Internal note** with the control above it, and the whole box changes colour while it is one, so a note is never sent to a requester by mistake. A note shows a lock and **Internal note** wherever it appears. Enter starts a new line; **Ctrl+Enter** (**⌘+Enter** on a Mac) posts, in the composer, a thread's reply box and the edit box alike.
 
 - **Threads** — A message can have a subject, and starts a thread. Replies to it collapse under it ("2 replies · last reply 3 hours ago") and open in place with their own reply box. Replies go one level deep, and a thread takes its first message's kind: everything under an internal note is internal.
-- **Mentions** — Type **@** to mention someone, which tells them. On a desk that is not private, mentioning someone you could add as a participant yourself makes them one, so they can read the request. A participant cannot add anyone by mentioning them. A mention in an internal note can name only the desk's members and adds nobody.
+- **Mentions** — Type **@** to mention someone, which tells them. On a desk that is not private, mentioning someone you could add as a participant yourself makes them one, so they can read the request, unless the desk has [turned that off](#setting-how-a-desks-conversations-work). A participant cannot add anyone by mentioning them. A mention in an internal note can name only the desk's members and adds nobody.
 - **Joining in** — On a desk that is not private, posting on a request you can read makes you a participant, so you hear about it from then on. On a private desk, people are added only by an agent or, where the desk allows it, the requester.
 - **Asking the requester a question** — An agent does this from **Move to**, choosing Waiting on Requester (the desk's own name for that status): the question they write there is posted here as a message, saved with the move, and the conversation shows the move on it. See [Changing a request's status](#changing-a-requests-status).
 - **Changes in between** — By default the conversation shows the request's changes between the messages, as its Activity section shows them to you. **Messages only** hides them.
@@ -317,7 +317,7 @@ A desk is run from its own page, opened from **Desks** or from the desk named on
 
 - **Requests** — The requests on the desk that you can see
 - **Members** — Who works the desk, and in which role
-- **Settings** — Its name, what to bring here, its review workflow, who can see its requests (with what that exposes, in plain words), the channels and tag axes it offers, whether it is open, and what requesters may do on it
+- **Settings** — Its name, what to bring here, its review workflow, who can see its requests (with what that exposes, in plain words), the channels and tag axes it offers, how its conversations work, whether it is open, and what requesters may do on it
 
 What you can change depends on your role:
 
@@ -327,6 +327,7 @@ What you can change depends on your role:
 | Open to new requests, requesters can choose it, requesters may add participants | Yes | Yes |
 | **Channels offered** | Yes | Yes |
 | **Tag axes offered** | Yes | Yes |
+| **Conversations**: internal notes, mentions | Yes | Yes |
 | Name or remove **Agents** | Yes | Yes |
 | **Review workflow** | Yes, while no request is on it | Yes, while no request is on it |
 | Name or remove **Desk Admins** | No | Yes |
@@ -350,6 +351,15 @@ Changing what a desk uses changes only what its agents can apply. Requests keep 
 #### Allowing free tags
 
 **Allow free tags** in the desk's Settings lets the desk's agents add [free tags](#tags) — tags on no axis, typed in while tagging. It is off for a new desk, so a desk's filing stays on the company axes unless its Desk Admin chooses otherwise. Turning it off stops new free tags being added on the desk; requests keep the ones they carry, and they can still be removed.
+
+#### Setting how a desk's conversations work
+
+**Conversations** in the desk's Settings says how [discussions](#discussing-a-request) on its requests behave, and **Change Conversation Settings** lets a Desk Admin or the Demand Management Admin change it:
+
+- **Internal notes** — On for a new desk. Turning them off stops anyone posting a new note or replying in a note's thread. Notes already written stay, readable only by the people who could read them before, and their authors can still edit or delete them.
+- **Mentions give access** — On for a new desk. While on, mentioning someone you could add as a participant yourself makes them one. Turned off, only the request's own people and the desk's members can be mentioned, and nobody else is offered — useful on a desk that takes requests from customers, where access should be granted on purpose.
+
+A desk that has not changed these follows the default for every desk, and the panel says so. Setting them back to the default's values makes the desk follow the default again, including any later change to it. Each change is recorded in the Activity log with what it was before. Turning a setting off never shows anyone something they could not already read.
 
 #### Choosing a desk's scoring model
 

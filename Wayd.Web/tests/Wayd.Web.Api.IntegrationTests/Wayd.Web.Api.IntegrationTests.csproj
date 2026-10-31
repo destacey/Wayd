@@ -34,9 +34,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- Written by the @wayd/mcp package's tests/hosted-parity.test.ts; McpToolCatalogTests compares
-             the hosted MCP server with it. -->
-        <Content Include="Mcp\npm-tool-parity.json" CopyToOutputDirectory="PreserveNewest" />
+        <!-- The tools published before the hosted server, by the retired @wayd/mcp package; McpToolCatalogTests
+             holds the hosted server to them. -->
+        <Content Include="Mcp\published-tools.json" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
     <ItemGroup>

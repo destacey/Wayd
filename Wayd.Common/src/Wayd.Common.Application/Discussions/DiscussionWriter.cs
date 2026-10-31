@@ -30,10 +30,15 @@ public sealed class DiscussionWriter(
             return Result.Failure<Guid>(context.Error);
         }
 
-        var (type, access, employeeId) = context.Value;
+        var (type, access, employeeId, settings) = context.Value;
         if (!access.CanWrite(message.Kind))
         {
             return Result.Failure<Guid>(DiscussionAccessErrors.CannotWrite);
+        }
+
+        if (message.Kind == DiscussionMessageKind.InternalNote && !settings.InternalNotesEnabled)
+        {
+            return Result.Failure<Guid>(DiscussionErrors.InternalNotesTurnedOff);
         }
 
         var now = message.RecordChange?.Timestamp ?? _dateTimeProvider.Now;
@@ -83,7 +88,7 @@ public sealed class DiscussionWriter(
             return Result.Failure<Guid>(context.Error);
         }
 
-        var (type, access, employeeId) = context.Value;
+        var (type, access, employeeId, settings) = context.Value;
 
         var channel = await FindChannel(type.ChannelType, ownerId, cancellationToken);
         if (channel is null)
@@ -101,6 +106,12 @@ public sealed class DiscussionWriter(
         if (!access.CanWrite(parent.Kind))
         {
             return Result.Failure<Guid>(DiscussionAccessErrors.CannotWrite);
+        }
+
+        // A reply in a note's thread is a new note, so turning notes off ends those threads too.
+        if (parent.Kind == DiscussionMessageKind.InternalNote && !settings.InternalNotesEnabled)
+        {
+            return Result.Failure<Guid>(DiscussionErrors.InternalNotesTurnedOff);
         }
 
         var mentions = await Mentionable(type, ownerId, body, parent.Kind, cancellationToken);
@@ -182,7 +193,7 @@ public sealed class DiscussionWriter(
             return Result.Failure(context.Error);
         }
 
-        var (type, access, employeeId) = context.Value;
+        var (type, access, employeeId, _) = context.Value;
         if (!access.CanModerate)
         {
             return Result.Failure(DiscussionAccessErrors.CannotModerate);
@@ -232,10 +243,29 @@ public sealed class DiscussionWriter(
         }
     }
 
+    /// <inheritdoc/>
+    public async Task DeleteSettings(string channelType, Guid scopeId, EventActor actor, CancellationToken cancellationToken)
+    {
+        var descriptor = DiscussionChannelTypes.Resolve(channelType);
+        if (descriptor.IsFailure)
+        {
+            throw new ArgumentException(descriptor.Error, nameof(channelType));
+        }
+
+        var id = DiscussionSettings.IdFor(descriptor.Value.Key, scopeId);
+        var settings = await _dbContext.DiscussionSettings.FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+        if (settings is not null)
+        {
+            settings.Delete(descriptor.Value, actor, _dateTimeProvider.Now);
+            _dbContext.DiscussionSettings.Remove(settings);
+        }
+    }
+
     /// <summary>
-    /// Resolves the channel type, the caller's access to the record and their employee id: the start of every change.
+    /// Resolves the channel type, the caller's access to the record, their employee id and the settings in effect for
+    /// the record's scope: the start of every change.
     /// </summary>
-    private async Task<Result<(IDiscussionChannelType Type, DiscussionAccess Access, Guid EmployeeId)>> Begin(
+    private async Task<Result<(IDiscussionChannelType Type, DiscussionAccess Access, Guid EmployeeId, DiscussionSettingValues Settings)>> Begin(
         string channelType, Guid ownerId, CancellationToken cancellationToken)
     {
         var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
@@ -247,16 +277,18 @@ public sealed class DiscussionWriter(
         var type = DiscussionChannelTypeResolver.Resolve(_channelTypes, channelType);
         if (type.IsFailure)
         {
-            return Result.Failure<(IDiscussionChannelType, DiscussionAccess, Guid)>(type.Error);
+            return Result.Failure<(IDiscussionChannelType, DiscussionAccess, Guid, DiscussionSettingValues)>(type.Error);
         }
 
         var access = await type.Value.Resolve(ownerId, cancellationToken);
         if (access is null)
         {
-            return Result.Failure<(IDiscussionChannelType, DiscussionAccess, Guid)>(DiscussionAccessErrors.NotFound);
+            return Result.Failure<(IDiscussionChannelType, DiscussionAccess, Guid, DiscussionSettingValues)>(DiscussionAccessErrors.NotFound);
         }
 
-        return (type.Value, access, employeeId.Value);
+        var settings = await _dbContext.DiscussionSettingsFor(type.Value.ChannelType, access.ScopeId, cancellationToken);
+
+        return (type.Value, access, employeeId.Value, settings);
     }
 
     /// <summary>
@@ -272,7 +304,7 @@ public sealed class DiscussionWriter(
             return Result.Failure<(IDiscussionChannelType, DiscussionAccess, Guid, DiscussionChannel, DiscussionMessage)>(context.Error);
         }
 
-        var (type, access, employeeId) = context.Value;
+        var (type, access, employeeId, _) = context.Value;
 
         var channel = await FindChannel(type.ChannelType, ownerId, cancellationToken);
         var message = channel is null

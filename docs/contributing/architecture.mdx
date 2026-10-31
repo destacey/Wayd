@@ -94,7 +94,7 @@ Wayd/
 
   Wayd.Infrastructure/   # EF Core, migrations, auth, messaging, jobs
   Wayd.Integrations/     # External system clients (Azure DevOps, Microsoft Graph, Workday)
-  Wayd.Web/              # Presentation layer: Wayd.Web.Api, wayd.web.reactclient, Wayd.Mcp
+  Wayd.Web/              # Presentation layer: Wayd.Web.Api, wayd.web.reactclient
   Wayd.Tools/            # Developer tools (data generation)
   Wayd.AppHost/          # .NET Aspire host for local development
   Wayd.ArchitectureTests/  # Architecture rules, at the root with no src/ or tests/ folder
@@ -425,24 +425,39 @@ A **section** groups channels for a later chat area and is never stored. Making 
 registration in its module, not a schema change:
 
 1. Declare a `DiscussionChannelTypeDescriptor` as a static field in the module's domain project — key, display
-   name, section, whether it supports internal notes and subjects — and register it with `DiscussionChannelTypes`.
-   Spell the key as the record's follow owner type; it is persisted, so never rename it.
+   name, section, whether it supports internal notes, subjects and mention access, and the aggregate type that
+   holds its settings (`settingsScopeType`, such as `IntakeDesk`; null for none) — and register it with
+   `DiscussionChannelTypes`. Spell the key as the record's follow owner type; it is persisted, so never rename it.
 2. Implement `IDiscussionChannelType` (`Common.Application/Discussions`) in the module's Application project:
    - `Resolve(ownerId)` returns what the caller may do — read and post internal notes, post, moderate — or null
      when they cannot read the record, which every caller reports as 404. Decide from the record as it is now,
      by the same rule as its own read endpoints, and return null when the module's feature flag is off: the
-     discussion endpoints sit outside the module's controllers.
+     discussion endpoints sit outside the module's controllers. Its `ScopeId` names the record whose settings
+     apply — a request's desk — read from the record now, so a rerouted request takes its new desk's settings.
    - `MentionableAmong(ownerId, ids, kind)` narrows a message's mentions to those its author may make. Keep a
      mention in an internal note to the internal audience, or the mention tells someone a note exists.
    - `OnPosted(channel, message)` applies what posting means to the module's own aggregate — adding a participant —
      tracked in the same save, because it can grant access. `OnEdited(channel, message, addedMentionIds)` does the
      same for mentions an edit adds, so editing is no way around the rule for who may widen a record. A record whose
      access comes only from permissions and roles, as a project's does, leaves both empty.
+   - `ResolveSettings(scopeId)` says whether the caller may change a scope's settings, or the type's default when
+     `scopeId` is null; null when the type has no settings or the scope does not exist. A type with no
+     `settingsScopeType` returns null.
 3. Register both in `Infrastructure/Discussions/ConfigureServices.AddDiscussions`. Make the implementation
    `public` — Wolverine's generated handlers construct it directly — and give it the same key as the record's
    `IRecordReadRule`: the conversation shows the record's activity through that rule, once the rule admits the
    caller, and shows messages only when no rule has the key. `DiscussionRegistrationTests` fails until every
    registered channel type has exactly one implementation.
+
+**Settings** (`DiscussionSettings`, `Discussions.Settings`) hold two switches per channel type and scope: internal
+notes enabled and mentions grant access. A record uses its scope's row, else the type's default row, else the
+descriptor's defaults — read through `DiscussionSettingsFor` on `IDiscussionsDbContext`, never the table directly. A
+row exists only while it differs from what its scope inherits: saving the inherited values creates none, or removes
+the one there. The writer and the discussion queries apply them: notes off refuses new notes and replies in a note's
+thread but never hides an existing one. Whether a mention grants access is the channel type's to honour in
+`MentionableAmong` and `OnPosted`. Each change raises `DiscussionSettingsValuesChangedEvent` with both ends, related
+to the scope's aggregate so it lists on the scope's Activity too. A module hard-deleting a scope removes its row with
+`IDiscussionWriter.DeleteSettings`.
 
 Two channel types are registered:
 

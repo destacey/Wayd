@@ -59,7 +59,6 @@ rm -rf .vs
 find . \( -type d -name node_modules -prune \) -o \( -type d \( -name bin -o -name obj \) -print \) | xargs -r rm -rf
 rm -rf Wayd.Web/src/wayd.web.reactclient/.next
 rm -rf Wayd.Web/src/wayd.web.reactclient/node_modules
-rm -rf Wayd.Web/src/Wayd.Mcp/node_modules
 rm -rf docs-site/node_modules
 ```
 
@@ -70,7 +69,6 @@ Remove-Item -Recurse -Force .vs -ErrorAction SilentlyContinue
 
 # Delete node_modules first so the bin/obj scan doesn't walk them.
 Remove-Item -Recurse -Force Wayd.Web/src/wayd.web.reactclient/node_modules -ErrorAction SilentlyContinue
-Remove-Item -Recurse -Force Wayd.Web/src/Wayd.Mcp/node_modules -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force docs-site/node_modules -ErrorAction SilentlyContinue
 
 Get-ChildItem -Recurse -Directory -Include bin,obj |
@@ -82,7 +80,6 @@ Remove-Item -Recurse -Force Wayd.Web/src/wayd.web.reactclient/.next -ErrorAction
 
 ```bash
 (cd Wayd.Web/src/wayd.web.reactclient && npm ci)
-(cd Wayd.Web/src/Wayd.Mcp && npm ci)
 (cd docs-site && npm ci)
 ```
 

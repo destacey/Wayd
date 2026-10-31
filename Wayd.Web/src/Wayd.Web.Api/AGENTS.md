@@ -13,7 +13,7 @@ reject a result the schema does not accept. A non-object response is wrapped und
 - **Annotations default from the HTTP method**; set `ReadOnly`/`Destructive`/`Idempotent` on the attribute only to depart from it, and `Destructive = false` only for a write that purely adds a record.
 - **Calls run through the API pipeline** (`ApiPipeline`), so a tool needs no authorization of its own — the endpoint's applies. An action whose body is not JSON cannot be a tool; `McpToolCatalog` throws on first use.
 - **A partial update is a PATCH over the existing update request** via `JsonPatchControllerExtensions.Patch`, with a drift test; never a new command ([Partial updates](../../../docs/contributing/api.mdx#partial-updates)). Its tool swaps the full tool's verb for `Patch`.
-- **Parity with `@wayd/mcp`**: until the package is retired, `McpToolCatalogTests` holds the tool list to `Wayd.Web.Api.IntegrationTests/Mcp/npm-tool-parity.json` (written by the package's tests): every npm tool stays hosted.
+- **Published tools stay**: `McpToolCatalogTests` holds the tool list to `Wayd.Web.Api.IntegrationTests/Mcp/published-tools.json`, the retired `@wayd/mcp` package's tools — every one stays, with its title, annotations and arguments. The same tests check that `docs/getting-started/mcp-server.mdx` and the skill evaluation's scenarios name only tools that exist.
 
 ## OpenAPI Client Generation
 

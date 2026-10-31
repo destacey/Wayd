@@ -55,7 +55,7 @@ npm run typecheck
 npm run lint
 npm test
 ```
-A change to the `@wayd/mcp` package (`Wayd.Web/src/Wayd.Mcp`) also needs `npm test` there and a changeset — see [MCP Server](docs/contributing/mcp-server.mdx).
+A change to the skill evaluation (`evals/`) also needs `npm test` there — see [MCP Server](docs/contributing/mcp-server.mdx#skill-evaluation).
 
 #### Commit Your Changes
 Commit your changes with a meaningful commit message:

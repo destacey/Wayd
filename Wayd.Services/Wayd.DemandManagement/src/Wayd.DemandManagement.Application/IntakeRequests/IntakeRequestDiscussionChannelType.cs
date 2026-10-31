@@ -1,5 +1,6 @@
 using Wayd.Common.Application.Discussions;
 using Wayd.Common.Application.FeatureManagement;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
@@ -24,9 +25,9 @@ namespace Wayd.DemandManagement.Application.IntakeRequests;
 /// </para>
 /// <para>
 /// <strong>Participation.</strong> On a private desk it is granted, never accrued, so posting adds nobody. Elsewhere a
-/// reply adds its author, and a mention adds the person mentioned when the author could have added them directly; a
-/// participant cannot widen the request by mentioning someone. An internal note adds nobody, or the mention would tell
-/// its subject a note exists.
+/// reply adds its author, and a mention adds the person mentioned when the author could have added them directly and
+/// the desk's discussion settings let mentions grant access; a participant cannot widen the request by mentioning
+/// someone. An internal note adds nobody, or the mention would tell its subject a note exists.
 /// </para>
 /// Refuses every request while Demand Management is off: the discussion endpoints sit outside the module's controllers.
 /// </remarks>
@@ -34,14 +35,17 @@ public sealed class IntakeRequestDiscussionChannelType(
     IDemandManagementDbContext dbContext,
     ICurrentPrincipal currentPrincipal,
     ICurrentUser currentUser,
-    IFeatureFlags featureFlags) : IDiscussionChannelType
+    IFeatureFlags featureFlags,
+    IDiscussionsDbContext discussionsDbContext) : IDiscussionChannelType
 {
     private readonly IDemandManagementDbContext _dbContext = dbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IFeatureFlags _featureFlags = featureFlags;
+    private readonly IDiscussionsDbContext _discussionsDbContext = discussionsDbContext;
 
     private IntakeRequestReader? _reader;
+    private readonly Dictionary<Guid, DiscussionSettingValues> _deskSettings = [];
 
     /// <inheritdoc/>
     public string ChannelType => DemandManagementDiscussionChannels.IntakeRequest.Key;
@@ -69,7 +73,8 @@ public sealed class IntakeRequestDiscussionChannelType(
             CanReadInternal: isAgent,
             CanPost: mayWrite,
             CanPostInternal: mayWrite && isAgent,
-            CanModerate: mayWrite && reader.IsDeskAdminOn(id));
+            CanModerate: mayWrite && reader.IsDeskAdminOn(id),
+            ScopeId: id);
     }
 
     /// <inheritdoc/>
@@ -120,9 +125,29 @@ public sealed class IntakeRequestDiscussionChannelType(
         CancellationToken cancellationToken) =>
         Accrue(channel, message, includeAuthor: false, addedMentionIds, message.EditedOn ?? message.PostedOn, cancellationToken);
 
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The scope is a desk. A desk's settings are read by anyone who can see the desk, as its other settings are, and
+    /// changed by its Desk Admins and the Demand Management Admin. The default for every desk is the Demand Management
+    /// Admin's alone to change. A read-only token changes nothing.
+    /// </remarks>
+    public async Task<DiscussionSettingsAccess?> ResolveSettings(Guid? scopeId, CancellationToken cancellationToken)
+    {
+        if (!await _featureFlags.IsEnabled(FeatureFlags.Names.DemandManagement, cancellationToken))
+            return null;
+
+        if (scopeId is { } deskId && !await _dbContext.IntakeDesks.AnyAsync(d => d.Id == deskId, cancellationToken))
+            return null;
+
+        var reader = await Reader(cancellationToken);
+        var mayManage = scopeId is { } id ? reader.IsDeskAdminOn(id) : reader.IsDemandManagementAdmin;
+
+        return new DiscussionSettingsAccess(CanManage: mayManage && !_currentPrincipal.IsReadOnly);
+    }
+
     /// <summary>
     /// Makes participants of a reply's author, when <paramref name="includeAuthor"/>, and of the people it mentions
-    /// whom the author could add directly. Nothing for an internal note or on a private desk.
+    /// when <see cref="MayAddByMention"/> allows. Nothing for an internal note or on a private desk.
     /// </summary>
     private async Task Accrue(
         DiscussionChannel channel,
@@ -147,8 +172,9 @@ public sealed class IntakeRequestDiscussionChannelType(
         if (includeAuthor && !facts.IsInvolved(author) && !reader.IsAgentOn(facts.People.DeskId))
             joining.Add(author);
 
-        if (await MayAddByMention(facts, cancellationToken))
-            joining.AddRange(mentionIds.Where(id => !facts.IsInvolved(id) && id != author));
+        Guid[] mentioned = [.. mentionIds];
+        if (mentioned.Length > 0 && await MayAddByMention(facts, cancellationToken))
+            joining.AddRange(mentioned.Where(id => !facts.IsInvolved(id) && id != author));
 
         if (joining.Count == 0)
             return;
@@ -177,15 +203,31 @@ public sealed class IntakeRequestDiscussionChannelType(
 
     /// <summary>
     /// Whether a mention in a reply may add its subject as a participant: never on a private desk, and elsewhere only
-    /// when the author could add them directly.
+    /// when the desk's discussion settings let mentions grant access and the author could add them directly.
     /// </summary>
     private async Task<bool> MayAddByMention(RequestFacts facts, CancellationToken cancellationToken)
     {
         if (facts.Visibility == IntakeDeskVisibility.Private)
             return false;
 
+        var settings = await DeskSettings(facts.People.DeskId, cancellationToken);
+        if (!settings.MentionsGrantAccess)
+            return false;
+
         var reader = await Reader(cancellationToken);
         return reader.CanAddParticipants(facts.People, facts.Visibility, facts.RequesterMayAddParticipants);
+    }
+
+    /// <summary>The desk's discussion settings, read once per desk for the life of this scoped instance.</summary>
+    private async Task<DiscussionSettingValues> DeskSettings(Guid deskId, CancellationToken cancellationToken)
+    {
+        if (!_deskSettings.TryGetValue(deskId, out var settings))
+        {
+            settings = await _discussionsDbContext.DiscussionSettingsFor(ChannelType, deskId, cancellationToken);
+            _deskSettings[deskId] = settings;
+        }
+
+        return settings;
     }
 
     private async Task<IntakeRequestReader> Reader(CancellationToken cancellationToken) =>

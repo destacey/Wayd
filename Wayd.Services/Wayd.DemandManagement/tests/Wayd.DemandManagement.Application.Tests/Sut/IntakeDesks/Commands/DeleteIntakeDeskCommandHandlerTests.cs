@@ -2,6 +2,7 @@ using CSharpFunctionalExtensions;
 using FluentAssertions;
 using Moq;
 using NodaTime;
+using Wayd.Common.Application.Discussions;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
@@ -15,6 +16,7 @@ public sealed class DeleteIntakeDeskCommandHandlerTests
 {
     private readonly IntakeScenario _scenario = new();
     private readonly Mock<IScopedWorkflowAssignments> _assignments = new();
+    private readonly Mock<IDiscussionWriter> _discussionWriter = new();
 
     public DeleteIntakeDeskCommandHandlerTests()
     {
@@ -24,7 +26,7 @@ public sealed class DeleteIntakeDeskCommandHandlerTests
     }
 
     private DeleteIntakeDeskCommandHandler CreateHandler() =>
-        new(_scenario.DbContext, _scenario.Principal.Object, _scenario.User.Object, _scenario.Clock, _assignments.Object);
+        new(_scenario.DbContext, _scenario.Principal.Object, _scenario.User.Object, _scenario.Clock, _assignments.Object, _discussionWriter.Object);
 
     [Fact]
     public async Task Handle_ForADeskWithNoRequests_RecordsTheDeletionAndRemovesIt()
@@ -44,6 +46,9 @@ public sealed class DeleteIntakeDeskCommandHandlerTests
         // A workflow the desk chose goes with it, or it could never be archived.
         _assignments.Verify(a => a.RemoveScope(DemandManagementWorkflowOwners.IntakeRequest.Key, desk.Id, It.IsAny<EventActor>(),
             It.IsAny<Instant>(), It.IsAny<CancellationToken>()), Times.Once);
+        // Its conversation settings go too, or they would outlive the desk.
+        _discussionWriter.Verify(w => w.DeleteSettings(DemandManagementDiscussionChannels.IntakeRequest.Key, desk.Id, It.IsAny<EventActor>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

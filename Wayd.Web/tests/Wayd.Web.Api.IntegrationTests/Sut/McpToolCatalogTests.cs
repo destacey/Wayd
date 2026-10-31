@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
@@ -15,10 +16,11 @@ using Wayd.Web.Api.Mcp;
 namespace Wayd.Web.Api.IntegrationTests.Sut;
 
 /// <summary>
-/// Compares the hosted MCP server's tools with the @wayd/mcp package's, through a snapshot that package's
-/// own tests keep current (<c>Mcp/npm-tool-parity.json</c>). Tool names are a contract with skills and
-/// prompts already in use, so the hosted server must offer every one, advertise the same title and
-/// annotations, accept every argument callers send today, and require nothing they may leave out.
+/// Checks the hosted MCP server's tools: against the tools published before it (<c>Mcp/published-tools.json</c>,
+/// the retired <c>@wayd/mcp</c> package's tool list), against what the user docs, skills and skill evaluation
+/// name, and for the rules every tool follows. Published tool names are a contract with skills, prompts and
+/// configurations already in use, so the server must offer every one, advertise the same title and
+/// annotations, accept every argument callers send, and require nothing they may leave out.
 /// </summary>
 /// <remarks>
 /// Builds the catalogue from the booted host because it is described from the API's runtime OpenAPI
@@ -28,7 +30,7 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 public sealed class McpToolCatalogTests(WaydApiFactory factory)
 {
     private static readonly JsonObject _snapshot = JsonNode.Parse(
-        File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Mcp", "npm-tool-parity.json")))!.AsObject();
+        File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Mcp", "published-tools.json")))!.AsObject();
 
     private readonly WaydApiFactory _factory = factory;
 
@@ -62,9 +64,9 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
     }
 
     [Fact]
-    public async Task GetTools_OffersEveryToolTheNpmServerOffers()
+    public async Task GetTools_OffersEveryPublishedTool()
     {
-        // Arrange — the hosted server may offer more: composite tools exist only here
+        // Arrange — the server may offer more than was published
         var expected = SnapshotTools().Select(t => (string)t["name"]!).ToList();
 
         // Act
@@ -75,7 +77,7 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
     }
 
     [Fact]
-    public async Task GetTools_AdvertisesTheNpmServersTitlesAndAnnotations()
+    public async Task GetTools_AdvertisesThePublishedTitlesAndAnnotations()
     {
         // Arrange
         var tools = (await GetTools()).ToDictionary(t => t.ProtocolTool.Name);
@@ -100,7 +102,7 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
     }
 
     [Fact]
-    public async Task GetTools_AcceptsEveryArgumentTheNpmServerTakesAndRequiresNoMore()
+    public async Task GetTools_AcceptsEveryPublishedArgumentAndRequiresNoMore()
     {
         // Arrange
         var tools = (await GetTools()).ToDictionary(t => t.ProtocolTool.Name);
@@ -118,13 +120,13 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
                 ? requiredArray.EnumerateArray().Select(r => r.GetString()!).ToHashSet()
                 : [];
 
-            var npmArguments = expected["arguments"]!.AsArray().Select(a => (string)a!).ToHashSet();
-            var npmRequired = expected["required"]!.AsArray().Select(a => (string)a!).ToHashSet();
+            var publishedArguments = expected["arguments"]!.AsArray().Select(a => (string)a!).ToHashSet();
+            var publishedRequired = expected["required"]!.AsArray().Select(a => (string)a!).ToHashSet();
 
-            foreach (var missing in npmArguments.Except(arguments))
+            foreach (var missing in publishedArguments.Except(arguments))
                 mismatches.Add($"{name}: does not take '{missing}'");
-            foreach (var extra in required.Except(npmRequired))
-                mismatches.Add($"{name}: requires '{extra}', which the npm server does not");
+            foreach (var extra in required.Except(publishedRequired))
+                mismatches.Add($"{name}: requires '{extra}', which the published tool did not");
         }
 
         // Assert
@@ -132,30 +134,13 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
     }
 
     [Fact]
-    public void ServerInstructions_ShareTheNpmServersWordForWord()
+    public void ServerInstructions_SayHowToFetchASkill()
     {
-        // Arrange
-        var expected = (string)_snapshot["instructions"]!;
-
-        // Act
-        var instructions = McpServerInstructions.Shared;
-
-        // Assert
-        Assert.Equal(expected, instructions);
-    }
-
-    [Fact]
-    public void ServerInstructions_AddHowToFetchASkill_AfterTheSharedText()
-    {
-        // Arrange
-        var shared = McpServerInstructions.Shared;
-
         // Act
         var instructions = McpServerInstructions.Text;
 
         // Assert
-        Assert.StartsWith(shared + " ", instructions);
-        Assert.Contains(SkillTools.Name, instructions[shared.Length..]);
+        Assert.Contains(SkillTools.Name, instructions);
     }
 
     [Fact]
@@ -413,7 +398,8 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
         // Assert
         // One toolset for the conversation on every kind of record, so a project's needs no intake tools.
         Assert.Equal(
-            ["Discussions_Get", "Discussions_GetEntries", "Discussions_GetReplies", "Discussions_Post", "Discussions_Reply"],
+            ["Discussions_Get", "Discussions_GetEntries", "Discussions_GetReplies", "Discussions_GetSettings", "Discussions_Post", "Discussions_Reply",
+                "Discussions_SaveSettings"],
             tools.Order(StringComparer.Ordinal));
         Assert.Contains("Discussions_Post", offered);
         Assert.DoesNotContain(offered, name => name.StartsWith("Intake", StringComparison.Ordinal));
@@ -438,6 +424,71 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
         Assert.Equal(expected, tools.Select(t => t.ProtocolTool.Name));
     }
 
+    [Fact]
+    public async Task GetTools_OffersEveryToolTheUserDocsName()
+    {
+        // Arrange — a row left behind by a renamed or removed tool would send readers to a tool that is gone
+        var documented = ToolNamesIn(File.ReadAllText(RepositoryFile("docs", "getting-started", "mcp-server.mdx")));
+
+        // Act
+        var names = (await GetTools()).Select(t => t.ProtocolTool.Name).ToHashSet(StringComparer.Ordinal);
+
+        // Assert
+        Assert.Empty(documented.Where(n => !names.Contains(n)).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void UserDocs_ListEverySkill_WithTheirCount()
+    {
+        // Arrange
+        var docs = File.ReadAllText(RepositoryFile("docs", "getting-started", "mcp-server.mdx"));
+        string[] counts = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven",
+            "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"];
+
+        // Act
+        var missing = Skills.All.Select(s => s.Name).Where(n => !docs.Contains($"`/{n}`", StringComparison.Ordinal)).ToList();
+        var stated = Regex.Match(docs, @"(\w+) pre-built skills").Groups[1].Value;
+
+        // Assert
+        Assert.Empty(missing);
+        Assert.Equal(counts[Skills.All.Count], stated);
+    }
+
+    [Fact]
+    public async Task GetTools_OffersEveryToolTheSkillEvaluationNames()
+    {
+        // Arrange — the evaluation's stub advertises the tool list fetched from this server, so a scenario
+        // naming a tool it lacks could never pass
+        var named = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var file in Directory.EnumerateFiles(RepositoryFile("evals", "scenarios"), "*.json"))
+        {
+            foreach (var scenario in JsonNode.Parse(File.ReadAllText(file))!.AsArray())
+            {
+                foreach (var fixture in scenario!["fixtures"]?.AsArray() ?? [])
+                {
+                    named.Add((string)fixture!["tool"]!);
+                    if (fixture["after"] is { } after)
+                        named.Add((string)after!);
+                }
+                foreach (var assertion in scenario["expect"]?.AsArray() ?? [])
+                {
+                    foreach (var key in new[] { "tool", "first", "then" })
+                    {
+                        if (assertion![key] is { } tool)
+                            named.Add((string)tool!);
+                    }
+                }
+            }
+        }
+
+        // Act
+        var names = (await GetTools()).Select(t => t.ProtocolTool.Name).ToHashSet(StringComparer.Ordinal);
+
+        // Assert
+        Assert.NotEmpty(named);
+        Assert.Empty(named.Where(n => !names.Contains(n)));
+    }
+
     private McpToolCatalog GetCatalog()
     {
         _ = _factory.CreateClient();
@@ -458,6 +509,22 @@ public sealed class McpToolCatalogTests(WaydApiFactory factory)
     {
         var schema = await NJsonSchema.JsonSchema.FromJsonAsync(outputSchema.GetRawText(), TestContext.Current.CancellationToken);
         return [.. schema.Validate(structured.ToJsonString()).Select(e => e.ToString())];
+    }
+
+    /// <summary>
+    /// Every tool name <paramref name="text"/> mentions, matched whole: many names are a prefix of another
+    /// (<c>Products_GetProduct</c> of <c>Products_GetProducts</c>), so a substring search would find a removed one.
+    /// </summary>
+    private static IReadOnlySet<string> ToolNamesIn(string text) =>
+        Regex.Matches(text, @"\b[A-Z][A-Za-z]*_[A-Za-z][A-Za-z0-9]*\b").Select(m => m.Value).ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>A path in the repository the tests were built from, found by walking up to <c>Wayd.slnx</c>.</summary>
+    private static string RepositoryFile(params string[] parts)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Wayd.slnx")))
+            directory = directory.Parent;
+        return Path.Combine([directory?.FullName ?? throw new InvalidOperationException("Wayd.slnx not found above the test output."), .. parts]);
     }
 
     private static IEnumerable<JsonObject> SnapshotTools() => _snapshot["tools"]!.AsArray().OfType<JsonObject>();

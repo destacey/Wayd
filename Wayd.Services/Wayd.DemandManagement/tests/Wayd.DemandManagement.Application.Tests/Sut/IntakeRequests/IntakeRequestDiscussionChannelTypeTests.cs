@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using NodaTime;
 using Wayd.Common.Application.Discussions;
 using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Domain.Discussions;
@@ -10,6 +11,7 @@ using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.Tests.Infrastructure;
 using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
+using Wayd.Tests.Shared.Infrastructure;
 
 namespace Wayd.DemandManagement.Application.Tests.Sut.IntakeRequests;
 
@@ -17,6 +19,7 @@ public sealed class IntakeRequestDiscussionChannelTypeTests
 {
     private readonly IntakeScenario _scenario = new();
     private readonly Mock<IFeatureFlags> _featureFlags = new();
+    private readonly FakeDiscussionsDbContext _discussions = new();
 
     public IntakeRequestDiscussionChannelTypeTests()
     {
@@ -25,7 +28,17 @@ public sealed class IntakeRequestDiscussionChannelTypeTests
     }
 
     private IntakeRequestDiscussionChannelType CreateSut() =>
-        new(_scenario.DbContext, _scenario.Principal.Object, _scenario.User.Object, _featureFlags.Object);
+        new(_scenario.DbContext, _scenario.Principal.Object, _scenario.User.Object, _featureFlags.Object, _discussions);
+
+    /// <summary>Saves the default discussion settings every desk follows.</summary>
+    private void UseSettings(DiscussionSettingValues values)
+    {
+        var intakeRequest = DemandManagementDiscussionChannels.IntakeRequest;
+        var saved = DiscussionSettings.Create(intakeRequest, null, intakeRequest.DefaultSettings, values, EventActor.System,
+            Instant.FromUtc(2026, 10, 30, 9, 0)).Value;
+        if (saved is not null)
+            _discussions.AddSettings(saved);
+    }
 
     private void TurnDemandManagement(bool on) =>
         _featureFlags
@@ -100,7 +113,7 @@ public sealed class IntakeRequestDiscussionChannelTypeTests
         var access = await Resolve(request);
 
         // Assert
-        access.Should().Be(new DiscussionAccess(CanReadInternal: false, CanPost: true, CanPostInternal: false, CanModerate: false));
+        access.Should().Be(new DiscussionAccess(CanReadInternal: false, CanPost: true, CanPostInternal: false, CanModerate: false, ScopeId: request.DeskId));
     }
 
     [Fact]
@@ -115,7 +128,7 @@ public sealed class IntakeRequestDiscussionChannelTypeTests
         var access = await Resolve(request);
 
         // Assert
-        access.Should().Be(new DiscussionAccess(CanReadInternal: true, CanPost: true, CanPostInternal: true, CanModerate: false));
+        access.Should().Be(new DiscussionAccess(CanReadInternal: true, CanPost: true, CanPostInternal: true, CanModerate: false, ScopeId: request.DeskId));
     }
 
     [Fact]
@@ -130,7 +143,7 @@ public sealed class IntakeRequestDiscussionChannelTypeTests
         var access = await Resolve(request);
 
         // Assert
-        access.Should().Be(new DiscussionAccess(CanReadInternal: true, CanPost: true, CanPostInternal: true, CanModerate: true));
+        access.Should().Be(new DiscussionAccess(CanReadInternal: true, CanPost: true, CanPostInternal: true, CanModerate: true, ScopeId: request.DeskId));
     }
 
     [Fact]
@@ -144,7 +157,7 @@ public sealed class IntakeRequestDiscussionChannelTypeTests
         var access = await Resolve(request);
 
         // Assert
-        access.Should().Be(new DiscussionAccess(CanReadInternal: true, CanPost: true, CanPostInternal: true, CanModerate: true));
+        access.Should().Be(new DiscussionAccess(CanReadInternal: true, CanPost: true, CanPostInternal: true, CanModerate: true, ScopeId: request.DeskId));
     }
 
     [Fact]
@@ -158,7 +171,7 @@ public sealed class IntakeRequestDiscussionChannelTypeTests
         var access = await Resolve(request);
 
         // Assert
-        access.Should().Be(new DiscussionAccess(CanReadInternal: false, CanPost: true, CanPostInternal: false, CanModerate: false));
+        access.Should().Be(new DiscussionAccess(CanReadInternal: false, CanPost: true, CanPostInternal: false, CanModerate: false, ScopeId: request.DeskId));
     }
 
     [Fact]
@@ -230,7 +243,7 @@ public sealed class IntakeRequestDiscussionChannelTypeTests
         var access = await Resolve(request);
 
         // Assert
-        access.Should().Be(new DiscussionAccess(CanReadInternal: true, CanPost: false, CanPostInternal: false, CanModerate: false));
+        access.Should().Be(new DiscussionAccess(CanReadInternal: true, CanPost: false, CanPostInternal: false, CanModerate: false, ScopeId: request.DeskId));
     }
 
     [Fact]
@@ -408,6 +421,131 @@ public sealed class IntakeRequestDiscussionChannelTypeTests
 
         // Assert
         request.Participants.Should().ContainSingle(p => p.EmployeeId == colleague.Id && p.AddedById == requester.Id);
+    }
+
+    [Fact]
+    public async Task MentionableAmong_WhenTheDeskStopsMentionsGrantingAccess_DropsSomeoneNotOnTheRequest()
+    {
+        // Arrange
+        var requester = _scenario.Employee();
+        var colleague = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), requester);
+        _scenario.SignedInAs(requester);
+        UseSettings(new DiscussionSettingValues(InternalNotesEnabled: true, MentionsGrantAccess: false));
+
+        // Act
+        var mentionable = await Mentionable(request, DiscussionMessageKind.Public, colleague.Id, requester.Id);
+
+        // Assert
+        mentionable.Should().BeEquivalentTo([requester.Id]);
+    }
+
+    [Fact]
+    public async Task OnPosted_WhenTheDeskStopsMentionsGrantingAccess_AddsNobodyByMention()
+    {
+        // Arrange
+        var requester = _scenario.Employee();
+        var colleague = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), requester);
+        _scenario.SignedInAs(requester);
+        UseSettings(new DiscussionSettingValues(InternalNotesEnabled: true, MentionsGrantAccess: false));
+
+        // Act
+        await Post(request, requester.Id, DiscussionMessageKind.Public, colleague.Id);
+
+        // Assert
+        request.Participants.Should().NotContain(p => p.EmployeeId == colleague.Id);
+    }
+
+    [Fact]
+    public async Task Resolve_NamesTheRequestsDeskAsTheSettingsScope()
+    {
+        // Arrange
+        var requester = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), requester);
+        _scenario.SignedInAs(requester);
+
+        // Act
+        var access = await Resolve(request);
+
+        // Assert
+        access!.ScopeId.Should().Be(request.DeskId);
+    }
+
+    [Fact]
+    public async Task ResolveSettings_ForADeskAdmin_Manages()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var desk = _scenario.DeskAdministeredBy(deskAdmin.Id);
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var access = await CreateSut().ResolveSettings(desk.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        access.Should().Be(new DiscussionSettingsAccess(CanManage: true));
+    }
+
+    [Fact]
+    public async Task ResolveSettings_ForAnAgent_ReadsButDoesNotManage()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var desk = _scenario.Desk(agentIds: [agent.Id]);
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var access = await CreateSut().ResolveSettings(desk.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        access.Should().Be(new DiscussionSettingsAccess(CanManage: false));
+    }
+
+    [Fact]
+    public async Task ResolveSettings_ForTheDefault_IsTheDemandManagementAdminsToManage()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        _scenario.DeskAdministeredBy(deskAdmin.Id);
+        _scenario.SignedInAs(deskAdmin);
+        var asDeskAdmin = await CreateSut().ResolveSettings(null, TestContext.Current.CancellationToken);
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);
+
+        // Act
+        var asAdmin = await CreateSut().ResolveSettings(null, TestContext.Current.CancellationToken);
+
+        // Assert
+        asDeskAdmin.Should().Be(new DiscussionSettingsAccess(CanManage: false));
+        asAdmin.Should().Be(new DiscussionSettingsAccess(CanManage: true));
+    }
+
+    [Fact]
+    public async Task ResolveSettings_ForADeskThatDoesNotExist_IsNull()
+    {
+        // Arrange
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);
+
+        // Act
+        var access = await CreateSut().ResolveSettings(Guid.NewGuid(), TestContext.Current.CancellationToken);
+
+        // Assert
+        access.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ResolveSettings_WhileDemandManagementIsOff_IsNull()
+    {
+        // Arrange
+        var desk = _scenario.Desk();
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);
+        TurnDemandManagement(on: false);
+
+        // Act
+        var access = await CreateSut().ResolveSettings(desk.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        access.Should().BeNull();
     }
 
     [Fact]

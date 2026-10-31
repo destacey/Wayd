@@ -12,9 +12,7 @@ One convention for every contributor and every coding agent. Once the hooks are 
 convention, and `commit-msg` **warns** about a message that does but keeps the commit. The checks live in
 `.github/scripts/branch-name-check.sh` and `.github/scripts/commit-message-check.sh`.
 
-`pre-push` also refuses a branch that changes what `@wayd/mcp` publishes without adding a changeset — the
-check CI runs on the pull request (see [MCP Server](./mcp-server.mdx)); it is skipped until `npm ci` has run in
-`Wayd.Web/src/Wayd.Mcp`. `pre-commit` warns, without blocking, when a commit touching an `AGENTS.md` leaves a
+`pre-commit` warns, without blocking, when a commit touching an `AGENTS.md` leaves a
 directory's combined `AGENTS.md` text larger than Codex reads.
 
 ## Branches
@@ -75,7 +73,7 @@ chore(client): update Ant Design and add a deprecation script
 | `ci` | GitHub Actions workflows and CI scripts |
 | `build` | Build configuration: project files, Docker images, package manifests |
 
-Add `!` after the type or scope when a published contract breaks — the API or the `@wayd/mcp` package:
+Add `!` after the type or scope when a published contract breaks — the API or an MCP tool:
 `feat(mcp)!: remove the v1 project tools`.
 
 ### Scopes
@@ -107,7 +105,7 @@ The scope names the module or area the change is in. Leave it out when a change 
 | `infrastructure` | Cross-cutting infrastructure: messaging, jobs, logging, telemetry |
 | `api` | The Web API layer: controllers, request and response models, OpenAPI |
 | `client` | The Next.js client |
-| `mcp` | The MCP server (`@wayd/mcp`) |
+| `mcp` | The MCP server (`/mcp` on the API) and the skill evaluation |
 | `skills` | Agent skills in `skills/` |
 | `agents` | Agent guidance: `AGENTS.md`, `CLAUDE.md`, agent tool configuration |
 | `docker` | Docker Compose and container setup |

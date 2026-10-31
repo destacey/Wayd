@@ -1,11 +1,11 @@
 ---
 name: wayd-discussions
-description: Read before calling the Wayd MCP tools named Discussions_*. Guides agents holding the conversation on a Wayd record via the Wayd MCP server — an intake request or a project — reading its threads and the record's changes between them, posting a message with a subject, replying in a thread, writing an intake request's internal notes, and mentioning people. Use when the user asks what has been said on a request or project, wants to ask, answer or raise a topic on one, or wants someone told through its conversation.
+description: Read before calling the Wayd MCP tools named Discussions_*. Guides agents holding the conversation on a Wayd record via the Wayd MCP server — an intake request or a project — reading its threads and the record's changes between them, posting a message with a subject, replying in a thread, writing an intake request's internal notes, mentioning people, and setting how an intake desk's conversations work. Use when the user asks what has been said on a request or project, wants to ask, answer or raise a topic on one, or wants someone told through its conversation.
 ---
 
 # Wayd Discussions
 
-The discussion tools are offered by the hosted MCP endpoint (`/mcp`) only, in its `discussions` toolset. They work on any record that has a conversation, named by two parameters:
+The discussion tools are in the `discussions` toolset. They work on any record that has a conversation, named by two parameters:
 
 | Record | `channelType` | `ownerId` |
 | --- | --- | --- |
@@ -16,7 +16,7 @@ A `channelType` that cannot be discussed returns 400. A record that does not exi
 
 ## Before any change
 
-Posting and replying are changes: everyone who can read the record reads the message. Draft the text, show it to the user with where it will go — the record, the thread, and whether it is a message or an internal note — and wait for their go-ahead. Reads need no confirmation. When the user approves, post exactly what they approved.
+Posting and replying are changes: everyone who can read the record reads the message. Draft the text, show it to the user with where it will go — the record, the thread, and whether it is a message or an internal note — and wait for their go-ahead. Saving a desk's conversation settings is a change too. Reads need no confirmation. When the user approves, post exactly what they approved.
 
 ## How a conversation is shaped
 
@@ -33,6 +33,8 @@ Each record has one conversation. A **top-level message** may carry a `subject` 
 - **Replies** are read by everyone who can read the request's detail; a caller who sees only its summary gets 404. **Internal notes** (`kind` `InternalNote`) are read only by the desk's agents and the Demand Management Admin. Write a note for anything the requester should not read — what the desk is weighing, doubts about the ask, who else should look — and never quote or paraphrase one in a reply.
 - On a desk that is not private, a reply that mentions someone the author could add as a participant makes them one, so they can read the request. A participant cannot add anyone by mentioning them, and a mention in an internal note adds nobody and can name only the desk's members.
 - Take employee ids from `IntakeEmployeeOptions_GetList`.
+- A desk sets how its requests' conversations work. Read it with `Discussions_GetSettings` (`channelType` `demand.intake-request`, `scopeId` the desk's UUID; leave `scopeId` out for the default every desk without its own follows). `internalNotesEnabled` false means no new notes or replies in a note's thread — existing notes stay. `mentionsGrantAccess` false means a reply can mention only the request's own people and the desk's members, and a mention adds nobody.
+- **Change the settings** with `Discussions_SaveSettings`, sending both switches. It is a change like posting: show the user the desk and the new values and wait for their go-ahead. Only the desk's Desk Admins and the Demand Management Admin may — `canManage` says whether the caller is one — and the default is the Demand Management Admin's alone. Saving the default's values makes the desk follow the default again.
 - To ask the requester a question and move the request to Waiting on Requester in one save, use `IntakeRequests_ChangeStatus` with a `reply` (see the `wayd-intake` skill) rather than posting and changing the status separately.
 
 ## Projects

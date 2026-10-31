@@ -30,6 +30,12 @@ public interface IDiscussionsDbContext
     /// </remarks>
     DbSet<DiscussionMessage> DiscussionMessages { get; }
 
+    /// <summary>
+    /// Saved settings, one row per channel type and scope, and one per channel type for its default. Read them through
+    /// <c>DiscussionSettingsFor</c>, which falls back from scope to default to the channel type's own defaults.
+    /// </summary>
+    DbSet<DiscussionSettings> DiscussionSettings { get; }
+
     /// <summary>The shared employee table, for naming authors, deleters and mentioned people.</summary>
     DbSet<Employee> Employees { get; }
 

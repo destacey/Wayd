@@ -33,18 +33,31 @@ public sealed class DiscussionChannelTypeDescriptor
     /// turn them on.
     /// </param>
     /// <param name="supportsSubjects">Whether top-level messages may carry a subject.</param>
+    /// <param name="supportsMentionAccess">
+    /// Whether a mention can give the person mentioned access to the record. When false, a mention only notifies and
+    /// no setting can change that.
+    /// </param>
+    /// <param name="settingsScopeType">
+    /// The aggregate type whose records hold this channel type's settings, such as <c>IntakeDesk</c>, spelled as its
+    /// activity log entries are filed. Null when conversations on this kind of record have no settings at all.
+    /// <strong>Never change it once shipped</strong>: a scope's settings changes are listed under it.
+    /// </param>
     public DiscussionChannelTypeDescriptor(
         string key,
         string displayName,
         string section,
         bool supportsInternalNotes,
-        bool supportsSubjects = true)
+        bool supportsSubjects = true,
+        bool supportsMentionAccess = false,
+        string? settingsScopeType = null)
     {
         Key = Guard.Against.NullOrWhiteSpace(key, nameof(key)).Trim();
         DisplayName = Guard.Against.NullOrWhiteSpace(displayName, nameof(displayName)).Trim();
         Section = Guard.Against.NullOrWhiteSpace(section, nameof(section)).Trim();
         SupportsInternalNotes = supportsInternalNotes;
         SupportsSubjects = supportsSubjects;
+        SupportsMentionAccess = supportsMentionAccess;
+        SettingsScopeType = string.IsNullOrWhiteSpace(settingsScopeType) ? null : settingsScopeType.Trim();
 
         if (Key.Length > KeyMaxLength)
         {
@@ -69,4 +82,33 @@ public sealed class DiscussionChannelTypeDescriptor
 
     /// <summary>Whether top-level messages may carry a subject.</summary>
     public bool SupportsSubjects { get; }
+
+    /// <summary>Whether a mention can give the person mentioned access to the record.</summary>
+    public bool SupportsMentionAccess { get; }
+
+    /// <summary>
+    /// The aggregate type whose records hold this channel type's settings, or null when it has none.
+    /// </summary>
+    public string? SettingsScopeType { get; }
+
+    /// <summary>Whether conversations on this kind of record have settings that can be changed.</summary>
+    public bool SupportsSettings => SettingsScopeType is not null;
+
+    /// <summary>
+    /// The settings in effect when neither the scope nor the channel type has saved any: everything the channel type
+    /// supports switched on.
+    /// </summary>
+    public DiscussionSettingValues DefaultSettings =>
+        new(InternalNotesEnabled: SupportsInternalNotes, MentionsGrantAccess: SupportsMentionAccess);
+
+    /// <summary>
+    /// The settings as they take effect for this channel type: a saved value it cannot support — internal notes on a
+    /// type that dropped them — reads as off.
+    /// </summary>
+    public DiscussionSettingValues Supported(DiscussionSettingValues values) =>
+        values with
+        {
+            InternalNotesEnabled = values.InternalNotesEnabled && SupportsInternalNotes,
+            MentionsGrantAccess = values.MentionsGrantAccess && SupportsMentionAccess,
+        };
 }

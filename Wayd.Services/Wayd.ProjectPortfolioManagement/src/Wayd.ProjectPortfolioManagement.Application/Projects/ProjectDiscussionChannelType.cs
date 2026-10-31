@@ -100,4 +100,9 @@ public sealed class ProjectDiscussionChannelType(
         IReadOnlyCollection<Guid> addedMentionIds,
         CancellationToken cancellationToken) =>
         Task.CompletedTask;
+
+    /// <inheritdoc/>
+    /// <remarks>Always null: a project's conversations have no settings to change.</remarks>
+    public Task<DiscussionSettingsAccess?> ResolveSettings(Guid? scopeId, CancellationToken cancellationToken) =>
+        Task.FromResult<DiscussionSettingsAccess?>(null);
 }

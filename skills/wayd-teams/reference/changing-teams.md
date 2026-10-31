@@ -1,7 +1,7 @@
 # Changing teams and teams of teams
 
 Every tool here changes a record other people rely on. Say what you will change and get the user's go-ahead
-before each call. These tools are offered by the hosted MCP endpoint (`/mcp`) only.
+before each call.
 
 ## Creating, updating and deactivating
 

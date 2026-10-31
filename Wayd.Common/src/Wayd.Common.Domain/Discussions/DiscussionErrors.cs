@@ -35,6 +35,15 @@ public static class DiscussionErrors
     /// <summary>An internal note on a kind of record that has none.</summary>
     public const string InternalNotesNotSupported = "Conversations on this kind of record cannot hold internal notes.";
 
+    /// <summary>Saving settings for a kind of record whose conversations have none.</summary>
+    public const string SettingsNotSupported = "Conversations on this kind of record have no settings.";
+
+    /// <summary>Letting mentions grant access on a kind of record where a mention only notifies.</summary>
+    public const string MentionAccessNotSupported = "On this kind of record a mention only notifies; it cannot give access.";
+
+    /// <summary>Posting an internal note, or replying in one's thread, while internal notes are turned off.</summary>
+    public const string InternalNotesTurnedOff = "Internal notes are turned off here.";
+
     /// <summary>A reply whose parent, or an edit or delete whose message, is in a different conversation.</summary>
     public const string MessageInAnotherChannel = "That message is in a different conversation.";
 

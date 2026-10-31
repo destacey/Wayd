@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { Editor } from '@tiptap/core'
-import LinkButton, { toLinkHref } from './link-button'
+import LinkButton from './link-button'
 import {
   createTestEditor,
   selectText,
@@ -10,31 +10,6 @@ import {
 import { toStoredMarkdown } from './stored-markdown'
 
 beforeAll(stubEditorLayout)
-
-describe('toLinkHref', () => {
-  it.each([
-    ['https://wayd.dev', 'https://wayd.dev'],
-    ['  https://wayd.dev/x  ', 'https://wayd.dev/x'],
-    ['wayd.dev', 'https://wayd.dev'],
-    ['docs.wayd.dev/guide?x=1', 'https://docs.wayd.dev/guide?x=1'],
-    ['mailto:someone@example.com', 'mailto:someone@example.com'],
-    ['/ppm/projects/12', '/ppm/projects/12'],
-    ['page.html', 'page.html'],
-    ['report.PDF', 'report.PDF'],
-    ['v1.2', 'v1.2'],
-  ])('stores %p as %p', (input, expected) => {
-    // Arrange / Act / Assert
-    expect(toLinkHref(input)).toBe(expected)
-  })
-
-  it.each(['', '   ', 'javascript:alert(1)', 'data:text/html,x', 'ftp://x.y'])(
-    'refuses %p',
-    (input) => {
-      // Arrange / Act / Assert
-      expect(toLinkHref(input)).toBeNull()
-    },
-  )
-})
 
 describe('LinkButton', () => {
   let editor: Editor

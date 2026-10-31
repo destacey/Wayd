@@ -23,7 +23,7 @@ Wayd supports:
 - [Logging In](docs/getting-started/logging-in.mdx): Organizational account, email and password, or personal access token
 - [Navigation](docs/getting-started/navigation.mdx): Interface layout, sidebar navigation, and key areas
 - [Your Profile](docs/getting-started/your-profile.mdx): Profile, password, preferences, sessions, and personal access tokens
-- [MCP Server](docs/getting-started/mcp-server.mdx): Connecting AI assistants to Wayd through the hosted `/mcp` endpoint or the `@wayd/mcp` package
+- [MCP Server](docs/getting-started/mcp-server.mdx): Connecting AI assistants to Wayd through the `/mcp` endpoint, and moving from the retired `@wayd/mcp` package
 - [Organizations](docs/user-guide/organizations/index.mdx): Teams, teams of teams, operating models, organizational hierarchy, allocations, time away, and team capacity
 - [Organizations Bulk Import](docs/user-guide/organizations/bulk-import.mdx): Loading employees, teams, the team hierarchy, and team staffing from CSV
 - [Planning Overview](docs/user-guide/planning/index.mdx): How planning connects teams, sprints, objectives, and work items
@@ -73,7 +73,7 @@ Wayd supports:
 - [Configuration](docs/contributing/configuration.mdx): Database, authentication, security headers, system settings, environment configuration
 - [Local Development](docs/contributing/local-development.mdx): Day-to-day workflow with Aspire, debugging, and common tasks
 - [Branches and Commits](docs/contributing/git-workflow.mdx): Branch naming and commit message conventions
-- [MCP Server Development](docs/contributing/mcp-server.mdx): The hosted MCP endpoint, and changing and releasing the `@wayd/mcp` package
+- [MCP Server Development](docs/contributing/mcp-server.mdx): The MCP endpoint, its tools, and the skill evaluation
 - [Data Generation](docs/contributing/tools/data-generation.mdx): The `wayd-data` CLI that generates an organization and seeds it through the API
 - [API Reference](docs/reference/api.mdx): REST API areas and endpoints
 - [Feature Flags](docs/reference/feature-flags.mdx): Feature management system

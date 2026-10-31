@@ -554,6 +554,38 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("MessageRevisions", "Discussions");
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.Discussions.DiscussionSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ChannelType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar");
+
+                    b.Property<bool>("InternalNotesEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("MentionsGrantAccess")
+                        .HasColumnType("bit");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid?>("ScopeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChannelType", "ScopeId")
+                        .IsUnique();
+
+                    b.ToTable("Settings", "Discussions");
+                });
+
             modelBuilder.Entity("Wayd.Common.Domain.Employees.Employee", b =>
                 {
                     b.Property<Guid>("Id")

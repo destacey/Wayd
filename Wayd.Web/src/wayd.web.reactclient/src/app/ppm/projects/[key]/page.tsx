@@ -419,9 +419,9 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   // one is assigned.
   const sections: RecordSection[] = [
     { id: ProjectSections.Overview, label: 'Overview' },
+    { id: ProjectSections.Definition, label: 'Definition' },
     // Draws its own heading, with its counts and filters beside it.
     { id: ProjectSections.Discussion, label: 'Discussion', hideHeading: true },
-    { id: ProjectSections.Definition, label: 'Definition' },
     { id: ProjectSections.Team, label: 'Team' },
     ...(projectData.projectLifecycle
       ? [{ id: ProjectSections.Plan, label: 'Plan' }]

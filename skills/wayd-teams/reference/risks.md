@@ -1,8 +1,7 @@
 # Risks
 
 A risk belongs to one team or team of teams. It is Open or Closed, sits in a ROAM category, and has an impact and
-a likelihood that together give its exposure. The tools that write risks are offered by the hosted MCP endpoint
-(`/mcp`) only.
+a likelihood that together give its exposure.
 
 ## Finding risks
 

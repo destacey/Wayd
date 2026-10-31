@@ -9,9 +9,8 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 
 /// <summary>
 /// Holds the OpenAPI document the API serves to the two other places it is read from: the committed
-/// <c>specification.json</c>, which the TypeScript and data-generation clients, the import templates and the
-/// <c>@wayd/mcp</c> import formats are generated from, and the document provider the hosted MCP server builds
-/// its tools from.
+/// <c>specification.json</c>, which the TypeScript and data-generation clients and the import templates are
+/// generated from, and the document provider the hosted MCP server builds its tools from.
 /// </summary>
 [Collection(InMemoryApiTestCollection.Name)]
 public sealed class OpenApiDocumentTests(WaydApiFactory factory)

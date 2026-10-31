@@ -40,6 +40,7 @@ export enum QueryTags {
   RecordMuteStatus = 'Common.RecordMuteStatus',
   MyMutes = 'Common.MyMutes',
   Discussion = 'Common.Discussion',
+  DiscussionSettings = 'Common.DiscussionSettings',
   HealthCheck = 'Common.HealthCheck',
   HealthChecksHealthReport = 'Common.HealthChecks.HealthReport',
   HealthChecksStatusOptions = 'Common.HealthChecks.StatusOptions',

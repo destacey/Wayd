@@ -2,7 +2,7 @@
 
 import { Button, Flex, Segmented, Typography } from 'antd'
 import Link from 'next/link'
-import { KeyboardEvent, useEffect, useRef, useState } from 'react'
+import { KeyboardEvent, useEffect, useRef } from 'react'
 import NotificationList, {
   NoNotificationsMessage,
   NothingUnreadMessage,
@@ -12,6 +12,7 @@ import {
   useGetUnreadNotificationCountQuery,
   useMarkAllNotificationsReadMutation,
 } from '@/src/store/features/common/notifications-api'
+import { useLocalStorageState } from '@/src/hooks'
 import styles from './notification-bell.module.css'
 
 const { Text } = Typography
@@ -41,7 +42,11 @@ export interface NotificationPanelProps {
  */
 const NotificationPanel = ({ onClose, inDrawer }: NotificationPanelProps) => {
   const panelRef = useRef<HTMLDivElement>(null)
-  const [view, setView] = useState<PanelView>('all')
+  // Remembered, since the panel unmounts on close and would otherwise reopen on All every time.
+  const [view, setView] = useLocalStorageState<PanelView>(
+    'wayd.notifications.panelView',
+    'all',
+  )
   const list = useGetMyNotificationsInfiniteQuery(
     { unreadOnly: view === 'unread' || undefined, pageSize: PanelPageSize },
     { refetchOnMountOrArgChange: true },

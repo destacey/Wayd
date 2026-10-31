@@ -116222,6 +116222,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("tags")]
         public string? Tags { get; set; } = default!;
 
+        /// <summary>
+        /// The teams and teams of teams that work on the product, semicolon-separated, each by team code or
+        /// <br/>team ID — `PAY;MOB;3f2a1c9e-…`. Every team named must exist and be active. Leave the cell
+        /// <br/>blank for a product no team works on. They are linked to this row's product only, never to its
+        /// <br/>parent or children.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teams")]
+        public string? Teams { get; set; } = default!;
+
     }
 
     /// <summary>

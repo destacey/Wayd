@@ -4,9 +4,11 @@ using Microsoft.Extensions.Logging;
 using NodaTime;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Interfaces.Organization;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.ProductManagement.Application.Products.Dtos;
 using Wayd.ProductManagement.Domain;
@@ -31,7 +33,8 @@ public sealed class ProductImportDefinition(
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
     ILogger<ProductImportDefinition> logger,
-    IImportPayloadSerializer serializer) : ImportDefinition<ImportProductDto>(serializer)
+    IImportPayloadSerializer serializer,
+    IDispatcher dispatcher) : ImportDefinition<ImportProductDto>(serializer)
 {
     public const string ImportKey = "product-management.products";
 
@@ -40,6 +43,8 @@ public sealed class ProductImportDefinition(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<ProductImportDefinition> _logger = logger;
+    private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly ProductTeamCopies _teams = new(productManagementDbContext, dispatcher, dateTimeProvider, logger);
 
     public override string Key => ImportKey;
     public override string DisplayName => "Products";
@@ -105,6 +110,10 @@ public sealed class ProductImportDefinition(
 
         var tagsByReference = await ResolveTags(context, cancellationToken);
 
+        // Before any product is staged: building a missing team copy saves, and that save must carry nothing
+        // but the copy, or a product tree the runner later keeps out would already be in the database.
+        var teamsByEntry = await ResolveTeams(context, cancellationToken);
+
         var rowsByImportId = context.Rows.ToDictionary(r => r.ImportId, StringComparer.OrdinalIgnoreCase);
 
         // Populated as rows are created so a child can look its parent up. This is the whole reason the
@@ -164,6 +173,13 @@ public sealed class ProductImportDefinition(
             if (tagged.IsFailure)
             {
                 row.Failed(tagged.Error);
+                continue;
+            }
+
+            var linked = LinkTeams(product, data, teamsByEntry, actor, timestamp);
+            if (linked.IsFailure)
+            {
+                row.Failed(linked.Error);
                 continue;
             }
 
@@ -262,6 +278,96 @@ public sealed class ProductImportDefinition(
         }
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// A team a file names: as Organization holds it, which decides whether it exists and is active, and the
+    /// module's copy, which is what a product links to.
+    /// </summary>
+    private sealed record ResolvedTeam(ISimpleTeam Source, ProductTeam Copy);
+
+    /// <summary>
+    /// Links the row's teams to its own product, refusing the row when any one of them is unknown or inactive.
+    /// </summary>
+    private static Result LinkTeams(
+        Product product,
+        ImportProductDto data,
+        Dictionary<string, ResolvedTeam> teamsByEntry,
+        EventActor actor,
+        Instant timestamp)
+    {
+        foreach (var entry in data.Teams ?? [])
+        {
+            if (!teamsByEntry.TryGetValue(entry.Trim(), out var team))
+                return Result.Failure($"No team was found with the code or ID '{entry.Trim()}'.");
+
+            if (!team.Source.IsActive)
+                return Result.Failure($"The team '{team.Source.Name}' ({team.Source.Code.Value}) is inactive, and only an active team can be linked to a product.");
+
+            var result = product.LinkTeam(team.Copy, actor, timestamp);
+            if (result.IsFailure)
+                return Result.Failure($"Could not link the team '{team.Source.Name}' ({team.Source.Code.Value}) to this product: {result.Error}");
+        }
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Resolves every team the file names, keyed by the entry as written (case-insensitive). An entry absent
+    /// from the answer names no team.
+    /// </summary>
+    /// <remarks>
+    /// Organization answers whether each team exists, is active, and what it is called, in one query: it owns
+    /// teams, and the module's copy can lag a rename or a deactivation. The copies are then read in one query,
+    /// and any team without one yet is copied through <see cref="ProductTeamCopies"/>, so it links like any
+    /// other. Inactive teams are kept, so the row can be told why it cannot link one.
+    /// </remarks>
+    private async Task<Dictionary<string, ResolvedTeam>> ResolveTeams(
+        ImportPassContext<ImportProductDto> context, CancellationToken cancellationToken)
+    {
+        var entries = context.Rows
+            .SelectMany(r => r.Data.Teams ?? [])
+            .Select(e => e.Trim())
+            .Where(e => e.Length > 0)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        Dictionary<string, ResolvedTeam> resolved = new(StringComparer.OrdinalIgnoreCase);
+
+        if (entries.Count == 0)
+            return resolved;
+
+        var ids = entries.Select(ProductTeamEntry.AsId).OfType<Guid>().ToList();
+        var codes = entries.Select(ProductTeamEntry.AsCode).OfType<string>().ToList();
+
+        var sources = await _dispatcher.Send(new GetTeamsByIdOrCodeQuery(ids, codes), cancellationToken);
+        if (sources.Count == 0)
+            return resolved;
+
+        var sourceIds = sources.Select(t => t.Id).ToList();
+        var copies = await _productManagementDbContext.ProductTeams
+            .Where(t => sourceIds.Contains(t.Id))
+            .ToDictionaryAsync(t => t.Id, cancellationToken);
+
+        foreach (var source in sources.Where(t => !copies.ContainsKey(t.Id)))
+        {
+            if (await _teams.Find(source.Id, cancellationToken) is { } copy)
+                copies[source.Id] = copy;
+        }
+
+        var sourcesById = sources.ToDictionary(t => t.Id);
+        var sourcesByCode = sources.ToDictionary(t => t.Code.Value, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var entry in entries)
+        {
+            var source = ProductTeamEntry.AsId(entry) is { } id
+                ? sourcesById.GetValueOrDefault(id)
+                : ProductTeamEntry.AsCode(entry) is { } code ? sourcesByCode.GetValueOrDefault(code) : null;
+
+            if (source is not null && copies.TryGetValue(source.Id, out var copy))
+                resolved.Add(entry, new ResolvedTeam(source, copy));
+        }
+
+        return resolved;
     }
 
     /// <summary>

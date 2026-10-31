@@ -59557,6 +59557,12 @@
             "description": "The product's tags, as semicolon-separated `Category|Tag` pairs —\n`Platform|ios;Platform|android;Compliance|pci-scope`.",
             "nullable": true,
             "x-csv-column": "Tags"
+          },
+          "teams": {
+            "type": "string",
+            "description": "The teams and teams of teams that work on the product, semicolon-separated, each by team code or\nteam ID — `PAY;MOB;3f2a1c9e-…`. Every team named must exist and be active. Leave the cell\nblank for a product no team works on. They are linked to this row's product only, never to its\nparent or children.",
+            "nullable": true,
+            "x-csv-column": "Teams"
           }
         },
         "additionalProperties": false,

@@ -13,6 +13,12 @@ public sealed class ProductModel
     public string? ParentName { get; init; }
     public required string Status { get; init; }
     public string? Tags { get; init; }
+
+    /// <summary>
+    /// The codes of the teams that work on the product, semicolon-separated, or null for none. Set once the
+    /// catalog is built, by <see cref="ProductTeamLinkGenerator"/>.
+    /// </summary>
+    public string? Teams { get; set; }
 }
 
 /// <summary>

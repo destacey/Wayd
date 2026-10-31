@@ -1285,6 +1285,13 @@ export const importTemplates = {
             description:
               "The product's tags, as semicolon-separated `Category|Tag` pairs — `Platform|ios;Platform|android;Compliance|pci-scope`.",
           },
+          {
+            name: 'Teams',
+            type: 'text',
+            required: false,
+            description:
+              "The teams and teams of teams that work on the product, semicolon-separated, each by team code or team ID — `PAY;MOB;3f2a1c9e-…`. Every team named must exist and be active. Leave the cell blank for a product no team works on. They are linked to this row's product only, never to its parent or children.",
+          },
         ],
       },
     ],

@@ -17,6 +17,9 @@ public sealed class ProductCsvRow
 
     /// <summary>Semicolon-separated <c>Category|Tag</c> pairs.</summary>
     public string? Tags { get; init; }
+
+    /// <summary>Semicolon-separated codes of the teams that work on the product.</summary>
+    public string? Teams { get; init; }
 }
 
 /// <summary>One row of the product dependencies CSV: <see cref="ProductId"/> relies on <see cref="DependsOnProductId"/>.</summary>

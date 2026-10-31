@@ -4,6 +4,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.ProductManagement.Domain.Tests.Data;
+using Wayd.Tests.Shared.Extensions;
 
 namespace Wayd.ProductManagement.Domain.Tests.Sut.Models;
 
@@ -41,6 +42,27 @@ public sealed class ProductTeamLinkTests
         linked.Key.Should().Be(sut.Key);
         linked.TeamId.Should().Be(team.Id);
         linked.Timestamp.Should().Be(Now);
+    }
+
+    [Fact]
+    public void LinkTeam_BeforeTheFirstSave_ShouldRaiseTheLinkedEventWithTheKeyTheSaveAssigns()
+    {
+        // Arrange — what the product import does: create a product, then link its teams, all before one save
+        var sut = _faker.WithKey(0).Generate();
+        var team = Team();
+
+        // Act
+        sut.LinkTeam(team, EventActor.System, Now);
+        var raisedBeforeSave = sut.DomainEvents.Count;
+        sut.SetPrivate(p => p.Key, 731);
+        sut.ExecutePostPersistenceActions();
+
+        // Assert
+        raisedBeforeSave.Should().Be(0);
+        sut.TeamLinks.Should().ContainSingle().Which.TeamId.Should().Be(team.Id);
+        var linked = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<ProductTeamLinkedEvent>().Subject;
+        linked.Key.Should().Be(731);
+        linked.TeamId.Should().Be(team.Id);
     }
 
     [Fact]

@@ -8056,6 +8056,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasAlternateKey("Key");
 
+                    b.HasIndex("ExternalId")
+                        .IsUnique()
+                        .HasFilter("[ExternalId] IS NOT NULL AND [IsDeleted] = 0");
+
                     b.HasIndex("Id", "IsDeleted")
                         .HasFilter("[IsDeleted] = 0");
 

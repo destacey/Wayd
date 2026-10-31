@@ -692,6 +692,13 @@ public class WorkProcessConfig : IEntityTypeConfiguration<WorkProcess>
             .IncludeProperties(i => new { i.Id, i.Name, i.ExternalId, i.Ownership, i.IsActive })
             .WhereNotDeleted();
 
+        // An external process (Azure DevOps processes share one id across organizations) has one
+        // Wayd work process, however many connections use it. Two setups racing for the same
+        // process make the second insert fail instead of creating a duplicate.
+        builder.HasIndex(i => i.ExternalId)
+            .IsUnique()
+            .WhereNotNullAndNotDeleted(nameof(WorkProcess.ExternalId));
+
         builder.Property(w => w.Key).ValueGeneratedOnAdd();
 
         // Properties

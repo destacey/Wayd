@@ -279,7 +279,6 @@ public sealed class DiscussionWriterTests
         var ownerId = _gadgets.AddRecord();
         var shopId = Guid.NewGuid();
         _gadgets.Access = _gadgets.Access with { ScopeId = shopId };
-        UseDefaultSettings(new DiscussionSettingValues(InternalNotesEnabled: true, MentionsGrantAccess: false));
         _dbContext.AddDiscussionSettings(DiscussionSettings.Create(Gadget, shopId, Gadget.DefaultSettings,
             new DiscussionSettingValues(InternalNotesEnabled: false, MentionsGrantAccess: false),
             EventActor.System, Now).Value!);

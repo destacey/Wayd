@@ -85,7 +85,7 @@ public sealed class DiscussionSettingsTests
     public void Create_ShouldRelateNothing_ForTheTypeDefault()
     {
         // Arrange
-        var values = new DiscussionSettingValues(true, true);
+        var values = new DiscussionSettingValues(false, true);
 
         // Act
         var result = DiscussionSettings.Create(Desked, null, Desked.DefaultSettings, values, Actor, Now);

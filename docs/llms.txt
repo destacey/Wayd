@@ -73,7 +73,7 @@ Wayd supports:
 - [Configuration](docs/contributing/configuration.mdx): Database, authentication, security headers, system settings, environment configuration
 - [Local Development](docs/contributing/local-development.mdx): Day-to-day workflow with Aspire, debugging, and common tasks
 - [Branches and Commits](docs/contributing/git-workflow.mdx): Branch naming and commit message conventions
-- [MCP Server Development](docs/contributing/mcp-server.mdx): The hosted MCP endpoint, and changing and releasing the `@wayd/mcp` package
+- [MCP Server Development](docs/contributing/mcp-server.mdx): The MCP endpoint, its tools, and the skill evaluation
 - [Data Generation](docs/contributing/tools/data-generation.mdx): The `wayd-data` CLI that generates an organization and seeds it through the API
 - [API Reference](docs/reference/api.mdx): REST API areas and endpoints
 - [Feature Flags](docs/reference/feature-flags.mdx): Feature management system

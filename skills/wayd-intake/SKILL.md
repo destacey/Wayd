@@ -5,7 +5,7 @@ description: Read before calling the Wayd MCP tools named IntakeRequests_*, Inta
 
 # Wayd Intake Requests
 
-The intake tools are offered by the hosted MCP endpoint (`/mcp`) only, in its `intake` toolset. They answer 404 while the organization has Demand Management turned off (the `demand-management` feature flag); say so rather than retrying.
+The intake tools are in the `intake` toolset. They answer 404 while the organization has Demand Management turned off (the `demand-management` feature flag); say so rather than retrying.
 
 An **intake request** is one ask for delivery capacity that is not yet a project or a work item. It is reviewed on one **desk** — a review responsibility, not a team — whose **members** are **Agents**, who act on its requests, and **Desk Admins**, who also run the desk. Being named on a desk is all it takes; working one desk gives nothing on another. The **Demand Management Admin** acts as a Desk Admin on every desk. Every request moves through its desk's review **workflow** of statuses.
 

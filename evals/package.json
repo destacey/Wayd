@@ -1,0 +1,33 @@
+{
+  "name": "@wayd/skill-evals",
+  "private": true,
+  "description": "Measures whether the skills in skills/ make agents use the Wayd MCP tools correctly",
+  "type": "module",
+  "scripts": {
+    "catalog": "tsx catalog.ts",
+    "evals": "node --import tsx run-eval.mjs",
+    "regrade": "tsx regrade.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/**/*.test.ts"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "tsx": "^4.23.15"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.1",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.0"
+  },
+  "allowScripts": {
+    "esbuild": false
+  }
+}

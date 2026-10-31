@@ -1,8 +1,7 @@
 # Holiday calendars, team member roles and team types
 
 The organization-wide settings teams are built on. Confirm with the user before each change: a change here
-reaches every team and person that uses the setting. These tools are offered by the hosted MCP endpoint (`/mcp`)
-only.
+reaches every team and person that uses the setting.
 
 ## Holiday calendars
 

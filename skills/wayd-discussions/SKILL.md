@@ -5,7 +5,7 @@ description: Read before calling the Wayd MCP tools named Discussions_*. Guides 
 
 # Wayd Discussions
 
-The discussion tools are offered by the hosted MCP endpoint (`/mcp`) only, in its `discussions` toolset. They work on any record that has a conversation, named by two parameters:
+The discussion tools are in the `discussions` toolset. They work on any record that has a conversation, named by two parameters:
 
 | Record | `channelType` | `ownerId` |
 | --- | --- | --- |

@@ -11,7 +11,7 @@ Confirm every change with the user before you make it. Before a call that create
 
 When the user approves, do exactly what they approved. An option you offered that they did not take up — deleting a record you had just retired, say — stays undone unless they ask for it.
 
-These tools are offered by the hosted endpoint (`/mcp`) only. Planning poker sits behind the `planning-poker` feature flag: when it is off every `PokerSessions_*` and `EstimationScales_*` call answers 404 — tell the user the feature is not enabled rather than that nothing exists.
+Planning poker sits behind the `planning-poker` feature flag: when it is off every `PokerSessions_*` and `EstimationScales_*` call answers 404 — tell the user the feature is not enabled rather than that nothing exists.
 
 ## Entity context
 

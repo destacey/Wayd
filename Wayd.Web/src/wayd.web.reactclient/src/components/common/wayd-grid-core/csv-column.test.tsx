@@ -44,15 +44,15 @@ describe('createCsvColumn', () => {
     expect(accessorFn({ owners: 'Bob, Alice' })).toBe('Bob, Alice')
   })
 
-  it('marks the column for token faceting via meta.multiValueSplit', () => {
-    // Arrange / Act — the grid uses this to build the set list from individual
-    // tokens (round-trips the accessor's ", " join). No data/options are baked
-    // into the column; options come from live faceting.
+  it('marks the column for value faceting via meta.multiValues', () => {
+    // Arrange / Act — the grid uses this to build the set list from each row's
+    // individual values. No data/options are baked into the column; options
+    // come from live faceting.
     expect(column.meta?.filterType).toBe('set')
     expect(column.meta?.filterOptions).toBeUndefined()
 
-    // Assert — the split recovers the tokens from a joined accessor value.
-    expect(column.meta?.multiValueSplit?.('Bob, Alice')).toEqual([
+    // Assert — the row's values, read from the row rather than the joined string
+    expect(column.meta?.multiValues?.({ owners: 'Bob, Alice' })).toEqual([
       'Bob',
       'Alice',
     ])
@@ -90,6 +90,32 @@ describe('createCsvColumn', () => {
     expect(accessorFn({ people: [{ name: 'Zoe' }, { name: 'Amy' }] })).toBe(
       'Zoe, Amy',
     )
-    expect(col.meta?.multiValueSplit).toBe(column.meta?.multiValueSplit)
+  })
+
+  it('keeps a value that contains a comma whole, in the facet and the filter', () => {
+    // Arrange — the accessor joins with ", ", so splitting it would cut this name in two
+    interface TeamRow {
+      teams: string[]
+    }
+    const col = createCsvColumn<TeamRow>({
+      id: 'teams',
+      header: 'Teams',
+      getValues: (row) => row.teams,
+    })
+    const filterFn = col.filterFn as (
+      row: Row<TeamRow>,
+      columnId: string,
+      value: unknown,
+    ) => boolean
+    const row = { teams: ['Payments, EU', 'Atlas'] }
+
+    // Act / Assert
+    expect(col.meta?.multiValues?.(row)).toEqual(['Payments, EU', 'Atlas'])
+    expect(
+      filterFn({ original: row } as Row<TeamRow>, 'teams', {
+        type: 'set',
+        values: ['Payments, EU'],
+      } satisfies SetFilterModel),
+    ).toBe(true)
   })
 })

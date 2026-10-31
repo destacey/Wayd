@@ -2,7 +2,6 @@
 
 import {
   createMultiValueSetFilter,
-  splitCsv,
   WaydGrid,
 } from '@/src/components/common/wayd-grid'
 import {
@@ -95,7 +94,7 @@ export const buildDependencyColumns = (
       accessorFn: (row) => interactionValues(row).join(', '),
       filterFn:
         createMultiValueSetFilter<ProductDependencyDto>(interactionValues),
-      meta: { filterType: 'set', multiValueSplit: splitCsv },
+      meta: { filterType: 'set', multiValues: interactionValues },
       cell: ({ row }) => (
         <InteractionStyleTags styles={row.original.interactionStyles} />
       ),

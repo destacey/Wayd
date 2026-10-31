@@ -1881,9 +1881,10 @@ function WaydGridInner<T extends RowData>(
   /**
    * All known set values for a column: prefer declared options (stable
    * order/labels), else the distinct values present in the data (faceted).
-   * For a multi-value column (`meta.multiValueSplit`), each faceted value is a
-   * joined string that's split into its individual tokens first, so the list
-   * shows tokens rather than whole combinations. When the data contains blank
+   * For a multi-value column (`meta.multiValues`), the values are read from
+   * each faceted row, so the list shows individual values rather than whole
+   * combinations, and a value containing a comma stays whole. When the data
+   * contains blank
    * cells (null/undefined/''), a "(Blanks)" sentinel entry is appended so
    * blanks can be filtered like any value.
    */
@@ -1892,20 +1893,23 @@ function WaydGridInner<T extends RowData>(
     const facetedKeys = Array.from(
       header.column.getFacetedUniqueValues().keys(),
     )
-    const split = meta?.multiValueSplit
-    const hasBlanks = facetedKeys.some(
-      (v) =>
-        v == null ||
-        v === '' ||
-        (split ? split(String(v)).length === 0 : false),
-    )
+    const getRowValues = meta?.multiValues
+    // flatRows, as TanStack's faceted unique values read: in a tree grid `rows`
+    // holds only the roots, which would drop every nested row's values.
+    const rowValues = getRowValues
+      ? header.column
+          .getFacetedRowModel()
+          .flatRows.map((row) => getRowValues(row.original))
+      : undefined
+    const hasBlanks = rowValues
+      ? rowValues.some((values) => values.length === 0)
+      : facetedKeys.some((v) => v == null || v === '')
     const optionValues = meta?.filterOptions?.map((o) => o.value)
-    const nonBlank = facetedKeys.filter(
-      (v): v is string => v != null && v !== '',
-    )
-    const distinct = split
-      ? Array.from(new Set(nonBlank.flatMap((v) => split(String(v)))))
-      : nonBlank.map(String)
+    const distinct = rowValues
+      ? Array.from(new Set(rowValues.flat()))
+      : facetedKeys
+          .filter((v): v is string => v != null && v !== '')
+          .map(String)
     const values = optionValues ?? distinct.sort(caseInsensitiveCompare)
     return hasBlanks ? [...values, SET_FILTER_BLANK] : values
   }

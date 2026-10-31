@@ -7,7 +7,10 @@ import type { TextAreaRef } from 'antd/es/input/TextArea'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import MarkdownEditorFooter from '../markdown-editor-footer'
 import { loadMarkdown } from './load-markdown'
-import { markdownEditorExtensions } from './markdown-extensions'
+import {
+  markdownEditorExtensions,
+  markdownEditorPasteRules,
+} from './markdown-extensions'
 import {
   restoreRefusedInput,
   setMarkdownLengthLimit,
@@ -95,6 +98,7 @@ const WysiwygMarkdownEditor = ({
 
   const editor = useEditor({
     extensions,
+    enablePasteRules: markdownEditorPasteRules,
     immediatelyRender: false,
     editorProps: {
       // The field's id and aria state belong to whichever view is shown.

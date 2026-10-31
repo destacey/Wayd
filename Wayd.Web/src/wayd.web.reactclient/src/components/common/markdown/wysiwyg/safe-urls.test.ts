@@ -1,6 +1,7 @@
 import {
   isSafeImageSrc,
   isSafeLinkHref,
+  toLinkHref,
   toMarkdownDestination,
 } from './safe-urls'
 
@@ -64,4 +65,29 @@ describe('toMarkdownDestination', () => {
     // Arrange / Act / Assert
     expect(toMarkdownDestination(url)).toBe(expected)
   })
+})
+
+describe('toLinkHref', () => {
+  it.each([
+    ['https://wayd.dev', 'https://wayd.dev'],
+    ['  https://wayd.dev/x  ', 'https://wayd.dev/x'],
+    ['wayd.dev', 'https://wayd.dev'],
+    ['docs.wayd.dev/guide?x=1', 'https://docs.wayd.dev/guide?x=1'],
+    ['mailto:someone@example.com', 'mailto:someone@example.com'],
+    ['/ppm/projects/12', '/ppm/projects/12'],
+    ['page.html', 'page.html'],
+    ['report.PDF', 'report.PDF'],
+    ['v1.2', 'v1.2'],
+  ])('stores %p as %p', (input, expected) => {
+    // Arrange / Act / Assert
+    expect(toLinkHref(input)).toBe(expected)
+  })
+
+  it.each(['', '   ', 'javascript:alert(1)', 'data:text/html,x', 'ftp://x.y'])(
+    'refuses %p',
+    (input) => {
+      // Arrange / Act / Assert
+      expect(toLinkHref(input)).toBeNull()
+    },
+  )
 })

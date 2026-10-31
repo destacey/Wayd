@@ -45,6 +45,8 @@ public sealed class AzureDevOpsWorkItemSource(
     // Captured during GetSyncPlan() so subsequent per-workspace calls can look up work-process
     // integration state without re-querying. Cleared on Bind().
     private List<AzureDevOpsWorkProcessDto>? _planWorkProcesses;
+    // Every project set up in Wayd, paused or not, captured in GetSyncPlan(); cleared on Bind().
+    private List<SetUpProject>? _setUpProjects;
     // Work process external id → Wayd id, once resolved in this bind; cleared on Bind().
     private readonly Dictionary<Guid, Guid> _resolvedWorkProcesses = [];
     private readonly Dictionary<Guid, string[]> _workTypeNames = [];
@@ -63,6 +65,7 @@ public sealed class AzureDevOpsWorkItemSource(
         _cfg = cfg;
         _teamCfg = descriptor.TeamConfiguration as AzureDevOpsBoardsTeamConfiguration;
         _planWorkProcesses = null;
+        _setUpProjects = null;
         _resolvedWorkProcesses.Clear();
         _workTypeNames.Clear();
         return Result.Success();
@@ -99,6 +102,9 @@ public sealed class AzureDevOpsWorkItemSource(
         // Capture the freshly-loaded work-process list (DTO shape) so subsequent per-workspace
         // calls can look up integration state without re-querying.
         _planWorkProcesses = connection.Configuration.WorkProcesses;
+        _setUpProjects = [.. connection.Configuration.Workspaces
+            .Where(w => w.IntegrationState is not null)
+            .Select(w => new SetUpProject(w.Name, w.IntegrationState!.InternalId))];
 
         var workspaceTeamsLookup = connection.TeamConfiguration?.WorkspaceTeams is not null
             ? connection.TeamConfiguration.WorkspaceTeams.GroupBy(t => t.WorkspaceId).ToDictionary(g => g.Key, g => g.ToArray())
@@ -292,7 +298,7 @@ public sealed class AzureDevOpsWorkItemSource(
         }
         else if (deletedResult.Value.Length > 0)
         {
-            var syncResult = await _dispatcher.Send(new DeleteExternalWorkItemsCommand(target.InternalWorkspaceId, deletedResult.Value), cancellationToken);
+            var syncResult = await _dispatcher.Send(new DeleteExternalWorkItemsCommand(SetUpWorkspaceIds(target), deletedResult.Value), cancellationToken);
             if (syncResult.IsFailure)
             {
                 hadPartialFailure = true;
@@ -363,6 +369,14 @@ public sealed class AzureDevOpsWorkItemSource(
             throw new InvalidOperationException("AzureDevOpsWorkItemSource has not been bound. Call Bind(descriptor) before invoking sync methods.");
         return new SyncContext(new AzureDevOpsConnectionContext(_cfg.Organization, _cfg.PersonalAccessToken), _descriptor.SystemId ?? string.Empty);
     }
+
+    /// <summary>
+    /// The Wayd workspaces of every project this connection has set up, the target's included. A
+    /// deleted or retyped item may still sit in the workspace of a project it left, so deletes
+    /// reach all of them.
+    /// </summary>
+    private Guid[] SetUpWorkspaceIds(WorkspaceSyncTarget target) =>
+        [.. (_setUpProjects ?? []).Select(p => p.InternalWorkspaceId).Append(target.InternalWorkspaceId).Distinct()];
 
     private SyncableConnectionDescriptor RequireDescriptor()
     {
@@ -564,6 +578,9 @@ public sealed class AzureDevOpsWorkItemSource(
             teamMappings[team.TeamId] = team.InternalTeamId;
         }
     }
+
+    /// <summary>A project set up in Wayd: its Azure DevOps name and its Wayd workspace.</summary>
+    private sealed record SetUpProject(string Name, Guid InternalWorkspaceId);
 
     private sealed record SyncContext(AzureDevOpsConnectionContext Connection, string SystemId);
 }

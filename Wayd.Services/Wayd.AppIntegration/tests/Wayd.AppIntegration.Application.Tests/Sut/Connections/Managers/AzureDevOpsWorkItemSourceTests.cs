@@ -710,6 +710,42 @@ public class AzureDevOpsWorkItemSourceTests
         result.Value.PartialFailureMessage.Should().BeNull();
     }
 
+    [Fact]
+    public async Task SyncWorkItems_DeletesFromEverySetUpWorkspace()
+    {
+        // Arrange — a deleted item may still sit in the workspace of a project it left, paused or not
+        var descriptor = BuildDescriptor();
+        _sut.Bind(descriptor);
+        StubWorkItemSubSteps();
+        var processId = Guid.CreateVersion7();
+        var syncedId = Guid.CreateVersion7();
+        var pausedId = Guid.CreateVersion7();
+        var paused = Workspace(processId, internalId: pausedId, name: "Paused");
+        paused.IntegrationState!.IsActive = false;
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildConnectionDetails(descriptor.ConnectionId,
+                processes: [Process(externalId: processId)],
+                workspaces: [Workspace(processId, internalId: syncedId, name: "Synced"), paused, Workspace(processId, name: "Not set up", isActive: false)]));
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetDeletedWorkItemIds(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new[] { 5 }));
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<DeleteExternalWorkItemsCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+        var target = (await _sut.GetSyncPlan(CancellationToken.None)).Value.Single();
+
+        // Act
+        var result = await _sut.SyncWorkItems(target, SyncType.Differential, Guid.CreateVersion7(), CancellationToken.None);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.Is<DeleteExternalWorkItemsCommand>(c =>
+                c.WorkspaceIds.Count == 2 && c.WorkspaceIds.Contains(syncedId) && c.WorkspaceIds.Contains(pausedId)
+                && c.WorkItemIds.SequenceEqual(new[] { 5 })), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     // -------- GetWorkItemHistory --------
 
     [Fact]

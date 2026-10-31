@@ -17,6 +17,11 @@ import {
   importRowStatusLabel,
   isRunning,
 } from './import-status-tag'
+import {
+  importRecordHref,
+  importRecordLabel,
+  importRecordText,
+} from './import-record-link'
 
 // The server caps a row page at 500. One max-size page, filtered client-side, matching the other
 // settings grids.
@@ -71,6 +76,30 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
         header: 'Import Id',
         size: 160,
       },
+      // A preflight's records were rolled back, so it has nothing to link to.
+      ...(isPreflight
+        ? []
+        : [
+            {
+              id: 'createdRecord',
+              accessorFn: (row) => importRecordText(row),
+              header: 'Wayd Record',
+              size: 240,
+              cell: ({ row }) => {
+                const { createdRecord } = row.original
+                if (!createdRecord)
+                  return (
+                    <Typography.Text type="secondary">
+                      {importRecordText(row.original)}
+                    </Typography.Text>
+                  )
+
+                const label = importRecordLabel(createdRecord)
+                const href = importRecordHref(createdRecord)
+                return href ? <Link href={href}>{label}</Link> : label
+              },
+            } satisfies ColumnDef<ImportProcessRowDto, any>,
+          ]),
       {
         id: 'status',
         accessorFn: (row) => importRowStatusLabel(row.status, isPreflight),

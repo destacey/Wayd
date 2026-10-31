@@ -181,6 +181,7 @@ public partial class EventCoverageTests
         ["AzureDevOpsBoardsConnection.UpdateWorkProcessIntegrationState(IntegrationRegistration<Guid, Guid>, Instant)"] = "#956.",
         ["AzureDevOpsBoardsConnection.ClearWorkProcessIntegrationState(Guid, Instant)"] = "#956.",
         ["AzureDevOpsBoardsConnection.UpdateWorkspaceIntegrationState(IntegrationRegistration<Guid, Guid>, Instant)"] = "#956.",
+        ["AzureDevOpsBoardsConnection.SetWorkspaceSync(Guid, Boolean)"] = "#956.",
     };
 
     /// <summary>

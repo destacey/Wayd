@@ -41,6 +41,10 @@ public static class IndexBuilderExtensions
     public static IndexBuilder WhereNotNull(this IndexBuilder builder, string column) =>
         builder.HasFilter(IsNotNull(column));
 
+    /// <summary>Index only rows where <paramref name="column"/> is not null and that are not soft-deleted.</summary>
+    public static IndexBuilder<TEntity> WhereNotNullAndNotDeleted<TEntity>(this IndexBuilder<TEntity> builder, string column) =>
+        builder.HasFilter($"{IsNotNull(column)} AND {NotDeleted}");
+
     /// <summary>
     /// Index only rows where every one of <paramref name="notNullColumns"/> is set and
     /// <paramref name="nullColumn"/> is not: something begun and not yet ended.

@@ -72,6 +72,44 @@ public class AzureDevOpsInitManagerTests
             .ReturnsAsync(details);
     }
 
+    private void SetupOrganizationRefresh()
+    {
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.TestConnection(It.IsAny<AzureDevOpsConnectionContext>()))
+            .ReturnsAsync(Result.Success());
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetWorkProcesses(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new List<IExternalWorkProcess>()));
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetWorkspaces(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new List<IExternalWorkspace>()));
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetIntegrationRegistrationsForWorkProcessesQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<IntegrationRegistration<Guid, Guid>>());
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<SyncAzureDevOpsConnectionConfigurationCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+    }
+
+    private void SetupWorkspaceCreation(Guid wsExternalId, Guid wsInternalId)
+    {
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<ExternalWorkspaceExistsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<WorkspaceKeyExistsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetWorkspace(It.IsAny<AzureDevOpsConnectionContext>(), wsExternalId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new Mock<IExternalWorkspaceConfiguration>().Object));
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<CreateExternalWorkspaceCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(IntegrationState<Guid>.Create(wsInternalId, true)));
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<UpdateAzureDevOpsWorkspaceIntegrationStateCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+    }
+
     #endregion
 
     #region SyncOrganizationConfiguration
@@ -317,10 +355,10 @@ public class AzureDevOpsInitManagerTests
 
     #endregion
 
-    #region InitWorkProcessIntegration
+    #region EnsureWorkProcessIntegration
 
     [Fact]
-    public async Task InitWorkProcessIntegration_WhenConnectionNotFound_ReturnsFailure()
+    public async Task EnsureWorkProcessIntegration_WhenConnectionNotFound_ReturnsFailure()
     {
         // Arrange
         var connectionId = Guid.CreateVersion7();
@@ -328,14 +366,14 @@ public class AzureDevOpsInitManagerTests
         SetupConnectionQuery(connectionId, null);
 
         // Act
-        var result = await _sut.InitWorkProcessIntegration(connectionId, wpExternalId, CancellationToken.None);
+        var result = await _sut.EnsureWorkProcessIntegration(connectionId, wpExternalId, CancellationToken.None);
 
         // Assert
         result.IsFailure.Should().BeTrue();
     }
 
     [Fact]
-    public async Task InitWorkProcessIntegration_WhenInvalidConnection_ReturnsFailure()
+    public async Task EnsureWorkProcessIntegration_WhenInvalidConnection_ReturnsFailure()
     {
         // Arrange
         var connectionId = Guid.CreateVersion7();
@@ -344,14 +382,14 @@ public class AzureDevOpsInitManagerTests
         SetupConnectionQuery(connectionId, details);
 
         // Act
-        var result = await _sut.InitWorkProcessIntegration(connectionId, wpExternalId, CancellationToken.None);
+        var result = await _sut.EnsureWorkProcessIntegration(connectionId, wpExternalId, CancellationToken.None);
 
         // Assert
         result.IsFailure.Should().BeTrue();
     }
 
     [Fact]
-    public async Task InitWorkProcessIntegration_WhenWorkProcessNotLinked_ReturnsFailure()
+    public async Task EnsureWorkProcessIntegration_WhenWorkProcessNotLinked_ReturnsFailure()
     {
         // Arrange
         var connectionId = Guid.CreateVersion7();
@@ -365,7 +403,7 @@ public class AzureDevOpsInitManagerTests
         SetupConnectionQuery(connectionId, details);
 
         // Act
-        var result = await _sut.InitWorkProcessIntegration(connectionId, wpExternalId, CancellationToken.None);
+        var result = await _sut.EnsureWorkProcessIntegration(connectionId, wpExternalId, CancellationToken.None);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -373,7 +411,7 @@ public class AzureDevOpsInitManagerTests
     }
 
     [Fact]
-    public async Task InitWorkProcessIntegration_WhenAlreadyIntegratedOnThisConnection_ReturnsFailure()
+    public async Task EnsureWorkProcessIntegration_WhenAlreadyIntegratedOnThisConnection_ReturnsItWithoutCreating()
     {
         // Arrange - the connection already has an IntegrationState for this process
         var connectionId = Guid.CreateVersion7();
@@ -389,15 +427,44 @@ public class AzureDevOpsInitManagerTests
         SetupConnectionQuery(connectionId, details);
 
         // Act
-        var result = await _sut.InitWorkProcessIntegration(connectionId, wpExternalId, CancellationToken.None);
+        var result = await _sut.EnsureWorkProcessIntegration(connectionId, wpExternalId, CancellationToken.None);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("already integrated");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Be(wpInternalId);
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.IsAny<CreateExternalWorkProcessCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.IsAny<UpdateAzureDevOpsWorkProcessIntegrationStateCommand>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task InitWorkProcessIntegration_WhenProcessExistsOnAnotherConnection_ReusesExistingWorkProcess()
+    public async Task EnsureWorkProcessIntegration_WhenDeactivatedInWayd_ReturnsFailure()
+    {
+        // Arrange
+        var connectionId = Guid.CreateVersion7();
+        var wpExternalId = Guid.CreateVersion7();
+        var details = CreateConnectionDetails(connectionId,
+            workProcesses: [new AzureDevOpsWorkProcessDto
+            {
+                ExternalId = wpExternalId,
+                Name = "Agile",
+                IntegrationState = new IntegrationStateDto { InternalId = Guid.CreateVersion7(), IsActive = false }
+            }]);
+        SetupConnectionQuery(connectionId, details);
+
+        // Act
+        var result = await _sut.EnsureWorkProcessIntegration(connectionId, wpExternalId, CancellationToken.None);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("Agile is deactivated");
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.IsAny<CreateExternalWorkProcessCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task EnsureWorkProcessIntegration_WhenProcessExistsOnAnotherConnection_ReusesExistingWorkProcess()
     {
         // Arrange - Process exists globally (another connection initialized it)
         // but this connection does NOT have an IntegrationState for it yet
@@ -427,7 +494,7 @@ public class AzureDevOpsInitManagerTests
             .ReturnsAsync(Result.Success());
 
         // Act
-        var result = await _sut.InitWorkProcessIntegration(connectionId, wpExternalId, CancellationToken.None);
+        var result = await _sut.EnsureWorkProcessIntegration(connectionId, wpExternalId, CancellationToken.None);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -448,7 +515,35 @@ public class AzureDevOpsInitManagerTests
     }
 
     [Fact]
-    public async Task InitWorkProcessIntegration_HappyPath_Succeeds()
+    public async Task EnsureWorkProcessIntegration_WhenTheSharedProcessIsDeactivated_ReturnsFailureWithoutLinking()
+    {
+        // Arrange - another connection created the work process, and it has since been deactivated
+        var connectionId = Guid.CreateVersion7();
+        var wpExternalId = Guid.CreateVersion7();
+        var details = CreateConnectionDetails(connectionId,
+            workProcesses: [new AzureDevOpsWorkProcessDto { ExternalId = wpExternalId, Name = "Agile" }]);
+        SetupConnectionQuery(connectionId, details);
+
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<ExternalWorkProcessExistsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var deactivated = new IntegrationRegistration<Guid, Guid>(wpExternalId, IntegrationState<Guid>.Create(Guid.CreateVersion7(), false));
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.Is<GetIntegrationRegistrationsForWorkProcessesQuery>(q => q.ExternalId == wpExternalId), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<IntegrationRegistration<Guid, Guid>> { deactivated });
+
+        // Act
+        var result = await _sut.EnsureWorkProcessIntegration(connectionId, wpExternalId, CancellationToken.None);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("Agile is deactivated");
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.IsAny<UpdateAzureDevOpsWorkProcessIntegrationStateCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task EnsureWorkProcessIntegration_HappyPath_Succeeds()
     {
         // Arrange
         var connectionId = Guid.CreateVersion7();
@@ -463,23 +558,6 @@ public class AzureDevOpsInitManagerTests
         _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<ExternalWorkProcessExistsQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
-
-        // SyncOrganizationConfiguration dependencies (called internally)
-        _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.TestConnection(It.IsAny<AzureDevOpsConnectionContext>()))
-            .ReturnsAsync(Result.Success());
-        _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkProcesses(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success(new List<IExternalWorkProcess>()));
-        _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkspaces(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success(new List<IExternalWorkspace>()));
-        _mocker.GetMock<IDispatcher>()
-            .Setup(s => s.Send(It.IsAny<GetIntegrationRegistrationsForWorkProcessesQuery>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<IntegrationRegistration<Guid, Guid>>());
-        _mocker.GetMock<IDispatcher>()
-            .Setup(s => s.Send(It.IsAny<SyncAzureDevOpsConnectionConfigurationCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success());
 
         // GetWorkProcess (external)
         var mockWpConfig = new Mock<IExternalWorkProcessConfiguration>();
@@ -502,11 +580,14 @@ public class AzureDevOpsInitManagerTests
             .ReturnsAsync(Result.Success());
 
         // Act
-        var result = await _sut.InitWorkProcessIntegration(connectionId, wpExternalId, CancellationToken.None);
+        var result = await _sut.EnsureWorkProcessIntegration(connectionId, wpExternalId, CancellationToken.None);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().Be(wpInternalId);
+        // Callers refresh the organization configuration themselves.
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Verify(s => s.TestConnection(It.IsAny<AzureDevOpsConnectionContext>()), Times.Never);
     }
 
     #endregion
@@ -648,50 +729,18 @@ public class AzureDevOpsInitManagerTests
         var connectionId = Guid.CreateVersion7();
         var wsExternalId = Guid.CreateVersion7();
         var wsInternalId = Guid.CreateVersion7();
+        var wpExternalId = Guid.CreateVersion7();
         var details = CreateConnectionDetails(connectionId,
-            workspaces: [new AzureDevOpsWorkspaceDto { ExternalId = wsExternalId, Name = "TestProject", WorkProcessId = Guid.CreateVersion7() }]);
+            workProcesses: [new AzureDevOpsWorkProcessDto
+            {
+                ExternalId = wpExternalId,
+                Name = "Agile",
+                IntegrationState = new IntegrationStateDto { InternalId = Guid.CreateVersion7(), IsActive = true }
+            }],
+            workspaces: [new AzureDevOpsWorkspaceDto { ExternalId = wsExternalId, Name = "TestProject", WorkProcessId = wpExternalId }]);
         SetupConnectionQuery(connectionId, details);
-
-        _mocker.GetMock<IDispatcher>()
-            .Setup(s => s.Send(It.IsAny<ExternalWorkspaceExistsQuery>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-        _mocker.GetMock<IDispatcher>()
-            .Setup(s => s.Send(It.IsAny<WorkspaceKeyExistsQuery>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-
-        // SyncOrganizationConfiguration dependencies
-        _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.TestConnection(It.IsAny<AzureDevOpsConnectionContext>()))
-            .ReturnsAsync(Result.Success());
-        _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkProcesses(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success(new List<IExternalWorkProcess>()));
-        _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkspaces(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success(new List<IExternalWorkspace>()));
-        _mocker.GetMock<IDispatcher>()
-            .Setup(s => s.Send(It.IsAny<GetIntegrationRegistrationsForWorkProcessesQuery>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<IntegrationRegistration<Guid, Guid>>());
-        _mocker.GetMock<IDispatcher>()
-            .Setup(s => s.Send(It.IsAny<SyncAzureDevOpsConnectionConfigurationCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success());
-
-        // GetWorkspace (external)
-        var mockWsConfig = new Mock<IExternalWorkspaceConfiguration>();
-        _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetWorkspace(It.IsAny<AzureDevOpsConnectionContext>(), wsExternalId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success(mockWsConfig.Object));
-
-        // CreateExternalWorkspaceCommand
-        var integrationState = IntegrationState<Guid>.Create(wsInternalId, true);
-        _mocker.GetMock<IDispatcher>()
-            .Setup(s => s.Send(It.IsAny<CreateExternalWorkspaceCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success(integrationState));
-
-        // UpdateAzureDevOpsWorkspaceIntegrationStateCommand
-        _mocker.GetMock<IDispatcher>()
-            .Setup(s => s.Send(It.IsAny<UpdateAzureDevOpsWorkspaceIntegrationStateCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success());
+        SetupOrganizationRefresh();
+        SetupWorkspaceCreation(wsExternalId, wsInternalId);
 
         // Act
         var result = await _sut.InitWorkspaceIntegration(connectionId, wsExternalId, "TESTWS", "Test Workspace", null, CancellationToken.None);
@@ -699,6 +748,108 @@ public class AzureDevOpsInitManagerTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().Be(wsInternalId);
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.IsAny<CreateExternalWorkProcessCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task InitWorkspaceIntegration_WhenWorkProcessNotSetUp_SetsItUpBeforeTheWorkspace()
+    {
+        // Arrange
+        var connectionId = Guid.CreateVersion7();
+        var wsExternalId = Guid.CreateVersion7();
+        var wsInternalId = Guid.CreateVersion7();
+        var wpExternalId = Guid.CreateVersion7();
+        var details = CreateConnectionDetails(connectionId,
+            workProcesses: [new AzureDevOpsWorkProcessDto { ExternalId = wpExternalId, Name = "Agile" }],
+            workspaces: [new AzureDevOpsWorkspaceDto { ExternalId = wsExternalId, Name = "TestProject", WorkProcessId = wpExternalId }]);
+        SetupConnectionQuery(connectionId, details);
+        SetupOrganizationRefresh();
+        SetupWorkspaceCreation(wsExternalId, wsInternalId);
+
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<ExternalWorkProcessExistsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var mockWpConfig = new Mock<IExternalWorkProcessConfiguration>();
+        mockWpConfig.Setup(p => p.Name).Returns("Agile");
+        mockWpConfig.Setup(p => p.WorkTypes).Returns(new List<IExternalWorkTypeWorkflow>());
+        mockWpConfig.Setup(p => p.WorkStatuses).Returns(new List<IExternalWorkStatus>());
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetWorkProcess(It.IsAny<AzureDevOpsConnectionContext>(), wpExternalId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(mockWpConfig.Object));
+
+        var sequence = new List<string>();
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<CreateExternalWorkProcessCommand>(), It.IsAny<CancellationToken>()))
+            .Callback(() => sequence.Add(nameof(CreateExternalWorkProcessCommand)))
+            .ReturnsAsync(Result.Success(IntegrationState<Guid>.Create(Guid.CreateVersion7(), true)));
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<UpdateAzureDevOpsWorkProcessIntegrationStateCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<CreateExternalWorkspaceCommand>(), It.IsAny<CancellationToken>()))
+            .Callback(() => sequence.Add(nameof(CreateExternalWorkspaceCommand)))
+            .ReturnsAsync(Result.Success(IntegrationState<Guid>.Create(wsInternalId, true)));
+
+        // Act
+        var result = await _sut.InitWorkspaceIntegration(connectionId, wsExternalId, "TESTWS", "Test Workspace", null, CancellationToken.None);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Be(wsInternalId);
+        sequence.Should().Equal(nameof(CreateExternalWorkProcessCommand), nameof(CreateExternalWorkspaceCommand));
+    }
+
+    [Fact]
+    public async Task InitWorkspaceIntegration_WhenWorkProcessDeactivated_ReturnsFailureWithoutCreatingTheWorkspace()
+    {
+        // Arrange
+        var connectionId = Guid.CreateVersion7();
+        var wsExternalId = Guid.CreateVersion7();
+        var wpExternalId = Guid.CreateVersion7();
+        var details = CreateConnectionDetails(connectionId,
+            workProcesses: [new AzureDevOpsWorkProcessDto
+            {
+                ExternalId = wpExternalId,
+                Name = "Agile",
+                IntegrationState = new IntegrationStateDto { InternalId = Guid.CreateVersion7(), IsActive = false }
+            }],
+            workspaces: [new AzureDevOpsWorkspaceDto { ExternalId = wsExternalId, Name = "TestProject", WorkProcessId = wpExternalId }]);
+        SetupConnectionQuery(connectionId, details);
+        SetupOrganizationRefresh();
+        SetupWorkspaceCreation(wsExternalId, Guid.CreateVersion7());
+
+        // Act
+        var result = await _sut.InitWorkspaceIntegration(connectionId, wsExternalId, "TESTWS", "Test Workspace", null, CancellationToken.None);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("deactivated");
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.IsAny<CreateExternalWorkspaceCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task InitWorkspaceIntegration_WhenProjectHasNoWorkProcess_ReturnsFailure()
+    {
+        // Arrange
+        var connectionId = Guid.CreateVersion7();
+        var wsExternalId = Guid.CreateVersion7();
+        var details = CreateConnectionDetails(connectionId,
+            workspaces: [new AzureDevOpsWorkspaceDto { ExternalId = wsExternalId, Name = "TestProject", WorkProcessId = Guid.Empty }]);
+        SetupConnectionQuery(connectionId, details);
+        SetupOrganizationRefresh();
+        SetupWorkspaceCreation(wsExternalId, Guid.CreateVersion7());
+
+        // Act
+        var result = await _sut.InitWorkspaceIntegration(connectionId, wsExternalId, "TESTWS", "Test Workspace", null, CancellationToken.None);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("no work process for project TestProject");
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.IsAny<CreateExternalWorkspaceCommand>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     #endregion

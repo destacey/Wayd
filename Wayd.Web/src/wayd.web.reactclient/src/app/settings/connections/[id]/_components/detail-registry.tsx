@@ -35,7 +35,7 @@ export interface DetailEntry {
   /** Component that renders the Overview section — the connector's own config. */
   Details: ComponentType<{ connection: ConnectionDetailsDto }>
   /**
-   * Sections beyond Overview (e.g. AzDO Organization Configuration). A
+   * Sections beyond Overview (e.g. AzDO Projects). A
    * connector with none renders a record page with no rail.
    */
   extraSections?: ConnectionSectionDefinition[]
@@ -86,8 +86,8 @@ export const DETAIL_REGISTRY: Partial<Record<ConnectorType, DetailEntry>> = {
 const NAME_TO_TYPE: Record<string, ConnectorType> = {
   'Azure DevOps': ConnectorType.AzureDevOps,
   'Azure OpenAI': ConnectorType.AzureOpenAI,
-  'Entra': ConnectorType.Entra,
-  'Workday': ConnectorType.Workday,
+  Entra: ConnectorType.Entra,
+  Workday: ConnectorType.Workday,
 }
 
 /**

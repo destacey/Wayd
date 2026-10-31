@@ -57,7 +57,7 @@ API responses never return a stored secret: `ConnectionSecret.Masked` replaces i
 
 ### Activation
 
-New connections are **active by default**. Admins toggle this with **Activate** / **Deactivate** in the detail page's actions menu — `IsActive` is the single switch that controls whether a connection participates in sync runs; there is no separate "sync enabled" flag. A connection syncs only when it is active, its configuration is valid (`IsValidConfiguration`), and — for Azure DevOps — at least one work process or workspace integration is active (`ISyncableConnection.CanSync`). Activation transitions raise `ConnectionActivatedEvent` / `ConnectionDeactivatedEvent`, so the deliberate state change is recorded on its own rather than bundled into a config edit.
+New connections are **active by default**. Admins toggle this with **Activate** / **Deactivate** in the detail page's actions menu — `IsActive` is the single switch that controls whether a connection participates in sync runs; there is no separate "sync enabled" flag. A connection syncs only when it is active, its configuration is valid (`IsValidConfiguration`), and — for Azure DevOps — at least one project is set up and syncing (`ISyncableConnection.CanSync`). Activation transitions raise `ConnectionActivatedEvent` / `ConnectionDeactivatedEvent`, so the deliberate state change is recorded on its own rather than bundled into a config edit.
 
 ### Connection events
 

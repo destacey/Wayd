@@ -52652,69 +52652,7 @@ export class AzureDevOpsConnectionsClient {
     }
 
     /**
-     * Initialize Azure DevOps work process integration.
-     * @return No Content
-     */
-    initWorkProcessIntegration(id: string, request: InitWorkProcessIntegrationRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/app-integrations/connections/azure-devops/{id}/init-work-process";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processInitWorkProcessIntegration(_response);
-        });
-    }
-
-    protected processInitWorkProcessIntegration(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Initialize Azure DevOps workspace integration.
+     * Set up an Azure DevOps project for syncing.
      * @return No Content
      */
     initWorkspaceIntegration(id: string, request: InitWorkspaceIntegrationRequest, cancelToken?: CancelToken): Promise<void> {
@@ -52748,6 +52686,71 @@ export class AzureDevOpsConnectionsClient {
     }
 
     protected processInitWorkspaceIntegration(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Turn syncing on or off for an Azure DevOps project.
+     * @return No Content
+     */
+    setWorkspaceSync(id: string, workspaceExternalId: string, request: SetAzureDevOpsWorkspaceSyncRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/app-integrations/connections/azure-devops/{id}/workspaces/{workspaceExternalId}/sync";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (workspaceExternalId === undefined || workspaceExternalId === null)
+            throw new globalThis.Error("The parameter 'workspaceExternalId' must be defined.");
+        url_ = url_.replace("{workspaceExternalId}", encodeURIComponent("" + workspaceExternalId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetWorkspaceSync(_response);
+        });
+    }
+
+    protected processSetWorkspaceSync(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -58922,7 +58925,8 @@ export interface AzureDevOpsConnectionConfigurationDto {
     /** The personal access token that grants access to the organization's Azure DevOps data.
 Returned masked as a fixed-width placeholder. */
     personalAccessToken: string;
-    /** The Azure DevOps organization URL, derived from the organization name. */
+    /** The Azure DevOps organization URL, built from the organization name and the configured
+Azure DevOps base address. */
     organizationUrl: string;
     /** The Azure DevOps work processes discovered for the organization. */
     workProcesses: AzureDevOpsWorkProcessDto[];
@@ -61885,13 +61889,6 @@ export interface IncidentSeveritySetLevelRequest {
     /** Existing level id, or omitted when adding a level. */
     id?: string | undefined;
     name: string;
-}
-
-export interface InitWorkProcessIntegrationRequest {
-    /** Connection Id. */
-    id: string;
-    /** External identifier for the work process. */
-    externalId: string;
 }
 
 export interface InitWorkspaceIntegrationRequest {
@@ -65360,6 +65357,12 @@ export interface ScoringScaleRequest {
 
 export interface SelectIncidentSeveritySetRequest {
     severitySetId: string;
+}
+
+/** Turns syncing on or off for an Azure DevOps project that has been set up on the connection. The project's Wayd workspace and work items are kept either way. */
+export interface SetAzureDevOpsWorkspaceSyncRequest {
+    /** Whether the project's work items are synced. */
+    isEnabled: boolean;
 }
 
 export interface SetChecklistItemCheckedRequest {

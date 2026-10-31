@@ -11,19 +11,17 @@ const connection = (connectorName: string) =>
 
 describe('detail registry', () => {
   describe('resolution', () => {
-    it.each([
-      ['Azure DevOps'],
-      ['Azure OpenAI'],
-      ['Entra'],
-      ['Workday'],
-    ])('resolves the %s connector', (connectorName) => {
-      // Arrange / Act
-      const entry = getDetailEntry(connection(connectorName))
+    it.each([['Azure DevOps'], ['Azure OpenAI'], ['Entra'], ['Workday']])(
+      'resolves the %s connector',
+      (connectorName) => {
+        // Arrange / Act
+        const entry = getDetailEntry(connection(connectorName))
 
-      // Assert — every connector must at least render its own config
-      expect(entry).toBeDefined()
-      expect(entry!.Details).toBeDefined()
-    })
+        // Assert — every connector must at least render its own config
+        expect(entry).toBeDefined()
+        expect(entry!.Details).toBeDefined()
+      },
+    )
 
     it('returns nothing for a connector the UI does not know', () => {
       // Arrange / Act — a new connector can ship on the API before its UI
@@ -36,7 +34,10 @@ describe('detail registry', () => {
 
     it('returns nothing when the connection has no connector', () => {
       // Arrange / Act
-      const entry = getDetailEntry({ id: 'x', name: 'y' } as ConnectionDetailsDto)
+      const entry = getDetailEntry({
+        id: 'x',
+        name: 'y',
+      } as ConnectionDetailsDto)
 
       // Assert
       expect(entry).toBeUndefined()
@@ -108,7 +109,7 @@ describe('detail registry', () => {
       expect(entry.ExtraActions).toBeDefined()
       expect(entry.getExternalUrl).toBeDefined()
       expect(entry.extraSections?.map((s) => s.key)).toEqual([
-        'organization-configuration',
+        'projects',
         'people',
         'sync-history',
       ])

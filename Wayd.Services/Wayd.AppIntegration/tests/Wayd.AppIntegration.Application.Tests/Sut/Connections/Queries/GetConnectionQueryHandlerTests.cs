@@ -12,6 +12,7 @@ using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.AppIntegration.Domain.Models.Workday;
+using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.AppIntegration;
 
@@ -27,7 +28,23 @@ public class GetConnectionQueryHandlerTests
     public GetConnectionQueryHandlerTests()
     {
         MapsterTestConfiguration.Ensure();
-        _sut = new GetConnectionQueryHandler(_db);
+        _sut = new GetConnectionQueryHandler(_db, new FixedBaseUrlResolver());
+    }
+
+    [Fact]
+    public async Task Handle_BuildsTheAzureDevOpsOrganizationUrlFromTheConfiguredBaseUrl()
+    {
+        // Arrange
+        var connection = AzureDevOpsBoardsConnection.Create(
+            "AzDO", null, "system-id", new AzureDevOpsBoardsConnectionConfiguration("contoso", "pat"), true, null, EventActor.System, _now);
+        _db.AddConnection(connection);
+
+        // Act
+        var dto = (AzureDevOpsConnectionDetailsDto)(await _sut.Handle(
+            new GetConnectionQuery(connection.Id), TestContext.Current.CancellationToken))!;
+
+        // Assert
+        dto.Configuration.OrganizationUrl.Should().Be("https://devops.example.com/contoso");
     }
 
     [Fact]
@@ -149,6 +166,11 @@ public class GetConnectionQueryHandlerTests
         WorkdayConnection.Create(
             "Workday", null, new WorkdayConnectionConfiguration("https://wd.acme.example/ccx/service/acme_corp/Staffing/v46.1?wsdl", "isu-user", "isu-pass"), true, EventActor.System, _now),
     ];
+
+    private sealed class FixedBaseUrlResolver : IAzureDevOpsUrlResolver
+    {
+        public string GetOrganizationUrl(string organization) => $"https://devops.example.com/{organization}";
+    }
 
     private sealed class UnmappedConnection : Connection
     {

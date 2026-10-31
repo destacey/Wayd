@@ -15,7 +15,8 @@ public class AzureDevOpsService(
     ILogger<AzureDevOpsService> logger,
     ILoggerFactory loggerFactory,
     IHttpClientFactory httpClientFactory,
-    IMemoryCache memoryCache) : IAzureDevOpsService
+    IMemoryCache memoryCache,
+    IAzureDevOpsUrlResolver urlResolver) : IAzureDevOpsService
 {
     // https://learn.microsoft.com/en-us/azure/devops/integrate/concepts/rest-api-versioning?view=azure-devops#supported-versions
     // 7.1 requires Azure DevOps Services (or Server 2025+). Wayd only connects to the hosted
@@ -26,6 +27,7 @@ public class AzureDevOpsService(
     private readonly ILoggerFactory _loggerFactory = loggerFactory;
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly IMemoryCache _memoryCache = memoryCache;
+    private readonly IAzureDevOpsUrlResolver _urlResolver = urlResolver;
 
     public async Task<Result> TestConnection(AzureDevOpsConnectionContext connection)
     {
@@ -113,7 +115,7 @@ public class AzureDevOpsService(
             return Result.Failure<List<IExternalTeam>>(result.Error);
 
         if (_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug("{TeamCount} teams found for organization {organizationUrl}.", result.Value.Count, connection.OrganizationUrl);
+            _logger.LogDebug("{TeamCount} teams found for organization {Organization}.", result.Value.Count, connection.Organization);
 
         return result.Value;
     }
@@ -212,7 +214,7 @@ public class AzureDevOpsService(
 
     private async Task<Result<List<IterationDto>>> GetOrFetchIterationsAsync(AzureDevOpsConnectionContext connection, string projectName, Dictionary<Guid, Guid?>? teamSettings, CancellationToken cancellationToken, bool forceRefresh = false)
     {
-        var cacheKey = CacheKeyGenerator.GetCacheKey("azdo-iterations", connection.OrganizationUrl, projectName, teamSettings);
+        var cacheKey = CacheKeyGenerator.GetCacheKey("azdo-iterations", OrganizationUrl(connection), projectName, teamSettings);
 
         if (!forceRefresh && _memoryCache.TryGetValue(cacheKey, out List<IterationDto>? cached) && cached is not null)
         {
@@ -244,15 +246,18 @@ public class AzureDevOpsService(
     // factory's pooled handler chain, which also carries the host's resilience pipeline.
     private HttpClient CreateHttpClient() => _httpClientFactory.CreateClient(AzureDevOpsHttpClient.Name);
 
+    private string OrganizationUrl(AzureDevOpsConnectionContext connection) =>
+        _urlResolver.GetOrganizationUrl(connection.Organization);
+
     private GeneralService CreateGeneralService(AzureDevOpsConnectionContext connection) =>
-        new(CreateHttpClient(), connection.OrganizationUrl, connection.PersonalAccessToken, _apiVersion, _loggerFactory.CreateLogger<GeneralService>());
+        new(CreateHttpClient(), OrganizationUrl(connection), connection.PersonalAccessToken, _apiVersion, _loggerFactory.CreateLogger<GeneralService>());
 
     private ProcessService CreateProcessService(AzureDevOpsConnectionContext connection) =>
-        new(CreateHttpClient(), connection.OrganizationUrl, connection.PersonalAccessToken, _apiVersion, _loggerFactory.CreateLogger<ProcessService>());
+        new(CreateHttpClient(), OrganizationUrl(connection), connection.PersonalAccessToken, _apiVersion, _loggerFactory.CreateLogger<ProcessService>());
 
     private ProjectService CreateProjectService(AzureDevOpsConnectionContext connection) =>
-        new(CreateHttpClient(), connection.OrganizationUrl, connection.PersonalAccessToken, _apiVersion, _loggerFactory.CreateLogger<ProjectService>());
+        new(CreateHttpClient(), OrganizationUrl(connection), connection.PersonalAccessToken, _apiVersion, _loggerFactory.CreateLogger<ProjectService>());
 
     private WorkItemService CreateWorkItemService(AzureDevOpsConnectionContext connection) =>
-        new(CreateHttpClient(), connection.OrganizationUrl, connection.PersonalAccessToken, _apiVersion, _loggerFactory.CreateLogger<WorkItemService>());
+        new(CreateHttpClient(), OrganizationUrl(connection), connection.PersonalAccessToken, _apiVersion, _loggerFactory.CreateLogger<WorkItemService>());
 }

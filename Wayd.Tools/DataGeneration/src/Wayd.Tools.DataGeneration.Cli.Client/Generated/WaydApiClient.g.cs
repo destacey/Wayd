@@ -96303,19 +96303,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Initialize Azure DevOps work process integration.
+        /// Set up an Azure DevOps project for syncing.
         /// </summary>
-        /// <returns>No Content</returns>
-        /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task InitWorkProcessIntegrationAsync(System.Guid id, InitWorkProcessIntegrationRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
-
-        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Initialize Azure DevOps workspace integration.
-        /// </summary>
+        /// <remarks>
+        /// Creates the project's Wayd workspace. The project's work process is set up first when Wayd does not have it yet.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task InitWorkspaceIntegrationAsync(System.Guid id, InitWorkspaceIntegrationRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Turn syncing on or off for an Azure DevOps project.
+        /// </summary>
+        /// <remarks>
+        /// The project must already be set up. Its Wayd workspace and work items are kept either way.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetWorkspaceSyncAsync(System.Guid id, System.Guid workspaceExternalId, SetAzureDevOpsWorkspaceSyncRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -96477,11 +96483,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Initialize Azure DevOps work process integration.
+        /// Set up an Azure DevOps project for syncing.
         /// </summary>
+        /// <remarks>
+        /// Creates the project's Wayd workspace. The project's work process is set up first when Wayd does not have it yet.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task InitWorkProcessIntegrationAsync(System.Guid id, InitWorkProcessIntegrationRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task InitWorkspaceIntegrationAsync(System.Guid id, InitWorkspaceIntegrationRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -96503,10 +96512,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/app-integrations/connections/azure-devops/{id}/init-work-process"
+                    // Operation Path: "api/app-integrations/connections/azure-devops/{id}/init-workspace"
                     urlBuilder_.Append("api/app-integrations/connections/azure-devops/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/init-work-process");
+                    urlBuilder_.Append("/init-workspace");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -96567,14 +96576,20 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Initialize Azure DevOps workspace integration.
+        /// Turn syncing on or off for an Azure DevOps project.
         /// </summary>
+        /// <remarks>
+        /// The project must already be set up. Its Wayd workspace and work items are kept either way.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task InitWorkspaceIntegrationAsync(System.Guid id, InitWorkspaceIntegrationRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task SetWorkspaceSyncAsync(System.Guid id, System.Guid workspaceExternalId, SetAzureDevOpsWorkspaceSyncRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
+
+            if (workspaceExternalId == null)
+                throw new System.ArgumentNullException("workspaceExternalId");
 
             if (request == null)
                 throw new System.ArgumentNullException("request");
@@ -96589,14 +96604,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     var content_ = new System.Net.Http.ByteArrayContent(json_);
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
-                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/app-integrations/connections/azure-devops/{id}/init-workspace"
+                    // Operation Path: "api/app-integrations/connections/azure-devops/{id}/workspaces/{workspaceExternalId}/sync"
                     urlBuilder_.Append("api/app-integrations/connections/azure-devops/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/init-workspace");
+                    urlBuilder_.Append("/workspaces/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(workspaceExternalId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/sync");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -108046,7 +108063,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string PersonalAccessToken { get; set; } = default!;
 
         /// <summary>
-        /// The Azure DevOps organization URL, derived from the organization name.
+        /// The Azure DevOps organization URL, built from the organization name and the configured
+        /// <br/>Azure DevOps base address.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("organizationUrl")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -116720,26 +116738,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class InitWorkProcessIntegrationRequest
-    {
-
-        /// <summary>
-        /// Connection Id.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("id")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Guid Id { get; set; } = default!;
-
-        /// <summary>
-        /// External identifier for the work process.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("externalId")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Guid ExternalId { get; set; } = default!;
 
     }
 
@@ -126957,6 +126955,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("severitySetId")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Guid SeveritySetId { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Turns syncing on or off for an Azure DevOps project that has been set up on the connection.
+    /// <br/>The project's Wayd workspace and work items are kept either way.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetAzureDevOpsWorkspaceSyncRequest
+    {
+
+        /// <summary>
+        /// Whether the project's work items are synced.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isEnabled")]
+        public bool IsEnabled { get; set; } = default!;
 
     }
 

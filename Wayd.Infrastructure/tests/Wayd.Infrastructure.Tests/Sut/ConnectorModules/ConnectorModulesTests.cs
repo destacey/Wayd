@@ -1,5 +1,9 @@
 ﻿using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Infrastructure.ConnectorModules;
 using Wayd.Integrations.Abstractions;
@@ -105,5 +109,50 @@ public sealed class ConnectorModulesTests
         var act = () => factory.CreateClient(AzureDevOpsHttpClient.Name);
 
         act.Should().NotThrow();
+    }
+
+    [Theory]
+    [InlineData("http://dev.azure.com")]
+    [InlineData("dev.azure.com")]
+    [InlineData("/relative")]
+    [InlineData("")]
+    public void AddConnectorModules_RejectsAnAzureDevOpsBaseUrlThatIsNotAbsoluteHttps(string baseUrl)
+    {
+        // Arrange — each connection's personal access token is sent to this address
+        using var provider = BuildProviderWithAzureDevOpsBaseUrl(baseUrl);
+
+        // Act
+        var act = () => provider.GetRequiredService<IOptions<AzureDevOpsOptions>>().Value;
+
+        // Assert
+        act.Should().Throw<OptionsValidationException>();
+    }
+
+    [Fact]
+    public void AddConnectorModules_BindsTheConfiguredAzureDevOpsBaseUrl()
+    {
+        // Arrange
+        using var provider = BuildProviderWithAzureDevOpsBaseUrl("https://devops.example.com");
+
+        // Act
+        var url = provider.GetRequiredService<IAzureDevOpsUrlResolver>().GetOrganizationUrl("contoso");
+
+        // Assert
+        url.Should().Be("https://devops.example.com/contoso");
+    }
+
+    private static ServiceProvider BuildProviderWithAzureDevOpsBaseUrl(string baseUrl)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [$"{AzureDevOpsOptions.SectionName}:{nameof(AzureDevOpsOptions.BaseUrl)}"] = baseUrl,
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddConnectorModules();
+        return services.BuildServiceProvider();
     }
 }

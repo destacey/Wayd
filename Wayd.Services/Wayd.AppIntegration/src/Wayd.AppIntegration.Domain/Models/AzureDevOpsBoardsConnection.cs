@@ -39,9 +39,9 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
         && IsValidConfiguration
         && HasActiveIntegrationObjects;
 
+    // Projects are what a sync reads; a set-up process with no syncing project gives it nothing to do.
     public override bool HasActiveIntegrationObjects => IsValidConfiguration
-        && (Configuration.WorkProcesses.Any(p => p.IntegrationIsActive)
-        || Configuration.Workspaces.Any(p => p.IntegrationIsActive));
+        && Configuration.Workspaces.Any(w => w.IntegrationIsActive);
 
     public Result Update(string name, string? description, string organization, string personalAccessToken, bool configurationIsValid, EventActor actor, Instant timestamp)
     {
@@ -414,6 +414,22 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
         {
             return Result.Failure(ex.ToString());
         }
+    }
+
+    /// <summary>
+    /// Turns syncing on or off for a project that has been set up. Its Wayd workspace and work
+    /// items are kept either way; turning it back on resumes from where it stopped.
+    /// </summary>
+    public Result SetWorkspaceSync(Guid workspaceExternalId, bool isEnabled)
+    {
+        var workspace = Configuration.Workspaces.FirstOrDefault(w => w.ExternalId == workspaceExternalId);
+        if (workspace is null)
+            return Result.Failure($"Unable to find workspace with id {workspaceExternalId} in Azure DevOps connection with id {Id}.");
+
+        if (!workspace.HasIntegration)
+            return Result.Failure($"Workspace {workspace.Name} has not been set up for syncing.");
+
+        return workspace.UpdateIntegrationState(isEnabled);
     }
 
     public static AzureDevOpsBoardsConnection Create(string name, string? description, string? systemId, AzureDevOpsBoardsConnectionConfiguration configuration, bool configurationIsValid, AzureDevOpsBoardsTeamConfiguration? teamConfiguration, EventActor actor, Instant timestamp)

@@ -31,12 +31,14 @@ namespace Wayd.AppIntegration.Application.Tests.Sut.Connections.Managers;
 public class AzureDevOpsWorkItemSourceTests
 {
     private readonly AutoMocker _mocker;
+    private readonly AzureDevOpsWorkProcessSyncTracker _workProcessSyncTracker = new();
     private readonly AzureDevOpsWorkItemSource _sut;
 
     public AzureDevOpsWorkItemSourceTests()
     {
         _mocker = new AutoMocker();
         _mocker.Use<ILogger<AzureDevOpsWorkItemSource>>(Mock.Of<ILogger<AzureDevOpsWorkItemSource>>());
+        _mocker.Use(_workProcessSyncTracker);
         _sut = _mocker.CreateInstance<AzureDevOpsWorkItemSource>();
     }
 
@@ -131,6 +133,10 @@ public class AzureDevOpsWorkItemSourceTests
 
         _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<UpdateExternalWorkspaceCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<ChangeExternalWorkspaceWorkProcessCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
     }
 
@@ -242,23 +248,54 @@ public class AzureDevOpsWorkItemSourceTests
     }
 
     [Fact]
-    public async Task GetSyncPlan_SkipsWorkspacesWithInactiveProcess()
+    public async Task GetSyncPlan_IncludesWorkspacesWhoseProcessIsNotSetUp()
     {
+        // Arrange — preparing the workspace sets the process up, rather than the plan skipping it
         var descriptor = BuildDescriptor();
         _sut.Bind(descriptor);
 
-        var inactiveProcessId = Guid.CreateVersion7();
+        var processId = Guid.CreateVersion7();
         var details = BuildConnectionDetails(
             descriptor.ConnectionId,
-            processes: [Process(externalId: inactiveProcessId, isActive: false)],
-            workspaces: [Workspace(inactiveProcessId)]);
+            processes: [Process(externalId: processId, isActive: false)],
+            workspaces: [Workspace(processId)]);
 
         _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(details);
 
+        // Act
         var result = await _sut.GetSyncPlan(CancellationToken.None);
 
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task GetSyncPlan_SkipsWorkspacesWhoseProcessIsDeactivatedInWayd()
+    {
+        // Arrange — deactivating a Wayd work process requires its workspaces to be deactivated
+        // first, which does not reach the workspace's integration state
+        var descriptor = BuildDescriptor();
+        _sut.Bind(descriptor);
+
+        var processId = Guid.CreateVersion7();
+        var deactivatedProcess = Process(externalId: processId);
+        deactivatedProcess.IntegrationState!.IsActive = false;
+        var details = BuildConnectionDetails(
+            descriptor.ConnectionId,
+            processes: [deactivatedProcess],
+            workspaces: [Workspace(processId)]);
+
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(details);
+
+        // Act
+        var result = await _sut.GetSyncPlan(CancellationToken.None);
+
+        // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeEmpty();
     }
@@ -364,9 +401,10 @@ public class AzureDevOpsWorkItemSourceTests
 
         StubWorkProcessSync();
 
+        var syncId = Guid.CreateVersion7();
         foreach (var target in planResult.Value)
         {
-            var prepResult = await _sut.PrepareWorkspaceForItemSync(target, Guid.CreateVersion7(), CancellationToken.None);
+            var prepResult = await _sut.PrepareWorkspaceForItemSync(target, syncId, CancellationToken.None);
             prepResult.IsSuccess.Should().BeTrue();
         }
 
@@ -379,7 +417,40 @@ public class AzureDevOpsWorkItemSourceTests
     }
 
     [Fact]
-    public async Task PrepareWorkspaceForItemSync_ResetsDedupOnRebind()
+    public async Task PrepareWorkspaceForItemSync_SyncsAProcessSharedByTwoConnectionsOncePerRun()
+    {
+        // Arrange — two connections to different organizations, both on a built-in process
+        var processId = Guid.CreateVersion7();
+        var firstDescriptor = BuildDescriptor();
+        var secondDescriptor = BuildDescriptor();
+
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.Is<GetAzureDevOpsConnectionQuery>(q => q.ConnectionId == firstDescriptor.ConnectionId), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildConnectionDetails(firstDescriptor.ConnectionId, [Process(externalId: processId)], [Workspace(processId, name: "ProjectA")]));
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.Is<GetAzureDevOpsConnectionQuery>(q => q.ConnectionId == secondDescriptor.ConnectionId), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildConnectionDetails(secondDescriptor.ConnectionId, [Process(externalId: processId)], [Workspace(processId, name: "ProjectB")]));
+        StubWorkProcessSync();
+
+        var secondSource = _mocker.CreateInstance<AzureDevOpsWorkItemSource>();
+        var syncId = Guid.CreateVersion7();
+
+        // Act
+        foreach (var (source, descriptor) in new[] { (_sut, firstDescriptor), (secondSource, secondDescriptor) })
+        {
+            source.Bind(descriptor);
+            var plan = await source.GetSyncPlan(CancellationToken.None);
+            var prepResult = await source.PrepareWorkspaceForItemSync(plan.Value.Single(), syncId, CancellationToken.None);
+            prepResult.IsSuccess.Should().BeTrue();
+        }
+
+        // Assert
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Verify(s => s.GetWorkProcess(It.IsAny<AzureDevOpsConnectionContext>(), processId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task PrepareWorkspaceForItemSync_SyncsTheProcessAgainInANewRun()
     {
         var descriptor = BuildDescriptor();
         _sut.Bind(descriptor);
@@ -399,14 +470,118 @@ public class AzureDevOpsWorkItemSourceTests
         var plan1 = await _sut.GetSyncPlan(CancellationToken.None);
         await _sut.PrepareWorkspaceForItemSync(plan1.Value.Single(), Guid.CreateVersion7(), CancellationToken.None);
 
-        // Rebind for a fresh sync cycle.
+        // Rebind for the next run, which has its own sync id.
         _sut.Bind(descriptor);
         var plan2 = await _sut.GetSyncPlan(CancellationToken.None);
         await _sut.PrepareWorkspaceForItemSync(plan2.Value.Single(), Guid.CreateVersion7(), CancellationToken.None);
 
-        // Each Bind cycle should re-sync the work process once.
+        // Each run syncs the work process once.
         _mocker.GetMock<IAzureDevOpsService>()
             .Verify(s => s.GetWorkProcess(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task PrepareWorkspaceForItemSync_WhenProcessNotSetUp_SetsItUpOnceAndAssignsTheWorkspace()
+    {
+        // Arrange
+        var descriptor = BuildDescriptor();
+        _sut.Bind(descriptor);
+
+        var processId = Guid.CreateVersion7();
+        var processInternalId = Guid.CreateVersion7();
+        var workspaceA = Workspace(processId, name: "ProjectA");
+        var workspaceB = Workspace(processId, name: "ProjectB");
+        var details = BuildConnectionDetails(
+            descriptor.ConnectionId,
+            processes: [Process(externalId: processId, isActive: false)],
+            workspaces: [workspaceA, workspaceB]);
+
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(details);
+        _mocker.GetMock<IAzureDevOpsInitManager>()
+            .Setup(m => m.EnsureWorkProcessIntegration(descriptor.ConnectionId, processId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(processInternalId));
+        StubWorkProcessSync();
+
+        var plan = await _sut.GetSyncPlan(CancellationToken.None);
+
+        // Act
+        var syncId = Guid.CreateVersion7();
+        var results = new List<Result>();
+        foreach (var target in plan.Value)
+            results.Add(await _sut.PrepareWorkspaceForItemSync(target, syncId, CancellationToken.None));
+
+        // Assert
+        results.Should().OnlyContain(r => r.IsSuccess);
+        _mocker.GetMock<IAzureDevOpsInitManager>()
+            .Verify(m => m.EnsureWorkProcessIntegration(descriptor.ConnectionId, processId, It.IsAny<CancellationToken>()), Times.Once);
+        // Setting the process up just read it, so the run does not sync it again.
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Verify(s => s.GetWorkProcess(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.Is<ChangeExternalWorkspaceWorkProcessCommand>(c =>
+                c.WorkspaceId == workspaceA.IntegrationState!.InternalId && c.NewWorkProcessExternalId == processId), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task PrepareWorkspaceForItemSync_WhenProcessCannotBeSetUp_FailsWithTheProjectName()
+    {
+        // Arrange
+        var descriptor = BuildDescriptor();
+        _sut.Bind(descriptor);
+
+        var processId = Guid.CreateVersion7();
+        var details = BuildConnectionDetails(
+            descriptor.ConnectionId,
+            processes: [Process(externalId: processId, isActive: false)],
+            workspaces: [Workspace(processId, name: "ProjectA")]);
+
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(details);
+        _mocker.GetMock<IAzureDevOpsInitManager>()
+            .Setup(m => m.EnsureWorkProcessIntegration(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Failure<Guid>("The work process Agile is deactivated in Wayd."));
+
+        var plan = await _sut.GetSyncPlan(CancellationToken.None);
+
+        // Act
+        var result = await _sut.PrepareWorkspaceForItemSync(plan.Value.Single(), Guid.CreateVersion7(), CancellationToken.None);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("ProjectA").And.Contain("deactivated");
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Verify(s => s.GetWorkProcess(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task PrepareWorkspaceForItemSync_WhenProjectHasNoProcess_Fails()
+    {
+        // Arrange
+        var descriptor = BuildDescriptor();
+        _sut.Bind(descriptor);
+
+        var details = BuildConnectionDetails(
+            descriptor.ConnectionId,
+            processes: [],
+            workspaces: [Workspace(Guid.Empty, name: "ProjectA")]);
+
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(details);
+
+        var plan = await _sut.GetSyncPlan(CancellationToken.None);
+
+        // Act
+        var result = await _sut.PrepareWorkspaceForItemSync(plan.Value.Single(), Guid.CreateVersion7(), CancellationToken.None);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("no work process for project ProjectA");
+        _mocker.GetMock<IAzureDevOpsInitManager>()
+            .Verify(m => m.EnsureWorkProcessIntegration(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     // -------- SyncWorkItems: SyncType branching --------

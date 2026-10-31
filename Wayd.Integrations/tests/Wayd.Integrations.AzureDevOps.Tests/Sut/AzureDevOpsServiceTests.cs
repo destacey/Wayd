@@ -1,5 +1,6 @@
 using System.Net;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Wayd.Common.Application.Models;
 using Wayd.Integrations.AzureDevOps.Tests.Support;
 
@@ -7,10 +8,10 @@ namespace Wayd.Integrations.AzureDevOps.Tests.Sut;
 
 public class AzureDevOpsServiceTests
 {
-    private const string OrganizationUrl = "https://dev.azure.com/acme";
+    private const string Organization = "acme";
     private const string Token = "test-pat-token";
 
-    private static readonly AzureDevOpsConnectionContext _connection = new(OrganizationUrl, Token);
+    private static readonly AzureDevOpsConnectionContext _connection = new(Organization, Token);
 
     private readonly StubHttpMessageHandler _handler = new();
     private readonly FakeHttpClientFactory _httpClientFactory;
@@ -20,12 +21,16 @@ public class AzureDevOpsServiceTests
     public AzureDevOpsServiceTests()
     {
         _httpClientFactory = new FakeHttpClientFactory(_handler);
-        _sut = new AzureDevOpsService(
+        _sut = CreateSut(new AzureDevOpsOptions());
+    }
+
+    private AzureDevOpsService CreateSut(AzureDevOpsOptions options) =>
+        new(
             NullLogger<AzureDevOpsService>.Instance,
             NullLoggerFactory.Instance,
             _httpClientFactory,
-            _memoryCache);
-    }
+            _memoryCache,
+            new AzureDevOpsUrlResolver(Options.Create(options)));
 
     [Fact]
     public async Task GetIterations_SecondCallWithinCacheWindow_DoesNotReissueIterationsRequest()
@@ -92,6 +97,33 @@ public class AzureDevOpsServiceTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetSystemId_ByDefault_CallsTheOrganizationOnAzureDevOpsServices()
+    {
+        // Arrange
+        _handler.EnqueueResponse(HttpStatusCode.OK, """{"instanceId":"6ff2ee2f-9d9b-40b1-9502-e4c00a318c00"}""");
+
+        // Act
+        await _sut.GetSystemId(_connection, TestContext.Current.CancellationToken);
+
+        // Assert
+        _handler.Requests.Single().Uri!.GetLeftPart(UriPartial.Path).Should().StartWith("https://dev.azure.com/acme/");
+    }
+
+    [Fact]
+    public async Task GetSystemId_WithAConfiguredBaseUrl_CallsTheOrganizationThere()
+    {
+        // Arrange
+        var sut = CreateSut(new AzureDevOpsOptions { BaseUrl = "https://devops.example.com/" });
+        _handler.EnqueueResponse(HttpStatusCode.OK, """{"instanceId":"6ff2ee2f-9d9b-40b1-9502-e4c00a318c00"}""");
+
+        // Act
+        await sut.GetSystemId(_connection, TestContext.Current.CancellationToken);
+
+        // Assert
+        _handler.Requests.Single().Uri!.GetLeftPart(UriPartial.Path).Should().StartWith("https://devops.example.com/acme/");
     }
 
     [Fact]

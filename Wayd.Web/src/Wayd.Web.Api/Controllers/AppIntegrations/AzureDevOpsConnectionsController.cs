@@ -32,27 +32,10 @@ public class AzureDevOpsConnectionsController(IDispatcher dispatcher) : Controll
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    [HttpPost("{id}/init-work-process")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
-    [EndpointSummary("Initialize Azure DevOps work process integration.")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> InitWorkProcessIntegration(
-        Guid id,
-        InitWorkProcessIntegrationRequest request,
-        [FromServices] IAzureDevOpsInitManager azureDevOpsInitManager,
-        CancellationToken cancellationToken)
-    {
-        if (id != request.Id)
-            return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
-
-        var result = await azureDevOpsInitManager.InitWorkProcessIntegration(request.Id, request.ExternalId, cancellationToken);
-        return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
-    }
-
     [HttpPost("{id}/init-workspace")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
-    [EndpointSummary("Initialize Azure DevOps workspace integration.")]
+    [EndpointSummary("Set up an Azure DevOps project for syncing.")]
+    [EndpointDescription("Creates the project's Wayd workspace. The project's work process is set up first when Wayd does not have it yet.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> InitWorkspaceIntegration(
@@ -68,6 +51,22 @@ public class AzureDevOpsConnectionsController(IDispatcher dispatcher) : Controll
             request.Id, request.ExternalId, request.WorkspaceKey, request.WorkspaceName,
             request.ExternalViewWorkItemUrlTemplate, cancellationToken);
 
+        return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/workspaces/{workspaceExternalId}/sync")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
+    [EndpointSummary("Turn syncing on or off for an Azure DevOps project.")]
+    [EndpointDescription("The project must already be set up. Its Wayd workspace and work items are kept either way.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> SetWorkspaceSync(
+        Guid id,
+        Guid workspaceExternalId,
+        SetAzureDevOpsWorkspaceSyncRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new SetAzureDevOpsWorkspaceSyncCommand(id, workspaceExternalId, request.IsEnabled), cancellationToken);
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
@@ -115,7 +114,7 @@ public class AzureDevOpsConnectionsController(IDispatcher dispatcher) : Controll
             return BadRequest(ProblemDetailsExtensions.ForBadRequest("Organization and PAT required.", HttpContext));
 
         var config = new AzureDevOpsBoardsConnectionConfiguration(request.Organization, request.PersonalAccessToken);
-        var result = await azureDevOpsService.TestConnection(new AzureDevOpsConnectionContext(config.OrganizationUrl, config.PersonalAccessToken));
+        var result = await azureDevOpsService.TestConnection(new AzureDevOpsConnectionContext(config.Organization, config.PersonalAccessToken));
 
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }

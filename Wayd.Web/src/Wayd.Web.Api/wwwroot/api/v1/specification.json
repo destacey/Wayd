@@ -45342,13 +45342,14 @@
         ]
       }
     },
-    "/api/app-integrations/connections/azure-devops/{id}/init-work-process": {
+    "/api/app-integrations/connections/azure-devops/{id}/init-workspace": {
       "post": {
         "tags": [
           "AzureDevOpsConnections"
         ],
-        "summary": "Initialize Azure DevOps work process integration.",
-        "operationId": "AzureDevOpsConnections_InitWorkProcessIntegration",
+        "summary": "Set up an Azure DevOps project for syncing.",
+        "description": "Creates the project's Wayd workspace. The project's work process is set up first when Wayd does not have it yet.",
+        "operationId": "AzureDevOpsConnections_InitWorkspaceIntegration",
         "parameters": [
           {
             "name": "id",
@@ -45365,7 +45366,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/InitWorkProcessIntegrationRequest"
+                "$ref": "#/components/schemas/InitWorkspaceIntegrationRequest"
               }
             }
           },
@@ -45395,13 +45396,14 @@
         ]
       }
     },
-    "/api/app-integrations/connections/azure-devops/{id}/init-workspace": {
-      "post": {
+    "/api/app-integrations/connections/azure-devops/{id}/workspaces/{workspaceExternalId}/sync": {
+      "put": {
         "tags": [
           "AzureDevOpsConnections"
         ],
-        "summary": "Initialize Azure DevOps workspace integration.",
-        "operationId": "AzureDevOpsConnections_InitWorkspaceIntegration",
+        "summary": "Turn syncing on or off for an Azure DevOps project.",
+        "description": "The project must already be set up. Its Wayd workspace and work items are kept either way.",
+        "operationId": "AzureDevOpsConnections_SetWorkspaceSync",
         "parameters": [
           {
             "name": "id",
@@ -45412,19 +45414,29 @@
               "format": "uuid"
             },
             "x-position": 1
+          },
+          {
+            "name": "workspaceExternalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/InitWorkspaceIntegrationRequest"
+                "$ref": "#/components/schemas/SetAzureDevOpsWorkspaceSyncRequest"
               }
             }
           },
           "required": true,
           "x-name": "request",
-          "x-position": 2
+          "x-position": 3
         },
         "responses": {
           "204": {
@@ -51302,7 +51314,7 @@
           },
           "organizationUrl": {
             "type": "string",
-            "description": "The Azure DevOps organization URL, derived from the organization name."
+            "description": "The Azure DevOps organization URL, built from the organization name and the configured\nAzure DevOps base address."
           },
           "workProcesses": {
             "type": "array",
@@ -60465,28 +60477,6 @@
         },
         "additionalProperties": false,
         "description": "One level in a severity set payload."
-      },
-      "InitWorkProcessIntegrationRequest": {
-        "required": [
-          "id",
-          "externalId"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "minLength": 1,
-            "type": "string",
-            "description": "Connection Id.",
-            "format": "uuid"
-          },
-          "externalId": {
-            "minLength": 1,
-            "type": "string",
-            "description": "External identifier for the work process.",
-            "format": "uuid"
-          }
-        },
-        "additionalProperties": false
       },
       "InitWorkspaceIntegrationRequest": {
         "required": [
@@ -71224,6 +71214,20 @@
           }
         },
         "additionalProperties": false
+      },
+      "SetAzureDevOpsWorkspaceSyncRequest": {
+        "required": [
+          "isEnabled"
+        ],
+        "type": "object",
+        "properties": {
+          "isEnabled": {
+            "type": "boolean",
+            "description": "Whether the project's work items are synced."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Turns syncing on or off for an Azure DevOps project that has been set up on the connection.\nThe project's Wayd workspace and work items are kept either way."
       },
       "SetChecklistItemCheckedRequest": {
         "required": [

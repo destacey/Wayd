@@ -287,9 +287,11 @@ public sealed class AzureDevOpsWorkItemSource(
             }
         }
 
-        // Deleted work items
+        // Deleted work items. A full sync skips items retyped out of the synced set: it holds no
+        // watermark, so the query would return every such item the project has ever had.
+        DateTime? typeChangedSince = syncType == SyncType.Full ? null : lastChangedDate;
         var deletedResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetDeletedWorkItemIds",
-            () => _azureDevOpsService.GetDeletedWorkItemIds(ctx.Connection, target.WorkspaceName, lastChangedDate, workTypeNames, cancellationToken), syncId);
+            () => _azureDevOpsService.GetDeletedWorkItemIds(ctx.Connection, target.WorkspaceName, typeChangedSince, workTypeNames, cancellationToken), syncId);
         if (deletedResult.IsFailure)
         {
             _logger.LogError("Failed to retrieve deleted work item ids for workspace {WorkspaceId}. Error: {Error}", target.InternalWorkspaceId, deletedResult.Error);

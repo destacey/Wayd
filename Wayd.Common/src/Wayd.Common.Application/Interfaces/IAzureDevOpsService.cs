@@ -15,7 +15,15 @@ public interface IAzureDevOpsService
     Task<Result<List<IExternalWorkItem>>> GetWorkItems(AzureDevOpsConnectionContext connection, string projectName, DateTime lastChangedDate, string[] workItemTypes, Dictionary<Guid, Guid?> teamSettings, CancellationToken cancellationToken);
     Task<Result<List<IExternalWorkItemLink>>> GetParentLinkChanges(AzureDevOpsConnectionContext connection, string projectName, DateTime lastChangedDate, string[] workItemTypes, CancellationToken cancellationToken);
     Task<Result<List<IExternalWorkItemLink>>> GetDependencyLinkChanges(AzureDevOpsConnectionContext connection, string projectName, DateTime lastChangedDate, string[] workItemTypes, CancellationToken cancellationToken);
-    Task<Result<int[]>> GetDeletedWorkItemIds(AzureDevOpsConnectionContext connection, string projectName, DateTime lastChangedDate, string[] workItemTypes, CancellationToken cancellationToken);
+    /// <summary>
+    /// The ids of the project's work items in its recycle bin and, when <paramref name="typeChangedSince"/>
+    /// is given, of those changed since then to a type outside <paramref name="workItemTypes"/>.
+    /// </summary>
+    /// <param name="typeChangedSince">
+    /// Null skips the type-change query. A full sync passes null: from its 1900 watermark the query
+    /// returns every item of an unsynced type the project has ever had, none of which Wayd holds.
+    /// </param>
+    Task<Result<int[]>> GetDeletedWorkItemIds(AzureDevOpsConnectionContext connection, string projectName, DateTime? typeChangedSince, string[] workItemTypes, CancellationToken cancellationToken);
 
     /// <summary>
     /// Reads one page of the project's work item revisions of the given types (every type when

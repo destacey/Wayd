@@ -70,6 +70,21 @@ public class WorkItemServiceTests
     }
 
     [Fact]
+    public async Task GetDeletedWorkItemIds_WithNoTypeChangeWindow_OnlyQueriesRecycleBin()
+    {
+        // Arrange - a full sync has no window, so it skips the type-changed query
+        _handler.EnqueueResponse(HttpStatusCode.OK, RecycleBinJson(10));
+
+        // Act
+        var result = await _sut.GetDeletedWorkItemIds(ProjectName, null, ["Epic", "Feature"], TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEquivalentTo(new[] { 10 });
+        _handler.Requests.Should().ContainSingle();
+    }
+
+    [Fact]
     public async Task GetWorkItems_WhenUnderlyingCallIsCancelled_PropagatesCancellationInsteadOfReturningFailure()
     {
         // Arrange - a genuine cancellation (caller's token fired) must not be laundered into an

@@ -172,11 +172,11 @@ public class AzureDevOpsService(
             : Result.Failure<List<IExternalWorkItemLink>>(result.Error);
     }
 
-    public async Task<Result<int[]>> GetDeletedWorkItemIds(AzureDevOpsConnectionContext connection, string projectName, DateTime lastChangedDate, string[] workItemTypes, CancellationToken cancellationToken)
+    public async Task<Result<int[]>> GetDeletedWorkItemIds(AzureDevOpsConnectionContext connection, string projectName, DateTime? typeChangedSince, string[] workItemTypes, CancellationToken cancellationToken)
     {
         var workItemService = CreateWorkItemService(connection);
 
-        var result = await workItemService.GetDeletedWorkItemIds(projectName, lastChangedDate, workItemTypes, cancellationToken).ConfigureAwait(false);
+        var result = await workItemService.GetDeletedWorkItemIds(projectName, typeChangedSince, workItemTypes, cancellationToken).ConfigureAwait(false);
 
         return result.IsSuccess
             ? result.Value

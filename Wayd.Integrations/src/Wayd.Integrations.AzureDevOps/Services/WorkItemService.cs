@@ -190,7 +190,11 @@ internal sealed class WorkItemService(HttpClient httpClient, string organization
         return Result.Success(revisions);
     }
 
-    public async Task<Result<int[]>> GetDeletedWorkItemIds(string projectName, DateTime lastChangedDate, string[] syncedWorkItemTypes, CancellationToken cancellationToken)
+    /// <summary>
+    /// The project's recycle bin, plus, when <paramref name="typeChangedSince"/> is given, the items
+    /// changed since then to a type outside <paramref name="syncedWorkItemTypes"/>.
+    /// </summary>
+    public async Task<Result<int[]>> GetDeletedWorkItemIds(string projectName, DateTime? typeChangedSince, string[] syncedWorkItemTypes, CancellationToken cancellationToken)
     {
         try
         {
@@ -201,8 +205,8 @@ internal sealed class WorkItemService(HttpClient httpClient, string organization
             // type — including custom types in inherited processes — without maintaining a list of
             // non-synced type names. With no type filter every type is synced, so only the recycle
             // bin applies.
-            int[] typeChangedIds = syncedWorkItemTypes.Length > 0
-                ? await _workItemClient.GetWorkItemIds(projectName, lastChangedDate, syncedWorkItemTypes, excludeWorkItemTypes: true, cancellationToken).ConfigureAwait(false)
+            int[] typeChangedIds = typeChangedSince.HasValue && syncedWorkItemTypes.Length > 0
+                ? await _workItemClient.GetWorkItemIds(projectName, typeChangedSince.Value, syncedWorkItemTypes, excludeWorkItemTypes: true, cancellationToken).ConfigureAwait(false)
                 : [];
 
             int[] deletedWorkItemIds = [.. recycleBinIds.Concat(typeChangedIds).Distinct()];

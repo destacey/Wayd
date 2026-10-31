@@ -13013,6 +13013,201 @@
         ]
       }
     },
+    "/api/product-management/products/{idOrKey}/teams": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Get the teams linked to a product.",
+        "description": "Accepts the product's UUID or its short key.\n\n**Rolled up across everything beneath the product**: a team linked to one of its children is listed too, and `product` says which product the link is on — a row whose `product` is not the one you asked for is inherited from below it. `productPath` gives that product's ancestry, root first, down to its parent. A team linked at more than one level appears once per link.\n\nA link says only that the team works on the product, not that it owns or supports it. `team.type` says whether it is a `Team` or a `TeamOfTeams`. An empty answer means no team has been linked, not that no team works on it — links are entered by hand.",
+        "operationId": "Products_GetTeams",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductTeamLinkDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/by-team/{teamId}": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Get the products a team or team of teams is linked to.",
+        "description": "Only the team's own links: a team of teams does not inherit the products its teams are linked to. Each row carries the `product` and its `productPath` (root first, down to its parent). An unknown team id returns an empty list.",
+        "operationId": "Products_GetTeamProducts",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductTeamLinkDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/products/{id}/teams/{teamId}": {
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Link a team or team of teams to a product.",
+        "description": "Any number of teams may be linked to a product, and a team to any number of products. A link says only that the team works on the product — there is no owner and no role. Link the **most specific product** the team works on, since the product's teams roll up to every ancestor.\n\nThe team must be active. Linking a team that is already linked succeeds and changes nothing.",
+        "operationId": "Products_LinkTeam",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Unlink a team or team of teams from a product.",
+        "description": "Succeeds whether or not the team was linked, and an inactive team can still be unlinked. `id` is the product the link is on — on a rolled-up row from `Products_GetTeams`, the row's `product`, not the product you read. The product's Activity keeps the unlinking.",
+        "operationId": "Products_UnlinkTeam",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/product-management/product-tag-categories": {
       "get": {
         "tags": [
@@ -65947,7 +66142,8 @@
           "type",
           "isReleasable",
           "status",
-          "tags"
+          "tags",
+          "teams"
         ],
         "type": "object",
         "properties": {
@@ -66004,6 +66200,13 @@
             "items": {
               "$ref": "#/components/schemas/ProductTagDto"
             }
+          },
+          "teams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductTeamNavigationDto"
+            },
+            "description": "The teams and teams of teams linked to this product, by name."
           }
         },
         "additionalProperties": false,
@@ -66200,6 +66403,76 @@
           }
         },
         "additionalProperties": false
+      },
+      "ProductTeamLinkDto": {
+        "required": [
+          "product",
+          "productPath",
+          "team"
+        ],
+        "type": "object",
+        "properties": {
+          "product": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The product the team is linked to."
+          },
+          "productPath": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationDto"
+            },
+            "description": "Everything `product` sits inside, from its root down to its parent."
+          },
+          "team": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProductTeamNavigationDto"
+              }
+            ],
+            "description": "The team or team of teams linked."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A team or team of teams linked to a product."
+      },
+      "ProductTeamNavigationDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          {
+            "required": [
+              "code",
+              "type",
+              "isActive"
+            ],
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "The team's short code, unique across teams and teams of teams."
+              },
+              "type": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/TeamType"
+                  }
+                ],
+                "description": "Whether this is a team or a team of teams, which decides where its page is."
+              },
+              "isActive": {
+                "type": "boolean",
+                "description": "Whether the team is active. An inactive team keeps its links but cannot take new ones."
+              }
+            },
+            "additionalProperties": false
+          }
+        ],
+        "description": "A team or team of teams as Product Management knows it."
       },
       "ProductTypeDto": {
         "required": [
@@ -76859,6 +77132,13 @@
         },
         "additionalProperties": false,
         "description": "How many backlog work items a team will finish from `forecastStart` through\n`targetDate`."
+      },
+      "TeamType": {
+        "enum": [
+          "Team",
+          "TeamOfTeams"
+        ],
+        "type": "string"
       },
       "TeamTypeDto": {
         "required": [

@@ -168,6 +168,8 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<ProductTag> ProductTags => Set<ProductTag>();
     public DbSet<ProductTagAssignment> ProductTagAssignments => Set<ProductTagAssignment>();
     public DbSet<ProductDependency> ProductDependencies => Set<ProductDependency>();
+    public DbSet<ProductTeam> ProductTeams => Set<ProductTeam>();
+    public DbSet<ProductTeamLink> ProductTeamLinks => Set<ProductTeamLink>();
     public DbSet<Version> Versions => Set<Version>();
     public DbSet<Release> Releases => Set<Release>();
     public DbSet<ReleaseVersion> ReleaseVersions => Set<ReleaseVersion>();

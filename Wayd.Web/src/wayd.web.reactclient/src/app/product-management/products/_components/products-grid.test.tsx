@@ -32,6 +32,21 @@ const PRODUCTS = [
   }),
 ]
 
+/**
+ * The filter toggle for one column: in its header, or in the floating filter row beneath it when the grid
+ * shows one.
+ */
+const filterToggleOf = (header: string) => {
+  const selector = '[class*="filterButton"], .anticon-filter'
+  const th = screen.getByText(header).closest('th')!
+  const index = Array.from(th.parentElement!.children).indexOf(th)
+  const below = th.parentElement!.nextElementSibling?.children[index]
+  const toggle =
+    th.querySelector(selector) ?? below?.querySelector(selector) ?? null
+  expect(toggle).toBeTruthy()
+  return toggle as Element
+}
+
 const renderGrid = (asTree: boolean) =>
   render(
     <ProductsGrid
@@ -178,16 +193,115 @@ describe('ProductsGrid', () => {
     )
 
     // Act
-    const filterToggles = document.querySelectorAll(
-      '[class*="filterButton"], .anticon-filter',
-    )
-    await userEvent.click(filterToggles[filterToggles.length - 1])
+    await userEvent.click(filterToggleOf('Tags'))
 
     // Assert
     // Both appear twice — once in a cell, once as a checkbox — which is the
     // point: the panel is built from the same values the cells render.
     expect(await screen.findAllByText('Platform | ios')).toHaveLength(2)
     expect(await screen.findAllByText('Tier | gold')).toHaveLength(2)
+  })
+
+  it("links each of a product's teams and filters by any one of them", async () => {
+    // Arrange
+    const team = (id: string, key: number, name: string) => ({
+      id,
+      key,
+      name,
+      code: name.slice(0, 3).toUpperCase(),
+      type: 'Team',
+      isActive: true,
+    })
+    const products = [
+      {
+        ...PRODUCTS[0],
+        teams: [team('t1', 7, 'Atlas'), team('t2', 8, 'Payments')],
+      },
+      { ...PRODUCTS[1], teams: [team('t2', 8, 'Payments')] },
+    ] as unknown as ProductDto[]
+
+    render(
+      <ProductsGrid
+        products={products}
+        isLoading={false}
+        refetch={() => {}}
+        asTree={false}
+      />,
+    )
+
+    // Act
+    await userEvent.click(filterToggleOf('Teams'))
+
+    // Assert — each team once per cell it is in, and once as a checkbox
+    expect(screen.getByRole('link', { name: 'Atlas' })).toHaveAttribute(
+      'href',
+      '/organizations/teams/7',
+    )
+    expect(await screen.findAllByText('Atlas')).toHaveLength(2)
+    expect(await screen.findAllByText('Payments')).toHaveLength(3)
+  })
+
+  it('offers a team whose name contains a comma as one filter option that matches its products', async () => {
+    // Arrange
+    const team = (id: string, key: number, name: string) => ({
+      id,
+      key,
+      name,
+      code: 'T' + key,
+      type: 'Team',
+      isActive: true,
+    })
+    const products = [
+      { ...PRODUCTS[0], teams: [team('t1', 7, 'Payments, EU')] },
+      { ...PRODUCTS[1], teams: [team('t2', 8, 'Atlas')] },
+    ] as unknown as ProductDto[]
+
+    render(
+      <ProductsGrid
+        products={products}
+        isLoading={false}
+        refetch={() => {}}
+        asTree={false}
+      />,
+    )
+
+    // Act
+    await userEvent.click(filterToggleOf('Teams'))
+
+    // Assert — once in its cell and once as a checkbox, never as "Payments" and "EU"
+    expect(await screen.findAllByText('Payments, EU')).toHaveLength(2)
+    expect(screen.queryByText('EU')).not.toBeInTheDocument()
+  })
+
+  it("offers a nested product's teams in the tree view's filter", async () => {
+    // Arrange — Storefront Web sits beneath Storefront Suite, so in the tree it is not a root row
+    const team = (id: string, key: number, name: string) => ({
+      id,
+      key,
+      name,
+      code: 'T' + key,
+      type: 'Team',
+      isActive: true,
+    })
+    const products = [
+      PRODUCTS[0],
+      { ...PRODUCTS[1], teams: [team('t1', 7, 'Atlas')] },
+    ] as unknown as ProductDto[]
+
+    render(
+      <ProductsGrid
+        products={products}
+        isLoading={false}
+        refetch={() => {}}
+        asTree={true}
+      />,
+    )
+
+    // Act
+    await userEvent.click(filterToggleOf('Teams'))
+
+    // Assert — once in the child's cell and once as a checkbox
+    expect(await screen.findAllByText('Atlas')).toHaveLength(2)
   })
 
   it('resolves the type through its navigation object', () => {

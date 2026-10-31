@@ -3,8 +3,11 @@ using Moq;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Interfaces.Organization;
+using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Settings;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -291,6 +294,40 @@ public abstract class ProductCommandTestBase
 
         return dependency;
     }
+
+    /// <summary>The module's copy of a team, as the sync or the <c>Team*</c> events leave it.</summary>
+    protected ProductTeam SeedTeam(string name = "Payments", string code = "PAY", TeamType type = TeamType.Team, bool isActive = true)
+    {
+        var team = new ProductTeam(new TeamSource(Guid.CreateVersion7(), ++_teamKey, name, new TeamCode(code), type, isActive), Now);
+        DbContext.AddProductTeam(team);
+
+        return team;
+    }
+
+    private int _teamKey;
+
+    /// <summary>
+    /// A team link recorded through the aggregate, and added to the set queries read.
+    /// </summary>
+    /// <remarks>
+    /// The team is set on the link's navigation, which only EF fills: the read queries project through it, and
+    /// in memory an unset navigation would throw rather than join.
+    /// </remarks>
+    protected ProductTeamLink SeedTeamLink(Product product, ProductTeam team)
+    {
+        product.LinkTeam(team, EventActor.System, Now);
+        var link = product.TeamLinks.Single(l => l.TeamId == team.Id);
+
+        typeof(ProductTeamLink).GetProperty(nameof(ProductTeamLink.Team))!.SetValue(link, team);
+
+        product.ClearDomainEvents();
+        DbContext.AddProductTeamLinks([link]);
+
+        return link;
+    }
+
+    /// <summary>A team as Organization holds it, for building the module's copy.</summary>
+    protected sealed record TeamSource(Guid Id, int Key, string Name, TeamCode Code, TeamType Type, bool IsActive) : ISimpleTeam;
 
     protected (ProductTagCategory Category, ProductTag Tag) SeedTag(
         string categoryName = "Platform",

@@ -54,6 +54,8 @@ import {
   ActivityLogTimeline,
   useActivityLog,
 } from '@/src/components/common/activities'
+import TeamProducts from '@/src/app/product-management/products/_components/team-products'
+import useCanViewTeamProducts from '@/src/app/product-management/products/_components/use-can-view-team-products'
 
 const CycleTimeReport = dynamic(
   () =>
@@ -115,6 +117,7 @@ enum TeamTabs {
   Backlog = 'backlog',
   Sprints = 'sprints',
   DependencyManagement = 'dependency-management',
+  Products = 'products',
   RiskManagement = 'risk-management',
   TeamMemberships = 'team-memberships',
   Members = 'members',
@@ -168,6 +171,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateTeam = hasPermissionClaim('Permissions.Teams.Update')
+  const canViewProducts = useCanViewTeamProducts()
   const canManageTeamMemberships = hasPermissionClaim(
     'Permissions.Teams.ManageTeamMemberships',
   )
@@ -332,6 +336,8 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return <TeamSprints teamId={team!.id!} />
       case TeamTabs.DependencyManagement:
         return <TeamDependencyManagement team={team!} />
+      case TeamTabs.Products:
+        return canViewProducts ? <TeamProducts teamId={team!.id!} /> : null
       case TeamTabs.RiskManagement:
         return createElement(RisksGrid, {
           risks: risksQuery.data ?? [],
@@ -446,6 +452,9 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     }
     items.push(
       { id: TeamTabs.DependencyManagement, label: 'Dependencies' },
+      ...(canViewProducts
+        ? [{ id: TeamTabs.Products, label: 'Products' }]
+        : []),
       { id: TeamTabs.RiskManagement, label: 'Risks' },
       { id: TeamTabs.Members, label: 'Members' },
       ...(capacityEnabled

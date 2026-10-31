@@ -31,6 +31,7 @@ A product's page is divided into sections:
 - **Overview** — tiles counting its **Products** (direct children) and how many of those are **Releasable Products**, plus, on a releasable product, **Releases (90d)**: the versions that shipped in the last 90 days, counted on the day each shipped, beside the total. Below them sits the [dependency map](#the-map-on-overview).
 - **Products** — the products directly beneath it, with the count on the tab.
 - **Dependencies** — what it relies on and what relies on it; see [Dependencies](#dependencies).
+- **Teams** — the teams that work on it, with the count on the tab; see [Teams](#teams).
 - **Releases** — the [releases](./delivery.mdx#releases) announced under it. A release spanning product lines names no product, so it is not listed here. Shown only with `Permissions.Releases.View`.
 - **Versions** — the [versions](./delivery.mdx#versions) cut against it. Shown only on a [releasable type](#product-types), where a version can exist.
 - **Status History** and **Activity** — see [Status History](#status-history) and [Activity](#activity).
@@ -193,11 +194,35 @@ Dependencies are recorded by the day, and a dependency's **Last Day** counts as 
 
 Every change is recorded in the Activity of **both** products — see [Activity](#activity).
 
+## Teams
+
+A product records which teams and teams of teams work on it. Any number of teams can be linked to a product, and a team to any number of products. A link says only that the team works on the product — there is no owner, no role, and no start or end date.
+
+The **Teams** section is rolled up like dependencies: a team linked to one of the product's children is listed on the product too, with **On** naming the product it is linked to. A product line therefore shows every team working anywhere beneath it, once for each product it is linked to — a team linked at two levels is listed, and counted on the tab, twice. Link a team to the **most specific product** it works on — a link on a product line cannot be rolled down to the products inside it.
+
+The catalog's **Teams** column shows only each product's own links, since the tree already shows its children on their own rows.
+
+The same links appear on the team's own page, under **Products** — see [Organizations](../organizations/index.mdx#products).
+
+### Linking a team
+
+1. Open the product, and go to **Teams**
+2. Click **Link Team**
+3. Choose the **Team**
+
+Only active teams can be linked, and teams already linked to the product are not offered.
+
+### Unlinking a team
+
+Choose **Unlink** from the row's menu. On a rolled-up row this unlinks the team from the product named under **On**, not from the product you are viewing.
+
+Linking and unlinking are recorded in the product's Activity. Deleting a product removes its team links.
+
 ## Activity
 
 The **Activity** section on a product shows its full recorded history — not status changes alone, but
 every change the product raised an event for: details edited, type changed, moved, retagged, linked
-externally, dependencies added, ended, changed or removed. A product moving in or out also appears on
+externally, dependencies added, ended, changed or removed, teams linked or unlinked. A product moving in or out also appears on
 both its old and its new parent, and a change to a dependency also appears on the product depended on,
 each marked with the product it was made on. See [Activity Log](../activity-log.mdx).
 
@@ -295,7 +320,7 @@ throughout. See [Can I delete any of this?](./delivery.mdx#can-i-delete-any-of-t
 | --- | --- |
 | View the catalog and product details | `Permissions.Products.View` |
 | Add a product | `Permissions.Products.Create` |
-| Edit, retype, move, tag, change status, link externally, and add, change, end or remove dependencies | `Permissions.Products.Update` |
+| Edit, retype, move, tag, change status, link externally, add, change, end or remove dependencies, and link or unlink teams | `Permissions.Products.Update` (linking a team also needs `Permissions.Teams.View`, to choose it) |
 | Delete a product | `Permissions.Products.Delete` |
 | [Bulk import](./bulk-import.mdx) products and their dependencies from CSV | `Permissions.Products.Import` |
 | Manage the type list | `Permissions.ProductTypes.*` |

@@ -26,6 +26,8 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     private readonly List<ProductTag> _productTags = [];
     private readonly List<ProductTagAssignment> _productTagAssignments = [];
     private readonly List<ProductDependency> _productDependencies = [];
+    private readonly List<ProductTeam> _productTeams = [];
+    private readonly List<ProductTeamLink> _productTeamLinks = [];
     private readonly List<Version> _versions = [];
     private readonly List<Release> _releases = [];
     private readonly List<ReleaseVersion> _releaseVersions = [];
@@ -57,6 +59,8 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     public DbSet<ProductTag> ProductTags => _productTags.AsDbSet();
     public DbSet<ProductTagAssignment> ProductTagAssignments => _productTagAssignments.AsDbSet();
     public DbSet<ProductDependency> ProductDependencies => _productDependencies.AsDbSet();
+    public DbSet<ProductTeam> ProductTeams => _productTeams.AsDbSet();
+    public DbSet<ProductTeamLink> ProductTeamLinks => _productTeamLinks.AsDbSet();
     public DbSet<Version> Versions => _versions.AsDbSet();
     public DbSet<Release> Releases => _releases.AsDbSet();
     public DbSet<ReleaseVersion> ReleaseVersions => _releaseVersions.AsDbSet();
@@ -126,6 +130,14 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     /// product's collection and this set, so a link added through the aggregate is invisible here until added.
     /// </summary>
     public void AddProductDependencies(IEnumerable<ProductDependency> dependencies) => _productDependencies.AddRange(dependencies);
+
+    public void AddProductTeam(ProductTeam team) => _productTeams.Add(team);
+
+    /// <summary>
+    /// Adds a product's team links to the set queries read. As with dependencies, a link added through the
+    /// aggregate is invisible here until added.
+    /// </summary>
+    public void AddProductTeamLinks(IEnumerable<ProductTeamLink> links) => _productTeamLinks.AddRange(links);
 
     public void AddVersion(Version version) => _versions.Add(version);
     public void AddVersions(IEnumerable<Version> versions) => _versions.AddRange(versions);

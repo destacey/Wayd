@@ -86,6 +86,13 @@ jest.mock('./_components/product-dependencies', () => ({
   default: () => <div data-testid="product-dependencies" />,
 }))
 
+jest.mock('../_components/product-team-links-grid', () => ({
+  __esModule: true,
+  default: () => <div data-testid="product-team-links" />,
+}))
+
+const teamLinks = [{ id: 'link-1' }, { id: 'link-2' }]
+
 let mockSearchParams = new URLSearchParams()
 const mockReplace = jest.fn((url: string) => {
   mockSearchParams = new URLSearchParams(url.split('?')[1] ?? '')
@@ -151,11 +158,16 @@ jest.mock('@/src/components/common', () => ({
   ),
 }))
 
+/** Permissions the viewer lacks; every other permission is held. */
+let mockMissingPermissions: string[] = []
+
 jest.mock('@/src/components/contexts/auth', () => ({
   __esModule: true,
   default: () => ({
     hasClaim: jest.fn(() => true),
-    hasPermissionClaim: jest.fn(() => true),
+    hasPermissionClaim: jest.fn(
+      (permission: string) => !mockMissingPermissions.includes(permission),
+    ),
   }),
 }))
 
@@ -218,6 +230,12 @@ jest.mock('@/src/store/features/product-management/products-api', () => ({
     refetch: jest.fn(),
   }),
   useAddProductDependencyMutation: () => [jest.fn()],
+  useGetProductTeamsQuery: () => ({
+    data: teamLinks,
+    isLoading: false,
+    refetch: jest.fn(),
+  }),
+  useLinkProductTeamMutation: () => [jest.fn()],
   useLazyGetProductActivitiesQuery: () => [jest.fn()],
   useGetProductStatusOptionsQuery: () => ({ data: [], isLoading: false }),
   useChangeProductStatusMutation: () => [jest.fn()],
@@ -242,6 +260,7 @@ const renderPage = async () =>
 describe('ProductDetailsPage', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams()
+    mockMissingPermissions = []
   })
 
   it('shows the product name and key', async () => {
@@ -425,6 +444,44 @@ describe('ProductDetailsPage', () => {
     expect(
       await screen.findByRole('button', { name: 'Add Dependency' }),
     ).toBeInTheDocument()
+  })
+
+  it('counts the linked teams on their section', async () => {
+    // Arrange / Act
+    await renderPage()
+
+    // Assert
+    const sectionEntry = await screen.findByRole('tab', { name: /Teams/ })
+    expect(sectionEntry).toHaveTextContent('2')
+  })
+
+  it('offers linking a team from the teams section', async () => {
+    // Arrange
+    mockSearchParams = new URLSearchParams('section=teams')
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(
+      await screen.findByRole('button', { name: 'Link Team' }),
+    ).toBeInTheDocument()
+    expect(screen.getByTestId('product-team-links')).toBeInTheDocument()
+  })
+
+  it('does not offer linking a team without permission to view teams', async () => {
+    // Arrange — the picker lists teams through the Teams endpoints, so it would open empty
+    mockSearchParams = new URLSearchParams('section=teams')
+    mockMissingPermissions = ['Permissions.Teams.View']
+
+    // Act
+    await renderPage()
+
+    // Assert
+    expect(await screen.findByTestId('product-team-links')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Link Team' }),
+    ).not.toBeInTheDocument()
   })
 
   it('offers adding a release from the releases section', async () => {

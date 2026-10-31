@@ -455,7 +455,7 @@ A **Connector** is a configurable integration type that lets a specific external
 - **Activate / Deactivate** — Toggle whether the connection participates in sync runs. A new connection starts active. Inactive connections are excluded from every scheduled and manual sync — the API rejects sync attempts on an inactive connection.
 - **Delete** — Removes the connection. Past sync history rows are preserved by design.
 
-**Sections of a connection's page:** **Overview** (its settings, with secrets masked), then what its connector adds — **Organization Configuration** and **People** for Azure DevOps — then **Sync History** for a connector that syncs, and **Activity**.
+**Sections of a connection's page:** **Overview** (its settings, with secrets masked), then what its connector adds — **Projects** and **People** for Azure DevOps — then **Sync History** for a connector that syncs, and **Activity**.
 
 - **Sync History** — Past runs with their status, duration and per-run details (workspaces, work items and work item revisions for work sync; employees fetched, upserted and excluded, and any per-record errors, for people sync), over the last 24 hours, 7 days or 30 days. Its **Diff Sync** and **Full Sync** buttons run a sync of this connection alone; they are disabled while the connection is inactive.
 - **Activity** — Records the connection created, its name or description edited, its settings changed (each entry lists the settings before and after), its credentials replaced, activated, deactivated or deleted, and by whom. A credential change records *which* credential was replaced — the personal access token, API key, client secret or password — and never its value, not even hashed. Syncing workspaces, processes and teams from Azure DevOps and probing a Workday configuration are not recorded here; the Sync History section covers them.
@@ -487,12 +487,12 @@ The Azure DevOps Boards connector enables one-way synchronization of work data f
 - **Organization** — The Azure DevOps organization name
 - **Personal Access Token** — A PAT with **Work Items (Read)** and **Project and Team (Read)** scopes
 
-**Setting it up:** after creating the connection, **Sync Organization Configuration** reads the organization's processes, projects and teams into the **Organization Configuration** section. Initialize a work process first, then set up each workspace's integration, then map its teams. Every sync also refreshes the organization configuration before it runs.
+**Setting it up:** after creating the connection, open its **Projects** section and click **Refresh Projects** to load the organization's projects. Click **Set Up** on each project to sync — Wayd sets up the project's process with it when needed — then map its teams under **Team Mappings**. Every sync refreshes the project list and each synced project's process before it runs.
 
 **Business rules:**
 - Each Azure DevOps organization can only be linked by one connection
 - Synchronized items have **Managed** ownership and are read-only in Wayd
-- Sync is controlled by workspace-level integration state (active/inactive)
+- Each project syncs only once it is set up, and its switch pauses or resumes it; a paused project keeps its workspace and work items
 - The **People** section matches Azure DevOps identities to Wayd employees
 
 ### Entra (Microsoft Entra ID)

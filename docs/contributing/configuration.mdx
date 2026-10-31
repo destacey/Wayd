@@ -12,7 +12,7 @@ audience: [developer, operator]
 The API reads its settings from these sources, each overriding the one before (`Wayd.Web.Api/Configurations/ConfigureServices.cs`):
 
 1. `appsettings.json`, then `appsettings.{Environment}.json`.
-2. One file per concern in `Wayd.Web/src/Wayd.Web.Api/Configurations/` — `logger.json`, `hangfire.json`, `cors.json`, `database.json`, `middleware.json`, `security.json`, `openapi.json`, `securityheaders.json` — each followed by its optional `{name}.{Environment}.json` overlay (`database.Development.json`, `hangfire.Development.json`).
+2. One file per concern in `Wayd.Web/src/Wayd.Web.Api/Configurations/` — `logger.json`, `hangfire.json`, `cors.json`, `database.json`, `middleware.json`, `security.json`, `openapi.json`, `securityheaders.json`, `integrations.json` — each followed by its optional `{name}.{Environment}.json` overlay (`database.Development.json`, `hangfire.Development.json`).
 3. User secrets (`dotnet user-secrets`, in `Wayd.Web/src/Wayd.Web.Api`).
 4. Environment variables, with `__` in place of `:` (`DatabaseSettings__ConnectionString`).
 
@@ -603,6 +603,12 @@ Unset, MCP clients cannot sign in with OAuth: the authorization endpoint answers
 | Azure | `client_url` when set, otherwise the client container app's default hostname (set by Terraform) |
 | Aspire, local | `http://localhost:3000` (`appsettings.Development.json`) |
 | `docker compose` | `http://localhost:5002` |
+
+## Azure DevOps base URL
+
+`AzureDevOps:BaseUrl` (`AzureDevOps__BaseUrl`) in `Configurations/integrations.json` is the Azure DevOps Services address every connection's organization name is appended to; it defaults to `https://dev.azure.com`. It exists so a change of address on Microsoft's side is a setting change and a restart, not a release. It is read once at startup — editing the file on a running host has no effect until it restarts. It applies to every connection, and it must be an absolute `https` URL or the host fails at startup, because each connection's personal access token is sent there.
+
+Changing it does not rewrite the work item links stored on each workspace; edit those on the workspace if the old address stops redirecting.
 
 ## Rate limits
 

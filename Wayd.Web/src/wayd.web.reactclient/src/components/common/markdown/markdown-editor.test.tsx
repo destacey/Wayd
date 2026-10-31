@@ -1,69 +1,53 @@
 import { render, screen } from '@testing-library/react'
-import { useFeatureFlag } from '@/src/hooks'
+import type { ReactNode } from 'react'
 import MarkdownEditor from './markdown-editor'
 
-jest.mock('@/src/hooks', () => ({ useFeatureFlag: jest.fn() }))
+interface DynamicOptions {
+  ssr?: boolean
+  loading?: () => ReactNode
+}
 
-// Each stub shows which editor rendered and the props it received.
-jest.mock('./legacy-markdown-editor', () => ({
-  __esModule: true,
-  default: (props: { value?: string; maxLength: number }) => (
-    <div>
-      legacy {props.value} {props.maxLength}
-    </div>
-  ),
-}))
-jest.mock('next/dynamic', () => ({
-  __esModule: true,
-  default: () => {
-    const Wysiwyg = (props: { value?: string; maxLength: number }) => (
-      <div>
-        wysiwyg {props.value} {props.maxLength}
-      </div>
-    )
-    return Wysiwyg
-  },
-}))
+// The stub shows the props the document editor received and keeps the options it was loaded with,
+// which are read through jest.requireMock because the module loads before this file's own bindings.
+jest.mock('next/dynamic', () => {
+  const captured: { options?: DynamicOptions } = {}
+  return {
+    __esModule: true,
+    captured,
+    default: (_loader: unknown, options: DynamicOptions) => {
+      captured.options = options
+      const Wysiwyg = (props: { value?: string; maxLength: number }) => (
+        <div>
+          wysiwyg {props.value} {props.maxLength}
+        </div>
+      )
+      return Wysiwyg
+    },
+  }
+})
 
-const mockFlag = (flag: { isEnabled: boolean; isLoading: boolean }) =>
-  jest.mocked(useFeatureFlag).mockReturnValue(flag)
+const dynamicOptions = () =>
+  jest.requireMock<{ captured: { options?: DynamicOptions } }>('next/dynamic')
+    .captured.options
 
 describe('MarkdownEditor', () => {
-  it('shows the document editor when the flag is on', () => {
-    // Arrange
-    mockFlag({ isEnabled: true, isLoading: false })
-
-    // Act
+  it('shows the document editor with the props it was given', () => {
+    // Arrange / Act
     render(<MarkdownEditor value="text" maxLength={100} />)
 
     // Assert
     expect(screen.getByText('wysiwyg text 100')).toBeInTheDocument()
-    // The name must match FeatureFlags.Names.WysiwygMarkdownEditor in Wayd.Common.Domain.
-    expect(useFeatureFlag).toHaveBeenCalledWith('wysiwyg-markdown-editor')
   })
 
-  it('shows the markdown text editor when the flag is off', () => {
+  it('loads the document editor on the client only, holding its space meanwhile', () => {
     // Arrange
-    mockFlag({ isEnabled: false, isLoading: false })
+    const options = dynamicOptions()
 
     // Act
-    render(<MarkdownEditor value="text" maxLength={100} />)
+    const { container } = render(<>{options?.loading?.()}</>)
 
     // Assert
-    expect(screen.getByText('legacy text 100')).toBeInTheDocument()
-  })
-
-  it('holds the space but shows neither editor until the flags have loaded', () => {
-    // Arrange
-    mockFlag({ isEnabled: false, isLoading: true })
-
-    // Act
-    const { container } = render(
-      <MarkdownEditor value="text" maxLength={100} />,
-    )
-
-    // Assert
-    expect(screen.queryByText(/legacy|wysiwyg/)).toBeNull()
+    expect(options?.ssr).toBe(false)
     expect(container.firstElementChild).toHaveAttribute('aria-busy', 'true')
   })
 })

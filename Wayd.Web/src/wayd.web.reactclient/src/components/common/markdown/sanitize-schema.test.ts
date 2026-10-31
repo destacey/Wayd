@@ -4,9 +4,9 @@ import { sanitizeSchema } from './sanitize-schema'
 // covers it through the full rendering pipeline. Serialized output is checked here because only it can
 // show nodes React never renders, such as comments.
 //
-// Only `hast-util-sanitize` (rehype-sanitize's own engine) and `hast-util-from-html` are used, both
-// reachable from declared dependencies — the surrounding remark/unified packages are not in
-// package.json and importing them here would break on any hoisting change.
+// `hast-util-from-html` and `hast-util-to-html` are declared devDependencies, and `hast-util-sanitize`
+// is rehype-sanitize's own engine — the surrounding remark/unified packages are not in package.json
+// and importing them here would break on any hoisting change.
 const parseAndSanitize = async (html: string): Promise<string> => {
   const { fromHtml } = await import('hast-util-from-html')
   const { sanitize } = await import('hast-util-sanitize')

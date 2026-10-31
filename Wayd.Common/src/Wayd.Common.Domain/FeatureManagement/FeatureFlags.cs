@@ -16,7 +16,6 @@ public static class FeatureFlags
     public static readonly FeatureFlagDefinition DemandManagement = new(Names.DemandManagement, "Demand Management", "Controls availability of the Demand Management module: intake requests and the desks that review them.");
     public static readonly FeatureFlagDefinition Following = new(Names.Following, "Following", "Controls availability of following projects, programs, planning interval objectives and intake requests, the Following list, and in-app notifications about changes to those records.");
     public static readonly FeatureFlagDefinition IncidentManagement = new(Names.IncidentManagement, "Incident Management", "Controls availability of incident management under product management, including severity scales and incident records.");
-    public static readonly FeatureFlagDefinition WysiwygMarkdownEditor = new(Names.WysiwygMarkdownEditor, "WYSIWYG Markdown Editor", "Replaces the markdown text editor on long-text fields with a document editor that formats as you type. Stored text stays markdown.");
 
     /// <summary>
     /// Compile-time constant names for use in attributes (e.g., [FeatureGate]).
@@ -32,7 +31,6 @@ public static class FeatureFlags
         public const string DemandManagement = "demand-management";
         public const string Following = "following";
         public const string IncidentManagement = "incident-management";
-        public const string WysiwygMarkdownEditor = "wysiwyg-markdown-editor";
     }
 }
 

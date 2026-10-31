@@ -8,8 +8,13 @@ import Superscript from '@tiptap/extension-superscript'
 import { TableKit } from '@tiptap/extension-table'
 import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'
+import { bulletToTaskInputRule } from './bullet-to-task-input-rule'
 import { installMinimalMarkdownEscaping } from './markdown-escaping'
+import { markdownImageInputRule } from './markdown-image-input-rule'
 import { MarkdownLengthLimit } from './markdown-length-limit'
+import { markdownLinkInputRule } from './markdown-link-input-rule'
+import { MarkdownPaste } from './markdown-paste'
+import { MarkdownTableShortcut } from './markdown-table-shortcut'
 import {
   isSafeImageSrc,
   isSafeLinkHref,
@@ -54,8 +59,12 @@ const markdownTitle = (title: string | null | undefined) =>
 /**
  * A link whose address is written so markdown reads it back whole: Tiptap writes `[text](href)`
  * as is, so a space or `)` in the address (pasted, or typed in the link dialog) would end it early.
+ * Typing `[text](address)` makes one too.
  */
 const MarkdownLink = Link.extend({
+  addInputRules() {
+    return [...(this.parent?.() ?? []), markdownLinkInputRule()]
+  },
   renderMarkdown: (node, helpers) =>
     `[${helpers.renderChildren(node)}](${toMarkdownDestination(node.attrs?.href ?? '')}${markdownTitle(node.attrs?.title)})`,
 }).configure({
@@ -79,9 +88,13 @@ const plainText = (tokens: MarkdownToken[]): string =>
 
 /**
  * Images that already sit in the text, inline as markdown writes them, with only `http(s)` sources
- * taken from pasted HTML. The address is written as `MarkdownLink` writes one.
+ * taken from pasted HTML or typed as `![alt](address)`. The address is written as `MarkdownLink`
+ * writes one.
  */
 const MarkdownImage = Image.extend({
+  addInputRules() {
+    return [markdownImageInputRule()]
+  },
   parseHTML() {
     return [
       {
@@ -105,6 +118,20 @@ const MarkdownImage = Image.extend({
   },
 }).configure({ inline: true })
 
+/** A task item that a bullet also turns into when its line starts with `[ ] ` or `[x] `. */
+const MarkdownTaskItem = TaskItem.extend({
+  addInputRules() {
+    return [...(this.parent?.() ?? []), bulletToTaskInputRule()]
+  },
+}).configure({ nested: true })
+
+/**
+ * The only extensions whose paste rules run: pasted URLs become links. The bold, italic, strike and
+ * code paste rules would format `2 * 3 * 4` in any paste, even prose and Ctrl+Shift+V; markdown
+ * pasted as plain text is formatted by `MarkdownPaste` instead.
+ */
+export const markdownEditorPasteRules = ['link']
+
 /**
  * The extensions `MarkdownEditor` edits with. The round-trip harness measures this exact set, so a
  * change here is a change to what it proves.
@@ -118,10 +145,12 @@ export const markdownEditorExtensions = (): Extensions => [
   FencedCodeBlock,
   TableKit,
   TaskList,
-  TaskItem.configure({ nested: true }),
+  MarkdownTaskItem,
   MarkdownImage,
   MarkdownSubscript,
   MarkdownSuperscript,
   MarkdownLengthLimit,
+  MarkdownPaste,
+  MarkdownTableShortcut,
   Markdown,
 ]

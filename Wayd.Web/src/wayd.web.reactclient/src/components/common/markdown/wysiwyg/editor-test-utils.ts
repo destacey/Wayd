@@ -1,5 +1,8 @@
 import { Editor } from '@tiptap/core'
-import { markdownEditorExtensions } from './markdown-extensions'
+import {
+  markdownEditorExtensions,
+  markdownEditorPasteRules,
+} from './markdown-extensions'
 
 /**
  * Stubs the layout calls ProseMirror makes to scroll the selection into view, which jsdom does
@@ -23,6 +26,7 @@ export const createTestEditor = (markdown: string): Editor => {
   return new Editor({
     element,
     extensions: markdownEditorExtensions(),
+    enablePasteRules: markdownEditorPasteRules,
     content: markdown,
     contentType: 'markdown',
   })
@@ -39,4 +43,33 @@ export const selectText = (editor: Editor, text: string) => {
   })
   if (from < 0) throw new Error(`"${text}" is not in the document`)
   editor.commands.setTextSelection({ from, to: from + text.length })
+}
+
+/** Types `text` one character at a time where the cursor is, running input rules as typing does. */
+export const typeText = (editor: Editor, text: string) => {
+  for (const character of text) {
+    const { view } = editor
+    const { from, to } = view.state.selection
+    const handled = view.someProp('handleTextInput', (handler) =>
+      handler(view, from, to, character, () => view.state.tr),
+    )
+    if (!handled) view.dispatch(view.state.tr.insertText(character, from, to))
+  }
+}
+
+/** Puts the cursor just before the first occurrence of `text`. */
+export const placeCursorBefore = (editor: Editor, text: string) => {
+  selectText(editor, text)
+  editor.commands.setTextSelection(editor.state.selection.from)
+}
+
+/**
+ * Presses `key` in the editor as a keydown does. Tiptap's `keyboardShortcut` command replays only
+ * the steps a handler made, not the selection it set.
+ */
+export const pressKey = (editor: Editor, key: string) => {
+  const { view } = editor
+  view.someProp('handleKeyDown', (handler) =>
+    handler(view, new KeyboardEvent('keydown', { key })),
+  )
 }

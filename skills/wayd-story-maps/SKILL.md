@@ -41,7 +41,7 @@ Tasks may also have:
 - **Archived maps** — the list excludes archived maps unless `includeArchived: true`. An archived map can be read or deleted but refuses every other change
 - **Feature flag** — story maps are gated by the `StoryMaps` feature flag; if the instance has it disabled the endpoints return 404
 - **Ordering** — `newOrder` values are zero-based positions among siblings
-- **Persona tags: patch on the hosted server** — `StoryMaps_PatchGoalPersonas` / `StoryMaps_PatchStepPersonas` / `StoryMaps_PatchTaskPersonas` tag one more persona with `[{ "op": "add", "path": "/personaIds/-", "value": "<personaId>" }]` and keep the rest; to untag, `replace` `/personaIds` with the ids that stay
+- **Persona tags: patch** — `StoryMaps_PatchGoalPersonas` / `StoryMaps_PatchStepPersonas` / `StoryMaps_PatchTaskPersonas` tag one more persona with `[{ "op": "add", "path": "/personaIds/-", "value": "<personaId>" }]` and keep the rest; to untag, `replace` `/personaIds` with the ids that stay
 - **Persona sets replace** — otherwise `StoryMaps_SetGoalPersonas` / `StoryMaps_SetStepPersonas` / `StoryMaps_SetTaskPersonas` replace the full tag set; include every persona ID that should remain
 
 ## Instructions
@@ -72,7 +72,7 @@ All analysis works off the single `StoryMaps_GetStoryMap` response:
 ### Managing a map
 
 - **Rename/describe** — `StoryMaps_UpdateStoryMap`, `StoryMaps_RenameGoal`, `StoryMaps_RenameStep`, `StoryMaps_UpdateTask`. `StoryMaps_UpdateTask` replaces both the title and the description, so resend the one that should stay
-- **One task field (hosted server)** — the hosted endpoint (`/mcp`) also offers `StoryMaps_RenameTask` (body: `title`) and `StoryMaps_SetTaskDescription` (body: `description`; `null` clears it), which change only that field. Prefer them to `StoryMaps_UpdateTask` when only one changes, so a concurrent edit to the other is not reverted
+- **One task field** — `StoryMaps_RenameTask` (body: `title`) and `StoryMaps_SetTaskDescription` (body: `description`; `null` clears it) change only that field. Prefer them to `StoryMaps_UpdateTask` when only one changes, so a concurrent edit to the other is not reverted
 - **Reorder** — `StoryMaps_ReorderGoal`, `StoryMaps_ReorderStep`, `StoryMaps_ReorderSwimLane`, `StoryMaps_ReorderPersona` (zero-based `newOrder`; the default swim lane always holds position 0, so other lanes start at 1)
 - **Move** — `StoryMaps_MoveStep` (to another goal), `StoryMaps_MoveTask` (to a step + swim lane)
 - **Swim lanes** — `StoryMaps_RenameSwimLane`, `StoryMaps_SetSwimLaneDates` (pass `null` to clear a date); the default lane can't be renamed, reordered, or removed

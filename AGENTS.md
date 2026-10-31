@@ -23,7 +23,7 @@ Some directories carry their own `AGENTS.md` with rules that apply only there. R
 - [Wayd.Infrastructure/AGENTS.md](Wayd.Infrastructure/AGENTS.md) — the database context, transactions, authentication
 - [Wayd.Web/src/Wayd.Web.Api/AGENTS.md](Wayd.Web/src/Wayd.Web.Api/AGENTS.md) — OpenAPI client generation, Wolverine handler codegen, and the hosted MCP endpoint (`/mcp`)
 - [Wayd.Web/src/wayd.web.reactclient/AGENTS.md](Wayd.Web/src/wayd.web.reactclient/AGENTS.md) — the client's traps, and the Next.js version in use
-- [Wayd.Web/src/Wayd.Mcp/AGENTS.md](Wayd.Web/src/Wayd.Mcp/AGENTS.md) — the MCP server (`@wayd/mcp`)
+- [evals/AGENTS.md](evals/AGENTS.md) — the skill evaluation
 
 ## Important Considerations
 
@@ -43,7 +43,7 @@ Some directories carry their own `AGENTS.md` with rules that apply only there. R
     doc; leave the scope out when a change spans areas.
   - Body optional: why, never narrative.
 - **Git hooks**: run `git config core.hooksPath .githooks` once per clone. `pre-push` rejects a misnamed
-  branch and an MCP change that has no changeset. `commit-msg` warns — without blocking — about a subject
+  branch. `commit-msg` warns — without blocking — about a subject
   that breaks the convention; follow it anyway.
 - **Docker Compose**: Environment variable changes require full teardown and rebuild (`docker compose down` then `up`)
 - **OpenTelemetry**: Configured in `Wayd.Infrastructure/src/Wayd.Infrastructure/OpenTelemetry/ConfigureServices.cs`. Frontend server-side only via `instrumentation.ts`.
@@ -54,11 +54,11 @@ Run what covers the change before calling it done, and report what you ran:
 
 - **.NET** — `dotnet build` on the projects you touched, then `dotnet test` on each affected test project. Changed a project reference? Run `Wayd.ArchitectureTests` too. Changed an entity configuration? Add a migration.
 - **API surface** — a changed endpoint or request/response model regenerates the TypeScript client on a Debug build of `Wayd.Web.Api`; commit the regenerated `wayd-api.ts` and `specification.json`.
-- **Imports** — a changed import (row class, endpoint, or what the handler accepts) also needs: `npm run generate:import-templates` in the client; a `@wayd/mcp` changeset (its import formats come from the spec); the area's `docs/user-guide/*/bulk-import.mdx`; and `Wayd.Tools.DataGeneration.Cli.Tests`, because data generation seeds through these endpoints.
+- **Imports** — a changed import (row class, endpoint, or what the handler accepts) also needs: `npm run generate:import-templates` in the client; the area's `docs/user-guide/*/bulk-import.mdx`; and `Wayd.Tools.DataGeneration.Cli.Tests`, because data generation seeds through these endpoints.
 - **Data generation** — a change to what an area generates, or to a domain rule seeding relies on, runs `Wayd.Tools.DataGeneration.Cli.Tests` and updates `docs/contributing/tools/data-generation.mdx`. A recipe-format change also refreshes `docs-site/static/schemas/wayd-data/recipe.schema.json` (`RecipeLibraryTests` fails until it matches).
 - **Client** — `npm run typecheck`, `npm run lint`, and `npm test` in `Wayd.Web/src/wayd.web.reactclient`.
-- **MCP** — `npm test` in `Wayd.Web/src/Wayd.Mcp`, plus a changeset for anything that ships.
-- **Docs** — a change users can see updates its page in `docs/user-guide/`; a new or changed MCP tool updates the README and the matching `skills/*/SKILL.md`; a change to how the code is built or structured updates `docs/contributing/` or the `AGENTS.md` that covers it.
+- **Skill evaluation** — a change under `evals/` runs `npm test` there; a scenario that names a tool is checked by `McpToolCatalogTests`.
+- **Docs** — a change users can see updates its page in `docs/user-guide/`; a new or changed MCP tool updates `docs/getting-started/mcp-server.mdx` and the matching `skills/*/SKILL.md`; a change to how the code is built or structured updates `docs/contributing/` or the `AGENTS.md` that covers it.
 
 ## Repository Structure
 
@@ -79,8 +79,8 @@ Wayd/
   Wayd.Web/
     Wayd.Web.Api/                 # ASP.NET Core Web API
     wayd.web.reactclient/         # Next.js 16 / React 19 frontend
-    Wayd.Mcp/                     # MCP server (@wayd/mcp) exposing the API as agent tools
-  skills/                         # Product skills published with the MCP server (for Wayd users)
+  skills/                         # Product skills the MCP server serves (for Wayd users)
+  evals/                          # Skill evaluation: scenarios, stub MCP server, results
   .agents/skills/                 # Skills for agents working on this repo (wayd-testing, React)
   docs/                           # Documentation (MDX, shared by Docusaurus and Next.js)
   docs-site/                      # Docusaurus config for GitHub Pages
@@ -143,9 +143,9 @@ npm run lint:deprecations  # List uses of @deprecated APIs (type-aware, slower)
 npm test        # Run tests
 ```
 
-### MCP Server
+### Skill Evaluation
 
-See [Wayd.Web/src/Wayd.Mcp/AGENTS.md](Wayd.Web/src/Wayd.Mcp/AGENTS.md).
+See [evals/README.md](evals/README.md).
 
 ### .NET Aspire (Recommended for Local Development)
 

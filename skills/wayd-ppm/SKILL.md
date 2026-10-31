@@ -28,8 +28,6 @@ Read the matching file before working in these areas. The rules on this page sti
 
 Portfolios, programs, and projects can be created, updated, moved through their statuses, and — while still Proposed — deleted. Tasks, project stages, lifecycle templates, strategic initiatives with their KPIs, checkpoint plans and project links, scores, rankings, and expenditure categories can all be changed.
 
-The tools that delete a portfolio, program, or project, or change lifecycles, stages, scores, rankings, scoring models, initiative details and project links, KPI definitions and checkpoint plans, task placement, or expenditure categories, and the scoring-model reads (`ScoringModels_*`), are offered only by the hosted endpoint (`/mcp` on the Wayd API), not by the `@wayd/mcp` package. When a tool named here is not in your tool list, say the change has to be made in the Wayd UI.
-
 ## Entity model
 
 ```
@@ -101,31 +99,31 @@ The metrics tools return counts only; follow up with `Projects_GetProjects` when
 | Linked work items                        | `Projects_GetWorkItems`                                                                          |
 | When the work items will be done         | `Projects_GetForecast` (read it as the `wayd-teams` skill describes)                             |
 | Tasks, one task, critical path           | `Tasks_GetProjectTasks`, `Tasks_GetProjectTask`, `Tasks_GetCriticalPath`                         |
-| Evidence for a health check (hosted)     | `Projects_GetHealthCheckEvidence` (see [reference/health-checks.md](reference/health-checks.md)) |
+| Evidence for a health check              | `Projects_GetHealthCheckEvidence` (see [reference/health-checks.md](reference/health-checks.md)) |
 
 When surveying a portfolio or program, call `Projects_GetProjectsPlanSummaries` once with every project UUID and `allTasks: true` — not `Projects_GetProjectPlanSummary` per project. Without `allTasks` it counts only the tasks the caller can see.
 
-A project's conversation — threads with subjects, read and posted by everyone who can read the project — is held through the `Discussions_*` tools (hosted), with `channelType` `ppm.project` and the project's UUID as `ownerId`. Read the `wayd-discussions` skill before calling them.
+A project's conversation — threads with subjects, read and posted by everyone who can read the project — is held through the `Discussions_*` tools, with `channelType` `ppm.project` and the project's UUID as `ownerId`. Read the `wayd-discussions` skill before calling them.
 
 ## Creating and updating records
 
 | Goal                                             | Tool                                                                                                                       |
 | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
 | Create                                           | `Portfolios_Create`, `Programs_Create`, `Projects_Create`                                                                  |
-| Change some fields or roles (hosted)             | `Portfolios_Patch`, `Programs_Patch`, `Projects_Patch`                                                                     |
+| Change some fields or roles                      | `Portfolios_Patch`, `Programs_Patch`, `Projects_Patch`                                                                     |
 | Update the whole record                          | `Portfolios_Update`, `Programs_Update`, `Projects_Update`                                                                  |
 | Move a project to another program, or out of one | `Projects_ChangeProgram` (target must be in the same portfolio; `null` detaches)                                           |
 | Change a project's key                           | `Projects_ChangeKey` — only when the user explicitly asks; it breaks task keys and saved links                             |
-| Assign or change a project's lifecycle (hosted)  | `Projects_AssignLifecycle`, `Projects_ChangeLifecycle` — see [reference/lifecycles.md](reference/lifecycles.md)            |
-| Delete a proposed record (hosted)                | `Portfolios_Delete`, `Programs_Delete`, `Projects_Delete` — see [reference/status-changes.md](reference/status-changes.md) |
+| Assign or change a project's lifecycle           | `Projects_AssignLifecycle`, `Projects_ChangeLifecycle` — see [reference/lifecycles.md](reference/lifecycles.md)            |
+| Delete a proposed record                         | `Portfolios_Delete`, `Programs_Delete`, `Projects_Delete` — see [reference/status-changes.md](reference/status-changes.md) |
 
 New records start in **Proposed**. Creating a project needs an `expenditureCategoryId` from `ExpenditureCategories_GetOptions`. Updates never change status, a project's key, program, or lifecycle, or a program's portfolio. Status changes only through dedicated transition tools — see [reference/status-changes.md](reference/status-changes.md).
 
-Tasks follow the same rule as records: patch with `Tasks_PatchProjectTask` when it is available; otherwise `Tasks_UpdateProjectTask` overwrites the whole task, and an omitted or empty `assigneeIds` removes every assignee. See [reference/tasks.md](reference/tasks.md).
+Tasks follow the same rule as records: patch with `Tasks_PatchProjectTask` for a partial change; `Tasks_UpdateProjectTask` overwrites the whole task, and an omitted or empty `assigneeIds` removes every assignee. See [reference/tasks.md](reference/tasks.md).
 
-### Patching a record (hosted server)
+### Patching a record
 
-When `Projects_Patch` (or `Programs_Patch`, `Portfolios_Patch`) is available, use it for any partial change. The body is a JSON Patch over the update's fields; anything it does not name keeps its value, role lists included.
+Use `Projects_Patch` (or `Programs_Patch`, `Portfolios_Patch`) for any partial change. The body is a JSON Patch over the update's fields; anything it does not name keeps its value, role lists included.
 
 - Rename: `[{ "op": "replace", "path": "/name", "value": "Apollo 2" }]`
 - Add a manager: `[{ "op": "add", "path": "/managerIds/-", "value": "<employeeId>" }]` (likewise `/sponsorIds`, `/ownerIds`, `/memberIds`, `/strategicThemeIds`)
@@ -136,7 +134,7 @@ Show the user the change, naming anyone who would lose a role, and confirm befor
 
 ### Updating a record (checklist)
 
-Without a patch tool, every update overwrites the whole record: an omitted field is cleared. Role lists replace that role's membership, and **an omitted or empty list removes everyone in that role** — a rename that leaves them out strips every Owner and Manager, leaving a record nobody is authorized to manage.
+`Portfolios_Update`, `Programs_Update`, and `Projects_Update` overwrite the whole record: an omitted field is cleared. Role lists replace that role's membership, and **an omitted or empty list removes everyone in that role** — a rename that leaves them out strips every Owner and Manager, leaving a record nobody is authorized to manage.
 
 1. **Read** the record: `Portfolios_GetPortfolio`, `Programs_GetProgram`, or `Projects_GetProject`.
 2. **Copy every role list and theme set** into the request as employee or theme ids:
@@ -149,7 +147,7 @@ Without a patch tool, every update overwrites the whole record: an omitted field
 6. **Call** the update.
 7. **Re-read** the record and verify the Owners and Managers are intact and the change landed.
 
-## Expenditure categories (hosted)
+## Expenditure categories
 
 An expenditure category classifies how a project's spending is treated (Opex, Capex, …). Categories are identified by a **numeric id**, not a UUID.
 

@@ -1,0 +1,41 @@
+name: CI - Skill Evaluation
+
+on:
+    push:
+        branches:
+            - main
+        paths:
+            - "evals/**"
+            # The tests check that every scenario names a published skill.
+            - "skills/**"
+    pull_request:
+        paths:
+            - "evals/**"
+            - "skills/**"
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        defaults:
+            run:
+                working-directory: evals
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Lint
+              run: npm run lint
+
+            - name: Type check
+              run: npm run typecheck
+
+            - name: Test
+              run: npm test

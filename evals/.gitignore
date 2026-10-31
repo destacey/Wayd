@@ -1,0 +1,12 @@
+node_modules
+
+# The hosted server's tool list, fetched with `npm run catalog`; it follows the API, so it is not committed
+catalog.json
+
+# Run output: transcripts and derived reports are rebuilt from results.jsonl
+results/**/traces/
+results/**/report.html
+results/**/state.json
+results/**/trajectory/
+results/**/progress.txt
+results/**/ref/

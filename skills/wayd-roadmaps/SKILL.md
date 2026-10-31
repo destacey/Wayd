@@ -11,8 +11,6 @@ Confirm every change with the user before you make it. Before a call that create
 
 When the user approves, do exactly what they approved. An option you offered that they did not take up — deleting a record you had just retired, say — stays undone unless they ask for it.
 
-Every tool that changes a roadmap is offered by the hosted endpoint (`/mcp`) only; elsewhere the roadmap tools are read-only, so direct the user to the Wayd app for changes.
-
 ## Entity context
 
 ### Roadmap item types

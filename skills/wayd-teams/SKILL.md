@@ -6,9 +6,7 @@ description: Read before calling the Wayd MCP tools named Teams_*, TeamsOfTeams_
 # Wayd Teams
 
 Confirm every change with the user before you make it: say what you will create, change or remove, and wait for
-their go-ahead. Tools that change records, and the capacity, backlog, work item, dependency, sprint, operating
-model, member, holiday calendar, team member role, team type and risk tools, are offered by the hosted MCP
-endpoint (`/mcp`) only.
+their go-ahead.
 
 ## Reference
 

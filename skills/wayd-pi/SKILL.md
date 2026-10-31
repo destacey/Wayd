@@ -17,7 +17,7 @@ Read the matching file before working in these areas. The rules on this page sti
 
 | File | Read it when |
 | --- | --- |
-| [reference/changing-a-pi.md](reference/changing-a-pi.md) | Creating or updating a PI, changing its dates, iterations, teams or sprint mappings, creating, updating, reordering or deleting objectives, linking their work items, or correcting or deleting a health check (hosted server only) |
+| [reference/changing-a-pi.md](reference/changing-a-pi.md) | Creating or updating a PI, changing its dates, iterations, teams or sprint mappings, creating, updating, reordering or deleting objectives, linking their work items, or correcting or deleting a health check |
 
 ## Entity context
 
@@ -87,9 +87,9 @@ Planning Interval (PI)
 | Sprint mappings for one iteration   | `PlanningIntervals_GetIterationSprints` | `idOrKey`, `iterationId` (UUID) |
 | Aggregated metrics for an iteration | `PlanningIntervals_GetIterationMetrics` | `idOrKey`, `iterationIdOrKey`   |
 | Combined backlog for an iteration   | `PlanningIntervals_GetIterationBacklog` | `idOrKey`, `iterationIdOrKey`   |
-| Combined backlog for the whole PI   | `PlanningIntervals_GetBacklog`          | `idOrKey` (hosted only)         |
-| PI metrics per team                 | `PlanningIntervals_GetMetrics`          | `idOrKey` (hosted only)         |
-| Team capacity in person-days        | `PlanningIntervals_GetCapacity`         | `idOrKey` (hosted only)         |
+| Combined backlog for the whole PI   | `PlanningIntervals_GetBacklog`          | `idOrKey`                       |
+| PI metrics per team                 | `PlanningIntervals_GetMetrics`          | `idOrKey`                       |
+| Team capacity in person-days        | `PlanningIntervals_GetCapacity`         | `idOrKey`                       |
 
 `PlanningIntervals_GetMetrics` rolls up cycle time, predictability and objective counts per team across every mapped sprint; only teams with mapped sprints appear. A 404 means the PI was not found, or a mapped sprint's team no longer resolves to a team with a code. `PlanningIntervals_GetCapacity` needs the `team-capacity-management` feature flag (404 when it is off): each team's person-days for the whole PI and per iteration, after holidays, time away and team days off. A team of teams counts its own allocations plus those of the teams beneath it, so never add a team-of-teams row to its teams' rows.
 
@@ -119,8 +119,8 @@ The PI-wide health report is a dedicated endpoint — do not attempt to derive i
 | Full health check history for one objective               | `PlanningIntervals_GetObjectiveHealthChecks`   | Takes PI `id` and `objectiveId` (both UUIDs). Newest first.                                            |
 | One specific health check                                 | `PlanningIntervals_GetObjectiveHealthCheck`    | Takes PI `id`, `objectiveId`, and `healthCheckId`.                                                     |
 | Log a new health check on an objective                    | `PlanningIntervals_CreateObjectiveHealthCheck` | Takes PI `id` and `objectiveId`; body: `{ planningIntervalObjectiveId, statusId, expiration, note? }`. |
-| Correct an unexpired check (hosted only)                  | `PlanningIntervals_UpdateObjectiveHealthCheck` | Whole-record overwrite; see [reference/changing-a-pi.md](reference/changing-a-pi.md#health-checks).    |
-| Delete a check (hosted only)                              | `PlanningIntervals_DeleteObjectiveHealthCheck` | Leaves the objective with no active check if it was the active one.                                     |
+| Correct an unexpired check                                | `PlanningIntervals_UpdateObjectiveHealthCheck` | Whole-record overwrite; see [reference/changing-a-pi.md](reference/changing-a-pi.md#health-checks).    |
+| Delete a check                                            | `PlanningIntervals_DeleteObjectiveHealthCheck` | Leaves the objective with no active check if it was the active one.                                     |
 
 Notes for logging a check:
 
@@ -137,9 +137,9 @@ When asked to evaluate an objective, recommend its health, or log a health check
 
 #### 1. Gather objective context and evidence
 
-On the hosted server, call `PlanningIntervals_GetObjectiveHealthCheckEvidence` with `idOrKey` + `objectiveIdOrKey` (UUIDs or keys) — one read for everything below. It returns the PI and objective; `schedule` with the effective `startDate`/`targetDate` (PI dates filled in, flagged `startDateDefaulted`/`targetDateDefaulted`) and `elapsedShare`; `workItems` and the daily `workItemMetrics` (the CFD); `forecast`, or null with `forecastUnavailableReason` when forecasting is off — say so in the rationale; `healthChecks` (newest first); `sinceLastCheck` with the activity, `progressAtLastCheck` and `progressChange`; and `teamRisks`, the team's open risks. Read each part as the matching step below describes. A 404 means the objective is not in that PI.
+Call `PlanningIntervals_GetObjectiveHealthCheckEvidence` with `idOrKey` + `objectiveIdOrKey` (UUIDs or keys) — one read for everything below. It returns the PI and objective; `schedule` with the effective `startDate`/`targetDate` (PI dates filled in, flagged `startDateDefaulted`/`targetDateDefaulted`) and `elapsedShare`; `workItems` and the daily `workItemMetrics` (the CFD); `forecast`, or null with `forecastUnavailableReason` when forecasting is off — say so in the rationale; `healthChecks` (newest first); `sinceLastCheck` with the activity, `progressAtLastCheck` and `progressChange`; and `teamRisks`, the team's open risks. Read each part as the matching step below describes. A 404 means the objective is not in that PI.
 
-Where that tool is absent, run these queries to assemble the complete picture:
+Each step names what to look for in its part, and the tool that reads that part alone:
 
 1. **Objective details and timeline:** `PlanningIntervals_GetObjective` with `idOrKey` + `objectiveIdOrKey`.
    - Name (the actual commitment), description, status, current progress percentage.
@@ -212,9 +212,9 @@ Read a PI's risks with `PlanningIntervals_GetRisks` (`idOrKey`). It returns **op
 
 To create or update a risk, use the `Risks_*` tools; the `wayd-teams` skill covers them.
 
-### Changing a PI (hosted server)
+### Changing a PI
 
-The hosted endpoint (`/mcp`) also offers the tools that change a PI: creating and updating it, setting its dates and iterations, its teams and each team's sprint mappings, and creating, updating, reordering and deleting objectives and their linked work items. Read [reference/changing-a-pi.md](reference/changing-a-pi.md) before calling any of them. The rules that catch agents out:
+The tools that change a PI cover creating and updating it, setting its dates and iterations, its teams and each team's sprint mappings, and creating, updating, reordering and deleting objectives and their linked work items. Read [reference/changing-a-pi.md](reference/changing-a-pi.md) before calling any of them. The rules that catch agents out:
 
 - **Most of them replace a whole list or record.** `PlanningIntervals_ManageDates` (iterations), `PlanningIntervals_ManageTeams` (teams), `PlanningIntervals_MapTeamSprints` (the team's sprint mappings) and `PlanningIntervals_ManageObjectiveWorkItems` (links) delete or unlink whatever the body leaves out. `PlanningIntervals_UpdatePlanningInterval`, `PlanningIntervals_UpdateObjective` and `PlanningIntervals_UpdateObjectiveHealthCheck` clear every field the body omits. Read the current state first and send back everything that should stay.
 - **Locked objectives.** While the PI's `objectivesLocked` is true, objectives cannot be created or deleted, and an update keeps each objective's name and stretch flag whatever you send. Omitting `objectivesLocked` from `PlanningIntervals_UpdatePlanningInterval` unlocks them.

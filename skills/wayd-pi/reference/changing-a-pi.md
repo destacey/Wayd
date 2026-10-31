@@ -1,6 +1,6 @@
 # Changing a planning interval
 
-Every tool here is offered by the hosted endpoint (`/mcp`) only. Confirm each change with the user first, as SKILL.md describes. Every write takes UUIDs, never keys: resolve them with `PlanningIntervals_GetPlanningInterval`, `PlanningIntervals_GetObjectives` and the other reads first. Most bodies repeat the path's ids (`id`, `planningIntervalId`, `objectiveId`, `teamId`) — they must match, or the call is refused.
+Confirm each change with the user first, as SKILL.md describes. Every write takes UUIDs, never keys: resolve them with `PlanningIntervals_GetPlanningInterval`, `PlanningIntervals_GetObjectives` and the other reads first. Most bodies repeat the path's ids (`id`, `planningIntervalId`, `objectiveId`, `teamId`) — they must match, or the call is refused.
 
 ## The interval itself
 

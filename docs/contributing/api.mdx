@@ -86,8 +86,7 @@ Feature-gated endpoints use `[FeatureGate(FeatureFlags.Names.MyFlag)]`.
 `Microsoft.AspNetCore.OpenApi` describes the API. A Debug build writes the document to
 `Wayd.Web.Api/wwwroot/api/v1/specification.json` (the `GenerateOpenApiDocument` target), then NSwag
 generates the TypeScript client, `wayd-api.ts`, from that file (`nswag.json`). The data-generation tool's C#
-client, the client's import templates and the `@wayd/mcp` import formats are generated from the same file,
-and the hosted MCP server builds its tools from the same document at runtime. The running API serves it at
+client and the client's import templates are generated from the same file, and the hosted MCP server builds its tools from the same document at runtime. The running API serves it at
 `/openapi/v1.json`, with the Scalar API reference at `/scalar`, while `SwaggerSettings:Enable` is on. A tool
 that knows neither path finds both through the RFC 9727 API catalog at `/.well-known/api-catalog`, and
 `/openapi.json` redirects to the document.

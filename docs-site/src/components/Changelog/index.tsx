@@ -20,8 +20,6 @@ const TYPE_LABELS: Record<string, string> = {
   build: "Build",
 };
 
-const MCP_CHANGELOG =
-  "https://github.com/destacey/Wayd/blob/main/Wayd.Web/src/Wayd.Mcp/CHANGELOG.md";
 
 const dateFormat = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
@@ -117,9 +115,7 @@ export default function Changelog({
       <main className={`container margin-vert--lg ${styles.page}`}>
         <Heading as="h1">Changelog</Heading>
         <p className={styles.intro}>
-          What changed in each Wayd release, newest first. The MCP server is
-          released on its own; see the{" "}
-          <Link href={MCP_CHANGELOG}>MCP server changelog</Link>.
+          What changed in each Wayd release, newest first.
         </p>
         {releases.length > 0 ? (
           releases.map((release) => (

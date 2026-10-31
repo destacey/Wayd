@@ -5,7 +5,7 @@ description: Read before calling the Wayd MCP tools named Workspaces_*, Sprints_
 
 # Wayd Work (Workspaces / Work Items / Sprints / Work Configuration)
 
-These tools are offered by the hosted MCP endpoint (`/mcp`), in its `work` toolset. `Workspaces_GetWorkItemForecast` is the exception: the `@wayd/mcp` package offers it too; every other tool here is hosted-only.
+These tools are in the `work` toolset.
 
 ## Before any change
 

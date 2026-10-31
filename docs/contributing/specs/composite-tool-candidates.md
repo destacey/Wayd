@@ -2,6 +2,8 @@
 
 Audit for [#972](https://github.com/destacey/Wayd/issues/972), consumed by [#975](https://github.com/destacey/Wayd/issues/975). Part of epic [#962](https://github.com/destacey/Wayd/issues/962).
 
+Written while the `@wayd/mcp` npm package was still published. The package was retired in [#979](https://github.com/destacey/Wayd/issues/979), and the skill evaluation now lives in `evals/`.
+
 ## Verdict
 
 The skills spend most of their words on two things a server can do better: **read-merge-write updates**, where an agent must read a record and echo back every field and role list or lose data, and **evidence-gathering recipes**, where an agent calls five to eight read tools in a fixed order before it can make a judgment. Both become composite tools. Everything that depends on what an earlier call returned — classifying health, choosing what to resubmit, deciding whether a version or a release is meant — stays in the skills.

@@ -89,7 +89,7 @@ The database is the single source of truth for identity providers — there is n
 
 | Provider field | Purpose |
 | --- | --- |
-| `Name` | Stable key written into `UserIdentity.Provider`. Immutable post-create. Reserved value `"Wayd"` (local accounts). |
+| `Name` | Stable key written into `UserIdentity.Provider`. Immutable post-create. Reserved value `"Wayd"` (local accounts). A `MicrosoftEntraId` provider must be named `MicrosoftEntraId` (`LoginProviders.MicrosoftEntraId`): the API recognises Entra sign-ins by that name, and under any other name they take the `GenericOidc` path and are rejected. The create form sets and locks it, so a deployment has at most one Entra provider. |
 | `DisplayName` | Human-readable label rendered on the login page. |
 | `ProviderType` | `MicrosoftEntraId` (multi-tenant via `/common/`, tenant allowlist) or `GenericOidc` (single-issuer, no tenant check). Immutable post-create. |
 | `Authority` | OIDC issuer URL. Must be `https`. Wayd appends `/.well-known/openid-configuration` for discovery. |
@@ -103,7 +103,7 @@ The database is the single source of truth for identity providers — there is n
 | `RequireEmployeeRecord` | When auto-registration is on, gates it to users whose email matches an existing employee. `true` (the safer default) lets only known employees self-register; `false` grants an account to anyone who can authenticate. Ignored when `AllowAutoRegistration` is off. |
 | `DefaultRoleId` | Role assigned to users auto-created through this provider. **Required** when `AllowAutoRegistration` is on (no implicit fallback). Protected by a FK: a role pinned here cannot be deleted until the provider is repointed. Null/ignored when `AllowAutoRegistration` is off. |
 
-**Adding a Microsoft Entra ID provider.** From **Settings → Access → Identity Providers**, choose **Create Identity Provider**, pick **Microsoft Entra ID** as the provider type, and fill in:
+**Adding a Microsoft Entra ID provider.** From **Settings → Access → Identity Providers**, choose **Create Identity Provider**, pick **Microsoft Entra ID** as the provider type (the form fills in `Name` as `MicrosoftEntraId`), and fill in:
 
 | Field | Value |
 | --- | --- |

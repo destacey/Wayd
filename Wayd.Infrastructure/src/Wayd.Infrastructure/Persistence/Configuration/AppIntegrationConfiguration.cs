@@ -150,6 +150,7 @@ public class SyncRunConfig : IEntityTypeConfiguration<SyncRun>
         builder.Property(r => r.ErrorsCount);
         builder.Property(r => r.ErrorMessage).HasMaxLength(2000);
         builder.Property(r => r.DetailsJson);
+        builder.Property(r => r.MovedOutWorkItemsRemoved);
 
         // No FK to Connections — history must survive connection deletion.
         builder.HasIndex(r => r.ConnectionId);

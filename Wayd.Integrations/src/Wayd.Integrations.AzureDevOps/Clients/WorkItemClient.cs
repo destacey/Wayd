@@ -9,14 +9,76 @@ namespace Wayd.Integrations.AzureDevOps.Clients;
 
 internal sealed class WorkItemClient : BaseClient
 {
+    // The most ids the workitemsbatch API takes in one call.
+    private const int MaxWorkItemsPerBatch = 200;
+
     internal WorkItemClient(HttpClient httpClient, string organizationUrl, string token, string apiVersion)
         : base(httpClient, organizationUrl, token, apiVersion)
     { }
 
-    internal async Task<int[]> GetWorkItemIds(string projectName, DateTime lastChangedDate, string[] workItemTypes, bool excludeWorkItemTypes, CancellationToken cancellationToken)
+    internal Task<int[]> GetWorkItemIds(string projectName, DateTime lastChangedDate, string[] workItemTypes, bool excludeWorkItemTypes, CancellationToken cancellationToken)
     {
         Guard.Against.NullOrWhiteSpace(projectName, nameof(projectName));
 
+        return QueryWorkItemIds(
+            startingId => CreateWiqlQueryForSync(projectName, lastChangedDate, workItemTypes, startingId, excludeWorkItemTypes),
+            $"project {projectName}",
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// The ids of the organization's work items changed after <paramref name="changedSince"/> that
+    /// are in none of <paramref name="projectNames"/>.
+    /// </summary>
+    internal Task<int[]> GetWorkItemIdsChangedOutsideProjects(string[] projectNames, DateTime changedSince, CancellationToken cancellationToken)
+    {
+        Guard.Against.NullOrEmpty(projectNames, nameof(projectNames));
+
+        return QueryWorkItemIds(
+            startingId => CreateWiqlQueryOutsideProjects(projectNames, changedSince, startingId),
+            "work items outside the synced projects",
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Each work item's current project, read across the organization. An id that no longer exists
+    /// is left out.
+    /// </summary>
+    internal async Task<Dictionary<int, string>> GetWorkItemProjects(int[] workItemIds, CancellationToken cancellationToken)
+    {
+        string[] fields = ["System.Id", "System.TeamProject"];
+
+        var projects = new Dictionary<int, string>(workItemIds.Length);
+        foreach (var batch in workItemIds.Distinct().Batch(MaxWorkItemsPerBatch))
+        {
+            // The organization-level route: the items are looked up wherever they are now.
+            var request = new RestRequest("/_apis/wit/workitemsbatch", Method.Post);
+            SetupRequest(request);
+            request.AddJsonBody(WorkItemsBatchRequest.Create(batch, fields));
+
+            var response = await ExecuteAsync<ListResponse<WorkItemProjectResponse?>>(request, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessful)
+                throw new Exception($"Error getting the projects of work items from Azure DevOps: {response.GetErrorText()}");
+            if (response.Data is null)
+                throw new Exception("Successful response, but no work item data returned when getting the projects of work items from Azure DevOps");
+
+            // Under errorPolicy=omit an id Azure DevOps cannot return arrives as a null entry.
+            foreach (var workItem in response.Data.Value)
+            {
+                if (workItem is not null && !string.IsNullOrEmpty(workItem.Fields?.TeamProject))
+                    projects[workItem.Id] = workItem.Fields.TeamProject;
+            }
+        }
+
+        return projects;
+    }
+
+    /// <summary>
+    /// Runs a WIQL id query page by page. <paramref name="buildQuery"/> receives the id the next page
+    /// starts after, and must order by id and filter on <c>[System.Id] &gt; startingId</c>.
+    /// </summary>
+    private async Task<int[]> QueryWorkItemIds(Func<int, WiqlRequest> buildQuery, string description, CancellationToken cancellationToken)
+    {
         var request = new RestRequest("/_apis/wit/wiql", Method.Post);
         SetupRequest(request);
 
@@ -28,14 +90,14 @@ internal sealed class WorkItemClient : BaseClient
         List<int> workItemIds = [];
         while (true)
         {
-            var wiql = CreateWiqlQueryForSync(projectName, lastChangedDate, workItemTypes, startingId, excludeWorkItemTypes);
+            var wiql = buildQuery(startingId);
 
             request.AddJsonBody(wiql);
 
             var response = await ExecuteAsync<WiqlResponse>(request, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessful)
             {
-                throw new Exception($"Error getting work item ids for project {projectName} from Azure DevOps: {response.GetErrorText()}");
+                throw new Exception($"Error getting work item ids for {description} from Azure DevOps: {response.GetErrorText()}");
             }
             else if (response.Data?.WorkItems is null || response.Data.WorkItems.Count == 0)
             {
@@ -68,10 +130,8 @@ internal sealed class WorkItemClient : BaseClient
         var request = new RestRequest($"/{projectName}/_apis/wit/workitemsbatch", Method.Post);
         SetupRequest(request);
 
-        int maxResults = 200;
-
         var workItems = new List<WorkItemResponse>();
-        var batches = workItemIds.Distinct().Batch(maxResults);
+        var batches = workItemIds.Distinct().Batch(MaxWorkItemsPerBatch);
         foreach (var batch in batches)
         {
             request.AddJsonBody(WorkItemsBatchRequest.Create(batch, fields));
@@ -250,9 +310,22 @@ internal sealed class WorkItemClient : BaseClient
         }
         return new()
         {
-            Query = $"SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '{EscapeWiqlLiteral(project)}' AND [System.Id] > {startingId} AND [System.ChangedDate] > '{dateTime:yyyy-MM-ddTHH:mm:ssZ}' {workItemTypesFilter} ORDER BY [System.Id] Asc"
+            Query = $"SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '{EscapeWiqlLiteral(project)}' AND [System.Id] > {startingId} AND [System.ChangedDate] > '{FormatWiqlDate(dateTime)}' {workItemTypesFilter} ORDER BY [System.Id] Asc"
         };
     }
+
+    internal static WiqlRequest CreateWiqlQueryOutsideProjects(string[] projectNames, DateTime changedSince, int startingId)
+    {
+        var projects = string.Join(",", projectNames.Select(p => $"'{EscapeWiqlLiteral(p)}'"));
+        return new()
+        {
+            Query = $"SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] NOT IN ({projects}) AND [System.Id] > {startingId} AND [System.ChangedDate] > '{FormatWiqlDate(changedSince)}' ORDER BY [System.Id] Asc"
+        };
+    }
+
+    // Invariant: an unquoted ':' in a format string becomes the current culture's time separator.
+    private static string FormatWiqlDate(DateTime value) =>
+        value.ToString("yyyy-MM-dd'T'HH':'mm':'ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
 
     // WIQL string literals escape embedded single quotes by doubling them.
     private static string EscapeWiqlLiteral(string value) => value.Replace("'", "''");

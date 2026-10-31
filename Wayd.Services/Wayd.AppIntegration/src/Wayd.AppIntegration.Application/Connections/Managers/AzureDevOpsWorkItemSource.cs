@@ -2,6 +2,7 @@
 using Ardalis.GuardClauses;
 using NodaTime;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
+using Wayd.AppIntegration.Application.Connections.Queries;
 using Wayd.AppIntegration.Application.Connections.Queries.AzureDevOps;
 using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.AppIntegration.Application.Logging;
@@ -45,6 +46,8 @@ public sealed class AzureDevOpsWorkItemSource(
     // Captured during GetSyncPlan() so subsequent per-workspace calls can look up work-process
     // integration state without re-querying. Cleared on Bind().
     private List<AzureDevOpsWorkProcessDto>? _planWorkProcesses;
+    // Every project set up in Wayd, paused or not, captured in GetSyncPlan(); cleared on Bind().
+    private List<SetUpProject>? _setUpProjects;
     // Work process external id → Wayd id, once resolved in this bind; cleared on Bind().
     private readonly Dictionary<Guid, Guid> _resolvedWorkProcesses = [];
     private readonly Dictionary<Guid, string[]> _workTypeNames = [];
@@ -63,6 +66,7 @@ public sealed class AzureDevOpsWorkItemSource(
         _cfg = cfg;
         _teamCfg = descriptor.TeamConfiguration as AzureDevOpsBoardsTeamConfiguration;
         _planWorkProcesses = null;
+        _setUpProjects = null;
         _resolvedWorkProcesses.Clear();
         _workTypeNames.Clear();
         return Result.Success();
@@ -99,6 +103,9 @@ public sealed class AzureDevOpsWorkItemSource(
         // Capture the freshly-loaded work-process list (DTO shape) so subsequent per-workspace
         // calls can look up integration state without re-querying.
         _planWorkProcesses = connection.Configuration.WorkProcesses;
+        _setUpProjects = [.. connection.Configuration.Workspaces
+            .Where(w => w.IntegrationState is not null)
+            .Select(w => new SetUpProject(w.Name, w.IntegrationState!.InternalId))];
 
         var workspaceTeamsLookup = connection.TeamConfiguration?.WorkspaceTeams is not null
             ? connection.TeamConfiguration.WorkspaceTeams.GroupBy(t => t.WorkspaceId).ToDictionary(g => g.Key, g => g.ToArray())
@@ -281,9 +288,11 @@ public sealed class AzureDevOpsWorkItemSource(
             }
         }
 
-        // Deleted work items
+        // Deleted work items. A full sync skips items retyped out of the synced set: it holds no
+        // watermark, so the query would return every such item the project has ever had.
+        DateTime? typeChangedSince = syncType == SyncType.Full ? null : lastChangedDate;
         var deletedResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetDeletedWorkItemIds",
-            () => _azureDevOpsService.GetDeletedWorkItemIds(ctx.Connection, target.WorkspaceName, lastChangedDate, workTypeNames, cancellationToken), syncId);
+            () => _azureDevOpsService.GetDeletedWorkItemIds(ctx.Connection, target.WorkspaceName, typeChangedSince, workTypeNames, cancellationToken), syncId);
         if (deletedResult.IsFailure)
         {
             _logger.LogError("Failed to retrieve deleted work item ids for workspace {WorkspaceId}. Error: {Error}", target.InternalWorkspaceId, deletedResult.Error);
@@ -292,7 +301,7 @@ public sealed class AzureDevOpsWorkItemSource(
         }
         else if (deletedResult.Value.Length > 0)
         {
-            var syncResult = await _dispatcher.Send(new DeleteExternalWorkItemsCommand(target.InternalWorkspaceId, deletedResult.Value), cancellationToken);
+            var syncResult = await _dispatcher.Send(new DeleteExternalWorkItemsCommand(SetUpWorkspaceIds(target), deletedResult.Value), cancellationToken);
             if (syncResult.IsFailure)
             {
                 hadPartialFailure = true;
@@ -300,7 +309,7 @@ public sealed class AzureDevOpsWorkItemSource(
             }
             else
             {
-                deleted = deletedResult.Value.Length;
+                deleted = syncResult.Value;
             }
         }
 
@@ -311,6 +320,92 @@ public sealed class AzureDevOpsWorkItemSource(
             DeletedWorkItemsProcessed: deleted,
             HadPartialFailure: hadPartialFailure,
             PartialFailureMessage: hadPartialFailure ? string.Join("; ", failureMessages) : null));
+    }
+
+    /// <summary>
+    /// Removes the items Wayd holds in a set-up project that are now in a project no connection to
+    /// the organization sets up. An item moved between two set-up projects is not touched: the new
+    /// project's sync moves it to its workspace, and that sync may belong to another connection.
+    /// </summary>
+    /// <remarks>
+    /// With a window, one organization-wide query returns the items changed since then outside the
+    /// set-up projects, cut to those Wayd holds. Without one, each item Wayd holds is looked up: an
+    /// unbounded window would return every item of every project nobody syncs.
+    /// </remarks>
+    public async Task<Result<int>> RemoveWorkItemsMovedOut(Instant? changedSince, Guid syncId, CancellationToken cancellationToken)
+    {
+        var ctx = RequireBound();
+        if (_setUpProjects is null)
+            return Result.Failure<int>("GetSyncPlan() must be invoked before RemoveWorkItemsMovedOut.");
+
+        if (_setUpProjects.Count == 0)
+            return 0;
+
+        var workspaceIds = _setUpProjects.Select(p => p.InternalWorkspaceId).ToArray();
+        var heldResult = await _dispatcher.Send(new GetExternalWorkItemIdsQuery(workspaceIds), cancellationToken);
+        if (heldResult.IsFailure)
+            return heldResult.ConvertFailure<int>();
+        if (heldResult.Value.Length == 0)
+            return 0;
+
+        var projectNamesResult = await GetProjectNamesSetUpInOrganization(cancellationToken);
+        if (projectNamesResult.IsFailure)
+            return projectNamesResult.ConvertFailure<int>();
+        var projectNames = projectNamesResult.Value;
+
+        int[] movedOut;
+        if (changedSince.HasValue)
+        {
+            var changedResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetWorkItemsChangedOutsideProjects",
+                () => _azureDevOpsService.GetIdsOfWorkItemsChangedOutsideProjects(ctx.Connection, projectNames, changedSince.Value.ToDateTimeUtc(), cancellationToken), syncId);
+            if (changedResult.IsFailure)
+                return changedResult.ConvertFailure<int>();
+
+            movedOut = [.. changedResult.Value.Intersect(heldResult.Value)];
+        }
+        else
+        {
+            var outsideResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetWorkItemsOutsideProjects",
+                () => _azureDevOpsService.GetIdsOfWorkItemsOutsideProjects(ctx.Connection, heldResult.Value, projectNames, cancellationToken), syncId);
+            if (outsideResult.IsFailure)
+                return outsideResult.ConvertFailure<int>();
+
+            movedOut = outsideResult.Value;
+        }
+
+        if (movedOut.Length == 0)
+            return 0;
+
+        return await _dispatcher.Send(new DeleteExternalWorkItemsCommand(workspaceIds, movedOut), cancellationToken);
+    }
+
+    /// <summary>
+    /// The names of the projects set up by this connection and by every other Azure DevOps
+    /// connection to the same organization, paused or inactive included. Another connection's
+    /// project counts as synced: its own sync moves an item that arrives there.
+    /// </summary>
+    private async Task<Result<string[]>> GetProjectNamesSetUpInOrganization(CancellationToken cancellationToken)
+    {
+        var descriptor = RequireDescriptor();
+        var names = new HashSet<string>(_setUpProjects!.Select(p => p.Name), StringComparer.OrdinalIgnoreCase);
+
+        var connections = await _dispatcher.Send(new GetConnectionsQuery(IncludeInactive: true, Type: Connector.AzureDevOps), cancellationToken);
+        var siblingIds = (connections ?? [])
+            .Where(c => c.Id != descriptor.ConnectionId
+                && !string.IsNullOrEmpty(c.SystemId)
+                && string.Equals(c.SystemId, descriptor.SystemId, StringComparison.OrdinalIgnoreCase))
+            .Select(c => c.Id);
+
+        foreach (var siblingId in siblingIds)
+        {
+            var sibling = await _dispatcher.Send(new GetAzureDevOpsConnectionQuery(siblingId), cancellationToken);
+            if (sibling is null)
+                return Result.Failure<string[]>($"Unable to load Azure DevOps connection {siblingId}, which syncs the same organization.");
+
+            names.UnionWith(sibling.Configuration.Workspaces.Where(w => w.IntegrationState is not null).Select(w => w.Name));
+        }
+
+        return names.ToArray();
     }
 
     /// <summary>
@@ -363,6 +458,14 @@ public sealed class AzureDevOpsWorkItemSource(
             throw new InvalidOperationException("AzureDevOpsWorkItemSource has not been bound. Call Bind(descriptor) before invoking sync methods.");
         return new SyncContext(new AzureDevOpsConnectionContext(_cfg.Organization, _cfg.PersonalAccessToken), _descriptor.SystemId ?? string.Empty);
     }
+
+    /// <summary>
+    /// The Wayd workspaces of every project this connection has set up, the target's included. A
+    /// deleted or retyped item may still sit in the workspace of a project it left, so deletes
+    /// reach all of them.
+    /// </summary>
+    private Guid[] SetUpWorkspaceIds(WorkspaceSyncTarget target) =>
+        [.. (_setUpProjects ?? []).Select(p => p.InternalWorkspaceId).Append(target.InternalWorkspaceId).Distinct()];
 
     private SyncableConnectionDescriptor RequireDescriptor()
     {
@@ -564,6 +667,9 @@ public sealed class AzureDevOpsWorkItemSource(
             teamMappings[team.TeamId] = team.InternalTeamId;
         }
     }
+
+    /// <summary>A project set up in Wayd: its Azure DevOps name and its Wayd workspace.</summary>
+    private sealed record SetUpProject(string Name, Guid InternalWorkspaceId);
 
     private sealed record SyncContext(AzureDevOpsConnectionContext Connection, string SystemId);
 }

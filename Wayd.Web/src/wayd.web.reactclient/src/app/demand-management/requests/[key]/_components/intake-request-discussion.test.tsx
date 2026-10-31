@@ -20,8 +20,11 @@ jest.mock('@/src/components/common/discussions', () => ({
   },
 }))
 
+const mockUseSettings = jest.fn()
 jest.mock('@/src/store/features/common/discussions-api', () => ({
   DiscussionChannelTypes: { IntakeRequest: 'demand.intake-request' },
+  useGetDiscussionSettingsQuery: (...args: unknown[]) =>
+    mockUseSettings(...args),
 }))
 
 const mockUseDesk = jest.fn()
@@ -66,6 +69,7 @@ describe('IntakeRequestDiscussion', () => {
       },
     })
     mockUseEveryone.mockReturnValue({ data: undefined })
+    mockUseSettings.mockReturnValue({ data: { mentionsGrantAccess: true } })
   })
 
   it('offers the request and its desk for mentions on a private desk, and only the desk in a note', () => {
@@ -107,6 +111,33 @@ describe('IntakeRequestDiscussion', () => {
     expect(captured.mentionCandidates.map((c) => c.name)).toEqual([
       'Dana Ortiz',
     ])
+  })
+
+  it("offers only the request's people when the desk's mentions give no access", () => {
+    // Arrange
+    mockUseDesk.mockReturnValue({
+      data: { visibility: IntakeDeskVisibility.Open, members: [] },
+    })
+    mockUseSettings.mockReturnValue({ data: { mentionsGrantAccess: false } })
+
+    // Act
+    render(
+      <IntakeRequestDiscussion
+        request={request({ canAddParticipants: true })}
+        substance={substance}
+      />,
+    )
+
+    // Assert
+    expect(mockUseSettings).toHaveBeenCalledWith({
+      channelType: 'demand.intake-request',
+      scopeId: 'd-1',
+    })
+    expect(captured.mentionCandidates.map((c) => c.name)).toEqual([
+      'Priya Natarajan',
+      'Tom Becker',
+    ])
+    expect(mockUseEveryone).toHaveBeenCalledWith(undefined, { skip: true })
   })
 
   it("offers the request's people with their numbers, to tell names apart", () => {

@@ -294,7 +294,7 @@ public class WorkSyncRunnerTests
         _db.AddSyncRuns([checkedRun, uncheckedRun, otherConnectionRun]);
 
         // Act
-        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);
+        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, TestContext.Current.CancellationToken);
 
         // Assert
         _source.Verify(s => s.RemoveWorkItemsMovedOut(checkedRun.StartedAt.Minus(Duration.FromMinutes(15)), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -309,7 +309,7 @@ public class WorkSyncRunnerTests
         StubHappyPathSource();
 
         // Act
-        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);
+        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, TestContext.Current.CancellationToken);
 
         // Assert
         _source.Verify(s => s.RemoveWorkItemsMovedOut(null, It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -329,13 +329,53 @@ public class WorkSyncRunnerTests
             .ReturnsAsync(Result.Success(3));
 
         // Act
-        await _sut.Run(SyncType.Full, SyncTriggerSource.Scheduled, CancellationToken.None);
+        await _sut.Run(SyncType.Full, SyncTriggerSource.Scheduled, TestContext.Current.CancellationToken);
 
         // Assert
         _source.Verify(s => s.RemoveWorkItemsMovedOut(null, It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Once);
         var run = _db.SyncRuns.Single(r => r.Id != checkedRun.Id);
         run.MovedOutWorkItemsRemoved.Should().Be(3);
         run.Status.Should().Be(SyncRunStatus.Succeeded);
+    }
+
+    [Fact]
+    public async Task Run_MovedOutCheckThrows_RecordsAnErrorAndStillProcessesDependencies()
+    {
+        // Arrange
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource();
+        _source.Setup(s => s.RemoveWorkItemsMovedOut(It.IsAny<Instant?>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TimeoutException("database timeout"));
+
+        // Act
+        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, TestContext.Current.CancellationToken);
+
+        // Assert
+        var run = _db.SyncRuns.Single();
+        run.Status.Should().Be(SyncRunStatus.Succeeded);
+        run.ErrorsCount.Should().Be(1);
+        run.MovedOutWorkItemsRemoved.Should().BeNull();
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.IsAny<ProcessDependenciesCommand>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Run_AWorkspaceFails_StillChecksForMovedOutItems()
+    {
+        // Arrange
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource();
+        _source.Setup(s => s.PrepareWorkspaceForItemSync(It.IsAny<WorkspaceSyncTarget>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Failure("process unavailable"));
+
+        // Act
+        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, TestContext.Current.CancellationToken);
+
+        // Assert
+        _source.Verify(s => s.RemoveWorkItemsMovedOut(It.IsAny<Instant?>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Once);
+        _db.SyncRuns.Single().MovedOutWorkItemsRemoved.Should().Be(0);
     }
 
     [Fact]
@@ -349,7 +389,7 @@ public class WorkSyncRunnerTests
             .ReturnsAsync(Result.Failure<int>("AzDO returned 500"));
 
         // Act
-        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, CancellationToken.None);
+        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, TestContext.Current.CancellationToken);
 
         // Assert
         var run = _db.SyncRuns.Single();

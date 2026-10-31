@@ -4,8 +4,10 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.AutoMock;
 using NodaTime;
+using Wayd.AppIntegration.Application.Connections.Dtos;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Managers;
+using Wayd.AppIntegration.Application.Connections.Queries;
 using Wayd.AppIntegration.Application.Connections.Queries.AzureDevOps;
 using Wayd.AppIntegration.Application.Connectors.Dtos;
 using Wayd.AppIntegration.Application.Interfaces;
@@ -629,7 +631,7 @@ public class AzureDevOpsWorkItemSourceTests
         var target = new WorkspaceSyncTarget(Guid.CreateVersion7(), Guid.CreateVersion7(), "Project", "key", WorkItemSyncFilters.Empty);
 
         // Act
-        var result = await _sut.SyncWorkItems(target, SyncType.Full, Guid.CreateVersion7(), CancellationToken.None);
+        var result = await _sut.SyncWorkItems(target, SyncType.Full, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -650,7 +652,7 @@ public class AzureDevOpsWorkItemSourceTests
         var target = new WorkspaceSyncTarget(Guid.CreateVersion7(), Guid.CreateVersion7(), "Project", "key", WorkItemSyncFilters.Empty);
 
         // Act
-        var result = await _sut.SyncWorkItems(target, SyncType.Differential, Guid.CreateVersion7(), CancellationToken.None);
+        var result = await _sut.SyncWorkItems(target, SyncType.Differential, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -748,36 +750,63 @@ public class AzureDevOpsWorkItemSourceTests
         result.Value.PartialFailureMessage.Should().BeNull();
     }
 
-    [Fact]
-    public async Task SyncWorkItems_DeletesFromEverySetUpWorkspace()
+    /// <summary>
+    /// Plans a connection with a synced project, a paused one and one not set up, and returns the
+    /// set-up projects' Wayd workspace ids.
+    /// </summary>
+    private async Task<(Guid Synced, Guid Paused)> PlanThreeProjects(SyncableConnectionDescriptor? descriptor = null)
     {
-        // Arrange — a deleted item may still sit in the workspace of a project it left, paused or not
-        var descriptor = BuildDescriptor();
+        descriptor ??= BuildDescriptor();
         _sut.Bind(descriptor);
-        StubWorkItemSubSteps();
         var processId = Guid.CreateVersion7();
         var syncedId = Guid.CreateVersion7();
         var pausedId = Guid.CreateVersion7();
         var paused = Workspace(processId, internalId: pausedId, name: "Paused");
         paused.IntegrationState!.IsActive = false;
         _mocker.GetMock<IDispatcher>()
-            .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.Send(It.Is<GetAzureDevOpsConnectionQuery>(q => q.ConnectionId == descriptor.ConnectionId), It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildConnectionDetails(descriptor.ConnectionId,
                 processes: [Process(externalId: processId)],
                 workspaces: [Workspace(processId, internalId: syncedId, name: "Synced"), paused, Workspace(processId, name: "Not set up", isActive: false)]));
+        (await _sut.GetSyncPlan(TestContext.Current.CancellationToken)).IsSuccess.Should().BeTrue();
+        return (syncedId, pausedId);
+    }
+
+    private void StubHeldWorkItems(params int[] externalIds) =>
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetExternalWorkItemIdsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(externalIds));
+
+    private void StubChangedOutside(params int[] externalIds) =>
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetIdsOfWorkItemsChangedOutsideProjects(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string[]>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(externalIds));
+
+    private void StubDelete(Result<int> result) =>
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<DeleteExternalWorkItemsCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(result);
+
+    private static readonly Instant _changedSince = Instant.FromUtc(2026, 10, 31, 9, 0);
+
+    [Fact]
+    public async Task SyncWorkItems_DeletesFromEverySetUpWorkspace()
+    {
+        // Arrange — a deleted item may still sit in the workspace of a project it left, paused or not
+        var (syncedId, pausedId) = await PlanThreeProjects();
+        StubWorkItemSubSteps();
         _mocker.GetMock<IAzureDevOpsService>()
             .Setup(s => s.GetDeletedWorkItemIds(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new[] { 5 }));
-        _mocker.GetMock<IDispatcher>()
-            .Setup(s => s.Send(It.IsAny<DeleteExternalWorkItemsCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success(1));
-        var target = (await _sut.GetSyncPlan(CancellationToken.None)).Value.Single();
+        StubDelete(Result.Success(1));
+        var target = new WorkspaceSyncTarget(Guid.CreateVersion7(), syncedId, "Synced", "key", WorkItemSyncFilters.Empty);
 
         // Act
-        var result = await _sut.SyncWorkItems(target, SyncType.Differential, Guid.CreateVersion7(), CancellationToken.None);
+        var result = await _sut.SyncWorkItems(target, SyncType.Differential, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
+        result.Value.DeletedWorkItemsProcessed.Should().Be(1);
         _mocker.GetMock<IDispatcher>()
             .Verify(s => s.Send(It.Is<DeleteExternalWorkItemsCommand>(c =>
                 c.WorkspaceIds.Count == 2 && c.WorkspaceIds.Contains(syncedId) && c.WorkspaceIds.Contains(pausedId)
@@ -786,80 +815,79 @@ public class AzureDevOpsWorkItemSourceTests
 
     // -------- RemoveWorkItemsMovedOut --------
 
-    /// <summary>
-    /// Plans a connection with a synced project, a paused one and one not set up, and returns the
-    /// set-up projects' Wayd workspace ids.
-    /// </summary>
-    private async Task<(Guid Synced, Guid Paused)> PlanThreeProjects()
-    {
-        var descriptor = BuildDescriptor();
-        _sut.Bind(descriptor);
-        var processId = Guid.CreateVersion7();
-        var syncedId = Guid.CreateVersion7();
-        var pausedId = Guid.CreateVersion7();
-        var paused = Workspace(processId, internalId: pausedId, name: "Paused");
-        paused.IntegrationState!.IsActive = false;
-        _mocker.GetMock<IDispatcher>()
-            .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(BuildConnectionDetails(descriptor.ConnectionId,
-                processes: [Process(externalId: processId)],
-                workspaces: [Workspace(processId, internalId: syncedId, name: "Synced"), paused, Workspace(processId, name: "Not set up", isActive: false)]));
-        (await _sut.GetSyncPlan(CancellationToken.None)).IsSuccess.Should().BeTrue();
-        return (syncedId, pausedId);
-    }
-
     [Fact]
-    public async Task RemoveWorkItemsMovedOut_WithAWindow_QueriesChangesOutsideEverySetUpProjectAndDeletesThem()
+    public async Task RemoveWorkItemsMovedOut_WithAWindow_DeletesTheHeldItemsChangedOutsideEverySetUpProject()
     {
-        // Arrange
+        // Arrange — item 8 changed outside the set-up projects but Wayd never held it
         var (syncedId, pausedId) = await PlanThreeProjects();
-        var changedSince = Instant.FromUtc(2026, 10, 31, 9, 0);
-        _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetIdsOfWorkItemsChangedOutsideProjects(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string[]>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success(new[] { 7, 8, 9 }));
-        _mocker.GetMock<IDispatcher>()
-            .Setup(s => s.Send(It.IsAny<DeleteExternalWorkItemsCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success(1));
+        StubHeldWorkItems(7, 9, 100);
+        StubChangedOutside(7, 8, 9);
+        StubDelete(Result.Success(2));
 
         // Act
-        var result = await _sut.RemoveWorkItemsMovedOut(changedSince, Guid.CreateVersion7(), CancellationToken.None);
+        var result = await _sut.RemoveWorkItemsMovedOut(_changedSince, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().Be(1, "the delete skips the ids Wayd does not hold");
+        result.Value.Should().Be(2);
         _mocker.GetMock<IAzureDevOpsService>()
             .Verify(s => s.GetIdsOfWorkItemsChangedOutsideProjects(It.IsAny<AzureDevOpsConnectionContext>(),
                 It.Is<string[]>(n => n.Length == 2 && n.Contains("Synced") && n.Contains("Paused")),
-                changedSince.ToDateTimeUtc(), It.IsAny<CancellationToken>()), Times.Once);
+                _changedSince.ToDateTimeUtc(), It.IsAny<CancellationToken>()), Times.Once);
         _mocker.GetMock<IDispatcher>()
             .Verify(s => s.Send(It.Is<DeleteExternalWorkItemsCommand>(c =>
                 c.WorkspaceIds.Count == 2 && c.WorkspaceIds.Contains(syncedId) && c.WorkspaceIds.Contains(pausedId)
-                && c.WorkItemIds.SequenceEqual(new[] { 7, 8, 9 })), It.IsAny<CancellationToken>()), Times.Once);
+                && c.WorkItemIds.SequenceEqual(new[] { 7, 9 })), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RemoveWorkItemsMovedOut_CountsProjectsAnotherConnectionToTheOrganizationSetsUpAsSynced()
+    {
+        // Arrange — an item that moved to a project the other connection syncs is moved by that sync
+        var descriptor = BuildDescriptor(systemId: "org-1");
+        await PlanThreeProjects(descriptor);
+        var siblingId = Guid.CreateVersion7();
+        var unrelatedId = Guid.CreateVersion7();
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetConnectionsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConnectionListDto> { ConnectionListItem(siblingId, "ORG-1"), ConnectionListItem(unrelatedId, "org-2") }.AsReadOnly());
+        var processId = Guid.CreateVersion7();
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.Is<GetAzureDevOpsConnectionQuery>(q => q.ConnectionId == siblingId), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildConnectionDetails(siblingId, [Process(externalId: processId)],
+                [Workspace(processId, name: "Elsewhere"), Workspace(processId, name: "Unused", isActive: false)], systemId: "org-1"));
+        StubHeldWorkItems(7);
+        StubChangedOutside();
+
+        // Act
+        var result = await _sut.RemoveWorkItemsMovedOut(_changedSince, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Verify(s => s.GetIdsOfWorkItemsChangedOutsideProjects(It.IsAny<AzureDevOpsConnectionContext>(),
+                It.Is<string[]>(n => n.Length == 3 && n.Contains("Synced") && n.Contains("Paused") && n.Contains("Elsewhere")),
+                It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.Is<GetAzureDevOpsConnectionQuery>(q => q.ConnectionId == unrelatedId), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task RemoveWorkItemsMovedOut_WithoutAWindow_LooksUpTheProjectOfEveryHeldItem()
     {
         // Arrange
-        var (syncedId, pausedId) = await PlanThreeProjects();
-        _mocker.GetMock<IDispatcher>()
-            .Setup(s => s.Send(It.IsAny<GetExternalWorkItemIdsQuery>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success(new[] { 1, 2, 3 }));
+        await PlanThreeProjects();
+        StubHeldWorkItems(1, 2, 3);
         _mocker.GetMock<IAzureDevOpsService>()
             .Setup(s => s.GetIdsOfWorkItemsOutsideProjects(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<int[]>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new[] { 2 }));
-        _mocker.GetMock<IDispatcher>()
-            .Setup(s => s.Send(It.IsAny<DeleteExternalWorkItemsCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success(1));
+        StubDelete(Result.Success(1));
 
         // Act
-        var result = await _sut.RemoveWorkItemsMovedOut(null, Guid.CreateVersion7(), CancellationToken.None);
+        var result = await _sut.RemoveWorkItemsMovedOut(null, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.Should().Be(1);
-        _mocker.GetMock<IDispatcher>()
-            .Verify(s => s.Send(It.Is<GetExternalWorkItemIdsQuery>(q =>
-                q.WorkspaceIds.Count == 2 && q.WorkspaceIds.Contains(syncedId) && q.WorkspaceIds.Contains(pausedId)), It.IsAny<CancellationToken>()), Times.Once);
         _mocker.GetMock<IAzureDevOpsService>()
             .Verify(s => s.GetIdsOfWorkItemsOutsideProjects(It.IsAny<AzureDevOpsConnectionContext>(), new[] { 1, 2, 3 },
                 It.Is<string[]>(n => n.Length == 2), It.IsAny<CancellationToken>()), Times.Once);
@@ -868,16 +896,15 @@ public class AzureDevOpsWorkItemSourceTests
     }
 
     [Fact]
-    public async Task RemoveWorkItemsMovedOut_WhenNothingMovedOut_DeletesNothing()
+    public async Task RemoveWorkItemsMovedOut_WhenNoHeldItemMovedOut_DeletesNothing()
     {
         // Arrange
         await PlanThreeProjects();
-        _mocker.GetMock<IAzureDevOpsService>()
-            .Setup(s => s.GetIdsOfWorkItemsChangedOutsideProjects(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string[]>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success(Array.Empty<int>()));
+        StubHeldWorkItems(1);
+        StubChangedOutside(8);
 
         // Act
-        var result = await _sut.RemoveWorkItemsMovedOut(Instant.FromUtc(2026, 10, 31, 9, 0), Guid.CreateVersion7(), CancellationToken.None);
+        var result = await _sut.RemoveWorkItemsMovedOut(_changedSince, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.Should().Be(0);
@@ -886,20 +913,92 @@ public class AzureDevOpsWorkItemSourceTests
     }
 
     [Fact]
+    public async Task RemoveWorkItemsMovedOut_WhenWaydHoldsNothing_CallsNoAzureDevOps()
+    {
+        // Arrange
+        await PlanThreeProjects();
+        StubHeldWorkItems();
+
+        // Act
+        var result = await _sut.RemoveWorkItemsMovedOut(null, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value.Should().Be(0);
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Verify(s => s.GetIdsOfWorkItemsOutsideProjects(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<int[]>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RemoveWorkItemsMovedOut_WithNoSetUpProjects_ReturnsZero()
+    {
+        // Arrange
+        var descriptor = BuildDescriptor();
+        _sut.Bind(descriptor);
+        var processId = Guid.CreateVersion7();
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildConnectionDetails(descriptor.ConnectionId, [Process(externalId: processId)], [Workspace(processId, isActive: false)]));
+        await _sut.GetSyncPlan(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _sut.RemoveWorkItemsMovedOut(null, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value.Should().Be(0);
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.IsAny<GetExternalWorkItemIdsQuery>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task RemoveWorkItemsMovedOut_WhenAzureDevOpsFails_ReturnsTheFailure()
     {
         // Arrange
         await PlanThreeProjects();
+        StubHeldWorkItems(1);
         _mocker.GetMock<IAzureDevOpsService>()
             .Setup(s => s.GetIdsOfWorkItemsChangedOutsideProjects(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string[]>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Failure<int[]>("AzDO returned 500"));
 
         // Act
-        var result = await _sut.RemoveWorkItemsMovedOut(Instant.FromUtc(2026, 10, 31, 9, 0), Guid.CreateVersion7(), CancellationToken.None);
+        var result = await _sut.RemoveWorkItemsMovedOut(_changedSince, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("AzDO returned 500");
+    }
+
+    [Fact]
+    public async Task RemoveWorkItemsMovedOut_WhenTheHeldItemsCannotBeRead_ReturnsTheFailure()
+    {
+        // Arrange
+        await PlanThreeProjects();
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetExternalWorkItemIdsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Failure<int[]>("database unavailable"));
+
+        // Act
+        var result = await _sut.RemoveWorkItemsMovedOut(_changedSince, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("database unavailable");
+    }
+
+    [Fact]
+    public async Task RemoveWorkItemsMovedOut_WhenTheDeleteFails_ReturnsTheFailure()
+    {
+        // Arrange
+        await PlanThreeProjects();
+        StubHeldWorkItems(7);
+        StubChangedOutside(7);
+        StubDelete(Result.Failure<int>("delete failed"));
+
+        // Act
+        var result = await _sut.RemoveWorkItemsMovedOut(_changedSince, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("delete failed");
     }
 
     [Fact]
@@ -909,11 +1008,24 @@ public class AzureDevOpsWorkItemSourceTests
         _sut.Bind(BuildDescriptor());
 
         // Act
-        var result = await _sut.RemoveWorkItemsMovedOut(null, Guid.CreateVersion7(), CancellationToken.None);
+        var result = await _sut.RemoveWorkItemsMovedOut(null, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
     }
+
+    private static ConnectionListDto ConnectionListItem(Guid id, string systemId) =>
+        new()
+        {
+            Id = id,
+            Name = "Other Connection",
+            SystemId = systemId,
+            Connector = new SimpleNavigationDto { Id = (int)Connector.AzureDevOps, Name = "Azure DevOps" },
+            Capabilities = [ConnectorCapabilityDto.FromEnum(ConnectorCapability.WorkItems)],
+            IsActive = true,
+            IsValidConfiguration = true,
+            CanSync = true,
+        };
 
     // -------- GetWorkItemHistory --------
 

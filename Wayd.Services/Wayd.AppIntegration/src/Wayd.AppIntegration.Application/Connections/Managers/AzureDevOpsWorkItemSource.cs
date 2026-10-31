@@ -2,6 +2,7 @@
 using Ardalis.GuardClauses;
 using NodaTime;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
+using Wayd.AppIntegration.Application.Connections.Queries;
 using Wayd.AppIntegration.Application.Connections.Queries.AzureDevOps;
 using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.AppIntegration.Application.Logging;
@@ -322,15 +323,14 @@ public sealed class AzureDevOpsWorkItemSource(
     }
 
     /// <summary>
-    /// Removes the items Wayd holds in a set-up project that are now in a project this connection
-    /// does not set up. An item moved between two set-up projects is not touched: the new project's
-    /// sync moves it to its workspace.
+    /// Removes the items Wayd holds in a set-up project that are now in a project no connection to
+    /// the organization sets up. An item moved between two set-up projects is not touched: the new
+    /// project's sync moves it to its workspace, and that sync may belong to another connection.
     /// </summary>
     /// <remarks>
     /// With a window, one organization-wide query returns the items changed since then outside the
-    /// set-up projects; most are items Wayd never held, which the delete skips. Without one, each
-    /// item Wayd holds is looked up: an unbounded window would return every item of every project
-    /// the connection does not sync.
+    /// set-up projects, cut to those Wayd holds. Without one, each item Wayd holds is looked up: an
+    /// unbounded window would return every item of every project nobody syncs.
     /// </remarks>
     public async Task<Result<int>> RemoveWorkItemsMovedOut(Instant? changedSince, Guid syncId, CancellationToken cancellationToken)
     {
@@ -342,31 +342,70 @@ public sealed class AzureDevOpsWorkItemSource(
             return 0;
 
         var workspaceIds = _setUpProjects.Select(p => p.InternalWorkspaceId).ToArray();
-        string[] projectNames = [.. _setUpProjects.Select(p => p.Name).Distinct(StringComparer.OrdinalIgnoreCase)];
+        var heldResult = await _dispatcher.Send(new GetExternalWorkItemIdsQuery(workspaceIds), cancellationToken);
+        if (heldResult.IsFailure)
+            return heldResult.ConvertFailure<int>();
+        if (heldResult.Value.Length == 0)
+            return 0;
 
-        Result<int[]> movedOutResult;
+        var projectNamesResult = await GetProjectNamesSetUpInOrganization(cancellationToken);
+        if (projectNamesResult.IsFailure)
+            return projectNamesResult.ConvertFailure<int>();
+        var projectNames = projectNamesResult.Value;
+
+        int[] movedOut;
         if (changedSince.HasValue)
         {
-            movedOutResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetWorkItemsChangedOutsideProjects",
+            var changedResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetWorkItemsChangedOutsideProjects",
                 () => _azureDevOpsService.GetIdsOfWorkItemsChangedOutsideProjects(ctx.Connection, projectNames, changedSince.Value.ToDateTimeUtc(), cancellationToken), syncId);
+            if (changedResult.IsFailure)
+                return changedResult.ConvertFailure<int>();
+
+            movedOut = [.. changedResult.Value.Intersect(heldResult.Value)];
         }
         else
         {
-            var heldResult = await _dispatcher.Send(new GetExternalWorkItemIdsQuery(workspaceIds), cancellationToken);
-            if (heldResult.IsFailure)
-                return heldResult.ConvertFailure<int>();
-
-            movedOutResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetWorkItemsOutsideProjects",
+            var outsideResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetWorkItemsOutsideProjects",
                 () => _azureDevOpsService.GetIdsOfWorkItemsOutsideProjects(ctx.Connection, heldResult.Value, projectNames, cancellationToken), syncId);
+            if (outsideResult.IsFailure)
+                return outsideResult.ConvertFailure<int>();
+
+            movedOut = outsideResult.Value;
         }
 
-        if (movedOutResult.IsFailure)
-            return movedOutResult.ConvertFailure<int>();
-
-        if (movedOutResult.Value.Length == 0)
+        if (movedOut.Length == 0)
             return 0;
 
-        return await _dispatcher.Send(new DeleteExternalWorkItemsCommand(workspaceIds, movedOutResult.Value), cancellationToken);
+        return await _dispatcher.Send(new DeleteExternalWorkItemsCommand(workspaceIds, movedOut), cancellationToken);
+    }
+
+    /// <summary>
+    /// The names of the projects set up by this connection and by every other Azure DevOps
+    /// connection to the same organization, paused or inactive included. Another connection's
+    /// project counts as synced: its own sync moves an item that arrives there.
+    /// </summary>
+    private async Task<Result<string[]>> GetProjectNamesSetUpInOrganization(CancellationToken cancellationToken)
+    {
+        var descriptor = RequireDescriptor();
+        var names = new HashSet<string>(_setUpProjects!.Select(p => p.Name), StringComparer.OrdinalIgnoreCase);
+
+        var connections = await _dispatcher.Send(new GetConnectionsQuery(IncludeInactive: true, Type: Connector.AzureDevOps), cancellationToken);
+        var siblingIds = (connections ?? [])
+            .Where(c => c.Id != descriptor.ConnectionId
+                && !string.IsNullOrEmpty(c.SystemId)
+                && string.Equals(c.SystemId, descriptor.SystemId, StringComparison.OrdinalIgnoreCase))
+            .Select(c => c.Id);
+
+        foreach (var siblingId in siblingIds)
+        {
+            var sibling = await _dispatcher.Send(new GetAzureDevOpsConnectionQuery(siblingId), cancellationToken);
+            if (sibling is null)
+                return Result.Failure<string[]>($"Unable to load Azure DevOps connection {siblingId}, which syncs the same organization.");
+
+            names.UnionWith(sibling.Configuration.Workspaces.Where(w => w.IntegrationState is not null).Select(w => w.Name));
+        }
+
+        return names.ToArray();
     }
 
     /// <summary>

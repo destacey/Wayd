@@ -3,6 +3,7 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkItems.Queries;
 
+/// <summary>Lists the external ids of the work items in the requested workspaces; items Wayd created have none.</summary>
 public sealed class GetExternalWorkItemIdsQueryHandler(IWorkDbContext workDbContext) : IQueryHandler<GetExternalWorkItemIdsQuery, Result<int[]>>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;

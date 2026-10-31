@@ -215,6 +215,20 @@ public class WorkItemServiceTests
     }
 
     [Fact]
+    public async Task GetIdsOfWorkItemsOutsideProjects_SkipsTheNullEntriesOfOmittedItems()
+    {
+        // Arrange - under errorPolicy=omit an item Azure DevOps cannot return arrives as null
+        _handler.EnqueueResponse(HttpStatusCode.OK, """{"count":2,"value":[null,{"id":2,"fields":{"System.TeamProject":"Elsewhere"}}]}""");
+
+        // Act
+        var result = await _sut.GetIdsOfWorkItemsOutsideProjects([1, 2], ["Atlas"], TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Should().Equal(2);
+    }
+
+    [Fact]
     public async Task GetIdsOfWorkItemsOutsideProjects_Reads200ItemsPerCall()
     {
         // Arrange

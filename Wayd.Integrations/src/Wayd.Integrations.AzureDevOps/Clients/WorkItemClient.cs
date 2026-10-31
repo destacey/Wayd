@@ -9,6 +9,9 @@ namespace Wayd.Integrations.AzureDevOps.Clients;
 
 internal sealed class WorkItemClient : BaseClient
 {
+    // The most ids the workitemsbatch API takes in one call.
+    private const int MaxWorkItemsPerBatch = 200;
+
     internal WorkItemClient(HttpClient httpClient, string organizationUrl, string token, string apiVersion)
         : base(httpClient, organizationUrl, token, apiVersion)
     { }
@@ -46,20 +49,23 @@ internal sealed class WorkItemClient : BaseClient
         string[] fields = ["System.Id", "System.TeamProject"];
 
         var projects = new Dictionary<int, string>(workItemIds.Length);
-        foreach (var batch in workItemIds.Distinct().Batch(200))
+        foreach (var batch in workItemIds.Distinct().Batch(MaxWorkItemsPerBatch))
         {
             // The organization-level route: the items are looked up wherever they are now.
             var request = new RestRequest("/_apis/wit/workitemsbatch", Method.Post);
             SetupRequest(request);
             request.AddJsonBody(WorkItemsBatchRequest.Create(batch, fields));
 
-            var response = await ExecuteAsync<ListResponse<WorkItemProjectResponse>>(request, cancellationToken).ConfigureAwait(false);
+            var response = await ExecuteAsync<ListResponse<WorkItemProjectResponse?>>(request, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessful)
                 throw new Exception($"Error getting the projects of work items from Azure DevOps: {response.GetErrorText()}");
+            if (response.Data is null)
+                throw new Exception("Successful response, but no work item data returned when getting the projects of work items from Azure DevOps");
 
-            foreach (var workItem in response.Data?.Value ?? [])
+            // Under errorPolicy=omit an id Azure DevOps cannot return arrives as a null entry.
+            foreach (var workItem in response.Data.Value)
             {
-                if (!string.IsNullOrEmpty(workItem.Fields?.TeamProject))
+                if (workItem is not null && !string.IsNullOrEmpty(workItem.Fields?.TeamProject))
                     projects[workItem.Id] = workItem.Fields.TeamProject;
             }
         }
@@ -124,10 +130,8 @@ internal sealed class WorkItemClient : BaseClient
         var request = new RestRequest($"/{projectName}/_apis/wit/workitemsbatch", Method.Post);
         SetupRequest(request);
 
-        int maxResults = 200;
-
         var workItems = new List<WorkItemResponse>();
-        var batches = workItemIds.Distinct().Batch(maxResults);
+        var batches = workItemIds.Distinct().Batch(MaxWorkItemsPerBatch);
         foreach (var batch in batches)
         {
             request.AddJsonBody(WorkItemsBatchRequest.Create(batch, fields));
@@ -306,7 +310,7 @@ internal sealed class WorkItemClient : BaseClient
         }
         return new()
         {
-            Query = $"SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '{EscapeWiqlLiteral(project)}' AND [System.Id] > {startingId} AND [System.ChangedDate] > '{dateTime:yyyy-MM-ddTHH:mm:ssZ}' {workItemTypesFilter} ORDER BY [System.Id] Asc"
+            Query = $"SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '{EscapeWiqlLiteral(project)}' AND [System.Id] > {startingId} AND [System.ChangedDate] > '{FormatWiqlDate(dateTime)}' {workItemTypesFilter} ORDER BY [System.Id] Asc"
         };
     }
 
@@ -315,9 +319,13 @@ internal sealed class WorkItemClient : BaseClient
         var projects = string.Join(",", projectNames.Select(p => $"'{EscapeWiqlLiteral(p)}'"));
         return new()
         {
-            Query = $"SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] NOT IN ({projects}) AND [System.Id] > {startingId} AND [System.ChangedDate] > '{changedSince:yyyy-MM-ddTHH:mm:ssZ}' ORDER BY [System.Id] Asc"
+            Query = $"SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] NOT IN ({projects}) AND [System.Id] > {startingId} AND [System.ChangedDate] > '{FormatWiqlDate(changedSince)}' ORDER BY [System.Id] Asc"
         };
     }
+
+    // Invariant: an unquoted ':' in a format string becomes the current culture's time separator.
+    private static string FormatWiqlDate(DateTime value) =>
+        value.ToString("yyyy-MM-dd'T'HH':'mm':'ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
 
     // WIQL string literals escape embedded single quotes by doubling them.
     private static string EscapeWiqlLiteral(string value) => value.Replace("'", "''");

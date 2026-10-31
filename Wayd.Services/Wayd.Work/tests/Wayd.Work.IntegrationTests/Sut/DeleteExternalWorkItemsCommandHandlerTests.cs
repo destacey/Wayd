@@ -30,9 +30,10 @@ public sealed class DeleteExternalWorkItemsCommandHandlerTests(SqlServerDbContex
         await WorkItemHistorySeeder.SeedWorkItem(_fixture, currentWorkspaceId, 803, ct);
 
         // Act
-        await Delete([currentWorkspaceId, leftWorkspaceId], [801, 802], ct);
+        var deleted = await Delete([currentWorkspaceId, leftWorkspaceId], [801, 802], ct);
 
         // Assert
+        deleted.Should().Be(2);
         await using var verify = new WaydDbContextAccessor(_fixture);
         var remaining = await verify.Context.WorkItems.AsNoTracking().Select(w => w.ExternalId).ToListAsync(ct);
         remaining.Should().Equal(803);
@@ -41,7 +42,7 @@ public sealed class DeleteExternalWorkItemsCommandHandlerTests(SqlServerDbContex
     [Fact]
     public async Task Handle_LeavesItemsInWorkspacesItWasNotGiven()
     {
-        // Arrange — another connection's workspace holds the same external id
+        // Arrange — a workspace the request does not name holds the external id
         var ct = TestContext.Current.CancellationToken;
         await _fixture.ResetWorkData(ct);
         var syncedWorkspaceId = await WorkItemHistorySeeder.SeedWorkspace(_fixture, SystemId, "DELMINE", ct);
@@ -49,9 +50,10 @@ public sealed class DeleteExternalWorkItemsCommandHandlerTests(SqlServerDbContex
         await WorkItemHistorySeeder.SeedWorkItem(_fixture, otherWorkspaceId, 801, ct);
 
         // Act
-        await Delete([syncedWorkspaceId], [801], ct);
+        var deleted = await Delete([syncedWorkspaceId], [801], ct);
 
         // Assert
+        deleted.Should().Be(0);
         await using var verify = new WaydDbContextAccessor(_fixture);
         (await verify.Context.WorkItems.AsNoTracking().SingleAsync(ct)).WorkspaceId.Should().Be(otherWorkspaceId);
     }
@@ -67,14 +69,66 @@ public sealed class DeleteExternalWorkItemsCommandHandlerTests(SqlServerDbContex
         await WorkItemHistorySeeder.SeedWorkItem(_fixture, workspaceId, 2_400, ct);
 
         // Act
-        await Delete([workspaceId], [.. Enumerable.Range(1, 2_500)], ct);
+        var deleted = await Delete([workspaceId], [.. Enumerable.Range(1, 2_500)], ct);
 
         // Assert
+        deleted.Should().Be(2);
         await using var verify = new WaydDbContextAccessor(_fixture);
         (await verify.Context.WorkItems.AnyAsync(ct)).Should().BeFalse();
     }
 
-    private async Task Delete(Guid[] workspaceIds, int[] workItemIds, CancellationToken ct)
+    [Fact]
+    public async Task Handle_RemovesTheLinksOfADeletedItemAndKeepsTheItemItLinkedTo()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var workspaceId = await WorkItemHistorySeeder.SeedWorkspace(_fixture, SystemId, "DELLINK", ct);
+        var deletedId = await WorkItemHistorySeeder.SeedWorkItem(_fixture, workspaceId, 801, ct);
+        var keptId = await WorkItemHistorySeeder.SeedWorkItem(_fixture, workspaceId, 802, ct);
+        await SeedDependency(deletedId, keptId, ct);
+        await SeedDependency(keptId, deletedId, ct);
+
+        // Act
+        var deleted = await Delete([workspaceId], [801], ct);
+
+        // Assert
+        deleted.Should().Be(1);
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        (await verify.Context.WorkItems.AsNoTracking().SingleAsync(ct)).Id.Should().Be(keptId);
+        (await verify.Context.WorkItemDependencies.AnyAsync(ct)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_WhenNoNamedWorkspaceExists_Fails()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        await using var accessor = new WaydDbContextAccessor(_fixture);
+        var handler = new DeleteExternalWorkItemsCommandHandler(accessor.Context, NullLogger<DeleteExternalWorkItemsCommandHandler>.Instance);
+
+        // Act
+        var result = await handler.Handle(new DeleteExternalWorkItemsCommand([Guid.NewGuid()], [801]), ct);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+    }
+
+    private async Task SeedDependency(Guid sourceId, Guid targetId, CancellationToken ct)
+    {
+        await using var context = _fixture.CreateContext();
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            INSERT INTO [Work].[WorkItemLinks]
+                ([Id], [LinkType], [SourceId], [TargetId], [CreatedOn], [SystemCreated], [SystemLastModified])
+            VALUES ({Guid.CreateVersion7()}, 'Dependency', {sourceId}, {targetId}, SYSUTCDATETIME(), SYSUTCDATETIME(), SYSUTCDATETIME());
+            """,
+            ct);
+    }
+
+    /// <returns>How many items the handler reports it deleted.</returns>
+    private async Task<int> Delete(Guid[] workspaceIds, int[] workItemIds, CancellationToken ct)
     {
         await using var accessor = new WaydDbContextAccessor(_fixture);
         var handler = new DeleteExternalWorkItemsCommandHandler(accessor.Context, NullLogger<DeleteExternalWorkItemsCommandHandler>.Instance);
@@ -82,5 +136,6 @@ public sealed class DeleteExternalWorkItemsCommandHandlerTests(SqlServerDbContex
         var result = await handler.Handle(new DeleteExternalWorkItemsCommand(workspaceIds, workItemIds), ct);
 
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        return result.Value;
     }
 }

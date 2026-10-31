@@ -30,6 +30,7 @@ public sealed class GetExternalWorkItemIdsQueryHandlerTests : IDisposable
             new WorkItemFaker().WithWorkspaceId(first).WithExternalId(11).Generate(),
             new WorkItemFaker().WithWorkspaceId(second).WithExternalId(12).Generate(),
             new WorkItemFaker().WithWorkspaceId(Guid.NewGuid()).WithExternalId(13).Generate(),
+            NativeWorkItem(first),
         ]);
 
         // Act
@@ -40,16 +41,11 @@ public sealed class GetExternalWorkItemIdsQueryHandlerTests : IDisposable
         result.Value.Should().BeEquivalentTo([11, 12]);
     }
 
-    [Fact]
-    public async Task Handle_WithNoWorkspaces_ReturnsNothing()
+    /// <summary>A work item created in Wayd, which has no external id.</summary>
+    private static Domain.Models.WorkItem NativeWorkItem(Guid workspaceId)
     {
-        // Arrange
-        _dbContext.AddWorkItem(new WorkItemFaker().WithExternalId(11).Generate());
-
-        // Act
-        var result = await _handler.Handle(new GetExternalWorkItemIdsQuery([]), TestContext.Current.CancellationToken);
-
-        // Assert
-        result.Value.Should().BeEmpty();
+        var faker = new WorkItemFaker().WithWorkspaceId(workspaceId);
+        faker.RuleFor(x => x.ExternalId, _ => (int?)null);
+        return faker.Generate();
     }
 }

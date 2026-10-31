@@ -433,14 +433,26 @@ public sealed class WorkSyncRunner(
         if (syncType != SyncType.Full)
         {
             var lastCheckedAt = await _db.SyncRuns
-                .Where(r => r.ConnectionId == connectionId && r.Id != run.Id && r.MovedOutWorkItemsRemoved != null)
+                .Where(r => r.ConnectionId == connectionId && r.MovedOutWorkItemsRemoved != null)
                 .OrderByDescending(r => r.StartedAt)
                 .Select(r => (Instant?)r.StartedAt)
                 .FirstOrDefaultAsync(cancellationToken);
             changedSince = lastCheckedAt?.Minus(MovedOutCheckOverlap);
         }
 
-        var result = await source.RemoveWorkItemsMovedOut(changedSince, syncId, cancellationToken);
+        Result<int> result;
+        try
+        {
+            result = await source.RemoveWorkItemsMovedOut(changedSince, syncId, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // The items are synced by now; a failed cleanup must not fail the run or skip the steps after it.
+            _logger.LogError(ex, "Exception thrown removing work items moved out of the synced workspaces for connection {ConnectionId}.", connectionId);
+            run.RecordError();
+            return;
+        }
+
         if (result.IsFailure)
         {
             _logger.LogError("Removing work items moved out of the synced workspaces failed for connection {ConnectionId}: {Error}", connectionId, result.Error);

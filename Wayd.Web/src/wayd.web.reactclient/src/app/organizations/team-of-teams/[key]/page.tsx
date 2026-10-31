@@ -46,6 +46,9 @@ import { ItemType } from 'antd/es/menu/interface'
 import DeactivateTeamOfTeamsForm from '@/src/app/organizations/_components/deactivate-team-of-teams-form'
 import TeamOfTeamsOperatingModelsGrid from './_components/team-of-teams-operating-models-grid'
 import SetTeamOfTeamsOperatingModelForm from './_components/set-team-of-teams-operating-model-form'
+import TeamProducts from '@/src/app/product-management/products/_components/team-products'
+import ManageTeamProductsButton from '@/src/app/product-management/products/_components/manage-team-products-button'
+import useCanViewTeamProducts from '@/src/app/product-management/products/_components/use-can-view-team-products'
 
 const WorkDistributionReport = dynamic(
   () =>
@@ -63,6 +66,7 @@ const CapacityReport = dynamic(
 enum TeamOfTeamsTabs {
   Overview = 'overview',
   RiskManagement = 'risk-management',
+  Products = 'products',
   TeamMemberships = 'team-memberships',
   Members = 'members',
   Capacity = 'capacity',
@@ -106,6 +110,7 @@ const TeamOfTeamsDetailsPage = (props: {
 
   const { hasClaim } = useAuth()
   const canUpdateTeam = hasClaim('Permission', 'Permissions.Teams.Update')
+  const canViewProducts = useCanViewTeamProducts()
   const canManageTeamMemberships = hasClaim(
     'Permission',
     'Permissions.Teams.ManageTeamMemberships',
@@ -229,6 +234,8 @@ const TeamOfTeamsDetailsPage = (props: {
         return (
           <TeamOfTeamsOverview team={team!} onNavigateToSection={goToSection} />
         )
+      case TeamOfTeamsTabs.Products:
+        return canViewProducts ? <TeamProducts teamId={team!.id} /> : null
       case TeamOfTeamsTabs.RiskManagement:
         return createElement(RisksGrid, {
           risks: risksQuery.data ?? [],
@@ -294,6 +301,9 @@ const TeamOfTeamsDetailsPage = (props: {
 
   const sections: RecordSection[] = [
     { id: TeamOfTeamsTabs.Overview, label: 'Overview' },
+    ...(canViewProducts
+      ? [{ id: TeamOfTeamsTabs.Products, label: 'Products' }]
+      : []),
     { id: TeamOfTeamsTabs.RiskManagement, label: 'Risks' },
     { id: TeamOfTeamsTabs.Members, label: 'Members' },
     ...(capacityEnabled
@@ -379,6 +389,8 @@ const TeamOfTeamsDetailsPage = (props: {
         sectionActions={
           activeTab === TeamOfTeamsTabs.Activities ? (
             <ActivityLogExportButton activityLog={activityLog} />
+          ) : activeTab === TeamOfTeamsTabs.Products && canViewProducts ? (
+            <ManageTeamProductsButton teamId={team!.id} teamName={team.name} />
           ) : undefined
         }
       >

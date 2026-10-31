@@ -160,7 +160,7 @@ Columns are TanStack `ColumnDef`s. The most common shape:
 | `filterType` | Filter/data type: `'text' \| 'number' \| 'date' \| 'dateTime' \| 'set'` (aliases `'select'`→`set`, `'numericRange'`→`number`). Defaults to `'text'` |
 | `filterOptions` | `{ label, value }[]` for a `set` filter (stable order + labels) |
 | `filterEnableSet` | On a text column, also offer the Excel-style checkbox set filter alongside the text filter |
-| `multiValueSplit` | Marks a column whose accessor joins several values; the set filter lists the individual values. `createCsvColumn` sets it (see [Multi-value columns](#multi-value-columns)) |
+| `multiValues` | `(row) => string[]` for a column whose row holds several values; the set filter lists the individual values read from each row, so a value containing a comma stays whole. `createCsvColumn` sets it (see [Multi-value columns](#multi-value-columns)) |
 | `filterPlaceholder` | Placeholder for text and number filter inputs |
 | `align` | `'left' \| 'right'` — override numeric right-alignment of body cells |
 | `headerTooltip` | Tooltip on the header label (keep `header` a plain string) |

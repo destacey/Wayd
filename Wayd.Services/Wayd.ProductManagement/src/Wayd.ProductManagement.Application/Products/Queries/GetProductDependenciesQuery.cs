@@ -33,8 +33,6 @@ public sealed class GetProductDependenciesQueryHandler(IProductManagementDbConte
 {
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
 
-    private sealed record CatalogNode(Guid Id, int Key, string Name, Guid? ParentId);
-
     /// <summary>
     /// A link as the database holds it, styles still as stored flags — the split into a collection happens
     /// in <see cref="Rows"/>, which runs in memory.
@@ -55,13 +53,8 @@ public sealed class GetProductDependenciesQueryHandler(IProductManagementDbConte
             return null;
         }
 
-        // The catalog is curated reference data — tens of rows, not thousands — so the subtree is resolved by
-        // walking it here. A recursive CTE would be the alternative, and LINQ does not express one.
-        var catalog = await _productManagementDbContext.Products
-            .Select(p => new CatalogNode(p.Id, p.Key, p.Name, p.ParentId))
-            .ToDictionaryAsync(p => p.Id, cancellationToken);
-
-        var subtree = Subtree(productId.Value, catalog.Values);
+        var catalog = await ProductCatalog.Load(_productManagementDbContext, cancellationToken);
+        var subtree = catalog.Subtree(productId.Value);
 
         var links = _productManagementDbContext.ProductDependencies.AsQueryable();
         if (!query.IncludeEnded)
@@ -94,72 +87,23 @@ public sealed class GetProductDependenciesQueryHandler(IProductManagementDbConte
     /// </summary>
     private static List<ProductDependencyDto> Rows(
         IEnumerable<Link> links,
-        Dictionary<Guid, CatalogNode> catalog,
+        ProductCatalog catalog,
         Func<Link, Guid> farEnd) =>
         [.. links
             .OrderBy(l => l.EndsOn is not null)
-            .ThenBy(l => catalog[farEnd(l)].Name, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(l => catalog.Name(farEnd(l)), StringComparer.OrdinalIgnoreCase)
             .ThenByDescending(l => l.StartsOn)
             .Select(l => new ProductDependencyDto
             {
                 Id = l.Id,
-                Product = Navigation(catalog[l.ProductId]),
-                DependsOnProduct = Navigation(catalog[l.DependsOnProductId]),
+                Product = catalog.Navigation(l.ProductId),
+                DependsOnProduct = catalog.Navigation(l.DependsOnProductId),
                 Strength = l.Strength,
                 InteractionStyles = l.InteractionStyle.ToFlags(),
                 Description = l.Description,
                 StartsOn = l.StartsOn,
                 EndsOn = l.EndsOn,
-                ProductPath = Ancestry(l.ProductId, catalog),
-                DependsOnProductPath = Ancestry(l.DependsOnProductId, catalog),
+                ProductPath = catalog.Ancestry(l.ProductId),
+                DependsOnProductPath = catalog.Ancestry(l.DependsOnProductId),
             })];
-
-    private static NavigationDto Navigation(CatalogNode node) => NavigationDto.Create(node.Id, node.Key, node.Name);
-
-    /// <summary>Everything a product sits inside, from its root down to its parent.</summary>
-    /// <remarks>
-    /// Walks up, because a node knows its parent rather than its children, then reverses. Stops on a node
-    /// already seen, so a catalog that already contains a cycle cannot loop forever.
-    /// </remarks>
-    private static IReadOnlyList<NavigationDto> Ancestry(Guid productId, Dictionary<Guid, CatalogNode> catalog)
-    {
-        var ancestry = new List<NavigationDto>();
-        var seen = new HashSet<Guid> { productId };
-        var parentId = catalog[productId].ParentId;
-
-        while (parentId is not null && seen.Add(parentId.Value))
-        {
-            ancestry.Add(Navigation(catalog[parentId.Value]));
-            parentId = catalog[parentId.Value].ParentId;
-        }
-
-        ancestry.Reverse();
-
-        return ancestry;
-    }
-
-    /// <summary>A node and everything beneath it.</summary>
-    /// <remarks>
-    /// Tracks what it has seen so data that already contains a cycle cannot loop forever. The domain
-    /// refuses to create one, so this guards against a catalog that is already wrong.
-    /// </remarks>
-    private static HashSet<Guid> Subtree(Guid root, IEnumerable<CatalogNode> catalog)
-    {
-        var childrenByParent = catalog
-            .Where(p => p.ParentId is not null)
-            .ToLookup(p => p.ParentId!.Value, p => p.Id);
-
-        var subtree = new HashSet<Guid> { root };
-        var pending = new Queue<Guid>([root]);
-
-        while (pending.TryDequeue(out var id))
-        {
-            foreach (var child in childrenByParent[id].Where(subtree.Add))
-            {
-                pending.Enqueue(child);
-            }
-        }
-
-        return subtree;
-    }
 }

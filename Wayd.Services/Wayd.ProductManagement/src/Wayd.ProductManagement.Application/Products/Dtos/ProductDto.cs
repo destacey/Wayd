@@ -52,6 +52,15 @@ public sealed record ProductDto
     public IReadOnlyCollection<ProductTagDto> Tags { get; init; } = [];
 
     /// <summary>
+    /// The teams and teams of teams linked to this product, by name.
+    /// </summary>
+    /// <remarks>
+    /// Only the product's own links; a team linked to a product beneath it is not listed here. The product's
+    /// teams endpoint rolls those up.
+    /// </remarks>
+    public IReadOnlyCollection<ProductTeamNavigationDto> Teams { get; init; } = [];
+
+    /// <summary>
     /// Maps a product and its tag assignments, for <c>ProjectToType</c>.
     /// </summary>
     /// <remarks>
@@ -80,7 +89,16 @@ public sealed record ProductDto
                 .Select(c => c.Name)
                 .FirstOrDefault());
 
+        config.NewConfig<ProductTeamLink, ProductTeamNavigationDto>()
+            .Map(dto => dto.Id, l => l.TeamId)
+            .Map(dto => dto.Key, l => l.Team!.Key)
+            .Map(dto => dto.Name, l => l.Team!.Name)
+            .Map(dto => dto.Code, l => l.Team!.Code.Value)
+            .Map(dto => dto.Type, l => l.Team!.Type)
+            .Map(dto => dto.IsActive, l => l.Team!.IsActive);
+
         config.NewConfig<Product, ProductDto>()
+            .Map(dto => dto.Teams, p => p.TeamLinks.OrderBy(l => l.Team!.Name).ThenBy(l => l.TeamId))
             .Map(dto => dto.Type, p => NavigationDto.Create(p.ProductType!.Id, p.ProductType.Key, p.ProductType.Name))
             .Map(dto => dto.IsReleasable, p => p.ProductType!.IsReleasable)
             .Map(dto => dto.Status, p => new StatusNavigationDto

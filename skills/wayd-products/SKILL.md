@@ -1,6 +1,6 @@
 ---
 name: wayd-products
-description: Read before calling the Wayd MCP tools named Products_*, ProductTypes_*, ProductTagCategories_*, ProductTags_*, DeploymentEnvironments_*, DeliveryMetrics_* or DeliveryOverview_*. Guides agents working with the Wayd product catalog via the Wayd MCP server — the typed tree of products, platforms, services and tools an organization owns, plus product dependencies, product types, tags, deployment environments, what is running where, and delivery measures. Use when looking up or creating products, moving one to a different parent, changing a product's type or status, tagging products, deleting one, recording or reading what a product depends on (or what would be hit if it went down), defining or retiring deployment environments, asking what is running in an environment, reading delivery measures or recent shipping activity, or managing the product types and tag axes themselves. For releases, versions, packages and deployments, use the wayd-delivery skill instead.
+description: Read before calling the Wayd MCP tools named Products_*, ProductTypes_*, ProductTagCategories_*, ProductTags_*, DeploymentEnvironments_*, DeliveryMetrics_* or DeliveryOverview_*. Guides agents working with the Wayd product catalog via the Wayd MCP server — the typed tree of products, platforms, services and tools an organization owns, plus product dependencies, the teams linked to each product, product types, tags, deployment environments, what is running where, and delivery measures. Use when looking up or creating products, moving one to a different parent, changing a product's type or status, tagging products, deleting one, recording or reading what a product depends on (or what would be hit if it went down), linking teams to a product or reading which teams work on it (or what a team works on), defining or retiring deployment environments, asking what is running in an environment, reading delivery measures or recent shipping activity, or managing the product types and tag axes themselves. For releases, versions, packages and deployments, use the wayd-delivery skill instead.
 ---
 
 # Wayd Products (Catalog / Dependencies / Types / Tags / Environments / Metrics)
@@ -19,6 +19,7 @@ When the user approves, do exactly what they approved. An option you offered tha
 | --- | --- | --- |
 | Products | `Products_GetProducts`, `Products_GetProduct`, `Products_GetStatusOptions`, `Products_GetStatusHistory`, `Products_GetActivities` | `Products_Create`, `Products_Update` (name and description only), `Products_Retype`, `Products_Reparent`, `Products_ChangeStatus`, `Products_LinkExternally` (external identifier), `Products_Tag`, `Products_TagByName`, `Products_Untag`, `Products_Delete` |
 | Dependencies | `Products_GetDependencies` | `Products_AddDependency`, `Products_UpdateDependency`, `Products_ChangeDependencyTerms`, `Products_EndDependency`, `Products_RemoveDependency` |
+| Teams | `Products_GetTeams`, `Products_GetTeamProducts` | `Products_LinkTeam`, `Products_UnlinkTeam`, `Products_SetTeams`, `Products_SetTeamProducts` |
 | Product types | `ProductTypes_GetProductTypes` | `ProductTypes_Create`, `ProductTypes_Update`, `ProductTypes_SetActive`, `ProductTypes_Delete` |
 | Tag axes and tags | `ProductTagCategories_GetProductTagCategories` | `ProductTagCategories_Create`, `ProductTagCategories_Update`, `ProductTagCategories_SetActive`, `ProductTagCategories_Delete`, `ProductTagCategories_Reorder`, `ProductTagCategories_AddTag`, `ProductTagCategories_RenameTag`, `ProductTagCategories_SetTagActive`, `ProductTagCategories_DeleteTag` |
 | Free tags | `ProductTags_Search`, `ProductTags_GetSettings` (whether free tags are on) | `ProductTags_UpdateFreeTag`, `ProductTags_Merge`, `ProductTags_DeleteFreeTag` |
@@ -33,6 +34,7 @@ Read the matching file before working in these areas. The rules on this page sti
 | --- | --- |
 | [reference/deleting-a-product.md](reference/deleting-a-product.md) | Deleting a product, purging its history, or answering why one cannot be deleted |
 | [reference/dependencies.md](reference/dependencies.md) | Reading, recording, changing, ending or removing product dependencies, or answering what would be hit if a product went down |
+| [reference/teams.md](reference/teams.md) | Linking or unlinking teams on a product, or answering which teams work on a product or what a team works on |
 | [reference/configuration.md](reference/configuration.md) | Creating, changing, deactivating or deleting product types, tag axes or tags |
 | [reference/environments-metrics.md](reference/environments-metrics.md) | Defining, changing or retiring deployment environments, asking what is running where, or reading delivery measures and recent shipping activity |
 

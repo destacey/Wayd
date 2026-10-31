@@ -44,6 +44,7 @@ graph LR
 - **[Objectives](../planning/planning-intervals.mdx#objectives)** — Teams commit to objectives within each PI, tracked for [predictability](../planning/planning-intervals.mdx#predictability).
 - **[Risks](../planning/risks.mdx)** — Teams identify and manage risks that could impact delivery using the [ROAM model](../planning/risks.mdx).
 - **[Work Items](../work-management/work-items.mdx#work-items)** — Work items in [workspaces](../work-management/work-items.mdx#workspaces) are assigned to teams and team members.
+- **[Products](../product-management/products.mdx#teams)** — Teams and teams of teams are linked to the products they work on.
 
 ## Key Concepts
 
@@ -358,6 +359,16 @@ Dependencies are color-coded by health:
 A planned date that has already passed counts as unplanned.
 
 See [Work Item Dependencies](../work-management/work-items.mdx#work-item-dependencies) for details on how dependency health is calculated.
+
+### Products
+
+The **Products** section lists the products the team is linked to, with where each sits in the catalog (**Within**). A Team of Teams has the same section, for the products linked to the team of teams itself — it does not repeat the products of the teams beneath it.
+
+The section is shown when [Product Management](../product-management/index.mdx) is enabled and you have `Permissions.Products.View`.
+
+With `Permissions.Products.Update`, **Manage Products** sets the team's products in one go. It shows the product catalog as a tree with the team's current products checked: check the products the team works on, uncheck the ones it no longer does, and **Save**. A parent and its children are checked separately, since a link is on one product — check the most specific products, as each product's parents show its teams too. The changes are saved together, and each product records its own linking or unlinking in its Activity.
+
+A product's teams can also be managed from the product's page — see [Teams](../product-management/products.mdx#teams). To unlink one product, choose **Unlink** from its row's menu.
 
 ### Risks
 

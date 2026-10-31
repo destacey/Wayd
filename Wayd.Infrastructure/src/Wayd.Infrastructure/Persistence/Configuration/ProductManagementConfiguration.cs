@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Domain.Tagging;
 using Wayd.Infrastructure.Persistence.Converters;
@@ -162,6 +164,69 @@ public class ProductDependencyConfiguration : IEntityTypeConfiguration<ProductDe
     }
 }
 
+public class ProductTeamConfiguration : IEntityTypeConfiguration<ProductTeam>
+{
+    public void Configure(EntityTypeBuilder<ProductTeam> builder)
+    {
+        builder.ToTable("ProductTeams", SchemaNames.ProductManagement);
+
+        builder.HasKey(t => t.Id);
+        builder.HasAlternateKey(t => t.Key);
+
+        builder.HasIndex(t => t.Code)
+            .IsUnique()
+            .IncludeProperties(t => new { t.Id, t.Key, t.Name, t.Type, t.IsActive });
+
+        builder.Property(t => t.Id).ValueGeneratedNever();
+        builder.Property(t => t.Key).ValueGeneratedNever();
+
+        builder.Property(t => t.Name).IsRequired().HasMaxLength(128);
+        builder.Property(t => t.Code).IsRequired()
+            .HasConversion(
+                c => c.Value,
+                c => new TeamCode(c))
+            .HasColumnType("varchar")
+            .HasMaxLength(10);
+        builder.Property(t => t.Type).IsRequired()
+            .HasConversion<EnumConverter<TeamType>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+        builder.Property(t => t.IsActive);
+
+        builder.ConfigureReplicaTracking(t => t.Watermarks);
+    }
+}
+
+public class ProductTeamLinkConfiguration : IEntityTypeConfiguration<ProductTeamLink>
+{
+    public void Configure(EntityTypeBuilder<ProductTeamLink> builder)
+    {
+        builder.ToTable("ProductTeamLinks", SchemaNames.ProductManagement);
+
+        builder.HasKey(l => l.Id);
+
+        // A team is linked to a product once. The aggregate enforces it; this backstops two saves racing,
+        // which the aggregate cannot see.
+        builder.HasIndex(l => new { l.ProductId, l.TeamId })
+            .IsUnique();
+
+        // "What does this team work on" — the team pages' Products card.
+        builder.HasIndex(l => l.TeamId);
+
+        builder.Property(l => l.Id).ValueGeneratedNever();
+        builder.Property(l => l.ProductId).IsRequired();
+        builder.Property(l => l.TeamId).IsRequired();
+
+        // Restrict: teams are deactivated, never deleted, so the copy outlives every link to it. A delete
+        // reaching here would silently drop what the team works on, and should fail instead. The owning end is
+        // configured on Product.
+        builder.HasOne(l => l.Team)
+            .WithMany()
+            .HasForeignKey(l => l.TeamId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
 public class ProductConfiguration : IEntityTypeConfiguration<Product>
 {
     public void Configure(EntityTypeBuilder<Product> builder)
@@ -216,6 +281,14 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .OnDelete(DeleteBehavior.ClientCascade);
 
         builder.Navigation(p => p.Dependencies).HasField("_dependencies").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        // Cascade, like tags: a link says nothing once its product is gone, so removing the product takes them.
+        builder.HasMany(p => p.TeamLinks)
+            .WithOne()
+            .HasForeignKey(l => l.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(p => p.TeamLinks).HasField("_teamLinks").UsePropertyAccessMode(PropertyAccessMode.Field);
 
         // Ignore
         builder.Ignore(p => p.StatusAlias);

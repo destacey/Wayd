@@ -552,6 +552,107 @@ public class ProductsController(IDispatcher dispatcher, ICsvService csvService) 
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpGet("{idOrKey}/teams")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Products)]
+    [EndpointSummary("Get the teams linked to a product.")]
+    [EndpointDescription(
+        "Accepts the product's UUID or its short key.\n\n**Rolled up across everything beneath the product**: a team linked to one of its children is listed too, and `product` says which product the link is on — a row whose `product` is not the one you asked for is inherited from below it. `productPath` gives that product's ancestry, root first, down to its parent. A team linked at more than one level appears once per link.\n\nA link says only that the team works on the product, not that it owns or supports it. `team.type` says whether it is a `Team` or a `TeamOfTeams`. An empty answer means no team has been linked, not that no team works on it — links are entered by hand.")]
+    [McpTool("Products_GetTeams", "Get a product's teams")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<ProductTeamLinkDto>>> GetTeams(string idOrKey, CancellationToken cancellationToken)
+    {
+        var links = await _dispatcher.Send(new GetProductTeamsQuery(new IdOrKey(idOrKey)), cancellationToken);
+
+        return links is not null
+            ? Ok(links)
+            : NotFound();
+    }
+
+    [HttpGet("by-team/{teamId}")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Products)]
+    [EndpointSummary("Get the products a team or team of teams is linked to.")]
+    [EndpointDescription(
+        "Only the team's own links: a team of teams does not inherit the products its teams are linked to. Each row carries the `product` and its `productPath` (root first, down to its parent). An unknown team id returns an empty list.")]
+    [McpTool("Products_GetTeamProducts", "Get a team's products")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<ProductTeamLinkDto>>> GetTeamProducts(Guid teamId, CancellationToken cancellationToken)
+    {
+        var links = await _dispatcher.Send(new GetTeamProductsQuery(teamId), cancellationToken);
+
+        return Ok(links);
+    }
+
+    [HttpPost("{id}/teams/{teamId}")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
+    [EndpointSummary("Link a team or team of teams to a product.")]
+    [EndpointDescription(
+        "Any number of teams may be linked to a product, and a team to any number of products. A link says only that the team works on the product — there is no owner and no role. Link the **most specific product** the team works on, since the product's teams roll up to every ancestor.\n\nThe team must be active. Linking a team that is already linked succeeds and changes nothing.")]
+    [McpTool("Products_LinkTeam", "Link a team to a product", Destructive = false, Idempotent = true)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> LinkTeam(Guid id, Guid teamId, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new LinkProductTeamsCommand(id, [teamId]), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/teams")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
+    [EndpointSummary("Set the teams and teams of teams linked to a product.")]
+    [EndpointDescription(
+        "**Replaces the product's own team links as a whole**: every team in `teamIds` is linked and **every team not in it is unlinked** — read the current set first (`Products_GetProduct` carries the product's own `teams`) and send it back with your change. An empty list unlinks them all. Teams linked to the products beneath it are not affected.\n\nAll or nothing: when a team cannot be linked — it is inactive, or does not exist — nothing changes, and the refusal names it. An inactive team already linked can stay. At most 100 teams. To add or remove one team, `Products_LinkTeam` and `Products_UnlinkTeam` touch only that team; to set the products of one team, use `Products_SetTeamProducts`.")]
+    [McpTool("Products_SetTeams", "Set a product's teams")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> SetTeams(Guid id, [FromBody] SetProductTeamsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToSetProductTeamsCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("by-team/{teamId}")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
+    [EndpointSummary("Set the products a team or team of teams is linked to.")]
+    [EndpointDescription(
+        "**Replaces the team's links as a whole**: the team is linked to every product in `productIds` and **unlinked from every product not in it** — read the current set with `Products_GetTeamProducts` first, and send it back with your change. An empty list unlinks the team from everything.\n\nAll or nothing across every product it touches, and each product records its own linking or unlinking in its Activity. The team must be active to be linked to a new product; an inactive team can still be unlinked. At most 500 products. Link the **most specific products** the team works on, since each product's teams roll up to its ancestors.")]
+    [McpTool("Products_SetTeamProducts", "Set a team's products")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> SetTeamProducts(Guid teamId, [FromBody] SetTeamProductsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToSetTeamProductsCommand(teamId), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpDelete("{id}/teams/{teamId}")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Products)]
+    [EndpointSummary("Unlink a team or team of teams from a product.")]
+    [EndpointDescription(
+        "Succeeds whether or not the team was linked, and an inactive team can still be unlinked. `id` is the product the link is on — on a rolled-up row from `Products_GetTeams`, the row's `product`, not the product you read. The product's Activity keeps the unlinking.")]
+    [McpTool("Products_UnlinkTeam", "Unlink a team from a product")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> UnlinkTeam(Guid id, Guid teamId, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new UnlinkProductTeamCommand(id, teamId), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpDelete("{id}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Products)]
     [EndpointSummary("Permanently delete a product.")]

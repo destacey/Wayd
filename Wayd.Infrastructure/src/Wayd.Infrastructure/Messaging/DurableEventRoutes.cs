@@ -92,7 +92,7 @@ public static class DurableEventRoutes
         // no in-request reader — genuinely fire-and-forget). Closed generic; routed on the concrete type.
         typeof(IntegrationStateChangedEvent<Guid>),
 
-        // Organization Team → PlanningTeam / WorkTeam / PpmTeam. The one cross-domain edge with a downstream
+        // Organization Team → PlanningTeam / WorkTeam / PpmTeam / ProductTeam. The one cross-domain edge with a downstream
         // required FK (PlanningIntervalTeam.TeamId → PlanningTeam); ManagePlanningIntervalTeamsCommand now
         // validates team existence and fails cleanly rather than FK-faulting, so async replication is safe.
         // TeamDeactivatedEvent also ends every employee's allocations to the team, in the same handler chain

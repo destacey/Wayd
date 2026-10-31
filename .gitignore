@@ -390,3 +390,7 @@ coverage-report/
 !Wayd.Web/src/**/Releases/**
 !Wayd.Web/tests/**/Releases/
 !Wayd.Web/tests/**/Releases/**
+
+# The retired @wayd/mcp package (#979). Clones made before its removal keep its build output and
+# node_modules here; nothing in the repo lives under it any more.
+Wayd.Web/src/Wayd.Mcp/

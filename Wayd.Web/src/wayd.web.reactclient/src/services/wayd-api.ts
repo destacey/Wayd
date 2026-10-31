@@ -16200,6 +16200,383 @@ export class ProductsClient {
         }
         return Promise.resolve<void>(null as any);
     }
+
+    /**
+     * Get the teams linked to a product.
+     * @return OK
+     */
+    getTeams(idOrKey: string, cancelToken?: CancelToken): Promise<ProductTeamLinkDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/products/{idOrKey}/teams";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTeams(_response);
+        });
+    }
+
+    protected processGetTeams(response: AxiosResponse): Promise<ProductTeamLinkDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ProductTeamLinkDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ProductTeamLinkDto[]>(null as any);
+    }
+
+    /**
+     * Get the products a team or team of teams is linked to.
+     * @return OK
+     */
+    getTeamProducts(teamId: string, cancelToken?: CancelToken): Promise<ProductTeamLinkDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/products/by-team/{teamId}";
+        if (teamId === undefined || teamId === null)
+            throw new globalThis.Error("The parameter 'teamId' must be defined.");
+        url_ = url_.replace("{teamId}", encodeURIComponent("" + teamId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTeamProducts(_response);
+        });
+    }
+
+    protected processGetTeamProducts(response: AxiosResponse): Promise<ProductTeamLinkDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ProductTeamLinkDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ProductTeamLinkDto[]>(null as any);
+    }
+
+    /**
+     * Set the products a team or team of teams is linked to.
+     * @return No Content
+     */
+    setTeamProducts(teamId: string, request: SetTeamProductsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/products/by-team/{teamId}";
+        if (teamId === undefined || teamId === null)
+            throw new globalThis.Error("The parameter 'teamId' must be defined.");
+        url_ = url_.replace("{teamId}", encodeURIComponent("" + teamId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetTeamProducts(_response);
+        });
+    }
+
+    protected processSetTeamProducts(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Link a team or team of teams to a product.
+     * @return No Content
+     */
+    linkTeam(id: string, teamId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/products/{id}/teams/{teamId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (teamId === undefined || teamId === null)
+            throw new globalThis.Error("The parameter 'teamId' must be defined.");
+        url_ = url_.replace("{teamId}", encodeURIComponent("" + teamId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processLinkTeam(_response);
+        });
+    }
+
+    protected processLinkTeam(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Unlink a team or team of teams from a product.
+     * @return No Content
+     */
+    unlinkTeam(id: string, teamId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/products/{id}/teams/{teamId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (teamId === undefined || teamId === null)
+            throw new globalThis.Error("The parameter 'teamId' must be defined.");
+        url_ = url_.replace("{teamId}", encodeURIComponent("" + teamId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUnlinkTeam(_response);
+        });
+    }
+
+    protected processUnlinkTeam(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set the teams and teams of teams linked to a product.
+     * @return No Content
+     */
+    setTeams(id: string, request: SetProductTeamsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/products/{id}/teams";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetTeams(_response);
+        });
+    }
+
+    protected processSetTeams(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
 }
 
 export class ProductTagCategoriesClient {
@@ -63440,6 +63817,8 @@ export interface ProductDto {
     /** The node's current lifecycle status. */
     status: StatusNavigationDto;
     tags: ProductTagDto[];
+    /** The teams and teams of teams linked to this product, by name. */
+    teams: ProductTeamNavigationDto[];
 }
 
 export enum ProductStatusAlias {
@@ -63511,6 +63890,26 @@ export interface ProductTagOptionDto {
 export interface ProductTagSettingsDto {
     /** Whether anyone who can tag a product may also give it free tags — tags on no axis, typed in while tagging. */
     allowsFreeTags: boolean;
+}
+
+/** A team or team of teams linked to a product. */
+export interface ProductTeamLinkDto {
+    /** The product the team is linked to. */
+    product: NavigationDto;
+    /** Everything `product` sits inside, from its root down to its parent. */
+    productPath: NavigationDto[];
+    /** The team or team of teams linked. */
+    team: ProductTeamNavigationDto;
+}
+
+/** A team or team of teams as Product Management knows it. */
+export interface ProductTeamNavigationDto extends NavigationDto {
+    /** The team's short code, unique across teams and teams of teams. */
+    code: string;
+    /** Whether this is a team or a team of teams, which decides where its page is. */
+    type: TeamType;
+    /** Whether the team is active. An inactive team keeps its links but cannot take new ones. */
+    isActive: boolean;
 }
 
 /** A product type as a catalog row. */
@@ -65023,6 +65422,13 @@ export interface SetProductTagCategoryActiveRequest {
     isActive: boolean;
 }
 
+/** The whole set of teams and teams of teams linked to a product. */
+export interface SetProductTeamsRequest {
+    /** Every team that works on the product, at most 100. Teams not listed are unlinked; an empty list unlinks
+them all. Teams linked to the products beneath it are not affected. */
+    teamIds: string[];
+}
+
 /** Takes a product type out of use, or puts it back. */
 export interface SetProductTypeActiveRequest {
     /** The unique identifier of the product type. */
@@ -65108,6 +65514,13 @@ A Scrum team's sprints are its cadence, so a Scrum model takes none. */
     /** The first day of one of the cadence's periods, which aligns the others. Required with
 int? SetTeamOperatingModelRequest.CadenceWeeks, and omitted without it. */
     cadenceAnchor?: string | undefined;
+}
+
+/** The whole set of products a team or team of teams is linked to. */
+export interface SetTeamProductsRequest {
+    /** Every product the team works on, at most 500. Products not listed are unlinked; an empty list unlinks the
+team from every product. */
+    productIds: string[];
 }
 
 export interface SetupRequest {
@@ -66887,6 +67300,11 @@ finished enough work recently to forecast from. */
     trials: number;
     percentiles: ThroughputPercentileDto[];
     histogram: ThroughputHistogramBucketDto[];
+}
+
+export enum TeamType {
+    Team = "Team",
+    TeamOfTeams = "TeamOfTeams",
 }
 
 export interface TeamTypeDto {

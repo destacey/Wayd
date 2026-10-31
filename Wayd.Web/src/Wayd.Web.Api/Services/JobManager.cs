@@ -11,6 +11,7 @@ using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Work.Application.Iterations.Queries;
 using Wayd.Planning.Application.PlanningSprints.Commands;
 using Wayd.Planning.Application.PlanningTeams.Commands;
+using Wayd.ProductManagement.Application.ProductTeams.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Queries;
 using Wayd.ProjectPortfolioManagement.Application.PpmTeams.Commands;
@@ -193,6 +194,12 @@ public class JobManager(
         if (ppmSyncResult.IsFailure)
         {
             _logger.LogError("Failed to sync PPM teams: {Error}", ppmSyncResult.Error);
+        }
+
+        var productSyncResult = await _dispatcher.Send(new SyncProductTeamsCommand(teams, asOf), cancellationToken);
+        if (productSyncResult.IsFailure)
+        {
+            _logger.LogError("Failed to sync product teams: {Error}", productSyncResult.Error);
         }
 
         var workSyncResult = await _dispatcher.Send(new SyncWorkTeamsCommand(teams, asOf), cancellationToken);

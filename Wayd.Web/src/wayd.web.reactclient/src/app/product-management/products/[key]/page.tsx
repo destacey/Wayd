@@ -11,6 +11,7 @@ import { useDocumentTitle } from '@/src/hooks'
 import {
   useGetProductActivitiesQuery,
   useGetProductDependenciesQuery,
+  useGetProductTeamsQuery,
   useGetProductQuery,
   useGetProductsQuery,
   useLazyGetProductActivitiesQuery,
@@ -37,7 +38,9 @@ import CreateProductForm from '../_components/create-product-form'
 import DeleteProductForm from '../_components/delete-product-form'
 import EditProductForm from '../_components/edit-product-form'
 import LinkProductExternallyForm from '../_components/link-product-externally-form'
+import ManageProductTeamsForm from '../_components/manage-product-teams-form'
 import ManageProductTagsForm from '../_components/manage-product-tags-form'
+import ProductTeams, { productTeamCount } from '../_components/product-teams'
 import ReparentProductForm from '../_components/reparent-product-form'
 import RetypeProductForm from '../_components/retype-product-form'
 import PlanReleaseForm from '@/src/app/product-management/releases/_components/plan-release-form'
@@ -58,6 +61,7 @@ enum ProductSections {
   // the section after one type would mislabel the rest.
   Products = 'products',
   Dependencies = 'dependencies',
+  Teams = 'teams',
   Releases = 'releases',
   Versions = 'versions',
   StatusHistory = 'status-history',
@@ -81,6 +85,7 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [isAddDependencyOpen, setIsAddDependencyOpen] = useState<boolean>(false)
   const [includeEndedDependencies, setIncludeEndedDependencies] =
     useState<boolean>(false)
+  const [isManageTeamsOpen, setIsManageTeamsOpen] = useState<boolean>(false)
   const router = useRouter()
 
   // The active section lives in the URL (?section=), owned by RecordLayout. Read
@@ -92,6 +97,9 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { hasPermissionClaim } = useAuth()
   const canUpdateProduct = hasPermissionClaim('Permissions.Products.Update')
   const canDeleteProduct = hasPermissionClaim('Permissions.Products.Delete')
+  // The team picker lists teams through the Teams endpoints, which need their own permission.
+  const canManageTeams =
+    canUpdateProduct && hasPermissionClaim('Permissions.Teams.View')
   const canCreateProduct = hasPermissionClaim('Permissions.Products.Create')
   const canCreateVersion = hasPermissionClaim('Permissions.Delivery.Create')
   // Releases carry their own claim rather than riding Delivery's: the audience differs, so someone
@@ -162,6 +170,10 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     { idOrKey: product?.id ?? '', includeEnded: includeEndedDependencies },
     { skip: !product?.id },
   )
+
+  // Loaded here for the same reason: the tab's count, which includes the teams on products beneath.
+  const { data: teamLinks, isLoading: teamLinksLoading } =
+    useGetProductTeamsQuery(product?.id ?? '', { skip: !product?.id })
 
   const isNotFound = (error as { status?: number })?.status === 404
 
@@ -284,6 +296,13 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         (dependencies?.dependsOn.length ?? 0) +
           (dependencies?.usedBy.length ?? 0) || undefined,
     },
+    {
+      id: ProductSections.Teams,
+      label: 'Teams',
+      count: product
+        ? productTeamCount(product.teams, teamLinks) || undefined
+        : undefined,
+    },
     // Announcements before artifacts, as in the nav: what customers were told about this product is
     // the product-side question, and versions are the engineering record beneath it.
     ...(canViewReleases
@@ -329,6 +348,17 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           refetch={refetchDependencies}
           includeEnded={includeEndedDependencies}
           onIncludeEndedChange={setIncludeEndedDependencies}
+        />
+      )
+    }
+
+    if (section === ProductSections.Teams) {
+      return (
+        <ProductTeams
+          productId={product.id}
+          teams={product.teams}
+          links={teamLinks}
+          isLoading={teamLinksLoading}
         />
       )
     }
@@ -464,6 +494,10 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             <Button onClick={() => setIsAddDependencyOpen(true)}>
               Add Dependency
             </Button>
+          ) : canManageTeams && activeSection === ProductSections.Teams ? (
+            <Button onClick={() => setIsManageTeamsOpen(true)}>
+              Manage Teams
+            </Button>
           ) : canCreateVersion && activeSection === ProductSections.Versions ? (
             <Button onClick={() => setIsPlanVersionOpen(true)}>
               Add Version
@@ -565,6 +599,14 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           product={product}
           onFormComplete={() => setIsAddDependencyOpen(false)}
           onFormCancel={() => setIsAddDependencyOpen(false)}
+        />
+      )}
+
+      {isManageTeamsOpen && (
+        <ManageProductTeamsForm
+          product={product}
+          onFormComplete={() => setIsManageTeamsOpen(false)}
+          onFormCancel={() => setIsManageTeamsOpen(false)}
         />
       )}
 

@@ -21,12 +21,9 @@ public static class WorkItemHistorySeeder
     public const string WorkTypeName = "History Story";
     public const string StatusName = "History Status";
 
-    /// <summary>A managed workspace in source system <paramref name="systemId"/>, with its own process.</summary>
-    public static async Task<Guid> SeedWorkspace(SqlServerDbContextFixture fixture, string systemId, string key, CancellationToken ct)
+    /// <summary>The shared "History Story" work type, its level and the "History Status" status, created once.</summary>
+    public static async Task EnsureWorkType(SqlServerDbContextFixture fixture, CancellationToken ct)
     {
-        var workProcessId = Guid.CreateVersion7();
-        var workspaceId = Guid.CreateVersion7();
-
         await using var context = fixture.CreateContext();
         await context.Database.ExecuteSqlInterpolatedAsync(
             $"""
@@ -45,7 +42,21 @@ public static class WorkItemHistorySeeder
                 INSERT INTO [Work].[WorkStatuses]
                     ([Name], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
                 VALUES ({StatusName}, 1, 0, SYSUTCDATETIME(), SYSUTCDATETIME());
+            """,
+            ct);
+    }
 
+    /// <summary>A managed workspace in source system <paramref name="systemId"/>, with its own process.</summary>
+    public static async Task<Guid> SeedWorkspace(SqlServerDbContextFixture fixture, string systemId, string key, CancellationToken ct)
+    {
+        await EnsureWorkType(fixture, ct);
+
+        var workProcessId = Guid.CreateVersion7();
+        var workspaceId = Guid.CreateVersion7();
+
+        await using var context = fixture.CreateContext();
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $"""
             INSERT INTO [Work].[WorkProcesses]
                 ([Id], [Name], [Ownership], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
             VALUES ({workProcessId}, 'History Process', 'Managed', 1, 0, SYSUTCDATETIME(), SYSUTCDATETIME());

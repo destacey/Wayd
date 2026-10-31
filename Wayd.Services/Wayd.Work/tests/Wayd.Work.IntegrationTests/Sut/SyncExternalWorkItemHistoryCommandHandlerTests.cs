@@ -314,8 +314,8 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
         // Act
         await using (var accessor = new WaydDbContextAccessor(_fixture))
         {
-            var handler = new DeleteExternalWorkItemsCommandHandler(accessor.Context, NullLogger<SyncExternalWorkItemsCommandHandler>.Instance);
-            var result = await handler.Handle(new DeleteExternalWorkItemsCommand(workspaceId, [ExternalWorkItemId]), ct);
+            var handler = new DeleteExternalWorkItemsCommandHandler(accessor.Context, NullLogger<DeleteExternalWorkItemsCommandHandler>.Instance);
+            var result = await handler.Handle(new DeleteExternalWorkItemsCommand([workspaceId], [ExternalWorkItemId]), ct);
             result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         }
 

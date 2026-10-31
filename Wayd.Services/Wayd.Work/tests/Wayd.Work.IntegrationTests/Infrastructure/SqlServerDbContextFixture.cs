@@ -122,6 +122,9 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Organization].[EmployeeEmails];", cancellationToken);
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Organization].[Employees];", cancellationToken);
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Work].[Workspaces];", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Work].[WorkProcessSchemes];", cancellationToken);
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Work].[WorkProcesses];", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Work].[WorkflowSchemes];", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Work].[Workflows];", cancellationToken);
     }
 }

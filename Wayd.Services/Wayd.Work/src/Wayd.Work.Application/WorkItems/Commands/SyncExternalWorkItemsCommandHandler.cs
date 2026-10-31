@@ -42,7 +42,6 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
 
         try
         {
-            // TODO: Do we need to do anything here for work items changing workspaces?
             var workProcess = await _workDbContext.WorkProcesses
                 .AsNoTracking()
                 .Include(p => p.Schemes)

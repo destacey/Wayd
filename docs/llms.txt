@@ -23,7 +23,7 @@ Wayd supports:
 - [Logging In](docs/getting-started/logging-in.mdx): Organizational account, email and password, or personal access token
 - [Navigation](docs/getting-started/navigation.mdx): Interface layout, sidebar navigation, and key areas
 - [Your Profile](docs/getting-started/your-profile.mdx): Profile, password, preferences, sessions, and personal access tokens
-- [MCP Server](docs/getting-started/mcp-server.mdx): Connecting AI assistants to Wayd through the hosted `/mcp` endpoint or the `@wayd/mcp` package
+- [MCP Server](docs/getting-started/mcp-server.mdx): Connecting AI assistants to Wayd through the `/mcp` endpoint, and moving from the retired `@wayd/mcp` package
 - [Organizations](docs/user-guide/organizations/index.mdx): Teams, teams of teams, operating models, organizational hierarchy, allocations, time away, and team capacity
 - [Organizations Bulk Import](docs/user-guide/organizations/bulk-import.mdx): Loading employees, teams, the team hierarchy, and team staffing from CSV
 - [Planning Overview](docs/user-guide/planning/index.mdx): How planning connects teams, sprints, objectives, and work items

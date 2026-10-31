@@ -1,6 +1,8 @@
 /**
  * Documentation coverage: every tool the server ships must appear in the
- * user-facing docs, and the docs must not name tools that no longer exist.
+ * user-facing docs. The page documents the hosted endpoint, which offers every
+ * tool here and many more, so a name on the page that this package lacks is
+ * expected; the API's tests own whether those exist.
  *
  * The guarded failure mode is silent drift. `docs/getting-started/mcp-server.mdx`
  * lists tools in hand-written tables, so a new tool ships documented only if
@@ -12,7 +14,7 @@
  * A row may cover several tools at once (`Foo_Create` / `Foo_Update`), which is
  * why this collects tool names appearing anywhere in the file rather than
  * expecting one row per tool. Prose is deliberately left to the author — this
- * only asserts that no tool is missing and none is stale.
+ * only asserts that no tool is missing.
  *
  * Names are compared as a parsed set, never with `includes`. Substring matching
  * looks equivalent and is not: 27 of the tool names are a prefix of a longer one
@@ -42,35 +44,15 @@ const skillsDir = join(__dirname, '../../../../skills');
 /** Matches a tool name wherever it appears — a table cell, backticks, or prose. */
 const toolNamePattern = /\b[A-Z][A-Za-z]*_[A-Za-z][A-Za-z0-9]*\b/g;
 
-/**
- * The page's section for tools only the hosted endpoint (`/mcp` on the API) offers. Its names are
- * expected to be absent from this package, so the stale check skips them; the API's own tests
- * (`McpToolCatalogTests`) own whether they exist.
- */
-const hostedOnlyHeading = /^### Hosted-Only Tools\s*$/m;
-
 let toolNames: string[];
 let docText: string;
 /** Every tool name the page mentions, parsed once and matched whole. */
 let documented: Set<string>;
-/** The tool names in the hosted-only section. */
-let hostedOnly: Set<string>;
-
-/** The text of the section under `heading`, up to the next heading of the same or a higher level. */
-function sectionText(text: string, heading: RegExp): string {
-  const start = text.search(heading);
-  if (start < 0) return '';
-  const body = text.slice(start).replace(heading, '');
-  const end = body.search(/^#{1,3} /m);
-  return end < 0 ? body : body.slice(0, end);
-}
-
 before(async () => {
   const { toolDefinitionMap } = await import('../build/tools/index.js');
   toolNames = [...toolDefinitionMap.keys()];
   docText = readFileSync(docsPath, 'utf8');
   documented = new Set(docText.match(toolNamePattern) ?? []);
-  hostedOnly = new Set(sectionText(docText, hostedOnlyHeading).match(toolNamePattern) ?? []);
 });
 
 describe('documentation coverage', () => {
@@ -82,34 +64,6 @@ describe('documentation coverage', () => {
       [],
       `${missing.length} tool(s) ship but are absent from docs/getting-started/mcp-server.mdx. ` +
         `Add a row under the matching section:\n  ${missing.join('\n  ')}`,
-    );
-  });
-
-  test('the docs name no tool that no longer ships', () => {
-    const shipped = new Set(toolNames);
-
-    const stale = [...documented]
-      .filter((name) => !shipped.has(name) && !hostedOnly.has(name))
-      .sort();
-
-    assert.deepEqual(
-      stale,
-      [],
-      `${stale.length} tool name(s) in docs/getting-started/mcp-server.mdx do not exist. ` +
-        `Rename or remove them:\n  ${stale.join('\n  ')}`,
-    );
-  });
-
-  test('the hosted-only section names no tool this package ships', () => {
-    const shipped = new Set(toolNames);
-
-    const misplaced = [...hostedOnly].filter((name) => shipped.has(name)).sort();
-
-    assert.deepEqual(
-      misplaced,
-      [],
-      `${misplaced.length} tool(s) listed under Hosted-Only Tools also ship in @wayd/mcp. ` +
-        `Move them to the matching section of Available Tools:\n  ${misplaced.join('\n  ')}`,
     );
   });
 

@@ -831,7 +831,7 @@ Entra (Microsoft Entra ID through Microsoft Graph) and Workday (the Staffing SOA
 
 ### MCP Server
 
-The API exposed as agent tools over the Model Context Protocol, two ways: the hosted endpoint `/mcp` on the API (Streamable HTTP, behind the `mcp-server` feature flag, 404 while it is off; sign-in or a Personal Access Token in `x-api-key`), and the `@wayd/mcp` npm package (a PAT, Node.js 22+). Both offer the same tools under the same names; the hosted endpoint also serves the product skills in `skills/` as prompts and through a skills tool. Tools act as the signed-in user, so permissions and delivery leadership apply as in the UI.
+The API exposed as agent tools over the Model Context Protocol at the endpoint `/mcp` on the API (Streamable HTTP, behind the `mcp-server` feature flag, 404 while it is off; sign-in or a Personal Access Token in `x-api-key`; a stdio-only client connects through `npx mcp-remote`). The `@wayd/mcp` npm package is retired; the endpoint offers its tools under the same names, and also serves the product skills in `skills/` as prompts and through a skills tool. Tools act as the signed-in user, so permissions and delivery leadership apply as in the UI.
 
 ---
 

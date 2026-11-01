@@ -82,6 +82,27 @@ public class PokerSessionTests
     }
 
     [Fact]
+    public void Complete_ShouldDeleteEmptyRoundsAndKeepTheRest()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var labelled = session.AddRound("WI-1").Value;
+        var described = session.AddRound("", "Only a description").Value;
+        var voted = session.AddRound(null).Value;
+        session.SubmitVote(voted.Id, "user-1", "5", Scale, Now);
+        session.AddRound("");
+        session.AddRound("   ");
+        session.AddRound(null);
+
+        // Act
+        var result = session.Complete(Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        session.Rounds.Should().BeEquivalentTo([labelled, described, voted]);
+    }
+
+    [Fact]
     public void Complete_FromCompleted_ShouldReturnFailure()
     {
         // Arrange

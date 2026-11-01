@@ -43,7 +43,7 @@ After an estimate is accepted, a new round starts automatically unless another r
 
 The header offers **Edit** (the session's name and, until rounds have started, its scale) and **Copy Invite Link** while the session is active.
 
-**Export CSV**, in the header once the session has a round, downloads one row per round with its number, label, description, status, consensus estimate, vote count and votes (each voter's name and card). It is available for active and completed sessions. Votes are written only for revealed or accepted rounds; a round still voting shows its vote count but not the votes, which are hidden until reveal.
+**Export CSV**, in the header once the session has a round with a label, a description or votes, downloads one row per such round (empty rounds are left out) with its number, label, description, status, consensus estimate, vote count and votes (each voter's name and card). It is available for active and completed sessions. Votes are written only for revealed or accepted rounds; a round still voting shows its vote count but not the votes, which are hidden until reveal.
 
 ### Round Workflow
 
@@ -72,7 +72,7 @@ stateDiagram-v2
 - Sessions are immediately activated on creation
 - Rounds can only be added, changed or removed, and votes cast, while the session is active
 - The estimation scale cannot change after rounds begin
-- Only active sessions can be completed
+- Only active sessions can be completed. Completing a session deletes its empty rounds — those with no label, no description and no votes, such as the round started automatically after the last estimate was accepted
 - Running a session — starting, revealing, re-voting and accepting rounds, and completing it — needs the **Update Poker Sessions** permission, and so does voting. It is not limited to the facilitator
 
 ## Common Tasks

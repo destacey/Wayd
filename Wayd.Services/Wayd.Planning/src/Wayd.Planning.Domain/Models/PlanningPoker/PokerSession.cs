@@ -69,12 +69,16 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     public IReadOnlyCollection<PokerRound> Rounds => _rounds.AsReadOnly();
 
     /// <summary>
-    /// Complete the session.
+    /// Complete the session, deleting its empty rounds (see <see cref="PokerRound.IsEmpty"/>) so the
+    /// read-only record keeps only what was estimated. The rounds and their votes must be loaded, or a round
+    /// with votes would read as empty.
     /// </summary>
     public Result Complete(Instant timestamp)
     {
         if (Status != PokerSessionStatus.Active)
             return Result.Failure("Session can only be completed from Active status.");
+
+        _rounds.RemoveAll(r => r.IsEmpty);
 
         Status = PokerSessionStatus.Completed;
         CompletedOn = timestamp;

@@ -53,6 +53,12 @@ public sealed class PokerRound : BaseEntity
     public IReadOnlyCollection<PokerVote> Votes => _votes.AsReadOnly();
 
     /// <summary>
+    /// True for a round that holds nothing: no label, no description and no votes, such as the round opened
+    /// automatically after an estimate is accepted. Requires <see cref="Votes"/> to be loaded.
+    /// </summary>
+    public bool IsEmpty => string.IsNullOrWhiteSpace(Label) && Description is null && _votes.Count == 0;
+
+    /// <summary>
     /// Reveal all votes for this round.
     /// </summary>
     internal Result Reveal()

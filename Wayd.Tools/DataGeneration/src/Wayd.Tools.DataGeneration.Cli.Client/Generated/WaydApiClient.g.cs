@@ -63454,7 +63454,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Complete a poker session.
         /// </summary>
         /// <remarks>
-        /// Moves an Active session to Completed. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.
+        /// Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64069,7 +64069,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Complete a poker session.
         /// </summary>
         /// <remarks>
-        /// Moves an Active session to Completed. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.
+        /// Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>

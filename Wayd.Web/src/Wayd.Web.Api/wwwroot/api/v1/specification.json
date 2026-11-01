@@ -29168,7 +29168,7 @@
           "PokerSessions"
         ],
         "summary": "Complete a poker session.",
-        "description": "Moves an Active session to Completed. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.",
+        "description": "Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.",
         "operationId": "PokerSessions_Complete",
         "parameters": [
           {

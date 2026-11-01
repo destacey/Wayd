@@ -76,7 +76,7 @@ A round has an optional `label` (at most 512 characters) naming what is estimate
 5. **Reveal** — `PokerSessions_RevealRound` when the facilitator says so. Check `voteCount` first and tell the user if people have not voted yet.
 6. **Agree** — `PokerSessions_SetConsensus` with the agreed `estimate` (normally one of the scale's values). The round must be Revealed; it becomes Accepted.
 7. **Re-vote** — `PokerSessions_ResetRound` clears every vote and any consensus and returns the round to Voting. Say so before calling it: the votes are gone for good.
-8. **Finish** — `PokerSessions_CompleteSession`. Make sure every round the user cares about is Accepted first; a completed session cannot be changed.
+8. **Finish** — `PokerSessions_CompleteSession`. Make sure every round the user cares about is Accepted first; a completed session cannot be changed. Completing deletes empty rounds (no label, description or votes), so do not report those as missing afterwards.
 
 Other session changes:
 

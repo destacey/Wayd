@@ -61,15 +61,34 @@ describe('buildExportRows', () => {
     ])
   })
 
-  it('leaves blanks for a round with no label, description or consensus', () => {
+  it('leaves blanks for a voted round with no label, description or consensus', () => {
     // Arrange
-    const rounds = [round({})]
+    const rounds = [round({ voteCount: 1 })]
 
     // Act
     const [row] = buildExportRows(rounds)
 
     // Assert
     expect(row.slice(1, 5)).toEqual(['', '', 'Voting', ''])
+  })
+
+  it('skips rounds with no label, description or votes, numbering the rest', () => {
+    // Arrange
+    const rounds = [
+      round({ id: 'a', label: 'WI-1', order: 0 }),
+      round({ id: 'b', label: '  ', order: 1 }),
+      round({ id: 'c', description: 'Only a description', order: 2 }),
+      round({ id: 'd', order: 3 }),
+    ]
+
+    // Act
+    const rows = buildExportRows(rounds)
+
+    // Assert
+    expect(rows.map((r) => [r[0], r[1], r[2]])).toEqual([
+      [1, 'WI-1', ''],
+      [2, '', 'Only a description'],
+    ])
   })
 
   it('lists revealed votes by voter name, case-insensitively', () => {

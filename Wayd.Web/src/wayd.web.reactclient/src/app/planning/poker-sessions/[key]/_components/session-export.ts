@@ -32,8 +32,16 @@ const formatVotes = (round: PokerRoundDto): string => {
     .join(MULTI_VALUE_SEPARATOR)
 }
 
+/**
+ * A round holding nothing, such as the one opened automatically after an estimate is accepted. Completing
+ * a session deletes these; an active session can still have one.
+ */
+const isEmptyRound = (round: PokerRoundDto): boolean =>
+  !round.label?.trim() && !round.description && round.voteCount === 0
+
 export const buildExportRows = (rounds: PokerRoundDto[]): unknown[][] =>
-  [...rounds]
+  rounds
+    .filter((round) => !isEmptyRound(round))
     .sort((a, b) => a.order - b.order)
     .map((round, index) => [
       index + 1,

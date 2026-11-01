@@ -100,7 +100,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PokerSessions)]
     [EndpointSummary("Complete a poker session.")]
     [EndpointDescription(
-        "Moves an Active session to Completed. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.")]
+        "Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.")]
     [McpTool("PokerSessions_CompleteSession", "Complete poker session")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

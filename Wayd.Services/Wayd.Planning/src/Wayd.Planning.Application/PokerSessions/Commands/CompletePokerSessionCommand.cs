@@ -23,7 +23,10 @@ public sealed class CompletePokerSessionCommandHandler(IPlanningDbContext planni
     {
         try
         {
+            // Completing deletes empty rounds, and a round reads as empty unless its votes are loaded.
             var session = await _planningDbContext.PokerSessions
+                .Include(s => s.Rounds)
+                    .ThenInclude(r => r.Votes)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
 
             if (session is null)

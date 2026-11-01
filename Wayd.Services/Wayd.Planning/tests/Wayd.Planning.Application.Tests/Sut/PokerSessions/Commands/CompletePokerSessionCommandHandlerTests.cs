@@ -53,6 +53,27 @@ public class CompletePokerSessionCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_ShouldDeleteEmptyRounds()
+    {
+        // Arrange
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
+        _dbContext.AddPokerSession(session);
+
+        var estimated = session.AddRound("WI-1").Value;
+        session.AddRound("");
+
+        var command = new CompletePokerSessionCommand(session.Id);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        session.Rounds.Should().ContainSingle().Which.Should().Be(estimated);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
     public async Task Handle_ShouldFail_WhenSessionDoesNotExist()
     {
         // Arrange

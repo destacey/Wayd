@@ -255,8 +255,9 @@ const PokerSessionDetailPage: FC = () => {
     </Flex>
   )
 
+  const exportRows = buildExportRows(rounds)
   const handleExportCsv = () => {
-    const csv = generateCsv(EXPORT_HEADERS, buildExportRows(rounds))
+    const csv = generateCsv(EXPORT_HEADERS, exportRows)
     downloadCsvWithTimestamp(csv, `poker-session-${session.key}`)
   }
 
@@ -272,7 +273,7 @@ const PokerSessionDetailPage: FC = () => {
           Copy Invite Link
         </Button>
       )}
-      {rounds.length > 0 && (
+      {exportRows.length > 0 && (
         <Button icon={<DownloadOutlined />} onClick={handleExportCsv}>
           Export CSV
         </Button>

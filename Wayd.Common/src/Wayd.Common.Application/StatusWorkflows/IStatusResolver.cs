@@ -59,4 +59,13 @@ public interface IStatusResolver : IScopedService
     /// with <see cref="StatusWorkflow.TargetRef"/>, so the move carries the workflow's restrictions.
     /// </remarks>
     Task<Result<StatusWorkflow>> ForScope(string ownerType, Guid? scopeId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Loads the workflow records of one record type follow in a scope: the scope's scheme's entry for the
+    /// type, otherwise its default. <see cref="ForScope"/> is this with no type.
+    /// </summary>
+    /// <param name="recordTypeId">
+    /// The record's type, or <c>null</c> for a record without one, which follows the scheme's default.
+    /// </param>
+    Task<Result<StatusWorkflow>> ForRecordType(string ownerType, Guid? scopeId, Guid? recordTypeId, CancellationToken cancellationToken);
 }

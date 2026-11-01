@@ -79,4 +79,72 @@ public sealed class StatusResolverTests : StatusWorkflowHandlerTestBase
         result.Value.StatusId.Should().Be(StatusId(workflow, "Proposed"));
         result.Value.AllowedFrom.Should().BeEmpty();
     }
+
+    #region ForRecordType
+
+    private static readonly WorkflowOwnerDescriptor Ticket = new(
+        "test.resolver.ticket",
+        "Ticket",
+        new Dictionary<int, WorkflowAlias> { [NotableAlias] = new("Notable", StatusCategory.Active), [TerminalAlias] = new("Terminal", StatusCategory.Done) },
+        [NotableAlias, TerminalAlias],
+        hasRecordTypes: true);
+
+    /// <summary>
+    /// A Ticket scheme sending Bugs to their own workflow, assigned organization-wide, and another sending
+    /// nothing anywhere special, assigned to <paramref name="scopeId"/>.
+    /// </summary>
+    private (StatusWorkflow Standard, StatusWorkflow BugFlow, StatusWorkflow ScopedDefault, RecordType Bug, RecordType Story) SeedTicketSchemes(Guid scopeId)
+    {
+        WorkflowOwners.Register(Ticket);
+
+        var standard = SeedWorkflow("Standard", publish: true, owner: Ticket);
+        var bugFlow = SeedWorkflow("Bug Flow", publish: true, owner: Ticket);
+        var scopedDefault = SeedWorkflow("Scoped Default", publish: true, owner: Ticket);
+        var bug = RecordType.Create(Ticket.Key, "Bug", EventActor.System, Now).Value;
+        var story = RecordType.Create(Ticket.Key, "Story", EventActor.System, Now).Value;
+
+        var organization = StatusWorkflowScheme.Create(Ticket.Key, "Engineering", null, standard, EventActor.System, Now).Value;
+        organization.SetEntry(bug, bugFlow, StatusRemap.AutoMap(standard, bugFlow).Value, EventActor.System, Now).IsSuccess.Should().BeTrue();
+        DbContext.AddWorkflowAssignment(WorkflowAssignment.Create(Ticket.Key, null, organization, standard, EventActor.System, Now).Value);
+
+        var scoped = StatusWorkflowScheme.Create(Ticket.Key, "Platform", null, scopedDefault, EventActor.System, Now).Value;
+        DbContext.AddWorkflowAssignment(WorkflowAssignment.Create(Ticket.Key, scopeId, scoped, scopedDefault, EventActor.System, Now).Value);
+
+        return (standard, bugFlow, scopedDefault, bug, story);
+    }
+
+    [Fact]
+    public async Task ForRecordType_ShouldResolveDifferentWorkflowsForTwoTypesInOneScope()
+    {
+        // Arrange
+        var (standard, bugFlow, _, bug, story) = SeedTicketSchemes(Guid.NewGuid());
+
+        // Act
+        var forBug = await CreateSut().ForRecordType(Ticket.Key, null, bug.Id, TestContext.Current.CancellationToken);
+        var forStory = await CreateSut().ForRecordType(Ticket.Key, null, story.Id, TestContext.Current.CancellationToken);
+        var untyped = await CreateSut().ForScope(Ticket.Key, null, TestContext.Current.CancellationToken);
+
+        // Assert
+        forBug.Value.Id.Should().Be(bugFlow.Id);
+        forStory.Value.Id.Should().Be(standard.Id);
+        untyped.Value.Id.Should().Be(standard.Id);
+    }
+
+    [Fact]
+    public async Task ForRecordType_ShouldUseTheScopesOwnScheme_OverTheOrganizations()
+    {
+        // Arrange
+        var scopeId = Guid.NewGuid();
+        var (_, _, scopedDefault, bug, _) = SeedTicketSchemes(scopeId);
+
+        // Act
+        var result = await CreateSut().ForRecordType(Ticket.Key, scopeId, bug.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        // The scope's scheme has no Bug entry, so Bugs there follow its default, not the organization's Bug Flow.
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Id.Should().Be(scopedDefault.Id);
+    }
+
+    #endregion ForRecordType
 }

@@ -39,7 +39,17 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
             ConnectionString = connectionString,
         });
 
-        _options = new DbContextOptionsBuilder<WaydDbContext>()
+        _options = BuildOptions(connectionString);
+
+        await using var context = CreateContext();
+        await context.Database.MigrateAsync();
+    }
+
+    /// <summary>The container's connection string, for a test that needs a database of its own on it.</summary>
+    public string ConnectionString => _container.GetConnectionString();
+
+    private static DbContextOptions<WaydDbContext> BuildOptions(string connectionString) =>
+        new DbContextOptionsBuilder<WaydDbContext>()
             .UseSqlServer(connectionString, sql =>
             {
                 sql.MigrationsAssembly("Wayd.Infrastructure.Migrators.MSSQL");
@@ -53,10 +63,6 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
             })
             .Options;
 
-        await using var context = CreateContext();
-        await context.Database.MigrateAsync();
-    }
-
     public async ValueTask DisposeAsync()
     {
         if (_container is not null)
@@ -64,7 +70,17 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
     }
 
     /// <summary>Creates a fresh context against the container, with no-op collaborators.</summary>
-    public WaydDbContext CreateContext()
+    public WaydDbContext CreateContext() => CreateContext(_options, _databaseSettings);
+
+    /// <summary>
+    /// Creates a context against another database on the container, unmigrated. The context connects through
+    /// <see cref="DatabaseSettings"/>, so the settings carry the connection string as well as the options.
+    /// </summary>
+    public WaydDbContext CreateContext(string connectionString) => CreateContext(
+        BuildOptions(connectionString),
+        Options.Create(new DatabaseSettings { DBProvider = "mssql", ConnectionString = connectionString }));
+
+    private static WaydDbContext CreateContext(DbContextOptions<WaydDbContext> options, IOptions<DatabaseSettings> databaseSettings)
     {
         var currentUser = new Mock<ICurrentUser>();
         currentUser.Setup(u => u.GetUserId()).Returns("integration-test-user");
@@ -83,10 +99,10 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
         correlationId.SetupGet(c => c.CorrelationId).Returns("integration-test-correlation");
 
         return new WaydDbContext(
-            _options,
+            options,
             currentUser.Object,
             dateTimeProvider.Object,
-            _databaseSettings,
+            databaseSettings,
             events.Object,
             outbox.Object,
             correlationId.Object);

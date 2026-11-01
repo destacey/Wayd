@@ -19,7 +19,12 @@ public sealed record PokerSessionDetailsDto : IMapFrom<PokerSession>
     public required string Name { get; set; }
     public required string Status { get; set; }
     public UserNavigationDto? Facilitator { get; set; }
-    public EstimationScaleDto? EstimationScale { get; set; }
+    public EstimationScaleNavigationDto? EstimationScale { get; set; }
+
+    /// <summary>
+    /// The scale version the session votes on, which stays put when the scale publishes a newer one.
+    /// </summary>
+    public EstimationScaleVersionDto? EstimationScaleVersion { get; set; }
     public Instant? ActivatedOn { get; set; }
     public Instant? CompletedOn { get; set; }
     public List<PokerRoundDto> Rounds { get; set; } = [];

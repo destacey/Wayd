@@ -4,6 +4,8 @@ using Wayd.Planning.Application.PokerSessions.Commands;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Tests.Data;
 using Moq;
+using Wayd.Common.Domain.Events;
+using Wayd.Planning.Domain.Models.PlanningPoker;
 using NodaTime;
 
 namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
@@ -36,7 +38,7 @@ public class CreatePokerSessionCommandHandlerTests : IDisposable
     public async Task Handle_ShouldCreatePokerSession_WhenValidCommand()
     {
         // Arrange
-        var scale = _estimationScaleFaker.WithId(1).Generate();
+        var scale = _estimationScaleFaker.Generate();
         _dbContext.AddEstimationScale(scale);
 
         var command = new CreatePokerSessionCommand("Sprint Planning", scale.Id);
@@ -53,7 +55,7 @@ public class CreatePokerSessionCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenEstimationScaleDoesNotExist()
     {
         // Arrange
-        var command = new CreatePokerSessionCommand("Sprint Planning", 999);
+        var command = new CreatePokerSessionCommand("Sprint Planning", Guid.NewGuid());
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -68,7 +70,7 @@ public class CreatePokerSessionCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenEstimationScaleIsInactive()
     {
         // Arrange
-        var scale = _estimationScaleFaker.WithId(1).WithIsActive(false).Generate();
+        var scale = _estimationScaleFaker.WithIsActive(false).Generate();
         _dbContext.AddEstimationScale(scale);
 
         var command = new CreatePokerSessionCommand("Sprint Planning", scale.Id);
@@ -87,7 +89,7 @@ public class CreatePokerSessionCommandHandlerTests : IDisposable
     public async Task Handle_ShouldSetFacilitatorToCurrentUser()
     {
         // Arrange
-        var scale = _estimationScaleFaker.WithId(1).Generate();
+        var scale = _estimationScaleFaker.Generate();
         _dbContext.AddEstimationScale(scale);
 
         var command = new CreatePokerSessionCommand("Sprint Planning", scale.Id);
@@ -98,6 +100,27 @@ public class CreatePokerSessionCommandHandlerTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue();
         _mockCurrentUser.Verify(u => u.GetUserId(), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldPinTheScalesCurrentVersion()
+    {
+        // Arrange
+        var scale = _estimationScaleFaker.WithValues("S", "M", "L").Generate();
+        scale.PublishVersion([new EstimationScaleValue("S", true), new EstimationScaleValue("M", true), new EstimationScaleValue("XL", true)], EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 0));
+        _dbContext.AddEstimationScale(scale);
+
+        var command = new CreatePokerSessionCommand("Sprint Planning", scale.Id);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        var session = _dbContext.PokerSessions.Should().ContainSingle().Subject;
+        session.EstimationScaleId.Should().Be(scale.Id);
+        session.EstimationScaleVersionId.Should().Be(scale.Versions.Single(v => v.Number == 2).Id);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     public void Dispose()

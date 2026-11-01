@@ -1,6 +1,10 @@
 ﻿namespace Wayd.Planning.Application.EstimationScales.Commands;
 
-public sealed record UpdateEstimationScaleCommand(int Id, string Name, string? Description, List<string> Values) : ICommand;
+/// <summary>
+/// Set an estimation scale's name, description and values. Values that differ from the current version's
+/// publish the next version; the same values publish nothing.
+/// </summary>
+public sealed record UpdateEstimationScaleCommand(Guid Id, string Name, string? Description, List<EstimationScaleValueInput> Values) : ICommand;
 
 public sealed class UpdateEstimationScaleCommandValidator : CustomValidator<UpdateEstimationScaleCommand>
 {
@@ -9,7 +13,7 @@ public sealed class UpdateEstimationScaleCommandValidator : CustomValidator<Upda
         RuleLevelCascadeMode = CascadeMode.Stop;
 
         RuleFor(c => c.Id)
-            .GreaterThan(0);
+            .NotEmpty();
 
         RuleFor(c => c.Name)
             .NotEmpty()
@@ -20,17 +24,15 @@ public sealed class UpdateEstimationScaleCommandValidator : CustomValidator<Upda
 
         RuleFor(c => c.Values)
             .NotEmpty()
-            .Must(v => v.Count >= 2).WithMessage("An estimation scale must have at least 2 values.");
-
-        RuleForEach(c => c.Values)
-            .NotEmpty()
-            .MaximumLength(32);
+            .SetValidator(new EstimationScaleValuesValidator());
     }
 }
 
-public sealed class UpdateEstimationScaleCommandHandler(IPlanningDbContext planningDbContext, ILogger<UpdateEstimationScaleCommandHandler> logger) : ICommandHandler<UpdateEstimationScaleCommand>
+public sealed class UpdateEstimationScaleCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<UpdateEstimationScaleCommandHandler> logger) : ICommandHandler<UpdateEstimationScaleCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<UpdateEstimationScaleCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateEstimationScaleCommand request, CancellationToken cancellationToken)
@@ -38,18 +40,22 @@ public sealed class UpdateEstimationScaleCommandHandler(IPlanningDbContext plann
         try
         {
             var scale = await _planningDbContext.EstimationScales
+                .Include(s => s.Versions)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
 
             if (scale is null)
                 return Result.Failure("Estimation scale not found.");
 
-            var updateResult = scale.Update(request.Name, request.Description);
+            var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
+            var now = _dateTimeProvider.Now;
+
+            var updateResult = scale.UpdateDetails(request.Name, request.Description, actor, now);
             if (updateResult.IsFailure)
                 return updateResult;
 
-            var setValuesResult = scale.SetValues(request.Values);
-            if (setValuesResult.IsFailure)
-                return setValuesResult;
+            var publishResult = scale.PublishVersion(request.Values.Select(v => v.ToValue()), actor, now);
+            if (publishResult.IsFailure)
+                return publishResult;
 
             await _planningDbContext.SaveChangesAsync(cancellationToken);
 

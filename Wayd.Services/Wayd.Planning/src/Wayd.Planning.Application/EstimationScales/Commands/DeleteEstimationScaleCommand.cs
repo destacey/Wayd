@@ -1,19 +1,24 @@
 ﻿namespace Wayd.Planning.Application.EstimationScales.Commands;
 
-public sealed record DeleteEstimationScaleCommand(int Id) : ICommand;
+/// <summary>
+/// Delete an estimation scale and its versions. Refused while any poker session uses the scale.
+/// </summary>
+public sealed record DeleteEstimationScaleCommand(Guid Id) : ICommand;
 
 public sealed class DeleteEstimationScaleCommandValidator : CustomValidator<DeleteEstimationScaleCommand>
 {
     public DeleteEstimationScaleCommandValidator()
     {
         RuleFor(c => c.Id)
-            .GreaterThan(0);
+            .NotEmpty();
     }
 }
 
-public sealed class DeleteEstimationScaleCommandHandler(IPlanningDbContext planningDbContext, ILogger<DeleteEstimationScaleCommandHandler> logger) : ICommandHandler<DeleteEstimationScaleCommand>
+public sealed class DeleteEstimationScaleCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<DeleteEstimationScaleCommandHandler> logger) : ICommandHandler<DeleteEstimationScaleCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<DeleteEstimationScaleCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeleteEstimationScaleCommand request, CancellationToken cancellationToken)
@@ -21,6 +26,7 @@ public sealed class DeleteEstimationScaleCommandHandler(IPlanningDbContext plann
         try
         {
             var scale = await _planningDbContext.EstimationScales
+                .Include(s => s.Versions)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
 
             if (scale is null)
@@ -41,6 +47,7 @@ public sealed class DeleteEstimationScaleCommandHandler(IPlanningDbContext plann
                     return Result.Failure("Cannot delete the last active estimation scale. At least one active estimation scale is required.");
             }
 
+            scale.Delete(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             _planningDbContext.EstimationScales.Remove(scale);
             await _planningDbContext.SaveChangesAsync(cancellationToken);
 

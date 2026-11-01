@@ -1,12 +1,31 @@
-﻿using Wayd.Planning.Domain.Models.PlanningPoker;
+using Wayd.Planning.Domain.Models.PlanningPoker;
 
 namespace Wayd.Planning.Application.EstimationScales.Dtos;
 
-public class EstimationScaleDto : IMapFrom<EstimationScale>
+/// <summary>
+/// An estimation scale with its current version, the values anything newly choosing the scale votes on.
+/// </summary>
+public class EstimationScaleDto
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; }
+    public int Key { get; set; }
     public required string Name { get; set; }
     public string? Description { get; set; }
     public bool IsActive { get; set; }
-    public List<string> Values { get; set; } = [];
+
+    /// <summary>The latest published version.</summary>
+    public required EstimationScaleVersionDto CurrentVersion { get; set; }
+
+    /// <summary>
+    /// Maps a scale loaded with its versions.
+    /// </summary>
+    public static EstimationScaleDto From(EstimationScale scale) => new()
+    {
+        Id = scale.Id,
+        Key = scale.Key,
+        Name = scale.Name,
+        Description = scale.Description,
+        IsActive = scale.IsActive,
+        CurrentVersion = EstimationScaleVersionDto.From(scale.CurrentVersion),
+    };
 }

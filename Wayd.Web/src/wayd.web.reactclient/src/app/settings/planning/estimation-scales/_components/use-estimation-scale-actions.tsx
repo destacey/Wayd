@@ -27,7 +27,7 @@ export interface UseEstimationScaleActionsOptions {
   onChanged: () => void
   /** Called after a delete, with the id that went — the panel closes if it
    *  was showing that record. */
-  onDeleted: (id: number) => void
+  onDeleted: (id: string) => void
 }
 
 /**
@@ -55,7 +55,7 @@ export const useEstimationScaleActions = ({
   const canUpdate = hasPermissionClaim('Permissions.EstimationScales.Update')
   const canDelete = hasPermissionClaim('Permissions.EstimationScales.Delete')
 
-  const close = (changed: boolean, deletedId?: number) => {
+  const close = (changed: boolean, deletedId?: string) => {
     setActive(null)
     if (!changed) return
     if (deletedId !== undefined) {

@@ -2,7 +2,10 @@
 
 import { Alert, Flex, Form, Input, Modal, Spin, Tag, Typography } from 'antd'
 import { CSSProperties, useEffect } from 'react'
-import { EstimationScaleDto } from '@/src/services/wayd-api'
+import {
+  EstimationScaleDto,
+  EstimationScaleVersionDto,
+} from '@/src/services/wayd-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { useMessage } from '@/src/components/contexts/messaging'
 import useTheme from '@/src/components/contexts/theme'
@@ -35,18 +38,21 @@ export interface EditPokerSessionFormProps {
 
 interface EditPokerSessionFormValues {
   name: string
-  estimationScaleId: number
+  estimationScaleId: string
 }
 
 interface EstimationScaleCardProps {
   scale: EstimationScaleDto
+  /** The version the session is on, when this card is the session's own scale. */
+  pinnedVersion?: EstimationScaleVersionDto
   selected: boolean
   disabled: boolean
-  onSelect: (id: number) => void
+  onSelect: (id: string) => void
 }
 
 const EstimationScaleCard = ({
   scale,
+  pinnedVersion,
   selected,
   disabled,
   onSelect,
@@ -54,6 +60,10 @@ const EstimationScaleCard = ({
   const cardClass = selected
     ? `${createStyles.scaleCard} ${createStyles.scaleCardSelected}`
     : createStyles.scaleCard
+  // Keeping the scale keeps the session on its version, so show what it
+  // actually votes on rather than the scale's newer values.
+  const version = pinnedVersion ?? scale.currentVersion
+  const isBehind = version.number < scale.currentVersion.number
 
   return (
     <div
@@ -69,10 +79,15 @@ const EstimationScaleCard = ({
           {scale.description}
         </Text>
       )}
+      {isBehind && (
+        <Text type="secondary">
+          {`This session uses version ${version.number}; the scale is on version ${scale.currentVersion.number}.`}
+        </Text>
+      )}
       <Flex wrap gap={4} className={createStyles.scaleCardValues}>
-        {scale.values.map((v) => (
-          <Tag key={v} style={{ margin: 0 }}>
-            {v}
+        {version.values.map((v) => (
+          <Tag key={v.value} style={{ margin: 0 }}>
+            {v.value}
           </Tag>
         ))}
       </Flex>
@@ -150,7 +165,7 @@ const EditPokerSessionForm = ({
   const activeScales = estimationScales ?? []
   const selectedScaleId = Form.useWatch('estimationScaleId', form)
 
-  const handleScaleSelect = (id: number) => {
+  const handleScaleSelect = (id: string) => {
     if (!hasRounds) {
       form.setFieldsValue({ estimationScaleId: id })
     }
@@ -221,6 +236,11 @@ const EditPokerSessionForm = ({
                 <EstimationScaleCard
                   key={scale.id}
                   scale={scale}
+                  pinnedVersion={
+                    scale.id === session?.estimationScale?.id
+                      ? session?.estimationScaleVersion
+                      : undefined
+                  }
                   selected={selectedScaleId === scale.id}
                   disabled={hasRounds}
                   onSelect={handleScaleSelect}

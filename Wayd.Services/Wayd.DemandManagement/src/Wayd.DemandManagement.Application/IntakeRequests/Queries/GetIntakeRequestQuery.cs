@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Wayd.Common.Application.Employees.Dtos;
+using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Application.DemandProjects.Dtos;
@@ -82,8 +83,12 @@ public sealed class GetIntakeRequestQueryHandler(
     }
 
     /// <summary>
-    /// The request's outcomes, oldest first, each with its project when the copy still has it.
+    /// The request's outcomes, oldest first, each project outcome with its project when the copy still has it.
     /// </summary>
+    /// <remarks>
+    /// A work item outcome's <see cref="IntakeRequestOutcomeDto.WorkItem"/> is left null: Demand Management
+    /// keeps no copy of work items, so the API layer fills it in from Work.
+    /// </remarks>
     private async Task<IReadOnlyList<IntakeRequestOutcomeDto>> Outcomes(Guid requestId, CancellationToken cancellationToken)
     {
         var employees = _dbContext.Employees;
@@ -107,7 +112,7 @@ public sealed class GetIntakeRequestQueryHandler(
         if (outcomes.Count == 0)
             return [];
 
-        var targetIds = outcomes.Select(o => o.TargetId).ToList();
+        var targetIds = outcomes.Where(o => o.Kind != IntakeRequestOutcomeKind.WorkItem).Select(o => o.TargetId).ToList();
         var projects = await _dbContext.DemandProjects
             .AsNoTracking()
             .Where(p => targetIds.Contains(p.Id))

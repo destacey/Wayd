@@ -643,16 +643,16 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Records that the request became a project. Needs <see cref="Outcomes"/> loaded.
+    /// Records that the request became a project or work item. Needs <see cref="Outcomes"/> loaded.
     /// </summary>
     /// <remarks>
-    /// Needs an agent on the request's desk, and a project that exists; the caller checks both, since the
-    /// request knows neither who works its desk nor what exists in PPM. Allowed only while
+    /// Needs an agent on the request's desk, and a target that exists; the caller checks both, since the
+    /// request knows neither who works its desk nor what exists in PPM or Work. Allowed only while
     /// the request is accepted (Active): before that nothing has been decided, and once it is closed the
     /// record of what it became is settled until it is reopened. Recording existing project scope says what
     /// the project absorbed, because the project's own definition is not changed.
     /// </remarks>
-    /// <param name="targetId">The project, by the id it shares with its source.</param>
+    /// <param name="targetId">The project or work item, by its id in its own module.</param>
     /// <param name="addedById">The employee recording it.</param>
     public Result AddOutcome(IntakeRequestOutcomeKind kind, Guid targetId, string? note, Guid addedById, EventActor actor, Instant timestamp)
     {
@@ -680,12 +680,12 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Takes an outcome off the request: it no longer counts the project as what it became. Needs
+    /// Takes an outcome off the request: it no longer counts the target as what it became. Needs
     /// <see cref="Outcomes"/> loaded.
     /// </summary>
     /// <remarks>
     /// Needs an agent on the request's desk, which the caller checks, and allowed only while the request is
-    /// accepted, as adding is. The project itself is untouched.
+    /// accepted, as adding is. The target itself is untouched.
     /// </remarks>
     public Result RemoveOutcome(Guid targetId, EventActor actor, Instant timestamp)
     {
@@ -718,7 +718,7 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         "Say what the project absorbed from this request.";
 
     /// <summary>
-    /// The failure for recording a second outcome pointing at the same project.
+    /// The failure for recording a second outcome pointing at the same project or work item.
     /// </summary>
     public const string DuplicateOutcomeError =
         "The request already has an outcome pointing at that record.";

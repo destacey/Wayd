@@ -195,10 +195,10 @@ public sealed class IntakeScenario
     }
 
     /// <summary>Records an outcome on an accepted request as already saved, raising nothing.</summary>
-    public void Outcome(IntakeRequest request, Guid projectId, Employee addedBy,
+    public void Outcome(IntakeRequest request, Guid targetId, Employee addedBy,
         IntakeRequestOutcomeKind kind = IntakeRequestOutcomeKind.NewProject, string? note = null)
     {
-        var added = request.AddOutcome(kind, projectId, note, addedBy.Id, EventActor.System, Clock.Now);
+        var added = request.AddOutcome(kind, targetId, note, addedBy.Id, EventActor.System, Clock.Now);
         if (added.IsFailure)
             throw new InvalidOperationException(added.Error);
         request.ClearDomainEvents();

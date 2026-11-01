@@ -18,6 +18,7 @@ import { WorkItemsGrid } from '@/src/components/common/work'
 import WorkItemDependencies from './work-item-dependencies'
 import WorkItemFacts from './_components/work-item-facts'
 import WorkItemOverview from './_components/work-item-overview'
+import WorkItemIntakeRequests from './_components/work-item-intake-requests'
 import useAuth from '@/src/components/contexts/auth'
 import { ItemType } from 'antd/es/menu/interface'
 import EditWorkItemProjectForm from '@/src/app/work/workspaces/_components/edit-workitem-project-form'
@@ -28,6 +29,7 @@ enum WorkItemSections {
   Overview = 'overview',
   WorkItems = 'work-items',
   Dependencies = 'dependencies',
+  Requests = 'requests',
   Forecast = 'forecast',
 }
 
@@ -45,12 +47,18 @@ const getReports = (
 
 // Overview is unconditional: it is the default section, so a record where it
 // disappeared would open on whatever happened to be next.
-const getSections = (workItem: WorkItemDetailsDto): RecordSection[] => [
+const getSections = (
+  workItem: WorkItemDetailsDto,
+  demandManagementEnabled: boolean,
+): RecordSection[] => [
   { id: WorkItemSections.Overview, label: 'Overview' },
   ...(workItem.type.tier.id === WorkTypeTier.Portfolio
     ? [{ id: WorkItemSections.WorkItems, label: 'Child Work Items' }]
     : []),
   { id: WorkItemSections.Dependencies, label: 'Dependencies' },
+  ...(demandManagementEnabled
+    ? [{ id: WorkItemSections.Requests, label: 'Requests' }]
+    : []),
 ]
 
 const WorkItemDetailsPage = (props: {
@@ -72,6 +80,8 @@ const WorkItemDetailsPage = (props: {
   const { isEnabled: forecastingEnabled } = useFeatureFlag(
     'delivery-forecasting',
   )
+  const { isEnabled: demandManagementEnabled } =
+    useFeatureFlag('demand-management')
 
   const { hasPermissionClaim } = useAuth()
   const canManageProjectWorkItems = hasPermissionClaim(
@@ -143,6 +153,10 @@ const WorkItemDetailsPage = (props: {
         )
       case WorkItemSections.Dependencies:
         return <WorkItemDependencies workItem={workItemData} />
+      case WorkItemSections.Requests:
+        return demandManagementEnabled ? (
+          <WorkItemIntakeRequests workItemId={workItemData.id} />
+        ) : null
       case WorkItemSections.Forecast:
         return (
           <WorkItemForecastReport
@@ -169,7 +183,7 @@ const WorkItemDetailsPage = (props: {
   return (
     <>
       <RecordLayout
-        sections={getSections(workItemData)}
+        sections={getSections(workItemData, demandManagementEnabled)}
         reports={getReports(workItemData, forecastingEnabled)}
         defaultSection={WorkItemSections.Overview}
         record={{

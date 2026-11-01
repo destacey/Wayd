@@ -93,7 +93,7 @@ Work items support:
 
 ### Work Item Detail Page
 
-The page header shows the work item's title (linking to the item in the external system), its key, its type, and its status as a tag. The breadcrumb leads to the workspace and, when the item has one, its parent. The page has **Overview**, **Child Work Items** ([Portfolio tier](./work-configuration.mdx#work-type-tiers) only) and **Dependencies** sections, and a **Forecast** report under **Reports** for Requirement and Portfolio tier items when [Delivery Forecasting](./delivery-forecasting.mdx) is on.
+The page header shows the work item's title (linking to the item in the external system), its key, its type, and its status as a tag. The breadcrumb leads to the workspace and, when the item has one, its parent. The page has **Overview**, **Child Work Items** ([Portfolio tier](./work-configuration.mdx#work-type-tiers) only), **Dependencies** and, when Demand Management is on, **Requests** sections, and a **Forecast** report under **Reports** for Requirement and Portfolio tier items when [Delivery Forecasting](./delivery-forecasting.mdx) is on.
 
 **Details panel:**
 - Type, Priority, Story Points, Effort, Size and Tags (each shown only when set)
@@ -126,6 +126,8 @@ The page header shows the work item's title (linking to the item in the external
   - **Dependency Info**: Type (Predecessor/Successor with tooltip), State, Health (color-coded), Scope (Intra-Team/Cross-Team with explanation)
   - **Work Item Info**: Key (linked), Title, Type, Status, [Team](../organizations/index.mdx#teams) (link), [Sprint](./sprints.mdx) (link)
 - Support for external work item links (icon linking to integrated system)
+
+**Requests** — Shown when the `demand-management` feature flag is on: the [intake requests](../demand-management/index.mdx#outcomes) this work item delivers, each with its status and the desk's note on what the work item covers. Each request is listed only to people its desk lets see it, so a request on a private desk you are not part of is not shown and not counted.
 
 ### Where Work Items Appear
 

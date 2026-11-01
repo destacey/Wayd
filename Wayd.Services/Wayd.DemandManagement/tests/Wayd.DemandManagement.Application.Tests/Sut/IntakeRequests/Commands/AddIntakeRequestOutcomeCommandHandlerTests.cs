@@ -4,6 +4,7 @@ using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.IntakeRequests.Commands;
+using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 using Wayd.DemandManagement.Application.Tests.Infrastructure;
 
 namespace Wayd.DemandManagement.Application.Tests.Sut.IntakeRequests.Commands;
@@ -80,6 +81,108 @@ public sealed class AddIntakeRequestOutcomeCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ForAWorkItemWorkFound_RecordsTheOutcomeWithoutANote()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        var workItem = WorkItem();
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new AddIntakeRequestOutcomeCommand(request.Id, IntakeRequestOutcomeKind.WorkItem, workItem.Id, null) { WorkItem = workItem },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var outcome = request.Outcomes.Should().ContainSingle().Subject;
+        outcome.Kind.Should().Be(IntakeRequestOutcomeKind.WorkItem);
+        outcome.TargetId.Should().Be(workItem.Id);
+        outcome.Note.Should().BeNull();
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ForAWorkItemWorkDidNotFind_FailsAndSavesNothing()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new AddIntakeRequestOutcomeCommand(request.Id, IntakeRequestOutcomeKind.WorkItem, Guid.NewGuid(), null),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(AddIntakeRequestOutcomeCommandHandler.WorkItemNotFoundError);
+        request.Outcomes.Should().BeEmpty();
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ForAWorkItemOtherThanTheTarget_FailsAndSavesNothing()
+    {
+        // Arrange — what Work found must be the work item the outcome points at
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new AddIntakeRequestOutcomeCommand(request.Id, IntakeRequestOutcomeKind.WorkItem, Guid.NewGuid(), null) { WorkItem = WorkItem() },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(AddIntakeRequestOutcomeCommandHandler.WorkItemNotFoundError);
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ForAMissingWorkItemByANonAgent_ReportsOnlyThatTheyAreNotAnAgent()
+    {
+        // Arrange — the target is checked after the desk role, so a caller who may not change the request
+        // learns nothing about which work items exist
+        var requester = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(), requester, "Accepted");
+        _scenario.SignedInAs(requester);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new AddIntakeRequestOutcomeCommand(request.Id, IntakeRequestOutcomeKind.WorkItem, Guid.NewGuid(), null),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequestAuthorization.NotAnAgentError);
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ForAProjectKindNamingAWorkItem_ChecksTheProjectCopy()
+    {
+        // Arrange — a work item handed in does not stand in for a project
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        var workItem = WorkItem();
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new AddIntakeRequestOutcomeCommand(request.Id, IntakeRequestOutcomeKind.NewProject, workItem.Id, null) { WorkItem = workItem },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(AddIntakeRequestOutcomeCommandHandler.ProjectNotFoundError);
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Handle_ForARequestNotYetAccepted_FailsAndSavesNothing()
     {
         // Arrange
@@ -116,4 +219,15 @@ public sealed class AddIntakeRequestOutcomeCommandHandlerTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(IntakeRequestAccess.NotFoundError);
     }
+
+    /// <summary>A work item as Work reports it.</summary>
+    private static IntakeRequestOutcomeWorkItemDto WorkItem() => new()
+    {
+        Id = Guid.NewGuid(),
+        Key = "APP-42",
+        Title = "Export screen",
+        WorkspaceKey = "APP",
+        Status = "Active",
+        StatusCategory = Common.Domain.StatusWorkflows.Enums.StatusCategory.Active,
+    };
 }

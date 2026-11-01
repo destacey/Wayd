@@ -87,6 +87,10 @@ public sealed class SubmitImportCommandHandler(
 
         var definition = definitionResult.Value;
 
+        var enabled = await ImportAuthorization.EnsureEnabled(definition, cancellationToken);
+        if (enabled.IsFailure)
+            return Result.Failure<Guid>(enabled.Error);
+
         if (command.Rows.Count == 0)
             return Result.Failure<Guid>("The file contains no rows.");
 

@@ -28,6 +28,10 @@ public abstract class ImportDefinition<TRow>(IImportPayloadSerializer serializer
     public virtual int PreflightMaxRows => MaxRows;
     public virtual int ChunkSize => 500;
 
+    /// <inheritdoc />
+    /// <remarks>Always on unless the area sits behind a feature flag.</remarks>
+    public virtual Task<bool> IsEnabled(CancellationToken cancellationToken) => Task.FromResult(true);
+
     /// <summary>The ordered steps this import runs. Declared once; the runner drives them.</summary>
     protected abstract IReadOnlyList<ImportPass<TRow>> Steps { get; }
 

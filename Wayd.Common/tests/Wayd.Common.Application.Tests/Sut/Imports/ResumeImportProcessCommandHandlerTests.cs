@@ -73,6 +73,22 @@ public sealed class ResumeImportProcessCommandHandlerTests : IDisposable
         CreateHandler().Handle(new ResumeImportProcessCommand(id, retryFailed), TestContext.Current.CancellationToken);
 
     [Fact]
+    public async Task Handle_RefusesToRetryARunWhoseAreaIsSwitchedOff()
+    {
+        // Arrange — retrying would write records to a module nobody can open
+        var process = PartlyAppliedRun();
+        _definition.IsEnabledOverride = false;
+
+        // Act
+        var result = await Resume(process.Id, retryFailed: true);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        process.Status.Should().Be(ImportProcessStatus.Cancelled);
+        _dispatcher.Verify(d => d.Publish(It.IsAny<RunImportProcessCommand>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_QueuesTheRunAgainAndPublishesIt()
     {
         // Arrange

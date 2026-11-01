@@ -9,7 +9,6 @@ using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Scoring.ScoringModels.Dtos;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Enums.DemandManagement;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.DemandManagement.Application.IntakeDesks;
 using Wayd.DemandManagement.Application.IntakeRequests;
@@ -22,6 +21,7 @@ using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.DemandManagement.IntakeRequests;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkItems.Queries;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Web.Api.Controllers.DemandManagement;
 
@@ -116,7 +116,7 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
         Title = workItem.Title,
         WorkspaceKey = workItem.WorkspaceKey,
         Status = workItem.Status,
-        StatusCategory = (WorkStatusCategory)workItem.StatusCategory.Id,
+        StatusCategory = (StatusCategory)workItem.StatusCategory.Id,
     };
 
     [HttpGet("{idOrKey}/activities")]

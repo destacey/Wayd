@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Integrations.AzureDevOps.Models.Contracts;
 
 namespace Wayd.Integrations.AzureDevOps.Models.Processes;
@@ -29,11 +30,11 @@ internal static class ProcessWorkItemStateDtoExtensions
             StatusName = workItemState.Name,
             Category = workItemState.StateCategory switch
             {
-                "Proposed" => WorkStatusCategory.Proposed,
-                "InProgress" => WorkStatusCategory.Active,
-                "Resolved" => WorkStatusCategory.Active,
-                "Completed" => WorkStatusCategory.Done,
-                "Removed" => WorkStatusCategory.Removed,
+                "Proposed" => StatusCategory.Proposed,
+                "InProgress" => StatusCategory.Active,
+                "Resolved" => StatusCategory.Active,
+                "Completed" => StatusCategory.Done,
+                "Removed" => StatusCategory.Removed,
                 _ => throw new ArgumentOutOfRangeException(nameof(workItemState.StateCategory), workItemState.StateCategory, null)
             },
             Order = workItemState.Order,

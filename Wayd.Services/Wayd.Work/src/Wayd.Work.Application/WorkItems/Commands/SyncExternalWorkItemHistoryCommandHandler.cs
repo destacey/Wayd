@@ -1,7 +1,7 @@
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Domain.Enums;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkItems.Commands;
@@ -438,7 +438,7 @@ public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext wor
             .ToDictionaryAsync(s => s.Name, s => s.Id, StringComparer.OrdinalIgnoreCase, cancellationToken);
 
         var workTypeIds = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        var workflowStatuses = new Dictionary<(int, string), (int Id, WorkStatusCategory Category)>(WorkflowStatusKeyComparer.Instance);
+        var workflowStatuses = new Dictionary<(int, string), (int Id, StatusCategory Category)>(WorkflowStatusKeyComparer.Instance);
         foreach (var scheme in schemes)
         {
             workTypeIds.TryAdd(scheme.WorkTypeName, scheme.WorkTypeId);
@@ -452,10 +452,10 @@ public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext wor
     /// <summary>Resolves a revision's work type and status names against the workspace's process.</summary>
     private sealed class StatusResolver(
         Dictionary<string, int> workTypeIds,
-        Dictionary<(int, string), (int Id, WorkStatusCategory Category)> workflowStatuses,
+        Dictionary<(int, string), (int Id, StatusCategory Category)> workflowStatuses,
         Dictionary<string, int> statusIdsByName)
     {
-        public (int? WorkTypeId, int? StatusId, WorkStatusCategory? StatusCategory) Resolve(string workType, string status)
+        public (int? WorkTypeId, int? StatusId, StatusCategory? StatusCategory) Resolve(string workType, string status)
         {
             int? workTypeId = workTypeIds.TryGetValue(workType, out var typeId) ? typeId : null;
 

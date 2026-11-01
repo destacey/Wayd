@@ -68,7 +68,7 @@
             "serviceHost": null,
             "serviceSchemes": null,
             "output": "../wayd.web.reactclient/src/services/wayd-api.ts",
-            "newLineBehavior": "Auto"
+            "newLineBehavior": "LF"
         }
     }
 }

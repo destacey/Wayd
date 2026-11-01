@@ -23,6 +23,7 @@ const releasePackage = (
       id: 's',
       name: 'Assembled',
       category: StatusCategory.Active,
+      categoryLabel: 'Active',
       alias: 0,
     },
     components: [component()],
@@ -38,6 +39,7 @@ const released = () =>
       id: 's',
       name: 'Released',
       category: StatusCategory.Done,
+      categoryLabel: 'Done',
       alias: 11,
     },
   })
@@ -48,6 +50,7 @@ const withdrawn = () =>
       id: 's',
       name: 'Withdrawn',
       category: StatusCategory.Removed,
+      categoryLabel: 'Removed',
       alias: 12,
     },
   })

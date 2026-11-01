@@ -1355,7 +1355,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/components/schemas/WorkStatusCategory"
+                "$ref": "#/components/schemas/StatusCategory"
               },
               "nullable": true
             },
@@ -35182,7 +35182,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/components/schemas/WorkStatusCategory"
+                "$ref": "#/components/schemas/StatusCategory"
               },
               "nullable": true
             },
@@ -37815,7 +37815,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/components/schemas/WorkStatusCategory"
+                "$ref": "#/components/schemas/StatusCategory"
               },
               "nullable": true
             },
@@ -58536,7 +58536,8 @@
         "required": [
           "id",
           "name",
-          "category"
+          "category",
+          "categoryLabel"
         ],
         "type": "object",
         "properties": {
@@ -58550,6 +58551,11 @@
           },
           "category": {
             "$ref": "#/components/schemas/StatusCategory"
+          },
+          "categoryLabel": {
+            "minLength": 1,
+            "type": "string",
+            "description": "What the record's owner type calls the category — its own word for the bucket, or the category's\nname when it declares none. For display only; group and compare on the category."
           }
         },
         "additionalProperties": false,
@@ -62135,7 +62141,7 @@
           "statusCategory": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/WorkStatusCategory"
+                "$ref": "#/components/schemas/StatusCategory"
               }
             ],
             "description": "The category of the work item's status."
@@ -62806,6 +62812,7 @@
       "IntakeWorkflowStatusDto": {
         "required": [
           "name",
+          "categoryLabel",
           "id",
           "category",
           "alias"
@@ -62828,6 +62835,10 @@
               }
             ],
             "description": "The status's bucket — Proposed, Active, Done or Removed — which decides whether a request in it is open."
+          },
+          "categoryLabel": {
+            "type": "string",
+            "description": "What intake requests call the category. For display only; group and compare on the category."
           },
           "alias": {
             "type": "integer",
@@ -74228,11 +74239,35 @@
         ],
         "type": "string"
       },
+      "StatusCategoryLabelDto": {
+        "required": [
+          "category",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusCategory"
+              }
+            ],
+            "description": "The category being named."
+          },
+          "label": {
+            "type": "string",
+            "description": "What the owner type calls the category, or the category's own name when it declares none."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One category and what an owner type calls it."
+      },
       "StatusNavigationDto": {
         "required": [
           "id",
           "name",
           "category",
+          "categoryLabel",
           "alias"
         ],
         "type": "object",
@@ -74253,6 +74288,11 @@
               }
             ],
             "description": "The status's bucket — Proposed, Active, Done or Removed. What rollups and invariants group on."
+          },
+          "categoryLabel": {
+            "minLength": 1,
+            "type": "string",
+            "description": "What the record's owner type calls the category — its own word for the bucket, or the category's\nname when it declares none. For display only; group and compare on the category."
           },
           "alias": {
             "type": "integer",
@@ -82840,7 +82880,8 @@
           "aliases",
           "requiredAliases",
           "requiredCategories",
-          "supportsRestrictedTransitions"
+          "supportsRestrictedTransitions",
+          "categoryLabels"
         ],
         "type": "object",
         "properties": {
@@ -82875,6 +82916,13 @@
           "supportsRestrictedTransitions": {
             "type": "boolean",
             "description": "Whether a workflow for this owner type may restrict which moves its records make."
+          },
+          "categoryLabels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusCategoryLabelDto"
+            },
+            "description": "What this owner type calls each category, one entry per category in category order. A category\nit declares no label for carries the category's own name."
           }
         },
         "additionalProperties": false,
@@ -82937,7 +82985,7 @@
                 "$ref": "#/components/schemas/SimpleNavigationDto"
               }
             ],
-            "description": "The rollup this status belongs to, as id and display name."
+            "description": "The rollup this status belongs to: the category's id, and its name as the workflow's owner type\nlabels it."
           },
           "alias": {
             "type": "integer",
@@ -84016,15 +84064,6 @@
             "additionalProperties": false
           }
         ]
-      },
-      "WorkStatusCategory": {
-        "enum": [
-          "Proposed",
-          "Active",
-          "Done",
-          "Removed"
-        ],
-        "type": "string"
       },
       "WorkStatusCategoryListDto": {
         "required": [

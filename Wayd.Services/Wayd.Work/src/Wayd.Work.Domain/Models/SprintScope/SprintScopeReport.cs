@@ -1,6 +1,6 @@
 using NodaTime;
 using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Domain.Models.SprintScope;
 
@@ -110,8 +110,8 @@ public sealed class SprintScopeReport
 
         var outcome = last.StatusCategory switch
         {
-            WorkStatusCategory.Done => SprintScopeOutcome.Completed,
-            WorkStatusCategory.Removed => SprintScopeOutcome.Removed,
+            StatusCategory.Done => SprintScopeOutcome.Completed,
+            StatusCategory.Removed => SprintScopeOutcome.Removed,
             _ when stillIn && asOf < window.End => SprintScopeOutcome.Remaining,
             _ when stillIn => SprintScopeOutcome.CarriedOver,
             _ when MovedToNextSprint(window, removedAt!.Value, At(removedAt.Value)) => SprintScopeOutcome.CarriedOver,
@@ -140,7 +140,7 @@ public sealed class SprintScopeReport
         SprintScopePeriod? previous = null;
         foreach (var period in periods)
         {
-            if (period.StatusCategory is WorkStatusCategory.Done or WorkStatusCategory.Removed)
+            if (period.StatusCategory is StatusCategory.Done or StatusCategory.Removed)
             {
                 finishedSince[period] = previous is not null
                     && previous.ValidTo == period.ValidFrom

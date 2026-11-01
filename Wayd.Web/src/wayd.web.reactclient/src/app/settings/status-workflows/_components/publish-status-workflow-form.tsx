@@ -2,7 +2,11 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { StatusWorkflowDetailsDto } from '@/src/services/wayd-api'
-import { usePublishStatusWorkflowMutation } from '@/src/store/features/common/status-workflows-api'
+import {
+  useGetWorkflowOwnerTypesQuery,
+  usePublishStatusWorkflowMutation,
+} from '@/src/store/features/common/status-workflows-api'
+import { statusCategoryLabel } from '@/src/components/common/status-workflows'
 import { Alert, Flex, Modal, Typography } from 'antd'
 import { useConfirmModal } from '@/src/hooks'
 import { isApiError, type ApiError } from '@/src/utils'
@@ -35,6 +39,10 @@ const PublishStatusWorkflowForm = ({
   const transitionIssues = statusWorkflow.transitionIssues ?? []
   const hasTransitionIssues = transitionIssues.length > 0
   const missingCategories = statusWorkflow.missingRequiredCategories ?? []
+  const { data: ownerTypes } = useGetWorkflowOwnerTypesQuery()
+  const categoryLabels = ownerTypes?.find(
+    (o) => o.key === statusWorkflow.owner?.key,
+  )?.categoryLabels
   const hasMissingCategories = missingCategories.length > 0
   const misfiledAliases = statusWorkflow.misfiledAliases ?? []
   const hasMisfiledAliases = misfiledAliases.length > 0
@@ -96,7 +104,9 @@ const PublishStatusWorkflowForm = ({
                 <div>Add a status in each of these categories:</div>
                 <ul style={{ marginTop: 8, marginBottom: 0 }}>
                   {missingCategories.map((category) => (
-                    <li key={category}>{category}</li>
+                    <li key={category}>
+                      {statusCategoryLabel(categoryLabels, category)}
+                    </li>
                   ))}
                 </ul>
               </>

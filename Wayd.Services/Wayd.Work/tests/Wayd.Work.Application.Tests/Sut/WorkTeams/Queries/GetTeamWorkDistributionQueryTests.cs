@@ -5,7 +5,7 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.Requests.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Models;
 using Wayd.Tests.Shared;
 using Wayd.Work.Application.Tests.Infrastructure;
@@ -64,7 +64,7 @@ public sealed class GetTeamWorkDistributionQueryTests : IDisposable
     private GetTeamWorkDistributionQuery Query(Guid? teamId = null) => new(teamId ?? _team.Id, From, To, ItemsByProject);
 
     private WorkItem AddItem(
-        WorkStatusCategory statusCategory = WorkStatusCategory.Done,
+        StatusCategory statusCategory = StatusCategory.Done,
         Instant? done = null,
         WorkType? type = null,
         Guid? projectId = null,
@@ -104,8 +104,8 @@ public sealed class GetTeamWorkDistributionQueryTests : IDisposable
         AddItem(done: Instant.FromUtc(2026, 9, 30, 23, 59));
         AddItem(done: Instant.FromUtc(2026, 10, 1, 0, 0));
         AddItem(done: Instant.FromUtc(2026, 6, 30, 23, 59));
-        AddItem(WorkStatusCategory.Removed);
-        AddItem(WorkStatusCategory.Active);
+        AddItem(StatusCategory.Removed);
+        AddItem(StatusCategory.Active);
         AddItem(type: _feature);
 
         // Act

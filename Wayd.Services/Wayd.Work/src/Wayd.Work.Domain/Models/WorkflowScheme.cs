@@ -1,20 +1,20 @@
 ﻿using CSharpFunctionalExtensions;
-using Wayd.Common.Domain.Enums.Work;
 using NodaTime;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Domain.Models;
 
 public sealed class WorkflowScheme : BaseSoftDeletableEntity, IActivatable
 {
     private WorkflowScheme() { }
-    internal WorkflowScheme(Guid workflowId, int workStatusId, WorkStatusCategory workStatusCategory, int order)
+    internal WorkflowScheme(Guid workflowId, int workStatusId, StatusCategory workStatusCategory, int order)
     {
         WorkflowId = workflowId;
         WorkStatusId = workStatusId;
         WorkStatusCategory = workStatusCategory;
         Order = order;
     }
-    internal WorkflowScheme(Workflow workflow, int workStatusId, WorkStatusCategory workStatusCategory, int order, bool isActive)
+    internal WorkflowScheme(Workflow workflow, int workStatusId, StatusCategory workStatusCategory, int order, bool isActive)
     {
         Workflow = workflow;
         WorkStatusId = workStatusId;
@@ -27,7 +27,7 @@ public sealed class WorkflowScheme : BaseSoftDeletableEntity, IActivatable
     public Workflow? Workflow { get; private set; }
     public int WorkStatusId { get; }
     public WorkStatus? WorkStatus { get; private set; }
-    public WorkStatusCategory WorkStatusCategory { get; private set; }
+    public StatusCategory WorkStatusCategory { get; private set; }
     public int Order { get; private set; }
 
     public bool IsActive { get; private set; } = true;
@@ -52,7 +52,7 @@ public sealed class WorkflowScheme : BaseSoftDeletableEntity, IActivatable
         return Result.Success();
     }
 
-    public Result Update(WorkStatusCategory workStatusCategory, int order, Instant timestamp)
+    public Result Update(StatusCategory workStatusCategory, int order, Instant timestamp)
     {
         try
         {
@@ -76,7 +76,7 @@ public sealed class WorkflowScheme : BaseSoftDeletableEntity, IActivatable
     /// <param name="order"></param>
     /// <param name="isActive"></param>
     /// <returns></returns>
-    internal static WorkflowScheme Create(Workflow workflow, int workStatusId, WorkStatusCategory workStatusCategory, int order, bool isActive)
+    internal static WorkflowScheme Create(Workflow workflow, int workStatusId, StatusCategory workStatusCategory, int order, bool isActive)
     {
         return new(workflow, workStatusId, workStatusCategory, order, isActive);
     }

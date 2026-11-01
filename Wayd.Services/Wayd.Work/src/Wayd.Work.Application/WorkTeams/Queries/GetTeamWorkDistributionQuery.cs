@@ -3,6 +3,7 @@ using Wayd.Common.Application.Models.Organizations;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.Requests.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkTeams.Dtos;
 using Wayd.Work.Application.WorkTeams.WorkDistribution;
@@ -74,7 +75,7 @@ public sealed class GetTeamWorkDistributionQueryHandler(IWorkDbContext workDbCon
         var completions = await _workDbContext.WorkItems
             .Where(w => w.TeamId.HasValue && teamIds.Contains(w.TeamId.Value))
             .Where(w => w.Type.Level!.Tier == WorkTypeTier.Requirement)
-            .Where(w => w.StatusCategory == WorkStatusCategory.Done)
+            .Where(w => w.StatusCategory == StatusCategory.Done)
             .Where(w => w.DoneTimestamp >= start && w.DoneTimestamp < end)
             .Select(w => new
             {

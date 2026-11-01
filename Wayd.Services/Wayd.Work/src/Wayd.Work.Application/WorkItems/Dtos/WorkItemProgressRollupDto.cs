@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Application.WorkItems.Dtos;
 
@@ -35,9 +36,9 @@ public record WorkItemProgressRollupDto
 
         return new WorkItemProgressRollupDto
         {
-            Proposed = counts.GetValueOrDefault(WorkStatusCategory.Proposed, 0),
-            Active = counts.GetValueOrDefault(WorkStatusCategory.Active, 0),
-            Done = counts.GetValueOrDefault(WorkStatusCategory.Done, 0)
+            Proposed = counts.GetValueOrDefault(StatusCategory.Proposed, 0),
+            Active = counts.GetValueOrDefault(StatusCategory.Active, 0),
+            Done = counts.GetValueOrDefault(StatusCategory.Done, 0)
         };
     }
 

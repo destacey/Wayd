@@ -9,7 +9,12 @@ export { default as WorkflowStatusTag } from './workflow-status-tag'
 export type { WorkflowStatusTagProps } from './workflow-status-tag'
 export { default as StatusHistoryTag } from './status-history-tag'
 export type { StatusHistoryTagProps } from './status-history-tag'
-export { statusCategoryDescription } from './status-category'
+export {
+  statusCategoryDescription,
+  statusCategoryFromId,
+  statusCategoryLabel,
+  statusCategoryOptions,
+} from './status-category'
 export {
   transitionConditionLabels,
   requiresReason,

@@ -7,7 +7,7 @@ import DependencyHealthTag from '@/src/components/common/work/dependency-health-
 import WorkStatusTag from '@/src/components/common/work/work-status-tag'
 import type {
   DependencyHealth,
-  WorkStatusCategory,
+  StatusCategoryId,
 } from '@/src/components/types'
 
 /**
@@ -233,7 +233,7 @@ export const renderAssignedToLink = (
 /** A work status paired with its category (drives the tag color). */
 export interface WorkStatusTagTarget {
   status: string
-  statusCategory: { id: WorkStatusCategory }
+  statusCategory: { id: StatusCategoryId }
 }
 
 /**

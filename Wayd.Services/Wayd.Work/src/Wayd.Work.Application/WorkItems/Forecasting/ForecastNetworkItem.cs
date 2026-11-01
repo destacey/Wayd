@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Application.WorkItems.Forecasting;
 
@@ -7,11 +8,11 @@ internal sealed record ForecastNetworkItem(
     WorkItemKey Key,
     string Title,
     Guid? TeamId,
-    WorkStatusCategory StatusCategory,
+    StatusCategory StatusCategory,
     WorkTypeTier? Tier,
     double StackRank)
 {
-    public bool IsOpen => StatusCategory is WorkStatusCategory.Proposed or WorkStatusCategory.Active;
+    public bool IsOpen => StatusCategory is StatusCategory.Proposed or StatusCategory.Active;
 
     public bool IsBacklogItem => Tier == WorkTypeTier.Requirement;
 }

@@ -39,6 +39,7 @@ const request = (
       id: 's-1',
       name: 'Waiting on Requester',
       category: StatusCategory.Proposed,
+      categoryLabel: 'Proposed',
       alias: 2,
     },
     needBy,

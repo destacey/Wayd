@@ -2,7 +2,7 @@ using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.WorkTeams.Queries;
 using Wayd.Work.IntegrationTests.Infrastructure;
 
@@ -53,12 +53,12 @@ public sealed class GetKanbanTeamsWindowMetricsQueryHandlerTests(SqlServerDbCont
         await seeder.Reset(cancellationToken);
         var (teamId, _) = await seeder.AddTeam(cancellationToken);
 
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Instant.FromUtc(2026, 9, 8, 15, 0), storyPoints: 3, activated: Instant.FromUtc(2026, 9, 6, 15, 0));
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Instant.FromUtc(2026, 9, 21, 4, 0), storyPoints: 5);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Instant.FromUtc(2026, 9, 7, 4, 0), storyPoints: 8);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Instant.FromUtc(2026, 9, 10, 9, 0));
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Removed, done: Instant.FromUtc(2026, 9, 10, 9, 0), storyPoints: 13);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Instant.FromUtc(2026, 9, 10, 9, 0), storyPoints: 21, epic: true);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: Instant.FromUtc(2026, 9, 8, 15, 0), storyPoints: 3, activated: Instant.FromUtc(2026, 9, 6, 15, 0));
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: Instant.FromUtc(2026, 9, 21, 4, 0), storyPoints: 5);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: Instant.FromUtc(2026, 9, 7, 4, 0), storyPoints: 8);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: Instant.FromUtc(2026, 9, 10, 9, 0));
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Removed, done: Instant.FromUtc(2026, 9, 10, 9, 0), storyPoints: 13);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: Instant.FromUtc(2026, 9, 10, 9, 0), storyPoints: 21, epic: true);
 
         var handler = Handler(new() { [teamId] = Kanban("America/Chicago") });
 
@@ -108,17 +108,17 @@ public sealed class GetKanbanTeamsWindowMetricsQueryHandlerTests(SqlServerDbCont
         await seeder.MarkHistoryReadToEnd(cancellationToken);
         var (teamId, _) = await seeder.AddTeam(cancellationToken);
 
-        var (activeThen, _) = await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Instant.FromUtc(2026, 9, 22, 10, 0));
-        await seeder.AddPeriod(activeThen, 1, Instant.FromUtc(2026, 9, 15, 0, 0), Instant.FromUtc(2026, 9, 22, 10, 0), WorkStatusCategory.Active, cancellationToken, storyPoints: 5);
-        await seeder.AddPeriod(activeThen, 2, Instant.FromUtc(2026, 9, 22, 10, 0), null, WorkStatusCategory.Done, cancellationToken, storyPoints: 5);
+        var (activeThen, _) = await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: Instant.FromUtc(2026, 9, 22, 10, 0));
+        await seeder.AddPeriod(activeThen, 1, Instant.FromUtc(2026, 9, 15, 0, 0), Instant.FromUtc(2026, 9, 22, 10, 0), StatusCategory.Active, cancellationToken, storyPoints: 5);
+        await seeder.AddPeriod(activeThen, 2, Instant.FromUtc(2026, 9, 22, 10, 0), null, StatusCategory.Done, cancellationToken, storyPoints: 5);
 
-        var (startedAfter, _) = await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Active);
-        await seeder.AddPeriod(startedAfter, 1, Instant.FromUtc(2026, 9, 1, 0, 0), Instant.FromUtc(2026, 9, 21, 6, 0), WorkStatusCategory.Proposed, cancellationToken);
-        await seeder.AddPeriod(startedAfter, 2, Instant.FromUtc(2026, 9, 21, 6, 0), null, WorkStatusCategory.Active, cancellationToken);
+        var (startedAfter, _) = await seeder.AddItem(teamId, cancellationToken, StatusCategory.Active);
+        await seeder.AddPeriod(startedAfter, 1, Instant.FromUtc(2026, 9, 1, 0, 0), Instant.FromUtc(2026, 9, 21, 6, 0), StatusCategory.Proposed, cancellationToken);
+        await seeder.AddPeriod(startedAfter, 2, Instant.FromUtc(2026, 9, 21, 6, 0), null, StatusCategory.Active, cancellationToken);
 
-        var (doneBefore, _) = await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Instant.FromUtc(2026, 9, 12, 0, 0));
-        await seeder.AddPeriod(doneBefore, 1, Instant.FromUtc(2026, 9, 10, 0, 0), Instant.FromUtc(2026, 9, 12, 0, 0), WorkStatusCategory.Active, cancellationToken);
-        await seeder.AddPeriod(doneBefore, 2, Instant.FromUtc(2026, 9, 12, 0, 0), null, WorkStatusCategory.Done, cancellationToken);
+        var (doneBefore, _) = await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: Instant.FromUtc(2026, 9, 12, 0, 0));
+        await seeder.AddPeriod(doneBefore, 1, Instant.FromUtc(2026, 9, 10, 0, 0), Instant.FromUtc(2026, 9, 12, 0, 0), StatusCategory.Active, cancellationToken);
+        await seeder.AddPeriod(doneBefore, 2, Instant.FromUtc(2026, 9, 12, 0, 0), null, StatusCategory.Done, cancellationToken);
 
         var handler = Handler(new() { [teamId] = Kanban() });
 
@@ -141,7 +141,7 @@ public sealed class GetKanbanTeamsWindowMetricsQueryHandlerTests(SqlServerDbCont
         var seeder = new ForecastSeeder(_fixture);
         await seeder.Reset(cancellationToken);
         var (teamId, _) = await seeder.AddTeam(cancellationToken);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Active);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Active);
 
         var handler = Handler(new() { [teamId] = Kanban() });
 
@@ -162,9 +162,9 @@ public sealed class GetKanbanTeamsWindowMetricsQueryHandlerTests(SqlServerDbCont
         var seeder = new ForecastSeeder(_fixture);
         await seeder.Reset(cancellationToken);
         var (teamId, _) = await seeder.AddTeam(cancellationToken);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Active, storyPoints: 2);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Active, epic: true);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Proposed);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Active, storyPoints: 2);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Active, epic: true);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Proposed);
 
         var handler = Handler(new() { [teamId] = Kanban() });
 
@@ -187,8 +187,8 @@ public sealed class GetKanbanTeamsWindowMetricsQueryHandlerTests(SqlServerDbCont
         var seeder = new ForecastSeeder(_fixture);
         await seeder.Reset(cancellationToken);
         var (teamId, _) = await seeder.AddTeam(cancellationToken);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Instant.FromUtc(2026, 9, 21, 0, 0));
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Instant.FromUtc(2026, 9, 7, 0, 0));
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: Instant.FromUtc(2026, 9, 21, 0, 0));
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: Instant.FromUtc(2026, 9, 7, 0, 0));
 
         var handler = Handler(new() { [teamId] = Kanban() });
 
@@ -211,20 +211,20 @@ public sealed class GetKanbanTeamsWindowMetricsQueryHandlerTests(SqlServerDbCont
         var (teamId, _) = await seeder.AddTeam(cancellationToken);
 
         // In progress until exactly the end: still in progress at it.
-        var (endsAtEnd, _) = await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: end);
-        await seeder.AddPeriod(endsAtEnd, 1, Instant.FromUtc(2026, 9, 15, 0, 0), end, WorkStatusCategory.Active, cancellationToken);
-        await seeder.AddPeriod(endsAtEnd, 2, end, null, WorkStatusCategory.Done, cancellationToken);
+        var (endsAtEnd, _) = await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: end);
+        await seeder.AddPeriod(endsAtEnd, 1, Instant.FromUtc(2026, 9, 15, 0, 0), end, StatusCategory.Active, cancellationToken);
+        await seeder.AddPeriod(endsAtEnd, 2, end, null, StatusCategory.Done, cancellationToken);
 
         // Started exactly at the end, through a zero-length period: not yet in progress.
-        var (startsAtEnd, _) = await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Active);
-        await seeder.AddPeriod(startsAtEnd, 1, Instant.FromUtc(2026, 9, 1, 0, 0), end, WorkStatusCategory.Proposed, cancellationToken);
-        await seeder.AddPeriod(startsAtEnd, 2, end, end, WorkStatusCategory.Active, cancellationToken);
-        await seeder.AddPeriod(startsAtEnd, 3, end, null, WorkStatusCategory.Active, cancellationToken);
+        var (startsAtEnd, _) = await seeder.AddItem(teamId, cancellationToken, StatusCategory.Active);
+        await seeder.AddPeriod(startsAtEnd, 1, Instant.FromUtc(2026, 9, 1, 0, 0), end, StatusCategory.Proposed, cancellationToken);
+        await seeder.AddPeriod(startsAtEnd, 2, end, end, StatusCategory.Active, cancellationToken);
+        await seeder.AddPeriod(startsAtEnd, 3, end, null, StatusCategory.Active, cancellationToken);
 
         // Removed during the window: not in progress.
-        var (removed, _) = await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Removed);
-        await seeder.AddPeriod(removed, 1, Instant.FromUtc(2026, 9, 8, 0, 0), Instant.FromUtc(2026, 9, 10, 0, 0), WorkStatusCategory.Active, cancellationToken);
-        await seeder.AddPeriod(removed, 2, Instant.FromUtc(2026, 9, 10, 0, 0), null, WorkStatusCategory.Removed, cancellationToken);
+        var (removed, _) = await seeder.AddItem(teamId, cancellationToken, StatusCategory.Removed);
+        await seeder.AddPeriod(removed, 1, Instant.FromUtc(2026, 9, 8, 0, 0), Instant.FromUtc(2026, 9, 10, 0, 0), StatusCategory.Active, cancellationToken);
+        await seeder.AddPeriod(removed, 2, Instant.FromUtc(2026, 9, 10, 0, 0), null, StatusCategory.Removed, cancellationToken);
 
         var handler = Handler(new() { [teamId] = Kanban() });
 
@@ -245,8 +245,8 @@ public sealed class GetKanbanTeamsWindowMetricsQueryHandlerTests(SqlServerDbCont
         await seeder.MarkHistoryReadToEnd(cancellationToken);
         var (formerTeamId, _) = await seeder.AddTeam(cancellationToken);
         var (currentTeamId, _) = await seeder.AddTeam(cancellationToken);
-        var (moved, _) = await seeder.AddItem(currentTeamId, cancellationToken, WorkStatusCategory.Active);
-        await seeder.AddPeriod(moved, 1, Instant.FromUtc(2026, 9, 10, 0, 0), null, WorkStatusCategory.Active, cancellationToken);
+        var (moved, _) = await seeder.AddItem(currentTeamId, cancellationToken, StatusCategory.Active);
+        await seeder.AddPeriod(moved, 1, Instant.FromUtc(2026, 9, 10, 0, 0), null, StatusCategory.Active, cancellationToken);
 
         var handler = Handler(new() { [formerTeamId] = Kanban(), [currentTeamId] = Kanban() });
 
@@ -320,7 +320,7 @@ public sealed class GetKanbanTeamsWindowMetricsQueryHandlerTests(SqlServerDbCont
         var seeder = new ForecastSeeder(_fixture);
         await seeder.Reset(cancellationToken);
         var (teamId, _) = await seeder.AddTeam(cancellationToken);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Active, storyPoints: 2);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Active, storyPoints: 2);
 
         var handler = Handler(new() { [teamId] = Kanban() });
 

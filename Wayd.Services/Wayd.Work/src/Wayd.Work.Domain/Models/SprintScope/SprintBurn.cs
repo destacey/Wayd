@@ -1,6 +1,6 @@
 using NodaTime;
 using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Domain.Models.SprintScope;
 
@@ -146,6 +146,6 @@ public sealed class SprintBurn
         };
     }
 
-    private static bool IsFinished(WorkStatusCategory? category) =>
-        category is WorkStatusCategory.Done or WorkStatusCategory.Removed;
+    private static bool IsFinished(StatusCategory? category) =>
+        category is StatusCategory.Done or StatusCategory.Removed;
 }

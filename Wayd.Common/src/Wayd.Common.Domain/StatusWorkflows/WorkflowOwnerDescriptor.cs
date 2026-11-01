@@ -26,6 +26,7 @@ public sealed class WorkflowOwnerDescriptor
 {
     private readonly Dictionary<int, string> _aliases;
     private readonly Dictionary<int, StatusCategory> _aliasCategories;
+    private readonly Dictionary<StatusCategory, string> _categoryLabels;
 
     /// <param name="key">
     /// Stable identifier, persisted on every workflow row. Namespaced by module — <c>product.release</c>
@@ -61,6 +62,10 @@ public sealed class WorkflowOwnerDescriptor
     /// The feature flag the owning module is released behind, or null when it is always available. See
     /// <see cref="FeatureFlag"/>.
     /// </param>
+    /// <param name="categoryLabels">
+    /// What this owner type calls some or all of the categories, in its own words. A category left out
+    /// keeps its enum name. See <see cref="CategoryLabels"/>.
+    /// </param>
     public WorkflowOwnerDescriptor(
         string key,
         string displayName,
@@ -69,7 +74,8 @@ public sealed class WorkflowOwnerDescriptor
         IReadOnlyCollection<StatusCategory>? requiredCategories = null,
         bool supportsRestrictedTransitions = false,
         IReadOnlyCollection<WorkflowMove>? moves = null,
-        string? featureFlag = null)
+        string? featureFlag = null,
+        IReadOnlyDictionary<StatusCategory, string>? categoryLabels = null)
     {
         Key = Guard.Against.NullOrWhiteSpace(key, nameof(key)).Trim();
         DisplayName = Guard.Against.NullOrWhiteSpace(displayName, nameof(displayName)).Trim();
@@ -121,6 +127,7 @@ public sealed class WorkflowOwnerDescriptor
         }
 
         RequiredCategories = ValidateRequiredCategories(key, requiredCategories ?? []);
+        _categoryLabels = BuildCategoryLabels(key, categoryLabels ?? new Dictionary<StatusCategory, string>());
 
         _aliases = aliases.ToDictionary(a => a.Key, a => a.Value.Name.Trim());
         _aliasCategories = aliases.ToDictionary(a => a.Key, a => a.Value.Category);
@@ -140,6 +147,37 @@ public sealed class WorkflowOwnerDescriptor
         }
 
         return [.. requiredCategories.Order()];
+    }
+
+    private static Dictionary<StatusCategory, string> BuildCategoryLabels(
+        string key, IReadOnlyDictionary<StatusCategory, string> categoryLabels)
+    {
+        if (categoryLabels.Keys.Any(c => !Enum.IsDefined(c)))
+        {
+            throw new ArgumentException($"'{key}' labels a category that does not exist.", nameof(categoryLabels));
+        }
+
+        if (categoryLabels.Values.Any(string.IsNullOrWhiteSpace))
+        {
+            throw new ArgumentException($"'{key}' declares a category label with no text.", nameof(categoryLabels));
+        }
+
+        var labels = Enum.GetValues<StatusCategory>().ToDictionary(
+            c => c,
+            c => categoryLabels.TryGetValue(c, out var label) ? label.Trim() : c.ToString());
+
+        var duplicate = labels.Values
+            .GroupBy(l => l, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(g => g.Count() > 1);
+
+        if (duplicate is not null)
+        {
+            throw new ArgumentException(
+                $"'{key}' uses the label '{duplicate.Key}' for more than one category, so a reader could not tell them apart.",
+                nameof(categoryLabels));
+        }
+
+        return labels;
     }
 
     private static List<WorkflowMove> ValidateMoves(
@@ -247,7 +285,7 @@ public sealed class WorkflowOwnerDescriptor
         }
 
         return _aliasCategories.TryGetValue(alias, out var expected)
-            ? $"'{DescribeAlias(alias)}' belongs under {expected}, not {category}."
+            ? $"'{DescribeAlias(alias)}' belongs under {CategoryLabel(expected)}, not {CategoryLabel(category)}."
             : $"{DisplayName} statuses have no meaning numbered {alias}.";
     }
 
@@ -278,6 +316,21 @@ public sealed class WorkflowOwnerDescriptor
 
     /// <summary>Whether this owner type declares its <see cref="Moves"/>.</summary>
     public bool DeclaresMoves => Moves.Count > 0;
+
+    /// <summary>
+    /// What this owner type calls each category, for every category: its declared label, or the enum's
+    /// name when it declares none.
+    /// </summary>
+    /// <remarks>
+    /// Words only. The category itself, and every rule and rollup keyed on it, stays the shared
+    /// <see cref="StatusCategory"/>; what a record must reach to be in Done is still each workflow's to
+    /// decide. No two categories share a label, case-insensitively.
+    /// </remarks>
+    public IReadOnlyDictionary<StatusCategory, string> CategoryLabels => _categoryLabels;
+
+    /// <summary>What this owner type calls <paramref name="category"/>.</summary>
+    public string CategoryLabel(StatusCategory category) =>
+        _categoryLabels.TryGetValue(category, out var label) ? label : category.ToString();
 
     /// <summary>
     /// Names an alias, falling back to the raw value when it is not one this owner type declares.

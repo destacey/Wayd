@@ -1,5 +1,6 @@
 ﻿using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.Extensions;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItemDependencies.Dtos;
 
@@ -26,8 +27,8 @@ public sealed class GetTeamDependenciesQueryHandler(IWorkDbContext workDbContext
             return null;
         }
 
-        // convert the dependency statuses to WorkStatusCategory
-        var statusCategories = request.DependencyStatuses.Select(d => d.ToWorkStatusCategory()).ToArray();
+        // convert the dependency statuses to StatusCategory
+        var statusCategories = request.DependencyStatuses.Select(d => d.ToStatusCategory()).ToArray();
 
         var dependencies = await _workDbContext.WorkItemDependencies
             .Where(l => l.RemovedOn == null)

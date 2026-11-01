@@ -1,6 +1,6 @@
 ﻿using FluentAssertions;
 using NodaTime;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.Tests.Infrastructure;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkItems.Forecasting;
@@ -68,10 +68,10 @@ public sealed class WorkItemForecastBuilderTests : IDisposable
         var team = _scenario.NewTeam();
         _scenario.AddHistory(team);
         for (var rank = 1; rank <= 5; rank++)
-            _scenario.AddItem(team, WorkStatusCategory.Active, stackRank: rank);
+            _scenario.AddItem(team, StatusCategory.Active, stackRank: rank);
         for (var rank = 6; rank <= 9; rank++)
             _scenario.AddItem(team, stackRank: rank);
-        var target = _scenario.AddItem(team, WorkStatusCategory.Active, stackRank: 10);
+        var target = _scenario.AddItem(team, StatusCategory.Active, stackRank: 10);
 
         // Act
         var forecast = await Forecast([target], targetDate: null, new ForecastOptions { StartedWorkFirst = startedWorkFirst });
@@ -89,8 +89,8 @@ public sealed class WorkItemForecastBuilderTests : IDisposable
         var team = _scenario.NewTeam();
         _scenario.AddHistory(team);
         var target = _scenario.AddItem(team, stackRank: 1);
-        _scenario.AddItem(team, WorkStatusCategory.Active, stackRank: 2);
-        _scenario.AddItem(team, WorkStatusCategory.Active, stackRank: 3);
+        _scenario.AddItem(team, StatusCategory.Active, stackRank: 2);
+        _scenario.AddItem(team, StatusCategory.Active, stackRank: 3);
 
         // Act
         var forecast = await Forecast(target);
@@ -219,9 +219,9 @@ public sealed class WorkItemForecastBuilderTests : IDisposable
     }
 
     [Theory]
-    [InlineData(WorkStatusCategory.Done)]
-    [InlineData(WorkStatusCategory.Removed)]
-    public async Task Build_ClosedPredecessor_DoesNotHoldTheItemUp(WorkStatusCategory predecessorStatus)
+    [InlineData(StatusCategory.Done)]
+    [InlineData(StatusCategory.Removed)]
+    public async Task Build_ClosedPredecessor_DoesNotHoldTheItemUp(StatusCategory predecessorStatus)
     {
         // Arrange
         var team = _scenario.NewTeam();
@@ -247,7 +247,7 @@ public sealed class WorkItemForecastBuilderTests : IDisposable
         var team = _scenario.NewTeam();
         _scenario.AddHistory(team);
         var target = _scenario.AddItem(team, stackRank: 1);
-        var predecessor = _scenario.AddItem(team, WorkStatusCategory.Removed, done: ForecastScenario.Now.Minus(Duration.FromDays(5)));
+        var predecessor = _scenario.AddItem(team, StatusCategory.Removed, done: ForecastScenario.Now.Minus(Duration.FromDays(5)));
         _scenario.AddDependency(predecessor, target);
 
         // Act
@@ -404,8 +404,8 @@ public sealed class WorkItemForecastBuilderTests : IDisposable
         var team = _scenario.NewTeam();
         for (var day = 1; day <= 90; day += 3)
         {
-            _scenario.AddItem(team, WorkStatusCategory.Done, done: ForecastScenario.Now.Minus(Duration.FromDays(day)));
-            _scenario.AddItem(team, WorkStatusCategory.Done, done: ForecastScenario.Now.Minus(Duration.FromDays(day)));
+            _scenario.AddItem(team, StatusCategory.Done, done: ForecastScenario.Now.Minus(Duration.FromDays(day)));
+            _scenario.AddItem(team, StatusCategory.Done, done: ForecastScenario.Now.Minus(Duration.FromDays(day)));
         }
         for (var rank = 1; rank <= 20; rank++)
             _scenario.AddItem(team, stackRank: rank);
@@ -476,8 +476,8 @@ public sealed class WorkItemForecastBuilderTests : IDisposable
         var team = _scenario.NewTeam();
         for (var day = 1; day <= 90; day += 3)
         {
-            _scenario.AddItem(team, WorkStatusCategory.Done, done: ForecastScenario.Now.Minus(Duration.FromDays(day)));
-            _scenario.AddItem(team, WorkStatusCategory.Done, done: ForecastScenario.Now.Minus(Duration.FromDays(day)));
+            _scenario.AddItem(team, StatusCategory.Done, done: ForecastScenario.Now.Minus(Duration.FromDays(day)));
+            _scenario.AddItem(team, StatusCategory.Done, done: ForecastScenario.Now.Minus(Duration.FromDays(day)));
         }
         var epic = _scenario.AddItem(teamId: null, type: _scenario.Epic);
         WorkItem? furthest = null;

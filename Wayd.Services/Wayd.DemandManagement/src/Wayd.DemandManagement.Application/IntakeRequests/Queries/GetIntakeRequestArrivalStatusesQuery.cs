@@ -1,6 +1,7 @@
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
+using Wayd.DemandManagement.Domain;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Queries;
 
@@ -49,7 +50,7 @@ public sealed class GetIntakeRequestArrivalStatusesQueryHandler(
 
         return new IntakeRequestArrivalStatusesDto
         {
-            Statuses = [.. statuses.Select(s => new StatusNavigationDto { Id = s.Id, Name = s.Name, Category = s.Category, Alias = s.Alias })],
+            Statuses = [.. statuses.Select(s => new StatusNavigationDto { Id = s.Id, Name = s.Name, Category = s.Category, CategoryLabel = DemandManagementWorkflowOwners.IntakeRequest.CategoryLabel(s.Category), Alias = s.Alias })],
             DefaultStatusId = fallback?.Id,
         };
     }

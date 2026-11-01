@@ -48,7 +48,39 @@ public sealed class StatusWorkflowDetailsReaderTests : StatusWorkflowHandlerTest
         [NotableAlias, TerminalAlias],
         [StatusCategory.Proposed, StatusCategory.Active, StatusCategory.Done, StatusCategory.Removed]);
 
-    public StatusWorkflowDetailsReaderTests() => WorkflowOwners.Register(Gadget, Staged);
+    // An owner type that calls two of the categories by its own words.
+    private static readonly WorkflowOwnerDescriptor Labelled = new(
+        "test.query-labelled",
+        "Labelled",
+        new Dictionary<int, WorkflowAlias>
+        {
+            [NotableAlias] = new("Notable", StatusCategory.Active),
+            [TerminalAlias] = new("Terminal", StatusCategory.Done),
+        },
+        [NotableAlias, TerminalAlias],
+        categoryLabels: new Dictionary<StatusCategory, string>
+        {
+            [StatusCategory.Proposed] = "Planned",
+            [StatusCategory.Done] = "Shipped",
+        });
+
+    public StatusWorkflowDetailsReaderTests() => WorkflowOwners.Register(Gadget, Staged, Labelled);
+
+    [Fact]
+    public async Task Handle_ShouldNameEachStatusCategory_AsTheOwnerTypeLabelsIt()
+    {
+        // Arrange
+        var workflow = SeedWorkflow(owner: Labelled);
+
+        // Act
+        var result = await Read(workflow);
+
+        // Assert
+        result!.Statuses.Select(s => (s.Name, s.Category.Id, s.Category.Name)).Should().Equal(
+            ("Proposed", (int)StatusCategory.Proposed, "Planned"),
+            ("Notable", (int)StatusCategory.Active, "Active"),
+            ("Terminal", (int)StatusCategory.Done, "Shipped"));
+    }
 
     [Fact]
     public async Task Handle_ShouldNotOfferPublish_WhenARequiredCategoryIsMissing()

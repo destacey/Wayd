@@ -3,12 +3,12 @@
 import WaydList from '@/src/components/common/wayd-list'
 import WorkStatusTag from '@/src/components/common/work/work-status-tag'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { WorkStatusCategory as TagStatusCategory } from '@/src/components/types'
+import { StatusCategoryId as TagStatusCategory } from '@/src/components/types'
 import {
   IntakeRequestDetailsDto,
   IntakeRequestOutcomeDto,
   IntakeRequestOutcomeKind,
-  WorkStatusCategory,
+  StatusCategory,
 } from '@/src/services/wayd-api'
 import { useRemoveIntakeRequestOutcomeMutation } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError } from '@/src/utils'
@@ -21,11 +21,11 @@ import { outcomeKindLabel } from '../../../_components/outcome-kind'
 const { Text, Paragraph } = Typography
 
 /** The API names a work status category by code; the tag takes the category's number. */
-const tagStatusCategory: Record<WorkStatusCategory, TagStatusCategory> = {
-  [WorkStatusCategory.Proposed]: TagStatusCategory.Proposed,
-  [WorkStatusCategory.Active]: TagStatusCategory.Active,
-  [WorkStatusCategory.Done]: TagStatusCategory.Done,
-  [WorkStatusCategory.Removed]: TagStatusCategory.Removed,
+const tagStatusCategory: Record<StatusCategory, TagStatusCategory> = {
+  [StatusCategory.Proposed]: TagStatusCategory.Proposed,
+  [StatusCategory.Active]: TagStatusCategory.Active,
+  [StatusCategory.Done]: TagStatusCategory.Done,
+  [StatusCategory.Removed]: TagStatusCategory.Removed,
 }
 
 /** The record the outcome points at, linked to its page, or a note that it has been deleted. */

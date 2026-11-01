@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItems.Dtos;
 
@@ -11,7 +12,7 @@ internal sealed class WorkItemProgressStateBuilder(IWorkDbContext workDbContext,
 
     public async Task<List<WorkItemProgressStateDto>> Build(CancellationToken cancellationToken)
     {
-        const WorkStatusCategory removedCategory = WorkStatusCategory.Removed;  // temporary filter until we get the date from history
+        const StatusCategory removedCategory = StatusCategory.Removed;  // temporary filter until we get the date from history
         const WorkTypeTier requirementTier = WorkTypeTier.Requirement;
         const WorkTypeTier portfolioTier = WorkTypeTier.Portfolio;
 

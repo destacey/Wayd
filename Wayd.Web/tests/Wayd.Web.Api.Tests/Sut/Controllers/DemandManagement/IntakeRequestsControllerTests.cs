@@ -8,7 +8,6 @@ using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.DemandManagement;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.DemandManagement.Application.IntakeRequests.Commands;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
@@ -16,6 +15,7 @@ using Wayd.Web.Api.Controllers.DemandManagement;
 using Wayd.Web.Api.Models.DemandManagement.IntakeRequests;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkItems.Queries;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Web.Api.Tests.Sut.Controllers.DemandManagement;
 
@@ -36,7 +36,7 @@ public sealed class IntakeRequestsControllerTests
     public async Task GetIntakeRequest_FillsInEachWorkItemOutcomeFromWork_AndLeavesADeletedOneEmpty()
     {
         // Arrange
-        var live = WorkItem("APP-42", "Export screen", "In Progress", WorkStatusCategory.Active);
+        var live = WorkItem("APP-42", "Export screen", "In Progress", StatusCategory.Active);
         var deletedId = Guid.NewGuid();
         var projectId = Guid.NewGuid();
         SetupRequest(
@@ -58,7 +58,7 @@ public sealed class IntakeRequestsControllerTests
             Title = "Export screen",
             WorkspaceKey = "APP",
             Status = "In Progress",
-            StatusCategory = WorkStatusCategory.Active,
+            StatusCategory = StatusCategory.Active,
         });
         details.Outcomes.Single(o => o.TargetId == deletedId).WorkItem.Should().BeNull();
         details.Outcomes.Single(o => o.TargetId == projectId).WorkItem.Should().BeNull();
@@ -86,7 +86,7 @@ public sealed class IntakeRequestsControllerTests
     {
         // Arrange
         var requestId = Guid.NewGuid();
-        var workItem = WorkItem("APP-42", "Export screen", "Done", WorkStatusCategory.Done);
+        var workItem = WorkItem("APP-42", "Export screen", "Done", StatusCategory.Done);
         Dispatcher.Setup(d => d.Send(It.IsAny<GetWorkItemsByIdsQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([workItem]);
         Dispatcher.Setup(d => d.Send(It.IsAny<AddIntakeRequestOutcomeCommand>(), It.IsAny<CancellationToken>()))
@@ -102,7 +102,7 @@ public sealed class IntakeRequestsControllerTests
         Dispatcher.Verify(d => d.Send(
             It.Is<AddIntakeRequestOutcomeCommand>(c => c.Id == requestId && c.Kind == IntakeRequestOutcomeKind.WorkItem
                 && c.TargetId == workItem.Id && c.Note == "Phase one"
-                && c.WorkItem != null && c.WorkItem.Id == workItem.Id && c.WorkItem.StatusCategory == WorkStatusCategory.Done),
+                && c.WorkItem != null && c.WorkItem.Id == workItem.Id && c.WorkItem.StatusCategory == StatusCategory.Done),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -160,7 +160,7 @@ public sealed class IntakeRequestsControllerTests
         AddedBy = new EmployeeNavigationDto { Id = Guid.NewGuid(), Key = 1, Name = "Morgan Agent" },
     };
 
-    private static WorkItemDetailsNavigationDto WorkItem(string key, string title, string status, WorkStatusCategory category) => new()
+    private static WorkItemDetailsNavigationDto WorkItem(string key, string title, string status, StatusCategory category) => new()
     {
         Id = Guid.NewGuid(),
         Key = key,

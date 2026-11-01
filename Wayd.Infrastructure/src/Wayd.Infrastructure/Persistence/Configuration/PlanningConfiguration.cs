@@ -6,13 +6,13 @@ using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Models;
 using Wayd.Common.Domain.Models.Organizations;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Infrastructure.Persistence.Converters;
 using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Planning.Domain.Models.Roadmaps;
 using Wayd.Planning.Domain.Models.StoryMaps;
-using Wayd.Common.Domain.Enums.Work;
 
 namespace Wayd.Infrastructure.Persistence.Configuration;
 
@@ -753,7 +753,7 @@ public class StoryMapConfig : IEntityTypeConfiguration<StoryMap>
             .HasMaxLength(450);
 
         builder.Property(m => m.Status).IsRequired()
-            .HasConversion<EnumConverter<WorkStatusCategory>>()
+            .HasConversion<EnumConverter<StatusCategory>>()
             .HasColumnType("varchar")
             .HasMaxLength(32);
 

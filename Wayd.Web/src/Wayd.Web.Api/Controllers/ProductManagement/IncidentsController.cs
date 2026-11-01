@@ -1,0 +1,90 @@
+using Microsoft.FeatureManagement;
+using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Application.Models;
+using Wayd.Common.Domain.FeatureManagement;
+using Wayd.ProductManagement.Application.Incidents.Commands;
+using Wayd.ProductManagement.Application.Incidents.Dtos;
+using Wayd.ProductManagement.Application.Incidents.Queries;
+using Wayd.Web.Api.Extensions;
+using Wayd.Web.Api.Models.ProductManagement.Incidents;
+
+namespace Wayd.Web.Api.Controllers.ProductManagement;
+
+/// <summary>
+/// Operational incidents linked to products in the catalog.
+/// </summary>
+[Route("api/product-management/incidents")]
+[ApiVersionNeutral]
+[ApiController]
+[FeatureGate(RequirementType.All, FeatureFlags.Names.ProductManagement, FeatureFlags.Names.IncidentManagement)]
+public class IncidentsController(IDispatcher dispatcher) : ControllerBase
+{
+    private readonly IDispatcher _dispatcher = dispatcher;
+
+    [HttpGet]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Incidents)]
+    [EndpointSummary("List incidents, highest key first.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<PagedResponse<IncidentSummaryDto>>> GetIncidents(
+        [FromQuery] int page = PageRequest.FirstPage,
+        [FromQuery] int pageSize = PageSizes.Default,
+        CancellationToken cancellationToken = default)
+    {
+        var incidents = await _dispatcher.Send(
+            new GetIncidentsQuery(new PageRequest(page, pageSize)),
+            cancellationToken);
+
+        return Ok(incidents);
+    }
+
+    [HttpGet("{idOrKey}")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Incidents)]
+    [EndpointSummary("Get one incident by id or key.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IncidentDto>> GetIncident(string idOrKey, CancellationToken cancellationToken)
+    {
+        var incident = await _dispatcher.Send(new GetIncidentQuery(new IdOrKey(idOrKey)), cancellationToken);
+
+        return incident is not null ? Ok(incident) : NotFound();
+    }
+
+    [HttpPost]
+    [MustHavePermission(ApplicationAction.Create, ApplicationResource.Incidents)]
+    [EndpointSummary("Open an incident.")]
+    [EndpointDescription(
+        "Requires a linked employee, who becomes the commander. NoticedAt defaults to now when omitted.")]
+    [ProducesResponseType(typeof(ObjectIdAndKey), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ObjectIdAndKey>> Create(
+        [FromBody] CreateIncidentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToCommand(), cancellationToken);
+
+        return result.IsSuccess
+            ? CreatedAtAction(nameof(GetIncident), new { idOrKey = result.Value.Id }, result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id:guid}")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Incidents)]
+    [EndpointSummary("Update an incident's details.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> UpdateDetails(
+        Guid id,
+        [FromBody] UpdateIncidentDetailsRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (id != request.Id)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
+        }
+
+        var result = await _dispatcher.Send(request.ToCommand(), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+}

@@ -98,6 +98,7 @@ public static class ConfigureServices
         services.AddScoped<IStatusRecordMigrator, ReleaseStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, ReleasePackageStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, DeploymentStatusRecordMigrator>();
+        services.AddScoped<IStatusRecordMigrator, IncidentStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, IntakeRequestStatusRecordMigrator>();
 
         services.AddScoped<IStatusRecordCounter, ProductStatusRecordMigrator>();
@@ -105,6 +106,7 @@ public static class ConfigureServices
         services.AddScoped<IStatusRecordCounter, ReleaseStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, ReleasePackageStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, DeploymentStatusRecordMigrator>();
+        services.AddScoped<IStatusRecordCounter, IncidentStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, IntakeRequestStatusRecordMigrator>();
 
         services.AddFollowing();

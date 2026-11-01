@@ -42,5 +42,7 @@ internal static class StatusRefFactory
 
     public static StatusRef RolledBack() => For(StatusCategory.Removed, ProductStatusAlias.RolledBack);
 
+    public static StatusRef Open() => For(StatusCategory.Active, ProductStatusAlias.Open);
+
     public static StatusRef Retired() => For(StatusCategory.Done, ProductStatusAlias.Retired);
 }

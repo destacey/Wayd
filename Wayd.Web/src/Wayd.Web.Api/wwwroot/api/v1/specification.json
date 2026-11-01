@@ -11289,6 +11289,211 @@
         ]
       }
     },
+    "/api/product-management/incidents": {
+      "get": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "List incidents, highest key first.",
+        "operationId": "Incidents_GetIncidents",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 1
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfIncidentSummaryDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Open an incident.",
+        "description": "Requires a linked employee, who becomes the commander. NoticedAt defaults to now when omitted.",
+        "operationId": "Incidents_Create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIncidentRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incidents/{idOrKey}": {
+      "get": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Get one incident by id or key.",
+        "operationId": "Incidents_GetIncident",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incidents/{id}": {
+      "put": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Update an incident's details.",
+        "operationId": "Incidents_UpdateDetails",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIncidentDetailsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/product-management/incident-severity-sets": {
       "get": {
         "tags": [
@@ -56472,6 +56677,54 @@
         },
         "additionalProperties": false
       },
+      "CreateIncidentRequest": {
+        "required": [
+          "title",
+          "severityLevelId",
+          "productIds"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 4096,
+            "type": "string",
+            "nullable": true
+          },
+          "severityLevelId": {
+            "minLength": 1,
+            "type": "string",
+            "format": "uuid"
+          },
+          "noticedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "recoveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "productIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateIncidentSeveritySetRequest": {
         "required": [
           "name",
@@ -64165,6 +64418,71 @@
         "additionalProperties": false,
         "description": "A single CSV row for the version import.\nThe product is referenced by id, and a version is identified by that product together with its\n`Number` — version strings are free text and only meaningful within one product, so two\nproducts may each hold a `1.0.0`.\nThere is no status column: the moments decide where the version ends up. A row with neither is\nplanned, a `CutAt` makes it ready, and a `ReleasedAt` makes it\nreleased. A released moment without a cut moment is legitimate — a version recorded after the fact\noften has no record of when scope froze.\nBoth moments are instants and must carry their offset (see `OffsetTimestamp`): copy the\nCI/CD timestamps as-is."
       },
+      "IncidentDto": {
+        "required": [
+          "id",
+          "key",
+          "title",
+          "commander",
+          "severityLevel",
+          "noticedAt",
+          "products",
+          "status",
+          "statusAlias"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "commander": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "severityLevel": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "noticedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "recoveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationDto"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusNavigationDto"
+          },
+          "statusAlias": {
+            "$ref": "#/components/schemas/ProductStatusAlias"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One incident in full."
+      },
       "IncidentSeverityLevelDto": {
         "required": [
           "name",
@@ -64245,6 +64563,60 @@
         },
         "additionalProperties": false,
         "description": "One level in a severity set payload."
+      },
+      "IncidentSummaryDto": {
+        "required": [
+          "id",
+          "key",
+          "title",
+          "noticedAt",
+          "commander",
+          "severityLevel",
+          "status",
+          "statusAlias"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "noticedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "recoveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "commander": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "severityLevel": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusNavigationDto"
+          },
+          "statusAlias": {
+            "$ref": "#/components/schemas/ProductStatusAlias"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One incident on a list page."
       },
       "InitWorkspaceIntegrationRequest": {
         "required": [
@@ -68248,6 +68620,50 @@
         "additionalProperties": false,
         "description": "One page of results, with the paging position and the total across all pages."
       },
+      "PagedResponseOfIncidentSummaryDto": {
+        "required": [
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages",
+          "hasPreviousPage",
+          "hasNextPage"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IncidentSummaryDto"
+            }
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPreviousPage": {
+            "type": "boolean"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One page of results, with the paging position and the total across all pages."
+      },
       "PagedResponseOfJobSummaryResponse": {
         "required": [
           "items",
@@ -70462,7 +70878,10 @@
           "InProgress",
           "Succeeded",
           "Failed",
-          "RolledBack"
+          "RolledBack",
+          "Open",
+          "Resolved",
+          "Canceled"
         ],
         "type": "string"
       },
@@ -82924,6 +83343,60 @@
         },
         "additionalProperties": false
       },
+      "UpdateIncidentDetailsRequest": {
+        "required": [
+          "id",
+          "title",
+          "severityLevelId",
+          "noticedAt",
+          "productIds"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "minLength": 1,
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 4096,
+            "type": "string",
+            "nullable": true
+          },
+          "severityLevelId": {
+            "minLength": 1,
+            "type": "string",
+            "format": "uuid"
+          },
+          "noticedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "recoveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "productIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "UpdateIncidentSeveritySetRequest": {
         "required": [
           "id",
@@ -88655,6 +89128,9 @@
     },
     {
       "name": "Deployments"
+    },
+    {
+      "name": "Incidents"
     },
     {
       "name": "IncidentSeveritySets"

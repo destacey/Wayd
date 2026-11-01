@@ -44,6 +44,7 @@ public sealed class StatusRecordMigratorRegistrationTests
         services.AddScoped<IStatusRecordMigrator, ReleaseStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, ReleasePackageStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, DeploymentStatusRecordMigrator>();
+        services.AddScoped<IStatusRecordMigrator, IncidentStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, IntakeRequestStatusRecordMigrator>();
 
         return services.BuildServiceProvider();
@@ -96,6 +97,7 @@ public sealed class StatusRecordMigratorRegistrationTests
             typeof(ReleaseStatusRecordMigrator),
             typeof(ReleasePackageStatusRecordMigrator),
             typeof(DeploymentStatusRecordMigrator),
+            typeof(IncidentStatusRecordMigrator),
             typeof(IntakeRequestStatusRecordMigrator),
         ];
 

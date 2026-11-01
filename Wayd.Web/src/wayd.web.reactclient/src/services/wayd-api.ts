@@ -14084,6 +14084,276 @@ export class DeploymentsClient {
     }
 }
 
+export class IncidentsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * List incidents, highest key first.
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     * @return OK
+     */
+    getIncidents(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfIncidentSummaryDto> {
+        let url_ = this.baseUrl + "/api/product-management/incidents?";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIncidents(_response);
+        });
+    }
+
+    protected processGetIncidents(response: AxiosResponse): Promise<PagedResponseOfIncidentSummaryDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PagedResponseOfIncidentSummaryDto>(result200);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PagedResponseOfIncidentSummaryDto>(null as any);
+    }
+
+    /**
+     * Open an incident.
+     * @return Created
+     */
+    create(request: CreateIncidentRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
+        let url_ = this.baseUrl + "/api/product-management/incidents";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreate(_response);
+        });
+    }
+
+    protected processCreate(response: AxiosResponse): Promise<ObjectIdAndKey> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<ObjectIdAndKey>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ObjectIdAndKey>(null as any);
+    }
+
+    /**
+     * Get one incident by id or key.
+     * @return OK
+     */
+    getIncident(idOrKey: string, cancelToken?: CancelToken): Promise<IncidentDto> {
+        let url_ = this.baseUrl + "/api/product-management/incidents/{idOrKey}";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIncident(_response);
+        });
+    }
+
+    protected processGetIncident(response: AxiosResponse): Promise<IncidentDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IncidentDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IncidentDto>(null as any);
+    }
+
+    /**
+     * Update an incident's details.
+     * @return No Content
+     */
+    updateDetails(id: string, request: UpdateIncidentDetailsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/incidents/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateDetails(_response);
+        });
+    }
+
+    protected processUpdateDetails(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
 export class IncidentSeveritySetsClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -62597,6 +62867,16 @@ export interface CreateHolidayCalendarRequest {
     description?: string | undefined;
 }
 
+export interface CreateIncidentRequest {
+    title: string;
+    description?: string | undefined;
+    severityLevelId: string;
+    noticedAt?: Date | undefined;
+    startedAt?: Date | undefined;
+    recoveredAt?: Date | undefined;
+    productIds: string[];
+}
+
 export interface CreateIncidentSeveritySetRequest {
     name: string;
     description?: string | undefined;
@@ -65151,6 +65431,22 @@ column itself must be in the file. */
     notes?: string | undefined;
 }
 
+/** One incident in full. */
+export interface IncidentDto {
+    id: string;
+    key: number;
+    title: string;
+    description?: string | undefined;
+    commander: NavigationDto;
+    severityLevel: NavigationDto;
+    noticedAt: Date;
+    startedAt?: Date | undefined;
+    recoveredAt?: Date | undefined;
+    products: NavigationDto[];
+    status: StatusNavigationDto;
+    statusAlias: ProductStatusAlias;
+}
+
 export interface IncidentSeverityLevelDto {
     id: string;
     name: string;
@@ -65172,6 +65468,20 @@ export interface IncidentSeveritySetLevelRequest {
     /** Existing level id, or omitted when adding a level. */
     id?: string | undefined;
     name: string;
+}
+
+/** One incident on a list page. */
+export interface IncidentSummaryDto {
+    id: string;
+    key: number;
+    title: string;
+    noticedAt: Date;
+    startedAt?: Date | undefined;
+    recoveredAt?: Date | undefined;
+    commander: NavigationDto;
+    severityLevel: NavigationDto;
+    status: StatusNavigationDto;
+    statusAlias: ProductStatusAlias;
 }
 
 export interface InitWorkspaceIntegrationRequest {
@@ -66594,6 +66904,17 @@ export interface PagedResponseOfImportProcessRowDto {
 }
 
 /** One page of results, with the paging position and the total across all pages. */
+export interface PagedResponseOfIncidentSummaryDto {
+    items: IncidentSummaryDto[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
+/** One page of results, with the paging position and the total across all pages. */
 export interface PagedResponseOfJobSummaryResponse {
     items: JobSummaryResponse[];
     pageNumber: number;
@@ -67273,6 +67594,9 @@ export enum ProductStatusAlias {
     Succeeded = "Succeeded",
     Failed = "Failed",
     RolledBack = "RolledBack",
+    Open = "Open",
+    Resolved = "Resolved",
+    Canceled = "Canceled",
 }
 
 /** A tag axis and the tags on it. */
@@ -71243,6 +71567,17 @@ export interface UpdateHolidayCalendarRequest {
     name: string;
     /** What the calendar covers, such as the region or office. */
     description?: string | undefined;
+}
+
+export interface UpdateIncidentDetailsRequest {
+    id: string;
+    title: string;
+    description?: string | undefined;
+    severityLevelId: string;
+    noticedAt: Date;
+    startedAt?: Date | undefined;
+    recoveredAt?: Date | undefined;
+    productIds: string[];
 }
 
 export interface UpdateIncidentSeveritySetRequest {

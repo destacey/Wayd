@@ -178,3 +178,11 @@ public sealed class DeploymentStatusRecordMigrator(IProductManagementDbContext d
 
     protected override IQueryable<Deployment> Records => DbContext.Deployments;
 }
+
+public sealed class IncidentStatusRecordMigrator(IProductManagementDbContext dbContext)
+    : StatusRecordMigratorBase<Incident>(dbContext)
+{
+    public override string OwnerType => ProductWorkflowOwners.Incident.Key;
+
+    protected override IQueryable<Incident> Records => DbContext.Incidents;
+}

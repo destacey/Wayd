@@ -5,7 +5,7 @@ using Wayd.ProductManagement.Domain;
 namespace Wayd.Infrastructure.Persistence.Initialization;
 
 /// <summary>
-/// Seeds the default status workflows for Product Management's five owner types.
+/// Seeds the default status workflows for Product Management's status-tracked owner types.
 /// </summary>
 /// <remarks>
 /// Deliberately minimal: each workflow carries the aliases its aggregates cannot work without, plus a
@@ -69,6 +69,14 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
                 ("Succeeded", "Reached its environment.", StatusCategory.Done, ProductStatusAlias.Succeeded),
                 ("Failed", "Did not reach its environment.", StatusCategory.Removed, ProductStatusAlias.Failed),
                 ("Rolled Back", "Reached its environment and was reverted.", StatusCategory.Removed, ProductStatusAlias.RolledBack),
+            ], dateTimeProvider, cancellationToken);
+
+        seeded |= await seeding.SeedIfAbsent(dbContext, ProductWorkflowOwners.Incident, "Default Incident Workflow",
+            "The lifecycle of an operational incident.",
+            [
+                ("Open", "Under investigation or response.", StatusCategory.Active, ProductStatusAlias.Open),
+                ("Resolved", "Work finished and service restored.", StatusCategory.Done, ProductStatusAlias.Resolved),
+                ("Canceled", "Closed without treating as a real incident.", StatusCategory.Removed, ProductStatusAlias.Canceled),
             ], dateTimeProvider, cancellationToken);
 
         if (seeded)

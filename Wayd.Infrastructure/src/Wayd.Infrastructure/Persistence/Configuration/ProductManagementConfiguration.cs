@@ -732,3 +732,72 @@ public class IncidentSeveritySetAssignmentConfiguration : IEntityTypeConfigurati
         builder.Property(a => a.SeveritySetId).IsRequired();
     }
 }
+
+public class IncidentConfiguration : IEntityTypeConfiguration<Incident>
+{
+    public void Configure(EntityTypeBuilder<Incident> builder)
+    {
+        builder.ToTable("Incidents", SchemaNames.ProductManagement);
+
+        builder.HasKey(i => i.Id);
+        builder.HasAlternateKey(i => i.Key);
+
+        builder.Property(i => i.Id).ValueGeneratedNever();
+        builder.Property(i => i.Key).ValueGeneratedOnAdd();
+
+        builder.Property(i => i.Title).IsRequired().HasMaxLength(256);
+        builder.Property(i => i.Description).HasMaxLength(4096);
+        builder.Property(i => i.CommanderEmployeeId).IsRequired();
+        builder.Property(i => i.SeverityLevelId).IsRequired();
+        builder.Property(i => i.NoticedAt).IsRequired();
+        builder.Property(i => i.StartedAt);
+        builder.Property(i => i.RecoveredAt);
+
+        builder.Property(i => i.StatusId).IsRequired();
+        builder.Property(i => i.StatusWorkflowId).IsRequired();
+        builder.HasIndex(i => i.StatusWorkflowId);
+        builder.Property(i => i.StatusName).IsRequired().HasMaxLength(64);
+        builder.Property(i => i.StatusCategory).IsRequired()
+            .HasConversion<EnumConverter<StatusCategory>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+        builder.Property(i => i.StatusAliasValue).IsRequired();
+        builder.Property(i => i.StatusTransitionCount).IsRequired();
+
+        builder.ConfigureStatusHistory();
+
+        builder.HasMany(i => i.ProductLinks)
+            .WithOne()
+            .HasForeignKey(l => l.IncidentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(i => i.ProductLinks).HasField("_productLinks").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasOne<IncidentSeverityLevel>()
+            .WithMany()
+            .HasForeignKey(i => i.SeverityLevelId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Ignore(i => i.StatusAlias);
+    }
+}
+
+public class IncidentProductLinkConfiguration : IEntityTypeConfiguration<IncidentProductLink>
+{
+    public void Configure(EntityTypeBuilder<IncidentProductLink> builder)
+    {
+        builder.ToTable("IncidentProductLinks", SchemaNames.ProductManagement);
+
+        builder.HasKey(l => l.Id);
+        builder.HasIndex(l => new { l.IncidentId, l.ProductId }).IsUnique();
+
+        builder.Property(l => l.Id).ValueGeneratedNever();
+        builder.Property(l => l.IncidentId).IsRequired();
+        builder.Property(l => l.ProductId).IsRequired();
+
+        builder.HasOne(l => l.Product)
+            .WithMany()
+            .HasForeignKey(l => l.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}

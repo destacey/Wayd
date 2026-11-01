@@ -64031,6 +64031,7 @@ Free text, never parsed: nothing sorts or compares it, so any convention works. 
 export interface PokerRoundDto {
     id: string;
     label?: string | undefined;
+    /** Optional detail about what is being estimated, such as acceptance criteria or notes for the team. */
     description?: string | undefined;
     status: string;
     consensusEstimate?: string | undefined;

@@ -8,6 +8,9 @@ namespace Wayd.Planning.Application.PokerSessions.Commands;
 /// </summary>
 public sealed record UpdatePokerRoundDescriptionCommand(Guid SessionId, Guid RoundId, string? Description) : ICommand;
 
+/// <summary>
+/// Requires both ids and holds the description to the column's length.
+/// </summary>
 public sealed class UpdatePokerRoundDescriptionCommandValidator : CustomValidator<UpdatePokerRoundDescriptionCommand>
 {
     public UpdatePokerRoundDescriptionCommandValidator()
@@ -20,6 +23,9 @@ public sealed class UpdatePokerRoundDescriptionCommandValidator : CustomValidato
     }
 }
 
+/// <summary>
+/// Updates the round's description on an active session and tells the session's participants to refresh.
+/// </summary>
 public sealed class UpdatePokerRoundDescriptionCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionNotifier notifier, ILogger<UpdatePokerRoundDescriptionCommandHandler> logger) : ICommandHandler<UpdatePokerRoundDescriptionCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;

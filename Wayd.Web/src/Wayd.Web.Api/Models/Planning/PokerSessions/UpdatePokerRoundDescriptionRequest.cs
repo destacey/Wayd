@@ -22,6 +22,9 @@ public class UpdatePokerRoundDescriptionRequest
     }
 }
 
+/// <summary>
+/// Holds the description to the column's length.
+/// </summary>
 public sealed class UpdatePokerRoundDescriptionRequestValidator : CustomValidator<UpdatePokerRoundDescriptionRequest>
 {
     public UpdatePokerRoundDescriptionRequestValidator()

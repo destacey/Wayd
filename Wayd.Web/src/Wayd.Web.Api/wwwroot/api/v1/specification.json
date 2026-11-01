@@ -66625,6 +66625,7 @@
           },
           "description": {
             "type": "string",
+            "description": "Optional detail about what is being estimated, such as acceptance criteria or notes for the team.",
             "nullable": true
           },
           "status": {

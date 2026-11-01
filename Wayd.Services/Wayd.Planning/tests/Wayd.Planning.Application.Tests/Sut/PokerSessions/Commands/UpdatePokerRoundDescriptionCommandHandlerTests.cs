@@ -5,6 +5,7 @@ using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Tests.Data;
 using Moq;
+using NodaTime;
 
 namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
 
@@ -70,6 +71,24 @@ public class UpdatePokerRoundDescriptionCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_ShouldFail_WhenRoundDoesNotExist()
+    {
+        // Arrange
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
+        _dbContext.AddPokerSession(session);
+
+        var command = new UpdatePokerRoundDescriptionCommand(session.Id, Guid.NewGuid(), "Description");
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("Round not found");
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Handle_ShouldFail_WhenSessionDoesNotExist()
     {
         // Arrange
@@ -88,16 +107,21 @@ public class UpdatePokerRoundDescriptionCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenSessionIsCompleted()
     {
         // Arrange
-        var session = _sessionFaker.WithStatus(PokerSessionStatus.Completed).Generate();
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
         _dbContext.AddPokerSession(session);
 
-        var command = new UpdatePokerRoundDescriptionCommand(session.Id, Guid.NewGuid(), "Description");
+        var round = session.AddRound("Label", "Original").Value;
+        session.Complete(Instant.FromUtc(2026, 1, 15, 10, 0));
+
+        var command = new UpdatePokerRoundDescriptionCommand(session.Id, round.Id, "Description");
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not active");
+        round.Description.Should().Be("Original");
         _dbContext.SaveChangesCallCount.Should().Be(0);
         _mockNotifier.Verify(n => n.NotifyRoundDescriptionUpdated(It.IsAny<Guid>(), It.IsAny<Guid>()), Times.Never);
     }

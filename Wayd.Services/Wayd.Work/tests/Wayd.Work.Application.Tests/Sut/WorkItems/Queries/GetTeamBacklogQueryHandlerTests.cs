@@ -1,7 +1,7 @@
 using FluentAssertions;
 using NodaTime;
 using Wayd.Common.Application.Models.Organizations;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Models;
 using Wayd.Work.Application.Tests.Infrastructure;
 using Wayd.Work.Application.WorkItems.Queries;
@@ -56,7 +56,7 @@ public sealed class GetTeamBacklogQueryHandlerTests : IDisposable
             .WithKey(new WorkItemKey(_workspace.Key, number))
             .WithType(_storyType)
             .WithStatus(_status)
-            .WithStatusCategory(WorkStatusCategory.Active)
+            .WithStatusCategory(StatusCategory.Active)
             .WithTeamId(_teamId)
             .WithStackRank(stackRank)
             .WithCreated(created)

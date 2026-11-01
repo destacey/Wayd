@@ -1,11 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.Interfaces.Organization;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Domain.Models;
 
 namespace Wayd.Work.IntegrationTests.Infrastructure;
@@ -111,13 +111,13 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
     public async Task AddHistory(Guid teamId, CancellationToken cancellationToken, int days = 90)
     {
         for (var day = 1; day <= days; day++)
-            await AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Now.Minus(Duration.FromDays(day)));
+            await AddItem(teamId, cancellationToken, StatusCategory.Done, done: Now.Minus(Duration.FromDays(day)));
     }
 
     public async Task<(Guid Id, string Key)> AddItem(
         Guid? teamId,
         CancellationToken cancellationToken,
-        WorkStatusCategory statusCategory = WorkStatusCategory.Proposed,
+        StatusCategory statusCategory = StatusCategory.Proposed,
         double stackRank = 1,
         bool epic = false,
         Instant? done = null,
@@ -159,7 +159,7 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
     }
 
     /// <summary>One history period of a seeded item, as a "Forecast Story" in <paramref name="statusCategory"/>.</summary>
-    public async Task AddPeriod(Guid workItemId, int revision, Instant from, Instant? to, WorkStatusCategory statusCategory, CancellationToken cancellationToken, double? storyPoints = null)
+    public async Task AddPeriod(Guid workItemId, int revision, Instant from, Instant? to, StatusCategory statusCategory, CancellationToken cancellationToken, double? storyPoints = null)
     {
         var validFrom = from.ToDateTimeUtc();
         var validTo = to?.ToDateTimeUtc();

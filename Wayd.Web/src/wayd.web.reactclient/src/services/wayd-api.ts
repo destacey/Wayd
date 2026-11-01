@@ -1745,7 +1745,7 @@ export class MeClient {
      * @param doneTo (optional) 
      * @return OK
      */
-    getWorkItems(statusCategories?: WorkStatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+    getWorkItems(statusCategories?: StatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
         let url_ = this.baseUrl + "/api/me/work-items?";
         if (statusCategories !== undefined && statusCategories !== null)
             statusCategories && statusCategories.forEach(item => { url_ += "statusCategories=" + encodeURIComponent("" + item) + "&"; });
@@ -40917,7 +40917,7 @@ export class EmployeesClient {
      * @param doneTo (optional) 
      * @return OK
      */
-    getEmployeeWorkItems(id: string, statusCategories?: WorkStatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+    getEmployeeWorkItems(id: string, statusCategories?: StatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
         let url_ = this.baseUrl + "/api/organization/employees/{id}/work-items?";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -43623,7 +43623,7 @@ export class TeamsClient {
      * @param doneTo (optional) 
      * @return OK
      */
-    getTeamWorkItems(idOrCode: string, statusCategories?: WorkStatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+    getTeamWorkItems(idOrCode: string, statusCategories?: StatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
         let url_ = this.baseUrl + "/api/organization/teams/{idOrCode}/work-items?";
         if (idOrCode === undefined || idOrCode === null)
             throw new globalThis.Error("The parameter 'idOrCode' must be defined.");
@@ -69247,13 +69247,6 @@ export interface WorkspaceListDto {
 }
 
 export interface WorkspaceNavigationDto extends NavigationDtoOfGuidAndString {
-}
-
-export enum WorkStatusCategory {
-    Proposed = "Proposed",
-    Active = "Active",
-    Done = "Done",
-    Removed = "Removed",
 }
 
 export interface WorkStatusCategoryListDto {

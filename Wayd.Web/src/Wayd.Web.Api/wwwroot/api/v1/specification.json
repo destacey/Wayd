@@ -1355,7 +1355,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/components/schemas/WorkStatusCategory"
+                "$ref": "#/components/schemas/StatusCategory"
               },
               "nullable": true
             },
@@ -35118,7 +35118,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/components/schemas/WorkStatusCategory"
+                "$ref": "#/components/schemas/StatusCategory"
               },
               "nullable": true
             },
@@ -37751,7 +37751,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/components/schemas/WorkStatusCategory"
+                "$ref": "#/components/schemas/StatusCategory"
               },
               "nullable": true
             },
@@ -83795,15 +83795,6 @@
             "additionalProperties": false
           }
         ]
-      },
-      "WorkStatusCategory": {
-        "enum": [
-          "Proposed",
-          "Active",
-          "Done",
-          "Removed"
-        ],
-        "type": "string"
       },
       "WorkStatusCategoryListDto": {
         "required": [

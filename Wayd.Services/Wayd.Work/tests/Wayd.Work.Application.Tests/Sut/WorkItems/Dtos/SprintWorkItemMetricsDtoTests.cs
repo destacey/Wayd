@@ -1,6 +1,6 @@
 ﻿using NodaTime;
 using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Domain.Models;
 using Wayd.Work.Domain.Tests.Data;
@@ -70,7 +70,7 @@ public sealed class SprintWorkItemMetricsDtoTests
     {
         // The Removed status counts as "completed" but is not used for cycle time.
         return new WorkItemFaker()
-            .RuleFor(w => w.StatusCategory, WorkStatusCategory.Removed)
+            .RuleFor(w => w.StatusCategory, StatusCategory.Removed)
             .RuleFor(w => w.ActivatedTimestamp, (Instant?)null)
             .RuleFor(w => w.DoneTimestamp, (Instant?)null)
             .RuleFor(w => w.StoryPoints, storyPoints)

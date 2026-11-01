@@ -5,7 +5,7 @@ using NodaTime;
 using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Tests.Shared;
 using Wayd.Work.Application.Tests.Infrastructure;
 using Wayd.Work.Application.WorkProcesses.Commands;
@@ -100,7 +100,7 @@ public sealed class CreateExternalWorkProcessCommandHandlerTests : IDisposable
     {
         var states = statusNames
             .Select((statusName, i) => Mock.Of<IExternalWorkflowState>(s =>
-                s.StatusName == statusName && s.Category == WorkStatusCategory.Proposed && s.Order == i + 1 && s.IsActive))
+                s.StatusName == statusName && s.Category == StatusCategory.Proposed && s.Order == i + 1 && s.IsActive))
             .ToList();
 
         var workType = new Mock<IExternalWorkTypeWorkflow>();

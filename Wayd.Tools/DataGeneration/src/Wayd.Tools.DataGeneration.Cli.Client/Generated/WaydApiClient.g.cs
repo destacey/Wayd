@@ -3152,7 +3152,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetWorkItemsAsync(System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetWorkItemsAsync(System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -3474,7 +3474,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetWorkItemsAsync(System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetWorkItemsAsync(System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -73593,7 +73593,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetEmployeeWorkItemsAsync(System.Guid id, System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetEmployeeWorkItemsAsync(System.Guid id, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -75518,7 +75518,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetEmployeeWorkItemsAsync(System.Guid id, System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetEmployeeWorkItemsAsync(System.Guid id, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -77993,7 +77993,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetTeamWorkItemsAsync(string idOrCode, System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetTeamWorkItemsAsync(string idOrCode, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -80683,7 +80683,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetTeamWorkItemsAsync(string idOrCode, System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetTeamWorkItemsAsync(string idOrCode, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (idOrCode == null)
                 throw new System.ArgumentNullException("idOrCode");
@@ -139078,24 +139078,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class WorkspaceNavigationDto : NavigationDtoOfGuidAndString
     {
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum WorkStatusCategory
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Proposed")]
-        Proposed = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Active")]
-        Active = 1,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Done")]
-        Done = 2,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Removed")]
-        Removed = 3,
 
     }
 

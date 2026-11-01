@@ -2,7 +2,7 @@
 using NodaTime;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Domain.Models.BacklogHealth;
 
@@ -50,7 +50,7 @@ public static class BacklogHealthAssessor
             ? Runway((double)ranked.Count * history.LookbackDays / (7.0 * completed), thresholds)
             : NotAssessed(BacklogHealthCheck.Runway, BacklogHealthOutcome.NotEnoughHistory));
         results.Add(NetFlow(history, thresholds));
-        results.Add(WipLoad(ranked.Count(i => i.StatusCategory == WorkStatusCategory.Active), memberCount, thresholds));
+        results.Add(WipLoad(ranked.Count(i => i.StatusCategory == StatusCategory.Active), memberCount, thresholds));
 
         void Flag(BacklogHealthCheck check, IEnumerable<BacklogHealthItem> inScope, Func<BacklogHealthItem, bool> isFlagged, bool anyIsUnhealthy = false)
         {
@@ -75,12 +75,12 @@ public static class BacklogHealthAssessor
             results.Add(new BacklogHealthCheckResult(check, BacklogHealthOutcome.Assessed, grade, percent, flagged.Count, scope.Count));
         }
 
-        var active = ranked.Where(i => i.StatusCategory == WorkStatusCategory.Active).ToList();
+        var active = ranked.Where(i => i.StatusCategory == StatusCategory.Active).ToList();
 
         Flag(BacklogHealthCheck.Stale, ranked,
             i => now - i.LastModified >= Duration.FromDays(thresholds.StaleDays));
 
-        Flag(BacklogHealthCheck.OldProposed, ranked.Where(i => i.StatusCategory == WorkStatusCategory.Proposed),
+        Flag(BacklogHealthCheck.OldProposed, ranked.Where(i => i.StatusCategory == StatusCategory.Proposed),
             i => now - i.Created >= Duration.FromDays(thresholds.OldProposedDays));
 
         var cycleTimes = history.Completions

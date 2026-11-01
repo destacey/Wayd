@@ -1,9 +1,9 @@
 using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Interfaces;
 using NodaTime;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Planning.Domain.Models.StoryMaps;
 
@@ -26,7 +26,7 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         Name = name;
         Description = description;
         OwnerId = ownerId;
-        Status = WorkStatusCategory.Active;
+        Status = StatusCategory.Active;
     }
 
     /// <summary>
@@ -66,7 +66,7 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// <summary>
     /// The lifecycle status of the map. Active while in use, Removed once archived.
     /// </summary>
-    public WorkStatusCategory Status { get; private set; }
+    public StatusCategory Status { get; private set; }
 
     /// <summary>
     /// Optimistic concurrency token for the whole aggregate. Everything the map owns is mutated
@@ -111,7 +111,7 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// not editable. Every public method that changes the map or anything it contains guards on this
     /// first — the UI hides the affordances, but the API is reachable directly.
     /// </summary>
-    private bool IsArchived => Status == WorkStatusCategory.Removed;
+    private bool IsArchived => Status == StatusCategory.Removed;
 
     private const string ArchivedError = "This story map is archived and cannot be changed.";
 
@@ -157,10 +157,10 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result Archive()
     {
-        if (Status != WorkStatusCategory.Active)
+        if (Status != StatusCategory.Active)
             return Result.Failure("Only active story maps can be archived.");
 
-        Status = WorkStatusCategory.Removed;
+        Status = StatusCategory.Removed;
         return Result.Success();
     }
 

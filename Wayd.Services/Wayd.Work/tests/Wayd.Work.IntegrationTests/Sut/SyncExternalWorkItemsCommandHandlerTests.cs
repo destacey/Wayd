@@ -5,8 +5,8 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Domain.Enums.AppIntegrations;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.Models;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Models;
 using Wayd.Work.Application.WorkItems.Commands;
 using Wayd.Work.Domain.Interfaces;
@@ -58,7 +58,7 @@ public sealed class SyncExternalWorkItemsCommandHandlerTests(SqlServerDbContextF
         item.WorkspaceId.Should().Be(toWorkspaceId);
         item.Key.ToString().Should().Be($"MOVETO-{ExternalWorkItemId}");
         item.Title.Should().Be("Moved title");
-        item.StatusCategory.Should().Be(WorkStatusCategory.Active);
+        item.StatusCategory.Should().Be(StatusCategory.Active);
         item.LastModified.Should().Be(MovedAt);
 
         var history = await verify.Context.WorkItemStateHistory.AsNoTracking()
@@ -139,8 +139,8 @@ public sealed class SyncExternalWorkItemsCommandHandlerTests(SqlServerDbContextF
 
         var workflow = Workflow.CreateExternal("Move Workflow", null,
         [
-            new WorkflowSchemeInput(newStatus.Id, WorkStatusCategory.Proposed, 1),
-            new WorkflowSchemeInput(activeStatus.Id, WorkStatusCategory.Active, 2),
+            new WorkflowSchemeInput(newStatus.Id, StatusCategory.Proposed, 1),
+            new WorkflowSchemeInput(activeStatus.Id, StatusCategory.Active, 2),
         ]);
         context.Workflows.Add(workflow);
         var workProcess = WorkProcess.CreateExternal("Move Process", null, Guid.NewGuid(), SqlServerDbContextFixture.FixedNow);
@@ -177,7 +177,7 @@ public sealed class SyncExternalWorkItemsCommandHandlerTests(SqlServerDbContextF
     private static ExternalWorkItem Item(string status, Instant lastModified, int id = ExternalWorkItemId, string title = "Movable item") =>
         new(id, title, WorkTypeName, status, Created, lastModified);
 
-    private sealed record WorkflowSchemeInput(int WorkStatusId, WorkStatusCategory Category, int Order) : ICreateWorkflowScheme
+    private sealed record WorkflowSchemeInput(int WorkStatusId, StatusCategory Category, int Order) : ICreateWorkflowScheme
     {
         public bool IsActive => true;
     }

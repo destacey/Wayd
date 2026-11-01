@@ -22,6 +22,7 @@ public sealed record WorkflowAssignmentRemovedEvent : DomainEvent<WorkflowAssign
         Guid fromWorkflowId,
         Guid? toWorkflowId,
         Guid? fromSchemeId,
+        Guid? toSchemeId,
         EventActor actor,
         Instant timestamp)
         : base(actor, "1.1")
@@ -31,6 +32,7 @@ public sealed record WorkflowAssignmentRemovedEvent : DomainEvent<WorkflowAssign
         FromWorkflowId = fromWorkflowId;
         ToWorkflowId = toWorkflowId;
         FromSchemeId = fromSchemeId;
+        ToSchemeId = toSchemeId;
 
         Timestamp = timestamp;
     }
@@ -52,6 +54,12 @@ public sealed record WorkflowAssignmentRemovedEvent : DomainEvent<WorkflowAssign
 
     /// <summary>The scheme the scope had chosen. Added in 1.1; null in earlier payloads.</summary>
     public Guid? FromSchemeId { get; }
+
+    /// <summary>
+    /// The organization's scheme the scope follows from now on, or <c>null</c> when the scope itself was removed.
+    /// Added in 1.1; null in earlier payloads.
+    /// </summary>
+    public Guid? ToSchemeId { get; }
 
     [JsonIgnore]
     public string AggregateType => "Workflow";

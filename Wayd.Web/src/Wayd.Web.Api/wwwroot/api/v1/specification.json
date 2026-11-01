@@ -70844,8 +70844,12 @@
             "description": "The kind of record this is a type of."
           },
           "ownership": {
-            "type": "string",
-            "description": "`Owned` when administrators keep it; `Managed` when a sync keeps it from its source."
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowOwnership"
+              }
+            ],
+            "description": "Whether administrators keep it, or a sync keeps it from its source."
           },
           "externalKey": {
             "type": "string",
@@ -84000,6 +84004,13 @@
         "additionalProperties": false,
         "description": "An owner type, as referenced from a workflow or an assignment."
       },
+      "WorkflowOwnership": {
+        "enum": [
+          "Owned",
+          "Managed"
+        ],
+        "type": "string"
+      },
       "WorkflowOwnerTypeDto": {
         "required": [
           "key",
@@ -84126,8 +84137,12 @@
             "$ref": "#/components/schemas/WorkflowOwnerNavigationDto"
           },
           "ownership": {
-            "type": "string",
-            "description": "`Owned` or `Managed`."
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowOwnership"
+              }
+            ],
+            "description": "Whether administrators keep it, or a sync keeps it from its source."
           },
           "externalKey": {
             "type": "string",
@@ -84241,8 +84256,12 @@
             "$ref": "#/components/schemas/WorkflowOwnerNavigationDto"
           },
           "ownership": {
-            "type": "string",
-            "description": "`Owned` or `Managed`."
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowOwnership"
+              }
+            ],
+            "description": "Whether administrators keep it, or a sync keeps it from its source."
           },
           "defaultWorkflow": {
             "oneOf": [

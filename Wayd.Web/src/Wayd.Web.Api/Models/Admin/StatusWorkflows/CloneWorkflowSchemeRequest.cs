@@ -1,5 +1,4 @@
 using Wayd.Common.Application.StatusWorkflows.Commands;
-using Wayd.Common.Application.StatusWorkflows.Dtos;
 
 namespace Wayd.Web.Api.Models.Admin.StatusWorkflows;
 

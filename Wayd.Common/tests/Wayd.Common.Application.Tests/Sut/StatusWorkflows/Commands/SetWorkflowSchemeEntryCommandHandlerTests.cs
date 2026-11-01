@@ -1,3 +1,4 @@
+using Wayd.Tests.Shared.Extensions;
 using FluentAssertions;
 using Moq;
 using Wayd.Common.Application.Interfaces;
@@ -101,5 +102,51 @@ public sealed class SetWorkflowSchemeEntryCommandHandlerTests : WorkflowSchemeHa
         remap.FromWorkflowId.Should().Be(bugFlow.Id);
         remap.ToWorkflowId.Should().Be(standard.Id);
         selection.ScopeIds.Should().BeEquivalentTo(new Guid?[] { null });
+    }
+
+    [Fact]
+    public async Task Handle_ShouldMoveNothing_WhenTheTargetWorkflowIsNotPublished()
+    {
+        // Arrange
+        var standard = TicketWorkflow("Standard");
+        var archived = TicketWorkflow("Retired Flow");
+        archived.Archive(isAssigned: false, Domain.Events.EventActor.System, Now).IsSuccess.Should().BeTrue();
+        var scheme = Scheme(standard);
+        Assign(scheme, standard, Guid.NewGuid());
+
+        // Act
+        var result = await CreateSut(Migrator.Object).Handle(
+            new SetWorkflowSchemeEntryCommand(scheme.Id, Bug.Id, archived.Id, []), TestContext.Current.CancellationToken);
+
+        // Assert
+        // Refused before the migrator runs, so no record is left on an archived workflow.
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("'Retired Flow' is not published, so records cannot be moved onto it.");
+        Migrated.Should().BeEmpty();
+        scheme.WorkflowFor(Bug.Id).Should().Be(standard.Id);
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldMoveNothing_WhenTheSchemeRefusesTheChange()
+    {
+        // Arrange
+        var standard = TicketWorkflow("Standard");
+        var bugFlow = TicketWorkflow("Bug Flow");
+        var scheme = Scheme(standard);
+        Assign(scheme, standard, Guid.NewGuid());
+        var widgetType = Domain.StatusWorkflows.RecordType.Create(Ticket.Key, "Gizmo", Domain.Events.EventActor.System, Now).Value;
+        widgetType.SetPrivate(r => r.OwnerType, Widget.Key);
+        DbContext.AddRecordType(widgetType);
+
+        // Act
+        var result = await CreateSut(Migrator.Object).Handle(
+            new SetWorkflowSchemeEntryCommand(scheme.Id, widgetType.Id, bugFlow.Id, []), TestContext.Current.CancellationToken);
+
+        // Assert
+        // The scheme refuses a type of another owner type; records must not have moved by then.
+        result.IsFailure.Should().BeTrue();
+        Migrated.Should().BeEmpty();
+        DbContext.SaveChangesCallCount.Should().Be(0);
     }
 }

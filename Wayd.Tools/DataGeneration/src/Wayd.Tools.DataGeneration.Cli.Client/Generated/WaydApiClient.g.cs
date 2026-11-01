@@ -128515,11 +128515,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public WorkflowOwnerNavigationDto Owner { get; set; } = new WorkflowOwnerNavigationDto();
 
         /// <summary>
-        /// `Owned` when administrators keep it; `Managed` when a sync keeps it from its source.
+        /// Whether administrators keep it, or a sync keeps it from its source.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ownership")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string Ownership { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkflowOwnership>))]
+        public WorkflowOwnership Ownership { get; set; } = default!;
 
         /// <summary>
         /// The source's identifier for a managed type; null for an owned one.
@@ -140780,6 +140781,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum WorkflowOwnership
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Owned")]
+        Owned = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Managed")]
+        Managed = 1,
+
+    }
+
     /// <summary>
     /// An owner type and the vocabulary its workflows are built from.
     /// </summary>
@@ -140901,11 +140914,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public WorkflowOwnerNavigationDto Owner { get; set; } = new WorkflowOwnerNavigationDto();
 
         /// <summary>
-        /// `Owned` or `Managed`.
+        /// Whether administrators keep it, or a sync keeps it from its source.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ownership")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string Ownership { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkflowOwnership>))]
+        public WorkflowOwnership Ownership { get; set; } = default!;
 
         /// <summary>
         /// The source's identifier for a managed scheme; null for an owned one.
@@ -141003,11 +141017,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public WorkflowOwnerNavigationDto Owner { get; set; } = new WorkflowOwnerNavigationDto();
 
         /// <summary>
-        /// `Owned` or `Managed`.
+        /// Whether administrators keep it, or a sync keeps it from its source.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ownership")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string Ownership { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkflowOwnership>))]
+        public WorkflowOwnership Ownership { get; set; } = default!;
 
         /// <summary>
         /// The workflow records follow when their type has no entry.

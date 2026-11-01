@@ -137,10 +137,11 @@ public sealed class WorkflowAssignment : BaseAuditableEntity
     /// scheme's workflows, since nothing here moves them. The organization-level assignment is never removed —
     /// it is the fallback every scope relies on.
     /// </remarks>
-    /// <param name="organizationWorkflowId">
-    /// The organization's default workflow the scope follows from now on, or <c>null</c> when the scope itself is gone.
+    /// <param name="organizationSchemeId">
+    /// The organization's scheme the scope follows from now on, or <c>null</c> when the scope itself is gone.
     /// </param>
-    public Result Remove(Guid? organizationWorkflowId, EventActor actor, Instant timestamp)
+    /// <param name="organizationWorkflowId">That scheme's default workflow, or <c>null</c> with it.</param>
+    public Result Remove(Guid? organizationSchemeId, Guid? organizationWorkflowId, EventActor actor, Instant timestamp)
     {
         if (ScopeId is not { } scopeId)
         {
@@ -151,7 +152,7 @@ public sealed class WorkflowAssignment : BaseAuditableEntity
             "The assignment's scheme must be loaded to remove it.");
 
         AddDomainEvent(new WorkflowAssignmentRemovedEvent(
-            OwnerType, scopeId, current.DefaultWorkflowId, organizationWorkflowId, SchemeId, actor, timestamp));
+            OwnerType, scopeId, current.DefaultWorkflowId, organizationWorkflowId, SchemeId, organizationSchemeId, actor, timestamp));
 
         return Result.Success();
     }

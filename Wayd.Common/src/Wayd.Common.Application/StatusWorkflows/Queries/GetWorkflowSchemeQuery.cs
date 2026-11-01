@@ -55,7 +55,7 @@ public sealed class GetWorkflowSchemeQueryHandler(
             Name = scheme.Name,
             Description = scheme.Description,
             Owner = GetStatusWorkflowsQueryHandler.DescribeOwner(scheme.OwnerType),
-            Ownership = scheme.Ownership.ToString(),
+            Ownership = scheme.Ownership,
             ExternalKey = scheme.ExternalKey,
             DefaultWorkflow = workflows[scheme.DefaultWorkflowId],
             Entries =

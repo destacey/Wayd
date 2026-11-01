@@ -15,7 +15,7 @@ import {
   useCreateWorkflowSchemeMutation,
   useUpdateWorkflowSchemeMutation,
 } from '@/src/store/features/common/workflow-schemes-api'
-import { isApiError, toFormErrors, type ApiError } from '@/src/utils'
+import { toApiError, toFormErrors } from '@/src/utils'
 import { Form, Input, Modal, Select } from 'antd'
 import { useEffect } from 'react'
 
@@ -106,7 +106,7 @@ const WorkflowSchemeForm = ({
           )
           return true
         } catch (error) {
-          const apiError: ApiError = isApiError(error) ? error : {}
+          const apiError = toApiError(error)
           if (apiError.status === 422 && apiError.errors) {
             form.setFields(toFormErrors(apiError.errors))
             messageApi.error('Correct the validation error(s) to continue.')

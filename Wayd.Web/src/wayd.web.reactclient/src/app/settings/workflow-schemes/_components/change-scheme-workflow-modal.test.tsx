@@ -3,12 +3,16 @@ import userEvent from '@testing-library/user-event'
 import {
   WorkflowSchemeChangePreviewDto,
   WorkflowSchemeDetailsDto,
+  WorkflowOwnership,
 } from '@/src/services/wayd-api'
-import ChangeSchemeWorkflowModal from './change-scheme-workflow-modal'
+import ChangeSchemeWorkflowModal, {
+  type SchemeWorkflowChange,
+} from './change-scheme-workflow-modal'
 
 const changeDefault = jest.fn()
 const setEntry = jest.fn()
 let preview: WorkflowSchemeChangePreviewDto | undefined
+let entryPreviewArgs: unknown
 
 jest.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ success: jest.fn(), error: jest.fn() }),
@@ -32,10 +36,13 @@ jest.mock('@/src/store/features/common/workflow-schemes-api', () => ({
     data: options.skip ? undefined : preview,
     isFetching: false,
   }),
-  usePreviewWorkflowSchemeEntryQuery: () => ({
-    data: undefined,
-    isFetching: false,
-  }),
+  usePreviewWorkflowSchemeEntryQuery: (
+    args: unknown,
+    options: { skip: boolean },
+  ) => {
+    if (!options.skip) entryPreviewArgs = args
+    return { data: options.skip ? undefined : preview, isFetching: false }
+  },
   useChangeWorkflowSchemeDefaultMutation: () => [
     changeDefault,
     { isLoading: false },
@@ -48,7 +55,7 @@ const scheme: WorkflowSchemeDetailsDto = {
   key: 3,
   name: 'Engineering',
   owner: { key: 'work.item', name: 'Work Item' },
-  ownership: 'Owned',
+  ownership: WorkflowOwnership.Owned,
   defaultWorkflow: { id: 'standard', key: 1, name: 'Standard' },
   entries: [],
   assignedScopeIds: [],
@@ -65,12 +72,29 @@ const move = {
   },
 }
 
-const renderModal = () =>
+const bugEntry = {
+  recordType: { id: 'bug', key: 1, name: 'Bug' },
+  workflow: { id: 'bug-flow', key: 4, name: 'Bug Flow' },
+}
+
+const recordType = (id: string, name: string) => ({
+  id,
+  key: 1,
+  name,
+  owner: { key: 'work.item', name: 'Work Item' },
+  ownership: WorkflowOwnership.Owned,
+  isActive: true,
+})
+
+const renderModal = (
+  change: SchemeWorkflowChange = { kind: 'default' },
+  withScheme: WorkflowSchemeDetailsDto = scheme,
+) =>
   render(
     <ChangeSchemeWorkflowModal
-      scheme={scheme}
-      change={{ kind: 'default' }}
-      recordTypes={[]}
+      scheme={withScheme}
+      change={change}
+      recordTypes={[recordType('bug', 'Bug'), recordType('story', 'Story')]}
       onFormComplete={jest.fn()}
       onFormCancel={jest.fn()}
     />,
@@ -88,8 +112,9 @@ const chooseLeanAndReview = async (
 describe('ChangeSchemeWorkflowModal', () => {
   beforeEach(() => {
     changeDefault.mockReset().mockResolvedValue({ data: 0 })
-    setEntry.mockReset()
+    setEntry.mockReset().mockResolvedValue({ data: 3 })
     preview = undefined
+    entryPreviewArgs = undefined
   })
 
   it('refuses to apply a change that would move records nothing can move', async () => {
@@ -149,5 +174,95 @@ describe('ChangeSchemeWorkflowModal', () => {
     // Assert
     expect(await screen.findByTitle('Lean')).toBeInTheDocument()
     expect(screen.queryByTitle('Standard')).not.toBeInTheDocument()
+  })
+
+  it('removes an entry through the review, sending the type back to the default', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    preview = {
+      assignedScopeCount: 0,
+      canMoveRecords: true,
+      moves: [move],
+      affectedRecordCount: 0,
+    }
+    renderModal(
+      { kind: 'remove-entry', recordTypeId: 'bug' },
+      { ...scheme, entries: [bugEntry] },
+    )
+
+    // Act
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+    // Assert
+    expect(entryPreviewArgs).toEqual({
+      schemeId: 'scheme-1',
+      recordTypeId: 'bug',
+      workflowId: undefined,
+    })
+    expect(setEntry).toHaveBeenCalledWith({
+      schemeId: 'scheme-1',
+      recordTypeId: 'bug',
+      request: { workflowId: undefined, decisions: [] },
+    })
+  })
+
+  it('offers only record types without an entry when adding one', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    renderModal({ kind: 'entry' }, { ...scheme, entries: [bugEntry] })
+
+    // Act
+    await user.click(screen.getByRole('combobox', { name: 'Record type' }))
+
+    // Assert
+    expect(await screen.findByTitle('Story')).toBeInTheDocument()
+    expect(screen.queryByTitle('Bug')).not.toBeInTheDocument()
+  })
+
+  it("sends the mapping's choices when records move", async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const status = (id: string, name: string) => ({
+      id,
+      name,
+      category: { id: 2, name: 'Active' },
+      alias: 0,
+      order: 1,
+    })
+    preview = {
+      assignedScopeCount: 1,
+      canMoveRecords: true,
+      affectedRecordCount: 5,
+      moves: [
+        {
+          ...move,
+          remap: {
+            ...move.remap,
+            entries: [
+              {
+                from: status('doing', 'Doing'),
+                to: status('active', 'Active'),
+                matchedBy: 'Category',
+                recordCount: 5,
+              },
+            ],
+          },
+        },
+      ],
+    } as WorkflowSchemeChangePreviewDto
+    renderModal()
+
+    // Act
+    await chooseLeanAndReview(user)
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+    // Assert
+    expect(changeDefault).toHaveBeenCalledWith({
+      schemeId: 'scheme-1',
+      request: {
+        workflowId: 'lean',
+        decisions: [{ fromStatusId: 'doing', toStatusId: 'active' }],
+      },
+    })
   })
 })

@@ -37,7 +37,7 @@ public sealed class GetRecordTypesQueryHandler(
                     Key = r.Key,
                     Name = r.Name,
                     Owner = GetStatusWorkflowsQueryHandler.DescribeOwner(r.OwnerType),
-                    Ownership = r.Ownership.ToString(),
+                    Ownership = r.Ownership,
                     ExternalKey = r.ExternalKey,
                     IsActive = r.IsActive,
                 })

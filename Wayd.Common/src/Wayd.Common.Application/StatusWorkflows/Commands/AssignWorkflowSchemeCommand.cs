@@ -28,7 +28,7 @@ public sealed class AssignWorkflowSchemeCommandValidator : AbstractValidator<Ass
 /// </summary>
 /// <remarks>
 /// For owner types with record types; one without them picks a workflow (<see cref="ReassignWorkflowCommand"/>).
-/// Records move first and the assignment flips last, in one save.
+/// The assignment flips before records move, so a reassignment it refuses moves nothing; both land in one save.
 /// </remarks>
 public sealed class AssignWorkflowSchemeCommandHandler(
     IStatusWorkflowDbContext dbContext,
@@ -93,23 +93,30 @@ public sealed class AssignWorkflowSchemeCommandHandler(
             var actor = EventActor.User(_currentUser.GetUserId(), employeeId);
             var now = _dateTimeProvider.Now;
 
-            var applied = await SchemeRecordMoves.Apply(
-                _dbContext, _migrators, assignment.OwnerType, moves, [assignment.ScopeId], request.Decisions, actor, now, cancellationToken);
-            if (applied.IsFailure)
+            var plan = await SchemeRecordMoves.Plan(
+                _dbContext, _migrators, assignment.OwnerType, moves, [assignment.ScopeId], request.Decisions, cancellationToken);
+            if (plan.IsFailure)
             {
-                return Result.Failure<int>(applied.Error);
+                return Result.Failure<int>(plan.Error);
             }
 
-            var reassigned = assignment.ReassignTo(target, defaultWorkflow, applied.Value.Remaps, actor, now);
+            var reassigned = assignment.ReassignTo(target, defaultWorkflow, plan.Value.Remaps, actor, now);
             if (reassigned.IsFailure)
             {
                 assignment.ClearDomainEvents();
                 return Result.Failure<int>(reassigned.Error);
             }
 
+            var moved = await SchemeRecordMoves.Migrate(plan.Value, actor, now, cancellationToken);
+            if (moved.IsFailure)
+            {
+                assignment.ClearDomainEvents();
+                return moved;
+            }
+
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            return Result.Success(applied.Value.Moved);
+            return moved;
         }
         catch (Exception ex)
         {

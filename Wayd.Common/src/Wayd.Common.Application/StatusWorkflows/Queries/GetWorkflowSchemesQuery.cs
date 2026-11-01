@@ -53,7 +53,7 @@ public sealed class GetWorkflowSchemesQueryHandler(
                     Name = s.Name,
                     Description = s.Description,
                     Owner = GetStatusWorkflowsQueryHandler.DescribeOwner(s.OwnerType),
-                    Ownership = s.Ownership.ToString(),
+                    Ownership = s.Ownership,
                     DefaultWorkflow = s.DefaultWorkflow,
                     EntryCount = s.EntryCount,
                     AssignedScopeCount = s.AssignedScopeCount,

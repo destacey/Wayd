@@ -4,6 +4,7 @@ using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Common.Application.StatusWorkflows;
 
@@ -131,24 +132,27 @@ public static class SchemeRecordMoves
             .ToListAsync(cancellationToken);
 
     /// <summary>
-    /// Builds each move's remap and, when <paramref name="scopeIds"/> is not empty, migrates its records.
+    /// Plans the moves without touching a record: loads their workflows, refuses a target that is not
+    /// published, builds each remap, and finds the migrator that will apply them.
     /// </summary>
-    /// <returns>Every remap, by its pair of workflows, and how many records moved.</returns>
-    public static async Task<Result<(IReadOnlyList<StatusRemap> Remaps, int Moved)>> Apply(
+    /// <remarks>
+    /// Planning comes first so the aggregate can refuse the change before any record moves; applying the
+    /// plan (<see cref="Migrate"/>) is the last step before the save.
+    /// </remarks>
+    /// <param name="scopeIds">The scopes whose records move; empty when the scheme is assigned nowhere.</param>
+    public static async Task<Result<SchemeMovePlan>> Plan(
         IStatusWorkflowDbContext dbContext,
         IEnumerable<IRecordTypeStatusMigrator> migrators,
         string ownerType,
         IReadOnlyCollection<Move> moves,
         IReadOnlyCollection<Guid?> scopeIds,
         IReadOnlyCollection<StatusRemapDecisionDto> decisions,
-        EventActor actor,
-        Instant timestamp,
         CancellationToken cancellationToken)
     {
         var changing = moves.Where(m => m.FromWorkflowId != m.ToWorkflowId).ToList();
         if (changing.Count == 0)
         {
-            return Result.Success<(IReadOnlyList<StatusRemap>, int)>(([], 0));
+            return Result.Success(new SchemeMovePlan([], scopeIds, Migrator: null));
         }
 
         var workflowIds = changing.SelectMany(m => new[] { m.FromWorkflowId, m.ToWorkflowId }).Distinct().ToList();
@@ -159,7 +163,14 @@ public static class SchemeRecordMoves
 
         if (workflows.Count != workflowIds.Count)
         {
-            return Result.Failure<(IReadOnlyList<StatusRemap>, int)>("Status workflow not found.");
+            return Result.Failure<SchemeMovePlan>("Status workflow not found.");
+        }
+
+        // Records are only ever moved onto a workflow that can be assigned. The aggregate checks the workflow
+        // it is handed, but not every workflow a scheme names: an entry's may have been archived since.
+        if (changing.Select(m => workflows[m.ToWorkflowId]).FirstOrDefault(w => w.State != StatusWorkflowState.Published) is { } unpublished)
+        {
+            return Result.Failure<SchemeMovePlan>($"'{unpublished.Name}' is not published, so records cannot be moved onto it.");
         }
 
         var holdsRecords = scopeIds.Count > 0;
@@ -171,38 +182,63 @@ public static class SchemeRecordMoves
             if (migrator is null)
             {
                 var name = WorkflowOwners.Resolve(ownerType) is { IsSuccess: true } d ? d.Value.DisplayName : ownerType;
-                return Result.Failure<(IReadOnlyList<StatusRemap>, int)>(
+                return Result.Failure<SchemeMovePlan>(
                     $"{name} records cannot be moved between workflows by record type yet, so a scheme in use cannot change which workflow they follow.");
             }
         }
 
-        var remaps = new List<StatusRemap>();
-        var moved = 0;
-
+        var planned = new List<(Move Move, StatusRemap Remap)>();
         foreach (var move in changing)
         {
             var (from, to) = (workflows[move.FromWorkflowId], workflows[move.ToWorkflowId]);
             var remap = holdsRecords ? StatusRemaps.Build(from, to, decisions) : StatusRemaps.ForNoRecords(from, to);
             if (remap.IsFailure)
             {
-                return Result.Failure<(IReadOnlyList<StatusRemap>, int)>(remap.Error);
+                return Result.Failure<SchemeMovePlan>(remap.Error);
             }
 
-            remaps.Add(remap.Value);
-
-            if (migrator is not null)
-            {
-                var selection = new RecordSelection(scopeIds, move.RecordTypeId, move.ExcludedRecordTypeIds);
-                var migrated = await migrator.Migrate(remap.Value, selection, actor, timestamp, cancellationToken);
-                if (migrated.IsFailure)
-                {
-                    return Result.Failure<(IReadOnlyList<StatusRemap>, int)>(migrated.Error);
-                }
-
-                moved += migrated.Value;
-            }
+            planned.Add((move, remap.Value));
         }
 
-        return Result.Success<(IReadOnlyList<StatusRemap>, int)>((remaps, moved));
+        return Result.Success(new SchemeMovePlan(planned, scopeIds, migrator));
     }
+
+    /// <summary>Moves the planned records. Nothing to do when the plan moves none.</summary>
+    /// <returns>How many records moved.</returns>
+    public static async Task<Result<int>> Migrate(
+        SchemeMovePlan plan, EventActor actor, Instant timestamp, CancellationToken cancellationToken)
+    {
+        if (plan.Migrator is not { } migrator)
+        {
+            return Result.Success(0);
+        }
+
+        var moved = 0;
+        foreach (var (move, remap) in plan.Moves)
+        {
+            var selection = new RecordSelection(plan.ScopeIds, move.RecordTypeId, move.ExcludedRecordTypeIds);
+            var migrated = await migrator.Migrate(remap, selection, actor, timestamp, cancellationToken);
+            if (migrated.IsFailure)
+            {
+                return migrated;
+            }
+
+            moved += migrated.Value;
+        }
+
+        return Result.Success(moved);
+    }
+}
+
+/// <summary>The record moves a scheme change makes, planned and ready to apply.</summary>
+/// <param name="Moves">Each move that changes workflow, with its remap.</param>
+/// <param name="ScopeIds">The scopes whose records move.</param>
+/// <param name="Migrator">What moves them, or <c>null</c> when no records move.</param>
+public sealed record SchemeMovePlan(
+    IReadOnlyList<(SchemeRecordMoves.Move Move, StatusRemap Remap)> Moves,
+    IReadOnlyCollection<Guid?> ScopeIds,
+    IRecordTypeStatusMigrator? Migrator)
+{
+    /// <summary>The remaps, one per move, for the aggregate's completeness checks.</summary>
+    public IReadOnlyList<StatusRemap> Remaps => [.. Moves.Select(m => m.Remap)];
 }

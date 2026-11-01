@@ -41,6 +41,18 @@ public sealed class ArchiveStatusWorkflowCommandHandler(
             var isAssigned = await _dbContext.AssignedWorkflowIds()
                 .AnyAsync(id => id == request.Id, cancellationToken);
 
+            // A scheme nothing is assigned yet still names the workflow, and assigning it later would move
+            // records onto an archived workflow.
+            var schemeNames = await _dbContext.StatusWorkflowSchemes
+                .Where(s => !s.IsImplicit && (s.DefaultWorkflowId == request.Id || s.Entries.Any(e => e.WorkflowId == request.Id)))
+                .Select(s => s.Name)
+                .ToListAsync(cancellationToken);
+            if (!isAssigned && schemeNames.Count > 0)
+            {
+                return Result.Failure(
+                    $"This workflow is part of the workflow scheme(s) {string.Join(", ", schemeNames.Order(StringComparer.OrdinalIgnoreCase).Select(n => $"'{n}'"))}. Remove it from them first.");
+            }
+
             var result = workflow.Archive(isAssigned, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {

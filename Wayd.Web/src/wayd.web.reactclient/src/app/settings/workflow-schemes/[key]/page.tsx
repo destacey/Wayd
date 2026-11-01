@@ -15,9 +15,8 @@ import {
   useDeleteWorkflowSchemeMutation,
   useGetRecordTypesQuery,
   useGetWorkflowSchemeQuery,
-  useSetWorkflowSchemeEntryMutation,
 } from '@/src/store/features/common/workflow-schemes-api'
-import { isApiError } from '@/src/utils'
+import { toApiError } from '@/src/utils'
 import { App, Button, Flex } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
@@ -53,7 +52,6 @@ const WorkflowSchemeDetailsPage = (props: {
     skip: !scheme,
   })
   const [deleteScheme] = useDeleteWorkflowSchemeMutation()
-  const [setEntry] = useSetWorkflowSchemeEntryMutation()
 
   const { hasPermissionClaim } = useAuth()
   const canCreate = hasPermissionClaim('Permissions.StatusWorkflows.Create')
@@ -69,7 +67,7 @@ const WorkflowSchemeDetailsPage = (props: {
   useEffect(() => {
     if (error) {
       messageApi.error(
-        (isApiError(error) ? error.detail : undefined) ??
+        toApiError(error).detail ??
           'An error occurred while loading the workflow scheme',
       )
     }
@@ -77,29 +75,6 @@ const WorkflowSchemeDetailsPage = (props: {
 
   if (isLoading) return <WorkflowSchemeDetailsLoading />
   if (!scheme) return notFound()
-
-  const confirmRemoveEntry = (entry: WorkflowSchemeEntryDto) =>
-    modal.confirm({
-      title: 'Remove Entry',
-      content: `${entry.recordType.name} records will follow the default workflow, ${scheme.defaultWorkflow.name}.`,
-      okText: 'Remove',
-      okButtonProps: { danger: true },
-      onOk: async () => {
-        try {
-          await setEntry({
-            schemeId: scheme.id,
-            recordTypeId: entry.recordType.id,
-            request: { workflowId: undefined, decisions: [] },
-          }).unwrap()
-          messageApi.success('Entry removed.')
-        } catch (error) {
-          messageApi.error(
-            (isApiError(error) ? error.detail : undefined) ??
-              'An error occurred while removing the entry.',
-          )
-        }
-      },
-    })
 
   const confirmDelete = () =>
     modal.confirm({
@@ -114,7 +89,7 @@ const WorkflowSchemeDetailsPage = (props: {
           router.push('/settings/workflow-schemes')
         } catch (error) {
           messageApi.error(
-            (isApiError(error) ? error.detail : undefined) ??
+            toApiError(error).detail ??
               'An error occurred while deleting the workflow scheme.',
           )
         }
@@ -160,7 +135,13 @@ const WorkflowSchemeDetailsPage = (props: {
           key: 'remove',
           label: 'Remove',
           danger: true,
-          onClick: () => confirmRemoveEntry(entry),
+          // Through the review: removing an entry moves that type's records onto
+          // the default in every scope on the scheme.
+          onClick: () =>
+            setChange({
+              kind: 'remove-entry',
+              recordTypeId: entry.recordType.id,
+            }),
         },
       ],
     }),

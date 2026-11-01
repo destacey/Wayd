@@ -1,3 +1,5 @@
+using Wayd.Common.Domain.StatusWorkflows.Enums;
+
 namespace Wayd.Common.Application.StatusWorkflows.Dtos;
 
 /// <summary>A record type: a variant of an owner type's records that can follow its own workflow.</summary>
@@ -10,8 +12,8 @@ public sealed record RecordTypeDto
     /// <summary>The kind of record this is a type of.</summary>
     public required WorkflowOwnerNavigationDto Owner { get; init; }
 
-    /// <summary><c>Owned</c> when administrators keep it; <c>Managed</c> when a sync keeps it from its source.</summary>
-    public required string Ownership { get; init; }
+    /// <summary>Whether administrators keep it, or a sync keeps it from its source.</summary>
+    public required WorkflowOwnership Ownership { get; init; }
 
     /// <summary>The source's identifier for a managed type; null for an owned one.</summary>
     public string? ExternalKey { get; init; }
@@ -29,8 +31,8 @@ public sealed record WorkflowSchemeListDto
     public string? Description { get; init; }
     public required WorkflowOwnerNavigationDto Owner { get; init; }
 
-    /// <summary><c>Owned</c> or <c>Managed</c>.</summary>
-    public required string Ownership { get; init; }
+    /// <summary>Whether administrators keep it, or a sync keeps it from its source.</summary>
+    public required WorkflowOwnership Ownership { get; init; }
 
     /// <summary>The workflow records follow when their type has no entry.</summary>
     public required WorkflowSchemeWorkflowDto DefaultWorkflow { get; init; }
@@ -51,8 +53,8 @@ public sealed record WorkflowSchemeDetailsDto
     public string? Description { get; init; }
     public required WorkflowOwnerNavigationDto Owner { get; init; }
 
-    /// <summary><c>Owned</c> or <c>Managed</c>.</summary>
-    public required string Ownership { get; init; }
+    /// <summary>Whether administrators keep it, or a sync keeps it from its source.</summary>
+    public required WorkflowOwnership Ownership { get; init; }
 
     /// <summary>The source's identifier for a managed scheme; null for an owned one.</summary>
     public string? ExternalKey { get; init; }

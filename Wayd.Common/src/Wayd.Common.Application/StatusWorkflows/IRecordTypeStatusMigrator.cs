@@ -25,7 +25,11 @@ public interface IRecordTypeStatusMigrator
     /// </summary>
     /// <param name="selection">Which records: their scopes and their record type.</param>
     /// <returns>How many records moved.</returns>
-    /// <remarks>Safe to re-run, as <c>SwitchWorkflow</c> is a no-op for a record already moved.</remarks>
+    /// <remarks>
+    /// Changes tracked records only and never saves, nor writes set-based: the scheme command saves the records
+    /// together with the scheme's own change, and discards both when either is refused. Safe to re-run, as
+    /// <c>SwitchWorkflow</c> is a no-op for a record already moved.
+    /// </remarks>
     Task<Result<int>> Migrate(
         StatusRemap remap, RecordSelection selection, EventActor actor, Instant timestamp, CancellationToken cancellationToken);
 

@@ -66127,8 +66127,8 @@ export interface RecordTypeDto {
     name: string;
     /** The kind of record this is a type of. */
     owner: WorkflowOwnerNavigationDto;
-    /** `Owned` when administrators keep it; `Managed` when a sync keeps it from its source. */
-    ownership: string;
+    /** Whether administrators keep it, or a sync keeps it from its source. */
+    ownership: WorkflowOwnership;
     /** The source's identifier for a managed type; null for an owned one. */
     externalKey?: string | undefined;
     /** Whether records can still be given this type. */
@@ -70284,6 +70284,11 @@ export interface WorkflowOwnerNavigationDto {
     name: string;
 }
 
+export enum WorkflowOwnership {
+    Owned = "Owned",
+    Managed = "Managed",
+}
+
 /** An owner type and the vocabulary its workflows are built from. */
 export interface WorkflowOwnerTypeDto {
     key: string;
@@ -70324,8 +70329,8 @@ export interface WorkflowSchemeDetailsDto {
     name: string;
     description?: string | undefined;
     owner: WorkflowOwnerNavigationDto;
-    /** `Owned` or `Managed`. */
-    ownership: string;
+    /** Whether administrators keep it, or a sync keeps it from its source. */
+    ownership: WorkflowOwnership;
     /** The source's identifier for a managed scheme; null for an owned one. */
     externalKey?: string | undefined;
     /** The workflow records follow when their type has no entry. */
@@ -70357,8 +70362,8 @@ export interface WorkflowSchemeListDto {
     name: string;
     description?: string | undefined;
     owner: WorkflowOwnerNavigationDto;
-    /** `Owned` or `Managed`. */
-    ownership: string;
+    /** Whether administrators keep it, or a sync keeps it from its source. */
+    ownership: WorkflowOwnership;
     /** The workflow records follow when their type has no entry. */
     defaultWorkflow: WorkflowSchemeWorkflowDto;
     /** How many record types the scheme sends somewhere other than its default. */

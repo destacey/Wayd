@@ -24,13 +24,13 @@ const schemeTags = (id: string) => [
 ]
 
 /**
- * A change that moves records rewrites their statuses, so the records' own
- * caches go stale along with the scheme.
+ * A change that moves records rewrites their statuses and histories, and
+ * changes which workflows are in use, which every workflow's details report.
  */
 const recordMoveTags = (id: string) => [
   ...schemeTags(id),
   { type: QueryTags.WorkflowAssignment, id: 'LIST' },
-  { type: QueryTags.StatusWorkflow, id: 'LIST' },
+  { type: QueryTags.StatusWorkflow },
   { type: QueryTags.StatusHistory },
 ]
 
@@ -193,7 +193,9 @@ export const workflowSchemesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (result, error, id) => schemeTags(id),
+      // The list only: invalidating the deleted scheme's own tag would refetch
+      // the details page still showing it, which now 404s.
+      invalidatesTags: () => [{ type: QueryTags.WorkflowScheme, id: 'LIST' }],
     }),
 
     previewWorkflowSchemeEntry: builder.query<

@@ -16,7 +16,7 @@ import {
   usePreviewWorkflowSchemeEntryQuery,
   useSetWorkflowSchemeEntryMutation,
 } from '@/src/store/features/common/workflow-schemes-api'
-import { isApiError, type ApiError } from '@/src/utils'
+import { toApiError } from '@/src/utils'
 import { Alert, Flex, Modal, Select, Steps, Typography } from 'antd'
 import { useState } from 'react'
 import StatusRemapTable from '../../status-workflows/_components/status-remap-table'
@@ -25,10 +25,13 @@ const { Text } = Typography
 
 /**
  * What is being changed: one record type's entry (an existing one, or a type
- * picked here), or the scheme's default.
+ * picked here), removing an entry so the type follows the default, or the
+ * scheme's default.
  */
 export type SchemeWorkflowChange =
-  { kind: 'entry'; recordTypeId?: string } | { kind: 'default' }
+  | { kind: 'entry'; recordTypeId?: string }
+  | { kind: 'remove-entry'; recordTypeId: string }
+  | { kind: 'default' }
 
 export interface ChangeSchemeWorkflowModalProps {
   scheme: WorkflowSchemeDetailsDto
@@ -52,11 +55,15 @@ const ChangeSchemeWorkflowModal = ({
 }: ChangeSchemeWorkflowModalProps) => {
   const messageApi = useMessage()
 
-  const [step, setStep] = useState<number>(0)
+  const isRemoval = change.kind === 'remove-entry'
+
+  // Removing an entry has nothing to choose — the type goes back to the
+  // default — so the modal opens on the review.
+  const [step, setStep] = useState<number>(isRemoval ? 1 : 0)
   const [recordTypeId, setRecordTypeId] = useState<string | undefined>(
-    change.kind === 'entry' ? change.recordTypeId : undefined,
+    change.kind === 'default' ? undefined : change.recordTypeId,
   )
-  const [workflowId, setWorkflowId] = useState<string | undefined>()
+  const [chosenWorkflowId, setWorkflowId] = useState<string | undefined>()
   const [decisions, setDecisions] = useState<Record<string, string>>({})
 
   const [setEntry, { isLoading: isSettingEntry }] =
@@ -75,20 +82,28 @@ const ChangeSchemeWorkflowModal = ({
       ? scheme.defaultWorkflow.id
       : (entry?.workflow.id ?? scheme.defaultWorkflow.id)
 
-  const isEntry = change.kind === 'entry'
+  const isEntry = change.kind !== 'default'
+  // Where the change sends records: the default when an entry is removed.
+  const workflowId = isRemoval ? scheme.defaultWorkflow.id : chosenWorkflowId
   const ready = !!workflowId && (!isEntry || !!recordTypeId)
 
   const entryPreview = usePreviewWorkflowSchemeEntryQuery(
-    { schemeId: scheme.id, recordTypeId: recordTypeId!, workflowId },
+    {
+      schemeId: scheme.id,
+      recordTypeId: recordTypeId!,
+      workflowId: isRemoval ? undefined : workflowId,
+    },
     { skip: !isEntry || !ready || step === 0 },
   )
   const defaultPreview = usePreviewWorkflowSchemeDefaultQuery(
     { schemeId: scheme.id, workflowId: workflowId! },
     { skip: isEntry || !ready || step === 0 },
   )
-  const { data: preview, isFetching: isPreviewLoading } = isEntry
-    ? entryPreview
-    : defaultPreview
+  const {
+    data: preview,
+    isFetching: isPreviewLoading,
+    error: previewError,
+  } = isEntry ? entryPreview : defaultPreview
 
   const { data: target } = useGetStatusWorkflowQuery(workflowId!, {
     skip: !workflowId,
@@ -134,7 +149,10 @@ const ChangeSchemeWorkflowModal = ({
         ? await setEntry({
             schemeId: scheme.id,
             recordTypeId: recordTypeId!,
-            request: { ...request, workflowId },
+            request: {
+              ...request,
+              workflowId: isRemoval ? undefined : workflowId,
+            },
           })
         : await changeDefault({
             schemeId: scheme.id,
@@ -147,16 +165,18 @@ const ChangeSchemeWorkflowModal = ({
       )
       onFormComplete()
     } catch (error) {
-      const apiError: ApiError = isApiError(error) ? error : {}
       messageApi.error(
-        apiError.detail ??
+        toApiError(error).detail ??
           'An error occurred while changing the scheme. Please try again.',
       )
     }
   }
 
+  // Adding offers only active types without an entry; an existing entry is
+  // changed from its own row.
+  const withEntries = new Set(scheme.entries.map((e) => e.recordType.id))
   const recordTypeOptions = recordTypes
-    .filter((r) => r.isActive || r.id === recordTypeId)
+    .filter((r) => r.isActive && !withEntries.has(r.id))
     .map((r) => ({ value: r.id, label: r.name }))
 
   const workflowOptions = (workflows ?? [])
@@ -166,9 +186,11 @@ const ChangeSchemeWorkflowModal = ({
   const title =
     change.kind === 'default'
       ? 'Change Default Workflow'
-      : entry
-        ? `Change ${entry.recordType.name} Workflow`
-        : 'Add Record Type Entry'
+      : isRemoval
+        ? `Remove ${entry?.recordType.name ?? 'Record Type'} Entry`
+        : entry
+          ? `Change ${entry.recordType.name} Workflow`
+          : 'Add Record Type Entry'
 
   const okDisabled =
     (step === 0 && !ready) ||
@@ -187,8 +209,8 @@ const ChangeSchemeWorkflowModal = ({
       }}
       confirmLoading={isSettingEntry || isChangingDefault}
       onOk={() => (step === 1 ? onSubmit() : setStep(1))}
-      onCancel={() => (step === 0 ? onFormCancel() : setStep(0))}
-      cancelText={step === 0 ? 'Cancel' : 'Back'}
+      onCancel={() => (step === 0 || isRemoval ? onFormCancel() : setStep(0))}
+      cancelText={step === 0 || isRemoval ? 'Cancel' : 'Back'}
       keyboard={false}
       destroyOnHidden
     >
@@ -201,7 +223,7 @@ const ChangeSchemeWorkflowModal = ({
 
         {step === 0 && (
           <Flex vertical gap={12}>
-            {isEntry && !change.recordTypeId && (
+            {change.kind === 'entry' && !change.recordTypeId && (
               <Select
                 aria-label="Record type"
                 placeholder="Select a record type"
@@ -223,6 +245,17 @@ const ChangeSchemeWorkflowModal = ({
               options={workflowOptions}
             />
           </Flex>
+        )}
+
+        {step === 1 && previewError !== undefined && (
+          <Alert
+            type="error"
+            showIcon
+            title={
+              toApiError(previewError).detail ??
+              'The change could not be previewed.'
+            }
+          />
         )}
 
         {step === 1 && preview && (

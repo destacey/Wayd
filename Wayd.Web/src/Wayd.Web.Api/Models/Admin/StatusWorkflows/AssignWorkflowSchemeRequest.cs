@@ -23,6 +23,10 @@ public sealed class AssignWorkflowSchemeRequestValidator : CustomValidator<Assig
         RuleLevelCascadeMode = CascadeMode.Stop;
 
         RuleFor(r => r.SchemeId).NotEmpty();
-        RuleForEach(r => r.Decisions).ChildRules(d => { d.RuleFor(x => x.FromStatusId).NotEmpty(); d.RuleFor(x => x.ToStatusId).NotEmpty(); });
+        RuleForEach(r => r.Decisions).ChildRules(decision =>
+        {
+            decision.RuleFor(d => d.FromStatusId).NotEmpty();
+            decision.RuleFor(d => d.ToStatusId).NotEmpty();
+        });
     }
 }

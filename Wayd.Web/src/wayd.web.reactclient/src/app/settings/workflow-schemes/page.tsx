@@ -8,14 +8,18 @@ import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
-import { RecordTypeDto, WorkflowSchemeListDto } from '@/src/services/wayd-api'
+import {
+  RecordTypeDto,
+  WorkflowOwnership,
+  WorkflowSchemeListDto,
+} from '@/src/services/wayd-api'
 import {
   useDeleteWorkflowSchemeMutation,
   useGetRecordTypesQuery,
   useGetWorkflowSchemesQuery,
   useSetRecordTypeActiveMutation,
 } from '@/src/store/features/common/workflow-schemes-api'
-import { isApiError } from '@/src/utils'
+import { toApiError } from '@/src/utils'
 import { App, Button, Flex, Tabs } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
@@ -64,7 +68,7 @@ const WorkflowSchemesPage = () => {
           messageApi.success('Workflow scheme deleted.')
         } catch (error) {
           messageApi.error(
-            (isApiError(error) ? error.detail : undefined) ??
+            toApiError(error).detail ??
               'An error occurred while deleting the workflow scheme.',
           )
         }
@@ -84,7 +88,7 @@ const WorkflowSchemesPage = () => {
       )
     } catch (error) {
       messageApi.error(
-        (isApiError(error) ? error.detail : undefined) ??
+        toApiError(error).detail ??
           'An error occurred while updating the record type.',
       )
     }
@@ -168,7 +172,7 @@ const WorkflowSchemesPage = () => {
         [
           // A managed type takes its name from its source.
           canUpdate &&
-            recordType.ownership === 'Owned' && {
+            recordType.ownership === WorkflowOwnership.Owned && {
               key: 'rename',
               label: 'Rename',
               onClick: () => setRecordTypeForm({ recordType }),

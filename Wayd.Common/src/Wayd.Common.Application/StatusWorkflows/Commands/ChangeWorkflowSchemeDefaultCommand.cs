@@ -67,16 +67,16 @@ public sealed class ChangeWorkflowSchemeDefaultCommandHandler(
             var now = _dateTimeProvider.Now;
 
             var scopeIds = await _dbContext.AssignedScopes(scheme.Id, cancellationToken);
-            var moves = await SchemeRecordMoves.Apply(
+            var plan = await SchemeRecordMoves.Plan(
                 _dbContext, _migrators, scheme.OwnerType,
                 [SchemeRecordMoves.ForDefault(scheme, workflow.Id)],
-                scopeIds, request.Decisions, actor, now, cancellationToken);
-            if (moves.IsFailure)
+                scopeIds, request.Decisions, cancellationToken);
+            if (plan.IsFailure)
             {
-                return Result.Failure<int>(moves.Error);
+                return Result.Failure<int>(plan.Error);
             }
 
-            if (moves.Value.Remaps.FirstOrDefault() is not { } remap)
+            if (plan.Value.Remaps.FirstOrDefault() is not { } remap)
             {
                 return Result.Success(0);
             }
@@ -89,9 +89,17 @@ public sealed class ChangeWorkflowSchemeDefaultCommandHandler(
                 return Result.Failure<int>(changed.Error);
             }
 
+            var moved = await SchemeRecordMoves.Migrate(plan.Value, actor, now, cancellationToken);
+            if (moved.IsFailure)
+            {
+                scheme.ClearDomainEvents();
+                scheme.ClearPostPersistenceActions();
+                return moved;
+            }
+
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            return Result.Success(moves.Value.Moved);
+            return moved;
         }
         catch (Exception ex)
         {

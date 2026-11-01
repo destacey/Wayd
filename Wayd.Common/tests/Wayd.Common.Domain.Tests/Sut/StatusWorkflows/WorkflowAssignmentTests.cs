@@ -354,9 +354,10 @@ public sealed class WorkflowAssignmentTests
         var assignment = Assign(Widget.Key, scopeId, workflow, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
         assignment.ClearDomainEvents();
         var organizationWorkflowId = Guid.NewGuid();
+        var organizationSchemeId = Guid.NewGuid();
 
         // Act
-        var result = assignment.Remove(organizationWorkflowId, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        var result = assignment.Remove(organizationSchemeId, organizationWorkflowId, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -364,6 +365,8 @@ public sealed class WorkflowAssignmentTests
         removed.ScopeId.Should().Be(scopeId);
         removed.FromWorkflowId.Should().Be(workflow.Id);
         removed.ToWorkflowId.Should().Be(organizationWorkflowId);
+        removed.FromSchemeId.Should().Be(assignment.SchemeId);
+        removed.ToSchemeId.Should().Be(organizationSchemeId);
     }
 
     [Fact]
@@ -375,7 +378,7 @@ public sealed class WorkflowAssignmentTests
         assignment.ClearDomainEvents();
 
         // Act
-        var result = assignment.Remove(null, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        var result = assignment.Remove(null, null, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
 
         // Assert
         result.IsFailure.Should().BeTrue();

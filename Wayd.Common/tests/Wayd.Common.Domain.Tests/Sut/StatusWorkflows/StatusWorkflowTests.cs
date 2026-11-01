@@ -2095,4 +2095,51 @@ public sealed class StatusWorkflowTests
     }
 
     #endregion Declared moves
+
+    #region LandingStatusFor
+
+    [Fact]
+    public void LandingStatusFor_ShouldPreferTheStatusWithTheSameAlias()
+    {
+        // Arrange
+        var workflow = WidgetWorkflow();
+        workflow.AddStatus("Also Active", null, StatusCategory.Active, StatusWorkflow.NoAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+        workflow.ReorderStatuses([.. workflow.Statuses.OrderByDescending(s => s.Name == "Also Active").Select(s => s.Id)], EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var landing = workflow.LandingStatusFor(NotableAlias, StatusCategory.Active);
+
+        // Assert
+        // "Also Active" is first in the category, but the alias says what the record means.
+        landing!.Name.Should().Be("Notable");
+    }
+
+    [Fact]
+    public void LandingStatusFor_ShouldFallBackToTheFirstStatusOfTheCategory()
+    {
+        // Arrange
+        var workflow = WidgetWorkflow();
+        workflow.AddStatus("Wrapped", null, StatusCategory.Done, StatusWorkflow.NoAlias, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Act
+        var landing = workflow.LandingStatusFor(StatusWorkflow.NoAlias, StatusCategory.Done);
+
+        // Assert
+        landing!.Name.Should().Be("Terminal");
+    }
+
+    [Fact]
+    public void LandingStatusFor_ShouldBeNull_WhenNoStatusMatchesTheAliasOrCategory()
+    {
+        // Arrange
+        var workflow = WidgetWorkflow();
+
+        // Act
+        var landing = workflow.LandingStatusFor(StatusWorkflow.NoAlias, StatusCategory.Removed);
+
+        // Assert
+        landing.Should().BeNull();
+    }
+
+    #endregion LandingStatusFor
 }

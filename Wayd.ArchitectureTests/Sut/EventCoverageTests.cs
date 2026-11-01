@@ -79,10 +79,12 @@ public partial class EventCoverageTests
         typeof(ExternalIdentityMapping),
         typeof(OidcProvider),
         typeof(PersonalAccessToken),
+        typeof(RecordType),
         typeof(ScoringModel),
         typeof(StatusWorkflow),
         typeof(SystemSettingsSection),
         typeof(WorkflowAssignment),
+        typeof(StatusWorkflowScheme),
 
         // Demand Management
         typeof(IntakeChannel),
@@ -280,6 +282,7 @@ public partial class EventCoverageTests
         [typeof(ReleaseVersion)] = typeof(Release),
         [typeof(TeamMember)] = typeof(BaseTeam),
         [typeof(TeamOperatingModel)] = typeof(Team),
+        [typeof(StatusWorkflowSchemeEntry)] = typeof(StatusWorkflowScheme),
         [typeof(WorkflowStatus)] = typeof(StatusWorkflow),
         [typeof(WorkItemDependency)] = typeof(WorkItem),
         [typeof(WorkItemHierarchy)] = typeof(WorkItem),

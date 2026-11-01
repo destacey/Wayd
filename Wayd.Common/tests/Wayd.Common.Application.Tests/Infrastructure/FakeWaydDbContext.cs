@@ -34,6 +34,8 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     // The workflow engine's tables, for handlers that reach IStatusWorkflowDbContext.
     private readonly List<StatusWorkflow> _statusWorkflows = [];
     private readonly List<WorkflowAssignment> _workflowAssignments = [];
+    private readonly List<StatusWorkflowScheme> _statusWorkflowSchemes = [];
+    private readonly List<RecordType> _recordTypes = [];
     private readonly List<WorkflowAliasName> _workflowAliasNames = [];
     private readonly List<StatusTransition> _statusTransitions = [];
 
@@ -61,6 +63,8 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
 
     public DbSet<StatusWorkflow> StatusWorkflows => _statusWorkflows.AsDbSet();
     public DbSet<WorkflowAssignment> WorkflowAssignments => _workflowAssignments.AsDbSet();
+    public DbSet<StatusWorkflowScheme> StatusWorkflowSchemes => _statusWorkflowSchemes.AsDbSet();
+    public DbSet<RecordType> RecordTypes => _recordTypes.AsDbSet();
     public DbSet<WorkflowAliasName> WorkflowAliasNames => _workflowAliasNames.AsDbSet();
     public DbSet<StatusTransition> StatusTransitions => _statusTransitions.AsDbSet();
 

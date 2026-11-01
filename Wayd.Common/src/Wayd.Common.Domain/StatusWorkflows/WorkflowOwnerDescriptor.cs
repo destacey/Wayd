@@ -66,6 +66,10 @@ public sealed class WorkflowOwnerDescriptor
     /// What this owner type calls some or all of the categories, in its own words. A category left out
     /// keeps its enum name. See <see cref="CategoryLabels"/>.
     /// </param>
+    /// <param name="hasRecordTypes">
+    /// Whether records of this owner type come in record types that can follow different workflows. See
+    /// <see cref="HasRecordTypes"/>.
+    /// </param>
     public WorkflowOwnerDescriptor(
         string key,
         string displayName,
@@ -75,7 +79,8 @@ public sealed class WorkflowOwnerDescriptor
         bool supportsRestrictedTransitions = false,
         IReadOnlyCollection<WorkflowMove>? moves = null,
         string? featureFlag = null,
-        IReadOnlyDictionary<StatusCategory, string>? categoryLabels = null)
+        IReadOnlyDictionary<StatusCategory, string>? categoryLabels = null,
+        bool hasRecordTypes = false)
     {
         Key = Guard.Against.NullOrWhiteSpace(key, nameof(key)).Trim();
         DisplayName = Guard.Against.NullOrWhiteSpace(displayName, nameof(displayName)).Trim();
@@ -83,6 +88,7 @@ public sealed class WorkflowOwnerDescriptor
         Guard.Against.Null(aliases, nameof(aliases));
         RequiredAliases = Guard.Against.Null(requiredAliases, nameof(requiredAliases));
         SupportsRestrictedTransitions = supportsRestrictedTransitions;
+        HasRecordTypes = hasRecordTypes;
 
         if (aliases.ContainsKey(StatusWorkflow.NoAlias))
         {
@@ -327,6 +333,17 @@ public sealed class WorkflowOwnerDescriptor
     /// decide. No two categories share a label, case-insensitively.
     /// </remarks>
     public IReadOnlyDictionary<StatusCategory, string> CategoryLabels => _categoryLabels;
+
+    /// <summary>
+    /// Whether records of this owner type come in <see cref="RecordType"/>s — a Story and a Bug — that a
+    /// <see cref="StatusWorkflowScheme"/> can send to different workflows.
+    /// </summary>
+    /// <remarks>
+    /// Off for an owner type whose records all follow their container's one workflow. Such an owner type
+    /// never sees a scheme: each scope still picks a workflow, and the engine keeps an implicit
+    /// default-only scheme per workflow behind it.
+    /// </remarks>
+    public bool HasRecordTypes { get; }
 
     /// <summary>What this owner type calls <paramref name="category"/>.</summary>
     public string CategoryLabel(StatusCategory category) =>

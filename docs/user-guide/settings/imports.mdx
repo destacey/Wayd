@@ -115,6 +115,24 @@ bookmarked or shared with someone who may see that kind of import. A run that wa
 a batch lists the batch's other files under **Submitted With**, each with its status, so a seed or a
 split export can be walked file by file from any of them.
 
+Next to each row's **Import Id** — the key your file gave it — the **Wayd Record** column shows the key
+and name of the record that row created or changed, and links to its page. A record with no page of its
+own links to the record it belongs to:
+
+| The row created | The link opens |
+|---|---|
+| A team member or a team hierarchy membership | The team |
+| A product dependency | The product that depends on the other |
+| A project stage or task | The project |
+| A planning interval objective | The objective, within its planning interval |
+| A deployment environment | The environments list |
+
+The link always uses the record's current key, so a project whose key was changed after the import
+still opens. When the record the row created, or the one its link opens, has been deleted since the
+import, the row shows **No longer exists**. An employee row rejected at a later
+step, such as linking a manager, can still link to the employee the first step created. A preflight has no
+**Wayd Record** column, because the records it made were rolled back.
+
 :::note["0 of 40 applied" is not always a bug]
 Some imports are **all-or-nothing** — a team hierarchy, for instance, because half an imported hierarchy
 is worse than none. One rejected row in those means nothing is written. The run shows which import

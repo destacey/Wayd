@@ -59367,6 +59367,7 @@
           },
           "createdEntityId": {
             "type": "string",
+            "description": "The record this row created or changed.",
             "format": "uuid",
             "nullable": true
           },
@@ -59381,6 +59382,15 @@
           "attemptedOn": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          },
+          "createdRecord": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ImportRecordLink"
+              }
+            ],
+            "description": "Where to see that record — or, for one with no page of its own, the record it belongs to. Null when the\nrow created nothing, when that record or the one the link opens has since been deleted, and for a\npreflight, whose records were rolled back.",
             "nullable": true
           }
         },
@@ -60004,6 +60014,61 @@
         },
         "additionalProperties": false,
         "description": "A single CSV row for the project task import. The project is referenced by key and the stage by name\n(stages come from the project's assigned lifecycle). A task nests under another row in this file by its\n`ParentImportId`, or under a task the project already has by `ParentTaskId`;\nwith neither it is a root task of its stage. Rows may be listed in any order — parents are applied\nbefore children."
+      },
+      "ImportRecordLink": {
+        "required": [
+          "type",
+          "key"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ImportRecordType"
+              }
+            ],
+            "description": "The kind of record the link opens."
+          },
+          "key": {
+            "type": "string",
+            "description": "The key its page is addressed by."
+          },
+          "name": {
+            "type": "string",
+            "description": "What to call it, so the link reads as more than a number.",
+            "nullable": true
+          },
+          "parentKey": {
+            "type": "string",
+            "description": "The key of the record its page sits under — a planning interval objective's planning interval. Null for any other type.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Where a person goes to see what an import row did: the record it created, or — for a record with no page\nof its own, such as a membership or a dependency — the record it belongs to."
+      },
+      "ImportRecordType": {
+        "enum": [
+          "Employee",
+          "Team",
+          "TeamOfTeams",
+          "PlanningInterval",
+          "PlanningIntervalObjective",
+          "Risk",
+          "Portfolio",
+          "Program",
+          "Project",
+          "StrategicInitiative",
+          "StrategicTheme",
+          "Product",
+          "Version",
+          "Release",
+          "ReleasePackage",
+          "Deployment",
+          "DeploymentEnvironment"
+        ],
+        "type": "string"
       },
       "ImportReleaseContentRequest": {
         "required": [

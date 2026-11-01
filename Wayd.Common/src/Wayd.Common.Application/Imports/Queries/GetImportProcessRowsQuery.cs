@@ -68,6 +68,21 @@ public sealed class GetImportProcessRowsQueryHandler(
                 r.Id, r.ImportId, r.RowNumber, r.Status, r.CreatedEntityId, r.Error, r.Warning, r.AttemptedOn))
             .ToListAsync(cancellationToken);
 
+        var createdEntityIds = page
+            .Where(r => r.CreatedEntityId is not null)
+            .Select(r => r.CreatedEntityId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (createdEntityIds.Count > 0)
+        {
+            var links = await definition.Value.DescribeCreatedRecords(createdEntityIds, cancellationToken);
+
+            page = [.. page.Select(r => r.CreatedEntityId is { } id && links.TryGetValue(id, out var link)
+                ? r with { CreatedRecord = link }
+                : r)];
+        }
+
         return Result.Success(new ImportProcessRowPageDto(page, totalCount, pageNumber, pageSize));
     }
 }

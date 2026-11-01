@@ -23,6 +23,12 @@ public sealed class TestGroupedImportDefinition(IImportPayloadSerializer seriali
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.Employees;
     public override ImportAtomicity Atomicity => ImportAtomicity.PerGroup;
+
+    /// <summary>Links nothing: these tests are about grouping, not about what the rows created.</summary>
+    public override Task<IReadOnlyDictionary<Guid, ImportRecordLink>> DescribeCreatedRecords(
+        IReadOnlyCollection<Guid> createdEntityIds,
+        CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyDictionary<Guid, ImportRecordLink>>(new Dictionary<Guid, ImportRecordLink>());
     public override string? GroupNoun => "widget";
 
     public int ChunkSizeOverride { get; init; } = 4;

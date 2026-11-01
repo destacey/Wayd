@@ -34,6 +34,12 @@ public sealed class TeamMembershipImportDefinition(
     public const string ImportKey = "team-memberships";
 
     public override string Key => ImportKey;
+
+    /// <inheritdoc />
+    public override async Task<IReadOnlyDictionary<Guid, ImportRecordLink>> DescribeCreatedRecords(
+        IReadOnlyCollection<Guid> createdEntityIds,
+        CancellationToken cancellationToken) =>
+        await TeamImportLinks.ForMemberships(_organizationDbContext, createdEntityIds, cancellationToken);
     public override string DisplayName => "Team Hierarchy";
     public override ImportAtomicity Atomicity => ImportAtomicity.Atomic;
 

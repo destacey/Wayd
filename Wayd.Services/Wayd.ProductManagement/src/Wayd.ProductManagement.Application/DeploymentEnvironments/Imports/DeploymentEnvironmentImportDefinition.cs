@@ -1,3 +1,5 @@
+using System.Globalization;
+using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
@@ -26,6 +28,19 @@ public sealed class DeploymentEnvironmentImportDefinition(
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public override string Key => ImportKey;
+
+    /// <inheritdoc />
+    public override async Task<IReadOnlyDictionary<Guid, ImportRecordLink>> DescribeCreatedRecords(
+        IReadOnlyCollection<Guid> createdEntityIds,
+        CancellationToken cancellationToken) =>
+        await _productManagementDbContext.DeploymentEnvironments
+            .AsNoTracking()
+            .Where(x => createdEntityIds.Contains(x.Id))
+            .Select(x => new { x.Id, x.Key, Name = x.Name })
+            .ToDictionaryAsync(
+                x => x.Id,
+                x => new ImportRecordLink(ImportRecordType.DeploymentEnvironment, x.Key.ToString(CultureInfo.InvariantCulture), x.Name),
+                cancellationToken);
     public override string DisplayName => "Deployment Environments";
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.DeploymentEnvironments;

@@ -88,6 +88,15 @@ public abstract class ImportDefinition<TRow>(IImportPayloadSerializer serializer
             ? GroupKeys([.. rows.Select(r => (r.ImportId, _serializer.Deserialize<TRow>(r.Payload)))])
             : [.. rows.Select(_ => (string?)null)];
 
+    /// <summary>
+    /// Says where to see each record this import created. Abstract rather than defaulting to nothing: a
+    /// missing link reads as a deleted record, so an import that forgot to describe its records would show
+    /// every applied row as gone.
+    /// </summary>
+    public abstract Task<IReadOnlyDictionary<Guid, ImportRecordLink>> DescribeCreatedRecords(
+        IReadOnlyCollection<Guid> createdEntityIds,
+        CancellationToken cancellationToken);
+
     /// <summary>Serializes a parsed row for storage at submission time.</summary>
     public string SerializeRow(TRow row) => _serializer.Serialize(row);
 

@@ -84,6 +84,15 @@ public interface IImportDefinition
     /// knowing the definition's row type; the runtime type must be the one the definition declares.
     /// </summary>
     string SerializeRow(object row);
+
+    /// <summary>
+    /// Says where to see each record this import's rows created, keyed by the id a row recorded. An id
+    /// whose record no longer exists is left out, which is how a reader learns it was deleted.
+    /// </summary>
+    /// <param name="createdEntityIds">Ids from <see cref="ImportProcessRow.CreatedEntityId"/>, one page of rows at most.</param>
+    Task<IReadOnlyDictionary<Guid, ImportRecordLink>> DescribeCreatedRecords(
+        IReadOnlyCollection<Guid> createdEntityIds,
+        CancellationToken cancellationToken);
 }
 
 /// <summary>The runner's view of a pass: what it is called and whether it may be chunked.</summary>

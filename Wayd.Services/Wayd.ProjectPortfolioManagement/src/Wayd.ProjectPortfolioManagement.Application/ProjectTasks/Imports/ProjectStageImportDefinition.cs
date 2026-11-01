@@ -31,6 +31,22 @@ public sealed class ProjectStageImportDefinition(
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
 
     public override string Key => ImportKey;
+
+    /// <inheritdoc />
+    public override async Task<IReadOnlyDictionary<Guid, ImportRecordLink>> DescribeCreatedRecords(
+        IReadOnlyCollection<Guid> createdEntityIds,
+        CancellationToken cancellationToken)
+    {
+        // A ProjectStage has no page of its own; the row links to the project it belongs to.
+        return await _projectPortfolioManagementDbContext.ProjectStages
+            .AsNoTracking()
+            .Where(x => createdEntityIds.Contains(x.Id))
+            .Join(_projectPortfolioManagementDbContext.Projects, x => x.ProjectId, p => p.Id, (x, p) => new { x.Id, p.Key, p.Name })
+            .ToDictionaryAsync(
+                x => x.Id,
+                x => new ImportRecordLink(ImportRecordType.Project, x.Key.Value, x.Name),
+                cancellationToken);
+    }
     public override string DisplayName => "Project Stages";
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.Projects;

@@ -116022,6 +116022,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ImportRowStatus>))]
         public ImportRowStatus Status { get; set; } = default!;
 
+        /// <summary>
+        /// The record this row created or changed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("createdEntityId")]
         public System.Guid? CreatedEntityId { get; set; } = default!;
 
@@ -116033,6 +116036,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("attemptedOn")]
         public System.DateTimeOffset? AttemptedOn { get; set; } = default!;
+
+        /// <summary>
+        /// Where to see that record — or, for one with no page of its own, the record it belongs to. Null when the
+        /// <br/>row created nothing, when that record or the one the link opens has since been deleted, and for a
+        /// <br/>preflight, whose records were rolled back.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("createdRecord")]
+        public ImportRecordLink? CreatedRecord { get; set; } = default!;
 
     }
 
@@ -116631,6 +116642,100 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("assignees")]
         public string? Assignees { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Where a person goes to see what an import row did: the record it created, or — for a record with no page
+    /// <br/>of its own, such as a membership or a dependency — the record it belongs to.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportRecordLink
+    {
+
+        /// <summary>
+        /// The kind of record the link opens.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ImportRecordType>))]
+        public ImportRecordType Type { get; set; } = default!;
+
+        /// <summary>
+        /// The key its page is addressed by.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Key { get; set; } = default!;
+
+        /// <summary>
+        /// What to call it, so the link reads as more than a number.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string? Name { get; set; } = default!;
+
+        /// <summary>
+        /// The key of the record its page sits under — a planning interval objective's planning interval. Null for any other type.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("parentKey")]
+        public string? ParentKey { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ImportRecordType
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Employee")]
+        Employee = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Team")]
+        Team = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"TeamOfTeams")]
+        TeamOfTeams = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"PlanningInterval")]
+        PlanningInterval = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"PlanningIntervalObjective")]
+        PlanningIntervalObjective = 4,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Risk")]
+        Risk = 5,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Portfolio")]
+        Portfolio = 6,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Program")]
+        Program = 7,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Project")]
+        Project = 8,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"StrategicInitiative")]
+        StrategicInitiative = 9,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"StrategicTheme")]
+        StrategicTheme = 10,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Product")]
+        Product = 11,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Version")]
+        Version = 12,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Release")]
+        Release = 13,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"ReleasePackage")]
+        ReleasePackage = 14,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Deployment")]
+        Deployment = 15,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"DeploymentEnvironment")]
+        DeploymentEnvironment = 16,
 
     }
 

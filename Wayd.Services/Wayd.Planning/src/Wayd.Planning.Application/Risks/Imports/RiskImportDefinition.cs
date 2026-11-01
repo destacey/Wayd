@@ -1,3 +1,4 @@
+using System.Globalization;
 using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
@@ -35,6 +36,19 @@ public sealed class RiskImportDefinition(
     private readonly ICurrentUser _currentUser = currentUser;
 
     public override string Key => ImportKey;
+
+    /// <inheritdoc />
+    public override async Task<IReadOnlyDictionary<Guid, ImportRecordLink>> DescribeCreatedRecords(
+        IReadOnlyCollection<Guid> createdEntityIds,
+        CancellationToken cancellationToken) =>
+        await _planningDbContext.Risks
+            .AsNoTracking()
+            .Where(x => createdEntityIds.Contains(x.Id))
+            .Select(x => new { x.Id, x.Key, Name = x.Summary })
+            .ToDictionaryAsync(
+                x => x.Id,
+                x => new ImportRecordLink(ImportRecordType.Risk, x.Key.ToString(CultureInfo.InvariantCulture), x.Name),
+                cancellationToken);
     public override string DisplayName => "Risks";
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.Risks;

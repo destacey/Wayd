@@ -1,3 +1,4 @@
+using System.Globalization;
 using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using NodaTime;
@@ -40,6 +41,20 @@ public sealed class ProductDependencyImportDefinition(
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public override string Key => ImportKey;
+
+    /// <inheritdoc />
+    public override async Task<IReadOnlyDictionary<Guid, ImportRecordLink>> DescribeCreatedRecords(
+        IReadOnlyCollection<Guid> createdEntityIds,
+        CancellationToken cancellationToken) =>
+        // A dependency has no page of its own; the row links to the product that depends.
+        await _productManagementDbContext.ProductDependencies
+            .AsNoTracking()
+            .Where(x => createdEntityIds.Contains(x.Id))
+            .Join(_productManagementDbContext.Products, d => d.ProductId, p => p.Id, (d, p) => new { d.Id, p.Key, p.Name })
+            .ToDictionaryAsync(
+                x => x.Id,
+                x => new ImportRecordLink(ImportRecordType.Product, x.Key.ToString(CultureInfo.InvariantCulture), x.Name),
+                cancellationToken);
     public override string DisplayName => "Product Dependencies";
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.Products;

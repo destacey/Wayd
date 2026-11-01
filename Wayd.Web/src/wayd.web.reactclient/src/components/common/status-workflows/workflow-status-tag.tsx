@@ -9,10 +9,9 @@ export interface WorkflowStatusTagProps {
   category: StatusCategory
 }
 
-// Deliberately not reusing WorkStatusTag. Its WorkStatusCategory is a numeric enum from the work
-// module; this one is a string enum from the workflow engine. They share four names today by
-// coincidence, and casting between them would compile while silently mapping the wrong colour the
-// moment either side gains a category.
+// Deliberately not reusing WorkStatusTag: work item DTOs send the category as a numeric id
+// (StatusCategoryId), where workflow statuses send the StatusCategory name. Casting between the two
+// would compile while silently mapping the wrong colour.
 const getTagColor = (category: StatusCategory): string => {
   switch (category) {
     case StatusCategory.Proposed:

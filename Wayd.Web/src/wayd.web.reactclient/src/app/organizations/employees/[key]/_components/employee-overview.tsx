@@ -3,7 +3,7 @@
 import { CycleTimeMetric, MetricCard } from '@/src/components/common/metrics'
 import { getCycleTimeWorkItems } from '@/src/components/common/work/cycle-time-report.filtering'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { EmployeeDetailsDto, WorkStatusCategory } from '@/src/services/wayd-api'
+import { EmployeeDetailsDto, StatusCategory } from '@/src/services/wayd-api'
 import { teamUrl } from '@/src/utils'
 import {
   useGetDirectReportsQuery,
@@ -83,8 +83,8 @@ const EmployeeOverview = ({
       {
         employeeId: employee.id,
         statusCategories: [
-          WorkStatusCategory.Proposed,
-          WorkStatusCategory.Active,
+          StatusCategory.Proposed,
+          StatusCategory.Active,
         ],
       },
       { skip: !employee.id },
@@ -103,7 +103,7 @@ const EmployeeOverview = ({
     useGetEmployeeWorkItemsQuery(
       {
         employeeId: employee.id,
-        statusCategories: [WorkStatusCategory.Done],
+        statusCategories: [StatusCategory.Done],
         doneFrom,
       },
       { skip: !employee.id },

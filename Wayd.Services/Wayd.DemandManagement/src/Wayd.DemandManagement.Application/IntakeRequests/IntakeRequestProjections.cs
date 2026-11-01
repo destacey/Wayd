@@ -6,6 +6,8 @@ using Wayd.DemandManagement.Application.IntakeChannels.Dtos;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 using Wayd.DemandManagement.Application.IntakeRequestTagCategories.Dtos;
 using Wayd.DemandManagement.Domain.Models;
+using Wayd.DemandManagement.Domain;
+using Wayd.Common.Domain.StatusWorkflows;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests;
 
@@ -34,7 +36,7 @@ internal static class IntakeRequestProjections
             Id = r.Id,
             Key = r.Key,
             Title = r.Title,
-            Status = new StatusNavigationDto { Id = r.StatusId, Name = r.StatusName, Category = r.StatusCategory, Alias = r.StatusAliasValue },
+            Status = new StatusNavigationDto { Id = r.StatusId, Name = r.StatusName, Category = r.StatusCategory, CategoryLabel = WorkflowOwners.CategoryLabel(DemandManagementWorkflowOwners.IntakeRequest.Key, r.StatusCategory), Alias = r.StatusAliasValue },
             Desk = desks.Where(d => d.Id == r.DeskId)
                 .Select(d => new NavigationDto { Id = d.Id, Key = d.Key, Name = d.Name })
                 .First(),

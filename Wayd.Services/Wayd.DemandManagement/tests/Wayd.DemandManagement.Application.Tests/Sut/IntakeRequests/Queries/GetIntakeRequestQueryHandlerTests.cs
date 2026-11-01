@@ -414,6 +414,29 @@ public sealed class GetIntakeRequestQueryHandlerTests
         result.CanChangeOutcomes.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task Handle_ForAWorkItemOutcome_ReturnsItWithoutAProjectForTheApiToFillIn()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        var workItemId = Guid.NewGuid();
+        _scenario.Outcome(request, workItemId, agent, IntakeRequestOutcomeKind.WorkItem, "The export screen");
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.View);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        var outcome = result!.Outcomes.Should().ContainSingle().Subject;
+        outcome.Kind.Should().Be(IntakeRequestOutcomeKind.WorkItem);
+        outcome.TargetId.Should().Be(workItemId);
+        outcome.Note.Should().Be("The export screen");
+        outcome.AddedBy.Id.Should().Be(agent.Id);
+        outcome.Project.Should().BeNull();
+        outcome.WorkItem.Should().BeNull();
+    }
+
     [Theory]
     [InlineData("Accepted", true)]
     [InlineData("In Review", false)]

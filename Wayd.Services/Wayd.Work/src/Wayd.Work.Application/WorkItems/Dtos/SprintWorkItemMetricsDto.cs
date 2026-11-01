@@ -1,5 +1,5 @@
 ﻿using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Application.WorkItems.Dtos;
 
@@ -50,15 +50,15 @@ public sealed record SprintWorkItemMetricsDto
         double Estimate(IEnumerable<WorkItem> bucket) => bucket.Sum(w => WorkItemEstimate.Of(sizingMethod, w) ?? 0);
 
         var completed = items.Where(w =>
-            w.StatusCategory == WorkStatusCategory.Done ||
-            w.StatusCategory == WorkStatusCategory.Removed).ToList();
+            w.StatusCategory == StatusCategory.Done ||
+            w.StatusCategory == StatusCategory.Removed).ToList();
 
-        var inProgress = items.Where(w => w.StatusCategory == WorkStatusCategory.Active).ToList();
-        var notStarted = items.Where(w => w.StatusCategory == WorkStatusCategory.Proposed).ToList();
+        var inProgress = items.Where(w => w.StatusCategory == StatusCategory.Active).ToList();
+        var notStarted = items.Where(w => w.StatusCategory == StatusCategory.Proposed).ToList();
 
         // Cycle time: only items moved to Done with a valid Activated→Done span
         var doneItems = items.Where(w =>
-            w.StatusCategory == WorkStatusCategory.Done &&
+            w.StatusCategory == StatusCategory.Done &&
             w.ActivatedTimestamp.HasValue &&
             w.DoneTimestamp.HasValue &&
             w.DoneTimestamp.Value > w.ActivatedTimestamp.Value).ToList();

@@ -1,11 +1,11 @@
 using Wayd.Planning.Domain.Tests.Data;
 using Microsoft.Extensions.Logging;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Planning.Application.StoryMaps.Commands;
 using Wayd.Planning.Application.StoryMaps.Interfaces;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Models.StoryMaps;
 using Moq;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
@@ -42,7 +42,7 @@ public class ArchiveStoryMapCommandHandlerTests : IDisposable
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        map.Status.Should().Be(WorkStatusCategory.Removed);
+        map.Status.Should().Be(StatusCategory.Removed);
         _dbContext.SaveChangesCallCount.Should().Be(1);
         _mockNotifier.Verify(n => n.NotifyMapArchived(It.IsAny<Guid>()), Times.Once);
     }

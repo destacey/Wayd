@@ -3152,7 +3152,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetWorkItemsAsync(System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetWorkItemsAsync(System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -3474,7 +3474,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetWorkItemsAsync(System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetWorkItemsAsync(System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -73593,7 +73593,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetEmployeeWorkItemsAsync(System.Guid id, System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetEmployeeWorkItemsAsync(System.Guid id, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -75518,7 +75518,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetEmployeeWorkItemsAsync(System.Guid id, System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetEmployeeWorkItemsAsync(System.Guid id, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -77993,7 +77993,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetTeamWorkItemsAsync(string idOrCode, System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetTeamWorkItemsAsync(string idOrCode, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -80683,7 +80683,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetTeamWorkItemsAsync(string idOrCode, System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetTeamWorkItemsAsync(string idOrCode, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (idOrCode == null)
                 throw new System.ArgumentNullException("idOrCode");
@@ -91839,10 +91839,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Record that an accepted intake request became a project.
+        /// Record that an accepted intake request became a project or work item.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on. The project itself is not changed. A request points at a project at most once. Once a request has an outcome, finishing it needs no reason.
+        /// Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -91853,7 +91853,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Take an outcome off an accepted intake request.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. The project itself is not changed.
+        /// Needs an agent on the request's desk, while the request is accepted. `targetId` is the project or work item the outcome points at. The project or work item itself is not changed.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -91869,6 +91869,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectIntakeRequestDto>> GetProjectIntakeRequestsAsync(System.Guid projectId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the intake requests a work item delivers, that you can see.
+        /// </summary>
+        /// <remarks>
+        /// Ordered by request number. Each request is read under its desk's visibility, so a request on a private desk you are not part of is absent rather than listed as redacted.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemIntakeRequestDto>> GetWorkItemIntakeRequestsAsync(System.Guid workItemId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -93882,10 +93893,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Record that an accepted intake request became a project.
+        /// Record that an accepted intake request became a project or work item.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on. The project itself is not changed. A request points at a project at most once. Once a request has an outcome, finishing it needs no reason.
+        /// Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -93998,7 +94009,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Take an outcome off an accepted intake request.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. The project itself is not changed.
+        /// Needs an agent on the request's desk, while the request is accepted. `targetId` is the project or work item the outcome points at. The project or work item itself is not changed.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -94148,6 +94159,87 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<ProjectIntakeRequestDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the intake requests a work item delivers, that you can see.
+        /// </summary>
+        /// <remarks>
+        /// Ordered by request number. Each request is read under its desk's visibility, so a request on a private desk you are not part of is absent rather than listed as redacted.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemIntakeRequestDto>> GetWorkItemIntakeRequestsAsync(System.Guid workItemId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (workItemId == null)
+                throw new System.ArgumentNullException("workItemId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-requests/work-items/{workItemId}"
+                    urlBuilder_.Append("api/demand-management/intake-requests/work-items/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(workItemId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<WorkItemIntakeRequestDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -108249,14 +108341,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A project an accepted intake request became.
+    /// A project or work item an accepted intake request became.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class AddIntakeRequestOutcomeRequest
     {
 
         /// <summary>
-        /// What the request became: a new project started for it, or scope added to a project that already existed.
+        /// What the request became: a new project started for it, scope added to a project that already existed, or
+        /// <br/>a work item that delivers it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -108264,11 +108357,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public IntakeRequestOutcomeKind Kind { get; set; } = default!;
 
         /// <summary>
-        /// The project. Recording the outcome does not change it.
+        /// The project, for `NewProject` and `ExistingProjectScope`; leave it out for `WorkItem`. Recording the outcome
+        /// <br/>does not change it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectId")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Guid ProjectId { get; set; } = default!;
+        public System.Guid? ProjectId { get; set; } = default!;
+
+        /// <summary>
+        /// The work item, for `WorkItem`; leave it out for the project kinds. Recording the outcome does not change it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workItemId")]
+        public System.Guid? WorkItemId { get; set; } = default!;
 
         /// <summary>
         /// What the outcome covers. Required for existing project scope, where it says what the project absorbed.
@@ -115353,6 +115452,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
         public StatusCategory Category { get; set; } = default!;
 
+        /// <summary>
+        /// What the record's owner type calls the category — its own word for the bucket, or the category's
+        /// <br/>name when it declares none. For display only; group and compare on the category.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("categoryLabel")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string CategoryLabel { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -118769,17 +118876,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public IntakeRequestOutcomeKind Kind { get; set; } = default!;
 
         /// <summary>
-        /// The id of the project the outcome points at, which identifies the outcome on the request.
+        /// The id of the project or work item the outcome points at, which identifies the outcome on the request.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("targetId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid TargetId { get; set; } = default!;
 
         /// <summary>
-        /// The project, or null when it has since been deleted; the outcome stays as the record of what was decided.
+        /// The project, for a project outcome; null for a work item outcome, or when the project has since been
+        /// <br/>deleted, since the outcome stays as the record of what was decided.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("project")]
         public DemandProjectNavigationDto? Project { get; set; } = default!;
+
+        /// <summary>
+        /// The work item, for a work item outcome; null for a project outcome, or when the work item has since been
+        /// <br/>deleted.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workItem")]
+        public IntakeRequestOutcomeWorkItemDto? WorkItem { get; set; } = default!;
 
         /// <summary>
         /// What the outcome covers, in the agent's words. Always present for existing project scope.
@@ -118811,6 +118926,61 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Runtime.Serialization.EnumMember(Value = @"ExistingProjectScope")]
         ExistingProjectScope = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"WorkItem")]
+        WorkItem = 2,
+
+    }
+
+    /// <summary>
+    /// A work item an intake request's outcome points at, as Work reports it now.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestOutcomeWorkItemDto
+    {
+
+        /// <summary>
+        /// The work item's id, the same as in Work.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The work item's key, which its page is addressed by.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Key { get; set; } = default!;
+
+        /// <summary>
+        /// The work item's title.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Title { get; set; } = default!;
+
+        /// <summary>
+        /// The key of the workspace the work item is in, which its page is addressed by.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workspaceKey")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string WorkspaceKey { get; set; } = default!;
+
+        /// <summary>
+        /// The work item's status, by name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Status { get; set; } = default!;
+
+        /// <summary>
+        /// The category of the work item's status.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusCategory")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
+        public StatusCategory StatusCategory { get; set; } = default!;
 
     }
 
@@ -119521,6 +119691,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
         public StatusCategory Category { get; set; } = default!;
+
+        /// <summary>
+        /// What intake requests call the category. For display only; group and compare on the category.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("categoryLabel")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string CategoryLabel { get; set; } = default!;
 
         /// <summary>
         /// The well-known meaning the status carries, as an intake request status alias value, or 0 for none.
@@ -130308,6 +130485,30 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// One category and what an owner type calls it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class StatusCategoryLabelDto
+    {
+
+        /// <summary>
+        /// The category being named.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("category")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
+        public StatusCategory Category { get; set; } = default!;
+
+        /// <summary>
+        /// What the owner type calls the category, or the category's own name when it declares none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Label { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// The status a record currently holds, as a reader needs it.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -130333,6 +130534,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
         public StatusCategory Category { get; set; } = default!;
+
+        /// <summary>
+        /// What the record's owner type calls the category — its own word for the bucket, or the category's
+        /// <br/>name when it declares none. For display only; group and compare on the category.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("categoryLabel")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string CategoryLabel { get; set; } = default!;
 
         /// <summary>
         /// The well-known meaning the status carries, as the consuming module's alias value, or
@@ -138402,6 +138611,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("supportsRestrictedTransitions")]
         public bool SupportsRestrictedTransitions { get; set; } = default!;
 
+        /// <summary>
+        /// What this owner type calls each category, one entry per category in category order. A category
+        /// <br/>it declares no label for carries the category's own name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("categoryLabels")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<StatusCategoryLabelDto> CategoryLabels { get; set; } = new System.Collections.ObjectModel.Collection<StatusCategoryLabelDto>();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -138447,7 +138664,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string? Description { get; set; } = default!;
 
         /// <summary>
-        /// The rollup this status belongs to, as id and display name.
+        /// The rollup this status belongs to: the category's id, and its name as the workflow's owner type
+        /// <br/>labels it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("category")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -138890,6 +139108,35 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// An intake request a work item delivers, as listed on the work item's page. Summary tier only.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class WorkItemIntakeRequestDto
+    {
+
+        /// <summary>
+        /// The request.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("request")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public IntakeRequestNavigationDto Request { get; set; } = new IntakeRequestNavigationDto();
+
+        /// <summary>
+        /// Where the request stands in its desk's review workflow.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
+
+        /// <summary>
+        /// What the work item covers of the request, in the agent's words.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("note")]
+        public string? Note { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class WorkItemListDto
     {
@@ -139243,24 +139490,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class WorkspaceNavigationDto : NavigationDtoOfGuidAndString
     {
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum WorkStatusCategory
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Proposed")]
-        Proposed = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Active")]
-        Active = 1,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Done")]
-        Done = 2,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Removed")]
-        Removed = 3,
 
     }
 

@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Domain.Models.Forecasting;
 
@@ -71,7 +72,7 @@ internal sealed class ForecastNetworkLoader(IWorkDbContext workDbContext)
             .ToList();
 
         var removedPredecessorDependencies = dependencies
-            .Where(d => closed.TryGetValue(d.Predecessor, out var p) && p.StatusCategory == WorkStatusCategory.Removed && items.ContainsKey(d.Successor))
+            .Where(d => closed.TryGetValue(d.Predecessor, out var p) && p.StatusCategory == StatusCategory.Removed && items.ContainsKey(d.Successor))
             .Select(d => (closed[d.Predecessor], items[d.Successor]))
             .ToList();
 
@@ -106,7 +107,7 @@ internal sealed class ForecastNetworkLoader(IWorkDbContext workDbContext)
                 if (child.Tier == WorkTypeTier.Portfolio)
                     frontier.Add(child.Id);
                 else if (child.Tier == WorkTypeTier.Requirement
-                    && child.StatusCategory is WorkStatusCategory.Proposed or WorkStatusCategory.Active)
+                    && child.StatusCategory is StatusCategory.Proposed or StatusCategory.Active)
                     descendants.Add(child.Id);
             }
         }
@@ -170,7 +171,7 @@ internal sealed class ForecastNetworkLoader(IWorkDbContext workDbContext)
         var items = await _workDbContext.WorkItems
             .Where(w => w.TeamId.HasValue && teamIds.Contains(w.TeamId.Value))
             .Where(w => w.Type.Level!.Tier == WorkTypeTier.Requirement)
-            .Where(w => w.StatusCategory == WorkStatusCategory.Proposed || w.StatusCategory == WorkStatusCategory.Active)
+            .Where(w => w.StatusCategory == StatusCategory.Proposed || w.StatusCategory == StatusCategory.Active)
             .Select(w => new { w.Id, TeamId = w.TeamId!.Value, w.StatusCategory, w.StackRank, w.Created })
             .ToListAsync(cancellationToken);
 
@@ -178,7 +179,7 @@ internal sealed class ForecastNetworkLoader(IWorkDbContext workDbContext)
             .GroupBy(w => w.TeamId)
             .ToDictionary(
                 g => g.Key,
-                g => g.OrderBy(w => startedWorkFirst && w.StatusCategory != WorkStatusCategory.Active ? 1 : 0)
+                g => g.OrderBy(w => startedWorkFirst && w.StatusCategory != StatusCategory.Active ? 1 : 0)
                     .ThenBy(w => w.StackRank)
                     .ThenBy(w => w.Created)
                     .ThenBy(w => w.Id)

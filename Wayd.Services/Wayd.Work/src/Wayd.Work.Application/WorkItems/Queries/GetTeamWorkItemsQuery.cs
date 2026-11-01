@@ -1,6 +1,7 @@
 ﻿using System.Linq.Expressions;
 using Wayd.Common.Application.Models.Organizations;
 using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.Extensions;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItems.Dtos;
@@ -9,7 +10,7 @@ namespace Wayd.Work.Application.WorkItems.Queries;
 
 public sealed record GetTeamWorkItemsQuery : IQuery<List<WorkItemListDto>>
 {
-    public GetTeamWorkItemsQuery(TeamIdOrCode teamIdOrCode, WorkStatusCategory[]? statusCategories = null, Instant? doneFrom = null, Instant? doneTo = null)
+    public GetTeamWorkItemsQuery(TeamIdOrCode teamIdOrCode, StatusCategory[]? statusCategories = null, Instant? doneFrom = null, Instant? doneTo = null)
     {
         TeamFilter = teamIdOrCode.CreateWorkTeamFilter<WorkItem>();
         StatusCategories = statusCategories ?? [];
@@ -18,7 +19,7 @@ public sealed record GetTeamWorkItemsQuery : IQuery<List<WorkItemListDto>>
     }
 
     public Expression<Func<WorkItem, bool>> TeamFilter { get; }
-    public WorkStatusCategory[] StatusCategories { get; }
+    public StatusCategory[] StatusCategories { get; }
     public Instant? DoneFrom { get; }
     public Instant? DoneTo { get; }
 }

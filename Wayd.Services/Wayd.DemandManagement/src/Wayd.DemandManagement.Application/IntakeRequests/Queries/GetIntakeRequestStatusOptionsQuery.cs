@@ -2,6 +2,7 @@ using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 using Wayd.DemandManagement.Domain.Models;
+using Wayd.DemandManagement.Domain;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Queries;
 
@@ -57,6 +58,7 @@ public sealed class GetIntakeRequestStatusOptionsQueryHandler(
                     Id = s.Id,
                     Name = s.Name,
                     Category = s.Category,
+                    CategoryLabel = DemandManagementWorkflowOwners.IntakeRequest.CategoryLabel(s.Category),
                     Alias = s.Alias,
                     NeedsReason = IntakeRequest.NeedsReason(s.Category, (IntakeRequestStatusAlias)s.Alias, target.HasOutcomes),
                     NeedsSurvivingRequest = s.Alias == (int)IntakeRequestStatusAlias.Duplicate,

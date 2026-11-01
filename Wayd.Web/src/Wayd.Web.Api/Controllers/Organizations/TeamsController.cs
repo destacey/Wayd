@@ -30,6 +30,7 @@ using Wayd.Work.Application.WorkItems.Queries;
 using Wayd.Work.Application.WorkItems.Forecasting;
 using Wayd.Work.Application.WorkTeams.Dtos;
 using Wayd.Work.Application.WorkTeams.Queries;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Web.Api.Controllers.Organizations;
 
@@ -591,7 +592,7 @@ public class TeamsController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkItemListDto>>> GetTeamWorkItems(
         string idOrCode,
-        [FromQuery] WorkStatusCategory[]? statusCategories,
+        [FromQuery] StatusCategory[]? statusCategories,
         [FromQuery] DateTime? doneFrom,
         [FromQuery] DateTime? doneTo,
         CancellationToken cancellationToken)

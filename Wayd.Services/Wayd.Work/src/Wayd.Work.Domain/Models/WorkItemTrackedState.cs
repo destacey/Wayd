@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Domain.Models;
 
@@ -25,7 +25,7 @@ public sealed record WorkItemTrackedState(
     int? ExternalIterationId,
     int? StatusId,
     string StatusName,
-    WorkStatusCategory? StatusCategory,
+    StatusCategory? StatusCategory,
     int? WorkTypeId,
     string WorkTypeName,
     string? TeamKey,

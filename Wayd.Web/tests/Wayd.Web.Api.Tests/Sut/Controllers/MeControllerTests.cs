@@ -8,7 +8,7 @@ using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Identity.Roles;
 using Wayd.Common.Application.Identity.Users;
 using Wayd.Common.Application.Interfaces;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Infrastructure.Auth.Permissions;
 using Wayd.Organization.Application.EmployeeCapacities.Dtos;
 using Wayd.Organization.Application.EmployeeCapacities.Queries;
@@ -183,7 +183,7 @@ public sealed class MeControllerTests
         // Arrange
         var employeeId = Guid.NewGuid();
         LinkedTo(employeeId);
-        WorkStatusCategory[] open = [WorkStatusCategory.Proposed, WorkStatusCategory.Active];
+        StatusCategory[] open = [StatusCategory.Proposed, StatusCategory.Active];
         _mocker
             .GetMock<IDispatcher>()
             .Setup(d => d.Send(It.IsAny<GetEmployeeWorkItemsQuery>(), It.IsAny<CancellationToken>()))

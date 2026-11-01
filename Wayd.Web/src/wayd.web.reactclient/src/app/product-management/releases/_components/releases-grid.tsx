@@ -99,7 +99,7 @@ export const buildReleaseColumns = (
     // A status name is the workflow's own word and can be renamed to anything. The tooltip carries
     // the category, which is the fixed meaning rollups and filters group on.
     cell: ({ row }) => (
-      <Tooltip title={statusCategoryDescription(row.original.status.category)}>
+      <Tooltip title={statusCategoryDescription(row.original.status)}>
         <span>
           <WorkflowStatusTag
             name={row.original.status.name}

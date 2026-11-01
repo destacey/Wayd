@@ -1,5 +1,6 @@
 ﻿using Wayd.Common.Application.Dtos;
 using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkTeams.Dtos;
@@ -48,7 +49,7 @@ internal sealed class WorkItemForecastBuilder(IWorkDbContext workDbContext)
             .ToListAsync(cancellationToken);
 
         var loader = new ForecastNetworkLoader(_workDbContext);
-        var openRoots = roots.Where(r => r.StatusCategory is WorkStatusCategory.Proposed or WorkStatusCategory.Active).ToList();
+        var openRoots = roots.Where(r => r.StatusCategory is StatusCategory.Proposed or StatusCategory.Active).ToList();
         var portfolioRoots = openRoots.Where(r => r.Tier == WorkTypeTier.Portfolio).Select(r => r.Id).ToList();
 
         var remaining = openRoots.Where(r => r.Tier != WorkTypeTier.Portfolio).Select(r => r.Id).ToHashSet();
@@ -57,7 +58,7 @@ internal sealed class WorkItemForecastBuilder(IWorkDbContext workDbContext)
 
         if (remaining.Count == 0)
         {
-            var outcome = roots.Count > 0 && roots.All(r => r.StatusCategory == WorkStatusCategory.Done)
+            var outcome = roots.Count > 0 && roots.All(r => r.StatusCategory == StatusCategory.Done)
                 ? WorkItemForecastOutcome.AlreadyDone
                 : WorkItemForecastOutcome.NoRemainingWork;
             return new WorkItemForecastDto

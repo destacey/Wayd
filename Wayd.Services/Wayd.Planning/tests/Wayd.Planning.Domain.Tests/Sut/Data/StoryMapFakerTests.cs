@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Planning.Domain.Tests.Data;
 
 namespace Wayd.Planning.Domain.Tests.Sut.Data;
@@ -21,7 +21,7 @@ public class StoryMapFakerTests
         map.Key.Should().BeGreaterThan(0);
         map.Name.Should().NotBeNullOrWhiteSpace();
         map.OwnerId.Should().NotBeNullOrWhiteSpace();
-        map.Status.Should().Be(WorkStatusCategory.Active);
+        map.Status.Should().Be(StatusCategory.Active);
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public class StoryMapFakerTests
             .WithKey(42)
             .WithName("Named map")
             .WithOwnerId(ownerId)
-            .WithStatus(WorkStatusCategory.Removed)
+            .WithStatus(StatusCategory.Removed)
             .Generate();
 
         // Assert
@@ -45,7 +45,7 @@ public class StoryMapFakerTests
         map.Key.Should().Be(42);
         map.Name.Should().Be("Named map");
         map.OwnerId.Should().Be(ownerId);
-        map.Status.Should().Be(WorkStatusCategory.Removed);
+        map.Status.Should().Be(StatusCategory.Removed);
     }
 
     [Fact]
@@ -58,6 +58,6 @@ public class StoryMapFakerTests
         map.Goals.Should().ContainSingle();
         map.Goals.Single().Steps.Should().ContainSingle();
         map.SwimLanes.Should().ContainSingle(l => l.IsDefault);
-        map.Status.Should().Be(WorkStatusCategory.Active);
+        map.Status.Should().Be(StatusCategory.Active);
     }
 }

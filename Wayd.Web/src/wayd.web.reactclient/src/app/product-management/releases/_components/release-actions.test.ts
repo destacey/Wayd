@@ -17,6 +17,7 @@ const release = (overrides: Partial<ReleaseDto> = {}): ReleaseDto =>
       id: 's',
       name: 'Planned',
       category: StatusCategory.Proposed,
+      categoryLabel: 'Proposed',
       alias: 0,
     },
     versions: [],
@@ -33,6 +34,7 @@ const announced = () =>
       id: 's',
       name: 'Released',
       category: StatusCategory.Done,
+      categoryLabel: 'Done',
       alias: 11,
     },
   })
@@ -43,6 +45,7 @@ const withdrawn = () =>
       id: 's',
       name: 'Withdrawn',
       category: StatusCategory.Removed,
+      categoryLabel: 'Removed',
       alias: 12,
     },
   })
@@ -113,6 +116,7 @@ describe('releaseActionAvailability', () => {
         id: 's',
         name: 'Complete',
         category: StatusCategory.Done,
+        categoryLabel: 'Done',
         alias: 0,
       },
     })

@@ -1,10 +1,10 @@
 using FluentAssertions.Extensions;
 using NodaTime;
 using NodaTime.Extensions;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Tests.Shared.Data;
 using Wayd.Work.Domain.Models;
 using Wayd.TestData.Core;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Domain.Tests.Data;
 
@@ -16,7 +16,7 @@ public class WorkItemFaker : PrivateConstructorFaker<WorkItem>
         var workStatus = new WorkStatusFaker().Generate();
 
         var workspaceIdValue = workspaceId ?? FakerHub.Random.Guid();
-        var category = FakerHub.Random.Enum<WorkStatusCategory>();
+        var category = FakerHub.Random.Enum<StatusCategory>();
 
         Instant created = FakerHub.Date.Past().AsUtc().ToInstant();
         Instant? activatedTimestamp = null;
@@ -24,16 +24,16 @@ public class WorkItemFaker : PrivateConstructorFaker<WorkItem>
 
         var randomDays = FakerHub.Random.Int(0, 5);
 
-        if (category is WorkStatusCategory.Active)
+        if (category is StatusCategory.Active)
         {
             activatedTimestamp = created.Plus(Duration.FromDays(randomDays));
         }
-        else if (category is WorkStatusCategory.Done)
+        else if (category is StatusCategory.Done)
         {
             activatedTimestamp = created.Plus(Duration.FromDays(randomDays));
             doneTimestamp = activatedTimestamp.Value.Plus(Duration.FromDays(FakerHub.Random.Int(1, 10)));
         }
-        else if (category is WorkStatusCategory.Removed)
+        else if (category is StatusCategory.Removed)
         {
             if (randomDays > 0)
             {
@@ -128,7 +128,7 @@ public static class WorkItemFakerExtensions
         return faker;
     }
 
-    public static WorkItemFaker WithStatusCategory(this WorkItemFaker faker, WorkStatusCategory statusCategory)
+    public static WorkItemFaker WithStatusCategory(this WorkItemFaker faker, StatusCategory statusCategory)
     {
         faker.RuleFor(x => x.StatusCategory, statusCategory);
 
@@ -261,7 +261,7 @@ public static class WorkItemFakerExtensions
     {
         var workStatus = new WorkStatusFaker().WithName("To Do").Generate();
 
-        faker.RuleFor(x => x.StatusCategory, WorkStatusCategory.Proposed);
+        faker.RuleFor(x => x.StatusCategory, StatusCategory.Proposed);
         faker.RuleFor(x => x.StatusId, workStatus.Id);
         faker.RuleFor(x => x.Status, workStatus);
         faker.RuleFor(x => x.ActivatedTimestamp, (Instant?)null);
@@ -281,7 +281,7 @@ public static class WorkItemFakerExtensions
         var created = faker.Generate().Created;
         var activated = created.Plus(Duration.FromDays(1));
 
-        faker.RuleFor(x => x.StatusCategory, WorkStatusCategory.Active);
+        faker.RuleFor(x => x.StatusCategory, StatusCategory.Active);
         faker.RuleFor(x => x.StatusId, workStatus.Id);
         faker.RuleFor(x => x.Status, workStatus);
         faker.RuleFor(x => x.ActivatedTimestamp, activated);
@@ -302,7 +302,7 @@ public static class WorkItemFakerExtensions
         var activated = created.Plus(Duration.FromDays(1));
         var done = activated.Plus(Duration.FromDays(3));
 
-        faker.RuleFor(x => x.StatusCategory, WorkStatusCategory.Done);
+        faker.RuleFor(x => x.StatusCategory, StatusCategory.Done);
         faker.RuleFor(x => x.StatusId, workStatus.Id);
         faker.RuleFor(x => x.Status, workStatus);
         faker.RuleFor(x => x.ActivatedTimestamp, activated);

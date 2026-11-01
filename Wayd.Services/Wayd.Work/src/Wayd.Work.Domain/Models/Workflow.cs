@@ -1,9 +1,9 @@
 ﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Extensions;
 using Wayd.Work.Domain.Interfaces;
 using NodaTime;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Domain.Models;
 
@@ -110,7 +110,7 @@ public sealed class Workflow : BaseSoftDeletableEntity, IActivatable, IHasIdAndK
         return Result.Success();
     }
 
-    public Result AddScheme(int workStatusId, WorkStatusCategory workStatusCategory, int order, bool isActive)
+    public Result AddScheme(int workStatusId, StatusCategory workStatusCategory, int order, bool isActive)
     {
         if (_schemes.Any(s => s.WorkStatusId == workStatusId))
         {

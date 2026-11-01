@@ -19,6 +19,8 @@ const mockValidationFailures: unknown[] = []
 jest.mock('@/src/hooks', () => {
   const { Form } = jest.requireActual('antd')
   return {
+    // The search waits for typing to settle; the tests search at once.
+    useDebounce: (value: unknown) => value,
     useModalForm: ({
       onSubmit,
       onComplete,
@@ -56,6 +58,12 @@ jest.mock(
     useAddIntakeRequestOutcomeMutation: () => [mockAdd],
   }),
 )
+
+const mockSearchWorkItems = jest.fn()
+jest.mock('@/src/store/features/work-management/workspace-api', () => ({
+  useSearchWorkItemsQuery: (term: string, options: { skip: boolean }) =>
+    mockSearchWorkItems(term, options),
+}))
 
 jest.mock('@/src/store/features/ppm/projects-api', () => ({
   useGetProjectOptionsQuery: () => ({
@@ -96,6 +104,138 @@ describe('AddIntakeRequestOutcomeForm', () => {
   beforeEach(() => {
     mockAdd.mockReset()
     mockValidationFailures.length = 0
+    mockSearchWorkItems.mockReset()
+    mockSearchWorkItems.mockImplementation((term: string) => ({
+      data:
+        term === ''
+          ? undefined
+          : term === 'zzz'
+            ? [{ id: 'w-3', key: 'APP-3', title: 'Unrelated' }]
+            : [
+                { id: 'w-1', key: 'APP-1', title: 'Already linked' },
+                { id: 'w-2', key: 'APP-2', title: 'Export screen' },
+              ],
+      isFetching: false,
+      isError: false,
+    }))
+  })
+
+  const chooseWorkItemKind = async () => {
+    await act(() => userEvent.click(screen.getByLabelText('Work item')))
+  }
+
+  const searchWorkItems = async (term: string) => {
+    const select = screen
+      .getByText('Work Item')
+      .closest('.ant-form-item')!
+      .querySelector('input')!
+    await act(() => userEvent.click(select))
+    await act(() => userEvent.type(select, term))
+  }
+
+  it('records a work item with no project and no note', async () => {
+    // Arrange
+    mockAdd.mockReturnValue({ unwrap: () => Promise.resolve(null) })
+    const onFormComplete = jest.fn()
+    await renderForm(onFormComplete)
+    await chooseWorkItemKind()
+    await searchWorkItems('export')
+    await act(() => userEvent.click(screen.getByTitle('APP-2 · Export screen')))
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Add' })),
+    )
+
+    // Assert
+    expect(mockAdd).toHaveBeenCalledWith({
+      requestId: 'r-42',
+      request: {
+        kind: IntakeRequestOutcomeKind.WorkItem,
+        projectId: undefined,
+        workItemId: 'w-2',
+        note: undefined,
+      },
+    })
+    expect(onFormComplete).toHaveBeenCalled()
+  })
+
+  it('submits only the work item after switching from a chosen project', async () => {
+    // Arrange
+    mockAdd.mockReturnValue({ unwrap: () => Promise.resolve(null) })
+    await renderForm()
+    await openProjectPicker()
+    await act(() => userEvent.click(screen.getByTitle('Borealis (BOREAL)')))
+    await chooseWorkItemKind()
+    await searchWorkItems('export')
+    await act(() => userEvent.click(screen.getByTitle('APP-2 · Export screen')))
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Add' })),
+    )
+
+    // Assert
+    expect(mockAdd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          kind: IntakeRequestOutcomeKind.WorkItem,
+          projectId: undefined,
+          workItemId: 'w-2',
+        }),
+      }),
+    )
+  })
+
+  it('keeps naming the chosen work item when a later search does not return it', async () => {
+    // Arrange
+    await renderForm()
+    await chooseWorkItemKind()
+    await searchWorkItems('export')
+    await act(() => userEvent.click(screen.getByTitle('APP-2 · Export screen')))
+
+    // Act
+    await searchWorkItems('zzz')
+
+    // Assert
+    expect(screen.getByTitle('APP-3 · Unrelated')).toBeInTheDocument()
+    const workItemField = screen
+      .getByText('Work Item')
+      .closest('.ant-form-item')!
+    expect(workItemField.querySelector('.ant-select-content')).toHaveAttribute(
+      'title',
+      'APP-2 · Export screen',
+    )
+  })
+
+  it('searches work items only once something is typed, leaving out ones already linked', async () => {
+    // Arrange
+    const linked = {
+      ...request,
+      outcomes: [
+        ...request.outcomes,
+        { targetId: 'w-1', kind: IntakeRequestOutcomeKind.WorkItem },
+      ],
+    } as unknown as IntakeRequestDetailsDto
+    await act(async () =>
+      render(
+        <AddIntakeRequestOutcomeForm
+          request={linked}
+          onFormComplete={jest.fn()}
+          onFormCancel={jest.fn()}
+        />,
+      ),
+    )
+    await chooseWorkItemKind()
+
+    // Act
+    await searchWorkItems('app')
+
+    // Assert
+    expect(mockSearchWorkItems).toHaveBeenCalledWith('', { skip: true })
+    expect(mockSearchWorkItems).toHaveBeenCalledWith('app', { skip: false })
+    expect(screen.getByTitle('APP-2 · Export screen')).toBeInTheDocument()
+    expect(screen.queryByTitle('APP-1 · Already linked')).toBeNull()
   })
 
   it('offers only projects the request does not already point at', async () => {

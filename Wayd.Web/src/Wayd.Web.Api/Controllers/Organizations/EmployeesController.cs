@@ -16,9 +16,9 @@ using Wayd.Organization.Application.Teams.Dtos;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Organizations.Employees;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkItems.Queries;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Web.Api.Controllers.Organizations;
 
@@ -432,7 +432,7 @@ public class EmployeesController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<WorkItemListDto>>> GetEmployeeWorkItems(
         Guid id,
-        [FromQuery] WorkStatusCategory[]? statusCategories,
+        [FromQuery] StatusCategory[]? statusCategories,
         [FromQuery] DateTime? doneFrom,
         [FromQuery] DateTime? doneTo,
         CancellationToken cancellationToken)

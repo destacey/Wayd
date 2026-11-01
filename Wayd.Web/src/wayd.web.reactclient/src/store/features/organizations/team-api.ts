@@ -12,7 +12,7 @@ import {
   TeamCadenceMetricsDto,
   TeamDetailsDto,
   TeamOfTeamsDetailsDto,
-  WorkStatusCategory,
+  StatusCategory,
   WorkItemListDto,
   SetTeamOperatingModelRequest,
   UpdateTeamOperatingModelRequest,
@@ -306,7 +306,7 @@ export const teamApi = apiSlice.injectEndpoints({
       WorkItemListDto[],
       {
         idOrCode: string
-        statusCategories?: WorkStatusCategory[] | null
+        statusCategories?: StatusCategory[] | null
         /** ISO 8601 date string (e.g., "2025-08-25T00:00:00.000Z") */
         doneFrom?: string | null
         /** ISO 8601 date string (e.g., "2025-08-25T00:00:00.000Z") */

@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Common.Domain.Extensions;
 
@@ -16,13 +17,13 @@ public static class DependencyStateExtensions
         };
     }
 
-    public static WorkStatusCategory ToWorkStatusCategory(this DependencyState state)
+    public static StatusCategory ToStatusCategory(this DependencyState state)
     {
         return state switch
         {
-            DependencyState.ToDo => WorkStatusCategory.Proposed,
-            DependencyState.InProgress => WorkStatusCategory.Active,
-            DependencyState.Done => WorkStatusCategory.Done,
+            DependencyState.ToDo => StatusCategory.Proposed,
+            DependencyState.InProgress => StatusCategory.Active,
+            DependencyState.Done => StatusCategory.Done,
             _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
         };
     }

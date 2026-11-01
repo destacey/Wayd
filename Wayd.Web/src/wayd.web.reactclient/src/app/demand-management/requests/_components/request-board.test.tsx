@@ -15,7 +15,13 @@ const status = (
   id: string,
   name: string,
   category: StatusCategory,
-): StatusNavigationDto => ({ id, name, category, alias: 0 })
+): StatusNavigationDto => ({
+  id,
+  name,
+  category,
+  categoryLabel: category,
+  alias: 0,
+})
 
 const STATUSES = [
   status('s-submitted', 'Submitted', StatusCategory.Proposed),

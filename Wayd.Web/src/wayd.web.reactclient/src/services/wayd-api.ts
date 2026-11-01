@@ -1745,7 +1745,7 @@ export class MeClient {
      * @param doneTo (optional) 
      * @return OK
      */
-    getWorkItems(statusCategories?: WorkStatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+    getWorkItems(statusCategories?: StatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
         let url_ = this.baseUrl + "/api/me/work-items?";
         if (statusCategories !== undefined && statusCategories !== null)
             statusCategories && statusCategories.forEach(item => { url_ += "statusCategories=" + encodeURIComponent("" + item) + "&"; });
@@ -40917,7 +40917,7 @@ export class EmployeesClient {
      * @param doneTo (optional) 
      * @return OK
      */
-    getEmployeeWorkItems(id: string, statusCategories?: WorkStatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+    getEmployeeWorkItems(id: string, statusCategories?: StatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
         let url_ = this.baseUrl + "/api/organization/employees/{id}/work-items?";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -43623,7 +43623,7 @@ export class TeamsClient {
      * @param doneTo (optional) 
      * @return OK
      */
-    getTeamWorkItems(idOrCode: string, statusCategories?: WorkStatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+    getTeamWorkItems(idOrCode: string, statusCategories?: StatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
         let url_ = this.baseUrl + "/api/organization/teams/{idOrCode}/work-items?";
         if (idOrCode === undefined || idOrCode === null)
             throw new globalThis.Error("The parameter 'idOrCode' must be defined.");
@@ -50922,7 +50922,7 @@ export class IntakeRequestsClient {
     }
 
     /**
-     * Record that an accepted intake request became a project.
+     * Record that an accepted intake request became a project or work item.
      * @return No Content
      */
     addOutcome(id: string, request: AddIntakeRequestOutcomeRequest, cancelToken?: CancelToken): Promise<void> {
@@ -51118,6 +51118,61 @@ export class IntakeRequestsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<ProjectIntakeRequestDto[]>(null as any);
+    }
+
+    /**
+     * Get the intake requests a work item delivers, that you can see.
+     * @return OK
+     */
+    getWorkItemIntakeRequests(workItemId: string, cancelToken?: CancelToken): Promise<WorkItemIntakeRequestDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/work-items/{workItemId}";
+        if (workItemId === undefined || workItemId === null)
+            throw new globalThis.Error("The parameter 'workItemId' must be defined.");
+        url_ = url_.replace("{workItemId}", encodeURIComponent("" + workItemId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkItemIntakeRequests(_response);
+        });
+    }
+
+    protected processGetWorkItemIntakeRequests(response: AxiosResponse): Promise<WorkItemIntakeRequestDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkItemIntakeRequestDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkItemIntakeRequestDto[]>(null as any);
     }
 
     /**
@@ -58811,12 +58866,16 @@ export interface AddGoalRequest {
     name: string;
 }
 
-/** A project an accepted intake request became. */
+/** A project or work item an accepted intake request became. */
 export interface AddIntakeRequestOutcomeRequest {
-    /** What the request became: a new project started for it, or scope added to a project that already existed. */
+    /** What the request became: a new project started for it, scope added to a project that already existed, or
+a work item that delivers it. */
     kind: IntakeRequestOutcomeKind;
-    /** The project. Recording the outcome does not change it. */
-    projectId: string;
+    /** The project, for `NewProject` and `ExistingProjectScope`; leave it out for `WorkItem`. Recording the outcome
+does not change it. */
+    projectId?: string | undefined;
+    /** The work item, for `WorkItem`; leave it out for the project kinds. Recording the outcome does not change it. */
+    workItemId?: string | undefined;
     /** What the outcome covers. Required for existing project scope, where it says what the project absorbed. */
     note?: string | undefined;
 }
@@ -61237,6 +61296,9 @@ export interface FrozenStatusDto {
     id: string;
     name: string;
     category: StatusCategory;
+    /** What the record's owner type calls the category — its own word for the bucket, or the category's
+name when it declares none. For display only; group and compare on the category. */
+    categoryLabel: string;
 }
 
 export interface FunctionalOrganizationChartDto {
@@ -62412,10 +62474,14 @@ export interface IntakeRequestOriginDto {
 export interface IntakeRequestOutcomeDto {
     /** What the request became. */
     kind: IntakeRequestOutcomeKind;
-    /** The id of the project the outcome points at, which identifies the outcome on the request. */
+    /** The id of the project or work item the outcome points at, which identifies the outcome on the request. */
     targetId: string;
-    /** The project, or null when it has since been deleted; the outcome stays as the record of what was decided. */
+    /** The project, for a project outcome; null for a work item outcome, or when the project has since been
+deleted, since the outcome stays as the record of what was decided. */
     project?: DemandProjectNavigationDto | undefined;
+    /** The work item, for a work item outcome; null for a project outcome, or when the work item has since been
+deleted. */
+    workItem?: IntakeRequestOutcomeWorkItemDto | undefined;
     /** What the outcome covers, in the agent's words. Always present for existing project scope. */
     note?: string | undefined;
     /** The employee who recorded the outcome. */
@@ -62427,6 +62493,23 @@ export interface IntakeRequestOutcomeDto {
 export enum IntakeRequestOutcomeKind {
     NewProject = "NewProject",
     ExistingProjectScope = "ExistingProjectScope",
+    WorkItem = "WorkItem",
+}
+
+/** A work item an intake request's outcome points at, as Work reports it now. */
+export interface IntakeRequestOutcomeWorkItemDto {
+    /** The work item's id, the same as in Work. */
+    id: string;
+    /** The work item's key, which its page is addressed by. */
+    key: string;
+    /** The work item's title. */
+    title: string;
+    /** The key of the workspace the work item is in, which its page is addressed by. */
+    workspaceKey: string;
+    /** The work item's status, by name. */
+    status: string;
+    /** The category of the work item's status. */
+    statusCategory: StatusCategory;
 }
 
 /** A participant on an intake request: who, and who added them when. */
@@ -62525,6 +62608,9 @@ rewrite what past records read as. */
     name: string;
     /** The status's bucket — Proposed, Active, Done or Removed. What rollups and invariants group on. */
     category: StatusCategory;
+    /** What the record's owner type calls the category — its own word for the bucket, or the category's
+name when it declares none. For display only; group and compare on the category. */
+    categoryLabel: string;
     /** The well-known meaning the status carries, as the consuming module's alias value, or
 `0` when it carries none. */
     alias: number;
@@ -62686,6 +62772,8 @@ export interface IntakeWorkflowStatusDto {
     name: string;
     /** The status's bucket — Proposed, Active, Done or Removed — which decides whether a request in it is open. */
     category: StatusCategory;
+    /** What intake requests call the category. For display only; group and compare on the category. */
+    categoryLabel: string;
     /** The well-known meaning the status carries, as an intake request status alias value, or 0 for none. */
     alias: number;
     /** What the status means, when the workflow's author said, written for anyone following a request. */
@@ -66330,6 +66418,14 @@ export enum StatusCategory {
     Removed = "Removed",
 }
 
+/** One category and what an owner type calls it. */
+export interface StatusCategoryLabelDto {
+    /** The category being named. */
+    category: StatusCategory;
+    /** What the owner type calls the category, or the category's own name when it declares none. */
+    label: string;
+}
+
 /** A status a record can be moved to, with what the move needs. */
 export interface StatusOptionDto extends StatusNavigationDto {
     /** What moving the record to this status needs, in kind order — `RequiresReason` means the move
@@ -69029,6 +69125,9 @@ export interface WorkflowOwnerTypeDto {
     requiredCategories: StatusCategory[];
     /** Whether a workflow for this owner type may restrict which moves its records make. */
     supportsRestrictedTransitions: boolean;
+    /** What this owner type calls each category, one entry per category in category order. A category
+it declares no label for carries the category's own name. */
+    categoryLabels: StatusCategoryLabelDto[];
 }
 
 export interface WorkflowSchemeDto {
@@ -69044,7 +69143,8 @@ export interface WorkflowStatusDto {
     id: string;
     name: string;
     description?: string | undefined;
-    /** The rollup this status belongs to, as id and display name. */
+    /** The rollup this status belongs to: the category's id, and its name as the workflow's owner type
+labels it. */
     category: SimpleNavigationDto;
     /** The well-known meaning, or zero for none. */
     alias: number;
@@ -69189,6 +69289,16 @@ it closed a cycle, or its predecessor was removed. */
     issues: ForecastIssueDto[];
 }
 
+/** An intake request a work item delivers, as listed on the work item's page. Summary tier only. */
+export interface WorkItemIntakeRequestDto {
+    /** The request. */
+    request: IntakeRequestNavigationDto;
+    /** Where the request stands in its desk's review workflow. */
+    status: StatusNavigationDto;
+    /** What the work item covers of the request, in the agent's words. */
+    note?: string | undefined;
+}
+
 export interface WorkItemListDto {
     id: string;
     key: string;
@@ -69306,13 +69416,6 @@ export interface WorkspaceListDto {
 }
 
 export interface WorkspaceNavigationDto extends NavigationDtoOfGuidAndString {
-}
-
-export enum WorkStatusCategory {
-    Proposed = "Proposed",
-    Active = "Active",
-    Done = "Done",
-    Removed = "Removed",
 }
 
 export interface WorkStatusCategoryListDto {

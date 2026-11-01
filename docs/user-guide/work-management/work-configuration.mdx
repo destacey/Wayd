@@ -19,7 +19,7 @@ erDiagram
     WorkProcessScheme ||--|| Workflow : "to workflow"
     Workflow ||--o{ WorkflowScheme : contains
     WorkflowScheme ||--|| WorkStatus : "includes status"
-    WorkflowScheme ||--|| WorkStatusCategory : "places status in"
+    WorkflowScheme ||--|| StatusCategory : "places status in"
     Workspace ||--o{ WorkItem : contains
     WorkItem ||--|| WorkType : "is type"
     WorkItem ||--|| WorkStatus : "has status"

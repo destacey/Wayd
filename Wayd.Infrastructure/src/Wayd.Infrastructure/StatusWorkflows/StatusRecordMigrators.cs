@@ -256,3 +256,11 @@ public sealed class ProjectDeliverableStatusRecordMigrator(IProjectPortfolioMana
             $"{moves}. Map those statuses to a Done or Removed status instead.");
     }
 }
+
+public sealed class IncidentStatusRecordMigrator(IProductManagementDbContext dbContext)
+    : StatusRecordMigratorBase<Incident>(dbContext)
+{
+    public override string OwnerType => ProductWorkflowOwners.Incident.Key;
+
+    protected override IQueryable<Incident> Records => DbContext.Incidents;
+}

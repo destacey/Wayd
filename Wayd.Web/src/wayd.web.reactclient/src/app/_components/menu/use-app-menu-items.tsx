@@ -40,6 +40,7 @@ interface MenuOptions {
   planningPoker: boolean
   storyMaps: boolean
   productManagement: boolean
+  incidentManagement: boolean
   demandManagement: boolean
   /**
    * Whether the signed-in account is linked to an employee record. Personal views are keyed on the
@@ -172,6 +173,16 @@ const buildMenuItems = (options: MenuOptions): (Item | MenuItem)[] => [
               'product.deployments',
               '/product-management/deployments',
             ),
+            ...(options.incidentManagement
+              ? [
+                  restrictedPermissionMenuItem(
+                    'Permissions.Incidents.View',
+                    'Incidents',
+                    'product.incidents',
+                    '/product-management/incidents',
+                  ),
+                ]
+              : []),
             restrictedPermissionMenuItem(
               'Permissions.DeliveryMetrics.View',
               'Delivery Metrics',
@@ -308,12 +319,14 @@ const useAppMenuItems = () => {
   const { isEnabled: planningPoker } = useFeatureFlag('planning-poker')
   const { isEnabled: storyMaps } = useFeatureFlag('story-maps')
   const { isEnabled: productManagement } = useFeatureFlag('product-management')
+  const { isEnabled: incidentManagement } = useFeatureFlag('incident-management')
   const { isEnabled: demandManagement } = useFeatureFlag('demand-management')
 
   const items = buildMenuItems({
     planningPoker,
     storyMaps,
     productManagement,
+    incidentManagement,
     demandManagement,
     hasLinkedEmployee,
   })

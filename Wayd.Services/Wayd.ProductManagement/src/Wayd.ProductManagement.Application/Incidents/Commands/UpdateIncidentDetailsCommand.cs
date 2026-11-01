@@ -1,0 +1,78 @@
+using Wayd.ProductManagement.Domain.Models;
+
+namespace Wayd.ProductManagement.Application.Incidents.Commands;
+
+public sealed record UpdateIncidentDetailsCommand(
+    Guid Id,
+    string Title,
+    string? Description,
+    Guid SeverityLevelId,
+    Instant NoticedAt,
+    Instant? StartedAt,
+    Instant? RecoveredAt,
+    IReadOnlyList<Guid> ProductIds) : ICommand;
+
+public sealed class UpdateIncidentDetailsCommandValidator : AbstractValidator<UpdateIncidentDetailsCommand>
+{
+    public UpdateIncidentDetailsCommandValidator()
+    {
+        RuleFor(c => c.Id).NotEmpty();
+        RuleFor(c => c.Title).NotEmpty().MaximumLength(256);
+        RuleFor(c => c.Description).MaximumLength(4096);
+        RuleFor(c => c.SeverityLevelId).NotEmpty();
+    }
+}
+
+public sealed class UpdateIncidentDetailsCommandHandler(
+    IProductManagementDbContext productManagementDbContext,
+    ILogger<UpdateIncidentDetailsCommandHandler> logger)
+    : ICommandHandler<UpdateIncidentDetailsCommand>
+{
+    private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly ILogger<UpdateIncidentDetailsCommandHandler> _logger = logger;
+
+    public async Task<Result> Handle(UpdateIncidentDetailsCommand request, CancellationToken cancellationToken)
+    {
+        var incident = await _productManagementDbContext.Incidents
+            .Include(i => i.ProductLinks)
+            .FirstOrDefaultAsync(i => i.Id == request.Id, cancellationToken);
+
+        if (incident is null)
+        {
+            _logger.LogInformation("Incident {IncidentId} not found.", request.Id);
+            return Result.Failure("Incident not found.");
+        }
+
+        var severity = await IncidentReferenceValidation.ValidateSeverityLevelInSelectedSet(
+            _productManagementDbContext, request.SeverityLevelId, cancellationToken);
+        if (severity.IsFailure)
+        {
+            return severity;
+        }
+
+        var products = await IncidentReferenceValidation.ValidateProductsExist(
+            _productManagementDbContext, request.ProductIds, cancellationToken);
+        if (products.IsFailure)
+        {
+            return products;
+        }
+
+        var updated = incident.UpdateDetails(
+            request.Title,
+            request.Description,
+            request.SeverityLevelId,
+            request.NoticedAt,
+            request.StartedAt,
+            request.RecoveredAt,
+            request.ProductIds);
+
+        if (updated.IsFailure)
+        {
+            return updated;
+        }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
+    }
+}

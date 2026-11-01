@@ -5518,6 +5518,123 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("DeploymentEnvironments", "Delivery");
                 });
 
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Incident", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CommanderEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4096)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<DateTime>("NoticedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RecoveredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("SeverityLevelId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("StatusAliasValue")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StatusCategory")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<Guid>("StatusId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("StatusName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("StatusTransitionCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("StatusWorkflowId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Key");
+
+                    b.HasIndex("SeverityLevelId");
+
+                    b.HasIndex("StatusWorkflowId");
+
+                    b.ToTable("Incidents", "ProductManagement");
+                });
+
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentProductLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("IncidentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("IncidentId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("IncidentProductLinks", "ProductManagement");
+                });
+
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentSeverityLevel", b =>
                 {
                     b.Property<Guid>("Id")
@@ -10924,6 +11041,32 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Version");
                 });
 
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Incident", b =>
+                {
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.IncidentSeverityLevel", null)
+                        .WithMany()
+                        .HasForeignKey("SeverityLevelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentProductLink", b =>
+                {
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.Incident", null)
+                        .WithMany("ProductLinks")
+                        .HasForeignKey("IncidentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentSeverityLevel", b =>
                 {
                     b.HasOne("Wayd.ProductManagement.Domain.Models.IncidentSeveritySet", null)
@@ -12300,6 +12443,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Personas");
 
                     b.Navigation("SwimLanes");
+                });
+
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Incident", b =>
+                {
+                    b.Navigation("ProductLinks");
                 });
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentSeveritySet", b =>

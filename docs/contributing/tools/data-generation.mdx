@@ -9,7 +9,7 @@ audience: [developer, agent]
 
 `wayd-data` is a developer tool that **generates a realistic company** — people and a management tree, a
 cross-functional delivery hierarchy, a full project-portfolio dataset, a product catalog with its
-delivery history, and each ART's planning history on top of it — and **seeds it into
+delivery history, each ART's planning history, and the requests the company brings to its desks — and **seeds it into
 a Wayd environment through the public HTTP API**. Use it to stand up a believable environment for exploring
 features or demoing, without hand-crafting data. Every seed run also exercises the real API end to end, so
 it doubles as an integration smoke test.
@@ -21,9 +21,10 @@ Generates the organization (people + team hierarchy), the PPM dataset (portfolio
 tasks, strategic themes, and strategic initiatives with KPIs), the Product Management dataset
 (products and the dependencies between them, versions, release packages, releases, deployment environments
 and deployments), and the
-Planning dataset (planning intervals with their teams, objectives and risks). Use the `org-only` recipe for
-the organization on its own, or `--skip-ppm` / `--skip-product-management` / `--skip-planning` to leave out
-one area.
+Planning dataset (planning intervals with their teams, objectives and risks), and the Request Desk dataset
+(intake desks with their members, tag axes, and intake requests). Use the `org-only` recipe for the
+organization on its own, or `--skip-ppm` / `--skip-product-management` / `--skip-planning` /
+`--skip-demand-management` to leave out one area.
 Work items, sprints and objective health checks are not generated. Database **reset** is a separate,
 out-of-band operation (an Aspire dashboard command), not part of this tool.
 :::
@@ -67,8 +68,9 @@ and `members.csv` for the organization; `strategic-themes.csv`, `portfolios.csv`
 `strategic-initiative-kpis.csv` and `ppm-finalizations.csv` for PPM; `deployment-environments.csv`,
 `products.csv`, `product-dependencies.csv`, `versions.csv`, `release-packages.csv`,
 `release-package-components.csv`, `releases.csv`, `release-contents.csv` and `deployments.csv` for Product
-Management; and `planning-intervals.csv`, `planning-interval-objectives.csv` and `risks.csv` for Planning.
-An area that is switched off writes none of its files. Roles and accounts are created through the API at
+Management; `planning-intervals.csv`, `planning-interval-objectives.csv` and `risks.csv` for Planning; and
+`intake-desks.csv` and `intake-requests.csv` for the Request Desk. The desks file is for reading only: desks
+and tag axes are created through the API at seed time. An area that is switched off writes none of its files. Roles and accounts are created through the API at
 seed time and have no file.
 
 ## Authentication
@@ -131,7 +133,7 @@ Built-in recipes:
   demo           A fixed dataset for demos and screenshots. The only built-in that pins asOf, so it reproduces byte-for-byte when paired with --random-seed.
   enterprise     A large non-delivery-led business, where most of the headcount sits outside the delivery structure.
   large-tech     A scaled product organization: several value streams, many teams, a dense portfolio, and a microservice catalog of a few hundred products with the dependencies between them.
-  org-only       The organization on its own, with no PPM, Product Management or Planning dataset over it.
+  org-only       The organization on its own, with no PPM, Product Management, Planning or Request Desk dataset over it.
   startup        A young company: one product line, a handful of teams with no ART over them, and little history behind it.
 ```
 
@@ -212,8 +214,9 @@ Each area block carries an `enabled` flag, so switching one off is part of the f
 { "extends": "default", "ppm": { "enabled": false } }
 ```
 
-The `org-only` built-in disables `ppm`, `productManagement` and `planning`. `--skip-ppm`,
-`--skip-product-management` and `--skip-planning` are shorthands for one area each, and only ever turn it
+The `org-only` built-in disables `ppm`, `productManagement`, `planning` and `demandManagement`. `--skip-ppm`,
+`--skip-product-management`, `--skip-planning` and `--skip-demand-management` are shorthands for one area
+each, and only ever turn it
 off — leaving one out never switches an area back on over a recipe that disabled it.
 
 The organization is the exception: it cannot be disabled, and saying so is an error rather than a silent
@@ -394,6 +397,8 @@ anything you can compose in the page, you can also say on a command line.
 | `--iteration-weeks` | `2` | Length (1..4) of each iteration in a planning interval, in weeks; intervals are quarterly, so this also sets how many iterations each holds |
 | `--objectives-per-team` | `4` | Average objectives (1..10) a team commits to per planning interval, stretch objectives included |
 | `--risks-per-team` | `1.5` | Average risks (0..5) a team raises per planning interval |
+| `--skip-demand-management` | off | Skip the Request Desk: its desks, tag axes and intake requests |
+| `--requests-per-month` | `12` | Average intake requests (0..200) the company submits per month across the history |
 | `--random-seed`, `-r` | random | Fixed RNG seed for reproducible output (every area) |
 | `--as-of` | today (UTC) | The date the run treats as today, which the whole timeline is anchored on. Pin it *with* `--random-seed` for byte-identical output |
 | `--out`, `-o` | `./seed` | (`generate` and `ui`) output directory |
@@ -697,13 +702,43 @@ IDs each time. Use the generated business keys (employee number, team code) to c
 the database IDs.
 :::
 
+### The Request Desk dataset
+
+Unless `--skip-demand-management` is passed, the generator sets up the company's Request Desk and fills it
+with the asks its departments have raised.
+
+- **Desks** — one **product desk** per value stream (`{domain} Product Desk`, Open), run by the value stream's
+  product lead and worked by its ART product leads, engineering lead and a couple of product owners. An **IT
+  Desk** (Summary only), run by the VP of IT, and a private **Security and Compliance Desk**, run by General
+  Counsel, exist where the company has those people. A desk nobody could staff is left out. Every member is in
+  post today, since a desk names only active employees. Value streams that share a domain share its desk, so
+  no two desks have one name. A request is assigned, and a need-by commitment made, only by a member who
+  already worked here on the day it was submitted.
+- **Tag axes** — **Size** (one tag: Small to Extra Large) and **Theme** (several: Revenue Growth, Customer
+  Experience, and so on), created through the API if the environment does not have them.
+- **Requests** — about `--requests-per-month` a month across the history, each raised by someone in the
+  department that would raise it, employed on the day: customer feedback from Customer Success, support asks
+  from Customer Support, sales asks from Sales, and so on through the eight channels Wayd seeds. Each lands on
+  the desk its kind belongs to — a product ask on a value stream's desk, an internal-systems ask on the IT desk,
+  a regulatory or security ask on Security and Compliance. How far a request got depends on its age: last
+  week's are mostly still Submitted or In Review, last year's mostly Accepted, Fulfilled, Declined or Withdrawn.
+  Declined and Fulfilled carry the reason the requester reads. Regulatory asks always have a need-by date set
+  by the regulation, sales asks often one from the contract, and others sometimes a date someone chose or
+  committed to. Reviewed requests are usually assigned to a desk member and tagged; a share of support and
+  business asks arrive from a service desk with its ticket number as their origin.
+
+Duplicates, outcomes, scores and discussion are not generated. A duplicate has to name a request already in
+Wayd, which the import cannot do within one file; an outcome needs a project or work item to point at; and
+scores and replies record the signed-in user rather than someone in the history.
+
 ## How it works (and why)
 
 The tool **never touches the database directly** — it POSTs CSV to the API's import endpoints (the same
 endpoints documented in the [Organization](../../user-guide/organizations/bulk-import.mdx),
 [PPM](../../user-guide/ppm/bulk-import.mdx),
-[Product Management](../../user-guide/product-management/bulk-import.mdx) and
-[Planning](../../user-guide/planning/bulk-import.mdx) Bulk Import guides), and each
+[Product Management](../../user-guide/product-management/bulk-import.mdx),
+[Planning](../../user-guide/planning/bulk-import.mdx) and
+[Demand Management](../../user-guide/demand-management/bulk-import.mdx) Bulk Import guides), and each
 import handler creates rows
 **through the owning domain's commands**. This is deliberate: Wayd domains keep
 aligned local copies of shared concepts (creating an `Organization.Team` replicates it into the PPM,
@@ -742,6 +777,10 @@ product-management feature flag → deployment environments
 team staffing → planning intervals (+ rosters) → planning interval objectives
               → risks
 
+demand-management feature flag → tag axes (+ the seeded channels, read back)
+                    employees + flag → intake desks (+ members)
+                                     → intake requests (after the axes and desks)
+
 application roles → user accounts (after employees)
 ```
 
@@ -760,6 +799,10 @@ Planning references teams and employees by id, but it resolves teams against Pla
 which Organization fills asynchronously after the teams import. A team that has not landed there yet
 rejects the row — and with it the whole file — so the Planning areas also wait on staffing, which runs
 several imports later and leaves the copy time to catch up.
+
+The Request Desk's desks and tag axes are settings rather than records anyone imports, so they are created
+through the ordinary endpoints — create-or-get by name, like the expenditure categories — and only the
+requests go through an import. Desks name their members by employee id, so they wait for the employee import.
 
 ### One area can be more than one file
 

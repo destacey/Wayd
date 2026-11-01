@@ -62,6 +62,12 @@ public interface IImportDefinition
     string PermissionResource { get; }
 
     /// <summary>
+    /// Whether the area this import writes to is switched on. Off, the import cannot be submitted, resumed,
+    /// retried or applied; its past runs stay readable.
+    /// </summary>
+    Task<bool> IsEnabled(CancellationToken cancellationToken);
+
+    /// <summary>
     /// Runs one pass over one set of rows and reports what happened to each. Non-generic so the runner can
     /// drive any definition; the row type is the definition's own business.
     /// </summary>

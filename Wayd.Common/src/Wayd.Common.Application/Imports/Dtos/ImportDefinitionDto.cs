@@ -12,6 +12,11 @@ namespace Wayd.Common.Application.Imports.Dtos;
 /// The list is what the caller may <em>see</em>, which oversight of every import type widens beyond what
 /// they may submit — so <c>CanSubmit</c> is what an upload form must filter on, not the list itself.
 /// </para>
+/// <para>
+/// <c>IsEnabled</c> is apart from <c>CanSubmit</c> because it can change during a session: a type whose area is
+/// switched off is still listed, with its limits, so its past runs stay readable and a caller that switches
+/// the area on next can plan for it.
+/// </para>
 /// </remarks>
 public sealed record ImportDefinitionDto(
     string Key,
@@ -20,4 +25,5 @@ public sealed record ImportDefinitionDto(
     string? GroupNoun,
     int MaxRows,
     int PreflightMaxRows,
-    bool CanSubmit);
+    bool CanSubmit,
+    bool IsEnabled);

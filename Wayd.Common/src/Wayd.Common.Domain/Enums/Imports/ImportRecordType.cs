@@ -61,4 +61,7 @@ public enum ImportRecordType
 
     [Display(Name = "Deployment Environment", Description = "Has no page of its own; listed with the other environments.", Order = 17)]
     DeploymentEnvironment = 17,
+
+    [Display(Name = "Intake Request", Order = 18)]
+    IntakeRequest = 18,
 }

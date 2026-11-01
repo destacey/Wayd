@@ -135,6 +135,15 @@ internal static class ImportAuthorization
             : Denied(definition.Value);
     }
 
+    /// <summary>
+    /// Fails when the area the import writes to is switched off, so nothing new is written to a module its
+    /// users cannot open. Checked apart from permission: holding it says nothing about whether the area is on.
+    /// </summary>
+    public static async Task<Result> EnsureEnabled(IImportDefinition definition, CancellationToken cancellationToken) =>
+        await definition.IsEnabled(cancellationToken)
+            ? Result.Success()
+            : Result.Failure($"{definition.DisplayName} imports are unavailable while that area is switched off.");
+
     private static Result<IImportDefinition> Denied(IImportDefinition definition) =>
         Result.Failure<IImportDefinition>(
             $"You do not have permission to work with {definition.DisplayName} imports.");

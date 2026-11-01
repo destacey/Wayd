@@ -31,6 +31,9 @@ public sealed class WaydSeedClient : IDisposable
     private readonly UsersClient _usersClient;
     private readonly FeatureFlagsClient _featureFlagsClient;
     private readonly ImportsClient _importsClient;
+    private readonly IntakeChannelsClient _intakeChannelsClient;
+    private readonly IntakeDesksClient _intakeDesksClient;
+    private readonly IntakeRequestTagCategoriesClient _intakeTagCategoriesClient;
     private readonly ImportAwaiter _awaiter;
 
     /// <summary>
@@ -63,6 +66,9 @@ public sealed class WaydSeedClient : IDisposable
         _usersClient = new UsersClient(root, _httpClient);
         _featureFlagsClient = new FeatureFlagsClient(root, _httpClient);
         _importsClient = new ImportsClient(root, _httpClient);
+        _intakeChannelsClient = new IntakeChannelsClient(root, _httpClient);
+        _intakeDesksClient = new IntakeDesksClient(root, _httpClient);
+        _intakeTagCategoriesClient = new IntakeRequestTagCategoriesClient(root, _httpClient);
         _awaiter = new ImportAwaiter(_importsClient, PollInterval, ImportTimeout);
     }
 
@@ -243,6 +249,119 @@ public sealed class WaydSeedClient : IDisposable
 
     public Task<ImportRun> ImportRisks(byte[] csv, CancellationToken cancellationToken) =>
         Import("api/planning/risks/import", csv, "risks.csv", "risks", cancellationToken);
+
+    // ---- Request Desk -------------------------------------------------------------------------
+
+    public Task<ImportRun> ImportIntakeRequests(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/demand-management/intake-requests/import", csv, "intake-requests.csv", "intake requests", cancellationToken);
+
+    /// <summary>The company's active channels, by name.</summary>
+    /// <remarks>
+    /// Read rather than created: Wayd seeds the channels on a new environment, and a company that renamed them
+    /// has made its own list, which a seed should not add to.
+    /// </remarks>
+    public async Task<IReadOnlyDictionary<string, Guid>> GetIntakeChannelIds(CancellationToken cancellationToken)
+    {
+        var channels = await _intakeChannelsClient.GetIntakeChannelsAsync(includeArchived: false, deskId: null, cancellationToken);
+        return channels.ToDictionary(c => c.Name, c => c.Id, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Ensures each tag axis exists with its tags, creating what is missing, and answers with every tag's id
+    /// keyed <c>axis|tag</c>.
+    /// </summary>
+    /// <remarks>
+    /// Create-or-get by name, so a re-seed onto an environment that already has the axes reuses them. An axis
+    /// that exists keeps whether it allows many tags, which cannot change after it is created. One that was
+    /// retired is switched back on, axis and tag alike: the import refuses an inactive tag, so every tagged row
+    /// would otherwise be rejected.
+    /// </remarks>
+    public async Task<IReadOnlyDictionary<string, Guid>> EnsureIntakeTagCategories(
+        IEnumerable<IntakeTagCategoryModel> categories, CancellationToken cancellationToken)
+    {
+        var existing = await _intakeTagCategoriesClient.GetIntakeRequestTagCategoriesAsync(includeInactive: true, deskId: null, cancellationToken);
+        Dictionary<string, Guid> tagIds = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var category in categories)
+        {
+            var match = existing.FirstOrDefault(c => string.Equals(c.Name, category.Name, StringComparison.OrdinalIgnoreCase));
+            var categoryId = match?.Id ?? await _intakeTagCategoriesClient.CreateAsync(new CreateIntakeRequestTagCategoryRequest
+            {
+                Name = category.Name,
+                Description = category.Description,
+                AllowsMany = category.AllowsMany,
+            }, cancellationToken);
+
+            if (match is { IsActive: false })
+                await _intakeTagCategoriesClient.SetActiveAsync(categoryId, new SetIntakeRequestTagCategoryActiveRequest { IsActive = true }, cancellationToken);
+
+            var tags = (match?.Tags ?? []).ToDictionary(t => t.Name, StringComparer.OrdinalIgnoreCase);
+            foreach (var tag in category.Tags)
+            {
+                if (!tags.TryGetValue(tag, out var existingTag))
+                {
+                    tagIds[$"{category.Name}|{tag}"] = await _intakeTagCategoriesClient.AddTagAsync(
+                        categoryId, new AddIntakeRequestTagRequest { Name = tag }, cancellationToken);
+                    continue;
+                }
+
+                if (!existingTag.IsActive)
+                    await _intakeTagCategoriesClient.SetTagActiveAsync(
+                        categoryId, existingTag.Id, new SetIntakeRequestTagActiveRequest { IsActive = true }, cancellationToken);
+
+                tagIds[$"{category.Name}|{tag}"] = existingTag.Id;
+            }
+        }
+
+        return tagIds;
+    }
+
+    /// <summary>
+    /// Ensures each desk exists, creating any that are missing with their members, and answers with every desk's
+    /// id keyed by name.
+    /// </summary>
+    /// <remarks>
+    /// One call each: there is no desk import, and a company has a handful of desks rather than thousands. A desk
+    /// that already exists is left as it is, members included, since someone may have staffed it since.
+    /// </remarks>
+    public async Task<IReadOnlyDictionary<string, Guid>> EnsureIntakeDesks(
+        IEnumerable<IntakeDeskModel> desks,
+        IReadOnlyDictionary<string, Guid> employeeIdsByNumber,
+        CancellationToken cancellationToken)
+    {
+        var existing = await _intakeDesksClient.GetIntakeDesksAsync(submittableOnly: false, cancellationToken);
+        var byName = existing.ToDictionary(d => d.Name, d => d.Id, StringComparer.OrdinalIgnoreCase);
+        HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var desk in desks)
+        {
+            // Two generated desks of one name would be merged into one here, and the second's requests refused.
+            if (!seen.Add(desk.Name))
+                throw new SeedException($"The dataset names the intake desk '{desk.Name}' twice.");
+
+            if (byName.ContainsKey(desk.Name))
+                continue;
+
+            var created = await _intakeDesksClient.CreateAsync(new CreateIntakeDeskRequest
+            {
+                Name = desk.Name,
+                Description = desk.Description,
+                Visibility = Enum.Parse<IntakeDeskVisibility>(desk.Visibility),
+                IsRequesterSelectable = true,
+                IsOpen = true,
+                RequesterMayAddParticipants = true,
+                Members = [.. desk.Members.Select(m => new IntakeDeskMemberRequest
+                {
+                    EmployeeId = employeeIdsByNumber[m.EmployeeNumber],
+                    Role = Enum.Parse<IntakeDeskRole>(m.Role),
+                })],
+            }, cancellationToken);
+
+            byName[desk.Name] = created.Id;
+        }
+
+        return byName;
+    }
 
     /// <summary>
     /// Switches a feature flag on, answering whether it had to be.

@@ -38,6 +38,7 @@ public static class DatasetSeeder
             dataset.Ppm,
             dataset.ProductManagement,
             dataset.Planning,
+            dataset.DemandManagement,
             resolved.CreateUsers,
             resolved.UserPassword,
             cancellationToken);

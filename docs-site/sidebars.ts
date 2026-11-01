@@ -71,9 +71,12 @@ const sidebars: SidebarsConfig = {
           ],
         },
         {
-          type: 'doc',
-          id: 'user-guide/demand-management/index',
+          type: 'category',
           label: 'Demand Management',
+          link: {type: 'doc', id: 'user-guide/demand-management/index'},
+          items: [
+            'user-guide/demand-management/bulk-import',
+          ],
         },
         {
           type: 'doc',

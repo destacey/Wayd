@@ -37,6 +37,8 @@ const ROUTES: Record<ImportRecordType, (link: ImportRecordLink) => string> = {
   // Environments have no page of their own, only the list.
   [ImportRecordType.DeploymentEnvironment]: () =>
     '/product-management/environments',
+  [ImportRecordType.IntakeRequest]: (l) =>
+    `/demand-management/requests/${segment(l.key)}`,
 }
 
 /**

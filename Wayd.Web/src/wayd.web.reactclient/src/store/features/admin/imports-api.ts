@@ -14,6 +14,7 @@ import {
   getDeploymentsClient,
   getEmployeesClient,
   getImportsClient,
+  getIntakeRequestsClient,
   getPlanningIntervalsClient,
   getPortfoliosClient,
   getProductsClient,
@@ -117,6 +118,10 @@ const IMPORTED_RECORD_TAGS: Record<ImportKey, ImportedRecordTag[]> = {
     { type: QueryTags.Deployment, id: 'LIST' },
     { type: QueryTags.DeliveryMetrics, id: 'LIST' },
   ],
+  'demand-management.intake-requests': [
+    { type: QueryTags.IntakeRequest, id: 'LIST' },
+    QueryTags.IntakeRequestScore,
+  ],
 }
 
 export const importedRecordTags = (importType: string) =>
@@ -218,6 +223,8 @@ const SUBMITTERS: Record<
     ),
   'product-management.deployments': ({ file }, validateOnly) =>
     getDeploymentsClient().import(undefined, validateOnly, upload(file)),
+  'demand-management.intake-requests': ({ file }, validateOnly) =>
+    getIntakeRequestsClient().import(undefined, validateOnly, upload(file)),
 }
 
 export const importsApi = apiSlice.injectEndpoints({

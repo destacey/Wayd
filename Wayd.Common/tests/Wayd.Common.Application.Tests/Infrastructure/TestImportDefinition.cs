@@ -46,6 +46,10 @@ public sealed class TestImportDefinition(IImportPayloadSerializer serializer) : 
 
     public override ImportAtomicity Atomicity => AtomicityOverride;
 
+    /// <summary>Stands in for a feature flag switching the import's area off.</summary>
+    public bool IsEnabledOverride { get; set; } = true;
+    public override Task<bool> IsEnabled(CancellationToken cancellationToken) => Task.FromResult(IsEnabledOverride);
+
     /// <summary>What <see cref="DescribeCreatedRecords"/> knows about, standing in for a module's records.</summary>
     public Dictionary<Guid, ImportRecordLink> Links { get; } = [];
 

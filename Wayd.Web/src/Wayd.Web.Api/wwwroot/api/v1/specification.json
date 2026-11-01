@@ -43289,6 +43289,113 @@
         ]
       }
     },
+    "/api/demand-management/intake-requests/import": {
+      "post": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Submit a csv file of intake requests to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
+        "description": "Each row names its desk, channel, tags and people by id. A request is created on its desk in the status meaning Submitted, at `SubmittedAt`, then assigned, tagged and moved to `Status` — a status of the desk's workflow by name or by meaning — at `StatusChangedAt`. Withdrawn is recorded as the requester's own move; every other status as the assignee's. Needs the Demand Management Admin.",
+        "operationId": "IntakeRequests_Import",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ],
+        "x-wayd-import": {
+          "key": "demand-management.intake-requests",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportIntakeRequestRequest",
+              "required": true
+            }
+          ]
+        }
+      }
+    },
     "/api/demand-management/intake-requests/{id}": {
       "put": {
         "tags": [
@@ -58652,7 +58759,8 @@
           "atomicity",
           "maxRows",
           "preflightMaxRows",
-          "canSubmit"
+          "canSubmit",
+          "isEnabled"
         ],
         "type": "object",
         "properties": {
@@ -58678,6 +58786,9 @@
             "format": "int32"
           },
           "canSubmit": {
+            "type": "boolean"
+          },
+          "isEnabled": {
             "type": "boolean"
           }
         },
@@ -58915,6 +59026,175 @@
         },
         "additionalProperties": false,
         "description": "A single CSV row for the employee import. References the row's manager by employee number so an entire\nmanagement tree can be imported at once; linkage is resolved server-side after all rows are created."
+      },
+      "ImportIntakeRequestRequest": {
+        "required": [
+          "title",
+          "description",
+          "deskId",
+          "requesterId"
+        ],
+        "type": "object",
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "title": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string",
+            "description": "What is being asked for, in a line. Max 256 chars.",
+            "x-csv-column": "Title"
+          },
+          "description": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The ask in full.",
+            "x-csv-column": "Description"
+          },
+          "expectedBenefits": {
+            "type": "string",
+            "description": "What gets better, and for whom, if the ask is delivered.",
+            "nullable": true,
+            "x-csv-column": "ExpectedBenefits"
+          },
+          "deskId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The desk the request is on, by id. It must be open; it need not be one requesters can pick.",
+            "format": "uuid",
+            "x-csv-column": "DeskId"
+          },
+          "channelId": {
+            "type": "string",
+            "description": "Where the request came from, by id: any active channel, whether or not the desk offers it.",
+            "format": "uuid",
+            "nullable": true,
+            "x-csv-column": "ChannelId"
+          },
+          "requesterId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The employee the request is for, by id.",
+            "format": "uuid",
+            "x-csv-column": "RequesterId"
+          },
+          "submittedById": {
+            "type": "string",
+            "description": "The employee who entered it, by id, when not the requester.",
+            "format": "uuid",
+            "nullable": true,
+            "x-csv-column": "SubmittedById"
+          },
+          "submittedAt": {
+            "type": "string",
+            "description": "When it was submitted, with its offset. Blank for the moment it is imported.",
+            "nullable": true,
+            "x-csv-column": "SubmittedAt"
+          },
+          "needByDate": {
+            "type": "string",
+            "description": "The date it is needed by. Needs a basis and a reference.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "NeedByDate"
+          },
+          "needByBasis": {
+            "type": "string",
+            "description": "What makes it that date, case-insensitively. Required with a need-by date.",
+            "nullable": true,
+            "x-csv-column": "NeedByBasis",
+            "x-csv-values": [
+              "Regulatory",
+              "Contractual",
+              "ExternalEvent",
+              "Commitment",
+              "RequesterPreference"
+            ]
+          },
+          "needByReference": {
+            "maxLength": 1024,
+            "type": "string",
+            "description": "What the date rests on: the regulation and clause, the contract and clause, the event, or a note. Max 1024 chars.",
+            "nullable": true,
+            "x-csv-column": "NeedByReference"
+          },
+          "needByCommittedById": {
+            "type": "string",
+            "description": "For a Commitment, the employee who made it, by id. Required for a Commitment, and empty otherwise.",
+            "format": "uuid",
+            "nullable": true,
+            "x-csv-column": "NeedByCommittedById"
+          },
+          "needByCommittedOn": {
+            "type": "string",
+            "description": "For a Commitment, the date it was made. Required for a Commitment, and empty otherwise.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "NeedByCommittedOn"
+          },
+          "originSourceSystem": {
+            "type": "string",
+            "description": "The system the request was raised in. Required with an external id.",
+            "nullable": true,
+            "x-csv-column": "OriginSourceSystem"
+          },
+          "originExternalId": {
+            "type": "string",
+            "description": "The request's id in that system. With the source system, identifies at most one request.",
+            "nullable": true,
+            "x-csv-column": "OriginExternalId"
+          },
+          "originUrl": {
+            "type": "string",
+            "description": "A link to the request in that system.",
+            "nullable": true,
+            "x-csv-column": "OriginUrl"
+          },
+          "status": {
+            "type": "string",
+            "description": "A status of the desk's workflow, by its name (`In Review`) or its meaning (`Submitted`,\n`WaitingOnRequester`, `Accepted`, `Fulfilled`, `Duplicate`, `Withdrawn`),\ncase-insensitively. Blank leaves the request submitted.",
+            "nullable": true,
+            "x-csv-column": "Status"
+          },
+          "statusChangedAt": {
+            "type": "string",
+            "description": "When it moved into the status, with its offset. Blank for SubmittedAt; needs SubmittedAt, and a Status the\nrequest moves to.",
+            "nullable": true,
+            "x-csv-column": "StatusChangedAt"
+          },
+          "statusReason": {
+            "type": "string",
+            "description": "Why, as the requester reads it. Required for a closing status other than Withdrawn, and for finishing\none. Max 1024 chars.",
+            "nullable": true,
+            "x-csv-column": "StatusReason"
+          },
+          "duplicateOfId": {
+            "type": "string",
+            "description": "For a status meaning Duplicate, the request already in Wayd this one gives way to, by id.",
+            "format": "uuid",
+            "nullable": true,
+            "x-csv-column": "DuplicateOfId"
+          },
+          "assigneeId": {
+            "type": "string",
+            "description": "The active member of the desk who owns the request, by id.",
+            "format": "uuid",
+            "nullable": true,
+            "x-csv-column": "AssigneeId"
+          },
+          "tagIds": {
+            "type": "string",
+            "description": "Semicolon-separated tag ids: tags on axes the desk offers, or free tags where it allows them.",
+            "nullable": true,
+            "x-csv-column": "TagIds"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A single CSV row for the intake request import: one request, as it was submitted and where its review\nhas got to. Desks, channels, tags and people are named by id. A request starts in the status meaning\nSubmitted and is moved to `Status` when the row names another, recorded at `StatusChangedAt`.\nTimestamps are instants, and each must carry its offset."
       },
       "ImportPlanningIntervalObjectivesRequest": {
         "required": [
@@ -60066,7 +60346,8 @@
           "Release",
           "ReleasePackage",
           "Deployment",
-          "DeploymentEnvironment"
+          "DeploymentEnvironment",
+          "IntakeRequest"
         ],
         "type": "string"
       },

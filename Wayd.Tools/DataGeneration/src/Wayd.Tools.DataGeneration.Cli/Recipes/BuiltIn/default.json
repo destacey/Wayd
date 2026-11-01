@@ -44,5 +44,9 @@
     "iterationWeeks": 2,
     "objectivesPerTeam": 4,
     "risksPerTeam": 1.5
+  },
+  "demandManagement": {
+    "enabled": true,
+    "requestsPerMonth": 12
   }
 }

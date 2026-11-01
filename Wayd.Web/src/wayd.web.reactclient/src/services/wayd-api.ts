@@ -49977,6 +49977,95 @@ export class IntakeRequestsClient {
     }
 
     /**
+     * Submit a csv file of intake requests to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
+     * @param file (optional) 
+     * @return OK
+     */
+    import(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
+        else
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processImport(_response);
+        });
+    }
+
+    protected processImport(response: AxiosResponse): Promise<ImportProcessDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
+            const _responseText = response.data;
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<ImportProcessDto>(result202);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ImportProcessDto>(null as any);
+    }
+
+    /**
      * Update an intake request.
      * @return No Content
      */
@@ -61221,6 +61310,7 @@ export interface ImportDefinitionDto {
     maxRows: number;
     preflightMaxRows: number;
     canSubmit: boolean;
+    isEnabled: boolean;
 }
 
 /** A single CSV row for the deployment environment import. An environment is identified by `Name`, which is unique across the organization. The deployments import names its environment by this, so a file of environments is what a historical backfill loads first. */
@@ -61297,6 +61387,62 @@ in the file. */
 primary; these are additional addresses the person is known by in other systems — typically ones
 left behind by a domain or tenant move. Home and personal addresses do not belong here. */
     additionalEmails?: string | undefined;
+}
+
+/** A single CSV row for the intake request import: one request, as it was submitted and where its review has got to. Desks, channels, tags and people are named by id. A request starts in the status meaning Submitted and is moved to `Status` when the row names another, recorded at `StatusChangedAt`. Timestamps are instants, and each must carry its offset. */
+export interface ImportIntakeRequestRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
+    importId?: string | undefined;
+    /** What is being asked for, in a line. Max 256 chars. */
+    title: string;
+    /** The ask in full. */
+    description: string;
+    /** What gets better, and for whom, if the ask is delivered. */
+    expectedBenefits?: string | undefined;
+    /** The desk the request is on, by id. It must be open; it need not be one requesters can pick. */
+    deskId: string;
+    /** Where the request came from, by id: any active channel, whether or not the desk offers it. */
+    channelId?: string | undefined;
+    /** The employee the request is for, by id. */
+    requesterId: string;
+    /** The employee who entered it, by id, when not the requester. */
+    submittedById?: string | undefined;
+    /** When it was submitted, with its offset. Blank for the moment it is imported. */
+    submittedAt?: string | undefined;
+    /** The date it is needed by. Needs a basis and a reference. */
+    needByDate?: string | undefined;
+    /** What makes it that date, case-insensitively. Required with a need-by date. */
+    needByBasis?: string | undefined;
+    /** What the date rests on: the regulation and clause, the contract and clause, the event, or a note. Max 1024 chars. */
+    needByReference?: string | undefined;
+    /** For a Commitment, the employee who made it, by id. Required for a Commitment, and empty otherwise. */
+    needByCommittedById?: string | undefined;
+    /** For a Commitment, the date it was made. Required for a Commitment, and empty otherwise. */
+    needByCommittedOn?: string | undefined;
+    /** The system the request was raised in. Required with an external id. */
+    originSourceSystem?: string | undefined;
+    /** The request's id in that system. With the source system, identifies at most one request. */
+    originExternalId?: string | undefined;
+    /** A link to the request in that system. */
+    originUrl?: string | undefined;
+    /** A status of the desk's workflow, by its name (`In Review`) or its meaning (`Submitted`,
+`WaitingOnRequester`, `Accepted`, `Fulfilled`, `Duplicate`, `Withdrawn`),
+case-insensitively. Blank leaves the request submitted. */
+    status?: string | undefined;
+    /** When it moved into the status, with its offset. Blank for SubmittedAt; needs SubmittedAt, and a Status the
+request moves to. */
+    statusChangedAt?: string | undefined;
+    /** Why, as the requester reads it. Required for a closing status other than Withdrawn, and for finishing
+one. Max 1024 chars. */
+    statusReason?: string | undefined;
+    /** For a status meaning Duplicate, the request already in Wayd this one gives way to, by id. */
+    duplicateOfId?: string | undefined;
+    /** The active member of the desk who owns the request, by id. */
+    assigneeId?: string | undefined;
+    /** Semicolon-separated tag ids: tags on axes the desk offers, or free tags where it allows them. */
+    tagIds?: string | undefined;
 }
 
 export interface ImportPlanningIntervalObjectivesRequest {
@@ -61674,6 +61820,7 @@ export enum ImportRecordType {
     ReleasePackage = "ReleasePackage",
     Deployment = "Deployment",
     DeploymentEnvironment = "DeploymentEnvironment",
+    IntakeRequest = "IntakeRequest",
 }
 
 /** A single CSV row for the contents file: one thing a release announces. */

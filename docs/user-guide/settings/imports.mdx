@@ -12,13 +12,15 @@ can still do about it.
 
 It is also where files are submitted from the app. What each file must contain is described in the bulk
 import guides for [Organization](../organizations/bulk-import.mdx), [Planning](../planning/bulk-import.mdx),
-[PPM](../ppm/bulk-import.mdx) and [Product Management](../product-management/bulk-import.mdx), and the same
+[PPM](../ppm/bulk-import.mdx), [Product Management](../product-management/bulk-import.mdx) and
+[Demand Management](../demand-management/bulk-import.mdx), and the same
 files can be posted straight to each area's import endpoint instead.
 
 ## Importing a file
 
 Select **Import**, then choose what you are importing. The list is grouped by area — Organization,
-Planning, Project Portfolio Management (which includes strategic themes) and Product Management — and
+Planning, Project Portfolio Management (which includes strategic themes), Product Management and Demand
+Management — and
 searching it matches import names. It holds only the kinds of import you are allowed to submit, and the
 button is hidden when there are none.
 
@@ -247,6 +249,10 @@ records that run created, so those still require the permission that gates submi
 | Import Employees | Employee imports | Yes, on those |
 | View Imports only | Every import type | No |
 | Both | Everything | Only the types you can submit |
+
+An import into an area that is switched off — Demand Management while its feature flag is off — is not offered
+in the upload form, and its runs cannot be resumed, retried or applied. Its past runs stay readable, and a run
+can still be stopped.
 
 ## Related
 

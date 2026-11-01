@@ -191,6 +191,16 @@ public static class GenerationOptions
         Description = "Average number of risks a team raises per planning interval.",
     };
 
+    public static Option<bool> SkipDemandManagement { get; } = new("--skip-demand-management")
+    {
+        Description = "Skip the Request Desk: its desks, tag axes and intake requests. A shorthand for a recipe that disables the demand management area.",
+    };
+
+    public static Option<int?> RequestsPerMonth { get; } = new("--requests-per-month")
+    {
+        Description = "Average number of intake requests the company submits per month.",
+    };
+
     /// <summary>
     /// Every option a generating verb takes, in the order they are added to a command.
     /// </summary>
@@ -235,6 +245,8 @@ public static class GenerationOptions
         IterationWeeks,
         ObjectivesPerTeam,
         RisksPerTeam,
+        SkipDemandManagement,
+        RequestsPerMonth,
     ];
 
     public static void AddTo(Command command)
@@ -314,6 +326,11 @@ public static class GenerationOptions
                 IterationWeeks = FlagOr(parse, IterationWeeks),
                 ObjectivesPerTeam = FlagOr(parse, ObjectivesPerTeam),
                 RisksPerTeam = FlagOr(parse, RisksPerTeam),
+            },
+            DemandManagement = new DemandManagementRecipe
+            {
+                Enabled = parse.GetValue(SkipDemandManagement) ? false : null,
+                RequestsPerMonth = FlagOr(parse, RequestsPerMonth),
             },
         };
 

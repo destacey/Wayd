@@ -91696,6 +91696,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Submit a csv file of intake requests to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <remarks>
+        /// Each row names its desk, channel, tags and people by id. A request is created on its desk in the status meaning Submitted, at `SubmittedAt`, then assigned, tagged and moved to `Status` — a status of the desk's workflow by name or by meaning — at `StatusChangedAt`. Withdrawn is recorded as the requester's own move; every other status as the assignee's. Needs the Demand Management Admin.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update an intake request.
         /// </summary>
         /// <remarks>
@@ -92440,6 +92451,138 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Submit a csv file of intake requests to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <remarks>
+        /// Each row names its desk, channel, tags and people by id. A request is created on its desk in the status meaning Submitted, at `SubmittedAt`, then assigned, tagged and moved to `Status` — a status of the desk's workflow by name or by meaning — at `StatusChangedAt`. Withdrawn is recorded as the requester's own move; every other status as the assignee's. Needs the Demand Management Admin.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var boundary_ = System.Guid.NewGuid().ToString();
+                    var content_ = new System.Net.Http.MultipartFormDataContent(boundary_);
+                    content_.Headers.Remove("Content-Type");
+                    content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
+
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
+                    else
+                    {
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
+                    }
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-requests/import"
+                    urlBuilder_.Append("api/demand-management/intake-requests/import");
+                    urlBuilder_.Append('?');
+                    if (submissionGroupId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 202)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 422)
@@ -115390,6 +115533,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("canSubmit")]
         public bool CanSubmit { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("isEnabled")]
+        public bool IsEnabled { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -115616,6 +115762,170 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("additionalEmails")]
         public string? AdditionalEmails { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the intake request import: one request, as it was submitted and where its review
+    /// <br/>has got to. Desks, channels, tags and people are named by id. A request starts in the status meaning
+    /// <br/>Submitted and is moved to `Status` when the row names another, recorded at `StatusChangedAt`.
+    /// <br/>Timestamps are instants, and each must carry its offset.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportIntakeRequestRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// What is being asked for, in a line. Max 256 chars.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
+        public string Title { get; set; } = default!;
+
+        /// <summary>
+        /// The ask in full.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Description { get; set; } = default!;
+
+        /// <summary>
+        /// What gets better, and for whom, if the ask is delivered.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("expectedBenefits")]
+        public string? ExpectedBenefits { get; set; } = default!;
+
+        /// <summary>
+        /// The desk the request is on, by id. It must be open; it need not be one requesters can pick.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deskId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid DeskId { get; set; } = default!;
+
+        /// <summary>
+        /// Where the request came from, by id: any active channel, whether or not the desk offers it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("channelId")]
+        public System.Guid? ChannelId { get; set; } = default!;
+
+        /// <summary>
+        /// The employee the request is for, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("requesterId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid RequesterId { get; set; } = default!;
+
+        /// <summary>
+        /// The employee who entered it, by id, when not the requester.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("submittedById")]
+        public System.Guid? SubmittedById { get; set; } = default!;
+
+        /// <summary>
+        /// When it was submitted, with its offset. Blank for the moment it is imported.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("submittedAt")]
+        public string? SubmittedAt { get; set; } = default!;
+
+        /// <summary>
+        /// The date it is needed by. Needs a basis and a reference.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("needByDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? NeedByDate { get; set; } = default!;
+
+        /// <summary>
+        /// What makes it that date, case-insensitively. Required with a need-by date.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("needByBasis")]
+        public string? NeedByBasis { get; set; } = default!;
+
+        /// <summary>
+        /// What the date rests on: the regulation and clause, the contract and clause, the event, or a note. Max 1024 chars.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("needByReference")]
+        [System.ComponentModel.DataAnnotations.StringLength(1024)]
+        public string? NeedByReference { get; set; } = default!;
+
+        /// <summary>
+        /// For a Commitment, the employee who made it, by id. Required for a Commitment, and empty otherwise.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("needByCommittedById")]
+        public System.Guid? NeedByCommittedById { get; set; } = default!;
+
+        /// <summary>
+        /// For a Commitment, the date it was made. Required for a Commitment, and empty otherwise.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("needByCommittedOn")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? NeedByCommittedOn { get; set; } = default!;
+
+        /// <summary>
+        /// The system the request was raised in. Required with an external id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("originSourceSystem")]
+        public string? OriginSourceSystem { get; set; } = default!;
+
+        /// <summary>
+        /// The request's id in that system. With the source system, identifies at most one request.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("originExternalId")]
+        public string? OriginExternalId { get; set; } = default!;
+
+        /// <summary>
+        /// A link to the request in that system.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("originUrl")]
+        public string? OriginUrl { get; set; } = default!;
+
+        /// <summary>
+        /// A status of the desk's workflow, by its name (`In Review`) or its meaning (`Submitted`,
+        /// <br/>`WaitingOnRequester`, `Accepted`, `Fulfilled`, `Duplicate`, `Withdrawn`),
+        /// <br/>case-insensitively. Blank leaves the request submitted.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public string? Status { get; set; } = default!;
+
+        /// <summary>
+        /// When it moved into the status, with its offset. Blank for SubmittedAt; needs SubmittedAt, and a Status the
+        /// <br/>request moves to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusChangedAt")]
+        public string? StatusChangedAt { get; set; } = default!;
+
+        /// <summary>
+        /// Why, as the requester reads it. Required for a closing status other than Withdrawn, and for finishing
+        /// <br/>one. Max 1024 chars.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusReason")]
+        public string? StatusReason { get; set; } = default!;
+
+        /// <summary>
+        /// For a status meaning Duplicate, the request already in Wayd this one gives way to, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("duplicateOfId")]
+        public System.Guid? DuplicateOfId { get; set; } = default!;
+
+        /// <summary>
+        /// The active member of the desk who owns the request, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("assigneeId")]
+        public System.Guid? AssigneeId { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated tag ids: tags on axes the desk offers, or free tags where it allows them.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tagIds")]
+        public string? TagIds { get; set; } = default!;
 
     }
 
@@ -116736,6 +117046,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Runtime.Serialization.EnumMember(Value = @"DeploymentEnvironment")]
         DeploymentEnvironment = 16,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"IntakeRequest")]
+        IntakeRequest = 17,
 
     }
 

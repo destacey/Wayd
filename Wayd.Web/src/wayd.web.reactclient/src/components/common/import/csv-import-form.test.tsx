@@ -53,6 +53,7 @@ const definition = (
   maxRows: 10_000,
   preflightMaxRows: 10_000,
   canSubmit: true,
+  isEnabled: true,
   ...overrides,
 })
 
@@ -63,6 +64,8 @@ const definitions = [
     maxRows: 50_000,
   }),
   definition('employees', 'Employees', { canSubmit: false }),
+  // Its area is switched off: its runs stay readable, but nothing new may be imported into it.
+  definition('demand-management.intake-requests', 'Intake Requests', { isEnabled: false }),
   // Known to the server but not to this client: nothing to post it with, so it is not offered.
   definition('not-generated', 'Not Generated'),
 ]

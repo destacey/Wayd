@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Wayd.Common.Application.Employees.Imports;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Domain.Authorization;
+using Wayd.DemandManagement.Application.IntakeRequests.Imports;
 using Wayd.Infrastructure.Auth.Permissions;
 using Wayd.Infrastructure.OpenApi;
 using Wayd.Organization.Application.Teams.Imports;
@@ -24,6 +25,7 @@ using Wayd.ProjectPortfolioManagement.Application.Projects.Imports;
 using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Imports;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Imports;
 using Wayd.StrategicManagement.Application.StrategicThemes.Imports;
+using Wayd.Web.Api.Controllers.DemandManagement;
 using Wayd.Web.Api.Controllers.Organizations;
 using Wayd.Web.Api.Controllers.Planning;
 using Wayd.Web.Api.Controllers.Ppm;
@@ -67,6 +69,7 @@ public sealed class ImportEndpointPermissionTests
         (typeof(ReleasesController), nameof(ReleasesController.Import), typeof(ReleaseImportDefinition)),
         (typeof(VersionsController), nameof(VersionsController.Import), typeof(VersionImportDefinition)),
         (typeof(StrategicThemesController), nameof(StrategicThemesController.Import), typeof(StrategicThemeImportDefinition)),
+        (typeof(IntakeRequestsController), nameof(IntakeRequestsController.Import), typeof(IntakeRequestImportDefinition)),
     ];
 
     public static TheoryData<Type, string, Type> Endpoints =>

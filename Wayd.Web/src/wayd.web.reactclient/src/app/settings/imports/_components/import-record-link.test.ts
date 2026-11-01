@@ -69,6 +69,17 @@ describe('importRecordHref', () => {
     expect(href).toBe('/product-management/environments')
   })
 
+  it('links an intake request to its request page by number', () => {
+    // Arrange
+    const link = { type: ImportRecordType.IntakeRequest, key: '42' }
+
+    // Act
+    const href = importRecordHref(link)
+
+    // Assert
+    expect(href).toBe('/demand-management/requests/42')
+  })
+
   it('has a route for every record type', () => {
     // Arrange
     const types = Object.values(ImportRecordType)

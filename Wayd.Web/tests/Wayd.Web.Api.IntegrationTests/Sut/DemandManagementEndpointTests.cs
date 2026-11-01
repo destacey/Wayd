@@ -472,6 +472,45 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
         forNoDesk.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
+    [Fact]
+    public async Task Import_CreatesRequestsOnTheirDesk_InTheStatusEachRowNames()
+    {
+        // Arrange — a row walked through review, and one refused for an assignee who is not on the desk
+        var ct = TestContext.Current.CancellationToken;
+        await SetFlag(true);
+        var requester = await SeedEmployee();
+        var agent = await SeedEmployee();
+        var admin = await _factory.CreateAuthenticatedClient(Administer);
+        var deskId = await CreateDesk(admin.Client, "Open", agents: [agent]);
+        var channelId = await FirstChannel(admin.Client);
+        var externalId = $"RITM{Guid.NewGuid():N}"[..16];
+
+        var csv = string.Join('\n',
+            "ImportId,Title,Description,ExpectedBenefits,DeskId,ChannelId,RequesterId,SubmittedById,SubmittedAt,NeedByDate,NeedByBasis,NeedByReference,NeedByCommittedById,NeedByCommittedOn,OriginSourceSystem,OriginExternalId,OriginUrl,Status,StatusChangedAt,StatusReason,DuplicateOfId,AssigneeId,TagIds",
+            $"accepted,Ledger export,Finance needs the ledger export,,{deskId},{channelId},{requester},,2026-03-02T09:00:00Z,2026-12-31,regulatory,SOX section 404,,,ServiceNow,{externalId},,Accepted,2026-03-20T10:00:00Z,,,{agent},",
+            $"refused,Badge printer,Reception needs badges,,{deskId},,{requester},,2026-03-03T09:00:00Z,,,,,,,,,,,,,{requester},");
+        using var file = new ByteArrayContent(System.Text.Encoding.UTF8.GetBytes(csv));
+        file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/csv");
+
+        // Act
+        var response = await admin.Client.PostAsync($"{Requests}/import",
+            new MultipartFormDataContent { { file, "file", "intake-requests.csv" } }, ct);
+        response.IsSuccessStatusCode.Should().BeTrue(await response.Content.ReadAsStringAsync(ct));
+        var runId = (await response.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("id").GetGuid();
+        var run = await ImportRuns.WaitFor(_factory.Services, runId);
+
+        // Assert
+        var rows = run.Rows.ToDictionary(r => r.ImportId);
+        rows["refused"].Error.Should().Contain("active member of the request's desk");
+
+        var imported = (await admin.Client.GetFromJsonAsync<JsonElement>($"{Requests}?deskId={deskId}", ct))
+            .EnumerateArray().Single();
+        imported.GetProperty("status").GetProperty("name").GetString().Should().Be("Accepted");
+        imported.GetProperty("assignee").GetProperty("id").GetGuid().Should().Be(agent);
+        imported.GetProperty("needBy").GetProperty("basis").GetString().Should().Be("Regulatory");
+        rows["accepted"].CreatedEntityId.Should().Be(imported.GetProperty("id").GetGuid());
+    }
+
     private static string Permission(string action) => ApplicationPermission.NameFor(action, ApplicationResource.IntakeRequests);
 
     private async Task<Guid> CreateDesk(HttpClient admin, string visibility, Guid[]? agents = null, Guid[]? admins = null)

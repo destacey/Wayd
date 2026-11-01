@@ -2,7 +2,7 @@
   "$schema": "https://wayd.dev/schemas/wayd-data/recipe.schema.json",
   "version": 1,
   "extends": "default",
-  "description": "The organization on its own, with no PPM, Product Management or Planning dataset over it.",
+  "description": "The organization on its own, with no PPM, Product Management, Planning or Request Desk dataset over it.",
   "ppm": {
     "enabled": false
   },
@@ -10,6 +10,9 @@
     "enabled": false
   },
   "planning": {
+    "enabled": false
+  },
+  "demandManagement": {
     "enabled": false
   }
 }

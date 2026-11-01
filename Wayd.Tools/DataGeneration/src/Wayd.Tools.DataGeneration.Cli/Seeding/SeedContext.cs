@@ -39,6 +39,9 @@ public sealed class SeedContext(WaydSeedClient client, Action<string> log)
     /// <summary>The generated planning intervals, objectives and risks. Null when the seed was asked to skip them.</summary>
     public GeneratedPlanning? Planning { get; set; }
 
+    /// <summary>The generated desks, tag axes and intake requests. Null when the seed was asked to skip them.</summary>
+    public GeneratedDemandManagement? DemandManagement { get; set; }
+
     /// <summary>The row cap of each import type, read from the environment before any area runs.</summary>
     public ImportLimits ImportLimits { get; set; } = default!;
 

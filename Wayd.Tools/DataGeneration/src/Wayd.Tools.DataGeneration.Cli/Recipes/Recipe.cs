@@ -55,6 +55,9 @@ public sealed class Recipe
 
     /// <summary>The planning intervals each ART runs, and the objectives and risks its teams plan in them.</summary>
     public PlanningRecipe? Planning { get; init; }
+
+    /// <summary>The Request Desk: the desks that review demand, and the intake requests the company submits to them.</summary>
+    public DemandManagementRecipe? DemandManagement { get; init; }
 }
 
 /// <summary>An area that can be switched off wholesale rather than tuned.</summary>
@@ -194,4 +197,11 @@ public sealed class PlanningRecipe : AreaRecipe
 
     /// <summary>Average number of risks a team raises per planning interval.</summary>
     public double? RisksPerTeam { get; init; }
+}
+
+/// <summary>The Request Desk layered over the organization: desks staffed from it, and the requests its people raise.</summary>
+public sealed class DemandManagementRecipe : AreaRecipe
+{
+    /// <summary>Average number of intake requests the company submits per month.</summary>
+    public int? RequestsPerMonth { get; init; }
 }

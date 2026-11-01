@@ -632,3 +632,17 @@ From a message's row menu:
 > This feature is behind the `planning-poker` feature flag.
 
 **Estimation Scales** define the sets of values used for story point estimation in Planning Poker sessions. Scales are configured in **Settings > Planning > Estimation Scales**.
+
+Each value on a scale is either an **Estimate** — a size, such as `5` or `M` — or a **Card**, such as `?`, `∞` or `☕`, which participants can vote but which never becomes a size. A scale needs at least 2 estimates, and no value can appear twice. The scales Wayd seeds end with those three cards.
+
+### Versions
+
+A scale's values are published as numbered **versions**. Saving a scale with changed values — a value added, removed, renamed, reordered, or switched between estimate and card — publishes the next version. A published version never changes, so a poker session keeps voting on the version it was created on: renaming `M` to `Medium` does not change a vote already cast on `M`. Only sessions created afterwards, or a session whose scale is changed before its first round, use the new version.
+
+Renaming a scale, editing its description, and activating or deactivating it publish no version.
+
+The list shows each scale's current **Version** and how many **Values** it has. Selecting a scale shows its estimates and cards and, once it has more than one version, its **Earlier Versions** with the date each was published. The edit form says which version saving changed values will publish.
+
+### Active Scales and Deleting
+
+New sessions choose from active scales. Deactivating a scale leaves the sessions that use it untouched, and at least one scale must stay active. A scale any poker session uses cannot be deleted; deactivate it instead.

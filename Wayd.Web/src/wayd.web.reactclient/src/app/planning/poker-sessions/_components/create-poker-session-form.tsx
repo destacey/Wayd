@@ -33,13 +33,13 @@ export interface CreatePokerSessionFormProps {
 
 interface CreatePokerSessionFormValues {
   name: string
-  estimationScaleId: number
+  estimationScaleId: string
 }
 
 interface EstimationScaleCardProps {
   scale: EstimationScaleDto
   selected: boolean
-  onSelect: (id: number) => void
+  onSelect: (id: string) => void
 }
 
 const EstimationScaleCard = ({
@@ -62,9 +62,9 @@ const EstimationScaleCard = ({
         </Text>
       )}
       <Flex wrap gap={4} className={styles.scaleCardValues}>
-        {scale.values.map((v) => (
-          <Tag key={v} style={{ margin: 0 }}>
-            {v}
+        {scale.currentVersion.values.map((v) => (
+          <Tag key={v.value} style={{ margin: 0 }}>
+            {v.value}
           </Tag>
         ))}
       </Flex>
@@ -123,7 +123,7 @@ const CreatePokerSessionForm = ({
 
   const selectedScaleId = Form.useWatch('estimationScaleId', form)
 
-  const handleScaleSelect = (id: number) => {
+  const handleScaleSelect = (id: string) => {
     form.setFieldsValue({ estimationScaleId: id })
   }
 

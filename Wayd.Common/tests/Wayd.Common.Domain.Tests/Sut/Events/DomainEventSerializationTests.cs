@@ -14,6 +14,7 @@ using Wayd.Common.Domain.Events.AppIntegration;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Events.Identity;
 using Wayd.Common.Domain.Events.Organization;
+using Wayd.Common.Domain.Events.Planning.EstimationScales;
 using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervalObjectives;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervals;
@@ -1112,6 +1113,51 @@ public sealed class DomainEventSerializationTests
         roundTripped.ManagerIds.Should().Equal(original.ManagerIds);
         roundTripped.DateRange.Should().Be(original.DateRange);
         roundTripped.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void EstimationScaleCreatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - a version record holding an ordered array of value records, a card among them.
+        var original = new EstimationScaleCreatedEvent(
+            Guid.NewGuid(), 4, "T-Shirt Sizes", null, true,
+            new EstimationScaleVersionValues(Guid.NewGuid(), 1,
+                [new EstimationScaleValueValues("S", true), new EstimationScaleValueValues("M", true), new EstimationScaleValueValues("?", false)]),
+            EventActor.System,
+            Instant.FromUtc(2026, 1, 2, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Version.VersionId.Should().Be(original.Version.VersionId);
+        roundTripped.Version.Number.Should().Be(1);
+        roundTripped.Version.Values.Should().Equal(original.Version.Values);
+        roundTripped.IsActive.Should().BeTrue();
+        roundTripped.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void EstimationScaleVersionPublishedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - the new version and the previous one's id and number.
+        var original = new EstimationScaleVersionPublishedEvent(
+            Guid.NewGuid(), 4,
+            new EstimationScaleVersionValues(Guid.NewGuid(), 2,
+                [new EstimationScaleValueValues("Small", true), new EstimationScaleValueValues("Large", true), new EstimationScaleValueValues("☕", false)]),
+            Guid.NewGuid(), 1,
+            EventActor.System,
+            Instant.FromUtc(2026, 1, 3, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Version.VersionId.Should().Be(original.Version.VersionId);
+        roundTripped.Version.Number.Should().Be(2);
+        roundTripped.Version.Values.Should().Equal(original.Version.Values);
+        roundTripped.PreviousVersionId.Should().Be(original.PreviousVersionId);
+        roundTripped.PreviousVersionNumber.Should().Be(1);
     }
 
     [Fact]

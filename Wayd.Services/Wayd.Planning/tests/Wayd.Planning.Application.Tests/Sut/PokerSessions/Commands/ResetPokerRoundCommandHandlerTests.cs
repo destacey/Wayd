@@ -32,12 +32,14 @@ public class ResetPokerRoundCommandHandlerTests : IDisposable
     public async Task Handle_ShouldResetRound_WhenRoundIsRevealed()
     {
         // Arrange
-        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
+        var scale = new EstimationScaleFaker().Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
 
         session.AddRound("Story");
         var round = session.Rounds.First();
-        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", new EstimationScaleFaker().WithId(session.EstimationScaleId).Generate(), Instant.FromUtc(2026, 1, 15, 10, 0));
+        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", scale.CurrentVersion, Instant.FromUtc(2026, 1, 15, 10, 0));
         session.RevealRound(round.Id);
 
         var command = new ResetPokerRoundCommand(session.Id, round.Id);
@@ -57,7 +59,9 @@ public class ResetPokerRoundCommandHandlerTests : IDisposable
     public async Task Handle_ShouldResetRound_WhenRoundIsVoting()
     {
         // Arrange
-        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
+        var scale = new EstimationScaleFaker().Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
 
         session.AddRound("Story");
@@ -94,7 +98,9 @@ public class ResetPokerRoundCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenRoundDoesNotExist()
     {
         // Arrange
-        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
+        var scale = new EstimationScaleFaker().Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
 
         var command = new ResetPokerRoundCommand(session.Id, Guid.NewGuid());

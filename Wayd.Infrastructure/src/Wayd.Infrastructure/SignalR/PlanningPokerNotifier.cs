@@ -47,4 +47,8 @@ internal sealed class PlanningPokerNotifier(IHubContext<PlanningPokerHub> hubCon
     public async Task NotifyRoundLabelUpdated(Guid sessionId, Guid roundId, string? label) =>
         await _hubContext.Clients.Group(sessionId.ToString())
             .SendAsync("RoundLabelUpdated", sessionId, roundId, label);
+
+    public async Task NotifyRoundDescriptionUpdated(Guid sessionId, Guid roundId) =>
+        await _hubContext.Clients.Group(sessionId.ToString())
+            .SendAsync("RoundDescriptionUpdated", sessionId, roundId);
 }

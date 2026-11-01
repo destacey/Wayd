@@ -84,8 +84,8 @@ import {
 import { storeReturnUrl } from '@/src/utils/return-url'
 import { navigateWithFullReload } from '@/src/utils/window-utils'
 import {
-  isNetworkError,
   isTransientRefreshFailure,
+  logFailedRequest,
   RateLimitPause,
 } from './request-failures'
 
@@ -354,25 +354,7 @@ axiosClient.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    // Quiet log for transient network errors — RTK Query retries plus
-    // refetch-on-focus mean a single offline blip can produce dozens of
-    // identical entries, and each endpoint's own queryFn already logs the
-    // error with its endpoint context. Real server errors stay loud.
-    //
-    // A 400 or 422 is the server refusing the input, which the form that sent
-    // it shows to the user, and a 429 is the caller's own rate limit, which
-    // passes once its wait does. Logged as an error, Next's dev overlay reports
-    // each as a crash.
-    const status = error.response?.status
-    if (isNetworkError(error)) {
-      console.warn('API unreachable:', error.config?.url)
-    } else if (status === 400 || status === 422) {
-      console.warn('API refused the request:', status, error.config?.url)
-    } else if (status === 429) {
-      console.warn('API rate limit reached:', error.config?.url)
-    } else {
-      console.error('API Error:', error.message, error.config?.url)
-    }
+    logFailedRequest(error)
     return Promise.reject(error)
   },
 )

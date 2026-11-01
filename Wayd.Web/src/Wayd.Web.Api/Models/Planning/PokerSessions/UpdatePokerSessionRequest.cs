@@ -6,7 +6,7 @@ public class UpdatePokerSessionRequest
 {
     public string Name { get; set; } = default!;
 
-    public int EstimationScaleId { get; set; }
+    public Guid EstimationScaleId { get; set; }
 
     public UpdatePokerSessionCommand ToUpdatePokerSessionCommand(Guid id)
     {
@@ -25,6 +25,6 @@ public sealed class UpdatePokerSessionRequestValidator : CustomValidator<UpdateP
             .MaximumLength(256);
 
         RuleFor(r => r.EstimationScaleId)
-            .GreaterThan(0);
+            .NotEmpty();
     }
 }

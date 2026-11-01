@@ -7,14 +7,20 @@ namespace Wayd.Planning.Domain.Models.PlanningPoker;
 
 public sealed class PokerRound : BaseEntity
 {
+    /// <summary>
+    /// The longest description a round can hold.
+    /// </summary>
+    public const int DescriptionMaxLength = 2048;
+
     private readonly List<PokerVote> _votes = [];
 
     private PokerRound() { }
 
-    internal PokerRound(Guid pokerSessionId, string? label, int order)
+    internal PokerRound(Guid pokerSessionId, string? label, string? description, int order)
     {
         PokerSessionId = pokerSessionId;
         Label = label?.Trim();
+        Description = NormalizeDescription(description);
         Order = order;
         Status = PokerRoundStatus.Voting;
     }
@@ -25,6 +31,12 @@ public sealed class PokerRound : BaseEntity
     /// Free-text label describing what is being estimated (e.g., a work item key + title, or any descriptive text).
     /// </summary>
     public string? Label { get; private set; }
+
+    /// <summary>
+    /// Optional free-text detail about what is being estimated, such as acceptance criteria or notes the team
+    /// should read before voting. Blank text is stored as no description.
+    /// </summary>
+    public string? Description { get; private set; }
 
     public PokerRoundStatus Status { get; private set; }
 
@@ -39,6 +51,12 @@ public sealed class PokerRound : BaseEntity
     public int Order { get; private set; }
 
     public IReadOnlyCollection<PokerVote> Votes => _votes.AsReadOnly();
+
+    /// <summary>
+    /// True for a round that holds nothing: no label, no description and no votes, such as the round opened
+    /// automatically after an estimate is accepted. Requires <see cref="Votes"/> to be loaded.
+    /// </summary>
+    public bool IsEmpty => string.IsNullOrWhiteSpace(Label) && Description is null && _votes.Count == 0;
 
     /// <summary>
     /// Reveal all votes for this round.
@@ -87,6 +105,18 @@ public sealed class PokerRound : BaseEntity
         Label = newLabel?.Trim();
         return Result.Success();
     }
+
+    /// <summary>
+    /// Update the description for this round; a null or blank description clears it.
+    /// </summary>
+    internal Result UpdateDescription(string? newDescription)
+    {
+        Description = NormalizeDescription(newDescription);
+        return Result.Success();
+    }
+
+    private static string? NormalizeDescription(string? description) =>
+        string.IsNullOrWhiteSpace(description) ? null : description.Trim();
 
     /// <summary>
     /// Remove a participant's vote from this round.

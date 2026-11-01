@@ -158,9 +158,9 @@ All items have optional Color. Roadmaps can be copied: a new Active roadmap with
 
 Behind `planning-poker` feature flag. Real-time estimation via SignalR.
 
-Estimation Scales: Named set of values (min 2). Configured in Settings.
+Estimation Scales: Named set of values, configured in Settings. Values live on immutable numbered versions; changing them publishes the next version (renaming, describing, activating or deactivating does not). Each value is an estimate or a card (`?`, `∞`, `☕`: votable, never a size); a version needs at least 2 estimates and no duplicates. A scale any session uses cannot be deleted. Raises events (created, details updated, version published, activated, deactivated, deleted) for other modules to copy.
 
-Poker Sessions: Facilitator (the creator), uses one scale (locked after rounds begin), immediately Active on creation, then Completed. Rounds can be added, removed or relabelled and votes cast only while Active.
+Poker Sessions: Facilitator (the creator), uses one scale pinned to the version current at creation (the scale is locked after rounds begin; changing it before then re-pins to that scale's current version), immediately Active on creation, then Completed. Votes and the consensus must be values on the session's version; a card is an allowed consensus. Rounds can be added, removed or relabelled and votes cast only while Active.
 
 Rounds: Voting → Revealed → Accepted. Reset returns to Voting from Voting, Revealed or Accepted, clearing votes. Votes are submitted or withdrawn only during Voting.
 

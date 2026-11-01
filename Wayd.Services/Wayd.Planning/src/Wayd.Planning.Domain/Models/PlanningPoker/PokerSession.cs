@@ -13,10 +13,11 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
 
     private PokerSession() { }
 
-    private PokerSession(string name, int estimationScaleId, string facilitatorId)
+    private PokerSession(string name, EstimationScaleVersion estimationScaleVersion, string facilitatorId)
     {
         Name = name;
-        EstimationScaleId = estimationScaleId;
+        EstimationScaleId = estimationScaleVersion.EstimationScaleId;
+        EstimationScaleVersionId = estimationScaleVersion.Id;
         FacilitatorId = facilitatorId;
     }
 
@@ -37,9 +38,17 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// The estimation scale used for voting in this session.
     /// </summary>
-    public int EstimationScaleId { get; private set; }
+    public Guid EstimationScaleId { get; private set; }
 
     public EstimationScale? EstimationScale { get; private set; }
+
+    /// <summary>
+    /// The version of <see cref="EstimationScaleId"/> the session votes on. It stays put when the scale publishes
+    /// a newer version, so every vote and consensus in the session is read against the values it was cast on.
+    /// </summary>
+    public Guid EstimationScaleVersionId { get; private set; }
+
+    public EstimationScaleVersion? EstimationScaleVersion { get; private set; }
 
     /// <summary>
     /// The user who facilitates this session.
@@ -69,12 +78,16 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     public IReadOnlyCollection<PokerRound> Rounds => _rounds.AsReadOnly();
 
     /// <summary>
-    /// Complete the session.
+    /// Complete the session, deleting its empty rounds (see <see cref="PokerRound.IsEmpty"/>) so the
+    /// read-only record keeps only what was estimated. The rounds and their votes must be loaded, or a round
+    /// with votes would read as empty.
     /// </summary>
     public Result Complete(Instant timestamp)
     {
         if (Status != PokerSessionStatus.Active)
             return Result.Failure("Session can only be completed from Active status.");
+
+        _rounds.RemoveAll(r => r.IsEmpty);
 
         Status = PokerSessionStatus.Completed;
         CompletedOn = timestamp;
@@ -84,7 +97,7 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Add a new round to this session.
     /// </summary>
-    public Result<PokerRound> AddRound(string? label)
+    public Result<PokerRound> AddRound(string? label, string? description = null)
     {
         if (Status != PokerSessionStatus.Active)
             return Result.Failure<PokerRound>("Rounds can only be added to an active session.");
@@ -92,7 +105,7 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         try
         {
             int nextOrder = _rounds.Count > 0 ? _rounds.Max(r => r.Order) + 1 : 0;
-            var round = new PokerRound(Id, label, nextOrder);
+            var round = new PokerRound(Id, label, description, nextOrder);
             _rounds.Add(round);
 
             return Result.Success(round);
@@ -156,10 +169,14 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Set the consensus estimate for a round.
+    /// Set the consensus estimate for a round. The estimate must be a value on the session's scale version; a
+    /// card such as "?" is allowed, since a team settling on it is a real outcome.
     /// </summary>
-    public Result<PokerRound> SetConsensus(Guid roundId, string estimate)
+    /// <param name="estimationScaleVersion">The session's own scale version, which the estimate is checked against.</param>
+    public Result<PokerRound> SetConsensus(Guid roundId, string estimate, EstimationScaleVersion estimationScaleVersion)
     {
+        EnsureSessionVersion(estimationScaleVersion);
+
         if (Status != PokerSessionStatus.Active)
             return Result.Failure<PokerRound>("Cannot set consensus when the session is not active.");
 
@@ -167,7 +184,11 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         if (round is null)
             return Result.Failure<PokerRound>("Round not found.");
 
-        var result = round.SetConsensus(estimate);
+        var value = estimationScaleVersion.Find(estimate);
+        if (value is null)
+            return Result.Failure<PokerRound>($"'{estimate}' is not a value on the session's estimation scale.");
+
+        var result = round.SetConsensus(value.Value);
         return result.IsFailure
             ? Result.Failure<PokerRound>(result.Error)
             : Result.Success(round);
@@ -192,15 +213,31 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Submit a vote for a specific round. The value must be one of the session's estimation scale values,
-    /// special cards such as "?" included; the scale need not still be active.
+    /// Update the description for a specific round.
     /// </summary>
-    /// <param name="estimationScale">The session's own estimation scale, whose values the vote is checked against.</param>
-    public Result SubmitVote(Guid roundId, string participantId, string value, EstimationScale estimationScale, Instant timestamp)
+    public Result<PokerRound> UpdateRoundDescription(Guid roundId, string? newDescription)
     {
-        Guard.Against.Null(estimationScale, nameof(estimationScale));
-        if (estimationScale.Id != EstimationScaleId)
-            throw new ArgumentException($"Estimation scale {estimationScale.Id} is not the session's scale ({EstimationScaleId}).", nameof(estimationScale));
+        if (Status != PokerSessionStatus.Active)
+            return Result.Failure<PokerRound>("Cannot update round description when the session is not active.");
+
+        var round = _rounds.FirstOrDefault(r => r.Id == roundId);
+        if (round is null)
+            return Result.Failure<PokerRound>("Round not found.");
+
+        var result = round.UpdateDescription(newDescription);
+        return result.IsFailure
+            ? Result.Failure<PokerRound>(result.Error)
+            : Result.Success(round);
+    }
+
+    /// <summary>
+    /// Submit a vote for a specific round. The value must be one of the session's scale version values,
+    /// cards such as "?" included; the scale need not still be active.
+    /// </summary>
+    /// <param name="estimationScaleVersion">The session's own scale version, whose values the vote is checked against.</param>
+    public Result SubmitVote(Guid roundId, string participantId, string value, EstimationScaleVersion estimationScaleVersion, Instant timestamp)
+    {
+        EnsureSessionVersion(estimationScaleVersion);
 
         if (Status != PokerSessionStatus.Active)
             return Result.Failure("Cannot vote when the session is not active.");
@@ -209,12 +246,11 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         if (round is null)
             return Result.Failure("Round not found.");
 
-        // Scale values are stored trimmed, as a vote is.
-        var trimmed = value?.Trim();
-        if (string.IsNullOrEmpty(trimmed) || !estimationScale.Values.Contains(trimmed, StringComparer.Ordinal))
+        var scaleValue = estimationScaleVersion.Find(value);
+        if (scaleValue is null)
             return Result.Failure($"'{value}' is not a value on the session's estimation scale.");
 
-        return round.AddOrUpdateVote(participantId, trimmed, timestamp);
+        return round.AddOrUpdateVote(participantId, scaleValue.Value, timestamp);
     }
 
     /// <summary>
@@ -235,8 +271,10 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Update the session name and optionally the estimation scale.
     /// The estimation scale can only be changed when no rounds have been started, and only to an active
-    /// scale; keeping a scale that has since been deactivated is allowed.
+    /// scale, which pins the session to that scale's current version. Keeping a scale that has since been
+    /// deactivated is allowed, and keeps the version the session is on.
     /// </summary>
+    /// <param name="estimationScale">The chosen scale, with its versions loaded when it differs from the session's.</param>
     public Result Update(string name, EstimationScale estimationScale)
     {
         Guard.Against.Null(estimationScale, nameof(estimationScale));
@@ -254,7 +292,12 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         try
         {
             Name = name;
-            EstimationScaleId = estimationScale.Id;
+            if (scaleChanged)
+            {
+                var version = estimationScale.CurrentVersion;
+                EstimationScaleId = estimationScale.Id;
+                EstimationScaleVersionId = version.Id;
+            }
             return Result.Success();
         }
         catch (Exception ex)
@@ -265,10 +308,18 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
 
     private const string InactiveScaleError = "The estimation scale is inactive and cannot be chosen for a session.";
 
+    private void EnsureSessionVersion(EstimationScaleVersion estimationScaleVersion)
+    {
+        Guard.Against.Null(estimationScaleVersion, nameof(estimationScaleVersion));
+        if (estimationScaleVersion.Id != EstimationScaleVersionId)
+            throw new ArgumentException($"Estimation scale version {estimationScaleVersion.Id} is not the session's version ({EstimationScaleVersionId}).", nameof(estimationScaleVersion));
+    }
+
     /// <summary>
-    /// Create a new poker session on an active estimation scale. The session is immediately activated and
-    /// ready to accept rounds.
+    /// Create a new poker session on an active estimation scale, pinned to the scale's current version. The
+    /// session is immediately activated and ready to accept rounds.
     /// </summary>
+    /// <param name="estimationScale">The chosen scale, with its versions loaded.</param>
     public static Result<PokerSession> Create(string name, EstimationScale estimationScale, string facilitatorId, Instant timestamp)
     {
         Guard.Against.Null(estimationScale, nameof(estimationScale));
@@ -278,7 +329,7 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
 
         try
         {
-            var session = new PokerSession(name, estimationScale.Id, facilitatorId)
+            var session = new PokerSession(name, estimationScale.CurrentVersion, facilitatorId)
             {
                 Status = PokerSessionStatus.Active,
                 ActivatedOn = timestamp

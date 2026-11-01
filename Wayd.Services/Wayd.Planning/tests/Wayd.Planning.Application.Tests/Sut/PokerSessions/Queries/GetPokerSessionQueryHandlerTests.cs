@@ -26,6 +26,7 @@ public class GetPokerSessionQueryHandlerTests : IDisposable
 
     private readonly User _viewer;
     private readonly User _otherParticipant;
+    private readonly EstimationScale _scale = new EstimationScaleFaker().WithValues("1", "2", "3", "5", "8", "?").Generate();
 
     public GetPokerSessionQueryHandlerTests()
     {
@@ -41,11 +42,11 @@ public class GetPokerSessionQueryHandlerTests : IDisposable
 
     private PokerSession CreateSessionWithVotes()
     {
-        var session = new PokerSessionFaker().WithStatus(PokerSessionStatus.Active).Generate();
+        var session = new PokerSessionFaker().WithStatus(PokerSessionStatus.Active).WithEstimationScale(_scale).Generate();
         session.AddRound("Story to estimate");
         var round = session.Rounds.First();
-        session.SubmitVote(round.Id, _viewer.Id, "5", new EstimationScaleFaker().WithId(session.EstimationScaleId).Generate(), VotedOn);
-        session.SubmitVote(round.Id, _otherParticipant.Id, "8", new EstimationScaleFaker().WithId(session.EstimationScaleId).Generate(), VotedOn);
+        session.SubmitVote(round.Id, _viewer.Id, "5", _scale.CurrentVersion, VotedOn);
+        session.SubmitVote(round.Id, _otherParticipant.Id, "8", _scale.CurrentVersion, VotedOn);
 
         LinkParticipants(round);
         _dbContext.AddPokerSession(session);
@@ -140,7 +141,7 @@ public class GetPokerSessionQueryHandlerTests : IDisposable
         var session = CreateSessionWithVotes();
         var roundId = session.Rounds.First().Id;
         session.RevealRound(roundId);
-        session.SetConsensus(roundId, "8");
+        session.SetConsensus(roundId, "8", _scale.CurrentVersion);
 
         // Act
         var result = await _handler.Handle(

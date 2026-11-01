@@ -3,7 +3,7 @@ using Wayd.Planning.Domain.Models.PlanningPoker;
 
 namespace Wayd.Planning.Application.PokerSessions.Commands;
 
-public sealed record CreatePokerSessionCommand(string Name, int EstimationScaleId) : ICommand<ObjectIdAndKey>;
+public sealed record CreatePokerSessionCommand(string Name, Guid EstimationScaleId) : ICommand<ObjectIdAndKey>;
 
 public sealed class CreatePokerSessionCommandValidator : CustomValidator<CreatePokerSessionCommand>
 {
@@ -16,7 +16,7 @@ public sealed class CreatePokerSessionCommandValidator : CustomValidator<CreateP
             .MaximumLength(256);
 
         RuleFor(c => c.EstimationScaleId)
-            .GreaterThan(0);
+            .NotEmpty();
     }
 }
 
@@ -32,7 +32,7 @@ public sealed class CreatePokerSessionCommandHandler(IPlanningDbContext planning
         try
         {
             var scale = await _planningDbContext.EstimationScales
-                .AsNoTracking()
+                .Include(s => s.Versions)
                 .FirstOrDefaultAsync(s => s.Id == request.EstimationScaleId, cancellationToken);
 
             if (scale is null)

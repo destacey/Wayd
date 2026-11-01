@@ -57512,7 +57512,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of estimation scales.
         /// </summary>
         /// <remarks>
-        /// Sorted by name. Each scale has an integer `id`, `name`, `description`, `isActive` and its ordered `values`. Only active scales are listed unless `includeInactive` is true. Requires the planning-poker feature flag; returns 404 when it is off.
+        /// Sorted by name. Each scale has its `id` (a UUID), `key`, `name`, `description`, `isActive` and `currentVersion`: the `number` and ordered `values` new sessions vote on, each with `isEstimate`, false for a card such as `?` that can be voted but never becomes an estimate. Only active scales are listed unless `includeInactive` is true. Requires the planning-poker feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -57523,55 +57523,55 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a custom estimation scale.
         /// </summary>
         /// <remarks>
-        /// `values` are the cards in the order they are shown: at least 2, each at most 32 characters. The new scale is active. Returns its integer id.
+        /// `values` are the cards in the order they are shown, each a `value` of at most 32 characters, unique on the scale, and `isEstimate`: false for a card such as `?` that can be voted but never becomes an estimate. At least 2 must be estimates. The new scale is active, with these values as version 1. Returns its `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<int> CreateAsync(CreateEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Get estimation scale details.
         /// </summary>
         /// <remarks>
-        /// Takes the scale's integer id. Returns the scale, active or not, with its ordered `values`.
+        /// Takes the scale's UUID or key. Returns the scale, active or not, with its `currentVersion` and every published version in `versions`, newest first. A version never changes once published.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<EstimationScaleDto> GetScaleAsync(int id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<EstimationScaleDetailsDto> GetScaleAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Update a custom estimation scale.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite: `name`, `description` and `values` are all set from the body, so an omitted `description` is cleared and `values` replaces the whole list. Read the scale with EstimationScales_GetScale first and pass back what should stay. Applies to any scale, including the ones Wayd seeds, and every session on the scale shows the new values, completed ones included. Takes the scale's integer id, in the path and again as `estimationScaleId` in the body.
+        /// A whole-record overwrite: `name`, `description` and `values` are all set from the body, so an omitted `description` is cleared. Read the scale with EstimationScales_GetScale first and pass back what should stay. Values that differ from the current version's, in text, `isEstimate` or order, publish the next version; the same values publish nothing. A published version never changes, so sessions already on the scale keep voting on the version they were created on, and only sessions created afterwards use the new one. Renaming or editing the description publishes no version. Applies to any scale, including the ones Wayd seeds. Takes the scale's UUID, in the path and again as `id` in the body.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task UpdateAsync(int id, UpdateEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Delete a custom estimation scale.
         /// </summary>
         /// <remarks>
-        /// Permanently deletes the scale. Refused while any poker session uses it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's integer id.
+        /// Permanently deletes the scale with all its versions. Refused while any poker session uses it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task DeleteAsync(int id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Set the active status of an estimation scale.
         /// </summary>
         /// <remarks>
-        /// `isActive` false takes the scale out of the default list, which is what new sessions are chosen from, without changing sessions that use it; true brings it back. Fails when the scale already has that status, and the last active scale cannot be deactivated. Takes the scale's integer id, in the path and again as `id` in the body.
+        /// `isActive` false takes the scale out of the default list, which is what new sessions are chosen from, without changing sessions that use it; true brings it back. Publishes no version. Fails when the scale already has that status, and the last active scale cannot be deactivated. Takes the scale's UUID, in the path and again as `id` in the body.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task SetActiveStatusAsync(int id, SetEstimationScaleActiveStatusRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task SetActiveStatusAsync(System.Guid id, SetEstimationScaleActiveStatusRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -57628,7 +57628,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of estimation scales.
         /// </summary>
         /// <remarks>
-        /// Sorted by name. Each scale has an integer `id`, `name`, `description`, `isActive` and its ordered `values`. Only active scales are listed unless `includeInactive` is true. Requires the planning-poker feature flag; returns 404 when it is off.
+        /// Sorted by name. Each scale has its `id` (a UUID), `key`, `name`, `description`, `isActive` and `currentVersion`: the `number` and ordered `values` new sessions vote on, each with `isEstimate`, false for a card such as `?` that can be voted but never becomes an estimate. Only active scales are listed unless `includeInactive` is true. Requires the planning-poker feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -57721,11 +57721,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a custom estimation scale.
         /// </summary>
         /// <remarks>
-        /// `values` are the cards in the order they are shown: at least 2, each at most 32 characters. The new scale is active. Returns its integer id.
+        /// `values` are the cards in the order they are shown, each a `value` of at most 32 characters, unique on the scale, and `isEstimate`: false for a card such as `?` that can be voted but never becomes an estimate. At least 2 must be estimates. The new scale is active, with these values as version 1. Returns its `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<int> CreateAsync(CreateEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (request == null)
                 throw new System.ArgumentNullException("request");
@@ -57773,7 +57773,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 201)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<int>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ObjectIdAndKey>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -57815,14 +57815,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get estimation scale details.
         /// </summary>
         /// <remarks>
-        /// Takes the scale's integer id. Returns the scale, active or not, with its ordered `values`.
+        /// Takes the scale's UUID or key. Returns the scale, active or not, with its `currentVersion` and every published version in `versions`, newest first. A version never changes once published.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<EstimationScaleDto> GetScaleAsync(int id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<EstimationScaleDetailsDto> GetScaleAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
-            if (id == null)
-                throw new System.ArgumentNullException("id");
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
 
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -57835,9 +57835,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/planning/estimation-scales/{id}"
+                    // Operation Path: "api/planning/estimation-scales/{idOrKey}"
                     urlBuilder_.Append("api/planning/estimation-scales/");
-                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -57864,7 +57864,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<EstimationScaleDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<EstimationScaleDetailsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -57906,11 +57906,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a custom estimation scale.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite: `name`, `description` and `values` are all set from the body, so an omitted `description` is cleared and `values` replaces the whole list. Read the scale with EstimationScales_GetScale first and pass back what should stay. Applies to any scale, including the ones Wayd seeds, and every session on the scale shows the new values, completed ones included. Takes the scale's integer id, in the path and again as `estimationScaleId` in the body.
+        /// A whole-record overwrite: `name`, `description` and `values` are all set from the body, so an omitted `description` is cleared. Read the scale with EstimationScales_GetScale first and pass back what should stay. Values that differ from the current version's, in text, `isEstimate` or order, publish the next version; the same values publish nothing. A published version never changes, so sessions already on the scale keep voting on the version they were created on, and only sessions created afterwards use the new one. Renaming or editing the description publishes no version. Applies to any scale, including the ones Wayd seeds. Takes the scale's UUID, in the path and again as `id` in the body.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task UpdateAsync(int id, UpdateEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -58008,11 +58008,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a custom estimation scale.
         /// </summary>
         /// <remarks>
-        /// Permanently deletes the scale. Refused while any poker session uses it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's integer id.
+        /// Permanently deletes the scale with all its versions. Refused while any poker session uses it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task DeleteAsync(int id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -58093,11 +58093,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the active status of an estimation scale.
         /// </summary>
         /// <remarks>
-        /// `isActive` false takes the scale out of the default list, which is what new sessions are chosen from, without changing sessions that use it; true brings it back. Fails when the scale already has that status, and the last active scale cannot be deactivated. Takes the scale's integer id, in the path and again as `id` in the body.
+        /// `isActive` false takes the scale out of the default list, which is what new sessions are chosen from, without changing sessions that use it; true brings it back. Publishes no version. Fails when the scale already has that status, and the last active scale cannot be deactivated. Takes the scale's UUID, in the path and again as `id` in the body.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task SetActiveStatusAsync(int id, SetEstimationScaleActiveStatusRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task SetActiveStatusAsync(System.Guid id, SetEstimationScaleActiveStatusRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -63410,7 +63410,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a poker session.
         /// </summary>
         /// <remarks>
-        /// Starts an Active session, facilitated by the caller, that estimates on the scale `estimationScaleId` (an integer; EstimationScales_GetScales lists the active scales). The scale must be active; a session already on a scale that is later deactivated keeps working. It has no rounds yet; add them with PokerSessions_AddRound. Returns the new session's `id` and `key`.
+        /// Starts an Active session, facilitated by the caller, that estimates on the scale `estimationScaleId` (a UUID; EstimationScales_GetScales lists the active scales). The scale must be active. The session is pinned to the scale's current version and stays on it when the scale later publishes a new version or is deactivated. It has no rounds yet; add them with PokerSessions_AddRound. Returns the new session's `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63421,7 +63421,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get poker session details using the Id or key.
         /// </summary>
         /// <remarks>
-        /// Takes the session's UUID or key. Returns the session with its estimation scale and values, and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
+        /// Takes the session's UUID or key. Returns the session with its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63432,7 +63432,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a poker session.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale. A completed session cannot be updated. Takes the session's UUID.
+        /// A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it and the version the session is on, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale; changing it pins the session to that scale's current version. A completed session cannot be updated. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63454,7 +63454,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Complete a poker session.
         /// </summary>
         /// <remarks>
-        /// Moves an Active session to Completed. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.
+        /// Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63465,7 +63465,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Add a round to a poker session.
         /// </summary>
         /// <remarks>
-        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.
+        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63509,7 +63509,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the consensus estimate for a round.
         /// </summary>
         /// <remarks>
-        /// Records the agreed `estimate` (at most 32 characters, normally one of the scale's values) and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Both ids are UUIDs.
+        /// Records the agreed `estimate`, which must be one of the values on the session's scale version, a card such as `?` included, and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63528,10 +63528,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Update the description for a round.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Both ids are UUIDs.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task UpdateRoundDescriptionAsync(System.Guid id, System.Guid roundId, UpdatePokerRoundDescriptionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Submit a vote for a round.
         /// </summary>
         /// <remarks>
-        /// Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the session's scale values exactly as the scale lists them, special cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. Both ids are UUIDs.
+        /// Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63696,7 +63707,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a poker session.
         /// </summary>
         /// <remarks>
-        /// Starts an Active session, facilitated by the caller, that estimates on the scale `estimationScaleId` (an integer; EstimationScales_GetScales lists the active scales). The scale must be active; a session already on a scale that is later deactivated keeps working. It has no rounds yet; add them with PokerSessions_AddRound. Returns the new session's `id` and `key`.
+        /// Starts an Active session, facilitated by the caller, that estimates on the scale `estimationScaleId` (a UUID; EstimationScales_GetScales lists the active scales). The scale must be active. The session is pinned to the scale's current version and stays on it when the scale later publishes a new version or is deactivated. It has no rounds yet; add them with PokerSessions_AddRound. Returns the new session's `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63790,7 +63801,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get poker session details using the Id or key.
         /// </summary>
         /// <remarks>
-        /// Takes the session's UUID or key. Returns the session with its estimation scale and values, and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
+        /// Takes the session's UUID or key. Returns the session with its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63881,7 +63892,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a poker session.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale. A completed session cannot be updated. Takes the session's UUID.
+        /// A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it and the version the session is on, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale; changing it pins the session to that scale's current version. A completed session cannot be updated. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64058,7 +64069,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Complete a poker session.
         /// </summary>
         /// <remarks>
-        /// Moves an Active session to Completed. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.
+        /// Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64145,7 +64156,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Add a round to a poker session.
         /// </summary>
         /// <remarks>
-        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.
+        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64518,7 +64529,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the consensus estimate for a round.
         /// </summary>
         /// <remarks>
-        /// Records the agreed `estimate` (at most 32 characters, normally one of the scale's values) and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Both ids are UUIDs.
+        /// Records the agreed `estimate`, which must be one of the values on the session's scale version, a card such as `?` included, and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64711,10 +64722,108 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Update the description for a round.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Both ids are UUIDs.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task UpdateRoundDescriptionAsync(System.Guid id, System.Guid roundId, UpdatePokerRoundDescriptionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (roundId == null)
+                throw new System.ArgumentNullException("roundId");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/rounds/{roundId}/description"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/rounds/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(roundId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/description");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Submit a vote for a round.
         /// </summary>
         /// <remarks>
-        /// Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the session's scale values exactly as the scale lists them, special cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. Both ids are UUIDs.
+        /// Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -110560,6 +110669,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(512)]
         public string? Label { get; set; } = default!;
 
+        /// <summary>
+        /// Optional detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(2048)]
+        public string? Description { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -112861,23 +112977,35 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A new estimation scale, created active with its values as version 1.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CreateEstimationScaleRequest
     {
 
+        /// <summary>
+        /// The scale's name, at most 128 characters.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// What the scale is for, at most 1024 characters.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.StringLength(1024)]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The cards in the order they are shown, at least 2 of them estimates.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("values")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.MinLength(1)]
-        public System.Collections.Generic.ICollection<string> Values { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<EstimationScaleValueRequest> Values { get; set; } = new System.Collections.ObjectModel.Collection<EstimationScaleValueRequest>();
 
     }
 
@@ -113405,8 +113533,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Name { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("estimationScaleId")]
-        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
-        public int EstimationScaleId { get; set; } = default!;
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid EstimationScaleId { get; set; } = default!;
 
     }
 
@@ -116744,12 +116872,35 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// An estimation scale with its current version and every version it has published.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class EstimationScaleDetailsDto : EstimationScaleDto
+    {
+
+        /// <summary>
+        /// Every published version, newest first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("versions")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EstimationScaleVersionDto> Versions { get; set; } = new System.Collections.ObjectModel.Collection<EstimationScaleVersionDto>();
+
+    }
+
+    /// <summary>
+    /// An estimation scale with its current version, the values anything newly choosing the scale votes on.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class EstimationScaleDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("id")]
-        public int Id { get; set; } = default!;
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -116761,9 +116912,108 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
+        /// <summary>
+        /// The latest published version.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("currentVersion")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public EstimationScaleVersionDto CurrentVersion { get; set; } = new EstimationScaleVersionDto();
+
+    }
+
+    /// <summary>
+    /// Identifies an estimation scale from a record that uses it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class EstimationScaleNavigationDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One value on an estimation scale version.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class EstimationScaleValueDto
+    {
+
+        /// <summary>
+        /// The text shown on the card and recorded as the vote.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Value { get; set; } = default!;
+
+        /// <summary>
+        /// False for a card such as `?`, which can be voted but never becomes an estimate.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isEstimate")]
+        public bool IsEstimate { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One value on an estimation scale: a card participants can vote.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class EstimationScaleValueRequest
+    {
+
+        /// <summary>
+        /// The text shown on the card and recorded as the vote, such as `5`, `M` or `?`. At most 32 characters, and
+        /// <br/>unique on the scale.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Value { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the value is a size. False for a card such as `?`, `∞` or `☕`, which can be voted but never
+        /// <br/>becomes an estimate. A scale needs at least 2 estimate values.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isEstimate")]
+        public bool IsEstimate { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One published version of an estimation scale. A version never changes once published.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class EstimationScaleVersionDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The version's number within its scale, starting at 1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("number")]
+        public int Number { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("publishedOn")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset PublishedOn { get; set; } = default!;
+
+        /// <summary>
+        /// The values a participant can vote, in display order.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("values")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<string> Values { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<EstimationScaleValueDto> Values { get; set; } = new System.Collections.ObjectModel.Collection<EstimationScaleValueDto>();
 
     }
 
@@ -125583,6 +125833,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("label")]
         public string? Label { get; set; } = default!;
 
+        /// <summary>
+        /// Optional detail about what is being estimated, such as acceptance criteria or notes for the team.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string? Description { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Status { get; set; } = default!;
@@ -125625,7 +125881,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public UserNavigationDto? Facilitator { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("estimationScale")]
-        public EstimationScaleDto? EstimationScale { get; set; } = default!;
+        public EstimationScaleNavigationDto? EstimationScale { get; set; } = default!;
+
+        /// <summary>
+        /// The scale version the session votes on, which stays put when the scale publishes a newer one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimationScaleVersion")]
+        public EstimationScaleVersionDto? EstimationScaleVersion { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("activatedOn")]
         public System.DateTimeOffset? ActivatedOn { get; set; } = default!;
@@ -130662,14 +130924,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Whether an estimation scale is available to new poker sessions.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SetEstimationScaleActiveStatusRequest
     {
 
+        /// <summary>
+        /// The scale's id, matching the one in the path.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
-        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
-        public int Id { get; set; } = default!;
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// True to make the scale available to new sessions, false to withdraw it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
@@ -137101,27 +137372,43 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// An estimation scale's name, description and values, all set from the body.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UpdateEstimationScaleRequest
     {
 
-        [System.Text.Json.Serialization.JsonPropertyName("estimationScaleId")]
-        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
-        public int EstimationScaleId { get; set; } = default!;
+        /// <summary>
+        /// The scale's id, matching the one in the path.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The scale's name, at most 128 characters.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// What the scale is for, at most 1024 characters. Omitting it clears it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.StringLength(1024)]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The cards in the order they are shown, at least 2 of them estimates. Values that differ from the current
+        /// <br/>version's, in text, flag or order, publish the next version; the same values publish nothing.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("values")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.MinLength(1)]
-        public System.Collections.Generic.ICollection<string> Values { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<EstimationScaleValueRequest> Values { get; set; } = new System.Collections.ObjectModel.Collection<EstimationScaleValueRequest>();
 
     }
 
@@ -137763,6 +138050,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The new description for a poker round.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UpdatePokerRoundDescriptionRequest
+    {
+
+        /// <summary>
+        /// Detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters. Null or blank clears it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(2048)]
+        public string? Description { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UpdatePokerRoundLabelRequest
     {
@@ -137783,8 +138086,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Name { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("estimationScaleId")]
-        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
-        public int EstimationScaleId { get; set; } = default!;
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid EstimationScaleId { get; set; } = default!;
 
     }
 

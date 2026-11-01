@@ -38,11 +38,21 @@ jest.mock('./delete-estimation-scale-form', () => ({
 }))
 
 const scale = (overrides: Partial<EstimationScaleDto> = {}): EstimationScaleDto => ({
-  id: 3,
+  id: 'scale-3',
+  key: 3,
   name: 'Fibonacci',
   description: 'Classic planning poker deck',
   isActive: true,
-  values: ['1', '2', '3', '5', '8'],
+  currentVersion: {
+    id: 'version-1',
+    number: 1,
+    publishedOn: new Date('2026-01-01T00:00:00Z'),
+    values: [
+      { value: '1', isEstimate: true },
+      { value: '2', isEstimate: true },
+      { value: '?', isEstimate: false },
+    ],
+  },
   ...overrides,
 })
 
@@ -53,7 +63,7 @@ const Harness = ({
 }: {
   estimationScale: EstimationScaleDto
   onChanged?: () => void
-  onDeleted?: (id: number) => void
+  onDeleted?: (id: string) => void
 }) => {
   const { getActionItems, dialogs } = useEstimationScaleActions({
     onChanged,
@@ -160,7 +170,7 @@ describe('useEstimationScaleActions', () => {
       // Assert
       await waitFor(() =>
         expect(mockSetActiveStatus).toHaveBeenCalledWith({
-          id: 3,
+          id: 'scale-3',
           isActive: false,
         }),
       )
@@ -200,7 +210,7 @@ describe('useEstimationScaleActions', () => {
 
     it('opens the delete dialog against the record whose menu was used', () => {
       // Arrange — the grid builds a ⋯ per row from the same hook
-      render(<Harness estimationScale={scale({ id: 9, name: 'T-Shirt' })} />)
+      render(<Harness estimationScale={scale({ id: 'scale-9', name: 'T-Shirt' })} />)
       openMenu()
 
       // Act
@@ -209,7 +219,7 @@ describe('useEstimationScaleActions', () => {
       // Assert
       expect(screen.getByText('delete dialog')).toBeInTheDocument()
       expect(mockDeleteTarget).toHaveBeenLastCalledWith(
-        expect.objectContaining({ id: 9, name: 'T-Shirt' }),
+        expect.objectContaining({ id: 'scale-9', name: 'T-Shirt' }),
       )
     })
 

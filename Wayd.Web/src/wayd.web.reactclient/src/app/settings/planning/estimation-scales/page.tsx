@@ -13,7 +13,10 @@ import useAuth from '@/src/components/contexts/auth'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import { EstimationScaleDto } from '@/src/services/wayd-api'
-import { useGetEstimationScalesQuery } from '@/src/store/features/planning/estimation-scales-api'
+import {
+  useGetEstimationScaleQuery,
+  useGetEstimationScalesQuery,
+} from '@/src/store/features/planning/estimation-scales-api'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { Button } from 'antd'
 import { Suspense, useEffect, useState } from 'react'
@@ -39,10 +42,14 @@ const EstimationScalesPage = () => {
     refetch,
   } = useGetEstimationScalesQuery(true)
 
-  // The list DTO is the whole record — values included — so unlike the other
-  // config lists there is no second query for the panel to make.
+  // The list DTO carries the current version, which is all the panel needs to
+  // open; the version history follows from the details query.
   const selectedScale = scaleData?.find(
-    (scale) => String(scale.id) === selectedId,
+    (scale) => String(scale.key) === selectedId,
+  )
+  const { data: selectedDetails } = useGetEstimationScaleQuery(
+    selectedScale?.id ?? '',
+    { skip: !selectedScale },
   )
 
   const { hasPermissionClaim } = useAuth()
@@ -55,7 +62,7 @@ const EstimationScalesPage = () => {
     onDeleted: (deletedId) => {
       // Only close the panel if it was showing the record that went — deleting
       // a different row from its own ⋯ should leave the panel alone.
-      if (String(deletedId) === selectedId) {
+      if (deletedId === selectedScale?.id) {
         clear()
       }
       refetch()
@@ -93,8 +100,15 @@ const EstimationScalesPage = () => {
       meta: { columnType: 'yesNo' },
     },
     {
+      id: 'version',
+      accessorFn: (row) => row.currentVersion.number,
+      header: 'Version',
+      size: 100,
+      enableColumnFilter: false,
+    },
+    {
       id: 'values',
-      accessorFn: (row) => row.values?.length ?? 0,
+      accessorFn: (row) => row.currentVersion.values.length,
       header: 'Values',
       size: 100,
       enableColumnFilter: false,
@@ -130,7 +144,16 @@ const EstimationScalesPage = () => {
         open={!!selectedScale || (!!selectedId && isLoading)}
         onClose={clear}
         title={selectedScale?.name}
-        details={<EstimationScalePanel estimationScale={selectedScale} />}
+        details={
+          <EstimationScalePanel
+            estimationScale={selectedScale}
+            versions={
+              selectedDetails?.id === selectedScale?.id
+                ? selectedDetails?.versions
+                : undefined
+            }
+          />
+        }
         actionItems={selectedScale && getActionItems(selectedScale)}
         isLoading={isLoading}
       >
@@ -141,7 +164,8 @@ const EstimationScalesPage = () => {
           isLoading={isLoading}
           persistStateKey="settings-estimation-scales"
           csvFileName="estimation-scales"
-          onRowActivate={(scale) => select(String(scale.id))}
+          getRowId={(scale) => String(scale.key)}
+          onRowActivate={(scale) => select(String(scale.key))}
           activatedRowId={selectedId}
           getRowActivateLabel={(scale) => scale.name}
         />

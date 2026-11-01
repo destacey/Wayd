@@ -4230,11 +4230,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.EstimationScale", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1024)
@@ -4242,6 +4239,12 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
+
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -4262,14 +4265,33 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
-                    b.PrimitiveCollection<string>("Values")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("Values");
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Key");
+
+                    b.ToTable("EstimationScales", "Planning");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.EstimationScaleVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EstimationScaleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PublishedOn")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.ToTable("EstimationScales", "Planning");
+                    b.HasIndex("EstimationScaleId", "Number")
+                        .IsUnique();
+
+                    b.ToTable("EstimationScaleVersions", "Planning");
                 });
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerRound", b =>
@@ -4280,6 +4302,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<string>("ConsensusEstimate")
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
 
                     b.Property<string>("Label")
                         .HasMaxLength(512)
@@ -4314,8 +4340,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<DateTime?>("CompletedOn")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("EstimationScaleId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("EstimationScaleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EstimationScaleVersionId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("FacilitatorId")
                         .IsRequired()
@@ -4357,6 +4386,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasAlternateKey("Key");
 
                     b.HasIndex("EstimationScaleId");
+
+                    b.HasIndex("EstimationScaleVersionId");
 
                     b.HasIndex("FacilitatorId");
 
@@ -10187,6 +10218,42 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Team");
                 });
 
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.EstimationScaleVersion", b =>
+                {
+                    b.HasOne("Wayd.Planning.Domain.Models.PlanningPoker.EstimationScale", null)
+                        .WithMany("Versions")
+                        .HasForeignKey("EstimationScaleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsMany("Wayd.Planning.Domain.Models.PlanningPoker.EstimationScaleValue", "Values", b1 =>
+                        {
+                            b1.Property<Guid>("EstimationScaleVersionId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAddOrUpdate();
+
+                            b1.Property<bool>("IsEstimate");
+
+                            b1.Property<string>("Value")
+                                .IsRequired()
+                                .HasMaxLength(32);
+
+                            b1.HasKey("EstimationScaleVersionId", "__synthesizedOrdinal");
+
+                            b1.ToTable("EstimationScaleVersions", "Planning");
+
+                            b1
+                                .ToJson("Values")
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.WithOwner()
+                                .HasForeignKey("EstimationScaleVersionId");
+                        });
+
+                    b.Navigation("Values");
+                });
+
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerRound", b =>
                 {
                     b.HasOne("Wayd.Planning.Domain.Models.PlanningPoker.PokerSession", null)
@@ -10204,6 +10271,12 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Wayd.Planning.Domain.Models.PlanningPoker.EstimationScaleVersion", "EstimationScaleVersion")
+                        .WithMany()
+                        .HasForeignKey("EstimationScaleVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Wayd.Common.Domain.Identity.User", "Facilitator")
                         .WithMany()
                         .HasForeignKey("FacilitatorId")
@@ -10211,6 +10284,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
 
                     b.Navigation("EstimationScale");
+
+                    b.Navigation("EstimationScaleVersion");
 
                     b.Navigation("Facilitator");
                 });
@@ -11771,6 +11846,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningIntervalObjective", b =>
                 {
                     b.Navigation("HealthChecks");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.EstimationScale", b =>
+                {
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerRound", b =>

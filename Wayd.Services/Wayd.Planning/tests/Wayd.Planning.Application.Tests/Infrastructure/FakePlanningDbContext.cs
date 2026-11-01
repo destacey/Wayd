@@ -52,6 +52,7 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
     public DbSet<PlanningIntervalObjectiveHealthCheck> PlanningIntervalObjectiveHealthChecks => _planningIntervalObjectiveHealthChecks.AsDbSet();
     public DbSet<Roadmap> Roadmaps => _roadmaps.AsDbSet();
     public DbSet<EstimationScale> EstimationScales => _estimationScales.AsDbSet();
+    public DbSet<EstimationScaleVersion> EstimationScaleVersions => _estimationScales.SelectMany(s => s.Versions).ToList().AsDbSet();
     public DbSet<PokerSession> PokerSessions => _pokerSessions.AsDbSet();
     public DbSet<StoryMap> StoryMaps => _storyMaps.AsDbSet();
     public DbSet<Employee> Employees => _employees.AsDbSet();

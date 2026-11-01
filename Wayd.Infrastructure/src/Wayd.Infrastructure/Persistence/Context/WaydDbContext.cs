@@ -118,6 +118,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<PlanningIntervalObjectiveHealthCheck> PlanningIntervalObjectiveHealthChecks => Set<PlanningIntervalObjectiveHealthCheck>();
     public DbSet<Roadmap> Roadmaps => Set<Roadmap>();
     public DbSet<EstimationScale> EstimationScales => Set<EstimationScale>();
+    public DbSet<EstimationScaleVersion> EstimationScaleVersions => Set<EstimationScaleVersion>();
     public DbSet<PokerSession> PokerSessions => Set<PokerSession>();
     public DbSet<StoryMap> StoryMaps => Set<StoryMap>();
 

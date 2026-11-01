@@ -7,7 +7,7 @@ import { useConfirmModal } from '@/src/hooks'
 import { isApiError, type ApiError } from '@/src/utils'
 
 export interface DeleteEstimationScaleFormProps {
-  estimationScale: { id: number; name: string }
+  estimationScale: { id: string; key: number; name: string }
   onFormComplete: () => void
   onFormCancel: () => void
 }
@@ -56,7 +56,7 @@ const DeleteEstimationScaleForm = ({
       keyboard={false}
       destroyOnHidden
     >
-      {estimationScale?.id} - {estimationScale?.name}
+      {estimationScale?.key} - {estimationScale?.name}
     </Modal>
   )
 }

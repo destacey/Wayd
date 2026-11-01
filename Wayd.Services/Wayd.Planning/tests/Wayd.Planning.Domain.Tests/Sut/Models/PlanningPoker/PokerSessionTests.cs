@@ -1,4 +1,5 @@
-﻿using Wayd.Planning.Domain.Enums;
+﻿using Wayd.Common.Domain.Events;
+using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Planning.Domain.Tests.Data;
 using NodaTime.Extensions;
@@ -9,7 +10,7 @@ public class PokerSessionTests
 {
     private static readonly Instant Now = DateTime.UtcNow.ToInstant();
 
-    private static readonly EstimationScale Scale = new EstimationScaleFaker().WithId(1).WithValues("1", "2", "3", "5", "8", "13", "?", "☕").Generate();
+    private static readonly EstimationScale Scale = new EstimationScaleFaker().WithValues("1", "2", "3", "5", "8", "13", "?", "☕").Generate();
 
     private static PokerSession CreateActiveSession()
     {
@@ -31,6 +32,7 @@ public class PokerSessionTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Name.Should().Be("Sprint 1 Refinement");
         result.Value.EstimationScaleId.Should().Be(Scale.Id);
+        result.Value.EstimationScaleVersionId.Should().Be(Scale.CurrentVersion.Id);
         result.Value.FacilitatorId.Should().Be(facilitatorId);
         result.Value.Status.Should().Be(PokerSessionStatus.Active);
         result.Value.ActivatedOn.Should().Be(Now);
@@ -62,6 +64,21 @@ public class PokerSessionTests
         result.Error.Should().Be("The estimation scale is inactive and cannot be chosen for a session.");
     }
 
+    [Fact]
+    public void Create_ScaleWithSeveralVersions_ShouldPinTheCurrentVersion()
+    {
+        // Arrange
+        var scale = new EstimationScaleFaker().WithValues("1", "2", "3").Generate();
+        scale.PublishVersion([new("1", true), new("2", true), new("5", true)], EventActor.System, Now);
+
+        // Act
+        var result = PokerSession.Create("Refinement", scale, Guid.NewGuid().ToString(), Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.EstimationScaleVersionId.Should().Be(scale.Versions.Single(v => v.Number == 2).Id);
+    }
+
     #endregion
 
     #region Complete
@@ -79,6 +96,27 @@ public class PokerSessionTests
         result.IsSuccess.Should().BeTrue();
         session.Status.Should().Be(PokerSessionStatus.Completed);
         session.CompletedOn.Should().Be(Now);
+    }
+
+    [Fact]
+    public void Complete_ShouldDeleteEmptyRoundsAndKeepTheRest()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var labelled = session.AddRound("WI-1").Value;
+        var described = session.AddRound("", "Only a description").Value;
+        var voted = session.AddRound(null).Value;
+        session.SubmitVote(voted.Id, "user-1", "5", Scale.CurrentVersion, Now);
+        session.AddRound("");
+        session.AddRound("   ");
+        session.AddRound(null);
+
+        // Act
+        var result = session.Complete(Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        session.Rounds.Should().BeEquivalentTo([labelled, described, voted]);
     }
 
     [Fact]
@@ -147,6 +185,98 @@ public class PokerSessionTests
         round3.Order.Should().Be(2);
     }
 
+    [Fact]
+    public void AddRound_WithDescription_ShouldStoreTrimmedDescription()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+
+        // Act
+        var result = session.AddRound("WI-1: Test", "  Users can sign in with SSO.  ");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Description.Should().Be("Users can sign in with SSO.");
+    }
+
+    [Fact]
+    public void AddRound_WithBlankDescription_ShouldStoreNoDescription()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+
+        // Act
+        var result = session.AddRound("WI-1: Test", "   ");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Description.Should().BeNull();
+    }
+
+    #endregion
+
+    #region UpdateRoundDescription
+
+    [Fact]
+    public void UpdateRoundDescription_ActiveSession_ShouldReplaceDescription()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound("WI-1: Test", "Original").Value;
+
+        // Act
+        var result = session.UpdateRoundDescription(round.Id, " Updated ");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        round.Description.Should().Be("Updated");
+        round.Label.Should().Be("WI-1: Test");
+    }
+
+    [Fact]
+    public void UpdateRoundDescription_BlankDescription_ShouldClearIt()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound("WI-1: Test", "Original").Value;
+
+        // Act
+        var result = session.UpdateRoundDescription(round.Id, " ");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        round.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void UpdateRoundDescription_CompletedSession_ShouldReturnFailure()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound("WI-1: Test").Value;
+        session.Complete(Now);
+
+        // Act
+        var result = session.UpdateRoundDescription(round.Id, "Updated");
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        round.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void UpdateRoundDescription_UnknownRound_ShouldReturnFailure()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+
+        // Act
+        var result = session.UpdateRoundDescription(Guid.NewGuid(), "Updated");
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+    }
+
     #endregion
 
     #region RemoveRound
@@ -193,7 +323,7 @@ public class PokerSessionTests
         var participantId = Guid.NewGuid().ToString();
 
         // Act
-        var result = session.SubmitVote(round.Id, participantId, "5", Scale, Now);
+        var result = session.SubmitVote(round.Id, participantId, "5", Scale.CurrentVersion, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -209,11 +339,11 @@ public class PokerSessionTests
         var session = CreateActiveSession();
         var round = session.AddRound("WI-1: Test").Value;
         var participantId = Guid.NewGuid().ToString();
-        session.SubmitVote(round.Id, participantId, "3", Scale, Now);
+        session.SubmitVote(round.Id, participantId, "3", Scale.CurrentVersion, Now);
 
         // Act
         var laterTimestamp = Now.Plus(Duration.FromMinutes(1));
-        var result = session.SubmitVote(round.Id, participantId, "8", Scale, laterTimestamp);
+        var result = session.SubmitVote(round.Id, participantId, "8", Scale.CurrentVersion, laterTimestamp);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -228,11 +358,11 @@ public class PokerSessionTests
         // Arrange
         var session = CreateActiveSession();
         var round = session.AddRound("WI-1: Test").Value;
-        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", Scale, Now);
+        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", Scale.CurrentVersion, Now);
         session.RevealRound(round.Id);
 
         // Act
-        var result = session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", Scale, Now);
+        var result = session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", Scale.CurrentVersion, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -249,7 +379,7 @@ public class PokerSessionTests
         var round = session.AddRound("WI-1: Test").Value;
 
         // Act
-        var result = session.SubmitVote(round.Id, Guid.NewGuid().ToString(), value, Scale, Now);
+        var result = session.SubmitVote(round.Id, Guid.NewGuid().ToString(), value, Scale.CurrentVersion, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -267,7 +397,7 @@ public class PokerSessionTests
         var round = session.AddRound("WI-1: Test").Value;
 
         // Act
-        var result = session.SubmitVote(round.Id, Guid.NewGuid().ToString(), value, Scale, Now);
+        var result = session.SubmitVote(round.Id, Guid.NewGuid().ToString(), value, Scale.CurrentVersion, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -281,14 +411,64 @@ public class PokerSessionTests
         var scale = new EstimationScaleFaker().WithValues("S", "M", "L").Generate();
         var session = PokerSession.Create("Refinement", scale, Guid.NewGuid().ToString(), Now).Value;
         var round = session.AddRound(null).Value;
-        scale.Deactivate();
+        scale.Deactivate(EventActor.System, Now);
 
         // Act
-        var result = session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "M", scale, Now);
+        var result = session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "M", scale.CurrentVersion, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         round.Votes.Should().ContainSingle().Which.Value.Should().Be("M");
+    }
+
+    [Fact]
+    public void SubmitVote_AfterTheScalePublishesANewVersion_ShouldStillVoteOnThePinnedVersion()
+    {
+        // Arrange
+        var scale = new EstimationScaleFaker().WithValues("S", "M", "L").Generate();
+        var session = PokerSession.Create("Refinement", scale, Guid.NewGuid().ToString(), Now).Value;
+        var pinned = scale.CurrentVersion;
+        var round = session.AddRound(null).Value;
+        scale.PublishVersion([new("Small", true), new("Medium", true), new("Large", true)], EventActor.System, Now);
+
+        // Act
+        var oldValue = session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "M", pinned, Now);
+        var newValue = session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "Medium", pinned, Now);
+
+        // Assert
+        oldValue.IsSuccess.Should().BeTrue();
+        newValue.IsFailure.Should().BeTrue();
+        round.Votes.Should().ContainSingle().Which.Value.Should().Be("M");
+    }
+
+    [Fact]
+    public void SubmitVote_AnotherVersion_ShouldThrow()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound(null).Value;
+        var other = new EstimationScaleFaker().Generate().CurrentVersion;
+
+        // Act
+        var act = () => session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", other, Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void SubmitVote_ValueWithSurroundingWhitespace_ShouldRecordTheScaleValue()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound(null).Value;
+
+        // Act
+        var result = session.SubmitVote(round.Id, Guid.NewGuid().ToString(), " 8 ", Scale.CurrentVersion, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        round.Votes.Should().ContainSingle().Which.Value.Should().Be("8");
     }
 
     #endregion
@@ -302,7 +482,7 @@ public class PokerSessionTests
         var session = CreateActiveSession();
         var round = session.AddRound("WI-1: Test").Value;
         var participantId = Guid.NewGuid().ToString();
-        session.SubmitVote(round.Id, participantId, "5", Scale, Now);
+        session.SubmitVote(round.Id, participantId, "5", Scale.CurrentVersion, Now);
 
         // Act
         var result = session.WithdrawVote(round.Id, participantId);
@@ -334,7 +514,7 @@ public class PokerSessionTests
         var session = CreateActiveSession();
         var round = session.AddRound("WI-1: Test").Value;
         var participantId = Guid.NewGuid().ToString();
-        session.SubmitVote(round.Id, participantId, "5", Scale, Now);
+        session.SubmitVote(round.Id, participantId, "5", Scale.CurrentVersion, Now);
         session.RevealRound(round.Id);
 
         // Act
@@ -351,7 +531,7 @@ public class PokerSessionTests
         var session = CreateActiveSession();
         var round = session.AddRound("WI-1: Test").Value;
         var participantId = Guid.NewGuid().ToString();
-        session.SubmitVote(round.Id, participantId, "5", Scale, Now);
+        session.SubmitVote(round.Id, participantId, "5", Scale.CurrentVersion, Now);
         session.Complete(Now);
 
         // Act
@@ -371,7 +551,7 @@ public class PokerSessionTests
         // Arrange
         var session = CreateActiveSession();
         var round = session.AddRound("WI-1: Test").Value;
-        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", Scale, Now);
+        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", Scale.CurrentVersion, Now);
 
         // Act
         var result = session.RevealRound(round.Id);
@@ -387,9 +567,9 @@ public class PokerSessionTests
         // Arrange
         var session = CreateActiveSession();
         var round = session.AddRound("WI-1: Test").Value;
-        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", Scale, Now);
+        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", Scale.CurrentVersion, Now);
         session.RevealRound(round.Id);
-        session.SetConsensus(round.Id, "5");
+        session.SetConsensus(round.Id, "5", Scale.CurrentVersion);
 
         // Act
         var result = session.RevealRound(round.Id);
@@ -408,7 +588,7 @@ public class PokerSessionTests
         // Arrange
         var session = CreateActiveSession();
         var round = session.AddRound("WI-1: Test").Value;
-        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", Scale, Now);
+        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", Scale.CurrentVersion, Now);
         session.RevealRound(round.Id);
 
         // Act
@@ -426,9 +606,9 @@ public class PokerSessionTests
         // Arrange
         var session = CreateActiveSession();
         var round = session.AddRound("WI-1: Test").Value;
-        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", Scale, Now);
+        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", Scale.CurrentVersion, Now);
         session.RevealRound(round.Id);
-        session.SetConsensus(round.Id, "5");
+        session.SetConsensus(round.Id, "5", Scale.CurrentVersion);
 
         // Act
         var result = session.ResetRound(round.Id);
@@ -450,16 +630,70 @@ public class PokerSessionTests
         // Arrange
         var session = CreateActiveSession();
         var round = session.AddRound("WI-1: Test").Value;
-        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", Scale, Now);
+        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", Scale.CurrentVersion, Now);
         session.RevealRound(round.Id);
 
         // Act
-        var result = session.SetConsensus(round.Id, "5");
+        var result = session.SetConsensus(round.Id, "5", Scale.CurrentVersion);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.ConsensusEstimate.Should().Be("5");
         result.Value.Status.Should().Be(PokerRoundStatus.Accepted);
+    }
+
+    [Theory]
+    [InlineData("4")]
+    [InlineData("anything")]
+    public void SetConsensus_ValueNotOnTheVersion_ShouldReturnFailure(string estimate)
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound(null).Value;
+        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", Scale.CurrentVersion, Now);
+        session.RevealRound(round.Id);
+
+        // Act
+        var result = session.SetConsensus(round.Id, estimate, Scale.CurrentVersion);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("is not a value on the session's estimation scale");
+        round.Status.Should().Be(PokerRoundStatus.Revealed);
+        round.ConsensusEstimate.Should().BeNull();
+    }
+
+    [Fact]
+    public void SetConsensus_ACard_ShouldBeAccepted()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound(null).Value;
+        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "?", Scale.CurrentVersion, Now);
+        session.RevealRound(round.Id);
+
+        // Act
+        var result = session.SetConsensus(round.Id, " ? ", Scale.CurrentVersion);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        round.ConsensusEstimate.Should().Be("?");
+        round.Status.Should().Be(PokerRoundStatus.Accepted);
+    }
+
+    [Fact]
+    public void SetConsensus_AnotherVersion_ShouldThrow()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound(null).Value;
+        var other = new EstimationScaleFaker().Generate().CurrentVersion;
+
+        // Act
+        var act = () => session.SetConsensus(round.Id, "5", other);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
     }
 
     [Fact]
@@ -470,7 +704,7 @@ public class PokerSessionTests
         var round = session.AddRound("WI-1: Test").Value;
 
         // Act
-        var result = session.SetConsensus(round.Id, "5");
+        var result = session.SetConsensus(round.Id, "5", Scale.CurrentVersion);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -486,7 +720,7 @@ public class PokerSessionTests
     {
         // Arrange
         var session = CreateActiveSession();
-        var inactive = new EstimationScaleFaker().WithId(Scale.Id + 1).WithIsActive(false).Generate();
+        var inactive = new EstimationScaleFaker().WithIsActive(false).Generate();
 
         // Act
         var result = session.Update("Renamed", inactive);
@@ -495,6 +729,7 @@ public class PokerSessionTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("The estimation scale is inactive and cannot be chosen for a session.");
         session.EstimationScaleId.Should().Be(Scale.Id);
+        session.EstimationScaleVersionId.Should().Be(Scale.CurrentVersion.Id);
         session.Name.Should().Be("Sprint 1 Refinement");
     }
 
@@ -504,7 +739,7 @@ public class PokerSessionTests
         // Arrange
         var scale = new EstimationScaleFaker().Generate();
         var session = PokerSession.Create("Refinement", scale, Guid.NewGuid().ToString(), Now).Value;
-        scale.Deactivate();
+        scale.Deactivate(EventActor.System, Now);
 
         // Act
         var result = session.Update("Renamed", scale);
@@ -513,6 +748,57 @@ public class PokerSessionTests
         result.IsSuccess.Should().BeTrue();
         session.Name.Should().Be("Renamed");
         session.EstimationScaleId.Should().Be(scale.Id);
+    }
+
+    [Fact]
+    public void Update_ToAnotherActiveScale_ShouldPinItsCurrentVersion()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var other = new EstimationScaleFaker().WithValues("S", "M", "L").Generate();
+        other.PublishVersion([new("S", true), new("M", true), new("L", true), new("XL", true)], EventActor.System, Now);
+
+        // Act
+        var result = session.Update("Renamed", other);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        session.EstimationScaleId.Should().Be(other.Id);
+        session.EstimationScaleVersionId.Should().Be(other.Versions.Single(v => v.Number == 2).Id);
+    }
+
+    [Fact]
+    public void Update_KeepingTheScale_ShouldKeepThePinnedVersion()
+    {
+        // Arrange
+        var scale = new EstimationScaleFaker().WithValues("S", "M", "L").Generate();
+        var session = PokerSession.Create("Refinement", scale, Guid.NewGuid().ToString(), Now).Value;
+        var pinned = scale.CurrentVersion.Id;
+        scale.PublishVersion([new("S", true), new("M", true), new("L", true), new("XL", true)], EventActor.System, Now);
+
+        // Act
+        var result = session.Update("Renamed", scale);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        session.EstimationScaleVersionId.Should().Be(pinned);
+    }
+
+    [Fact]
+    public void Update_ToAnotherScaleAfterRoundsStarted_ShouldReturnFailure()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        session.AddRound(null);
+        var other = new EstimationScaleFaker().Generate();
+
+        // Act
+        var result = session.Update("Renamed", other);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        session.EstimationScaleId.Should().Be(Scale.Id);
+        session.EstimationScaleVersionId.Should().Be(Scale.CurrentVersion.Id);
     }
 
     #endregion

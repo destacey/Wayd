@@ -2,7 +2,7 @@
 
 namespace Wayd.Planning.Application.PokerSessions.Commands;
 
-public sealed record UpdatePokerSessionCommand(Guid Id, string Name, int EstimationScaleId) : ICommand;
+public sealed record UpdatePokerSessionCommand(Guid Id, string Name, Guid EstimationScaleId) : ICommand;
 
 public sealed class UpdatePokerSessionCommandValidator : CustomValidator<UpdatePokerSessionCommand>
 {
@@ -17,7 +17,7 @@ public sealed class UpdatePokerSessionCommandValidator : CustomValidator<UpdateP
             .MaximumLength(256);
 
         RuleFor(c => c.EstimationScaleId)
-            .GreaterThan(0);
+            .NotEmpty();
     }
 }
 
@@ -39,7 +39,7 @@ public sealed class UpdatePokerSessionCommandHandler(IPlanningDbContext planning
                 return Result.Failure("Poker session not found.");
 
             var scale = await _planningDbContext.EstimationScales
-                .AsNoTracking()
+                .Include(s => s.Versions)
                 .FirstOrDefaultAsync(s => s.Id == request.EstimationScaleId, cancellationToken);
 
             if (scale is null)

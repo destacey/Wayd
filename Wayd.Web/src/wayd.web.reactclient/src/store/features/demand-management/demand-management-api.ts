@@ -14,6 +14,7 @@ import {
   AddIntakeRequestOutcomeRequest,
   AddIntakeRequestTagRequest,
   ProjectIntakeRequestDto,
+  WorkItemIntakeRequestDto,
   ChangeIntakeRequestStatusRequest,
   CreateIntakeRequestTagCategoryRequest,
   IntakeRequestTagCategoryDto,
@@ -78,13 +79,21 @@ export interface AddIntakeRequestOutcomeArgs {
 
 export interface RemoveIntakeRequestOutcomeArgs {
   requestId: string
-  /** The project the outcome points at. */
+  /** The project or work item the outcome points at. */
   targetId: string
 }
 
 /** A project's list of the requests it came from or absorbed. */
 const projectRequestsTag = (projectId: string) =>
   ({ type: QueryTags.IntakeRequest, id: `PROJECT-${projectId}` }) as const
+
+/** A work item's list of the requests it delivers. */
+const workItemRequestsTag = (workItemId: string) =>
+  ({ type: QueryTags.IntakeRequest, id: `WORK-ITEM-${workItemId}` }) as const
+
+/** The list on the outcome target's page, whichever kind of record the target is. */
+const outcomeTargetTags = (targetId: string | undefined) =>
+  targetId ? [projectRequestsTag(targetId), workItemRequestsTag(targetId)] : []
 
 /**
  * A request's details are fetched by the key in the URL, and its mutations know only its id, so every
@@ -572,7 +581,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (_result, _error, { requestId, request }) => [
         ...requestTags(requestId),
-        projectRequestsTag(request.projectId),
+        ...outcomeTargetTags(request.projectId ?? request.workItemId),
       ],
     }),
 
@@ -593,7 +602,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (_result, _error, { requestId, targetId }) => [
         ...requestTags(requestId),
-        projectRequestsTag(targetId),
+        ...outcomeTargetTags(targetId),
       ],
     }),
 
@@ -610,6 +619,31 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       // Tagged with each request too, so a status change or rename on one refreshes the project's list.
       providesTags: (result = [], _error, projectId) => [
         projectRequestsTag(projectId),
+        ...result.map(({ request }) => ({
+          type: QueryTags.IntakeRequest,
+          id: request.id,
+        })),
+      ],
+    }),
+
+    getWorkItemIntakeRequests: builder.query<
+      WorkItemIntakeRequestDto[],
+      string
+    >({
+      queryFn: async (workItemId) => {
+        try {
+          const data =
+            await getIntakeRequestsClient().getWorkItemIntakeRequests(
+              workItemId,
+            )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      // Tagged with each request too, so a status change or rename on one refreshes the work item's list.
+      providesTags: (result = [], _error, workItemId) => [
+        workItemRequestsTag(workItemId),
         ...result.map(({ request }) => ({
           type: QueryTags.IntakeRequest,
           id: request.id,
@@ -1287,6 +1321,7 @@ export const {
   useAddIntakeRequestOutcomeMutation,
   useRemoveIntakeRequestOutcomeMutation,
   useGetProjectIntakeRequestsQuery,
+  useGetWorkItemIntakeRequestsQuery,
   useGetNeedByBasesQuery,
   useGetNeedByBasisFamiliesQuery,
   useGetIntakeDesksQuery,

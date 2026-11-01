@@ -38,7 +38,10 @@ public sealed class StatusResolver(IStatusWorkflowDbContext dbContext) : IStatus
             : Result.Success(workflow.Value.TargetRef(status.Id)!);
     }
 
-    public async Task<Result<StatusWorkflow>> ForScope(string ownerType, Guid? scopeId, CancellationToken cancellationToken)
+    public Task<Result<StatusWorkflow>> ForScope(string ownerType, Guid? scopeId, CancellationToken cancellationToken) =>
+        ForRecordType(ownerType, scopeId, recordTypeId: null, cancellationToken);
+
+    public async Task<Result<StatusWorkflow>> ForRecordType(string ownerType, Guid? scopeId, Guid? recordTypeId, CancellationToken cancellationToken)
     {
         var descriptor = WorkflowOwners.Resolve(ownerType);
         if (descriptor.IsFailure)
@@ -50,10 +53,14 @@ public sealed class StatusResolver(IStatusWorkflowDbContext dbContext) : IStatus
 
         // The scope's own assignment, falling back to the organization-level one. Ordering puts the
         // narrower row first; a scope with no assignment of its own is the normal case, not an error.
+        // Within the scheme, the type's entry wins over the default.
         var workflowId = await _dbContext.WorkflowAssignments
             .Where(a => a.OwnerType == key && (a.ScopeId == scopeId || a.ScopeId == null))
             .OrderByDescending(a => a.ScopeId != null)
-            .Select(a => (Guid?)a.WorkflowId)
+            .Select(a => a.Scheme!.Entries
+                .Where(e => recordTypeId != null && e.RecordTypeId == recordTypeId)
+                .Select(e => (Guid?)e.WorkflowId)
+                .FirstOrDefault() ?? (Guid?)a.Scheme.DefaultWorkflowId)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (workflowId is null)

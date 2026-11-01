@@ -79,6 +79,7 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
         ProductWorkflowOwners.Register();
 
         var assignment = await context.WorkflowAssignments
+            .Include(a => a.Scheme)
             .FirstOrDefaultAsync(
                 a => a.OwnerType == ProductWorkflowOwners.Product.Key && a.ScopeId == null,
                 TestContext.Current.CancellationToken);
@@ -89,6 +90,7 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
                 .Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
 
             assignment = await context.WorkflowAssignments
+                .Include(a => a.Scheme)
                 .FirstAsync(
                     a => a.OwnerType == ProductWorkflowOwners.Product.Key && a.ScopeId == null,
                     TestContext.Current.CancellationToken);
@@ -96,7 +98,7 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
 
         var current = await context.StatusWorkflows
             .Include(w => w.Statuses)
-            .FirstAsync(w => w.Id == assignment.WorkflowId, TestContext.Current.CancellationToken);
+            .FirstAsync(w => w.Id == assignment.Scheme!.DefaultWorkflowId, TestContext.Current.CancellationToken);
 
         return (assignment, current);
     }
@@ -253,9 +255,12 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
         reloaded.Should().OnlyContain(p => p.StatusWorkflowId == replacement.Id);
 
         var reassigned = await reader.WorkflowAssignments
-            .FirstAsync(a => a.Id == assignment.Id, TestContext.Current.CancellationToken);
+            .Where(a => a.Id == assignment.Id)
+            .Select(a => new { a.Scheme!.DefaultWorkflowId, a.Scheme.IsImplicit })
+            .FirstAsync(TestContext.Current.CancellationToken);
 
-        reassigned.WorkflowId.Should().Be(replacement.Id);
+        reassigned.DefaultWorkflowId.Should().Be(replacement.Id);
+        reassigned.IsImplicit.Should().BeTrue();
     }
 
     [Fact]
@@ -432,12 +437,12 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
         var replacement = Replacement(current);
         context.StatusWorkflows.Add(replacement);
 
-        var scoped = WorkflowAssignment.Create(
+        var scoped = (await TestWorkflowAssignments.ForWorkflow(context,
             ProductWorkflowOwners.Product.Key,
             Guid.CreateVersion7(),
             current,
             EventActor.System,
-            Timestamp).Value;
+            Timestamp)).Value;
 
         scoped.ClearDomainEvents();
         context.WorkflowAssignments.Add(scoped);
@@ -463,8 +468,11 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
             var reloaded = await reader.Products.SingleAsync(p => p.Id == product.Id, TestContext.Current.CancellationToken);
             reloaded.StatusWorkflowId.Should().Be(current.Id);
 
-            var unchanged = await reader.WorkflowAssignments.SingleAsync(a => a.Id == scoped.Id, TestContext.Current.CancellationToken);
-            unchanged.WorkflowId.Should().Be(current.Id);
+            var unchanged = await reader.WorkflowAssignments
+                .Where(a => a.Id == scoped.Id)
+                .Select(a => a.Scheme!.DefaultWorkflowId)
+                .SingleAsync(TestContext.Current.CancellationToken);
+            unchanged.Should().Be(current.Id);
         }
         finally
         {

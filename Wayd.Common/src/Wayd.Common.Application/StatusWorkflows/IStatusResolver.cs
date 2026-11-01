@@ -43,11 +43,17 @@ public interface IStatusResolver : IScopedService
     /// A failure when the scope has no assignment, the workflow is missing, or no status carries that
     /// alias — all of which are misconfiguration a caller should surface rather than throw on.
     /// </returns>
+    /// <remarks>
+    /// Resolves against the scheme's default workflow. An owner type with record types loads the type's
+    /// workflow with <see cref="ForRecordType"/> instead and resolves the status there, or a record of a type
+    /// with its own entry gets a status of the wrong workflow.
+    /// </remarks>
     Task<Result<StatusRef>> ForAlias(string ownerType, Guid? scopeId, int alias, CancellationToken cancellationToken);
 
     /// <summary>
     /// Resolves the status a newly created record starts in.
     /// </summary>
+    /// <remarks>From the scheme's default workflow; see <see cref="ForAlias"/> for owner types with record types.</remarks>
     Task<Result<StatusRef>> Initial(string ownerType, Guid? scopeId, CancellationToken cancellationToken);
 
     /// <summary>
@@ -59,4 +65,13 @@ public interface IStatusResolver : IScopedService
     /// with <see cref="StatusWorkflow.TargetRef"/>, so the move carries the workflow's restrictions.
     /// </remarks>
     Task<Result<StatusWorkflow>> ForScope(string ownerType, Guid? scopeId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Loads the workflow records of one record type follow in a scope: the scope's scheme's entry for the
+    /// type, otherwise its default. <see cref="ForScope"/> is this with no type.
+    /// </summary>
+    /// <param name="recordTypeId">
+    /// The record's type, or <c>null</c> for a record without one, which follows the scheme's default.
+    /// </param>
+    Task<Result<StatusWorkflow>> ForRecordType(string ownerType, Guid? scopeId, Guid? recordTypeId, CancellationToken cancellationToken);
 }

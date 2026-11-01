@@ -138,6 +138,9 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<WorkflowAliasName> WorkflowAliasNames => Set<WorkflowAliasName>();
     public DbSet<StatusTransition> StatusTransitions => Set<StatusTransition>();
     public DbSet<WorkflowAssignment> WorkflowAssignments => Set<WorkflowAssignment>();
+    public DbSet<StatusWorkflowScheme> StatusWorkflowSchemes => Set<StatusWorkflowScheme>();
+    public DbSet<StatusWorkflowSchemeEntry> StatusWorkflowSchemeEntries => Set<StatusWorkflowSchemeEntry>();
+    public DbSet<RecordType> RecordTypes => Set<RecordType>();
 
     #endregion StatusWorkflows
 

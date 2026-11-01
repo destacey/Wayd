@@ -1,4 +1,5 @@
 using CSharpFunctionalExtensions;
+using Wayd.Tests.Shared.Data;
 using FluentAssertions;
 using Moq;
 using Wayd.Common.Application.StatusWorkflows;
@@ -27,7 +28,7 @@ public sealed class PreviewStatusRemapQueryHandlerTests : StatusWorkflowHandlerT
         var current = SeedWorkflow("Current", publish: true);
         var target = SeedWorkflow("Target", publish: true);
 
-        var assignment = WorkflowAssignment.Create(Widget.Key, scopeId, current, EventActor.System, Now).Value;
+        var assignment = TestWorkflowAssignments.ForWorkflow(Widget.Key, scopeId, current, EventActor.System, Now).Value;
         assignment.ClearDomainEvents();
         DbContext.AddWorkflowAssignment(assignment);
 
@@ -85,7 +86,7 @@ public sealed class PreviewStatusRemapQueryHandlerTests : StatusWorkflowHandlerT
         // Arrange
         var current = SeedWorkflow("Current Gadget", publish: true, owner: Gadget);
         var target = SeedWorkflow("Target Gadget", publish: true, owner: Gadget);
-        var assignment = WorkflowAssignment.Create(Gadget.Key, null, current, EventActor.System, Now).Value;
+        var assignment = TestWorkflowAssignments.ForWorkflow(Gadget.Key, null, current, EventActor.System, Now).Value;
         assignment.ClearDomainEvents();
         DbContext.AddWorkflowAssignment(assignment);
 

@@ -34,8 +34,8 @@ public sealed class StatusWorkflowDetailsReader(IStatusWorkflowDbContext dbConte
             return null;
         }
 
-        var isAssigned = await _dbContext.WorkflowAssignments
-            .AnyAsync(a => a.WorkflowId == workflow.Id, cancellationToken);
+        var isAssigned = await _dbContext.AssignedWorkflowIds()
+            .AnyAsync(id => id == workflow.Id, cancellationToken);
 
         var descriptor = WorkflowOwners.Resolve(workflow.OwnerType);
         var aliasNames = descriptor.IsSuccess ? descriptor.Value.Aliases : new Dictionary<int, string>();

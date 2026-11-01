@@ -29,6 +29,13 @@ jest.mock('@/src/store/features/admin/imports-api', () => ({
   useGetImportDefinitionsQuery: () => ({ data: mockImportDefinitions }),
 }))
 
+// Workflow Schemes appears only once some owner type has record types to send to workflows.
+let mockOwnerTypes: { key: string; hasRecordTypes: boolean }[] = []
+
+jest.mock('@/src/store/features/common/status-workflows-api', () => ({
+  useGetWorkflowOwnerTypesQuery: () => ({ data: mockOwnerTypes }),
+}))
+
 jest.mock('next/navigation', () => ({
   usePathname: () => '/settings/user-management/users',
 }))
@@ -37,8 +44,8 @@ const renderMenu = () => render(<SettingsMenu />)
 
 /** The visible group headings, in rail order. */
 const groups = () =>
-  Array.from(document.querySelectorAll('.ant-menu-item-group-title')).map((el) =>
-    el.textContent?.trim(),
+  Array.from(document.querySelectorAll('.ant-menu-item-group-title')).map(
+    (el) => el.textContent?.trim(),
   )
 
 const allowAll = () => mockHasClaim.mockReturnValue(true)
@@ -68,6 +75,7 @@ describe('SettingsMenu', () => {
     mockFlags['planning-poker'] = true
     mockFlags['product-management'] = true
     withImportTypes('employees')
+    mockOwnerTypes = []
   })
 
   describe('grouping', () => {
@@ -195,7 +203,9 @@ describe('SettingsMenu', () => {
 
       // Assert
       expect(screen.getByText('Scoring Models')).toBeInTheDocument()
-      expect(screen.queryByText('Expenditure Categories')).not.toBeInTheDocument()
+      expect(
+        screen.queryByText('Expenditure Categories'),
+      ).not.toBeInTheDocument()
     })
   })
 
@@ -233,6 +243,34 @@ describe('SettingsMenu', () => {
 
       // Assert
       expect(screen.getByText('Imports')).toBeInTheDocument()
+    })
+  })
+
+  describe('workflow schemes', () => {
+    it('shows Workflow Schemes once an owner type has record types', () => {
+      // Arrange
+      mockOwnerTypes = [
+        { key: 'product.product', hasRecordTypes: false },
+        { key: 'work.item', hasRecordTypes: true },
+      ]
+
+      // Act
+      renderMenu()
+
+      // Assert
+      expect(screen.getByText('Workflow Schemes')).toBeInTheDocument()
+    })
+
+    it('hides Workflow Schemes while no owner type has record types', () => {
+      // Arrange
+      mockOwnerTypes = [{ key: 'product.product', hasRecordTypes: false }]
+
+      // Act
+      renderMenu()
+
+      // Assert
+      expect(screen.queryByText('Workflow Schemes')).not.toBeInTheDocument()
+      expect(screen.getByText('Status Workflows')).toBeInTheDocument()
     })
   })
 
@@ -310,7 +348,6 @@ describe('SettingsMenu', () => {
     })
   })
 
-
   describe('current page', () => {
     it('marks the item for the current route', () => {
       // Arrange / Act — the mocked pathname is the users list
@@ -319,7 +356,9 @@ describe('SettingsMenu', () => {
       // Assert
       const selected = document.querySelector('.ant-menu-item-selected')
       expect(selected).not.toBeNull()
-      expect(within(selected as HTMLElement).getByText('Users')).toBeInTheDocument()
+      expect(
+        within(selected as HTMLElement).getByText('Users'),
+      ).toBeInTheDocument()
     })
   })
 })

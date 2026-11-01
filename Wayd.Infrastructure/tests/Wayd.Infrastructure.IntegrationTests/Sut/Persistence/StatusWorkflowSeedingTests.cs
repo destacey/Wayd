@@ -156,13 +156,14 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
         foreach (var owner in SeededOwners)
         {
             var assignment = await context.WorkflowAssignments
+                .Include(a => a.Scheme)
                 .SingleOrDefaultAsync(
                     a => a.OwnerType == owner.Key && a.ScopeId == null, TestContext.Current.CancellationToken);
 
             assignment.Should().NotBeNull($"'{owner.Key}' should be assigned a default workflow");
 
             var workflow = await context.StatusWorkflows
-                .SingleOrDefaultAsync(w => w.Id == assignment!.WorkflowId, TestContext.Current.CancellationToken);
+                .SingleOrDefaultAsync(w => w.Id == assignment!.Scheme!.DefaultWorkflowId, TestContext.Current.CancellationToken);
 
             workflow.Should().NotBeNull();
             workflow!.OwnerType.Should().Be(owner.Key);
@@ -189,6 +190,7 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
                 .SingleAsync(ct);
 
             await setup.WorkflowAssignments.Where(a => a.OwnerType == ownerType && a.ScopeId == null).ExecuteDeleteAsync(ct);
+            await setup.StatusWorkflowSchemes.Where(s => s.DefaultWorkflowId == existingId).ExecuteDeleteAsync(ct);
             await setup.StatusWorkflows.Where(w => w.Id == existingId).ExecuteDeleteAsync(ct);
             await setup.ActivityLogs.Where(a => a.AggregateId == existingId).ExecuteDeleteAsync(ct);
         }

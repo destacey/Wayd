@@ -34,6 +34,8 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     // The workflow engine's tables, for handlers that reach IStatusWorkflowDbContext.
     private readonly List<StatusWorkflow> _statusWorkflows = [];
     private readonly List<WorkflowAssignment> _workflowAssignments = [];
+    private readonly List<StatusWorkflowScheme> _statusWorkflowSchemes = [];
+    private readonly List<RecordType> _recordTypes = [];
     private readonly List<WorkflowAliasName> _workflowAliasNames = [];
     private readonly List<StatusTransition> _statusTransitions = [];
 
@@ -61,6 +63,8 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
 
     public DbSet<StatusWorkflow> StatusWorkflows => _statusWorkflows.AsDbSet();
     public DbSet<WorkflowAssignment> WorkflowAssignments => _workflowAssignments.AsDbSet();
+    public DbSet<StatusWorkflowScheme> StatusWorkflowSchemes => _statusWorkflowSchemes.AsDbSet();
+    public DbSet<RecordType> RecordTypes => _recordTypes.AsDbSet();
     public DbSet<WorkflowAliasName> WorkflowAliasNames => _workflowAliasNames.AsDbSet();
     public DbSet<StatusTransition> StatusTransitions => _statusTransitions.AsDbSet();
 
@@ -124,7 +128,16 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     // integration test against a real context can catch that.
     public void AddStatusWorkflow(StatusWorkflow workflow) => _statusWorkflows.Add(workflow);
     public void AddStatusWorkflows(IEnumerable<StatusWorkflow> workflows) => _statusWorkflows.AddRange(workflows);
-    public void AddWorkflowAssignment(WorkflowAssignment assignment) => _workflowAssignments.Add(assignment);
+    public void AddRecordType(RecordType recordType) => _recordTypes.Add(recordType);
+    public void AddStatusWorkflowScheme(StatusWorkflowScheme scheme) => _statusWorkflowSchemes.Add(scheme);
+
+    /// <summary>Adds the assignment, and its scheme when the context does not hold it yet, as the database would.</summary>
+    public void AddWorkflowAssignment(WorkflowAssignment assignment)
+    {
+        _workflowAssignments.Add(assignment);
+        if (assignment.Scheme is { } scheme && !_statusWorkflowSchemes.Contains(scheme))
+            _statusWorkflowSchemes.Add(scheme);
+    }
 
     // Added directly, because a transition appended by ApplyStatus only reaches the set through
     // BaseDbContext's drain on save, which this fake does not run.

@@ -128,6 +128,9 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     // integration test against a real context can catch that.
     public void AddStatusWorkflow(StatusWorkflow workflow) => _statusWorkflows.Add(workflow);
     public void AddStatusWorkflows(IEnumerable<StatusWorkflow> workflows) => _statusWorkflows.AddRange(workflows);
+    public void AddRecordType(RecordType recordType) => _recordTypes.Add(recordType);
+    public void AddStatusWorkflowScheme(StatusWorkflowScheme scheme) => _statusWorkflowSchemes.Add(scheme);
+
     /// <summary>Adds the assignment, and its scheme when the context does not hold it yet, as the database would.</summary>
     public void AddWorkflowAssignment(WorkflowAssignment assignment)
     {

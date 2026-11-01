@@ -204,6 +204,12 @@ public sealed record WorkflowOwnerTypeDto
     /// <summary>The categories a workflow must have at least one status in before it can be published.</summary>
     public required IReadOnlyCollection<StatusCategory> RequiredCategories { get; init; }
 
+    /// <summary>
+    /// Whether this owner type's records come in record types that a workflow scheme can send to different
+    /// workflows. When false, its scopes pick a workflow and administration shows no schemes.
+    /// </summary>
+    public bool HasRecordTypes { get; init; }
+
     /// <summary>Whether a workflow for this owner type may restrict which moves its records make.</summary>
     public required bool SupportsRestrictedTransitions { get; init; }
 

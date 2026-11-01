@@ -47935,6 +47935,248 @@
         ]
       }
     },
+    "/api/record-types": {
+      "get": {
+        "tags": [
+          "RecordTypes"
+        ],
+        "summary": "Get the record types of workflow owner types that have them.",
+        "operationId": "RecordTypes_GetRecordTypes",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RecordTypeDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "RecordTypes"
+        ],
+        "summary": "Define a record type for an owner type that has them.",
+        "operationId": "RecordTypes_Create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRecordTypeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/record-types/{id}": {
+      "put": {
+        "tags": [
+          "RecordTypes"
+        ],
+        "summary": "Rename an owned record type.",
+        "operationId": "RecordTypes_Rename",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameRecordTypeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/record-types/{id}/activate": {
+      "post": {
+        "tags": [
+          "RecordTypes"
+        ],
+        "summary": "Let records be given a record type again.",
+        "operationId": "RecordTypes_Activate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/record-types/{id}/deactivate": {
+      "post": {
+        "tags": [
+          "RecordTypes"
+        ],
+        "summary": "Stop records being given a record type. Records that have it keep it.",
+        "operationId": "RecordTypes_Deactivate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/scoring-models": {
       "get": {
         "tags": [
@@ -50980,6 +51222,536 @@
           }
         ]
       }
+    },
+    "/api/workflow-assignments/{id}/assign-scheme": {
+      "post": {
+        "tags": [
+          "WorkflowAssignments"
+        ],
+        "summary": "Point a scope at another workflow scheme and move the records whose workflow changes.",
+        "operationId": "WorkflowAssignments_AssignScheme",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignWorkflowSchemeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/workflow-schemes": {
+      "get": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Get the workflow schemes of owner types with record types.",
+        "operationId": "WorkflowSchemes_GetWorkflowSchemes",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowSchemeListDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Create a workflow scheme.",
+        "operationId": "WorkflowSchemes_Create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkflowSchemeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/workflow-schemes/{idOrKey}": {
+      "get": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Get a workflow scheme with its entries and the scopes that follow it.",
+        "operationId": "WorkflowSchemes_GetWorkflowScheme",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowSchemeDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/workflow-schemes/{id}": {
+      "put": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Edit a workflow scheme's name and description.",
+        "operationId": "WorkflowSchemes_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkflowSchemeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Delete a workflow scheme no scope follows.",
+        "operationId": "WorkflowSchemes_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/workflow-schemes/{id}/clone": {
+      "post": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Copy a workflow scheme into a new owned one, for a scope that needs to differ.",
+        "operationId": "WorkflowSchemes_Clone",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloneWorkflowSchemeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/workflow-schemes/{id}/entries/{recordTypeId}": {
+      "put": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Change which workflow one record type follows under a scheme, moving that type's records in every scope on it.",
+        "operationId": "WorkflowSchemes_SetEntry",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "recordTypeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetWorkflowSchemeEntryRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 3
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/workflow-schemes/{id}/default": {
+      "put": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Change the workflow records follow when their type has no entry, moving them in every scope on the scheme.",
+        "operationId": "WorkflowSchemes_ChangeDefault",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeWorkflowSchemeDefaultRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -51651,6 +52423,30 @@
           }
         },
         "additionalProperties": false
+      },
+      "AssignWorkflowSchemeRequest": {
+        "required": [
+          "schemeId",
+          "decisions"
+        ],
+        "type": "object",
+        "properties": {
+          "schemeId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The scheme the scope should follow.",
+            "format": "uuid"
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusRemapDecisionRequest"
+            },
+            "description": "Operator choices layered over the automatic mapping, for the statuses whose records move. Needed only when records move."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to point a scope at another workflow scheme and move the records whose workflow changes."
       },
       "AuditDto": {
         "required": [
@@ -52795,6 +53591,30 @@
         },
         "additionalProperties": false
       },
+      "ChangeWorkflowSchemeDefaultRequest": {
+        "required": [
+          "workflowId",
+          "decisions"
+        ],
+        "type": "object",
+        "properties": {
+          "workflowId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The published workflow those records follow from now on.",
+            "format": "uuid"
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusRemapDecisionRequest"
+            },
+            "description": "Operator choices layered over the automatic mapping, for the statuses whose records move. Needed only when records move."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to change the workflow followed by every record whose type has no entry in a scheme."
+      },
       "ClientFeatureFlagDto": {
         "required": [
           "name",
@@ -52832,6 +53652,28 @@
         },
         "additionalProperties": false,
         "description": "A request to copy an existing workflow into a new editable draft."
+      },
+      "CloneWorkflowSchemeRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the copy is called."
+          },
+          "description": {
+            "maxLength": 1024,
+            "type": "string",
+            "description": "An optional description; the source's when left out.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to copy a workflow scheme into a new owned one."
       },
       "CommonEnumDto": {
         "required": [
@@ -54838,6 +55680,29 @@
         },
         "additionalProperties": false
       },
+      "CreateRecordTypeRequest": {
+        "required": [
+          "ownerType",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "ownerType": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "The owner type the record type is a variant of, such as `work.item`."
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the record type is called, such as Bug."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to define a record type for an owner type that has them."
+      },
       "CreateRecurringJobRequest": {
         "required": [
           "jobId",
@@ -55606,6 +56471,42 @@
             "additionalProperties": false
           }
         ]
+      },
+      "CreateWorkflowSchemeRequest": {
+        "required": [
+          "ownerType",
+          "name",
+          "defaultWorkflowId"
+        ],
+        "type": "object",
+        "properties": {
+          "ownerType": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "The owner type whose records the scheme sends to workflows."
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the scheme is called."
+          },
+          "description": {
+            "maxLength": 1024,
+            "type": "string",
+            "description": "An optional explanation shown to administrators choosing between schemes.",
+            "nullable": true
+          },
+          "defaultWorkflowId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The published workflow records follow when their type has no entry.",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to create a workflow scheme for an owner type with record types."
       },
       "CreateWorkStatusRequest": {
         "required": [
@@ -69729,6 +70630,76 @@
         },
         "additionalProperties": false
       },
+      "RecordTypeDto": {
+        "required": [
+          "id",
+          "key",
+          "name",
+          "owner",
+          "ownership",
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowOwnerNavigationDto"
+              }
+            ],
+            "description": "The kind of record this is a type of."
+          },
+          "ownership": {
+            "type": "string",
+            "description": "`Owned` when administrators keep it; `Managed` when a sync keeps it from its source."
+          },
+          "externalKey": {
+            "type": "string",
+            "description": "The source's identifier for a managed type; null for an owned one.",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether records can still be given this type."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A record type: a variant of an owner type's records that can follow its own workflow."
+      },
+      "RecordTypeNavigationDto": {
+        "required": [
+          "id",
+          "key",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A record type, named enough to show."
+      },
       "RecurringJobResponse": {
         "required": [
           "id"
@@ -70126,6 +71097,22 @@
         },
         "additionalProperties": false,
         "description": "Renames a tag."
+      },
+      "RenameRecordTypeRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "description": "The record type's new name."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to rename an owned record type."
       },
       "RenameStepRequest": {
         "required": [
@@ -72585,6 +73572,29 @@
           }
         },
         "additionalProperties": false
+      },
+      "SetWorkflowSchemeEntryRequest": {
+        "required": [
+          "decisions"
+        ],
+        "type": "object",
+        "properties": {
+          "workflowId": {
+            "type": "string",
+            "description": "The published workflow the record type follows from now on, or null to remove its entry so it follows the scheme's default.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusRemapDecisionRequest"
+            },
+            "description": "Operator choices layered over the automatic mapping, for the statuses whose records move. Needed only when records move."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to change which workflow one record type follows under a scheme."
       },
       "SetWorkflowTransitionModeRequest": {
         "required": [
@@ -81369,6 +82379,28 @@
           }
         ]
       },
+      "UpdateWorkflowSchemeRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the scheme is called."
+          },
+          "description": {
+            "maxLength": 1024,
+            "type": "string",
+            "description": "An optional explanation shown to administrators choosing between schemes.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to edit a workflow scheme's name and description."
+      },
       "UpdateWorkItemProjectRequest": {
         "required": [
           "workItemId"
@@ -82793,7 +83825,8 @@
           "requiredAliases",
           "requiredCategories",
           "supportsRestrictedTransitions",
-          "categoryLabels"
+          "categoryLabels",
+          "hasRecordTypes"
         ],
         "type": "object",
         "properties": {
@@ -82825,6 +83858,10 @@
             },
             "description": "The categories a workflow must have at least one status in before it can be published."
           },
+          "hasRecordTypes": {
+            "type": "boolean",
+            "description": "Whether this owner type's records come in record types that a workflow scheme can send to different\nworkflows. When false, its scopes pick a workflow and administration shows no schemes."
+          },
           "supportsRestrictedTransitions": {
             "type": "boolean",
             "description": "Whether a workflow for this owner type may restrict which moves its records make."
@@ -82839,6 +83876,74 @@
         },
         "additionalProperties": false,
         "description": "An owner type and the vocabulary its workflows are built from."
+      },
+      "WorkflowSchemeDetailsDto": {
+        "required": [
+          "id",
+          "key",
+          "name",
+          "owner",
+          "ownership",
+          "defaultWorkflow",
+          "entries",
+          "assignedScopeIds"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "owner": {
+            "$ref": "#/components/schemas/WorkflowOwnerNavigationDto"
+          },
+          "ownership": {
+            "type": "string",
+            "description": "`Owned` or `Managed`."
+          },
+          "externalKey": {
+            "type": "string",
+            "description": "The source's identifier for a managed scheme; null for an owned one.",
+            "nullable": true
+          },
+          "defaultWorkflow": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowSchemeWorkflowDto"
+              }
+            ],
+            "description": "The workflow records follow when their type has no entry."
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowSchemeEntryDto"
+            },
+            "description": "The record types sent somewhere other than the default, by record type name."
+          },
+          "assignedScopeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "description": "The scopes pointing at the scheme; `null` is the organization-level assignment."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A workflow scheme with its entries."
       },
       "WorkflowSchemeDto": {
         "required": [
@@ -82869,6 +83974,103 @@
           }
         },
         "additionalProperties": false
+      },
+      "WorkflowSchemeEntryDto": {
+        "required": [
+          "recordType",
+          "workflow"
+        ],
+        "type": "object",
+        "properties": {
+          "recordType": {
+            "$ref": "#/components/schemas/RecordTypeNavigationDto"
+          },
+          "workflow": {
+            "$ref": "#/components/schemas/WorkflowSchemeWorkflowDto"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One record type's workflow under a scheme."
+      },
+      "WorkflowSchemeListDto": {
+        "required": [
+          "id",
+          "key",
+          "name",
+          "owner",
+          "ownership",
+          "defaultWorkflow",
+          "entryCount",
+          "assignedScopeCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "owner": {
+            "$ref": "#/components/schemas/WorkflowOwnerNavigationDto"
+          },
+          "ownership": {
+            "type": "string",
+            "description": "`Owned` or `Managed`."
+          },
+          "defaultWorkflow": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowSchemeWorkflowDto"
+              }
+            ],
+            "description": "The workflow records follow when their type has no entry."
+          },
+          "entryCount": {
+            "type": "integer",
+            "description": "How many record types the scheme sends somewhere other than its default.",
+            "format": "int32"
+          },
+          "assignedScopeCount": {
+            "type": "integer",
+            "description": "How many scopes point at the scheme. A scheme with any cannot be deleted.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A workflow scheme, as listed."
+      },
+      "WorkflowSchemeWorkflowDto": {
+        "required": [
+          "id",
+          "key",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A workflow a scheme names, named enough to show."
       },
       "WorkflowStatusDto": {
         "required": [
@@ -84428,6 +85630,9 @@
       "name": "Messaging"
     },
     {
+      "name": "RecordTypes"
+    },
+    {
       "name": "ScoringModels"
     },
     {
@@ -84438,6 +85643,9 @@
     },
     {
       "name": "WorkflowAssignments"
+    },
+    {
+      "name": "WorkflowSchemes"
     }
   ]
 }

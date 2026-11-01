@@ -9,6 +9,7 @@ using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Events.StatusWorkflows;
@@ -23,6 +24,7 @@ using Wayd.DemandManagement.Application.IntakeDesks.Queries;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
 using Wayd.DemandManagement.Application.IntakeRequests.Commands;
+using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
@@ -791,6 +793,39 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         var saved = await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == requestId, ct);
         saved.StatusCategory.Should().Be(StatusCategory.Done);
         saved.StatusReason.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task AddIntakeRequestOutcome_ForAWorkItem_SavesTheKindAndNeedsNoProjectCopy()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (requestId, agent, _) = await SeedAcceptedWithAProject(ct);
+        var workItem = new IntakeRequestOutcomeWorkItemDto
+        {
+            Id = Guid.NewGuid(),
+            Key = "APP-42",
+            Title = "Export screen",
+            WorkspaceKey = "APP",
+            Status = "Active",
+            StatusCategory = WorkStatusCategory.Active,
+        };
+
+        // Act
+        Result added;
+        await using (var context = _fixture.CreateContext())
+        {
+            added = await new AddIntakeRequestOutcomeCommandHandler(context, Principal(agent.Id), User(), _clock)
+                .Handle(new AddIntakeRequestOutcomeCommand(requestId, IntakeRequestOutcomeKind.WorkItem, workItem.Id, null) { WorkItem = workItem }, ct);
+        }
+
+        // Assert
+        added.IsSuccess.Should().BeTrue();
+        await using var reader = _fixture.CreateContext();
+        var saved = await reader.IntakeRequests.Where(r => r.Id == requestId).SelectMany(r => r.Outcomes).SingleAsync(ct);
+        saved.Kind.Should().Be(IntakeRequestOutcomeKind.WorkItem);
+        saved.TargetId.Should().Be(workItem.Id);
+        saved.Note.Should().BeNull();
     }
 
     /// <summary>A request accepted by its desk's admin, and a project Demand Management holds a copy of.</summary>

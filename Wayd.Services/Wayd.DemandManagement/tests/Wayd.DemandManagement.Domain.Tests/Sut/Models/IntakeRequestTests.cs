@@ -1604,6 +1604,26 @@ public sealed class IntakeRequestTests
     }
 
     [Fact]
+    public void AddOutcome_WorkItemWithoutANote_RecordsItAndRaises()
+    {
+        // Arrange
+        var sut = AnAcceptedRequest();
+        var workItemId = Guid.NewGuid();
+
+        // Act
+        var result = sut.AddOutcome(IntakeRequestOutcomeKind.WorkItem, workItemId, null, Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var outcome = sut.Outcomes.Should().ContainSingle().Subject;
+        outcome.Kind.Should().Be(IntakeRequestOutcomeKind.WorkItem);
+        outcome.TargetId.Should().Be(workItemId);
+        outcome.Note.Should().BeNull();
+        sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestOutcomeAddedEvent>()
+            .Which.Kind.Should().Be(IntakeRequestOutcomeKind.WorkItem);
+    }
+
+    [Fact]
     public void AddOutcome_ForATargetItAlreadyPointsAt_FailsWhateverTheKind()
     {
         // Arrange
@@ -1706,6 +1726,24 @@ public sealed class IntakeRequestTests
         result.IsSuccess.Should().BeTrue();
         sut.StatusCategory.Should().Be(StatusCategory.Done);
         sut.StatusReason.Should().BeNull();
+    }
+
+    [Fact]
+    public void ChangeStatus_ToFinishedWithOnlyAWorkItemOutcome_NeedsNoReason()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker()
+            .InStatus(StatusCategory.Active, IntakeRequestStatusAlias.Accepted)
+            .WithOutcomes(IntakeRequestOutcomeKind.WorkItem, Guid.NewGuid())
+            .Generate();
+
+        // Act
+        var result = sut.ChangeStatus(InItsWorkflow(sut, StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled), null, null,
+            EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.StatusCategory.Should().Be(StatusCategory.Done);
     }
 
     [Fact]

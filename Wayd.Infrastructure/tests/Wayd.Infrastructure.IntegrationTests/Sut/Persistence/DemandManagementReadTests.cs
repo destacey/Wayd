@@ -685,6 +685,53 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         onRequest.Outcomes.Should().AllSatisfy(o => o.AddedBy.Id.Should().Be(scenario.Agent.Id));
     }
 
+    [Fact]
+    public async Task WorkItemOutcomes_ReadBackOnTheRequestAndFromTheWorkItem_UnderTheDesksVisibility()
+    {
+        // Arrange — the same work item delivers an open request and a private one. Demand Management holds no
+        // copy of work items, so nothing about the work item is seeded: the outcome stands on its id alone.
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        var workItemId = Guid.CreateVersion7();
+        await using (var arrange = _fixture.CreateContext())
+        {
+            var requests = await arrange.IntakeRequests.Include(r => r.Outcomes)
+                .Where(r => r.Id == scenario.OnOpen.Id || r.Id == scenario.OnPrivate.Id)
+                .ToListAsync(ct);
+            foreach (var request in requests)
+            {
+                var accepted = new StatusRef(request.StatusWorkflowId, Guid.CreateVersion7(), "Accepted", StatusCategory.Active,
+                    (int)IntakeRequestStatusAlias.Accepted);
+                request.ChangeStatus(accepted, null, null, EventActor.System, Now).IsSuccess.Should().BeTrue();
+                request.AddOutcome(IntakeRequestOutcomeKind.WorkItem, workItemId, "The export screen", scenario.Agent.Id,
+                    EventActor.System, Now).IsSuccess.Should().BeTrue();
+            }
+            await arrange.SaveChangesAsync(ct);
+        }
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var fromWorkItem = await new GetWorkItemIntakeRequestsQueryHandler(context, Principal(Guid.NewGuid()))
+            .Handle(new GetWorkItemIntakeRequestsQuery(workItemId), ct);
+        var fromWorkItemAsAgent = await new GetWorkItemIntakeRequestsQueryHandler(context, Principal(scenario.Agent.Id))
+            .Handle(new GetWorkItemIntakeRequestsQuery(workItemId), ct);
+        var onRequest = await new GetIntakeRequestQueryHandler(context, Principal(Guid.NewGuid()))
+            .Handle(new GetIntakeRequestQuery(new IdOrKey(scenario.OnOpen.Id)), ct);
+
+        // Assert
+        var listed = fromWorkItem.Should().ContainSingle().Subject;
+        listed.Request.Id.Should().Be(scenario.OnOpen.Id);
+        listed.Note.Should().Be("The export screen");
+        listed.Status.Name.Should().Be("Accepted");
+        fromWorkItemAsAgent.Select(r => r.Request.Id).Should().BeEquivalentTo([scenario.OnOpen.Id, scenario.OnPrivate.Id]);
+
+        var outcome = onRequest!.Outcomes.Should().ContainSingle().Subject;
+        outcome.Kind.Should().Be(IntakeRequestOutcomeKind.WorkItem);
+        outcome.TargetId.Should().Be(workItemId);
+        outcome.Project.Should().BeNull();
+        outcome.AddedBy.Id.Should().Be(scenario.Agent.Id);
+    }
+
     private sealed record Source(Guid Id, ProjectKey Key, string Name, string Description = "desc") : ISimpleProject;
 
     private static ICurrentPrincipal Principal(Guid employeeId, bool holdsView = true, bool holdsAdminister = false,

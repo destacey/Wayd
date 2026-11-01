@@ -1,4 +1,5 @@
 using Wayd.Common.Application.StatusWorkflows.Dtos;
+using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Queries;
@@ -29,7 +30,8 @@ public sealed class GetProjectIntakeRequestsQueryHandler(
 
         return await _dbContext.IntakeRequests
             .Where(reader.CanSeeSummary(_dbContext.IntakeDesks))
-            .SelectMany(r => r.Outcomes.Where(o => o.TargetId == request.ProjectId), (r, o) => new { r, o })
+            .SelectMany(r => r.Outcomes.Where(o => o.Kind != IntakeRequestOutcomeKind.WorkItem && o.TargetId == request.ProjectId),
+                (r, o) => new { r, o })
             .OrderBy(x => x.r.Key)
             .Select(x => new ProjectIntakeRequestDto
             {

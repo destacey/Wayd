@@ -400,11 +400,11 @@ public class IntakeRequestOutcomeConfiguration : IEntityTypeConfiguration<Intake
         // A request points at a target at most once.
         builder.HasKey(o => new { o.RequestId, o.TargetId });
 
-        // "Which requests did this project come from": the reverse view on the project page.
+        // "Which requests did this project or work item come from": the reverse view on its page.
         builder.HasIndex(o => o.TargetId);
 
-        // No foreign key on TargetId: an outcome outlives the project's copy, which goes when the project is
-        // deleted.
+        // No foreign key on TargetId: an outcome outlives its target. A project's copy goes when the project is
+        // deleted, and a work item lives in Work's tables, which Demand Management never references.
         builder.Property(o => o.Kind).IsRequired()
             .HasConversion<EnumConverter<IntakeRequestOutcomeKind>>()
             .HasColumnType("varchar")

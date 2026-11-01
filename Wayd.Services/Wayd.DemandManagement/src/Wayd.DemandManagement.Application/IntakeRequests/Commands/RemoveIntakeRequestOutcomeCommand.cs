@@ -6,10 +6,11 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
 /// Takes an outcome off an accepted intake request. Needs an agent on the request's desk.
 /// </summary>
 /// <remarks>
-/// The project itself is untouched, and an outcome whose project has since been deleted can still be removed.
+/// The project or work item itself is untouched, and an outcome whose target has since been deleted can still
+/// be removed.
 /// </remarks>
 /// <param name="Id">The request.</param>
-/// <param name="TargetId">The project the outcome points at.</param>
+/// <param name="TargetId">The project or work item the outcome points at.</param>
 public sealed record RemoveIntakeRequestOutcomeCommand(Guid Id, Guid TargetId) : ICommand, IRequireLinkedEmployee;
 
 public sealed class RemoveIntakeRequestOutcomeCommandValidator : CustomValidator<RemoveIntakeRequestOutcomeCommand>

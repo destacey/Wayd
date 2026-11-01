@@ -41,6 +41,26 @@ public sealed class GetProjectIntakeRequestsQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_IgnoresAWorkItemOutcomeWithTheSameId()
+    {
+        // Arrange — ids are unique across modules in practice; the kind still decides what the outcome names
+        var agent = _scenario.Employee();
+        var desk = _scenario.Desk(agentIds: agent.Id);
+        var project = _scenario.Project();
+        var started = _scenario.RequestInStatus(desk, _scenario.Employee(), "Accepted");
+        var workItem = _scenario.RequestInStatus(desk, _scenario.Employee(), "Accepted");
+        _scenario.Outcome(started, project.Id, agent);
+        _scenario.Outcome(workItem, project.Id, agent, IntakeRequestOutcomeKind.WorkItem);
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetProjectIntakeRequestsQuery(project.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().ContainSingle().Which.Request.Id.Should().Be(started.Id);
+    }
+
+    [Fact]
     public async Task Handle_ForAReaderOutsideAPrivateDesk_LeavesItsRequestsOut()
     {
         // Arrange — the project is visible to the reader, but the request behind it is not

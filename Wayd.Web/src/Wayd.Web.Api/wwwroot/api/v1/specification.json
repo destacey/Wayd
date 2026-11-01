@@ -44186,8 +44186,8 @@
         "tags": [
           "IntakeRequests"
         ],
-        "summary": "Record that an accepted intake request became a project.",
-        "description": "Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on. The project itself is not changed. A request points at a project at most once. Once a request has an outcome, finishing it needs no reason.",
+        "summary": "Record that an accepted intake request became a project or work item.",
+        "description": "Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.",
         "operationId": "IntakeRequests_AddOutcome",
         "parameters": [
           {
@@ -44261,7 +44261,7 @@
           "IntakeRequests"
         ],
         "summary": "Take an outcome off an accepted intake request.",
-        "description": "Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. The project itself is not changed.",
+        "description": "Needs an agent on the request's desk, while the request is accepted. `targetId` is the project or work item the outcome points at. The project or work item itself is not changed.",
         "operationId": "IntakeRequests_RemoveOutcome",
         "parameters": [
           {
@@ -44346,6 +44346,48 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/ProjectIntakeRequestDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/work-items/{workItemId}": {
+      "get": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Get the intake requests a work item delivers, that you can see.",
+        "description": "Ordered by request number. Each request is read under its desk's visibility, so a request on a private desk you are not part of is absent rather than listed as redacted.",
+        "operationId": "IntakeRequests_GetWorkItemIntakeRequests",
+        "parameters": [
+          {
+            "name": "workItemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkItemIntakeRequestDto"
                   }
                 }
               }
@@ -51072,8 +51114,7 @@
       },
       "AddIntakeRequestOutcomeRequest": {
         "required": [
-          "kind",
-          "projectId"
+          "kind"
         ],
         "type": "object",
         "properties": {
@@ -51083,13 +51124,19 @@
                 "$ref": "#/components/schemas/IntakeRequestOutcomeKind"
               }
             ],
-            "description": "What the request became: a new project started for it, or scope added to a project that already existed."
+            "description": "What the request became: a new project started for it, scope added to a project that already existed, or\na work item that delivers it."
           },
           "projectId": {
-            "minLength": 1,
             "type": "string",
-            "description": "The project. Recording the outcome does not change it.",
-            "format": "uuid"
+            "description": "The project, for `NewProject` and `ExistingProjectScope`; leave it out for `WorkItem`. Recording the outcome\ndoes not change it.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "workItemId": {
+            "type": "string",
+            "description": "The work item, for `WorkItem`; leave it out for the project kinds. Recording the outcome does not change it.",
+            "format": "uuid",
+            "nullable": true
           },
           "note": {
             "maxLength": 1024,
@@ -51099,7 +51146,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "A project an accepted intake request became."
+        "description": "A project or work item an accepted intake request became."
       },
       "AddIntakeRequestParticipantRequest": {
         "required": [
@@ -61932,7 +61979,7 @@
           },
           "targetId": {
             "type": "string",
-            "description": "The id of the project the outcome points at, which identifies the outcome on the request.",
+            "description": "The id of the project or work item the outcome points at, which identifies the outcome on the request.",
             "format": "uuid"
           },
           "project": {
@@ -61941,7 +61988,16 @@
                 "$ref": "#/components/schemas/DemandProjectNavigationDto"
               }
             ],
-            "description": "The project, or null when it has since been deleted; the outcome stays as the record of what was decided.",
+            "description": "The project, for a project outcome; null for a work item outcome, or when the project has since been\ndeleted, since the outcome stays as the record of what was decided.",
+            "nullable": true
+          },
+          "workItem": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRequestOutcomeWorkItemDto"
+              }
+            ],
+            "description": "The work item, for a work item outcome; null for a project outcome, or when the work item has since been\ndeleted.",
             "nullable": true
           },
           "note": {
@@ -61969,9 +62025,54 @@
       "IntakeRequestOutcomeKind": {
         "enum": [
           "NewProject",
-          "ExistingProjectScope"
+          "ExistingProjectScope",
+          "WorkItem"
         ],
         "type": "string"
+      },
+      "IntakeRequestOutcomeWorkItemDto": {
+        "required": [
+          "key",
+          "title",
+          "workspaceKey",
+          "status",
+          "id",
+          "statusCategory"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The work item's id, the same as in Work.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string",
+            "description": "The work item's key, which its page is addressed by."
+          },
+          "title": {
+            "type": "string",
+            "description": "The work item's title."
+          },
+          "workspaceKey": {
+            "type": "string",
+            "description": "The key of the workspace the work item is in, which its page is addressed by."
+          },
+          "status": {
+            "type": "string",
+            "description": "The work item's status, by name."
+          },
+          "statusCategory": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkStatusCategory"
+              }
+            ],
+            "description": "The category of the work item's status."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A work item an intake request's outcome points at, as Work reports it now."
       },
       "IntakeRequestParticipantDto": {
         "required": [
@@ -83304,6 +83405,38 @@
           }
         },
         "additionalProperties": false
+      },
+      "WorkItemIntakeRequestDto": {
+        "required": [
+          "request",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "request": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRequestNavigationDto"
+              }
+            ],
+            "description": "The request."
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusNavigationDto"
+              }
+            ],
+            "description": "Where the request stands in its desk's review workflow."
+          },
+          "note": {
+            "type": "string",
+            "description": "What the work item covers of the request, in the agent's words.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "An intake request a work item delivers, as listed on the work item's page. Summary tier only."
       },
       "WorkItemListDto": {
         "required": [

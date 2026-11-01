@@ -8,6 +8,8 @@ using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Scoring.ScoringModels.Dtos;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
+using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.DemandManagement.Application.IntakeDesks;
 using Wayd.DemandManagement.Application.IntakeRequests;
@@ -18,6 +20,8 @@ using Wayd.DemandManagement.Application.IntakeRequests.Queries;
 using Wayd.DemandManagement.Application.IntakeRequestTagCategories;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.DemandManagement.IntakeRequests;
+using Wayd.Work.Application.WorkItems.Dtos;
+using Wayd.Work.Application.WorkItems.Queries;
 
 namespace Wayd.Web.Api.Controllers.DemandManagement;
 
@@ -73,9 +77,47 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
     {
         var request = await _dispatcher.Send(new GetIntakeRequestQuery(new IdOrKey(idOrKey)), cancellationToken);
         return request is not null
-            ? Ok(request)
+            ? Ok(await WithWorkItems(request, cancellationToken))
             : NotFound();
     }
+
+    /// <summary>
+    /// Fills in each work item outcome's current key, title and status from Work, in one call. Demand Management
+    /// keeps no copy of work items; a work item Work no longer has keeps its outcome, with no work item.
+    /// </summary>
+    private async Task<IntakeRequestDetailsDto> WithWorkItems(IntakeRequestDetailsDto request, CancellationToken cancellationToken)
+    {
+        var workItemIds = request.Outcomes
+            .Where(o => o.Kind == IntakeRequestOutcomeKind.WorkItem)
+            .Select(o => o.TargetId)
+            .ToList();
+        if (workItemIds.Count == 0)
+            return request;
+
+        var workItems = (await _dispatcher.Send(new GetWorkItemsByIdsQuery(workItemIds), cancellationToken))
+            .ToDictionary(w => w.Id, ToOutcomeWorkItem);
+
+        return request with
+        {
+            Outcomes =
+            [
+                .. request.Outcomes.Select(o => o.Kind == IntakeRequestOutcomeKind.WorkItem && workItems.TryGetValue(o.TargetId, out var workItem)
+                    ? o with { WorkItem = workItem }
+                    : o),
+            ],
+        };
+    }
+
+    /// <summary>A work item as Work reports it, in the shape Demand Management takes it.</summary>
+    private static IntakeRequestOutcomeWorkItemDto ToOutcomeWorkItem(WorkItemDetailsNavigationDto workItem) => new()
+    {
+        Id = workItem.Id,
+        Key = workItem.Key,
+        Title = workItem.Title,
+        WorkspaceKey = workItem.WorkspaceKey,
+        Status = workItem.Status,
+        StatusCategory = (WorkStatusCategory)workItem.StatusCategory.Id,
+    };
 
     [HttpGet("{idOrKey}/activities")]
     [McpTool("IntakeRequests_GetActivities", "Get intake request activity history")]
@@ -320,20 +362,35 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
     [HttpPost("{id}/outcomes")]
     [McpTool("IntakeRequests_AddOutcome", "Add intake request outcome", Destructive = false)]
     [Authorize]
-    [EndpointSummary("Record that an accepted intake request became a project.")]
-    [EndpointDescription("Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on. The project itself is not changed. A request points at a project at most once. Once a request has an outcome, finishing it needs no reason.")]
+    [EndpointSummary("Record that an accepted intake request became a project or work item.")]
+    [EndpointDescription("Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> AddOutcome(Guid id, [FromBody] AddIntakeRequestOutcomeRequest request, CancellationToken cancellationToken) =>
-        NoContentOrError(await _dispatcher.Send(new AddIntakeRequestOutcomeCommand(id, request.Kind, request.ProjectId, request.Note), cancellationToken));
+    public async Task<ActionResult> AddOutcome(Guid id, [FromBody] AddIntakeRequestOutcomeRequest request, CancellationToken cancellationToken)
+    {
+        if (request.Kind != IntakeRequestOutcomeKind.WorkItem)
+            return NoContentOrError(await _dispatcher.Send(
+                new AddIntakeRequestOutcomeCommand(id, request.Kind, request.ProjectId ?? Guid.Empty, request.Note), cancellationToken));
+
+        // Demand Management never reads Work's tables, so the work item is looked up here and handed in.
+        var workItemId = request.WorkItemId ?? Guid.Empty;
+        var found = await _dispatcher.Send(new GetWorkItemsByIdsQuery([workItemId]), cancellationToken);
+
+        return NoContentOrError(await _dispatcher.Send(
+            new AddIntakeRequestOutcomeCommand(id, request.Kind, workItemId, request.Note)
+            {
+                WorkItem = found.Select(ToOutcomeWorkItem).SingleOrDefault(),
+            },
+            cancellationToken));
+    }
 
     [HttpDelete("{id}/outcomes/{targetId}")]
     [McpTool("IntakeRequests_RemoveOutcome", "Remove intake request outcome")]
     [Authorize]
     [EndpointSummary("Take an outcome off an accepted intake request.")]
-    [EndpointDescription("Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. The project itself is not changed.")]
+    [EndpointDescription("Needs an agent on the request's desk, while the request is accepted. `targetId` is the project or work item the outcome points at. The project or work item itself is not changed.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -349,6 +406,18 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
     public async Task<ActionResult<IEnumerable<ProjectIntakeRequestDto>>> GetProjectIntakeRequests(Guid projectId, CancellationToken cancellationToken)
     {
         var requests = await _dispatcher.Send(new GetProjectIntakeRequestsQuery(projectId), cancellationToken);
+        return Ok(requests);
+    }
+
+    [HttpGet("work-items/{workItemId}")]
+    [Authorize]
+    [McpTool("IntakeRequests_GetWorkItemIntakeRequests", "List a work item's intake requests")]
+    [EndpointSummary("Get the intake requests a work item delivers, that you can see.")]
+    [EndpointDescription("Ordered by request number. Each request is read under its desk's visibility, so a request on a private desk you are not part of is absent rather than listed as redacted.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<WorkItemIntakeRequestDto>>> GetWorkItemIntakeRequests(Guid workItemId, CancellationToken cancellationToken)
+    {
+        var requests = await _dispatcher.Send(new GetWorkItemIntakeRequestsQuery(workItemId), cancellationToken);
         return Ok(requests);
     }
 

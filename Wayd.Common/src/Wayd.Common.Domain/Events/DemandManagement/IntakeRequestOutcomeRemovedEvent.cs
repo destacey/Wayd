@@ -5,8 +5,8 @@ using Wayd.Common.Domain.Enums.DemandManagement;
 namespace Wayd.Common.Domain.Events.DemandManagement;
 
 /// <summary>
-/// An outcome was taken off an accepted intake request: it no longer counts the project as what
-/// it became.
+/// An outcome was taken off an accepted intake request: it no longer counts the project or work item as
+/// what it became.
 /// </summary>
 /// <remarks>
 /// Carries the removed outcome as it was, and <see cref="TargetIds"/>, every target the request points at
@@ -21,7 +21,7 @@ public sealed record IntakeRequestOutcomeRemovedEvent : DomainEvent<IntakeReques
     [JsonConstructor]
     public IntakeRequestOutcomeRemovedEvent(Guid id, int key, IntakeRequestOutcomeKind kind, Guid targetId, string? note,
         Guid[] targetIds, EventActor actor, Instant timestamp)
-        : base(actor, "1.0")
+        : base(actor, "1.1")
     {
         Id = id;
         Key = key;
@@ -37,11 +37,14 @@ public sealed record IntakeRequestOutcomeRemovedEvent : DomainEvent<IntakeReques
     public int Key { get; }
     /// <summary>What the removed outcome said the request became.</summary>
     public IntakeRequestOutcomeKind Kind { get; }
-    /// <summary>The project removed.</summary>
+    /// <summary>The project or work item removed; <see cref="Kind"/> says which.</summary>
     public Guid TargetId { get; }
     /// <summary>The removed outcome's note.</summary>
     public string? Note { get; }
-    /// <summary>Every target the request points at after the change.</summary>
+    /// <summary>
+    /// Every target the request points at after the change, projects and work items together; since 1.1 it
+    /// may hold work item ids, which no 1.0 payload carries.
+    /// </summary>
     public Guid[] TargetIds { get; }
 
     [JsonIgnore]

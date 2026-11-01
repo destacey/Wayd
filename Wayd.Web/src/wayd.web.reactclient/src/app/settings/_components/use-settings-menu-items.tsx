@@ -4,6 +4,7 @@ import { ItemType, MenuItemType } from 'antd/es/menu/interface'
 import useAuth from '@/src/components/contexts/auth'
 import { useFeatureFlag } from '@/src/hooks'
 import { useGetImportDefinitionsQuery } from '@/src/store/features/admin/imports-api'
+import { useGetWorkflowOwnerTypesQuery } from '@/src/store/features/common/status-workflows-api'
 import {
   buildRouteKeyMap,
   filterAndTransformMenuItem,
@@ -20,6 +21,7 @@ interface SettingsMenuOptions {
   incidentManagement: boolean
   demandManagement: boolean
   imports: boolean
+  workflowSchemes: boolean
 }
 
 /**
@@ -219,6 +221,17 @@ const buildSettingsMenuItems = (
       'system.status-workflows',
       '/settings/status-workflows',
     ),
+    // Only owner types with record types have schemes; until one does, the page would be empty.
+    ...(options.workflowSchemes
+      ? [
+          restrictedPermissionMenuItem(
+            'Permissions.StatusWorkflows.View',
+            'Workflow Schemes',
+            'system.workflow-schemes',
+            '/settings/workflow-schemes',
+          ),
+        ]
+      : []),
     restrictedPermissionMenuItem(
       'Permissions.Connections.View',
       'Connections',
@@ -296,11 +309,18 @@ export const useSettingsMenuItems = () => {
   const { hasClaim } = useAuth()
   const { isEnabled: planningPoker } = useFeatureFlag('planning-poker')
   const { isEnabled: productManagement } = useFeatureFlag('product-management')
-  const { isEnabled: incidentManagement } = useFeatureFlag('incident-management')
+  const { isEnabled: incidentManagement } = useFeatureFlag(
+    'incident-management',
+  )
   const { isEnabled: demandManagement } = useFeatureFlag('demand-management')
 
   // Cheap and cached: the same query the Imports page uses, so opening it costs nothing extra.
   const { data: importDefinitions } = useGetImportDefinitionsQuery()
+
+  // Asked only of a viewer who could open the page, since the endpoint needs the same permission.
+  const { data: ownerTypes } = useGetWorkflowOwnerTypesQuery(undefined, {
+    skip: !hasClaim('Permission', 'Permissions.StatusWorkflows.View'),
+  })
 
   const items = buildSettingsMenuItems({
     planningPoker,
@@ -308,6 +328,7 @@ export const useSettingsMenuItems = () => {
     incidentManagement,
     demandManagement,
     imports: (importDefinitions?.length ?? 0) > 0,
+    workflowSchemes: (ownerTypes ?? []).some((o) => o.hasRecordTypes),
   })
 
   const menuItems = asGroups(

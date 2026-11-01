@@ -52,6 +52,8 @@ import {
   ScoringModelsClient,
   StatusWorkflowsClient,
   WorkflowAssignmentsClient,
+  WorkflowSchemesClient,
+  RecordTypesClient,
   SprintsClient,
   EstimationScalesClient,
   IncidentSeveritySetsClient,
@@ -549,6 +551,9 @@ export const getStatusWorkflowsClient = () =>
   new StatusWorkflowsClient('', axiosClient)
 export const getWorkflowAssignmentsClient = () =>
   new WorkflowAssignmentsClient('', axiosClient)
+export const getWorkflowSchemesClient = () =>
+  new WorkflowSchemesClient('', axiosClient)
+export const getRecordTypesClient = () => new RecordTypesClient('', axiosClient)
 
 // SEARCH
 export const getSearchClient = () => new SearchClient('', axiosClient)

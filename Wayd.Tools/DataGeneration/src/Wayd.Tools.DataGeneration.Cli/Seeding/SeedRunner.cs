@@ -48,6 +48,10 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
         new PlanningIntervalsArea(),
         new PlanningIntervalObjectivesArea(),
         new RisksArea(),
+        new DemandManagementFeatureFlagArea(),
+        new DemandManagementSettingsArea(),
+        new IntakeDesksArea(),
+        new IntakeRequestsArea(),
         new UserRolesArea(),
         new UserAccountsArea(),
     ];
@@ -57,6 +61,7 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
         GeneratedPpm? ppm,
         GeneratedProductManagement? productManagement,
         GeneratedPlanning? planning,
+        GeneratedDemandManagement? demandManagement,
         bool createUsers,
         string userPassword,
         CancellationToken cancellationToken)
@@ -67,6 +72,7 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
             Ppm = ppm,
             ProductManagement = productManagement,
             Planning = planning,
+            DemandManagement = demandManagement,
             CreateUsers = createUsers,
             UserPassword = userPassword,
         };

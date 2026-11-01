@@ -30,7 +30,23 @@ public static class RecipeLayering
         Users = Layer(over.Users, under.Users),
         ProductManagement = Layer(over.ProductManagement, under.ProductManagement),
         Planning = Layer(over.Planning, under.Planning),
+        DemandManagement = Layer(over.DemandManagement, under.DemandManagement),
     };
+
+    private static DemandManagementRecipe? Layer(DemandManagementRecipe? over, DemandManagementRecipe? under)
+    {
+        if (over is null)
+            return under;
+
+        if (under is null)
+            return over;
+
+        return new DemandManagementRecipe
+        {
+            Enabled = over.Enabled ?? under.Enabled,
+            RequestsPerMonth = over.RequestsPerMonth ?? under.RequestsPerMonth,
+        };
+    }
 
     private static PlanningRecipe? Layer(PlanningRecipe? over, PlanningRecipe? under)
     {

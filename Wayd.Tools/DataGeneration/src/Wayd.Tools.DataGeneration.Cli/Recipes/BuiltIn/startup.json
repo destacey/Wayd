@@ -28,5 +28,8 @@
   "planning": {
     "objectivesPerTeam": 3,
     "risksPerTeam": 1
+  },
+  "demandManagement": {
+    "requestsPerMonth": 4
   }
 }

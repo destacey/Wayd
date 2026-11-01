@@ -269,6 +269,26 @@
           "x-cli-flag": "--risks-per-team"
         }
       }
+    },
+    "demandManagement": {
+      "type": "object",
+      "description": "The Request Desk: a product desk per value stream, an IT desk and a private Security and Compliance desk where the company has people to staff them, and the intake requests its departments submit to them over the history.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether the area is generated at all.",
+          "x-cli-flag": "--skip-demand-management",
+          "x-cli-flag-negates": true
+        },
+        "requestsPerMonth": {
+          "type": "integer",
+          "description": "Average number of intake requests the company submits per month, spread across the history.",
+          "minimum": 0,
+          "maximum": 200,
+          "x-cli-flag": "--requests-per-month"
+        }
+      }
     }
   }
 }

@@ -30,12 +30,12 @@ public class DeletePokerSessionCommandHandlerTests : IDisposable
     public async Task Handle_ShouldDeleteSession_WhenSessionIsActive()
     {
         // Arrange
-        var scale = _scaleFaker.WithId(1).Generate();
+        var scale = _scaleFaker.Generate();
         _dbContext.AddEstimationScale(scale);
 
         var session = _sessionFaker
             .WithStatus(PokerSessionStatus.Active)
-            .WithEstimationScaleId(scale.Id)
+            .WithEstimationScale(scale)
             .Generate();
         _dbContext.AddPokerSession(session);
 
@@ -53,12 +53,12 @@ public class DeletePokerSessionCommandHandlerTests : IDisposable
     public async Task Handle_ShouldDeleteSession_WhenSessionIsCompleted()
     {
         // Arrange
-        var scale = _scaleFaker.WithId(1).Generate();
+        var scale = _scaleFaker.Generate();
         _dbContext.AddEstimationScale(scale);
 
         var session = _sessionFaker
             .WithStatus(PokerSessionStatus.Completed)
-            .WithEstimationScaleId(scale.Id)
+            .WithEstimationScale(scale)
             .Generate();
         _dbContext.AddPokerSession(session);
 

@@ -98,6 +98,7 @@ public partial class EventCoverageTests
         typeof(TeamOfTeams),
 
         // Planning
+        typeof(EstimationScale),
         typeof(PlanningInterval),
         typeof(PlanningIntervalObjective),
         typeof(Risk),
@@ -237,7 +238,6 @@ public partial class EventCoverageTests
         // Not yet evented: each awaits the issue it names.
         [typeof(Strategy)] = "#951.",
         [typeof(Vision)] = "#951.",
-        [typeof(EstimationScale)] = "#952.",
         [typeof(ExpenditureCategory)] = "#952.",
         [typeof(FeatureFlag)] = "#952.",
         [typeof(Link)] = "#952.",
@@ -262,6 +262,7 @@ public partial class EventCoverageTests
     {
         [typeof(EmployeeTeamAllocation)] = typeof(EmployeeCapacity),
         [typeof(EmployeeTimeAway)] = typeof(EmployeeCapacity),
+        [typeof(EstimationScaleVersion)] = typeof(EstimationScale),
         [typeof(ImportProcessRow)] = typeof(ImportProcess),
         [typeof(PlanningIntervalIterationSprint)] = typeof(PlanningInterval),
         [typeof(PlanningIntervalObjectiveHealthCheck)] = typeof(PlanningIntervalObjective),
@@ -295,6 +296,8 @@ public partial class EventCoverageTests
             "Retypes ReleasedDate to the ReleasedAt instant, carrying each value across; no fact about a package changed: #929.",
         ["20260926212850_Store-Version-Cut-And-Released-As-Instants.cs"] =
             "Retypes CutDate and ReleasedDate to the CutAt and ReleasedAt instants, carrying each value across; no fact about a version changed: #929.",
+        ["20261101221206_Version-Estimation-Scales.cs"] =
+            "Moves each scale's values onto version 1, and Down moves the current version's back, before the scale raised any event; no fact about a scale changed: #1254.",
     };
 
     /// <summary>

@@ -608,13 +608,51 @@ public class EstimationScaleConfig : IEntityTypeConfiguration<EstimationScale>
         builder.ToTable("EstimationScales", SchemaNames.Planning);
 
         builder.HasKey(e => e.Id);
+        builder.HasAlternateKey(e => e.Key);
 
-        builder.Property(e => e.Id).ValueGeneratedOnAdd();
+        builder.Property(e => e.Id).ValueGeneratedNever();
+        builder.Property(e => e.Key).ValueGeneratedOnAdd();
         builder.Property(e => e.Name).IsRequired().HasMaxLength(128);
         builder.Property(e => e.Description).HasMaxLength(1024);
-        builder.Property(e => e.Values)
-            .HasColumnName("Values");
         builder.Property(e => e.IsActive).IsRequired();
+
+        builder.Ignore(e => e.CurrentVersion);
+
+        builder.HasMany(e => e.Versions)
+            .WithOne()
+            .HasForeignKey(v => v.EstimationScaleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(e => e.Versions)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class EstimationScaleVersionConfig : IEntityTypeConfiguration<EstimationScaleVersion>
+{
+    public void Configure(EntityTypeBuilder<EstimationScaleVersion> builder)
+    {
+        builder.ToTable("EstimationScaleVersions", SchemaNames.Planning);
+
+        builder.HasKey(v => v.Id);
+
+        builder.HasIndex(v => new { v.EstimationScaleId, v.Number })
+            .IsUnique();
+
+        builder.Property(v => v.Id).ValueGeneratedNever();
+        builder.Property(v => v.Number).IsRequired();
+        builder.Property(v => v.PublishedOn).IsRequired();
+
+        // A version's values are read and written as a whole and never queried independently, so they are
+        // stored as a JSON column on the version rather than a separate table.
+        builder.OwnsMany(v => v.Values, o =>
+        {
+            o.ToJson();
+            o.Property(x => x.Value).HasMaxLength(EstimationScaleValue.MaxLength);
+            o.UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+        builder.Navigation(v => v.Values)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }
 
@@ -647,6 +685,11 @@ public class PokerSessionConfig : IEntityTypeConfiguration<PokerSession>
         builder.HasOne(s => s.EstimationScale)
             .WithMany()
             .HasForeignKey(s => s.EstimationScaleId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(s => s.EstimationScaleVersion)
+            .WithMany()
+            .HasForeignKey(s => s.EstimationScaleVersionId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(s => s.Facilitator)

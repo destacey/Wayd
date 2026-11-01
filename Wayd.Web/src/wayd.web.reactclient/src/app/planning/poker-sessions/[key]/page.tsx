@@ -342,7 +342,9 @@ const PokerSessionDetailPage: FC = () => {
                     sessionId={session.id}
                     sessionKey={session.key}
                     estimationScaleValues={
-                      session.estimationScale?.values ?? []
+                      session.estimationScaleVersion?.values.map(
+                        (v) => v.value,
+                      ) ?? []
                     }
                     canManage={canManage && isActive}
                     onConsensusSet={handleConsensusSet}
@@ -362,7 +364,11 @@ const PokerSessionDetailPage: FC = () => {
                       </span>
                     </Divider>
                     <EstimationCardDeck
-                      values={session.estimationScale?.values ?? []}
+                      values={
+                        session.estimationScaleVersion?.values.map(
+                          (v) => v.value,
+                        ) ?? []
+                      }
                       selectedValue={selectedVote}
                       onSelect={handleVote}
                       disabled={isSubmitting || isWithdrawing}

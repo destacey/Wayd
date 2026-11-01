@@ -12,7 +12,8 @@ public class PokerSessionFaker : PrivateConstructorFaker<PokerSession>
         RuleFor(x => x.Id, f => f.Random.Guid());
         RuleFor(x => x.Key, f => f.Random.Int(1, 10000));
         RuleFor(x => x.Name, f => f.Lorem.Sentence(3));
-        RuleFor(x => x.EstimationScaleId, f => f.Random.Int(1, 100));
+        RuleFor(x => x.EstimationScaleId, f => f.Random.Guid());
+        RuleFor(x => x.EstimationScaleVersionId, f => f.Random.Guid());
         RuleFor(x => x.FacilitatorId, f => f.Random.Guid().ToString());
         RuleFor(x => x.Status, PokerSessionStatus.Active);
     }
@@ -38,9 +39,13 @@ public static class PokerSessionFakerExtensions
         return faker;
     }
 
-    public static PokerSessionFaker WithEstimationScaleId(this PokerSessionFaker faker, int estimationScaleId)
+    /// <summary>
+    /// Puts the session on <paramref name="estimationScale"/>, pinned to its current version.
+    /// </summary>
+    public static PokerSessionFaker WithEstimationScale(this PokerSessionFaker faker, EstimationScale estimationScale)
     {
-        faker.RuleFor(x => x.EstimationScaleId, estimationScaleId);
+        faker.RuleFor(x => x.EstimationScaleId, estimationScale.Id);
+        faker.RuleFor(x => x.EstimationScaleVersionId, estimationScale.CurrentVersion.Id);
         return faker;
     }
 

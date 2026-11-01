@@ -2,15 +2,32 @@
 
 namespace Wayd.Web.Api.Models.Planning.EstimationScales;
 
+/// <summary>
+/// A new estimation scale, created active with its values as version 1.
+/// </summary>
 public class CreateEstimationScaleRequest
 {
+    /// <summary>
+    /// The scale's name, at most 128 characters.
+    /// </summary>
     public string Name { get; set; } = default!;
-    public string? Description { get; set; }
-    public List<string> Values { get; set; } = [];
 
+    /// <summary>
+    /// What the scale is for, at most 1024 characters.
+    /// </summary>
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// The cards in the order they are shown, at least 2 of them estimates.
+    /// </summary>
+    public List<EstimationScaleValueRequest> Values { get; set; } = [];
+
+    /// <summary>
+    /// The command this request describes.
+    /// </summary>
     public CreateEstimationScaleCommand ToCreateEstimationScaleCommand()
     {
-        return new CreateEstimationScaleCommand(Name, Description, Values);
+        return new CreateEstimationScaleCommand(Name, Description, [.. Values.Select(v => v.ToInput())]);
     }
 }
 
@@ -22,7 +39,7 @@ public sealed class CreateEstimationScaleRequestValidator : CustomValidator<Crea
 
         RuleFor(r => r.Name).NotEmpty().MaximumLength(128);
         RuleFor(r => r.Description).MaximumLength(1024);
-        RuleFor(r => r.Values).NotEmpty().Must(v => v.Count >= 2).WithMessage("At least 2 values are required.");
-        RuleForEach(r => r.Values).NotEmpty().MaximumLength(32);
+        RuleFor(r => r.Values).NotEmpty();
+        RuleForEach(r => r.Values).ChildRules(v => v.RuleFor(x => x.Value).NotEmpty().MaximumLength(32));
     }
 }

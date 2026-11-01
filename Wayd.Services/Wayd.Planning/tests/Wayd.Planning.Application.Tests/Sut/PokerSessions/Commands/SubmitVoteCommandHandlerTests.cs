@@ -6,6 +6,8 @@ using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Tests.Data;
 using Moq;
+using Wayd.Common.Domain.Events;
+using Wayd.Planning.Domain.Models.PlanningPoker;
 using NodaTime;
 
 namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
@@ -41,9 +43,10 @@ public class SubmitVoteCommandHandlerTests : IDisposable
     public async Task Handle_ShouldSubmitVote_WhenRoundIsVoting()
     {
         // Arrange
-        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
+        var scale = new EstimationScaleFaker().Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
-        _dbContext.AddEstimationScale(new EstimationScaleFaker().WithId(session.EstimationScaleId).Generate());
 
         session.AddRound("Story");
         var round = session.Rounds.First();
@@ -67,16 +70,17 @@ public class SubmitVoteCommandHandlerTests : IDisposable
     public async Task Handle_ShouldUpdateVote_WhenParticipantVotesAgain()
     {
         // Arrange
-        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
+        var scale = new EstimationScaleFaker().Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
-        _dbContext.AddEstimationScale(new EstimationScaleFaker().WithId(session.EstimationScaleId).Generate());
 
         session.AddRound("Story");
         var round = session.Rounds.First();
 
 
         // First vote
-        session.SubmitVote(round.Id, _currentUserId, "5", new EstimationScaleFaker().WithId(session.EstimationScaleId).Generate(), Instant.FromUtc(2026, 1, 15, 9, 0));
+        session.SubmitVote(round.Id, _currentUserId, "5", scale.CurrentVersion, Instant.FromUtc(2026, 1, 15, 9, 0));
 
         var command = new SubmitVoteCommand(session.Id, round.Id, "8");
 
@@ -109,13 +113,14 @@ public class SubmitVoteCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenRoundIsNotVoting()
     {
         // Arrange
-        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
+        var scale = new EstimationScaleFaker().Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
-        _dbContext.AddEstimationScale(new EstimationScaleFaker().WithId(session.EstimationScaleId).Generate());
 
         session.AddRound("Story");
         var round = session.Rounds.First();
-        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "3", new EstimationScaleFaker().WithId(session.EstimationScaleId).Generate(), Instant.FromUtc(2026, 1, 15, 9, 0));
+        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "3", scale.CurrentVersion, Instant.FromUtc(2026, 1, 15, 9, 0));
         session.RevealRound(round.Id);
         // Round is now Revealed, not Voting
 
@@ -134,9 +139,10 @@ public class SubmitVoteCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenRoundDoesNotExist()
     {
         // Arrange
-        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
+        var scale = new EstimationScaleFaker().Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
-        _dbContext.AddEstimationScale(new EstimationScaleFaker().WithId(session.EstimationScaleId).Generate());
 
         var command = new SubmitVoteCommand(session.Id, Guid.NewGuid(), "5");
 
@@ -152,9 +158,10 @@ public class SubmitVoteCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenValueIsNotOnTheSessionsScale()
     {
         // Arrange
-        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
+        var scale = new EstimationScaleFaker().WithValues("S", "M", "L", "?").Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
-        _dbContext.AddEstimationScale(new EstimationScaleFaker().WithId(session.EstimationScaleId).WithValues("S", "M", "L", "?").Generate());
 
         session.AddRound("Story");
         var round = session.Rounds.First();
@@ -170,6 +177,30 @@ public class SubmitVoteCommandHandlerTests : IDisposable
         round.Votes.Should().BeEmpty();
         _dbContext.SaveChangesCallCount.Should().Be(0);
         _mockNotifier.Verify(n => n.NotifyVoteSubmitted(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_AfterTheScalePublishesANewVersion_ShouldCheckAgainstThePinnedVersion()
+    {
+        // Arrange
+        var scale = new EstimationScaleFaker().WithValues("S", "M", "L", "?").Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
+        _dbContext.AddPokerSession(session);
+        session.AddRound("Story");
+        var round = session.Rounds.First();
+        scale.PublishVersion([new EstimationScaleValue("Small", true), new EstimationScaleValue("Medium", true)], EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 0));
+
+        // Act
+        var newValue = await _handler.Handle(new SubmitVoteCommand(session.Id, round.Id, "Medium"), TestContext.Current.CancellationToken);
+        var pinnedValue = await _handler.Handle(new SubmitVoteCommand(session.Id, round.Id, "M"), TestContext.Current.CancellationToken);
+
+        // Assert
+        newValue.IsFailure.Should().BeTrue();
+        newValue.Error.Should().Be("'Medium' is not a value on the session's estimation scale.");
+        pinnedValue.IsSuccess.Should().BeTrue(pinnedValue.IsFailure ? pinnedValue.Error : null);
+        round.Votes.Should().ContainSingle().Which.Value.Should().Be("M");
+        _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     public void Dispose()

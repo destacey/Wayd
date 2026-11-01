@@ -13,13 +13,15 @@ audience: [user, agent]
 
 ## Estimation Scales
 
-An **Estimation Scale** defines the set of values available for voting (e.g., Fibonacci: 1, 2, 3, 5, 8, 13, 21). Scales are configured in [Settings > Planning > Estimation Scales](../settings/index.mdx#estimation-scales) and require at least 2 values.
+An **Estimation Scale** defines the set of values available for voting (e.g., Fibonacci: 1, 2, 3, 5, 8, 13, 21). Each value is an **estimate** — a size — or a **card** such as `?`, `∞` or `☕`, which can be voted but is never a size. Scales are configured in [Settings > Planning > Estimation Scales](../settings/index.mdx#estimation-scales) and need at least 2 estimates.
+
+A scale's values are published as numbered [versions](../settings/index.mdx#versions). A session is pinned to the version of its scale that was current when the session was created, and keeps voting on it when the scale's values later change.
 
 ## Poker Sessions
 
 A **Poker Session** is a real-time estimation event:
 - Created by a **Facilitator** — the person who created it, shown in the sessions list
-- Uses a specific **Estimation Scale** (cannot be changed after rounds begin)
+- Uses a specific **Estimation Scale**, pinned to one of its versions (the scale cannot be changed after rounds begin)
 - Contains **Rounds** — each round represents one item being estimated, with an optional label such as a work item ID and an optional description (up to 2,048 characters) for detail the team should read before voting, such as acceptance criteria
 - Sessions are immediately **Active** on creation, and stay Active until completed
 
@@ -32,7 +34,7 @@ The session page has a real-time, multi-column layout:
 **Center Column** — Changes based on round status:
 - **Lobby** (no rounds yet) — **Ready to estimate**, with a box for the first round's label and **Start**. Those who cannot run the session see **Waiting for the facilitator to start a round.**
 - **Voting** — Participant cards showing who has voted (values hidden until reveal), **Reveal Cards**, and **Your Estimate**: the card deck for choosing your vote. Choose a card again to withdraw it
-- **Revealed** — All votes shown, with **Average**, **Mode**, **Low** and **High**, and a **Consensus** tag when the votes agree or **Spread — discuss** when they do not. Votes agree when the numeric votes are no more than 3 apart, or, on a scale without numbers, when everyone chose the same card. **Re-vote** clears the votes; **Accept** takes the mode, and its dropdown accepts any other value on the scale
+- **Revealed** — All votes shown, with **Average**, **Mode**, **Low** and **High**, and a **Consensus** tag when the votes agree or **Spread — discuss** when they do not. Votes agree when the numeric votes are no more than 3 apart, or, on a scale without numbers, when everyone chose the same card. **Re-vote** clears the votes; **Accept** takes the mode, and its dropdown accepts any other value on the session's version of the scale, cards included
 - **Accepted** — The accepted estimate, marked **Estimated**, with **Reset & Re-vote**
 
 Above the cards, the round's label and description are shown. Those who can run the session edit both in place, and the changes are saved as they type and appear for everyone in the session; a long description can be expanded with **Expand**.
@@ -59,7 +61,7 @@ stateDiagram-v2
 - **Voting** — Participants submit estimates from the card deck, and can change or withdraw them until the votes are revealed
 - **Reveal** — All votes are revealed simultaneously
 - **Re-vote** — Clear votes and any accepted estimate, and return to voting (for re-estimation)
-- **Accept** — Set the agreed estimate value
+- **Accept** — Set the agreed estimate, which must be a value on the session's version of the scale. A card is allowed: a team agreeing on `?` is a real outcome
 
 ### Real-time Features
 
@@ -71,7 +73,9 @@ stateDiagram-v2
 
 - Sessions are immediately activated on creation
 - Rounds can only be added, changed or removed, and votes cast, while the session is active
-- The estimation scale cannot change after rounds begin
+- The estimation scale cannot change after rounds begin. Changing it before then pins the session to the chosen scale's current version
+- Votes and the accepted estimate must be values on the session's version of its scale
+- A session stays on its version when the scale publishes a new one or is deactivated
 - Only active sessions can be completed. Completing a session deletes its empty rounds — those with no label, no description and no votes, such as the round started automatically after the last estimate was accepted
 - Running a session — starting, revealing, re-voting and accepting rounds, and completing it — needs the **Update Poker Sessions** permission, and so does voting. It is not limited to the facilitator
 

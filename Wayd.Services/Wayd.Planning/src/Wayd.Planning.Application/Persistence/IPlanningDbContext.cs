@@ -15,6 +15,7 @@ public interface IPlanningDbContext : IWaydDbContext
     DbSet<PlanningIntervalObjectiveHealthCheck> PlanningIntervalObjectiveHealthChecks { get; }
     DbSet<Roadmap> Roadmaps { get; }
     DbSet<EstimationScale> EstimationScales { get; }
+    DbSet<EstimationScaleVersion> EstimationScaleVersions { get; }
     DbSet<PokerSession> PokerSessions { get; }
     DbSet<StoryMap> StoryMaps { get; }
 }

@@ -30506,7 +30506,7 @@ export class EstimationScalesClient {
      * Create a custom estimation scale.
      * @return Created
      */
-    create(request: CreateEstimationScaleRequest, cancelToken?: CancelToken): Promise<number> {
+    create(request: CreateEstimationScaleRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
         let url_ = this.baseUrl + "/api/planning/estimation-scales";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -30534,7 +30534,7 @@ export class EstimationScalesClient {
         });
     }
 
-    protected processCreate(response: AxiosResponse): Promise<number> {
+    protected processCreate(response: AxiosResponse): Promise<ObjectIdAndKey> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -30549,7 +30549,7 @@ export class EstimationScalesClient {
             let result201: any = null;
             let resultData201  = _responseText;
             result201 = resultData201;
-            return Promise.resolve<number>(result201);
+            return Promise.resolve<ObjectIdAndKey>(result201);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -30562,18 +30562,18 @@ export class EstimationScalesClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<number>(null as any);
+        return Promise.resolve<ObjectIdAndKey>(null as any);
     }
 
     /**
      * Get estimation scale details.
      * @return OK
      */
-    getScale(id: number, cancelToken?: CancelToken): Promise<EstimationScaleDto> {
-        let url_ = this.baseUrl + "/api/planning/estimation-scales/{id}";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    getScale(idOrKey: string, cancelToken?: CancelToken): Promise<EstimationScaleDetailsDto> {
+        let url_ = this.baseUrl + "/api/planning/estimation-scales/{idOrKey}";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -30596,7 +30596,7 @@ export class EstimationScalesClient {
         });
     }
 
-    protected processGetScale(response: AxiosResponse): Promise<EstimationScaleDto> {
+    protected processGetScale(response: AxiosResponse): Promise<EstimationScaleDetailsDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -30611,7 +30611,7 @@ export class EstimationScalesClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<EstimationScaleDto>(result200);
+            return Promise.resolve<EstimationScaleDetailsDto>(result200);
 
         } else if (status === 404) {
             const _responseText = response.data;
@@ -30624,14 +30624,14 @@ export class EstimationScalesClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<EstimationScaleDto>(null as any);
+        return Promise.resolve<EstimationScaleDetailsDto>(null as any);
     }
 
     /**
      * Update a custom estimation scale.
      * @return No Content
      */
-    update(id: number, request: UpdateEstimationScaleRequest, cancelToken?: CancelToken): Promise<void> {
+    update(id: string, request: UpdateEstimationScaleRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/planning/estimation-scales/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -30700,7 +30700,7 @@ export class EstimationScalesClient {
      * Delete a custom estimation scale.
      * @return No Content
      */
-    delete(id: number, cancelToken?: CancelToken): Promise<void> {
+    delete(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/planning/estimation-scales/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -30758,7 +30758,7 @@ export class EstimationScalesClient {
      * Set the active status of an estimation scale.
      * @return No Content
      */
-    setActiveStatus(id: number, request: SetEstimationScaleActiveStatusRequest, cancelToken?: CancelToken): Promise<void> {
+    setActiveStatus(id: string, request: SetEstimationScaleActiveStatusRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/planning/estimation-scales/{id}/active-status";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -59738,10 +59738,14 @@ Mixed-case input is preserved. Default true. */
     normalizeNameCasing: boolean;
 }
 
+/** A new estimation scale, created active with its values as version 1. */
 export interface CreateEstimationScaleRequest {
+    /** The scale's name, at most 128 characters. */
     name: string;
+    /** What the scale is for, at most 1024 characters. */
     description?: string | undefined;
-    values: string[];
+    /** The cards in the order they are shown, at least 2 of them estimates. */
+    values: EstimationScaleValueRequest[];
 }
 
 export interface CreateExpenditureCategoryRequest {
@@ -59908,7 +59912,7 @@ export interface CreatePlanningIntervalRequest {
 
 export interface CreatePokerSessionRequest {
     name: string;
-    estimationScaleId: number;
+    estimationScaleId: string;
 }
 
 export interface CreatePortfolioRequest {
@@ -61034,12 +61038,56 @@ into it, which is a complete answer rather than missing data. */
     running: RolloutItemDto[];
 }
 
+/** An estimation scale with its current version, the values anything newly choosing the scale votes on. */
 export interface EstimationScaleDto {
-    id: number;
+    id: string;
+    key: number;
     name: string;
     description?: string | undefined;
     isActive: boolean;
-    values: string[];
+    /** The latest published version. */
+    currentVersion: EstimationScaleVersionDto;
+}
+
+/** An estimation scale with its current version and every version it has published. */
+export interface EstimationScaleDetailsDto extends EstimationScaleDto {
+    /** Every published version, newest first. */
+    versions: EstimationScaleVersionDto[];
+}
+
+/** Identifies an estimation scale from a record that uses it. */
+export interface EstimationScaleNavigationDto {
+    id: string;
+    key: number;
+    name: string;
+}
+
+/** One value on an estimation scale version. */
+export interface EstimationScaleValueDto {
+    /** The text shown on the card and recorded as the vote. */
+    value: string;
+    /** False for a card such as `?`, which can be voted but never becomes an estimate. */
+    isEstimate: boolean;
+}
+
+/** One value on an estimation scale: a card participants can vote. */
+export interface EstimationScaleValueRequest {
+    /** The text shown on the card and recorded as the vote, such as `5`, `M` or `?`. At most 32 characters, and
+unique on the scale. */
+    value: string;
+    /** Whether the value is a size. False for a card such as `?`, `∞` or `☕`, which can be voted but never
+becomes an estimate. A scale needs at least 2 estimate values. */
+    isEstimate: boolean;
+}
+
+/** One published version of an estimation scale. A version never changes once published. */
+export interface EstimationScaleVersionDto {
+    id: string;
+    /** The version's number within its scale, starting at 1. */
+    number: number;
+    publishedOn: Date;
+    /** The values a participant can vote, in display order. */
+    values: EstimationScaleValueDto[];
 }
 
 /** A request to evaluate (test) a scoring model against a set of supplied criterion values, returning the resulting output values without persisting anything. */
@@ -64054,7 +64102,9 @@ export interface PokerSessionDetailsDto {
     name: string;
     status: string;
     facilitator?: UserNavigationDto | undefined;
-    estimationScale?: EstimationScaleDto | undefined;
+    estimationScale?: EstimationScaleNavigationDto | undefined;
+    /** The scale version the session votes on, which stays put when the scale publishes a newer one. */
+    estimationScaleVersion?: EstimationScaleVersionDto | undefined;
     activatedOn?: Date | undefined;
     completedOn?: Date | undefined;
     rounds: PokerRoundDto[];
@@ -65722,8 +65772,11 @@ export interface SetDeploymentEnvironmentActiveRequest {
     isActive: boolean;
 }
 
+/** Whether an estimation scale is available to new poker sessions. */
 export interface SetEstimationScaleActiveStatusRequest {
-    id: number;
+    /** The scale's id, matching the one in the path. */
+    id: string;
+    /** True to make the scale available to new sessions, false to withdraw it. */
     isActive: boolean;
 }
 
@@ -67900,11 +67953,17 @@ Mixed-case input is preserved. Default true. */
     normalizeNameCasing: boolean;
 }
 
+/** An estimation scale's name, description and values, all set from the body. */
 export interface UpdateEstimationScaleRequest {
-    estimationScaleId: number;
+    /** The scale's id, matching the one in the path. */
+    id: string;
+    /** The scale's name, at most 128 characters. */
     name: string;
+    /** What the scale is for, at most 1024 characters. Omitting it clears it. */
     description?: string | undefined;
-    values: string[];
+    /** The cards in the order they are shown, at least 2 of them estimates. Values that differ from the current
+version's, in text, flag or order, publish the next version; the same values publish nothing. */
+    values: EstimationScaleValueRequest[];
 }
 
 export interface UpdateExpenditureCategoryRequest {
@@ -68129,7 +68188,7 @@ export interface UpdatePokerRoundLabelRequest {
 
 export interface UpdatePokerSessionRequest {
     name: string;
-    estimationScaleId: number;
+    estimationScaleId: string;
 }
 
 export interface UpdatePortfolioRequest {

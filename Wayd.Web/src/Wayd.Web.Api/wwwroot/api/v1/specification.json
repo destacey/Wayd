@@ -25709,7 +25709,7 @@
           "EstimationScales"
         ],
         "summary": "Get a list of estimation scales.",
-        "description": "Sorted by name. Each scale has an integer `id`, `name`, `description`, `isActive` and its ordered `values`. Only active scales are listed unless `includeInactive` is true. Requires the planning-poker feature flag; returns 404 when it is off.",
+        "description": "Sorted by name. Each scale has its `id` (a UUID), `key`, `name`, `description`, `isActive` and `currentVersion`: the `number` and ordered `values` new sessions vote on, each with `isEstimate`, false for a card such as `?` that can be voted but never becomes an estimate. Only active scales are listed unless `includeInactive` is true. Requires the planning-poker feature flag; returns 404 when it is off.",
         "operationId": "EstimationScales_GetScales",
         "parameters": [
           {
@@ -25758,7 +25758,7 @@
           "EstimationScales"
         ],
         "summary": "Create a custom estimation scale.",
-        "description": "`values` are the cards in the order they are shown: at least 2, each at most 32 characters. The new scale is active. Returns its integer id.",
+        "description": "`values` are the cards in the order they are shown, each a `value` of at most 32 characters, unique on the scale, and `isEstimate`: false for a card such as `?` that can be voted but never becomes an estimate. At least 2 must be estimates. The new scale is active, with these values as version 1. Returns its `id` and `key`.",
         "operationId": "EstimationScales_Create",
         "requestBody": {
           "content": {
@@ -25778,8 +25778,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "integer",
-                  "format": "int32"
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
                 }
               }
             }
@@ -25802,22 +25801,21 @@
         ]
       }
     },
-    "/api/planning/estimation-scales/{id}": {
+    "/api/planning/estimation-scales/{idOrKey}": {
       "get": {
         "tags": [
           "EstimationScales"
         ],
         "summary": "Get estimation scale details.",
-        "description": "Takes the scale's integer id. Returns the scale, active or not, with its ordered `values`.",
+        "description": "Takes the scale's UUID or key. Returns the scale, active or not, with its `currentVersion` and every published version in `versions`, newest first. A version never changes once published.",
         "operationId": "EstimationScales_GetScale",
         "parameters": [
           {
-            "name": "id",
+            "name": "idOrKey",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string"
             },
             "x-position": 1
           }
@@ -25828,7 +25826,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EstimationScaleDto"
+                  "$ref": "#/components/schemas/EstimationScaleDetailsDto"
                 }
               }
             }
@@ -25849,13 +25847,15 @@
             "ApiKey": [ ]
           }
         ]
-      },
+      }
+    },
+    "/api/planning/estimation-scales/{id}": {
       "put": {
         "tags": [
           "EstimationScales"
         ],
         "summary": "Update a custom estimation scale.",
-        "description": "A whole-record overwrite: `name`, `description` and `values` are all set from the body, so an omitted `description` is cleared and `values` replaces the whole list. Read the scale with EstimationScales_GetScale first and pass back what should stay. Applies to any scale, including the ones Wayd seeds, and every session on the scale shows the new values, completed ones included. Takes the scale's integer id, in the path and again as `estimationScaleId` in the body.",
+        "description": "A whole-record overwrite: `name`, `description` and `values` are all set from the body, so an omitted `description` is cleared. Read the scale with EstimationScales_GetScale first and pass back what should stay. Values that differ from the current version's, in text, `isEstimate` or order, publish the next version; the same values publish nothing. A published version never changes, so sessions already on the scale keep voting on the version they were created on, and only sessions created afterwards use the new one. Renaming or editing the description publishes no version. Applies to any scale, including the ones Wayd seeds. Takes the scale's UUID, in the path and again as `id` in the body.",
         "operationId": "EstimationScales_Update",
         "parameters": [
           {
@@ -25863,8 +25863,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             },
             "x-position": 1
           }
@@ -25917,7 +25917,7 @@
           "EstimationScales"
         ],
         "summary": "Delete a custom estimation scale.",
-        "description": "Permanently deletes the scale. Refused while any poker session uses it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's integer id.",
+        "description": "Permanently deletes the scale with all its versions. Refused while any poker session uses it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's UUID.",
         "operationId": "EstimationScales_Delete",
         "parameters": [
           {
@@ -25925,8 +25925,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             },
             "x-position": 1
           }
@@ -25959,7 +25959,7 @@
           "EstimationScales"
         ],
         "summary": "Set the active status of an estimation scale.",
-        "description": "`isActive` false takes the scale out of the default list, which is what new sessions are chosen from, without changing sessions that use it; true brings it back. Fails when the scale already has that status, and the last active scale cannot be deactivated. Takes the scale's integer id, in the path and again as `id` in the body.",
+        "description": "`isActive` false takes the scale out of the default list, which is what new sessions are chosen from, without changing sessions that use it; true brings it back. Publishes no version. Fails when the scale already has that status, and the last active scale cannot be deactivated. Takes the scale's UUID, in the path and again as `id` in the body.",
         "operationId": "EstimationScales_SetActiveStatus",
         "parameters": [
           {
@@ -25967,8 +25967,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             },
             "x-position": 1
           }
@@ -28977,7 +28977,7 @@
           "PokerSessions"
         ],
         "summary": "Create a poker session.",
-        "description": "Starts an Active session, facilitated by the caller, that estimates on the scale `estimationScaleId` (an integer; EstimationScales_GetScales lists the active scales). The scale must be active; a session already on a scale that is later deactivated keeps working. It has no rounds yet; add them with PokerSessions_AddRound. Returns the new session's `id` and `key`.",
+        "description": "Starts an Active session, facilitated by the caller, that estimates on the scale `estimationScaleId` (a UUID; EstimationScales_GetScales lists the active scales). The scale must be active. The session is pinned to the scale's current version and stays on it when the scale later publishes a new version or is deactivated. It has no rounds yet; add them with PokerSessions_AddRound. Returns the new session's `id` and `key`.",
         "operationId": "PokerSessions_Create",
         "requestBody": {
           "content": {
@@ -29026,7 +29026,7 @@
           "PokerSessions"
         ],
         "summary": "Get poker session details using the Id or key.",
-        "description": "Takes the session's UUID or key. Returns the session with its estimation scale and values, and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.",
+        "description": "Takes the session's UUID or key. Returns the session with its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.",
         "operationId": "PokerSessions_GetSession",
         "parameters": [
           {
@@ -29074,7 +29074,7 @@
           "PokerSessions"
         ],
         "summary": "Update a poker session.",
-        "description": "A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale. A completed session cannot be updated. Takes the session's UUID.",
+        "description": "A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it and the version the session is on, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale; changing it pins the session to that scale's current version. A completed session cannot be updated. Takes the session's UUID.",
         "operationId": "PokerSessions_Update",
         "parameters": [
           {
@@ -29427,7 +29427,7 @@
           "PokerSessions"
         ],
         "summary": "Set the consensus estimate for a round.",
-        "description": "Records the agreed `estimate` (at most 32 characters, normally one of the scale's values) and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Both ids are UUIDs.",
+        "description": "Records the agreed `estimate`, which must be one of the values on the session's scale version, a card such as `?` included, and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Both ids are UUIDs.",
         "operationId": "PokerSessions_SetConsensus",
         "parameters": [
           {
@@ -29619,7 +29619,7 @@
           "PokerSessions"
         ],
         "summary": "Submit a vote for a round.",
-        "description": "Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the session's scale values exactly as the scale lists them, special cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. Both ids are UUIDs.",
+        "description": "Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. Both ids are UUIDs.",
         "operationId": "PokerSessions_SubmitVote",
         "parameters": [
           {
@@ -53822,24 +53822,26 @@
           "name": {
             "maxLength": 128,
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "The scale's name, at most 128 characters."
           },
           "description": {
             "maxLength": 1024,
             "type": "string",
+            "description": "What the scale is for, at most 1024 characters.",
             "nullable": true
           },
           "values": {
             "minItems": 1,
             "type": "array",
             "items": {
-              "maxLength": 32,
-              "minLength": 1,
-              "type": "string"
-            }
+              "$ref": "#/components/schemas/EstimationScaleValueRequest"
+            },
+            "description": "The cards in the order they are shown, at least 2 of them estimates."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "A new estimation scale, created active with its values as version 1."
       },
       "CreateExpenditureCategoryRequest": {
         "required": [
@@ -54412,10 +54414,9 @@
             "type": "string"
           },
           "estimationScaleId": {
-            "minimum": 0,
-            "exclusiveMinimum": true,
-            "type": "integer",
-            "format": "int32"
+            "minLength": 1,
+            "type": "string",
+            "format": "uuid"
           }
         },
         "additionalProperties": false
@@ -57738,16 +57739,45 @@
         "additionalProperties": false,
         "description": "What one environment is running right now, derived from its deployments rather than stored."
       },
+      "EstimationScaleDetailsDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/EstimationScaleDto"
+          },
+          {
+            "required": [
+              "versions"
+            ],
+            "type": "object",
+            "properties": {
+              "versions": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/EstimationScaleVersionDto"
+                },
+                "description": "Every published version, newest first."
+              }
+            },
+            "additionalProperties": false
+          }
+        ],
+        "description": "An estimation scale with its current version and every version it has published."
+      },
       "EstimationScaleDto": {
         "required": [
           "name",
+          "currentVersion",
           "id",
-          "isActive",
-          "values"
+          "key",
+          "isActive"
         ],
         "type": "object",
         "properties": {
           "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
             "type": "integer",
             "format": "int32"
           },
@@ -57761,14 +57791,111 @@
           "isActive": {
             "type": "boolean"
           },
+          "currentVersion": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EstimationScaleVersionDto"
+              }
+            ],
+            "description": "The latest published version."
+          }
+        },
+        "additionalProperties": false,
+        "description": "An estimation scale with its current version, the values anything newly choosing the scale votes on."
+      },
+      "EstimationScaleNavigationDto": {
+        "required": [
+          "name",
+          "id",
+          "key"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Identifies an estimation scale from a record that uses it."
+      },
+      "EstimationScaleValueDto": {
+        "required": [
+          "value",
+          "isEstimate"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "The text shown on the card and recorded as the vote."
+          },
+          "isEstimate": {
+            "type": "boolean",
+            "description": "False for a card such as `?`, which can be voted but never becomes an estimate."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One value on an estimation scale version."
+      },
+      "EstimationScaleValueRequest": {
+        "required": [
+          "value",
+          "isEstimate"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "The text shown on the card and recorded as the vote, such as `5`, `M` or `?`. At most 32 characters, and\nunique on the scale."
+          },
+          "isEstimate": {
+            "type": "boolean",
+            "description": "Whether the value is a size. False for a card such as `?`, `∞` or `☕`, which can be voted but never\nbecomes an estimate. A scale needs at least 2 estimate values."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One value on an estimation scale: a card participants can vote."
+      },
+      "EstimationScaleVersionDto": {
+        "required": [
+          "id",
+          "number",
+          "publishedOn",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "integer",
+            "description": "The version's number within its scale, starting at 1.",
+            "format": "int32"
+          },
+          "publishedOn": {
+            "type": "string",
+            "format": "date-time"
+          },
           "values": {
             "type": "array",
             "items": {
-              "type": "string"
-            }
+              "$ref": "#/components/schemas/EstimationScaleValueDto"
+            },
+            "description": "The values a participant can vote, in display order."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "One published version of an estimation scale. A version never changes once published."
       },
       "EvaluateScoringModelRequest": {
         "required": [
@@ -66698,9 +66825,18 @@
           "estimationScale": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/EstimationScaleDto"
+                "$ref": "#/components/schemas/EstimationScaleNavigationDto"
               }
             ],
+            "nullable": true
+          },
+          "estimationScaleVersion": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EstimationScaleVersionDto"
+              }
+            ],
+            "description": "The scale version the session votes on, which stays put when the scale publishes a newer one.",
             "nullable": true
           },
           "activatedOn": {
@@ -72222,16 +72358,18 @@
         "type": "object",
         "properties": {
           "id": {
-            "minimum": 0,
-            "exclusiveMinimum": true,
-            "type": "integer",
-            "format": "int32"
+            "minLength": 1,
+            "type": "string",
+            "description": "The scale's id, matching the one in the path.",
+            "format": "uuid"
           },
           "isActive": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "True to make the scale available to new sessions, false to withdraw it."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Whether an estimation scale is available to new poker sessions."
       },
       "SetExternalUrlTemplatesRequest": {
         "type": "object",
@@ -78834,39 +78972,41 @@
       },
       "UpdateEstimationScaleRequest": {
         "required": [
-          "estimationScaleId",
+          "id",
           "name",
           "values"
         ],
         "type": "object",
         "properties": {
-          "estimationScaleId": {
-            "minimum": 0,
-            "exclusiveMinimum": true,
-            "type": "integer",
-            "format": "int32"
+          "id": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The scale's id, matching the one in the path.",
+            "format": "uuid"
           },
           "name": {
             "maxLength": 128,
             "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "description": "The scale's name, at most 128 characters."
           },
           "description": {
             "maxLength": 1024,
             "type": "string",
+            "description": "What the scale is for, at most 1024 characters. Omitting it clears it.",
             "nullable": true
           },
           "values": {
             "minItems": 1,
             "type": "array",
             "items": {
-              "maxLength": 32,
-              "minLength": 1,
-              "type": "string"
-            }
+              "$ref": "#/components/schemas/EstimationScaleValueRequest"
+            },
+            "description": "The cards in the order they are shown, at least 2 of them estimates. Values that differ from the current\nversion's, in text, flag or order, publish the next version; the same values publish nothing."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "An estimation scale's name, description and values, all set from the body."
       },
       "UpdateExpenditureCategoryRequest": {
         "required": [
@@ -79603,10 +79743,9 @@
             "type": "string"
           },
           "estimationScaleId": {
-            "minimum": 0,
-            "exclusiveMinimum": true,
-            "type": "integer",
-            "format": "int32"
+            "minLength": 1,
+            "type": "string",
+            "format": "uuid"
           }
         },
         "additionalProperties": false

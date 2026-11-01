@@ -17,7 +17,7 @@ import {
 
 export interface UpdatePokerSessionRequest {
   name: string
-  estimationScaleId: number
+  estimationScaleId: string
 }
 
 export const pokerSessionsApi = apiSlice.injectEndpoints({

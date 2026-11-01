@@ -33,12 +33,16 @@ public sealed class SetConsensusCommandHandler(IPlanningDbContext planningDbCont
             if (session is null)
                 return Result.Failure("Poker session not found.");
 
-            var result = session.SetConsensus(request.RoundId, request.Estimate);
+            var version = await _planningDbContext.EstimationScaleVersions
+                .AsNoTracking()
+                .FirstAsync(v => v.Id == session.EstimationScaleVersionId, cancellationToken);
+
+            var result = session.SetConsensus(request.RoundId, request.Estimate, version);
             if (result.IsFailure)
                 return Result.Failure(result.Error);
 
             await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifyConsensusSet(session.Id, request.RoundId, request.Estimate);
+            await _notifier.NotifyConsensusSet(session.Id, request.RoundId, result.Value.ConsensusEstimate!);
 
             return Result.Success();
         }

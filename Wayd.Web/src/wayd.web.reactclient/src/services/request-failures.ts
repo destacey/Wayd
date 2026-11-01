@@ -25,6 +25,36 @@ export function isNetworkError(error: unknown): boolean {
   return e.message === 'Network Error'
 }
 
+/**
+ * Logs a failed API request at the level its cause deserves. Only server
+ * errors and unexplained failures are `console.error`, which Next's dev
+ * overlay reports as a crash.
+ *
+ * A network error is a warning: RTK Query retries plus refetch-on-focus turn
+ * one offline blip into dozens of identical entries. A 4xx is a warning too,
+ * because only the caller knows whether it is a failure: a form shows its 400
+ * or 422, a 404 can mean "nothing there" (a team with no active sprint), and a
+ * 429 passes once its wait does. Each endpoint's queryFn logs a real failure
+ * with its own context.
+ */
+export function logFailedRequest(error: {
+  message?: string
+  response?: { status?: number }
+  config?: { url?: string }
+}): void {
+  const url = error.config?.url
+  const status = error.response?.status
+  if (isNetworkError(error)) {
+    console.warn('API unreachable:', url)
+  } else if (status === 429) {
+    console.warn('API rate limit reached:', url)
+  } else if (status !== undefined && status >= 400 && status < 500) {
+    console.warn('API refused the request:', status, url)
+  } else {
+    console.error('API Error:', error.message, url)
+  }
+}
+
 const TRANSIENT_REFRESH_STATUSES = new Set([429, 502, 503, 504])
 
 /**

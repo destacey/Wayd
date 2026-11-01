@@ -99,6 +99,27 @@ public class PokerSessionTests
     }
 
     [Fact]
+    public void Complete_ShouldDeleteEmptyRoundsAndKeepTheRest()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var labelled = session.AddRound("WI-1").Value;
+        var described = session.AddRound("", "Only a description").Value;
+        var voted = session.AddRound(null).Value;
+        session.SubmitVote(voted.Id, "user-1", "5", Scale.CurrentVersion, Now);
+        session.AddRound("");
+        session.AddRound("   ");
+        session.AddRound(null);
+
+        // Act
+        var result = session.Complete(Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        session.Rounds.Should().BeEquivalentTo([labelled, described, voted]);
+    }
+
+    [Fact]
     public void Complete_FromCompleted_ShouldReturnFailure()
     {
         // Arrange
@@ -162,6 +183,98 @@ public class PokerSessionTests
         round1.Order.Should().Be(0);
         round2.Order.Should().Be(1);
         round3.Order.Should().Be(2);
+    }
+
+    [Fact]
+    public void AddRound_WithDescription_ShouldStoreTrimmedDescription()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+
+        // Act
+        var result = session.AddRound("WI-1: Test", "  Users can sign in with SSO.  ");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Description.Should().Be("Users can sign in with SSO.");
+    }
+
+    [Fact]
+    public void AddRound_WithBlankDescription_ShouldStoreNoDescription()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+
+        // Act
+        var result = session.AddRound("WI-1: Test", "   ");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Description.Should().BeNull();
+    }
+
+    #endregion
+
+    #region UpdateRoundDescription
+
+    [Fact]
+    public void UpdateRoundDescription_ActiveSession_ShouldReplaceDescription()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound("WI-1: Test", "Original").Value;
+
+        // Act
+        var result = session.UpdateRoundDescription(round.Id, " Updated ");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        round.Description.Should().Be("Updated");
+        round.Label.Should().Be("WI-1: Test");
+    }
+
+    [Fact]
+    public void UpdateRoundDescription_BlankDescription_ShouldClearIt()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound("WI-1: Test", "Original").Value;
+
+        // Act
+        var result = session.UpdateRoundDescription(round.Id, " ");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        round.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void UpdateRoundDescription_CompletedSession_ShouldReturnFailure()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound("WI-1: Test").Value;
+        session.Complete(Now);
+
+        // Act
+        var result = session.UpdateRoundDescription(round.Id, "Updated");
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        round.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void UpdateRoundDescription_UnknownRound_ShouldReturnFailure()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+
+        // Act
+        var result = session.UpdateRoundDescription(Guid.NewGuid(), "Updated");
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
     }
 
     #endregion

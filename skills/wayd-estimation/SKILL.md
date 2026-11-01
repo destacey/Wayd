@@ -1,6 +1,6 @@
 ---
 name: wayd-estimation
-description: Read before calling the Wayd MCP tools named PokerSessions_* or EstimationScales_*. Guides agents running Wayd planning poker via the Wayd MCP server — poker sessions, rounds, voting, revealing and resetting votes, recording a consensus estimate, completing a session, and the estimation scales sessions vote on, including activating, deactivating and customizing them. Use when listing or reading a poker session or its results, creating, renaming or deleting a session, adding, labelling or removing rounds, casting or withdrawing the user's own vote, revealing or resetting a round, setting a round's consensus, completing a session, or listing, creating, changing, activating, deactivating or deleting an estimation scale.
+description: Read before calling the Wayd MCP tools named PokerSessions_* or EstimationScales_*. Guides agents running Wayd planning poker via the Wayd MCP server — poker sessions, rounds, voting, revealing and resetting votes, recording a consensus estimate, completing a session, and the estimation scales sessions vote on, including activating, deactivating and customizing them. Use when listing or reading a poker session or its results, creating, renaming or deleting a session, adding, labelling, describing or removing rounds, casting or withdrawing the user's own vote, revealing or resetting a round, setting a round's consensus, completing a session, or listing, creating, changing, activating, deactivating or deleting an estimation scale.
 ---
 
 # Wayd Planning Poker and Estimation Scales
@@ -47,7 +47,7 @@ Poker session (UUID or key)          Active → Completed, pinned to one scale v
 | **Revealed** | Votes are shown; voting is closed | set consensus, reset |
 | **Accepted** | `consensusEstimate` recorded | reset (clears votes and the estimate) |
 
-A round has an optional `label` (at most 512 characters) naming what is estimated, such as a story's title or key. Rounds are ordered by when they were added.
+A round has an optional `label` (at most 512 characters) naming what is estimated, such as a story's title or key, and an optional `description` (at most 2048 characters) with detail for the team, such as acceptance criteria. Rounds are ordered by when they were added.
 
 ### Votes are personal
 
@@ -80,12 +80,13 @@ A round has an optional `label` (at most 512 characters) naming what is estimate
 5. **Reveal** — `PokerSessions_RevealRound` when the facilitator says so. Check `voteCount` first and tell the user if people have not voted yet.
 6. **Agree** — `PokerSessions_SetConsensus` with the agreed `estimate`, which must be a value on the session's version. A card such as `?` is allowed — a team that cannot size an item is a real outcome; say so when reporting it rather than treating it as a size. The round must be Revealed; it becomes Accepted.
 7. **Re-vote** — `PokerSessions_ResetRound` clears every vote and any consensus and returns the round to Voting. Say so before calling it: the votes are gone for good.
-8. **Finish** — `PokerSessions_CompleteSession`. Make sure every round the user cares about is Accepted first; a completed session cannot be changed.
+8. **Finish** — `PokerSessions_CompleteSession`. Make sure every round the user cares about is Accepted first; a completed session cannot be changed. Completing deletes empty rounds (no label, description or votes), so do not report those as missing afterwards.
 
 Other session changes:
 
 - `PokerSessions_UpdateSession` — **whole-record overwrite** of `name` and `estimationScaleId`; send the current scale id to keep it and the version the session is on.
 - `PokerSessions_UpdateRoundLabel` — replaces the label; omitting it clears it.
+- `PokerSessions_UpdateRoundDescription` — replaces the description, leaving the label alone; omitting it clears it.
 - `PokerSessions_RemoveRound` — deletes a round with its votes and consensus.
 - `PokerSessions_DeleteSession` — deletes the session with every round, vote and estimate, whatever its status. To keep the results, complete it instead.
 

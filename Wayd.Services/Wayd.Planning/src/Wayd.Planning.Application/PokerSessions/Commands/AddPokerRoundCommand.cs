@@ -1,9 +1,10 @@
 ﻿using Wayd.Planning.Application.PokerSessions.Dtos;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
+using Wayd.Planning.Domain.Models.PlanningPoker;
 
 namespace Wayd.Planning.Application.PokerSessions.Commands;
 
-public sealed record AddPokerRoundCommand(Guid SessionId, string? Label) : ICommand<PokerRoundDto>;
+public sealed record AddPokerRoundCommand(Guid SessionId, string? Label, string? Description = null) : ICommand<PokerRoundDto>;
 
 public sealed class AddPokerRoundCommandValidator : CustomValidator<AddPokerRoundCommand>
 {
@@ -13,6 +14,7 @@ public sealed class AddPokerRoundCommandValidator : CustomValidator<AddPokerRoun
 
         RuleFor(c => c.SessionId).NotEmpty();
         RuleFor(c => c.Label).MaximumLength(512);
+        RuleFor(c => c.Description).MaximumLength(PokerRound.DescriptionMaxLength);
     }
 }
 
@@ -35,7 +37,7 @@ public sealed class AddPokerRoundCommandHandler(IPlanningDbContext planningDbCon
             if (session is null)
                 return Result.Failure<PokerRoundDto>("Poker session not found.");
 
-            var result = session.AddRound(request.Label);
+            var result = session.AddRound(request.Label, request.Description);
             if (result.IsFailure)
                 return Result.Failure<PokerRoundDto>(result.Error);
 

@@ -13,7 +13,7 @@ using Wayd.Infrastructure.Persistence.Context;
 namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 {
     [DbContext(typeof(WaydDbContext))]
-    [Migration("20261101182144_Backfill-Estimation-Scale-Baseline-Activity")]
+    [Migration("20261101221339_Backfill-Estimation-Scale-Baseline-Activity")]
     partial class BackfillEstimationScaleBaselineActivity
     {
         /// <inheritdoc />
@@ -4133,6 +4133,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<string>("ConsensusEstimate")
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
 
                     b.Property<string>("Label")
                         .HasMaxLength(512)

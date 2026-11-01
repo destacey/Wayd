@@ -19,8 +19,8 @@ namespace Wayd.Infrastructure.IntegrationTests.Sut.Persistence;
 [Collection(nameof(SqlServerTestCollection))]
 public sealed class VersionEstimationScalesMigrationTests(SqlServerDbContextFixture fixture)
 {
-    private const string Previous = "20261031214625_AddSyncRunMovedOutWorkItemsRemoved";
-    private const string Target = "20261101181813_Version-Estimation-Scales";
+    private const string Previous = "20261101185605_Add-PokerRound-Description";
+    private const string Target = "20261101221206_Version-Estimation-Scales";
     private const string FibonacciValues = """["1","2","3","5","?","∞","☕"]""";
     // Emoji compare equal to the ☕ card under the default collation, so these prove the cards are matched exactly.
     private const string SizeValues = """["🐜","🐭","🐶","🐘"]""";

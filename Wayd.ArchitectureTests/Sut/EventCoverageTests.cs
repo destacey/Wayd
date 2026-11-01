@@ -296,7 +296,7 @@ public partial class EventCoverageTests
             "Retypes ReleasedDate to the ReleasedAt instant, carrying each value across; no fact about a package changed: #929.",
         ["20260926212850_Store-Version-Cut-And-Released-As-Instants.cs"] =
             "Retypes CutDate and ReleasedDate to the CutAt and ReleasedAt instants, carrying each value across; no fact about a version changed: #929.",
-        ["20261101181813_Version-Estimation-Scales.cs"] =
+        ["20261101221206_Version-Estimation-Scales.cs"] =
             "Moves each scale's values onto version 1, and Down moves the current version's back, before the scale raised any event; no fact about a scale changed: #1254.",
     };
 

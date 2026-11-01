@@ -11,6 +11,7 @@ import {
   PokerSessionStatus,
   SetConsensusRequest,
   SubmitVoteRequest,
+  UpdatePokerRoundDescriptionRequest,
   UpdatePokerRoundLabelRequest,
 } from '@/src/services/wayd-api'
 
@@ -305,6 +306,33 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
         { type: QueryTags.PokerSessionRound, id: arg.sessionKey },
       ],
     }),
+
+    updatePokerRoundDescription: builder.mutation<
+      void,
+      {
+        sessionId: string
+        roundId: string
+        sessionKey: number
+        request: UpdatePokerRoundDescriptionRequest
+      }
+    >({
+      queryFn: async ({ sessionId, roundId, request }) => {
+        try {
+          const data = await getPokerSessionsClient().updateRoundDescription(
+            sessionId,
+            roundId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.PokerSessionRound, id: arg.sessionKey },
+      ],
+    }),
   }),
 })
 
@@ -323,4 +351,5 @@ export const {
   useSubmitPokerVoteMutation,
   useWithdrawPokerVoteMutation,
   useUpdatePokerRoundLabelMutation,
+  useUpdatePokerRoundDescriptionMutation,
 } = pokerSessionsApi

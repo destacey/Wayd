@@ -2,6 +2,7 @@ import {
   DEFAULT_RATE_LIMIT_WAIT_MS,
   isNetworkError,
   isTransientRefreshFailure,
+  logFailedRequest,
   RateLimitPause,
   signInRateLimitMessage,
   rateLimitWaitMs,
@@ -45,6 +46,65 @@ describe('isNetworkError', () => {
 
     // Assert
     expect(result).toBe(false)
+  })
+})
+
+describe('logFailedRequest', () => {
+  const url = '/api/organization/teams/team-1/sprints/active'
+  let warn: jest.SpyInstance
+  let error: jest.SpyInstance
+
+  beforeEach(() => {
+    warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    error = jest.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    warn.mockRestore()
+    error.mockRestore()
+  })
+
+  it.each([400, 403, 404, 409, 422, 429])(
+    'warns, not errors, for a %s the caller decides about',
+    (status) => {
+      // Arrange
+      const failure = {
+        message: 'failed',
+        response: { status },
+        config: { url },
+      }
+
+      // Act
+      logFailedRequest(failure)
+
+      // Assert
+      expect(warn).toHaveBeenCalledTimes(1)
+      expect(error).not.toHaveBeenCalled()
+    },
+  )
+
+  it('warns for a request that never reached the server', () => {
+    // Arrange
+    const failure = { message: 'Network Error', config: { url } }
+
+    // Act
+    logFailedRequest(failure)
+
+    // Assert
+    expect(warn).toHaveBeenCalledWith('API unreachable:', url)
+    expect(error).not.toHaveBeenCalled()
+  })
+
+  it.each([500, 503])('errors for a server error (%s)', (status) => {
+    // Arrange
+    const failure = { message: 'failed', response: { status }, config: { url } }
+
+    // Act
+    logFailedRequest(failure)
+
+    // Assert
+    expect(error).toHaveBeenCalledWith('API Error:', 'failed', url)
+    expect(warn).not.toHaveBeenCalled()
   })
 })
 

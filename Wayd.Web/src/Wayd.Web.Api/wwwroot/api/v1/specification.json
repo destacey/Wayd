@@ -29168,7 +29168,7 @@
           "PokerSessions"
         ],
         "summary": "Complete a poker session.",
-        "description": "Moves an Active session to Completed. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.",
+        "description": "Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.",
         "operationId": "PokerSessions_Complete",
         "parameters": [
           {
@@ -29210,7 +29210,7 @@
           "PokerSessions"
         ],
         "summary": "Add a round to a poker session.",
-        "description": "A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.",
+        "description": "A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.",
         "operationId": "PokerSessions_AddRound",
         "parameters": [
           {
@@ -29520,6 +29520,70 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/UpdatePokerRoundLabelRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/poker-sessions/{id}/rounds/{roundId}/description": {
+      "put": {
+        "tags": [
+          "PokerSessions"
+        ],
+        "summary": "Update the description for a round.",
+        "description": "Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Both ids are UUIDs.",
+        "operationId": "PokerSessions_UpdateRoundDescription",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "roundId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePokerRoundDescriptionRequest"
               }
             }
           },
@@ -51218,6 +51282,12 @@
             "maxLength": 512,
             "type": "string",
             "nullable": true
+          },
+          "description": {
+            "maxLength": 2048,
+            "type": "string",
+            "description": "Optional detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters.",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -66691,6 +66761,11 @@
             "type": "string",
             "nullable": true
           },
+          "description": {
+            "type": "string",
+            "description": "Optional detail about what is being estimated, such as acceptance criteria or notes for the team.",
+            "nullable": true
+          },
           "status": {
             "type": "string"
           },
@@ -79630,6 +79705,19 @@
           }
         },
         "additionalProperties": false
+      },
+      "UpdatePokerRoundDescriptionRequest": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "maxLength": 2048,
+            "type": "string",
+            "description": "Detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters. Null or blank clears it.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The new description for a poker round."
       },
       "UpdatePokerRoundLabelRequest": {
         "type": "object",

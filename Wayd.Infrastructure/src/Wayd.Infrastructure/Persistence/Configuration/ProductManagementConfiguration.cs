@@ -718,6 +718,7 @@ public class IncidentSeverityLevelConfiguration : IEntityTypeConfiguration<Incid
         builder.Property(l => l.SetId).IsRequired();
         builder.Property(l => l.Name).IsRequired().HasMaxLength(64);
         builder.Property(l => l.SortOrder).IsRequired();
+        builder.Property(l => l.Color).IsRequired().HasMaxLength(9);
     }
 }
 

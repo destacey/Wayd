@@ -1,0 +1,141 @@
+.sheet {
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius);
+  overflow: hidden;
+}
+
+.listHead,
+.incidentRow {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1.7fr) 92px 118px 48px 104px;
+  gap: 8px;
+  align-items: start;
+  padding: 8px 12px;
+  border-top: 1px solid var(--ant-color-border-secondary);
+  font-size: 14px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.listHead {
+  border-top: 0;
+  color: var(--ant-color-text-secondary);
+  font-size: 13px;
+}
+
+.incidentRow:hover {
+  background: var(--ant-color-fill-tertiary);
+}
+
+.incidentRow strong {
+  font-weight: 700;
+}
+
+.incidentRow .id {
+  color: var(--ant-color-text-secondary);
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+.titleCell {
+  min-width: 0;
+}
+
+.detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(180px, 0.7fr);
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius);
+}
+
+.detailMain {
+  padding: 16px;
+}
+
+.detailAside {
+  border-left: 1px solid var(--ant-color-border-secondary);
+  padding: 16px;
+}
+
+.meta {
+  color: var(--ant-color-text-secondary);
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 8px;
+}
+
+.desc {
+  color: var(--ant-color-text-secondary);
+  font-size: 14px;
+  margin: 0 0 16px;
+  white-space: pre-wrap;
+}
+
+.asideHeading {
+  margin: 16px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.asideHeading:first-child {
+  margin-top: 0;
+}
+
+.asideList {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.asideList li {
+  margin: 0 0 6px;
+}
+
+.rank {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.rank b {
+  width: 3px;
+  height: 0.72em;
+  align-self: center;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.pagination {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 700px) {
+  .listHead,
+  .incidentRow {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .detail {
+    grid-template-columns: 1fr;
+  }
+
+  .detailAside {
+    border-left: 0;
+    border-top: 1px solid var(--ant-color-border-secondary);
+  }
+}

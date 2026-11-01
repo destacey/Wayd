@@ -58451,7 +58451,7 @@
       "CreateIncidentSeveritySetRequest": {
         "required": [
           "name",
-          "levelNames"
+          "levels"
         ],
         "type": "object",
         "properties": {
@@ -58465,13 +58465,11 @@
             "type": "string",
             "nullable": true
           },
-          "levelNames": {
+          "levels": {
             "minItems": 1,
             "type": "array",
             "items": {
-              "maxLength": 64,
-              "minLength": 1,
-              "type": "string"
+              "$ref": "#/components/schemas/IncidentSeveritySetLevelRequest"
             }
           }
         },
@@ -66616,7 +66614,7 @@
             "$ref": "#/components/schemas/NavigationDto"
           },
           "severityLevel": {
-            "$ref": "#/components/schemas/NavigationDto"
+            "$ref": "#/components/schemas/IncidentSeverityLevelNavigationDto"
           },
           "noticedAt": {
             "type": "string",
@@ -66651,6 +66649,7 @@
       "IncidentSeverityLevelDto": {
         "required": [
           "name",
+          "color",
           "id",
           "sortOrder"
         ],
@@ -66666,9 +66665,41 @@
           "sortOrder": {
             "type": "integer",
             "format": "int32"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex accent color (e.g. \"#E07A4C\")."
           }
         },
         "additionalProperties": false
+      },
+      "IncidentSeverityLevelNavigationDto": {
+        "required": [
+          "name",
+          "color",
+          "id",
+          "sortOrder"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex accent color (e.g. \"#E07A4C\")."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Severity level shown on incident pages."
       },
       "IncidentSeveritySetDto": {
         "required": [
@@ -66724,6 +66755,11 @@
           },
           "name": {
             "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex accent color (e.g. \"#E07A4C\"). Defaults by rank when omitted on create.",
+            "nullable": true
           }
         },
         "additionalProperties": false,
@@ -66738,7 +66774,8 @@
           "commander",
           "severityLevel",
           "status",
-          "statusAlias"
+          "statusAlias",
+          "products"
         ],
         "type": "object",
         "properties": {
@@ -66771,13 +66808,19 @@
             "$ref": "#/components/schemas/NavigationDto"
           },
           "severityLevel": {
-            "$ref": "#/components/schemas/NavigationDto"
+            "$ref": "#/components/schemas/IncidentSeverityLevelNavigationDto"
           },
           "status": {
             "$ref": "#/components/schemas/StatusNavigationDto"
           },
           "statusAlias": {
             "$ref": "#/components/schemas/ProductStatusAlias"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationDto"
+            }
           }
         },
         "additionalProperties": false,

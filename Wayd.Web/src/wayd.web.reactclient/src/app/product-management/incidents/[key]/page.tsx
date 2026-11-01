@@ -13,13 +13,15 @@ import {
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
 import { useGetIncidentSeveritySetsQuery } from '@/src/store/features/product-management/incident-severity-sets-api'
 import { formatInstantInZone } from '@/src/utils'
-import { Button, DatePicker, Descriptions, Form, Select } from 'antd'
+import { Button, DatePicker, Form, Select } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
 import dayjs, { Dayjs } from 'dayjs'
 import { notFound } from 'next/navigation'
 import { use, useEffect, useMemo, useState } from 'react'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { MarkdownEditor } from '@/src/components/common/markdown'
+import { IncidentSeverityRank } from '@/src/app/product-management/incidents/_components/incident-severity-rank'
+import styles from '@/src/app/product-management/incidents/_components/incidents.module.css'
 
 const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { key } = use(props.params)
@@ -41,9 +43,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { data: severitySets } = useGetIncidentSeveritySetsQuery(false)
   const { data: products } = useGetProductsQuery(undefined)
 
-  useDocumentTitle(
-    incident ? `Incident ${incident.key}` : 'Incident',
-  )
+  useDocumentTitle(incident ? `Incident ${incident.key}` : 'Incident')
 
   useEffect(() => {
     if (error) {
@@ -67,6 +67,11 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const productOptions = (products ?? [])
     .map((product) => ({ value: product.id, label: product.name }))
     .sort((a, b) => caseInsensitiveCompare(a.label, b.label))
+
+  const productMeta =
+    incident.products.length > 0
+      ? incident.products.map((p) => p.name).join(', ')
+      : null
 
   const startEditing = () => {
     form.setFieldsValue({
@@ -122,11 +127,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   return (
     <div className="page-gutters">
-      <PageTitle
-        title={`Incident ${incident.key}`}
-        subtitle={incident.title}
-        actions={actions}
-      />
+      <PageTitle title={`Incident ${incident.key}`} actions={actions} />
       {editing ? (
         <Form form={form} layout="vertical">
           <Form.Item name="title" label="Title" rules={[{ required: true }]}>
@@ -156,43 +157,70 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           </Form.Item>
         </Form>
       ) : (
-        <Descriptions bordered column={1} size="small">
-          <Descriptions.Item label="Status">
-            {incident.status ? (
-              <WorkflowStatusTag
-                name={incident.status.name}
-                category={incident.status.category}
+        <article className={styles.detail}>
+          <section className={styles.detailMain}>
+            <p className={styles.meta}>
+              INC-{incident.key}
+              {productMeta ? ` · ${productMeta}` : null}
+            </p>
+            <h1 className={styles.titleRow}>
+              <IncidentSeverityRank
+                name={incident.severityLevel.name}
+                color={incident.severityLevel.color}
               />
+              <span>{incident.title}</span>
+            </h1>
+            {incident.description ? (
+              <p className={styles.desc}>{incident.description}</p>
             ) : null}
-          </Descriptions.Item>
-          <Descriptions.Item label="Commander">
-            {incident.commander?.name}
-          </Descriptions.Item>
-          <Descriptions.Item label="Severity">
-            {incident.severityLevel?.name}
-          </Descriptions.Item>
-          <Descriptions.Item label="Products">
-            {incident.products.length > 0
-              ? incident.products.map((p) => p.name).join(', ')
-              : '—'}
-          </Descriptions.Item>
-          <Descriptions.Item label="Noticed">
-            {formatInstantInZone(incident.noticedAt, viewerZone)}
-          </Descriptions.Item>
-          <Descriptions.Item label="Response started">
-            {incident.startedAt
-              ? formatInstantInZone(incident.startedAt, viewerZone)
-              : '—'}
-          </Descriptions.Item>
-          <Descriptions.Item label="Recovered">
-            {incident.recoveredAt
-              ? formatInstantInZone(incident.recoveredAt, viewerZone)
-              : '—'}
-          </Descriptions.Item>
-          <Descriptions.Item label="Description">
-            {incident.description ?? '—'}
-          </Descriptions.Item>
-        </Descriptions>
+          </section>
+          <aside className={styles.detailAside}>
+            <h2 className={styles.asideHeading}>Status</h2>
+            <ul className={styles.asideList}>
+              <li>
+                {incident.status ? (
+                  <WorkflowStatusTag
+                    name={incident.status.name}
+                    category={incident.status.category}
+                  />
+                ) : (
+                  '—'
+                )}
+              </li>
+            </ul>
+            <h2 className={styles.asideHeading}>Commander</h2>
+            <ul className={styles.asideList}>
+              <li>{incident.commander?.name ?? '—'}</li>
+            </ul>
+            <h2 className={styles.asideHeading}>Products</h2>
+            <ul className={styles.asideList}>
+              <li>
+                {incident.products.length > 0
+                  ? incident.products.map((p) => p.name).join(', ')
+                  : '—'}
+              </li>
+            </ul>
+            <h2 className={styles.asideHeading}>Timeline</h2>
+            <ul className={styles.asideList}>
+              <li>
+                Noticed{' '}
+                {formatInstantInZone(incident.noticedAt, viewerZone)}
+              </li>
+              <li>
+                Response started{' '}
+                {incident.startedAt
+                  ? formatInstantInZone(incident.startedAt, viewerZone)
+                  : '—'}
+              </li>
+              <li>
+                Recovered{' '}
+                {incident.recoveredAt
+                  ? formatInstantInZone(incident.recoveredAt, viewerZone)
+                  : '—'}
+              </li>
+            </ul>
+          </aside>
+        </article>
       )}
     </div>
   )

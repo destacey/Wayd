@@ -22,7 +22,10 @@ public abstract class IncidentSeveritySetHandlerTestBase : ProductCommandTestBas
         string name = "Custom",
         IReadOnlyList<string>? levelNames = null)
     {
-        var set = IncidentSeveritySet.CreateCustom(name, null, levelNames ?? ["High", "Low"]).Value;
+        var levels = (levelNames ?? ["High", "Low"])
+            .Select((n, i) => (n, (string?)IncidentSeverityLevel.DefaultColorForSortOrder(i)))
+            .ToList();
+        var set = IncidentSeveritySet.CreateCustom(name, null, levels).Value;
         DbContext.AddIncidentSeveritySet(set);
 
         return set;
@@ -32,7 +35,10 @@ public abstract class IncidentSeveritySetHandlerTestBase : ProductCommandTestBas
         string name = "SEV",
         IReadOnlyList<string>? levelNames = null)
     {
-        var set = IncidentSeveritySet.CreateSystem(name, null, levelNames ?? ["SEV-1", "SEV-2"]).Value;
+        var levels = (levelNames ?? ["SEV-1", "SEV-2"])
+            .Select((n, i) => (n, (string?)IncidentSeverityLevel.DefaultColorForSortOrder(i)))
+            .ToList();
+        var set = IncidentSeveritySet.CreateSystem(name, null, levels).Value;
         DbContext.AddIncidentSeveritySet(set);
 
         return set;

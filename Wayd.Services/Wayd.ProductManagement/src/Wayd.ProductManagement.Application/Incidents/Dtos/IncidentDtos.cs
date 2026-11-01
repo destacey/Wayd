@@ -8,6 +8,17 @@ using Wayd.ProductManagement.Domain.Models;
 
 namespace Wayd.ProductManagement.Application.Incidents.Dtos;
 
+/// <summary>Severity level shown on incident pages.</summary>
+public sealed record IncidentSeverityLevelNavigationDto
+{
+    public Guid Id { get; init; }
+    public required string Name { get; init; }
+    public int SortOrder { get; init; }
+
+    /// <summary>Hex accent color (e.g. "#E07A4C").</summary>
+    public required string Color { get; init; }
+}
+
 /// <summary>
 /// One incident on a list page.
 /// </summary>
@@ -20,9 +31,10 @@ public sealed record IncidentSummaryDto
     public Instant? StartedAt { get; init; }
     public Instant? RecoveredAt { get; init; }
     public NavigationDto Commander { get; init; } = default!;
-    public NavigationDto SeverityLevel { get; init; } = default!;
+    public IncidentSeverityLevelNavigationDto SeverityLevel { get; init; } = default!;
     public StatusNavigationDto Status { get; init; } = default!;
     public ProductStatusAlias StatusAlias { get; init; }
+    public IReadOnlyList<NavigationDto> Products { get; init; } = [];
 }
 
 /// <summary>
@@ -35,7 +47,7 @@ public sealed record IncidentDto
     public string Title { get; init; } = default!;
     public string? Description { get; init; }
     public NavigationDto Commander { get; init; } = default!;
-    public NavigationDto SeverityLevel { get; init; } = default!;
+    public IncidentSeverityLevelNavigationDto SeverityLevel { get; init; } = default!;
     public Instant NoticedAt { get; init; }
     public Instant? StartedAt { get; init; }
     public Instant? RecoveredAt { get; init; }
@@ -59,13 +71,23 @@ internal static class IncidentProjections
     internal static NavigationDto Commander(Employee employee) =>
         NavigationDto.Create(employee.Id, employee.Key, employee.Name.FullName);
 
-    internal static NavigationDto SeverityLevel(IncidentSeverityLevel level) =>
-        NavigationDto.Create(level.Id, level.SortOrder, level.Name);
+    internal static IncidentSeverityLevelNavigationDto SeverityLevel(IncidentSeverityLevel level) =>
+        new()
+        {
+            Id = level.Id,
+            Name = level.Name,
+            SortOrder = level.SortOrder,
+            Color = level.Color,
+        };
 
     internal static NavigationDto Product(Product product) =>
         NavigationDto.Create(product.Id, product.Key, product.Name);
 
-    internal static IncidentSummaryDto Summary(Incident incident, Employee commander, IncidentSeverityLevel level) =>
+    internal static IncidentSummaryDto Summary(
+        Incident incident,
+        Employee commander,
+        IncidentSeverityLevel level,
+        IReadOnlyList<Product> products) =>
         new()
         {
             Id = incident.Id,
@@ -78,6 +100,7 @@ internal static class IncidentProjections
             SeverityLevel = SeverityLevel(level),
             Status = Status(incident),
             StatusAlias = incident.StatusAlias,
+            Products = products.Select(Product).ToList(),
         };
 
     internal static IncidentDto Details(

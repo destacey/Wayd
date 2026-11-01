@@ -1,6 +1,8 @@
+using Wayd.ProductManagement.Domain.Models;
+
 namespace Wayd.ProductManagement.Application.IncidentSeveritySets.Commands;
 
-public sealed record IncidentSeveritySetLevelPayload(Guid? Id, string Name);
+public sealed record IncidentSeveritySetLevelPayload(Guid? Id, string Name, string? Color);
 
 public sealed record UpdateIncidentSeveritySetCommand(
     Guid Id,
@@ -19,6 +21,7 @@ public sealed class UpdateIncidentSeveritySetCommandValidator : AbstractValidato
         RuleForEach(c => c.Levels).ChildRules(level =>
         {
             level.RuleFor(l => l.Name).NotEmpty().MaximumLength(64);
+            level.RuleFor(l => l.Color).MaximumLength(9);
         });
     }
 }
@@ -63,7 +66,14 @@ public sealed class UpdateIncidentSeveritySetCommandHandler(
 
             var levelsInUse = await _levelUsage.GetLevelIdsInUse(cancellationToken);
             var replace = set.ReplaceLevels(
-                request.Levels.Select(l => (l.Id, l.Name.Trim())).ToList(),
+                request.Levels
+                    .Select((l, i) => (
+                        l.Id,
+                        l.Name.Trim(),
+                        string.IsNullOrWhiteSpace(l.Color)
+                            ? IncidentSeverityLevel.DefaultColorForSortOrder(i)
+                            : l.Color!.Trim()))
+                    .ToList(),
                 levelsInUse);
 
             if (replace.IsFailure)

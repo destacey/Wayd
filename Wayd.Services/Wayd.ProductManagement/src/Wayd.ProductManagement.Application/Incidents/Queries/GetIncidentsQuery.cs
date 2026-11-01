@@ -36,8 +36,33 @@ public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context
             .Take(request.Paging.PageSize)
             .ToListAsync(cancellationToken);
 
+        var incidentIds = page.Select(row => row.incident.Id).ToList();
+        var incidentsWithLinks = await _context.Incidents
+            .AsNoTracking()
+            .Include(i => i.ProductLinks)
+            .Where(i => incidentIds.Contains(i.Id))
+            .ToListAsync(cancellationToken);
+        var linksByIncident = incidentsWithLinks.ToDictionary(i => i.Id, i => i.ProductLinks);
+        var productIds = linksByIncident.Values
+            .SelectMany(l => l.Select(link => link.ProductId))
+            .Distinct()
+            .ToList();
+        var productsById = productIds.Count == 0
+            ? new Dictionary<Guid, Product>()
+            : await _context.Products
+                .AsNoTracking()
+                .Where(p => productIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, cancellationToken);
+
         var items = page
-            .Select(row => IncidentProjections.Summary(row.incident, row.commander, row.level))
+            .Select(row =>
+            {
+                var links = linksByIncident.GetValueOrDefault(row.incident.Id) ?? [];
+                var products = links
+                    .Select(l => productsById[l.ProductId])
+                    .ToList();
+                return IncidentProjections.Summary(row.incident, row.commander, row.level, products);
+            })
             .ToList();
 
         return new PagedResponse<IncidentSummaryDto>(

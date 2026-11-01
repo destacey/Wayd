@@ -51,9 +51,9 @@ public sealed class IncidentSeveritySet : BaseAuditableEntity
     public static Result<IncidentSeveritySet> CreateCustom(
         string name,
         string? description,
-        IReadOnlyList<string> levelNames)
+        IReadOnlyList<(string Name, string? Color)> levels)
     {
-        if (levelNames.Count < 2)
+        if (levels.Count < 2)
         {
             return Result.Failure<IncidentSeveritySet>("A severity set must have at least two levels.");
         }
@@ -61,7 +61,7 @@ public sealed class IncidentSeveritySet : BaseAuditableEntity
         try
         {
             var set = new IncidentSeveritySet(name, description, isSystem: false);
-            set.AddLevelsFromNames(levelNames);
+            set.AddLevels(levels);
             return Result.Success(set);
         }
         catch (Exception ex)
@@ -74,15 +74,15 @@ public sealed class IncidentSeveritySet : BaseAuditableEntity
     public static Result<IncidentSeveritySet> CreateSystem(
         string name,
         string? description,
-        IReadOnlyList<string> levelNames)
+        IReadOnlyList<(string Name, string? Color)> levels)
     {
-        if (levelNames.Count < 2)
+        if (levels.Count < 2)
         {
             return Result.Failure<IncidentSeveritySet>("A severity set must have at least two levels.");
         }
 
         var set = new IncidentSeveritySet(name, description, isSystem: true);
-        set.AddLevelsFromNames(levelNames);
+        set.AddLevels(levels);
         return Result.Success(set);
     }
 
@@ -114,7 +114,7 @@ public sealed class IncidentSeveritySet : BaseAuditableEntity
     /// Levels missing from the list are removed when not in <paramref name="levelIdsInUse"/>.
     /// </param>
     public Result ReplaceLevels(
-        IReadOnlyList<(Guid? Id, string Name)> levels,
+        IReadOnlyList<(Guid? Id, string Name, string Color)> levels,
         IReadOnlySet<Guid> levelIdsInUse)
     {
         if (IsSystem)
@@ -138,10 +138,16 @@ public sealed class IncidentSeveritySet : BaseAuditableEntity
 
         for (var i = 0; i < levels.Count; i++)
         {
-            var (id, name) = levels[i];
+            var (id, name, color) = levels[i];
             if (id is null)
             {
-                var added = new IncidentSeverityLevel(Id, name, i);
+                var added = new IncidentSeverityLevel(
+                    Id,
+                    name,
+                    i,
+                    string.IsNullOrWhiteSpace(color)
+                        ? IncidentSeverityLevel.DefaultColorForSortOrder(i)
+                        : color);
                 _levels.Add(added);
                 requestedIds.Add(added.Id);
                 continue;
@@ -154,6 +160,7 @@ public sealed class IncidentSeveritySet : BaseAuditableEntity
 
             level.Rename(name);
             level.SetSortOrder(i);
+            level.SetColor(color);
             requestedIds.Add(id.Value);
         }
 
@@ -226,11 +233,19 @@ public sealed class IncidentSeveritySet : BaseAuditableEntity
         return Result.Success();
     }
 
-    private void AddLevelsFromNames(IReadOnlyList<string> levelNames)
+    private void AddLevels(IReadOnlyList<(string Name, string? Color)> levels)
     {
-        for (var i = 0; i < levelNames.Count; i++)
+        for (var i = 0; i < levels.Count; i++)
         {
-            _levels.Add(new IncidentSeverityLevel(Id, levelNames[i], i));
+            var (name, color) = levels[i];
+            _levels.Add(
+                new IncidentSeverityLevel(
+                    Id,
+                    name,
+                    i,
+                    string.IsNullOrWhiteSpace(color)
+                        ? IncidentSeverityLevel.DefaultColorForSortOrder(i)
+                        : color));
         }
     }
 }

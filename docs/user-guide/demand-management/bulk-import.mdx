@@ -1,0 +1,123 @@
+---
+title: Bulk Import
+description: Loading a backlog of intake requests into Wayd from CSV via the import API.
+sidebar_position: 2
+audience: [user, agent]
+---
+
+# Bulk Import
+
+A company adopting Demand Management usually has requests already: in spreadsheets, forms or another tool. The
+**intake request import** brings them across in one CSV file, each request landing on its desk in the status its
+review has reached. It is a single `POST` of one CSV file (`multipart/form-data`, field name `file`).
+
+:::info[Screen or API]
+The import can be run from [Settings → System → Imports](../settings/imports.mdx#importing-a-file), which lists the
+file's columns and hands over a template, or posted directly to the endpoint below. Either way the run is visible
+in **Settings → System → Imports**, where you can see what became of each row and retry the ones that were
+rejected. See [Imports](../settings/imports.mdx).
+:::
+
+:::warning[This import takes IDs, not names]
+Desks, channels, tags and people are referenced **by GUID**. Look them up first, typically from the API: desks
+from `GET /api/demand-management/intake-desks`, channels from `GET /api/demand-management/intake-channels`, tags
+on an axis from `GET /api/demand-management/intake-request-tag-categories` and free tags from
+`GET /api/demand-management/intake-request-tags`, and employees from the employee list.
+:::
+
+Only intake requests are imported. Desks, channels and tag axes are a handful of settings, set up by hand in
+**Demand Management** before the import runs.
+
+## How the import works
+
+The rules every import shares — returning the run rather than the records, checking a file with
+`validateOnly=true`, grouping files with `submissionGroupId`, every column being present even when empty, and
+`ImportId` as your key for a row — are described in [Planning → Bulk Import](../planning/bulk-import.mdx#how-imports-work)
+and apply here unchanged.
+
+Each row is then applied the way the request would have been handled by hand:
+
+1. **The request is created on its desk** in the status meaning Submitted, at `SubmittedAt`, recorded as entered
+   by `SubmittedById` (or the requester). Like a request from an upstream system, it may name any active channel
+   — whether or not the desk offers it — and any open desk, including one requesters cannot pick.
+2. **It is assigned and tagged**, when the row says so.
+3. **It is moved to `Status`**, at `StatusChangedAt`. A status of the desk's workflow is matched by its **name**
+   first (`In Review`), then by its **meaning** (`Waiting on Requester` or `WaitingOnRequester`, `Accepted`, `Fulfilled`,
+   `Duplicate`, `Withdrawn`), case-insensitively, so a file written for the default workflow still lands on a desk that has
+   renamed its stages. A blank status leaves the request submitted.
+
+The status change follows the same rules as one made on the request page:
+
+- **Every closing status except Withdrawn** — Declined, Duplicate, and any your desk adds — needs a
+  `StatusReason` the requester can read, and so does finishing a request. Imported requests carry no outcomes,
+  so a request imported as Fulfilled always needs one.
+- **Withdrawn** is recorded as the requester's own move. Every other status is recorded against the assignee
+  when the row names one.
+- **Duplicate** needs `DuplicateOfId`, a request **already in Wayd**. A row cannot point at another row of the same
+  file.
+
+The history records each step at the time the row gives, so an imported request's age and time in status read
+as they did in the system it came from.
+
+### What a rejected row leaves behind
+
+**The import is applied row by row.** A rejected row creates nothing and keeps out only itself; the other rows
+are imported. Open the run in [Settings → System → Imports](../settings/imports.mdx) to see why, correct the
+underlying problem, and retry the rejected rows.
+
+## Permissions
+
+| Import | Permission |
+|---|---|
+| Intake requests | Administer Demand Management |
+
+Who may act on a request is decided by desk role rather than a permission, and the only role that spans every
+desk is the Demand Management Admin, so that is who imports.
+
+## Limits
+
+| Import | Rows per file | Applied |
+|---|---|---|
+| Intake requests | 10,000 | Row by row |
+
+The rules every file shares — request size, `ImportId` length, how rows are chunked, retries and retention — are
+in [Settings → System → Imports → Limits and rules](../settings/imports.mdx#limits-and-rules).
+
+---
+
+## Intake requests import
+
+`POST /api/demand-management/intake-requests/import`
+
+| Column | Required | Description |
+|---|---|---|
+| `ImportId` | No | Your key for the row, unique within the file. |
+| `Title` | Yes | What is being asked for, in a line. Max 256 characters. |
+| `Description` | Yes | The ask in full. |
+| `ExpectedBenefits` | No | What gets better, and for whom, if the ask is delivered. |
+| `DeskId` | Yes | The desk the request is on. It must be open to new requests. |
+| `ChannelId` | No | Where the request came from: any active channel. |
+| `RequesterId` | Yes | The employee the request is for. |
+| `SubmittedById` | No | The employee who entered it, when not the requester. |
+| `SubmittedAt` | No | When it was submitted, an ISO 8601 timestamp with its offset (`2026-03-02T09:00:00Z`). Blank for the moment of import. Not in the future. |
+| `NeedByDate` | No | The date it is needed by (`yyyy-MM-dd`). Needs a basis and a reference. |
+| `NeedByBasis` | With a date | `Regulatory`, `Contractual`, `ExternalEvent`, `Commitment` or `RequesterPreference`. |
+| `NeedByReference` | With a date | What the date rests on: the regulation and clause, the contract and clause, the event, or a note. Max 1024 characters. |
+| `NeedByCommittedById` | For a commitment | The employee who made the commitment. Empty for any other basis. |
+| `NeedByCommittedOn` | For a commitment | The date the commitment was made. Empty for any other basis. |
+| `OriginSourceSystem` | With an external id | The system the request was raised in, such as a service desk. |
+| `OriginExternalId` | With a source system | The request's id there. A source system and external id identify at most one request, in the file and in Wayd. |
+| `OriginUrl` | No | A link to the request in that system. |
+| `Status` | No | A status of the desk's workflow, by name or meaning. Blank leaves the request submitted. |
+| `StatusChangedAt` | No | When it moved into `Status`, with its offset. Needs `SubmittedAt` and a `Status` the request moves to, and is not before `SubmittedAt`. Blank for `SubmittedAt`. |
+| `StatusReason` | For some statuses | Why, as the requester reads it. Required for finishing and for every closing status but Withdrawn. Only with a `Status` the request moves to. Max 1024 characters. |
+| `DuplicateOfId` | For a duplicate | The request already in Wayd this one gives way to. |
+| `AssigneeId` | No | The active member of the desk who owns the request. |
+| `TagIds` | No | Semicolon-separated tag ids: tags on axes the desk offers, at most one on an axis that takes one, or free tags where the desk allows them. |
+
+A row is rejected, with the reason, when a desk, channel, tag or employee it names does not exist; when the
+assignee is not an active member of the desk; when the desk's workflow has no status of that name or meaning;
+when a status needs a reason or a surviving request the row does not give; when it names two tags on an axis
+that takes one; or when its origin is already taken. A file in which two rows share an origin is refused whole.
+
+The run links each imported row to the request it created.

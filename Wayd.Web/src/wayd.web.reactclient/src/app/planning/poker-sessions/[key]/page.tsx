@@ -16,7 +16,8 @@ import {
 } from '@/src/store/features/planning/poker-sessions-api'
 import { useGetProfileQuery } from '@/src/store/features/user-management/profile-api'
 import { Button, Divider, Drawer, Flex, Grid, Tag } from 'antd'
-import { EditOutlined, LinkOutlined } from '@ant-design/icons'
+import { DownloadOutlined, EditOutlined, LinkOutlined } from '@ant-design/icons'
+import { downloadCsvWithTimestamp, generateCsv } from '@/src/utils/csv-utils'
 import { notFound, useParams } from 'next/navigation'
 import { CSSProperties, FC, useState } from 'react'
 import { PresenceParticipant } from '@/src/hooks/use-poker-session-connection'
@@ -35,6 +36,7 @@ import {
   SessionSidebar,
   VotingActions,
 } from './_components'
+import { buildExportRows, EXPORT_HEADERS } from './_components/session-export'
 import PokerSessionDetailsLoading from './loading'
 
 const { useBreakpoint } = Grid
@@ -253,6 +255,11 @@ const PokerSessionDetailPage: FC = () => {
     </Flex>
   )
 
+  const handleExportCsv = () => {
+    const csv = generateCsv(EXPORT_HEADERS, buildExportRows(rounds))
+    downloadCsvWithTimestamp(csv, `poker-session-${session.key}`)
+  }
+
   const pageTitleActions = (
     <Flex align="center" gap={8} wrap>
       {canManage && isActive && (
@@ -263,6 +270,11 @@ const PokerSessionDetailPage: FC = () => {
       {isActive && (
         <Button icon={<LinkOutlined />} onClick={handleCopyInviteLink}>
           Copy Invite Link
+        </Button>
+      )}
+      {rounds.length > 0 && (
+        <Button icon={<DownloadOutlined />} onClick={handleExportCsv}>
+          Export CSV
         </Button>
       )}
       {/* Presence lives above the session sidebar, not here — see

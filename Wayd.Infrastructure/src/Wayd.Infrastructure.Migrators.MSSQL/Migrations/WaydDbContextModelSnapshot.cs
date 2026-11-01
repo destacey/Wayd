@@ -4109,6 +4109,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
                     b.Property<string>("Label")
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");

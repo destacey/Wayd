@@ -63454,7 +63454,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Complete a poker session.
         /// </summary>
         /// <remarks>
-        /// Moves an Active session to Completed. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.
+        /// Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63465,7 +63465,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Add a round to a poker session.
         /// </summary>
         /// <remarks>
-        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.
+        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63525,6 +63525,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateRoundLabelAsync(System.Guid id, System.Guid roundId, UpdatePokerRoundLabelRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Update the description for a round.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Both ids are UUIDs.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task UpdateRoundDescriptionAsync(System.Guid id, System.Guid roundId, UpdatePokerRoundDescriptionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -64058,7 +64069,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Complete a poker session.
         /// </summary>
         /// <remarks>
-        /// Moves an Active session to Completed. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.
+        /// Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64145,7 +64156,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Add a round to a poker session.
         /// </summary>
         /// <remarks>
-        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.
+        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64651,6 +64662,104 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     urlBuilder_.Append("/rounds/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(roundId, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/label");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Update the description for a round.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Both ids are UUIDs.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task UpdateRoundDescriptionAsync(System.Guid id, System.Guid roundId, UpdatePokerRoundDescriptionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (roundId == null)
+                throw new System.ArgumentNullException("roundId");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/rounds/{roundId}/description"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/rounds/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(roundId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/description");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -108446,6 +108555,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(512)]
         public string? Label { get; set; } = default!;
 
+        /// <summary>
+        /// Optional detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(2048)]
+        public string? Description { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -123335,6 +123451,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("label")]
         public string? Label { get; set; } = default!;
 
+        /// <summary>
+        /// Optional detail about what is being estimated, such as acceptance criteria or notes for the team.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string? Description { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Status { get; set; } = default!;
@@ -135406,6 +135528,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("objectivesLocked")]
         public bool ObjectivesLocked { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The new description for a poker round.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UpdatePokerRoundDescriptionRequest
+    {
+
+        /// <summary>
+        /// Detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters. Null or blank clears it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(2048)]
+        public string? Description { get; set; } = default!;
 
     }
 

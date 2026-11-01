@@ -677,6 +677,7 @@ public class PokerRoundConfig : IEntityTypeConfiguration<PokerRound>
         builder.Property(r => r.Id).ValueGeneratedNever();
         builder.Property(r => r.PokerSessionId).IsRequired();
         builder.Property(r => r.Label).HasMaxLength(512);
+        builder.Property(r => r.Description).HasMaxLength(PokerRound.DescriptionMaxLength);
         builder.Property(r => r.Status).IsRequired()
             .HasConversion<EnumConverter<PokerRoundStatus>>()
             .HasColumnType("varchar")

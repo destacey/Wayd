@@ -49,6 +49,24 @@ public class AddPokerRoundCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_ShouldStoreDescription_WhenProvided()
+    {
+        // Arrange
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
+        _dbContext.AddPokerSession(session);
+
+        var command = new AddPokerRoundCommand(session.Id, "User Story #123", "Acceptance criteria");
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Description.Should().Be("Acceptance criteria");
+        session.Rounds.First().Description.Should().Be("Acceptance criteria");
+    }
+
+    [Fact]
     public async Task Handle_ShouldFail_WhenSessionDoesNotExist()
     {
         // Arrange

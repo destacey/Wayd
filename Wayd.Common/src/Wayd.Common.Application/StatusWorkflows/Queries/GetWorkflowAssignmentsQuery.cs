@@ -37,14 +37,14 @@ public sealed class GetWorkflowAssignmentsQueryHandler(
         var assignments = await query
             .Join(
                 _dbContext.StatusWorkflows.AsNoTracking(),
-                assignment => assignment.WorkflowId,
+                assignment => assignment.Scheme!.DefaultWorkflowId,
                 workflow => workflow.Id,
                 (assignment, workflow) => new
                 {
                     assignment.Id,
                     assignment.OwnerType,
                     assignment.ScopeId,
-                    assignment.WorkflowId,
+                    WorkflowId = assignment.Scheme!.DefaultWorkflowId,
                     WorkflowName = workflow.Name,
                     WorkflowKey = workflow.Key,
                 })

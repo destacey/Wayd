@@ -735,7 +735,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         (await reader.ActivityLogs.CountAsync(a => a.EventType == nameof(WorkflowAssignmentRemovedEvent)
             && (a.AggregateId == copy.Id), ct)).Should().Be(2, "once going back to the default, once with the desk");
         var archivable = await reader.StatusWorkflows.Include(w => w.Statuses).SingleAsync(w => w.Id == copy.Id, ct);
-        archivable.Archive(isAssigned: await reader.WorkflowAssignments.AnyAsync(a => a.WorkflowId == copy.Id, ct), EventActor.System, Now)
+        archivable.Archive(isAssigned: await reader.AssignedWorkflowIds().AnyAsync(id => id == copy.Id, ct), EventActor.System, Now)
             .IsSuccess.Should().BeTrue();
     }
 

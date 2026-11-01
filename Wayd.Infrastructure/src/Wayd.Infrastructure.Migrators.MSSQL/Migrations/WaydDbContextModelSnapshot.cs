@@ -1971,6 +1971,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("varchar");
 
+                    b.Property<Guid>("SchemeId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("ScopeId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1988,16 +1991,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<Guid>("WorkflowId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerType")
                         .IsUnique()
                         .HasFilter("[ScopeId] IS NULL");
 
-                    b.HasIndex("WorkflowId");
+                    b.HasIndex("SchemeId");
 
                     b.HasIndex("OwnerType", "ScopeId")
                         .IsUnique()
@@ -9533,11 +9533,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.WorkflowAssignment", b =>
                 {
-                    b.HasOne("Wayd.Common.Domain.StatusWorkflows.StatusWorkflow", null)
+                    b.HasOne("Wayd.Common.Domain.StatusWorkflows.StatusWorkflowScheme", "Scheme")
                         .WithMany()
-                        .HasForeignKey("WorkflowId")
+                        .HasForeignKey("SchemeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Scheme");
                 });
 
             modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.WorkflowStatus", b =>

@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Wayd.Tests.Shared.Data;
 using Wayd.Common.Application.StatusWorkflows.Commands;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
@@ -101,7 +102,7 @@ public sealed class StatusWorkflowLifecycleCommandHandlerTests : StatusWorkflowH
         // Something has to govern those records; archiving out from under them would strand them.
         // Arrange
         var workflow = SeedWorkflow(publish: true);
-        var assignment = WorkflowAssignment.Create(Widget.Key, null, workflow, EventActor.System, Now).Value;
+        var assignment = TestWorkflowAssignments.ForWorkflow(Widget.Key, null, workflow, EventActor.System, Now).Value;
         DbContext.AddWorkflowAssignment(assignment);
 
         var sut = new ArchiveStatusWorkflowCommandHandler(

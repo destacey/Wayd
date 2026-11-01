@@ -57,7 +57,7 @@ public sealed class DeliveryWorkflowTransitionIntegrationTests(SqlServerDbContex
         workflow.Publish(EventActor.System, Now).IsSuccess.Should().BeTrue();
         setup.StatusWorkflows.Add(workflow);
 
-        var assignment = WorkflowAssignment.Create(owner.Key, Guid.CreateVersion7(), workflow, EventActor.System, Now).Value;
+        var assignment = (await TestWorkflowAssignments.ForWorkflow(setup, owner.Key, Guid.CreateVersion7(), workflow, EventActor.System, Now)).Value;
         setup.WorkflowAssignments.Add(assignment);
         await setup.SaveChangesAsync(TestContext.Current.CancellationToken);
 

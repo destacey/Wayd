@@ -18,9 +18,9 @@ namespace Wayd.Common.Domain.StatusWorkflows;
 /// always records the move. An aggregate that set the fields itself would eventually forget the
 /// history on one path, which is precisely the bug this shape prevents.
 /// <para>
-/// A record does not store its workflow. The workflow is the container's, resolved through
-/// <c>WorkflowAssignment</c>, exactly as a work item takes its process from its project — no child
-/// ever diverges from its container, so a copy per record would only be a value that can drift.
+/// A record does not store which workflow it should follow. Its container and its record type decide,
+/// through the container's <c>WorkflowAssignment</c> and the scheme it points at — records of one type
+/// in one container never diverge, so a choice per record would only be a value that can drift.
 /// Which workflow governed a past change is answered by <see cref="StatusTransition.WorkflowId"/>,
 /// frozen per transition.
 /// </para>

@@ -38,8 +38,8 @@ public sealed class ArchiveStatusWorkflowCommandHandler(
 
             // Whether anything still uses it is the handler's to answer: the aggregate cannot see the
             // assignments table, so it takes the answer as an argument.
-            var isAssigned = await _dbContext.WorkflowAssignments
-                .AnyAsync(a => a.WorkflowId == request.Id, cancellationToken);
+            var isAssigned = await _dbContext.AssignedWorkflowIds()
+                .AnyAsync(id => id == request.Id, cancellationToken);
 
             var result = workflow.Archive(isAssigned, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
             if (result.IsFailure)

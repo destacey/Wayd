@@ -581,9 +581,13 @@ Transition Mode is AnyToAny (default) or Restricted, set in Draft only. Under Re
 
 ### Workflow Assignments
 
-Which workflow a scope's records use. Properties: OwnerType, ScopeId (null = organization-wide, the only scope in use), WorkflowId.
+Which Workflow Scheme a scope's records follow. Properties: OwnerType, ScopeId (null = organization-wide), SchemeId. The container and the record's type decide the workflow, and records of one type in one container never diverge.
 
-Rules: ReassignTo requires a published workflow of the same owner type and a complete remap whose endpoints match.
+Rules: ReassignTo requires a scheme of the same owner type whose default workflow is published, and a complete remap for every record type whose workflow differs between the two schemes (`StatusWorkflowScheme.WorkflowChanges`). An owner type without record types picks a workflow, and the scope points at that workflow's implicit default-only scheme.
+
+### Record Types and Workflow Schemes
+
+A Record Type (Story, Bug) is a variant of an owner type's records, org-wide, owned or managed (`ExternalKey`), deactivated rather than deleted; only an owner type whose descriptor declares `HasRecordTypes` has them. A Workflow Scheme (`StatusWorkflowScheme`) is a shared map from record type to workflow with a default, owned or managed. Changing an entry or the default needs a complete remap and moves only that type's records, in every scope on the scheme; a scope that needs to differ is reassigned to a clone, never given an override; an assigned scheme cannot be deleted. Each workflow has one implicit default-only scheme, never shown and never edited. A record changing type lands in the status with the same alias, else the first of the same category, else the caller chooses.
 
 ### Status Remap
 

@@ -36,7 +36,9 @@ public sealed class PreviewStatusRemapQueryHandler(
     {
         var assignment = await _dbContext.WorkflowAssignments
             .AsNoTracking()
-            .FirstOrDefaultAsync(a => a.Id == request.AssignmentId, cancellationToken);
+            .Where(a => a.Id == request.AssignmentId)
+            .Select(a => new { a.OwnerType, a.ScopeId, WorkflowId = a.Scheme!.DefaultWorkflowId })
+            .FirstOrDefaultAsync(cancellationToken);
 
         // The target must share the assignment's owner type, which the remap checks, so the assignment
         // alone decides whether either side is hidden.

@@ -489,7 +489,7 @@ public sealed class DomainEventSerializationTests
     public void WorkflowAssignmentRemovedEvent_RoundTripsThroughDurableSerializer()
     {
         // Arrange — the scope gone, so it follows no workflow
-        var original = new WorkflowAssignmentRemovedEvent("demand.intake-request", Guid.NewGuid(), Guid.NewGuid(), null,
+        var original = new WorkflowAssignmentRemovedEvent("demand.intake-request", Guid.NewGuid(), Guid.NewGuid(), null, Guid.NewGuid(),
             EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
 
         // Act

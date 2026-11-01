@@ -102,6 +102,35 @@ public sealed class StatusWorkflowScheme : BaseAuditableEntity, IHasIdAndKey
             ? entry.WorkflowId
             : DefaultWorkflowId;
 
+    /// <summary>
+    /// Every record type whose workflow differs between two schemes of one owner type, with the workflow
+    /// it follows under each. A <c>null</c> record type stands for records with no type and every type
+    /// neither scheme has an entry for, which follow the two defaults.
+    /// </summary>
+    /// <remarks>
+    /// What moving a scope from <paramref name="from"/> to <paramref name="to"/> remaps: each change needs
+    /// a complete <see cref="StatusRemap"/> between its two workflows, and only its records move.
+    /// </remarks>
+    public static IReadOnlyList<SchemeWorkflowChange> WorkflowChanges(StatusWorkflowScheme from, StatusWorkflowScheme to)
+    {
+        Guard.Against.Null(from, nameof(from));
+        Guard.Against.Null(to, nameof(to));
+
+        var recordTypeIds = from._entries.Select(e => (Guid?)e.RecordTypeId)
+            .Union(to._entries.Select(e => (Guid?)e.RecordTypeId))
+            .Prepend(null)
+            .Distinct();
+
+        return
+        [
+            .. recordTypeIds
+                .Select(id => new SchemeWorkflowChange(id, from.WorkflowFor(id), to.WorkflowFor(id)))
+                .Where(c => c.FromWorkflowId != c.ToWorkflowId)
+                .OrderBy(c => c.RecordTypeId.HasValue)
+                .ThenBy(c => c.RecordTypeId),
+        ];
+    }
+
     /// <summary>Edits the scheme's name and description.</summary>
     public Result UpdateDetails(string name, string? description, EventActor actor, Instant timestamp)
     {
@@ -335,6 +364,13 @@ public sealed class StatusWorkflowScheme : BaseAuditableEntity, IHasIdAndKey
 
         var scheme = new StatusWorkflowScheme(
             descriptor.Value.Key, workflow.Name, description: null, WorkflowOwnership.Owned, externalKey: null, isImplicit: true, workflow.Id);
+
+        // Worded for the assignment: an implicit scheme exists only so a scope can pick this workflow.
+        if (workflow.State != StatusWorkflowState.Published)
+        {
+            return Result.Failure<StatusWorkflowScheme>("Only a published workflow can be assigned.");
+        }
+
         scheme.RaiseCreated(sourceSchemeId: null, actor, timestamp);
 
         return Result.Success(scheme);
@@ -444,3 +480,10 @@ public sealed class StatusWorkflowScheme : BaseAuditableEntity, IHasIdAndKey
             AddDomainEvent(build());
     }
 }
+
+/// <summary>
+/// One record type's move between workflows when a scope changes scheme. See
+/// <see cref="StatusWorkflowScheme.WorkflowChanges"/>.
+/// </summary>
+/// <param name="RecordTypeId">The record type, or <c>null</c> for records that follow the defaults.</param>
+public sealed record SchemeWorkflowChange(Guid? RecordTypeId, Guid FromWorkflowId, Guid ToWorkflowId);

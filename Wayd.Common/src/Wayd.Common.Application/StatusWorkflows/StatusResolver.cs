@@ -53,7 +53,7 @@ public sealed class StatusResolver(IStatusWorkflowDbContext dbContext) : IStatus
         var workflowId = await _dbContext.WorkflowAssignments
             .Where(a => a.OwnerType == key && (a.ScopeId == scopeId || a.ScopeId == null))
             .OrderByDescending(a => a.ScopeId != null)
-            .Select(a => (Guid?)a.WorkflowId)
+            .Select(a => (Guid?)a.Scheme!.DefaultWorkflowId)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (workflowId is null)

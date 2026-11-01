@@ -128,7 +128,13 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     // integration test against a real context can catch that.
     public void AddStatusWorkflow(StatusWorkflow workflow) => _statusWorkflows.Add(workflow);
     public void AddStatusWorkflows(IEnumerable<StatusWorkflow> workflows) => _statusWorkflows.AddRange(workflows);
-    public void AddWorkflowAssignment(WorkflowAssignment assignment) => _workflowAssignments.Add(assignment);
+    /// <summary>Adds the assignment, and its scheme when the context does not hold it yet, as the database would.</summary>
+    public void AddWorkflowAssignment(WorkflowAssignment assignment)
+    {
+        _workflowAssignments.Add(assignment);
+        if (assignment.Scheme is { } scheme && !_statusWorkflowSchemes.Contains(scheme))
+            _statusWorkflowSchemes.Add(scheme);
+    }
 
     // Added directly, because a transition appended by ApplyStatus only reaches the set through
     // BaseDbContext's drain on save, which this fake does not run.

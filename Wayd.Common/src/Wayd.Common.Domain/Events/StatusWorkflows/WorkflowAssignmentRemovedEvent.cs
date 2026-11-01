@@ -21,14 +21,16 @@ public sealed record WorkflowAssignmentRemovedEvent : DomainEvent<WorkflowAssign
         Guid scopeId,
         Guid fromWorkflowId,
         Guid? toWorkflowId,
+        Guid? fromSchemeId,
         EventActor actor,
         Instant timestamp)
-        : base(actor, "1.0")
+        : base(actor, "1.1")
     {
         OwnerType = ownerType;
         ScopeId = scopeId;
         FromWorkflowId = fromWorkflowId;
         ToWorkflowId = toWorkflowId;
+        FromSchemeId = fromSchemeId;
 
         Timestamp = timestamp;
     }
@@ -39,7 +41,7 @@ public sealed record WorkflowAssignmentRemovedEvent : DomainEvent<WorkflowAssign
     /// <summary>The scope that no longer has a workflow of its own.</summary>
     public Guid ScopeId { get; }
 
-    /// <summary>The workflow the scope had chosen.</summary>
+    /// <summary>The default workflow of the scheme the scope had chosen.</summary>
     public Guid FromWorkflowId { get; }
 
     /// <summary>
@@ -47,6 +49,9 @@ public sealed record WorkflowAssignmentRemovedEvent : DomainEvent<WorkflowAssign
     /// removed and follows nothing.
     /// </summary>
     public Guid? ToWorkflowId { get; }
+
+    /// <summary>The scheme the scope had chosen. Added in 1.1; null in earlier payloads.</summary>
+    public Guid? FromSchemeId { get; }
 
     [JsonIgnore]
     public string AggregateType => "Workflow";

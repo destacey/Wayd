@@ -171,6 +171,20 @@ public sealed class StatusWorkflowSchemeTests
         result.Value.WorkflowFor(null).Should().Be(workflow.Id);
     }
 
+    [Fact]
+    public void CreateImplicit_ShouldFail_ForADraftWorkflow()
+    {
+        // Arrange
+        var draft = StatusWorkflow.Create("Draft", null, Plain.Key, EventActor.System, Now).Value;
+
+        // Act
+        var result = StatusWorkflowScheme.CreateImplicit(draft, EventActor.System, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only a published workflow can be assigned.");
+    }
+
     #endregion Create
 
     #region WorkflowFor
@@ -612,4 +626,50 @@ public sealed class StatusWorkflowSchemeTests
     }
 
     #endregion Delete
+
+    #region WorkflowChanges
+
+    [Fact]
+    public void WorkflowChanges_ShouldListOnlyTheTypesWhoseWorkflowDiffers()
+    {
+        // Arrange
+        var standard = Published("Standard");
+        var lean = Published("Lean");
+        var bugFlow = Published("Bug Flow");
+        var bug = Type("Bug");
+        var story = Type("Story");
+        var spike = Type("Spike");
+        var from = SchemeOn(standard);
+        from.SetEntry(story, lean, Remap(standard, lean), EventActor.System, Now);
+        from.SetEntry(spike, bugFlow, Remap(standard, bugFlow), EventActor.System, Now);
+        var to = SchemeOn(lean);
+        to.SetEntry(bug, bugFlow, Remap(lean, bugFlow), EventActor.System, Now);
+        to.SetEntry(spike, bugFlow, Remap(lean, bugFlow), EventActor.System, Now);
+
+        // Act
+        var changes = StatusWorkflowScheme.WorkflowChanges(from, to);
+
+        // Assert
+        // Untyped records move Standard→Lean; Bugs Standard→Bug Flow; Stories stay on Lean; Spikes stay on Bug Flow.
+        changes.Should().BeEquivalentTo(
+        [
+            new SchemeWorkflowChange(null, standard.Id, lean.Id),
+            new SchemeWorkflowChange(bug.Id, standard.Id, bugFlow.Id),
+        ]);
+    }
+
+    [Fact]
+    public void WorkflowChanges_ShouldBeEmpty_BetweenSchemesThatAgree()
+    {
+        // Arrange
+        var standard = Published("Standard");
+
+        // Act
+        var changes = StatusWorkflowScheme.WorkflowChanges(SchemeOn(standard), SchemeOn(standard));
+
+        // Assert
+        changes.Should().BeEmpty();
+    }
+
+    #endregion WorkflowChanges
 }

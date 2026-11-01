@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Wayd.Tests.Shared.Data;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
@@ -26,7 +27,7 @@ public sealed class StatusResolverTests : StatusWorkflowHandlerTestBase
 
         workflow.Publish(EventActor.System, Now).IsSuccess.Should().BeTrue();
 
-        var assignment = WorkflowAssignment.Create(Widget.Key, null, workflow, EventActor.System, Now).Value;
+        var assignment = TestWorkflowAssignments.ForWorkflow(Widget.Key, null, workflow, EventActor.System, Now).Value;
         DbContext.AddWorkflowAssignment(assignment);
 
         return workflow;

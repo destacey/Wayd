@@ -175,7 +175,7 @@ public class WorkflowAssignmentConfiguration : IEntityTypeConfiguration<Workflow
         // which SQL Server would otherwise allow to duplicate since NULLs do not compare equal.
         builder.HasIndex(a => new { a.OwnerType, a.ScopeId }).IsUnique().WhereNotNull("ScopeId");
         builder.HasIndex(a => a.OwnerType).IsUnique().WhereNull("ScopeId");
-        builder.HasIndex(a => a.WorkflowId);
+        builder.HasIndex(a => a.SchemeId);
 
         builder.Property(a => a.Id).ValueGeneratedNever();
         builder.Property(a => a.OwnerType).IsRequired().HasColumnType("varchar").HasMaxLength(64);
@@ -183,11 +183,11 @@ public class WorkflowAssignmentConfiguration : IEntityTypeConfiguration<Workflow
         // No foreign key: what a scope is differs per owner type, so no one table could be referenced.
         builder.Property(a => a.ScopeId);
 
-        builder.Property(a => a.WorkflowId).IsRequired();
+        builder.Property(a => a.SchemeId).IsRequired();
 
-        builder.HasOne<StatusWorkflow>()
+        builder.HasOne(a => a.Scheme)
             .WithMany()
-            .HasForeignKey(a => a.WorkflowId)
+            .HasForeignKey(a => a.SchemeId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

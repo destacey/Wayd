@@ -71,7 +71,7 @@ public sealed class ScopedWorkflowAssignments(IStatusWorkflowDbContext dbContext
         var assigned = await _dbContext.WorkflowAssignments
             .Where(a => a.OwnerType == key && (a.ScopeId == scopeId || a.ScopeId == null))
             .OrderByDescending(a => a.ScopeId != null)
-            .Join(_dbContext.StatusWorkflows, a => a.WorkflowId, w => w.Id,
+            .Join(_dbContext.StatusWorkflows, a => a.Scheme!.DefaultWorkflowId, w => w.Id,
                 (a, w) => new { IsScopeOwn = a.ScopeId != null, w.Id, w.Key, w.Name, w.Description })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -124,8 +124,7 @@ public sealed class ScopedWorkflowAssignments(IStatusWorkflowDbContext dbContext
         if (current.IsSuccess && current.Value.Workflow.Id == workflow.Id)
             return Result.Success();
 
-        var own = await _dbContext.WorkflowAssignments
-            .FirstOrDefaultAsync(a => a.OwnerType == key && a.ScopeId == scopeId, cancellationToken);
+        var own = await OwnAssignment(key, scopeId, cancellationToken);
 
         var organizationWorkflowId = await OrganizationWorkflowId(key, cancellationToken);
         if (own is not null && workflow.Id == organizationWorkflowId)
@@ -138,7 +137,11 @@ public sealed class ScopedWorkflowAssignments(IStatusWorkflowDbContext dbContext
         }
         else if (own is null)
         {
-            var created = WorkflowAssignment.Create(key, scopeId, workflow, actor, timestamp);
+            var scheme = await _dbContext.ImplicitSchemeFor(workflow, actor, timestamp, cancellationToken);
+            if (scheme.IsFailure)
+                return Result.Failure(scheme.Error);
+
+            var created = WorkflowAssignment.Create(key, scopeId, scheme.Value, workflow, actor, timestamp);
             if (created.IsFailure)
                 return Result.Failure(created.Error);
 
@@ -148,7 +151,7 @@ public sealed class ScopedWorkflowAssignments(IStatusWorkflowDbContext dbContext
         {
             var from = await _dbContext.StatusWorkflows
                 .Include(w => w.Statuses)
-                .FirstAsync(w => w.Id == own.WorkflowId, cancellationToken);
+                .FirstAsync(w => w.Id == own.Scheme!.DefaultWorkflowId, cancellationToken);
 
             // The scope holds no records, so there is nothing for the mapping to decide: every status it cannot
             // match goes to the target's initial one, only so the assignment's completeness check is met.
@@ -161,7 +164,11 @@ public sealed class ScopedWorkflowAssignments(IStatusWorkflowDbContext dbContext
                     remap.Value.Resolve(unresolved.Id, initial);
             }
 
-            var reassigned = own.ReassignTo(workflow, remap.Value, actor, timestamp);
+            var scheme = await _dbContext.ImplicitSchemeFor(workflow, actor, timestamp, cancellationToken);
+            if (scheme.IsFailure)
+                return Result.Failure(scheme.Error);
+
+            var reassigned = own.ReassignTo(scheme.Value, workflow, [remap.Value], actor, timestamp);
             if (reassigned.IsFailure)
             {
                 own.ClearDomainEvents();
@@ -182,8 +189,7 @@ public sealed class ScopedWorkflowAssignments(IStatusWorkflowDbContext dbContext
 
         var key = descriptor.Value.Key;
 
-        var own = await _dbContext.WorkflowAssignments
-            .FirstOrDefaultAsync(a => a.OwnerType == key && a.ScopeId == scopeId, cancellationToken);
+        var own = await OwnAssignment(key, scopeId, cancellationToken);
         if (own is null)
             return Result.Success();
 
@@ -196,9 +202,16 @@ public sealed class ScopedWorkflowAssignments(IStatusWorkflowDbContext dbContext
         return Result.Success();
     }
 
+    /// <summary>The scope's own assignment with its scheme, which reassigning and removing it read.</summary>
+    private Task<WorkflowAssignment?> OwnAssignment(string ownerType, Guid scopeId, CancellationToken cancellationToken) =>
+        _dbContext.WorkflowAssignments
+            .Include(a => a.Scheme)
+                .ThenInclude(s => s!.Entries)
+            .FirstOrDefaultAsync(a => a.OwnerType == ownerType && a.ScopeId == scopeId, cancellationToken);
+
     private Task<Guid?> OrganizationWorkflowId(string ownerType, CancellationToken cancellationToken) =>
         _dbContext.WorkflowAssignments
             .Where(a => a.OwnerType == ownerType && a.ScopeId == null)
-            .Select(a => (Guid?)a.WorkflowId)
+            .Select(a => (Guid?)a.Scheme!.DefaultWorkflowId)
             .FirstOrDefaultAsync(cancellationToken);
 }

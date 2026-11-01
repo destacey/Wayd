@@ -45,6 +45,9 @@ public sealed record IntakeWorkflowStatusDto
     /// <summary>The status's bucket — Proposed, Active, Done or Removed — which decides whether a request in it is open.</summary>
     public StatusCategory Category { get; init; }
 
+    /// <summary>What intake requests call the category. For display only; group and compare on the category.</summary>
+    public required string CategoryLabel { get; init; }
+
     /// <summary>The well-known meaning the status carries, as an intake request status alias value, or 0 for none.</summary>
     public int Alias { get; init; }
 

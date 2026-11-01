@@ -83,7 +83,7 @@ public sealed class PreviewStatusRemapQueryHandler(
         }
 
         var descriptor = WorkflowOwners.Resolve(current.OwnerType);
-        var aliasNames = descriptor.IsSuccess ? descriptor.Value.Aliases : new Dictionary<int, string>();
+        var owner = descriptor.IsSuccess ? descriptor.Value : null;
 
         var targets = target.Statuses.ToList();
 
@@ -95,8 +95,8 @@ public sealed class PreviewStatusRemapQueryHandler(
 
                 return new StatusRemapEntryDto
                 {
-                    From = Describe(source, aliasNames),
-                    To = match is null ? null : Describe(match, aliasNames),
+                    From = Describe(source, owner),
+                    To = match is null ? null : Describe(match, owner),
                     MatchedBy = DescribeMatch(source, match, targets),
                     RecordCount = counts.TryGetValue(source.Id, out var count) ? count : 0,
                 };
@@ -116,15 +116,15 @@ public sealed class PreviewStatusRemapQueryHandler(
     /// <summary>
     /// One status, in the shape the rest of the API uses for them.
     /// </summary>
-    private static WorkflowStatusDto Describe(WorkflowStatus status, IReadOnlyDictionary<int, string> aliasNames) =>
+    private static WorkflowStatusDto Describe(WorkflowStatus status, WorkflowOwnerDescriptor? owner) =>
         new()
         {
             Id = status.Id,
             Name = status.Name,
             Description = status.Description,
-            Category = SimpleNavigationDto.FromEnum(status.Category),
+            Category = StatusCategoryNavigation.For(status.Category, owner),
             Alias = status.Alias,
-            AliasName = status.Alias != StatusWorkflow.NoAlias && aliasNames.TryGetValue(status.Alias, out var name)
+            AliasName = status.Alias != StatusWorkflow.NoAlias && owner is not null && owner.Aliases.TryGetValue(status.Alias, out var name)
                 ? name
                 : null,
             Order = status.Order,

@@ -27,7 +27,10 @@ public sealed record WorkflowStatusDto
     public required Guid Id { get; init; }
     public required string Name { get; init; }
     public string? Description { get; init; }
-    /// <summary>The rollup this status belongs to, as id and display name.</summary>
+    /// <summary>
+    /// The rollup this status belongs to: the category's id, and its name as the workflow's owner type
+    /// labels it.
+    /// </summary>
     public required SimpleNavigationDto Category { get; init; }
 
     /// <summary>The well-known meaning, or zero for none.</summary>
@@ -203,6 +206,22 @@ public sealed record WorkflowOwnerTypeDto
 
     /// <summary>Whether a workflow for this owner type may restrict which moves its records make.</summary>
     public required bool SupportsRestrictedTransitions { get; init; }
+
+    /// <summary>
+    /// What this owner type calls each category, one entry per category in category order. A category
+    /// it declares no label for carries the category's own name.
+    /// </summary>
+    public required IReadOnlyCollection<StatusCategoryLabelDto> CategoryLabels { get; init; }
+}
+
+/// <summary>One category and what an owner type calls it.</summary>
+public sealed record StatusCategoryLabelDto
+{
+    /// <summary>The category being named.</summary>
+    public required StatusCategory Category { get; init; }
+
+    /// <summary>What the owner type calls the category, or the category's own name when it declares none.</summary>
+    public required string Label { get; init; }
 }
 
 /// <summary>A well-known meaning a status of one owner type can carry.</summary>

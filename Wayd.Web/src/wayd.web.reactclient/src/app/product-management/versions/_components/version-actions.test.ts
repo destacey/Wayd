@@ -15,6 +15,7 @@ const version = (overrides: Partial<VersionDto> = {}): VersionDto =>
       id: 's',
       name: 'Planned',
       category: StatusCategory.Proposed,
+      categoryLabel: 'Proposed',
       alias: 0,
     },
     ...overrides,
@@ -29,6 +30,7 @@ const cut = () =>
       id: 's',
       name: 'Ready',
       category: StatusCategory.Active,
+      categoryLabel: 'Active',
       alias: 10,
     },
   })
@@ -41,6 +43,7 @@ const released = () =>
       id: 's',
       name: 'Released',
       category: StatusCategory.Done,
+      categoryLabel: 'Done',
       alias: 11,
     },
   })
@@ -51,6 +54,7 @@ const withdrawn = () =>
       id: 's',
       name: 'Withdrawn',
       category: StatusCategory.Removed,
+      categoryLabel: 'Removed',
       alias: 12,
     },
   })
@@ -117,6 +121,7 @@ describe('versionActionAvailability', () => {
         id: 's',
         name: 'Released',
         category: StatusCategory.Done,
+        categoryLabel: 'Done',
         alias: 11,
       },
     })
@@ -155,6 +160,7 @@ describe('versionActionAvailability', () => {
         id: 's',
         name: 'Withdrawn',
         category: StatusCategory.Removed,
+        categoryLabel: 'Removed',
         alias: 12,
       },
     })
@@ -192,6 +198,7 @@ describe('versionActionAvailability', () => {
         id: 's',
         name: 'Withdrawn',
         category: StatusCategory.Removed,
+        categoryLabel: 'Removed',
         alias: 12,
       },
     })

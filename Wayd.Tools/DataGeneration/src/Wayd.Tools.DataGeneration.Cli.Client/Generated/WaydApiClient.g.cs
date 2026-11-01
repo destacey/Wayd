@@ -115219,6 +115219,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
         public StatusCategory Category { get; set; } = default!;
 
+        /// <summary>
+        /// What the record's owner type calls the category — its own word for the bucket, or the category's
+        /// <br/>name when it declares none. For display only; group and compare on the category.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("categoryLabel")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string CategoryLabel { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -119387,6 +119395,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
         public StatusCategory Category { get; set; } = default!;
+
+        /// <summary>
+        /// What intake requests call the category. For display only; group and compare on the category.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("categoryLabel")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string CategoryLabel { get; set; } = default!;
 
         /// <summary>
         /// The well-known meaning the status carries, as an intake request status alias value, or 0 for none.
@@ -130159,6 +130174,30 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// One category and what an owner type calls it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class StatusCategoryLabelDto
+    {
+
+        /// <summary>
+        /// The category being named.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("category")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
+        public StatusCategory Category { get; set; } = default!;
+
+        /// <summary>
+        /// What the owner type calls the category, or the category's own name when it declares none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Label { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// The status a record currently holds, as a reader needs it.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -130184,6 +130223,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
         public StatusCategory Category { get; set; } = default!;
+
+        /// <summary>
+        /// What the record's owner type calls the category — its own word for the bucket, or the category's
+        /// <br/>name when it declares none. For display only; group and compare on the category.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("categoryLabel")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string CategoryLabel { get; set; } = default!;
 
         /// <summary>
         /// The well-known meaning the status carries, as the consuming module's alias value, or
@@ -138237,6 +138284,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("supportsRestrictedTransitions")]
         public bool SupportsRestrictedTransitions { get; set; } = default!;
 
+        /// <summary>
+        /// What this owner type calls each category, one entry per category in category order. A category
+        /// <br/>it declares no label for carries the category's own name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("categoryLabels")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<StatusCategoryLabelDto> CategoryLabels { get; set; } = new System.Collections.ObjectModel.Collection<StatusCategoryLabelDto>();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -138282,7 +138337,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string? Description { get; set; } = default!;
 
         /// <summary>
-        /// The rollup this status belongs to, as id and display name.
+        /// The rollup this status belongs to: the category's id, and its name as the workflow's owner type
+        /// <br/>labels it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("category")]
         [System.ComponentModel.DataAnnotations.Required]

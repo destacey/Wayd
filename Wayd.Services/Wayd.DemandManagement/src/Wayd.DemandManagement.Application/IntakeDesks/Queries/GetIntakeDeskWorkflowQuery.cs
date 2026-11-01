@@ -69,6 +69,7 @@ public sealed class GetIntakeDeskWorkflowQueryHandler(
                 Id = s.Id,
                 Name = s.Name,
                 Category = s.Category,
+                CategoryLabel = DemandManagementWorkflowOwners.IntakeRequest.CategoryLabel(s.Category),
                 Alias = s.Alias,
                 Description = s.Description,
             })],

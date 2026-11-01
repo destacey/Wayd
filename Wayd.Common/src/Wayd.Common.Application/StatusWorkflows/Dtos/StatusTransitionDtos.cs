@@ -22,6 +22,13 @@ public sealed record FrozenStatusDto
 
     [Required]
     public required StatusCategory Category { get; init; }
+
+    /// <summary>
+    /// What the record's owner type calls the category — its own word for the bucket, or the category's
+    /// name when it declares none. For display only; group and compare on the category.
+    /// </summary>
+    [Required]
+    public required string CategoryLabel { get; init; }
 }
 
 /// <summary>

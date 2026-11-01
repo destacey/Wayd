@@ -8,6 +8,7 @@ import {
   WorkflowStatusDto,
 } from '@/src/services/wayd-api'
 import { transitionConditionLabels } from './transition-conditions'
+import { statusCategoryFromId } from './status-category'
 
 /** The categories in the order a workflow flows, which is the order its columns are drawn in. */
 export const CATEGORY_ORDER: readonly StatusCategory[] = [
@@ -149,27 +150,12 @@ export interface WorkflowDiagramOptions {
 export const moveKey = (fromStatusId: string, toStatusId: string) =>
   `${fromStatusId}:${toStatusId}`
 
-const categoryLabels: Record<StatusCategory, string> = {
-  [StatusCategory.Proposed]: 'Proposed',
-  [StatusCategory.Active]: 'Active',
-  [StatusCategory.Done]: 'Done',
-  [StatusCategory.Removed]: 'Removed',
-}
-
-/** The server enum's numbers, which the workflow detail sends a status's category as. */
-const categoryByServerId: Record<number, StatusCategory> = {
-  0: StatusCategory.Proposed,
-  1: StatusCategory.Active,
-  2: StatusCategory.Done,
-  3: StatusCategory.Removed,
-}
-
 /**
  * A workflow status's category. An unknown number reads as Proposed rather than dropping the status
  * from the drawing.
  */
 export const statusCategoryOf = (status: WorkflowStatusDto): StatusCategory =>
-  categoryByServerId[status.category.id] ?? StatusCategory.Proposed
+  statusCategoryFromId(status.category.id) ?? StatusCategory.Proposed
 
 const byOrder = (a: WorkflowStatusDto, b: WorkflowStatusDto) =>
   a.order - b.order || caseInsensitiveCompare(a.name, b.name)
@@ -280,7 +266,8 @@ export const buildWorkflowDiagram = (
     tallest = Math.max(tallest, height)
     columns.push({
       category,
-      label: categoryLabels[category],
+      // The workflow detail names each status's category as its owner type labels it.
+      label: inColumn[0].category.name || category,
       x,
       width: DIAGRAM_NODE_WIDTH + 2 * COLUMN_PADDING,
       height,

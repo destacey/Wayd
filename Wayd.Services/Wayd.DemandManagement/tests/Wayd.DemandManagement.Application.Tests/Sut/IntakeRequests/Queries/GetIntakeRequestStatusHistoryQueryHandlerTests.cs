@@ -31,7 +31,7 @@ public sealed class GetIntakeRequestStatusHistoryQueryHandlerTests
                 {
                     Id = Guid.NewGuid(),
                     Sequence = 1,
-                    ToStatus = new StatusNavigationDto { Id = Guid.NewGuid(), Name = "Declined", Category = StatusCategory.Removed, Alias = 0 },
+                    ToStatus = new StatusNavigationDto { Id = Guid.NewGuid(), Name = "Declined", Category = StatusCategory.Removed, CategoryLabel = "Removed", Alias = 0 },
                     WorkflowId = _scenario.Workflow.Id,
                     ActorKind = new SimpleNavigationDto { Id = 1, Name = "User" },
                     ChangedBy = new NavigationDto { Id = agentId, Key = 1, Name = "Intake Probe" },

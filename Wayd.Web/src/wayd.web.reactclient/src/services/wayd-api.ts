@@ -61189,6 +61189,9 @@ export interface FrozenStatusDto {
     id: string;
     name: string;
     category: StatusCategory;
+    /** What the record's owner type calls the category — its own word for the bucket, or the category's
+name when it declares none. For display only; group and compare on the category. */
+    categoryLabel: string;
 }
 
 export interface FunctionalOrganizationChartDto {
@@ -62477,6 +62480,9 @@ rewrite what past records read as. */
     name: string;
     /** The status's bucket — Proposed, Active, Done or Removed. What rollups and invariants group on. */
     category: StatusCategory;
+    /** What the record's owner type calls the category — its own word for the bucket, or the category's
+name when it declares none. For display only; group and compare on the category. */
+    categoryLabel: string;
     /** The well-known meaning the status carries, as the consuming module's alias value, or
 `0` when it carries none. */
     alias: number;
@@ -62638,6 +62644,8 @@ export interface IntakeWorkflowStatusDto {
     name: string;
     /** The status's bucket — Proposed, Active, Done or Removed — which decides whether a request in it is open. */
     category: StatusCategory;
+    /** What intake requests call the category. For display only; group and compare on the category. */
+    categoryLabel: string;
     /** The well-known meaning the status carries, as an intake request status alias value, or 0 for none. */
     alias: number;
     /** What the status means, when the workflow's author said, written for anyone following a request. */
@@ -66277,6 +66285,14 @@ export enum StatusCategory {
     Removed = "Removed",
 }
 
+/** One category and what an owner type calls it. */
+export interface StatusCategoryLabelDto {
+    /** The category being named. */
+    category: StatusCategory;
+    /** What the owner type calls the category, or the category's own name when it declares none. */
+    label: string;
+}
+
 /** A status a record can be moved to, with what the move needs. */
 export interface StatusOptionDto extends StatusNavigationDto {
     /** What moving the record to this status needs, in kind order — `RequiresReason` means the move
@@ -68970,6 +68986,9 @@ export interface WorkflowOwnerTypeDto {
     requiredCategories: StatusCategory[];
     /** Whether a workflow for this owner type may restrict which moves its records make. */
     supportsRestrictedTransitions: boolean;
+    /** What this owner type calls each category, one entry per category in category order. A category
+it declares no label for carries the category's own name. */
+    categoryLabels: StatusCategoryLabelDto[];
 }
 
 export interface WorkflowSchemeDto {
@@ -68985,7 +69004,8 @@ export interface WorkflowStatusDto {
     id: string;
     name: string;
     description?: string | undefined;
-    /** The rollup this status belongs to, as id and display name. */
+    /** The rollup this status belongs to: the category's id, and its name as the workflow's owner type
+labels it. */
     category: SimpleNavigationDto;
     /** The well-known meaning, or zero for none. */
     alias: number;

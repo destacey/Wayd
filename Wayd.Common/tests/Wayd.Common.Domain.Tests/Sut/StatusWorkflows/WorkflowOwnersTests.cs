@@ -207,6 +207,124 @@ public sealed class WorkflowOwnersTests
     }
 
     [Fact]
+    public void Descriptor_ShouldLabelEachCategoryByItsName_ByDefault()
+    {
+        // Act
+        var descriptor = Descriptor("test.owners.default-labels", 1);
+
+        // Assert
+        descriptor.CategoryLabels.Should().BeEquivalentTo(new Dictionary<StatusCategory, string>
+        {
+            [StatusCategory.Proposed] = "Proposed",
+            [StatusCategory.Active] = "Active",
+            [StatusCategory.Done] = "Done",
+            [StatusCategory.Removed] = "Removed",
+        });
+    }
+
+    [Fact]
+    public void Descriptor_ShouldUseItsDeclaredLabels_AndTheNameForTheRest()
+    {
+        // Act
+        var descriptor = new WorkflowOwnerDescriptor(
+            "test.owners.labels", "Gadget", new Dictionary<int, WorkflowAlias>(), [],
+            categoryLabels: new Dictionary<StatusCategory, string>
+            {
+                [StatusCategory.Proposed] = " Planned ",
+                [StatusCategory.Done] = "Shipped",
+            });
+
+        // Assert
+        descriptor.CategoryLabel(StatusCategory.Proposed).Should().Be("Planned");
+        descriptor.CategoryLabel(StatusCategory.Active).Should().Be("Active");
+        descriptor.CategoryLabel(StatusCategory.Done).Should().Be("Shipped");
+        descriptor.CategoryLabel(StatusCategory.Removed).Should().Be("Removed");
+        descriptor.CategoryLabels.Should().HaveCount(4);
+    }
+
+    [Fact]
+    public void CategoryLabel_ShouldUseTheRegisteredOwnerTypesLabel_AndTheNameForAnUnknownKey()
+    {
+        // Arrange
+        WorkflowOwners.Register(new WorkflowOwnerDescriptor(
+            "test.owners.registered-labels", "Gadget", new Dictionary<int, WorkflowAlias>(), [],
+            categoryLabels: new Dictionary<StatusCategory, string> { [StatusCategory.Done] = "Shipped" }));
+
+        // Act
+        var registered = WorkflowOwners.CategoryLabel("test.owners.registered-labels", StatusCategory.Done);
+        var unknown = WorkflowOwners.CategoryLabel("test.owners.not-registered", StatusCategory.Done);
+
+        // Assert
+        registered.Should().Be("Shipped");
+        unknown.Should().Be("Done");
+    }
+
+    [Fact]
+    public void Descriptor_ShouldNameMisfitsByItsCategoryLabels()
+    {
+        // Arrange
+        var descriptor = new WorkflowOwnerDescriptor(
+            "test.owners.labelled-misfit", "Gadget",
+            new Dictionary<int, WorkflowAlias> { [2] = new("Closed", StatusCategory.Removed) }, [],
+            categoryLabels: new Dictionary<StatusCategory, string>
+            {
+                [StatusCategory.Done] = "Shipped",
+                [StatusCategory.Removed] = "Shelved",
+            });
+
+        // Act
+        var misfit = descriptor.DescribeMisfit(2, StatusCategory.Done);
+
+        // Assert
+        misfit.Should().Be("'Closed' belongs under Shelved, not Shipped.");
+    }
+
+    [Fact]
+    public void Descriptor_ShouldReject_ALabelForACategoryThatDoesNotExist()
+    {
+        // Act
+        Action act = () => new WorkflowOwnerDescriptor(
+            "test.owners.label-unknown", "Gadget", new Dictionary<int, WorkflowAlias>(), [],
+            categoryLabels: new Dictionary<StatusCategory, string> { [(StatusCategory)99] = "Limbo" });
+
+        // Assert
+        act.Should().Throw<ArgumentException>().WithMessage("*labels a category that does not exist*");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Descriptor_ShouldReject_ABlankCategoryLabel(string label)
+    {
+        // Act
+        Action act = () => new WorkflowOwnerDescriptor(
+            "test.owners.label-blank", "Gadget", new Dictionary<int, WorkflowAlias>(), [],
+            categoryLabels: new Dictionary<StatusCategory, string> { [StatusCategory.Done] = label });
+
+        // Assert
+        act.Should().Throw<ArgumentException>().WithMessage("*category label with no text*");
+    }
+
+    [Theory]
+    [InlineData(StatusCategory.Active, "Wrapped")]
+    [InlineData(StatusCategory.Active, "removed")]
+    public void Descriptor_ShouldReject_TwoCategoriesSharingALabel(StatusCategory category, string label)
+    {
+        // Act
+        Action act = () => new WorkflowOwnerDescriptor(
+            "test.owners.label-twice", "Gadget", new Dictionary<int, WorkflowAlias>(), [],
+            categoryLabels: new Dictionary<StatusCategory, string>
+            {
+                [StatusCategory.Done] = "Wrapped",
+                [category] = label,
+            });
+
+        // Assert
+        // The second case collides with Removed's default name, which it keeps because it declares no label.
+        act.Should().Throw<ArgumentException>().WithMessage("*for more than one category*");
+    }
+
+    [Fact]
     public void Descriptor_ShouldNameItsAliases()
     {
         // Arrange

@@ -4,10 +4,12 @@ import {
   StatusCategory,
   StatusWorkflowDetailsDto,
   TransitionMode,
+  WorkflowOwnerTypeDto,
 } from '@/src/services/wayd-api'
 import PublishStatusWorkflowForm from './publish-status-workflow-form'
 
 const publishStatusWorkflow = jest.fn()
+let ownerTypes: WorkflowOwnerTypeDto[] | undefined
 
 jest.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ success: jest.fn(), error: jest.fn() }),
@@ -32,6 +34,7 @@ jest.mock('@/src/hooks', () => ({
 
 jest.mock('@/src/store/features/common/status-workflows-api', () => ({
   usePublishStatusWorkflowMutation: () => [publishStatusWorkflow],
+  useGetWorkflowOwnerTypesQuery: () => ({ data: ownerTypes }),
 }))
 
 const workflow = (
@@ -63,6 +66,7 @@ const workflow = (
 describe('PublishStatusWorkflowForm', () => {
   beforeEach(() => {
     publishStatusWorkflow.mockReset()
+    ownerTypes = undefined
   })
 
   it('names each missing required alias and disables Publish', () => {
@@ -119,6 +123,38 @@ describe('PublishStatusWorkflowForm', () => {
       ),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Publish' })).toBeDisabled()
+  })
+
+  it("names a missing category as the workflow's owner type labels it", () => {
+    // Arrange
+    ownerTypes = [
+      {
+        key: 'delivery.version',
+        displayName: 'Version',
+        aliases: [],
+        requiredAliases: [],
+        requiredCategories: [StatusCategory.Done],
+        supportsRestrictedTransitions: false,
+        categoryLabels: [{ category: StatusCategory.Done, label: 'Shipped' }],
+      },
+    ]
+    const draft = workflow({
+      missingRequiredCategories: [StatusCategory.Done],
+      canPublish: false,
+    })
+
+    // Act
+    render(
+      <PublishStatusWorkflowForm
+        statusWorkflow={draft}
+        onFormComplete={jest.fn()}
+        onFormCancel={jest.fn()}
+      />,
+    )
+
+    // Assert
+    expect(screen.getByText('Shipped')).toBeInTheDocument()
+    expect(screen.queryByText('Done')).not.toBeInTheDocument()
   })
 
   it('names each missing required category and disables Publish', () => {

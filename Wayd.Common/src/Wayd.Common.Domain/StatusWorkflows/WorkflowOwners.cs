@@ -80,6 +80,20 @@ public static class WorkflowOwners
     /// </summary>
     public static bool IsRegistered(string key) => Resolve(key).IsSuccess;
 
+    /// <summary>
+    /// What the owner type registered under <paramref name="key"/> calls <paramref name="category"/>, or
+    /// the category's own name when no owner type is registered under it.
+    /// </summary>
+    /// <remarks>
+    /// Static and keyed by string so an EF query can call it in its final projection:
+    /// EF refuses a projection that captures a descriptor instance, but takes a string as a parameter.
+    /// </remarks>
+    public static string CategoryLabel(string key, Enums.StatusCategory category)
+    {
+        var owner = Resolve(key);
+        return owner.IsSuccess ? owner.Value.CategoryLabel(category) : category.ToString();
+    }
+
     /// <summary>Every registered owner type, for an admin screen.</summary>
     public static IReadOnlyCollection<WorkflowOwnerDescriptor> All
     {

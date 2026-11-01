@@ -9,9 +9,10 @@ namespace Wayd.Common.Domain.StatusWorkflows.Enums;
 /// against.
 /// </summary>
 /// <remarks>
-/// Stored by name (at most 32 characters), so <strong>never rename a value</strong>. Like
-/// <see cref="LifecycleCategory"/>, these are unordered identifiers: do not infer direction by comparing
-/// them.
+/// An owner type may call these by its own names through <see cref="WorkflowOwnerDescriptor.CategoryLabels"/>;
+/// the meaning stays this enum's. Stored by name (at most 32 characters), so <strong>never rename a
+/// value</strong>. Like <see cref="LifecycleCategory"/>, these are unordered identifiers: do not infer
+/// direction by comparing them.
 /// </remarks>
 public enum StatusCategory
 {

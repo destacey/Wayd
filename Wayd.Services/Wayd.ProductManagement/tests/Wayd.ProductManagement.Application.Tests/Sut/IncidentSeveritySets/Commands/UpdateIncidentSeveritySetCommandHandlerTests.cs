@@ -20,9 +20,9 @@ public sealed class UpdateIncidentSeveritySetCommandHandlerTests : IncidentSever
             "Renamed",
             "Updated",
             [
-                new IncidentSeveritySetLevelPayload(set.Levels[0].Id, "High"),
-                new IncidentSeveritySetLevelPayload(set.Levels[1].Id, "Low"),
-                new IncidentSeveritySetLevelPayload(null, "Info"),
+                new IncidentSeveritySetLevelPayload(set.Levels[0].Id, "High", set.Levels[0].Color),
+                new IncidentSeveritySetLevelPayload(set.Levels[1].Id, "Low", set.Levels[1].Color),
+                new IncidentSeveritySetLevelPayload(null, "Info", "#8E9E98"),
             ]);
 
         // Act
@@ -48,7 +48,7 @@ public sealed class UpdateIncidentSeveritySetCommandHandlerTests : IncidentSever
                 set.Id,
                 "Other",
                 null,
-                set.Levels.Select(l => new IncidentSeveritySetLevelPayload(l.Id, l.Name)).ToList()),
+                set.Levels.Select(l => new IncidentSeveritySetLevelPayload(l.Id, l.Name, l.Color)).ToList()),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -69,7 +69,10 @@ public sealed class UpdateIncidentSeveritySetCommandHandlerTests : IncidentSever
                 Guid.CreateVersion7(),
                 "Missing",
                 null,
-                [new IncidentSeveritySetLevelPayload(null, "A"), new IncidentSeveritySetLevelPayload(null, "B")]),
+                [
+                    new IncidentSeveritySetLevelPayload(null, "A", null),
+                    new IncidentSeveritySetLevelPayload(null, "B", null),
+                ]),
             TestContext.Current.CancellationToken);
 
         // Assert

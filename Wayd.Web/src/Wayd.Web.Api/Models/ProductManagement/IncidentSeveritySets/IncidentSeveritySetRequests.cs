@@ -11,16 +11,22 @@ public sealed class IncidentSeveritySetLevelRequest
     public Guid? Id { get; set; }
 
     public string Name { get; set; } = default!;
+
+    /// <summary>Hex accent color (e.g. "#E07A4C"). Defaults by rank when omitted on create.</summary>
+    public string? Color { get; set; }
 }
 
 public sealed class CreateIncidentSeveritySetRequest
 {
     public string Name { get; set; } = default!;
     public string? Description { get; set; }
-    public List<string> LevelNames { get; set; } = [];
+    public List<IncidentSeveritySetLevelRequest> Levels { get; set; } = [];
 
     public CreateIncidentSeveritySetCommand ToCommand() =>
-        new(Name, Description, LevelNames);
+        new(
+            Name,
+            Description,
+            Levels.Select(l => new IncidentSeveritySetLevelPayload(null, l.Name, l.Color)).ToList());
 }
 
 public sealed class CreateIncidentSeveritySetRequestValidator : CustomValidator<CreateIncidentSeveritySetRequest>
@@ -29,8 +35,12 @@ public sealed class CreateIncidentSeveritySetRequestValidator : CustomValidator<
     {
         RuleFor(r => r.Name).NotEmpty().MaximumLength(64);
         RuleFor(r => r.Description).MaximumLength(512);
-        RuleFor(r => r.LevelNames).NotEmpty().Must(v => v.Count >= 2);
-        RuleForEach(r => r.LevelNames).NotEmpty().MaximumLength(64);
+        RuleFor(r => r.Levels).NotEmpty().Must(v => v.Count >= 2);
+        RuleForEach(r => r.Levels).ChildRules(level =>
+        {
+            level.RuleFor(l => l.Name).NotEmpty().MaximumLength(64);
+            level.RuleFor(l => l.Color).MaximumLength(9);
+        });
     }
 }
 
@@ -46,7 +56,7 @@ public sealed class UpdateIncidentSeveritySetRequest
             Id,
             Name,
             Description,
-            Levels.Select(l => new IncidentSeveritySetLevelPayload(l.Id, l.Name)).ToList());
+            Levels.Select(l => new IncidentSeveritySetLevelPayload(l.Id, l.Name, l.Color)).ToList());
 }
 
 public sealed class UpdateIncidentSeveritySetRequestValidator : CustomValidator<UpdateIncidentSeveritySetRequest>
@@ -60,6 +70,7 @@ public sealed class UpdateIncidentSeveritySetRequestValidator : CustomValidator<
         RuleForEach(r => r.Levels).ChildRules(level =>
         {
             level.RuleFor(l => l.Name).NotEmpty().MaximumLength(64);
+            level.RuleFor(l => l.Color).MaximumLength(9);
         });
     }
 }

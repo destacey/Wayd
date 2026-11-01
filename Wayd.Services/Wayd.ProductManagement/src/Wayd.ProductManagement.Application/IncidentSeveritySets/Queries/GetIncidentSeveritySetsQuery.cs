@@ -52,6 +52,7 @@ public sealed class GetIncidentSeveritySetsQueryHandler(IProductManagementDbCont
                     Id = l.Id,
                     Name = l.Name,
                     SortOrder = l.SortOrder,
+                    Color = l.Color,
                 })
                 .ToList(),
         };

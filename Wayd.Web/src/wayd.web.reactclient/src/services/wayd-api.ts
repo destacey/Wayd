@@ -62880,7 +62880,7 @@ export interface CreateIncidentRequest {
 export interface CreateIncidentSeveritySetRequest {
     name: string;
     description?: string | undefined;
-    levelNames: string[];
+    levels: IncidentSeveritySetLevelRequest[];
 }
 
 /** A channel to add to the end of the company's list of where requests come from. */
@@ -65438,7 +65438,7 @@ export interface IncidentDto {
     title: string;
     description?: string | undefined;
     commander: NavigationDto;
-    severityLevel: NavigationDto;
+    severityLevel: IncidentSeverityLevelNavigationDto;
     noticedAt: Date;
     startedAt?: Date | undefined;
     recoveredAt?: Date | undefined;
@@ -65451,6 +65451,17 @@ export interface IncidentSeverityLevelDto {
     id: string;
     name: string;
     sortOrder: number;
+    /** Hex accent color (e.g. "#E07A4C"). */
+    color: string;
+}
+
+/** Severity level shown on incident pages. */
+export interface IncidentSeverityLevelNavigationDto {
+    id: string;
+    name: string;
+    sortOrder: number;
+    /** Hex accent color (e.g. "#E07A4C"). */
+    color: string;
 }
 
 export interface IncidentSeveritySetDto {
@@ -65468,6 +65479,8 @@ export interface IncidentSeveritySetLevelRequest {
     /** Existing level id, or omitted when adding a level. */
     id?: string | undefined;
     name: string;
+    /** Hex accent color (e.g. "#E07A4C"). Defaults by rank when omitted on create. */
+    color?: string | undefined;
 }
 
 /** One incident on a list page. */
@@ -65479,9 +65492,10 @@ export interface IncidentSummaryDto {
     startedAt?: Date | undefined;
     recoveredAt?: Date | undefined;
     commander: NavigationDto;
-    severityLevel: NavigationDto;
+    severityLevel: IncidentSeverityLevelNavigationDto;
     status: StatusNavigationDto;
     statusAlias: ProductStatusAlias;
+    products: NavigationDto[];
 }
 
 export interface InitWorkspaceIntegrationRequest {

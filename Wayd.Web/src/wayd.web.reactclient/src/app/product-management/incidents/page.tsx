@@ -8,12 +8,16 @@ import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import { IncidentSummaryDto } from '@/src/services/wayd-api'
 import { useGetIncidentsQuery } from '@/src/store/features/product-management/incidents-api'
-import { Button, Table } from 'antd'
-import type { ColumnsType } from 'antd/es/table'
+import { Button, Pagination, Spin } from 'antd'
 import Link from 'next/link'
 import { FC, useEffect, useMemo, useState } from 'react'
 import { CreateIncidentForm } from './_components/create-incident-form'
-import { formatInstantInZone } from '@/src/utils'
+import {
+  formatIncidentAge,
+  formatIncidentProductLabel,
+} from './_components/incident-format'
+import { IncidentSeverityRank } from './_components/incident-severity-rank'
+import styles from './_components/incidents.module.css'
 
 const IncidentsPage: FC = () => {
   useDocumentTitle('Incidents')
@@ -24,11 +28,6 @@ const IncidentsPage: FC = () => {
   const messageApi = useMessage()
   const { hasPermissionClaim } = useAuth()
   const canCreate = hasPermissionClaim('Permissions.Incidents.Create')
-
-  const viewerZone = useMemo(
-    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
-    [],
-  )
 
   const { data, isLoading, error, refetch } = useGetIncidentsQuery({
     page,
@@ -42,67 +41,53 @@ const IncidentsPage: FC = () => {
     }
   }, [error, messageApi])
 
-  const columns: ColumnsType<IncidentSummaryDto> = [
-    {
-      title: 'Key',
-      dataIndex: 'key',
-      width: 90,
-      render: (key: number) => (
-        <Link href={`/product-management/incidents/${key}`}>{key}</Link>
-      ),
-    },
-    { title: 'Title', dataIndex: 'title' },
-    {
-      title: 'Severity',
-      render: (_, row) => row.severityLevel?.name,
-      width: 120,
-    },
-    {
-      title: 'Commander',
-      render: (_, row) => row.commander?.name,
-      width: 160,
-    },
-    {
-      title: 'Status',
-      width: 140,
-      render: (_, row) =>
-        row.status ? (
-          <WorkflowStatusTag
-            name={row.status.name}
-            category={row.status.category}
-          />
-        ) : null,
-    },
-    {
-      title: 'Noticed',
-      width: 180,
-      render: (_, row) => formatInstantInZone(row.noticedAt, viewerZone),
-    },
-  ]
+  const items = data?.items ?? []
+  const total = data?.totalCount ?? 0
 
   const actions = canCreate ? (
-    <Button onClick={() => setOpenCreateForm(true)}>Open Incident</Button>
+    <Button type="primary" onClick={() => setOpenCreateForm(true)}>
+      Open incident
+    </Button>
   ) : null
 
   return (
     <div className="page-gutters">
       <PageTitle title="Incidents" actions={actions} />
-      <Table
-        rowKey="id"
-        loading={isLoading}
-        columns={columns}
-        dataSource={data?.items ?? []}
-        pagination={{
-          current: page,
-          pageSize,
-          total: data?.totalCount ?? 0,
-          showSizeChanger: true,
-          onChange: (nextPage, nextSize) => {
-            setPage(nextPage)
-            setPageSize(nextSize)
-          },
-        }}
-      />
+      <div className={styles.sheet}>
+        <div className={styles.listHead}>
+          <span>Severity</span>
+          <span>Title</span>
+          <span>Products</span>
+          <span>State</span>
+          <span>Age</span>
+          <span>Commander</span>
+        </div>
+        {isLoading ? (
+          <div style={{ padding: 24, textAlign: 'center' }}>
+            <Spin />
+          </div>
+        ) : items.length === 0 ? (
+          <div style={{ padding: 16, color: 'var(--ant-color-text-secondary)' }}>
+            No incidents yet.
+          </div>
+        ) : (
+          items.map((row) => <IncidentListRow key={row.id} row={row} />)
+        )}
+      </div>
+      {total > pageSize ? (
+        <div className={styles.pagination}>
+          <Pagination
+            current={page}
+            pageSize={pageSize}
+            total={total}
+            showSizeChanger
+            onChange={(nextPage, nextSize) => {
+              setPage(nextPage)
+              setPageSize(nextSize)
+            }}
+          />
+        </div>
+      ) : null}
       {openCreateForm && (
         <CreateIncidentForm
           onFormComplete={() => {
@@ -113,6 +98,40 @@ const IncidentsPage: FC = () => {
         />
       )}
     </div>
+  )
+}
+
+function IncidentListRow({ row }: { row: IncidentSummaryDto }) {
+  const age = useMemo(
+    () => formatIncidentAge(row.noticedAt),
+    [row.noticedAt],
+  )
+
+  return (
+    <Link
+      className={styles.incidentRow}
+      href={`/product-management/incidents/${row.key}`}
+    >
+      <IncidentSeverityRank
+        name={row.severityLevel.name}
+        color={row.severityLevel.color}
+      />
+      <span className={styles.titleCell}>
+        <strong>{row.title}</strong>
+        <span className={styles.id}>INC-{row.key}</span>
+      </span>
+      <span>{formatIncidentProductLabel(row.products ?? [])}</span>
+      <span>
+        {row.status ? (
+          <WorkflowStatusTag
+            name={row.status.name}
+            category={row.status.category}
+          />
+        ) : null}
+      </span>
+      <span>{age}</span>
+      <span>{row.commander?.name ?? '—'}</span>
+    </Link>
   )
 }
 

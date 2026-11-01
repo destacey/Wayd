@@ -116,7 +116,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.PokerSessions)]
     [EndpointSummary("Add a round to a poker session.")]
     [EndpointDescription(
-        "A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.")]
+        "A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.")]
     [McpTool("PokerSessions_AddRound", "Add poker round", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -203,6 +203,22 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult> UpdateRoundLabel(Guid id, Guid roundId, [FromBody] UpdatePokerRoundLabelRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(request.ToUpdatePokerRoundLabelCommand(id, roundId), cancellationToken);
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/rounds/{roundId}/description")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.PokerSessions)]
+    [EndpointSummary("Update the description for a round.")]
+    [EndpointDescription(
+        "Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Both ids are UUIDs.")]
+    [McpTool("PokerSessions_UpdateRoundDescription", "Update poker round description")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> UpdateRoundDescription(Guid id, Guid roundId, [FromBody] UpdatePokerRoundDescriptionRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToUpdatePokerRoundDescriptionCommand(id, roundId), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));

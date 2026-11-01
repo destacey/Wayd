@@ -6,6 +6,7 @@ import { useUpdatePokerRoundLabelMutation } from '@/src/store/features/planning/
 import { Input, Typography } from 'antd'
 import { FC, useEffect, useRef, useState } from 'react'
 import styles from './poker-session.module.css'
+import RoundDescription from './round-description'
 
 const { Text } = Typography
 
@@ -92,12 +93,22 @@ const RoundLabelHeader: FC<RoundLabelHeaderProps> = ({
 
   const isEditable = canManage
 
+  const description = (
+    <RoundDescription
+      round={round}
+      sessionId={sessionId}
+      sessionKey={sessionKey}
+      canManage={isEditable}
+    />
+  )
+
   if (!isEditable) {
     return (
       <div className={styles.roundLabelContainer}>
         <div className={styles.roundLabelHeader}>
           {round.label || 'Untitled round'}
         </div>
+        {description}
       </div>
     )
   }
@@ -111,11 +122,12 @@ const RoundLabelHeader: FC<RoundLabelHeaderProps> = ({
         value={localValue}
         onChange={handleChange}
         onBlur={handleBlur}
-        placeholder="Type a work item ID or description..."
+        placeholder="Type a work item ID or title..."
         maxLength={512}
         size="large"
         className={styles.roundLabelInput}
       />
+      {description}
     </div>
   )
 }

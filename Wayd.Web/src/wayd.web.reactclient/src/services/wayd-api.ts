@@ -34640,6 +34640,71 @@ export class PokerSessionsClient {
     }
 
     /**
+     * Update the description for a round.
+     * @return No Content
+     */
+    updateRoundDescription(id: string, roundId: string, request: UpdatePokerRoundDescriptionRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/rounds/{roundId}/description";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (roundId === undefined || roundId === null)
+            throw new globalThis.Error("The parameter 'roundId' must be defined.");
+        url_ = url_.replace("{roundId}", encodeURIComponent("" + roundId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateRoundDescription(_response);
+        });
+    }
+
+    protected processUpdateRoundDescription(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Submit a vote for a round.
      * @return No Content
      */
@@ -58902,6 +58967,8 @@ export interface AddPersonaRequest {
 
 export interface AddPokerRoundRequest {
     label?: string | undefined;
+    /** Optional detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters. */
+    description?: string | undefined;
 }
 
 /** Records that a product depends on another. */
@@ -63964,6 +64031,7 @@ Free text, never parsed: nothing sorts or compares it, so any convention works. 
 export interface PokerRoundDto {
     id: string;
     label?: string | undefined;
+    description?: string | undefined;
     status: string;
     consensusEstimate?: string | undefined;
     order: number;
@@ -68030,6 +68098,12 @@ export interface UpdatePlanningIntervalRequest {
     description?: string | undefined;
     /** Gets or sets the objectives locked. */
     objectivesLocked: boolean;
+}
+
+/** The new description for a poker round. */
+export interface UpdatePokerRoundDescriptionRequest {
+    /** Detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters. Null or blank clears it. */
+    description?: string | undefined;
 }
 
 export interface UpdatePokerRoundLabelRequest {

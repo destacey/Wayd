@@ -84,7 +84,7 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Add a new round to this session.
     /// </summary>
-    public Result<PokerRound> AddRound(string? label)
+    public Result<PokerRound> AddRound(string? label, string? description = null)
     {
         if (Status != PokerSessionStatus.Active)
             return Result.Failure<PokerRound>("Rounds can only be added to an active session.");
@@ -92,7 +92,7 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         try
         {
             int nextOrder = _rounds.Count > 0 ? _rounds.Max(r => r.Order) + 1 : 0;
-            var round = new PokerRound(Id, label, nextOrder);
+            var round = new PokerRound(Id, label, description, nextOrder);
             _rounds.Add(round);
 
             return Result.Success(round);
@@ -186,6 +186,24 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure<PokerRound>("Round not found.");
 
         var result = round.UpdateLabel(newLabel);
+        return result.IsFailure
+            ? Result.Failure<PokerRound>(result.Error)
+            : Result.Success(round);
+    }
+
+    /// <summary>
+    /// Update the description for a specific round.
+    /// </summary>
+    public Result<PokerRound> UpdateRoundDescription(Guid roundId, string? newDescription)
+    {
+        if (Status != PokerSessionStatus.Active)
+            return Result.Failure<PokerRound>("Cannot update round description when the session is not active.");
+
+        var round = _rounds.FirstOrDefault(r => r.Id == roundId);
+        if (round is null)
+            return Result.Failure<PokerRound>("Round not found.");
+
+        var result = round.UpdateDescription(newDescription);
         return result.IsFailure
             ? Result.Failure<PokerRound>(result.Error)
             : Result.Success(round);

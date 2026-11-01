@@ -14,4 +14,5 @@ public interface IPokerSessionNotifier
     Task NotifyConsensusSet(Guid sessionId, Guid roundId, string estimate);
     Task NotifyRoundReset(Guid sessionId, Guid roundId);
     Task NotifyRoundLabelUpdated(Guid sessionId, Guid roundId, string? label);
+    Task NotifyRoundDescriptionUpdated(Guid sessionId, Guid roundId);
 }

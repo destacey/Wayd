@@ -98,6 +98,7 @@ export function usePokerSessionConnection(
           'RoundAdded',
           'RoundRemoved',
           'RoundLabelUpdated',
+          'RoundDescriptionUpdated',
         ]
         for (const event of events) {
           connection.on(event, invalidateSession)
@@ -106,7 +107,9 @@ export function usePokerSessionConnection(
         // Presence events
         connection.on(
           'ParticipantList',
-          (participants: { id: string; name: string; employeeId?: string }[]) => {
+          (
+            participants: { id: string; name: string; employeeId?: string }[],
+          ) => {
             presenceMapRef.current.clear()
             for (const p of participants) {
               presenceMapRef.current.set(p.id, {

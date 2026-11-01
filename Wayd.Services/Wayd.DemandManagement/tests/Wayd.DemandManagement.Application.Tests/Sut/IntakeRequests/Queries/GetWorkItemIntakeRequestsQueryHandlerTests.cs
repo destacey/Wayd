@@ -30,9 +30,10 @@ public sealed class GetWorkItemIntakeRequestsQueryHandlerTests
         var result = await CreateHandler().Handle(new GetWorkItemIntakeRequestsQuery(workItemId), TestContext.Current.CancellationToken);
 
         // Assert
-        result.Select(r => r.Request.Id).Should().Equal(first.Id, second.Id);
-        result[1].Note.Should().Be("The export screen");
-        result[0].Status.Id.Should().Be(first.StatusId);
+        // The faker numbers requests at random, so the expected order comes from their keys.
+        result.Select(r => r.Request.Id).Should().Equal(new[] { first, second }.OrderBy(r => r.Key).Select(r => r.Id));
+        result.Single(r => r.Request.Id == second.Id).Note.Should().Be("The export screen");
+        result.Single(r => r.Request.Id == first.Id).Status.Id.Should().Be(first.StatusId);
     }
 
     [Fact]

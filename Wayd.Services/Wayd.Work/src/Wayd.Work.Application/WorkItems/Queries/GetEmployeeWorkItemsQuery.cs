@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItems.Dtos;
 
@@ -6,7 +7,7 @@ namespace Wayd.Work.Application.WorkItems.Queries;
 
 public sealed record GetEmployeeWorkItemsQuery(
     Guid EmployeeId,
-    WorkStatusCategory[]? StatusCategories = null,
+    StatusCategory[]? StatusCategories = null,
     Instant? DoneFrom = null,
     Instant? DoneTo = null)
     : IQuery<List<WorkItemListDto>>;

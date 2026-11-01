@@ -1,6 +1,8 @@
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
+using Wayd.DemandManagement.Domain;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Queries;
 
@@ -36,7 +38,7 @@ public sealed class GetWorkItemIntakeRequestsQueryHandler(
             .Select(x => new WorkItemIntakeRequestDto
             {
                 Request = new IntakeRequestNavigationDto { Id = x.r.Id, Key = x.r.Key, Title = x.r.Title },
-                Status = new StatusNavigationDto { Id = x.r.StatusId, Name = x.r.StatusName, Category = x.r.StatusCategory, Alias = x.r.StatusAliasValue },
+                Status = new StatusNavigationDto { Id = x.r.StatusId, Name = x.r.StatusName, Category = x.r.StatusCategory, CategoryLabel = WorkflowOwners.CategoryLabel(DemandManagementWorkflowOwners.IntakeRequest.Key, x.r.StatusCategory), Alias = x.r.StatusAliasValue },
                 Note = x.o.Note,
             })
             .ToListAsync(cancellationToken);

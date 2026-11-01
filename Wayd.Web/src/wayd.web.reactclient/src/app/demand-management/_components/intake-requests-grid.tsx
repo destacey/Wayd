@@ -134,9 +134,7 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       // A status name is the desk workflow's own word. The tooltip carries the category, which is the
       // fixed meaning that decides whether the request is still open.
       cell: ({ row }) => (
-        <Tooltip
-          title={statusCategoryDescription(row.original.status.category)}
-        >
+        <Tooltip title={statusCategoryDescription(row.original.status)}>
           <span>
             <WorkflowStatusTag
               name={row.original.status.name}

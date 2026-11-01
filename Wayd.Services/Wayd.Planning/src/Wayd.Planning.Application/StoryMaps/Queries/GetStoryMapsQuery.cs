@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Planning.Application.StoryMaps.Dtos;
 
 namespace Wayd.Planning.Application.StoryMaps.Queries;
@@ -18,7 +18,7 @@ public sealed class GetStoryMapsQueryHandler(IPlanningDbContext planningDbContex
         var query = _planningDbContext.StoryMaps.AsQueryable();
 
         if (!request.IncludeArchived)
-            query = query.Where(m => m.Status != WorkStatusCategory.Removed);
+            query = query.Where(m => m.Status != StatusCategory.Removed);
 
         query = query.OrderByDescending(m => m.Key);
 

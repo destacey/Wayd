@@ -1,5 +1,5 @@
 using CSharpFunctionalExtensions;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Planning.Domain.Models.StoryMaps;
 using Wayd.Planning.Domain.Tests.Data;
 
@@ -34,7 +34,7 @@ public class StoryMapTests
         map.Name.Should().Be("My Map");
         map.Description.Should().Be("A description");
         map.OwnerId.Should().Be(ownerId);
-        map.Status.Should().Be(WorkStatusCategory.Active);
+        map.Status.Should().Be(StatusCategory.Active);
     }
 
     [Fact]
@@ -142,7 +142,7 @@ public class StoryMapTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        map.Status.Should().Be(WorkStatusCategory.Removed);
+        map.Status.Should().Be(StatusCategory.Removed);
     }
 
     [Fact]

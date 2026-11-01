@@ -1,8 +1,10 @@
 import {
   StatusCategory,
+  StatusCategoryLabelDto,
   WorkflowAliasDto,
   WorkflowStatusDto,
 } from '@/src/services/wayd-api'
+import { statusCategoryLabel } from '@/src/components/common/status-workflows/status-category'
 
 /** The "no well-known meaning" option. The API models it as alias zero. */
 export const NO_ALIAS = 0
@@ -48,6 +50,7 @@ export const buildAliasOptions = (
   statuses: WorkflowStatusDto[] | undefined,
   category: StatusCategory | undefined,
   currentStatusId?: string,
+  categoryLabels?: readonly StatusCategoryLabelDto[],
 ): AliasOption[] => {
   const taken = new Set(
     (statuses ?? [])
@@ -73,7 +76,7 @@ export const buildAliasOptions = (
         value: a.value,
         label:
           a.category !== category
-            ? `${a.name} (belongs under ${a.category})`
+            ? `${a.name} (belongs under ${statusCategoryLabel(categoryLabels, a.category)})`
             : a.isRequired
               ? `${a.name} (required)`
               : a.name,

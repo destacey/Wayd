@@ -70,6 +70,7 @@ public sealed class GetProductStatusOptionsQueryHandler(
                 Id = s.Id,
                 Name = s.Name,
                 Category = s.Category,
+                CategoryLabel = ProductWorkflowOwners.Product.CategoryLabel(s.Category),
                 Alias = s.Alias,
                 Conditions = currentStatusId is { } from ? workflow.Value.ConditionsFor(from, s.Id) : [],
             }),

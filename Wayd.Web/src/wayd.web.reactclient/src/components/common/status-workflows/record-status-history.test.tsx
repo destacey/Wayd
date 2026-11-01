@@ -70,12 +70,18 @@ const entry = (
   id: `h-${sequence}`,
   sequence,
   fromStatus: from
-    ? { id: from[0], name: from[1], category: StatusCategory.Proposed }
+    ? {
+        id: from[0],
+        name: from[1],
+        category: StatusCategory.Proposed,
+        categoryLabel: 'Proposed',
+      }
     : undefined,
   toStatus: {
     id: to[0],
     name: to[1],
     category: StatusCategory.Active,
+    categoryLabel: 'Active',
     alias: 0,
   },
   workflowId,

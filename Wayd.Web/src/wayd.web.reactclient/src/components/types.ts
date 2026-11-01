@@ -41,8 +41,9 @@ export enum WorkTypeTier {
   Other = 3,
 }
 
-// Work Status Categories from Wayd.Common.Domain.Enums.Work.WorkStatusCategory
-export enum WorkStatusCategory {
+// The numeric id of a StatusCategory, as work item DTOs send it in their statusCategory navigation
+// (id and name). Values match Wayd.Common.Domain.StatusWorkflows.Enums.StatusCategory.
+export enum StatusCategoryId {
   Proposed = 0,
   Active = 1,
   Done = 2,

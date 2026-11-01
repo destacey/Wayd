@@ -1,8 +1,10 @@
 ﻿using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain.Models;
+using Wayd.ProductManagement.Domain;
 
 namespace Wayd.ProductManagement.Application.Deployments.Dtos;
 
@@ -95,6 +97,7 @@ public sealed record DeploymentDto
                 Id = d.StatusId,
                 Name = d.StatusName,
                 Category = d.StatusCategory,
+                CategoryLabel = WorkflowOwners.CategoryLabel(ProductWorkflowOwners.Deployment.Key, d.StatusCategory),
                 Alias = d.StatusAliasValue,
             })
             .Map(dto => dto.Outcome, d => (ProductStatusAlias)d.StatusAliasValue)

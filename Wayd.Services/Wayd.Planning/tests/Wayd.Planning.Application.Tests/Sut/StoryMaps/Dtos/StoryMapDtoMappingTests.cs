@@ -1,11 +1,11 @@
 using Wayd.Planning.Domain.Tests.Data;
 using Mapster;
 using NodaTime;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Extensions;
 using Wayd.Planning.Application.StoryMaps.Dtos;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Models.StoryMaps;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Dtos;
 
@@ -33,7 +33,7 @@ public class StoryMapDtoMappingTests
         var dto = map.Adapt<StoryMapDetailsDto>(Config);
 
         // Assert
-        dto.Status.Should().Be(WorkStatusCategory.Active.GetDisplayName());
+        dto.Status.Should().Be(StatusCategory.Active.GetDisplayName());
     }
 
     [Fact]
@@ -144,6 +144,6 @@ public class StoryMapDtoMappingTests
         var dto = map.Adapt<StoryMapListDto>(Config);
 
         // Assert
-        dto.Status.Should().Be(WorkStatusCategory.Active.GetDisplayName());
+        dto.Status.Should().Be(StatusCategory.Active.GetDisplayName());
     }
 }

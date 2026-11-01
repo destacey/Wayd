@@ -228,6 +228,6 @@ public sealed class AddIntakeRequestOutcomeCommandHandlerTests
         Title = "Export screen",
         WorkspaceKey = "APP",
         Status = "Active",
-        StatusCategory = Common.Domain.Enums.Work.WorkStatusCategory.Active,
+        StatusCategory = Common.Domain.StatusWorkflows.Enums.StatusCategory.Active,
     };
 }

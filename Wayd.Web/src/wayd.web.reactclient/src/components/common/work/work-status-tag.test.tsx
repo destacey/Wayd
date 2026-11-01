@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import WorkStatusTag from './work-status-tag'
-import { WorkStatusCategory } from '../../types'
+import { StatusCategoryId } from '../../types'
 
 describe('WorkStatusTag', () => {
   describe('Proposed status', () => {
@@ -8,7 +8,7 @@ describe('WorkStatusTag', () => {
       render(
         <WorkStatusTag
           status="Proposed"
-          category={WorkStatusCategory.Proposed}
+          category={StatusCategoryId.Proposed}
         />,
       )
       const tag = screen.getByText('Proposed')
@@ -19,7 +19,7 @@ describe('WorkStatusTag', () => {
   describe('Active status', () => {
     it('should render tag with Active status and processing color', () => {
       render(
-        <WorkStatusTag status="Active" category={WorkStatusCategory.Active} />,
+        <WorkStatusTag status="Active" category={StatusCategoryId.Active} />,
       )
       const tag = screen.getByText('Active')
       expect(tag).toBeInTheDocument()
@@ -29,7 +29,7 @@ describe('WorkStatusTag', () => {
       render(
         <WorkStatusTag
           status="In Progress"
-          category={WorkStatusCategory.Active}
+          category={StatusCategoryId.Active}
         />,
       )
       const tag = screen.getByText('In Progress')
@@ -40,7 +40,7 @@ describe('WorkStatusTag', () => {
   describe('Done status', () => {
     it('should render tag with Done status and success color', () => {
       render(
-        <WorkStatusTag status="Done" category={WorkStatusCategory.Done} />,
+        <WorkStatusTag status="Done" category={StatusCategoryId.Done} />,
       )
       const tag = screen.getByText('Done')
       expect(tag).toBeInTheDocument()
@@ -50,7 +50,7 @@ describe('WorkStatusTag', () => {
       render(
         <WorkStatusTag
           status="Completed"
-          category={WorkStatusCategory.Done}
+          category={StatusCategoryId.Done}
         />,
       )
       const tag = screen.getByText('Completed')
@@ -63,7 +63,7 @@ describe('WorkStatusTag', () => {
       render(
         <WorkStatusTag
           status="Removed"
-          category={WorkStatusCategory.Removed}
+          category={StatusCategoryId.Removed}
         />,
       )
       const tag = screen.getByText('Removed')
@@ -74,7 +74,7 @@ describe('WorkStatusTag', () => {
       render(
         <WorkStatusTag
           status="Cancelled"
-          category={WorkStatusCategory.Removed}
+          category={StatusCategoryId.Removed}
         />,
       )
       const tag = screen.getByText('Cancelled')
@@ -87,7 +87,7 @@ describe('WorkStatusTag', () => {
       const { container } = render(
         <WorkStatusTag
           status="Proposed"
-          category={WorkStatusCategory.Proposed}
+          category={StatusCategoryId.Proposed}
         />,
       )
       const tag = container.querySelector('.ant-tag-default')
@@ -96,7 +96,7 @@ describe('WorkStatusTag', () => {
 
     it('should apply correct color class for Active category', () => {
       const { container } = render(
-        <WorkStatusTag status="Active" category={WorkStatusCategory.Active} />,
+        <WorkStatusTag status="Active" category={StatusCategoryId.Active} />,
       )
       const tag = container.querySelector('.ant-tag-processing')
       expect(tag).toBeInTheDocument()
@@ -104,7 +104,7 @@ describe('WorkStatusTag', () => {
 
     it('should apply correct color class for Done category', () => {
       const { container } = render(
-        <WorkStatusTag status="Done" category={WorkStatusCategory.Done} />,
+        <WorkStatusTag status="Done" category={StatusCategoryId.Done} />,
       )
       const tag = container.querySelector('.ant-tag-success')
       expect(tag).toBeInTheDocument()
@@ -114,7 +114,7 @@ describe('WorkStatusTag', () => {
       const { container } = render(
         <WorkStatusTag
           status="Removed"
-          category={WorkStatusCategory.Removed}
+          category={StatusCategoryId.Removed}
         />,
       )
       const tag = container.querySelector('.ant-tag-warning')
@@ -125,7 +125,7 @@ describe('WorkStatusTag', () => {
   describe('Edge cases', () => {
     it('should handle empty status string', () => {
       const { container } = render(
-        <WorkStatusTag status="" category={WorkStatusCategory.Active} />,
+        <WorkStatusTag status="" category={StatusCategoryId.Active} />,
       )
       const tag = container.querySelector('.ant-tag')
       expect(tag).toBeInTheDocument()
@@ -136,7 +136,7 @@ describe('WorkStatusTag', () => {
       render(
         <WorkStatusTag
           status="Status & More"
-          category={WorkStatusCategory.Active}
+          category={StatusCategoryId.Active}
         />,
       )
       const tag = screen.getByText('Status & More')
@@ -148,7 +148,7 @@ describe('WorkStatusTag', () => {
       render(
         <WorkStatusTag
           status={longStatus}
-          category={WorkStatusCategory.Active}
+          category={StatusCategoryId.Active}
         />,
       )
       const tag = screen.getByText(longStatus)

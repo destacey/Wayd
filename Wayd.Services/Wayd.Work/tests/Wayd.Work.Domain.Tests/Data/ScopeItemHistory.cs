@@ -1,5 +1,5 @@
 using NodaTime;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Domain.Models.SprintScope;
 
 namespace Wayd.Work.Domain.Tests.Data;
@@ -16,7 +16,7 @@ public sealed class ScopeItemHistory
     public IReadOnlyList<SprintScopePeriod> Periods => _periods;
 
     /// <summary>Closes the current state at <paramref name="from"/> and opens the next.</summary>
-    public ScopeItemHistory Then(Instant from, Guid? iterationId, WorkStatusCategory status, double? storyPoints = 3, bool isRequirement = true)
+    public ScopeItemHistory Then(Instant from, Guid? iterationId, StatusCategory status, double? storyPoints = 3, bool isRequirement = true)
     {
         if (_periods.Count > 0)
             _periods[^1] = _periods[^1] with { ValidTo = from };

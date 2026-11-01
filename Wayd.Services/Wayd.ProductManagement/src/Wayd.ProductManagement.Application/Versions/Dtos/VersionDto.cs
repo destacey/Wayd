@@ -1,6 +1,8 @@
 ﻿using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.ProductManagement.Domain.Models;
+using Wayd.ProductManagement.Domain;
 
 // The delivery artifact record, not System.Version.
 using Version = Wayd.ProductManagement.Domain.Models.Version;
@@ -55,6 +57,7 @@ public sealed record VersionDto : IMapFrom<Version>
                 Id = src.StatusId,
                 Name = src.StatusName,
                 Category = src.StatusCategory,
+                CategoryLabel = WorkflowOwners.CategoryLabel(ProductWorkflowOwners.Version.Key, src.StatusCategory),
                 Alias = src.StatusAliasValue,
             });
     }

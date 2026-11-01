@@ -23,7 +23,7 @@ const StatusHistoryTag: FC<StatusHistoryTagProps> = ({
   onOpenHistory,
 }) => {
   const tag = <WorkflowStatusTag name={status.name} category={status.category} />
-  const description = statusCategoryDescription(status.category)
+  const description = statusCategoryDescription(status)
 
   // What the status means, then what clicking does — kept apart rather than run together, since
   // they answer different questions.

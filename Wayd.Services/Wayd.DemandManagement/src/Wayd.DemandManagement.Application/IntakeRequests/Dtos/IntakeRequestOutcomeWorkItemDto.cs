@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 
@@ -27,5 +27,5 @@ public sealed record IntakeRequestOutcomeWorkItemDto
     public required string Status { get; init; }
 
     /// <summary>The category of the work item's status.</summary>
-    public WorkStatusCategory StatusCategory { get; init; }
+    public StatusCategory StatusCategory { get; init; }
 }

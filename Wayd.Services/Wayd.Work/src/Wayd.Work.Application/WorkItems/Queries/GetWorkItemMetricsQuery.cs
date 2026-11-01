@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Models;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItems.Dtos;
@@ -72,7 +73,7 @@ public sealed class GetWorkItemMetricsQueryHandler(IWorkDbContext workDbContext,
 
         var end = workItem.DoneTimestamp?.ToDateOnly() ?? _dateTimeProvider.Now.ToDateOnly();
         // if all items are done, use the last done date as the end date if it is later than the work item done date
-        if (workItem.DoneTimestamp.HasValue && progress.All(p => p.StatusCategory == WorkStatusCategory.Done))
+        if (workItem.DoneTimestamp.HasValue && progress.All(p => p.StatusCategory == StatusCategory.Done))
         {
             var latestChildDone = progress.Max(p => p.DoneTimestamp!.Value).ToDateOnly();
             if (end < latestChildDone)

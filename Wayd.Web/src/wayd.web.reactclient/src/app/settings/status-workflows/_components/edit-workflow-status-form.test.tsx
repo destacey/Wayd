@@ -2,6 +2,7 @@ import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   StatusCategory,
+  StatusCategoryLabelDto,
   WorkflowAliasDto,
   WorkflowStatusDto,
 } from '@/src/services/wayd-api'
@@ -63,18 +64,38 @@ const ALIASES: WorkflowAliasDto[] = [
   },
 ]
 
+// The server enum's numbers, which a status's category navigation carries as its id.
+const CATEGORY_IDS: Record<StatusCategory, number> = {
+  [StatusCategory.Proposed]: 0,
+  [StatusCategory.Active]: 1,
+  [StatusCategory.Done]: 2,
+  [StatusCategory.Removed]: 3,
+}
+
 const statusIn = (
   category: StatusCategory,
   alias: number,
+  categoryName: string = category,
 ): WorkflowStatusDto => ({
   id: 's-1',
-  name: 'Shipped',
-  category: { id: 1, name: category },
+  name: 'Released',
+  category: { id: CATEGORY_IDS[category], name: categoryName },
   alias,
   order: 1,
 })
 
-const renderForm = async (status: WorkflowStatusDto) =>
+// An owner type that names two categories its own way.
+const LABELS: StatusCategoryLabelDto[] = [
+  { category: StatusCategory.Proposed, label: 'Proposed' },
+  { category: StatusCategory.Active, label: 'Underway' },
+  { category: StatusCategory.Done, label: 'Concluded' },
+  { category: StatusCategory.Removed, label: 'Removed' },
+]
+
+const renderForm = async (
+  status: WorkflowStatusDto,
+  categoryLabels?: StatusCategoryLabelDto[],
+) =>
   await act(async () =>
     render(
       <EditWorkflowStatusForm
@@ -82,18 +103,26 @@ const renderForm = async (status: WorkflowStatusDto) =>
         status={status}
         statuses={[status]}
         aliases={ALIASES}
+        categoryLabels={categoryLabels}
         onFormComplete={jest.fn()}
         onFormCancel={jest.fn()}
       />,
     ),
   )
 
-const chooseCategory = async (category: StatusCategory) => {
+const chooseCategory = async (category: string) => {
   const field = screen.getByLabelText('Category')
   await act(() => userEvent.click(field))
   const options = await screen.findAllByTitle(category)
   await act(() => userEvent.click(options[options.length - 1]))
 }
+
+const categoryShown = () =>
+  within(
+    screen.getByLabelText('Category').closest('.ant-select') as HTMLElement,
+  )
+    .getByTitle(/./)
+    .getAttribute('title')
 
 const meaningShown = () =>
   within(screen.getByLabelText('Meaning').closest('.ant-select') as HTMLElement)
@@ -152,5 +181,54 @@ describe('EditWorkflowStatusForm', () => {
         'This meaning belongs under another category. Move the status there, or choose another meaning.',
       ),
     ).toBeInTheDocument()
+  })
+
+  it("opens on the status's category read from its id, named as the owner type labels it", async () => {
+    // Arrange / Act — the navigation's name is the label, which is not a category value
+    await renderForm(statusIn(StatusCategory.Done, 2, 'Concluded'), LABELS)
+
+    // Assert
+    expect(categoryShown()).toBe('Concluded')
+    expect(meaningShown()).toBe('Released (required)')
+  })
+
+  it('names where a misfiled meaning belongs by the owner type label', async () => {
+    // Arrange / Act
+    await renderForm(statusIn(StatusCategory.Active, 2, 'Underway'), LABELS)
+
+    // Assert
+    expect(meaningShown()).toBe('Released (belongs under Concluded)')
+  })
+
+  it('saves an unchanged labelled status without reclassifying it', async () => {
+    // Arrange
+    await renderForm(statusIn(StatusCategory.Done, 2, 'Concluded'), LABELS)
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Save' })),
+    )
+
+    // Assert
+    expect(mockReclassify).not.toHaveBeenCalled()
+  })
+
+  it('reclassifies into the category behind the chosen label', async () => {
+    // Arrange
+    mockReclassify.mockResolvedValue({})
+    await renderForm(statusIn(StatusCategory.Done, 2, 'Concluded'), LABELS)
+
+    // Act
+    await chooseCategory('Underway')
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Save' })),
+    )
+
+    // Assert
+    expect(mockReclassify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: { category: StatusCategory.Active, alias: 0 },
+      }),
+    )
   })
 })

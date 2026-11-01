@@ -46,6 +46,8 @@ The **category** is how a status rolls up when something counts records rather t
 | Done | Finished successfully |
 | Removed | Finished without succeeding |
 
+The four categories are the same for every record type, including work items. They are buckets, not definitions: what has to be true before something is Done differs from one kind of record to another, and often from one team to another, and that is decided by the workflow — which statuses it puts in each category — not by the category. A category is what lets Wayd count and compare across those differences. A record type can give the categories names of its own. Where it does, the workflow editor and the tooltip on a record's status show its names; where it does not, they show Proposed, Active, Done and Removed. The names change only what you read: the category, and every rule and report built on it, stays the same.
+
 Each record type also declares the categories it cannot do without, and a workflow without a status in each cannot be published. An intake request that could never be accepted or finished would be stuck, so its workflow must have all four:
 
 | Record type | Required categories |

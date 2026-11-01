@@ -9,7 +9,6 @@ using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Events.StatusWorkflows;
@@ -808,7 +807,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             Title = "Export screen",
             WorkspaceKey = "APP",
             Status = "Active",
-            StatusCategory = WorkStatusCategory.Active,
+            StatusCategory = StatusCategory.Active,
         };
 
         // Act

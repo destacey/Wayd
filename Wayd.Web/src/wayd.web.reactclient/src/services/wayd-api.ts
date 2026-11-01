@@ -1745,7 +1745,7 @@ export class MeClient {
      * @param doneTo (optional) 
      * @return OK
      */
-    getWorkItems(statusCategories?: WorkStatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+    getWorkItems(statusCategories?: StatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
         let url_ = this.baseUrl + "/api/me/work-items?";
         if (statusCategories !== undefined && statusCategories !== null)
             statusCategories && statusCategories.forEach(item => { url_ += "statusCategories=" + encodeURIComponent("" + item) + "&"; });
@@ -40917,7 +40917,7 @@ export class EmployeesClient {
      * @param doneTo (optional) 
      * @return OK
      */
-    getEmployeeWorkItems(id: string, statusCategories?: WorkStatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+    getEmployeeWorkItems(id: string, statusCategories?: StatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
         let url_ = this.baseUrl + "/api/organization/employees/{id}/work-items?";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -43623,7 +43623,7 @@ export class TeamsClient {
      * @param doneTo (optional) 
      * @return OK
      */
-    getTeamWorkItems(idOrCode: string, statusCategories?: WorkStatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+    getTeamWorkItems(idOrCode: string, statusCategories?: StatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
         let url_ = this.baseUrl + "/api/organization/teams/{idOrCode}/work-items?";
         if (idOrCode === undefined || idOrCode === null)
             throw new globalThis.Error("The parameter 'idOrCode' must be defined.");
@@ -61248,6 +61248,9 @@ export interface FrozenStatusDto {
     id: string;
     name: string;
     category: StatusCategory;
+    /** What the record's owner type calls the category — its own word for the bucket, or the category's
+name when it declares none. For display only; group and compare on the category. */
+    categoryLabel: string;
 }
 
 export interface FunctionalOrganizationChartDto {
@@ -62458,7 +62461,7 @@ export interface IntakeRequestOutcomeWorkItemDto {
     /** The work item's status, by name. */
     status: string;
     /** The category of the work item's status. */
-    statusCategory: WorkStatusCategory;
+    statusCategory: StatusCategory;
 }
 
 /** A participant on an intake request: who, and who added them when. */
@@ -62557,6 +62560,9 @@ rewrite what past records read as. */
     name: string;
     /** The status's bucket — Proposed, Active, Done or Removed. What rollups and invariants group on. */
     category: StatusCategory;
+    /** What the record's owner type calls the category — its own word for the bucket, or the category's
+name when it declares none. For display only; group and compare on the category. */
+    categoryLabel: string;
     /** The well-known meaning the status carries, as the consuming module's alias value, or
 `0` when it carries none. */
     alias: number;
@@ -62718,6 +62724,8 @@ export interface IntakeWorkflowStatusDto {
     name: string;
     /** The status's bucket — Proposed, Active, Done or Removed — which decides whether a request in it is open. */
     category: StatusCategory;
+    /** What intake requests call the category. For display only; group and compare on the category. */
+    categoryLabel: string;
     /** The well-known meaning the status carries, as an intake request status alias value, or 0 for none. */
     alias: number;
     /** What the status means, when the workflow's author said, written for anyone following a request. */
@@ -66357,6 +66365,14 @@ export enum StatusCategory {
     Removed = "Removed",
 }
 
+/** One category and what an owner type calls it. */
+export interface StatusCategoryLabelDto {
+    /** The category being named. */
+    category: StatusCategory;
+    /** What the owner type calls the category, or the category's own name when it declares none. */
+    label: string;
+}
+
 /** A status a record can be moved to, with what the move needs. */
 export interface StatusOptionDto extends StatusNavigationDto {
     /** What moving the record to this status needs, in kind order — `RequiresReason` means the move
@@ -69050,6 +69066,9 @@ export interface WorkflowOwnerTypeDto {
     requiredCategories: StatusCategory[];
     /** Whether a workflow for this owner type may restrict which moves its records make. */
     supportsRestrictedTransitions: boolean;
+    /** What this owner type calls each category, one entry per category in category order. A category
+it declares no label for carries the category's own name. */
+    categoryLabels: StatusCategoryLabelDto[];
 }
 
 export interface WorkflowSchemeDto {
@@ -69065,7 +69084,8 @@ export interface WorkflowStatusDto {
     id: string;
     name: string;
     description?: string | undefined;
-    /** The rollup this status belongs to, as id and display name. */
+    /** The rollup this status belongs to: the category's id, and its name as the workflow's owner type
+labels it. */
     category: SimpleNavigationDto;
     /** The well-known meaning, or zero for none. */
     alias: number;
@@ -69337,13 +69357,6 @@ export interface WorkspaceListDto {
 }
 
 export interface WorkspaceNavigationDto extends NavigationDtoOfGuidAndString {
-}
-
-export enum WorkStatusCategory {
-    Proposed = "Proposed",
-    Active = "Active",
-    Done = "Done",
-    Removed = "Removed",
 }
 
 export interface WorkStatusCategoryListDto {

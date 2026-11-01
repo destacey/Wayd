@@ -97,12 +97,8 @@ const WorkflowStatusesList = ({
   // An alias is an int whose meaning belongs to the owner type's module, so
   // the vocabulary has to come from the registry rather than a local enum.
   const { data: ownerTypes } = useGetWorkflowOwnerTypesQuery()
-  const aliases = useMemo(
-    () =>
-      ownerTypes?.find((o) => o.key === statusWorkflow.owner?.key)?.aliases ??
-      [],
-    [ownerTypes, statusWorkflow.owner?.key],
-  )
+  const ownerType = ownerTypes?.find((o) => o.key === statusWorkflow.owner?.key)
+  const aliases = ownerType?.aliases ?? []
 
   const canEdit = statusWorkflow.canEdit
 
@@ -261,6 +257,7 @@ const WorkflowStatusesList = ({
           workflowId={statusWorkflow.id}
           statuses={sortedStatuses}
           aliases={aliases}
+          categoryLabels={ownerType?.categoryLabels}
           onFormComplete={() => setOpenAddForm(false)}
           onFormCancel={() => setOpenAddForm(false)}
         />
@@ -271,6 +268,7 @@ const WorkflowStatusesList = ({
           status={editingStatus}
           statuses={sortedStatuses}
           aliases={aliases}
+          categoryLabels={ownerType?.categoryLabels}
           onFormComplete={() => setEditingStatus(null)}
           onFormCancel={() => setEditingStatus(null)}
         />

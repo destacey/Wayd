@@ -1,6 +1,6 @@
 ﻿using NodaTime;
 using Wayd.Common.Domain.Enums.Planning;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Domain.Models.BacklogHealth;
 
@@ -16,7 +16,7 @@ public sealed record BacklogHealthItem
     /// </summary>
     public required int Rank { get; init; }
 
-    public required WorkStatusCategory StatusCategory { get; init; }
+    public required StatusCategory StatusCategory { get; init; }
 
     /// <summary>
     /// The item's estimate in the team's sizing method; null when it has none, or when the team sizes by count.

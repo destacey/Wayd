@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import {
   IntakeRequestDetailsDto,
   IntakeRequestOutcomeKind,
-  WorkStatusCategory,
+  StatusCategory,
 } from '@/src/services/wayd-api'
 import IntakeRequestOutcomes from './intake-request-outcomes'
 
@@ -90,7 +90,7 @@ describe('IntakeRequestOutcomes', () => {
               title: 'Export screen',
               workspaceKey: 'APP',
               status: 'In Progress',
-              statusCategory: WorkStatusCategory.Active,
+              statusCategory: StatusCategory.Active,
             },
             addedBy: agent,
             addedOn: new Date('2026-10-01T09:00:00Z'),

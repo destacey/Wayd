@@ -118,6 +118,21 @@ describe('buildAliasOptions by category', () => {
     })
   })
 
+  it('says where a misfiled alias belongs by the owner type label', () => {
+    // Arrange
+    const statuses = [status('a', 4)]
+    const labels = [{ category: StatusCategory.Active, label: 'Underway' }]
+
+    // Act
+    const options = buildAliasOptions(ALIASES, statuses, DONE, 'a', labels)
+
+    // Assert
+    expect(options).toContainEqual({
+      value: 4,
+      label: 'Started (belongs under Underway)',
+    })
+  })
+
   it("keeps the edited status's own alias as an unknown meaning when the owner type no longer declares it", () => {
     // Arrange
     const statuses = [status('a', 6)]

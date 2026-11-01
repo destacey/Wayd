@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Planning.Domain.Models.StoryMaps;
 using Wayd.TestData.Core;
 
@@ -23,7 +23,7 @@ public class StoryMapFaker : PrivateConstructorFaker<StoryMap>
         RuleFor(x => x.Name, f => f.Lorem.Sentence(3));
         RuleFor(x => x.Description, f => f.Lorem.Sentence(6));
         RuleFor(x => x.OwnerId, f => f.Random.Guid().ToString());
-        RuleFor(x => x.Status, WorkStatusCategory.Active);
+        RuleFor(x => x.Status, StatusCategory.Active);
     }
 }
 
@@ -59,7 +59,7 @@ public static class StoryMapFakerExtensions
         return faker;
     }
 
-    public static StoryMapFaker WithStatus(this StoryMapFaker faker, WorkStatusCategory status)
+    public static StoryMapFaker WithStatus(this StoryMapFaker faker, StatusCategory status)
     {
         faker.RuleFor(x => x.Status, status);
         return faker;

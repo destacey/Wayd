@@ -1,20 +1,20 @@
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Tests.Shared.Data;
 using Wayd.Tests.Shared.Extensions;
 using Wayd.Work.Domain.Models;
 using Wayd.TestData.Core;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Domain.Tests.Data;
 
 public class WorkflowSchemeFaker : PrivateConstructorFaker<WorkflowScheme>
 {
     private readonly WorkStatus? _workStatus;
-    private readonly WorkStatusCategory? _workStatusCategory;
+    private readonly StatusCategory? _workStatusCategory;
 
     public WorkflowSchemeFaker()
     {
         _workStatus = new WorkStatusFaker().Generate();
-        _workStatusCategory = WorkStatusCategory.Proposed;
+        _workStatusCategory = StatusCategory.Proposed;
 
         RuleFor(x => x.Id, f => f.Random.Guid());
         RuleFor(x => x.WorkflowId, f => f.Random.Guid());
@@ -44,7 +44,7 @@ public static class WorkflowSchemeFakerExtensions
         return faker;
     }
 
-    public static WorkflowSchemeFaker WithWorkStatusCategory(this WorkflowSchemeFaker faker, WorkStatusCategory category)
+    public static WorkflowSchemeFaker WithWorkStatusCategory(this WorkflowSchemeFaker faker, StatusCategory category)
     {
         faker.SetPrivateField("_workStatusCategory", category);
         return faker;

@@ -78,7 +78,7 @@ public sealed class StatusWorkflowDetailsReader(IStatusWorkflowDbContext dbConte
                     Id = s.Id,
                     Name = s.Name,
                     Description = s.Description,
-                    Category = SimpleNavigationDto.FromEnum(s.Category),
+                    Category = StatusCategoryNavigation.For(s.Category, descriptor.IsSuccess ? descriptor.Value : null),
                     Alias = s.Alias,
                     AliasName = s.Alias != StatusWorkflow.NoAlias && aliasNames.TryGetValue(s.Alias, out var alias)
                         ? alias

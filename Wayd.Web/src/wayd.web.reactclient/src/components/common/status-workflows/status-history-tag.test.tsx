@@ -7,6 +7,7 @@ const status: StatusNavigationDto = {
   id: '11111111-1111-1111-1111-111111111111',
   name: 'Released',
   category: StatusCategory.Done,
+  categoryLabel: 'Done',
   alias: 11,
 }
 
@@ -82,5 +83,20 @@ describe('StatusHistoryTag', () => {
     const tooltip = await screen.findByRole('tooltip')
     expect(tooltip).toHaveTextContent('completed successfully')
     expect(tooltip).not.toHaveTextContent('Click to view')
+  })
+
+  it("names the category as the record's owner type labels it", async () => {
+    // Arrange
+    const user = userEvent.setup()
+    render(
+      <StatusHistoryTag status={{ ...status, categoryLabel: 'Concluded' }} />,
+    )
+
+    // Act
+    await user.hover(screen.getByText('Released'))
+
+    // Assert
+    const tooltip = await screen.findByRole('tooltip')
+    expect(tooltip).toHaveTextContent('Concluded — completed successfully.')
   })
 })

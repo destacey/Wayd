@@ -14,7 +14,7 @@ import dayjs, { Dayjs } from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import { useGetTeamWorkItemsQuery } from '@/src/store/features/organizations/team-api'
 import { useGetEmployeeWorkItemsQuery } from '@/src/store/features/organizations/employee-api'
-import { WorkStatusCategory, WorkItemListDto } from '@/src/services/wayd-api'
+import { StatusCategory, WorkItemListDto } from '@/src/services/wayd-api'
 import { useDebounce } from '@/src/hooks'
 import { CycleTimeAnalysisChart, WorkItemsGrid } from '.'
 import {
@@ -71,7 +71,7 @@ const CycleTimeReportContent: FC<CycleTimeReportContentProps> = ({
   const teamQuery = useGetTeamWorkItemsQuery(
     {
       idOrCode: source.type === 'team' ? source.teamCode : '',
-      statusCategories: [WorkStatusCategory.Done],
+      statusCategories: [StatusCategory.Done],
       doneFrom,
       doneTo: null,
     },
@@ -81,7 +81,7 @@ const CycleTimeReportContent: FC<CycleTimeReportContentProps> = ({
   const employeeQuery = useGetEmployeeWorkItemsQuery(
     {
       employeeId: source.type === 'employee' ? source.employeeId : '',
-      statusCategories: [WorkStatusCategory.Done],
+      statusCategories: [StatusCategory.Done],
       doneFrom,
       doneTo: null,
     },

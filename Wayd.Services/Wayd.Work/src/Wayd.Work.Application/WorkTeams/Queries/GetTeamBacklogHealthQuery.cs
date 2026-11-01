@@ -8,6 +8,7 @@ using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Common.Domain.Settings;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.Iterations.Sprints;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItems.Forecasting;
@@ -114,7 +115,7 @@ public sealed class GetTeamBacklogHealthQueryHandler(
             .Where(w => w.Type.Level!.Tier == WorkTypeTier.Requirement);
 
         var openItems = teamBacklogItems
-            .Where(w => w.StatusCategory == WorkStatusCategory.Proposed || w.StatusCategory == WorkStatusCategory.Active);
+            .Where(w => w.StatusCategory == StatusCategory.Proposed || w.StatusCategory == StatusCategory.Active);
 
         // Parent and Iteration are read through navigations, which the in-memory fakes leave unset.
         var facts = await openItems
@@ -132,7 +133,7 @@ public sealed class GetTeamBacklogHealthQueryHandler(
                 IsAssigned = w.AssignedToId.HasValue,
                 HasParent = w.ParentId.HasValue,
                 IsParentClosed = w.Parent != null
-                    && (w.Parent.StatusCategory == WorkStatusCategory.Done || w.Parent.StatusCategory == WorkStatusCategory.Removed),
+                    && (w.Parent.StatusCategory == StatusCategory.Done || w.Parent.StatusCategory == StatusCategory.Removed),
                 HasProject = w.ProjectId.HasValue || w.ParentProjectId.HasValue,
                 Sprint = w.Iteration != null && w.Iteration.Type == IterationType.Sprint
                     ? new { w.Iteration.Id, w.Iteration.TeamId, w.Iteration.DateRange.Start, w.Iteration.DateRange.End }
@@ -180,7 +181,7 @@ public sealed class GetTeamBacklogHealthQueryHandler(
 
         // Removed items also carry a DoneTimestamp, so the status category is what excludes them.
         var completions = (await teamBacklogItems
-                .Where(w => w.StatusCategory == WorkStatusCategory.Done)
+                .Where(w => w.StatusCategory == StatusCategory.Done)
                 .Where(w => w.DoneTimestamp >= start && w.DoneTimestamp < end)
                 .Select(w => new
                 {
@@ -201,7 +202,7 @@ public sealed class GetTeamBacklogHealthQueryHandler(
 
         // Removed items are left out as completions are, so triaging work away does not read as growth.
         var itemsCreated = await teamBacklogItems
-            .Where(w => w.StatusCategory != WorkStatusCategory.Removed)
+            .Where(w => w.StatusCategory != StatusCategory.Removed)
             .CountAsync(w => w.Created >= start && w.Created < end, cancellationToken);
 
         var memberCount = await _dispatcher.Send(new GetTeamMemberCountQuery(team.Id), cancellationToken);
@@ -244,8 +245,8 @@ public sealed class GetTeamBacklogHealthQueryHandler(
             SizingMethod = sizingMethod,
             TotalWorkItems = backlog.Count,
             TotalEstimate = sizingMethod == SizingMethod.Count ? backlog.Count : backlog.Sum(i => i.Estimate ?? 0),
-            ProposedWorkItems = backlog.Count(i => i.StatusCategory == WorkStatusCategory.Proposed),
-            ActiveWorkItems = backlog.Count(i => i.StatusCategory == WorkStatusCategory.Active),
+            ProposedWorkItems = backlog.Count(i => i.StatusCategory == StatusCategory.Proposed),
+            ActiveWorkItems = backlog.Count(i => i.StatusCategory == StatusCategory.Active),
             ItemsCompleted = completions.Count,
             ItemsCreated = itemsCreated,
             MinimumItemsCompleted = BacklogHealthAssessor.MinimumItemsCompleted,

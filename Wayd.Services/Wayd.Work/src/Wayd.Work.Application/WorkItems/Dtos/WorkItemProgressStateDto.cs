@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Application.WorkItems.Dtos;
 
@@ -7,7 +8,7 @@ public sealed record WorkItemProgressStateDto : IMapFrom<WorkItem>
     public Guid Id { get; set; }
     public int LevelOrder { get; set; }
     public WorkTypeTier Tier { get; set; }
-    public WorkStatusCategory StatusCategory { get; set; }
+    public StatusCategory StatusCategory { get; set; }
     public Guid? ParentId { get; set; }
     public Instant Created { get; set; }
     public Instant? ActivatedTimestamp { get; set; }

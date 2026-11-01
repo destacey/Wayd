@@ -248,6 +248,11 @@ another domain, kept aligned two ways:
    current state. See [Consuming an event](./domain-events.mdx#consuming-an-event).
 2. **Shared table.** `Employee` lives in `Wayd.Common.Domain` — one row, referenced by Guid everywhere.
    No replication needed.
+3. **Composed in the API layer.** A module that only stores another module's ids, and needs neither to filter
+   nor report on that record's fields, keeps no copy: the controller asks the owning module and hands the
+   answer in. Demand Management's work-item outcomes work this way, since `WorkItem` raises no events — the
+   intake requests controller looks the work item up in Work before the add-outcome command, and fills in each
+   outcome's key, title and status when a request is read. The application layers stay unaware of each other.
 
 #### Replication edges
 

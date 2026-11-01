@@ -70,9 +70,6 @@ public sealed class SetWorkflowSchemeEntryCommandHandler(
                 return Result.Failure<int>("Record type not found.");
             }
 
-            var fromWorkflowId = scheme.WorkflowFor(recordType.Id);
-            var toWorkflowId = request.WorkflowId ?? scheme.DefaultWorkflowId;
-
             var workflow = request.WorkflowId is { } workflowId
                 ? await _dbContext.StatusWorkflows.FirstOrDefaultAsync(w => w.Id == workflowId, cancellationToken)
                 : null;
@@ -88,7 +85,7 @@ public sealed class SetWorkflowSchemeEntryCommandHandler(
             var scopeIds = await _dbContext.AssignedScopes(scheme.Id, cancellationToken);
             var moves = await SchemeRecordMoves.Apply(
                 _dbContext, _migrators, scheme.OwnerType,
-                [new SchemeRecordMoves.Move(fromWorkflowId, toWorkflowId, recordType.Id, [])],
+                [SchemeRecordMoves.ForEntry(scheme, recordType.Id, request.WorkflowId)],
                 scopeIds, request.Decisions, actor, now, cancellationToken);
             if (moves.IsFailure)
             {

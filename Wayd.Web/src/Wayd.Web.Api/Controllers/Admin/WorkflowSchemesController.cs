@@ -125,4 +125,33 @@ public class WorkflowSchemesController(ILogger<WorkflowSchemesController> logger
             ? Ok(result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
+
+    [HttpGet("{id}/entries/{recordTypeId}/preview")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
+    [EndpointSummary("Preview what changing a record type's workflow under a scheme would move, before anything is committed.")]
+    [EndpointDescription("Leave workflowId out to preview removing the entry, so the type follows the scheme's default.")]
+    [ProducesResponseType(typeof(WorkflowSchemeChangePreviewDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<WorkflowSchemeChangePreviewDto>> PreviewEntry(Guid id, Guid recordTypeId, [FromQuery] Guid? workflowId, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new PreviewWorkflowSchemeEntryQuery(id, recordTypeId, workflowId), cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpGet("{id}/default/preview")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
+    [EndpointSummary("Preview what changing a scheme's default workflow would move, before anything is committed.")]
+    [ProducesResponseType(typeof(WorkflowSchemeChangePreviewDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<WorkflowSchemeChangePreviewDto>> PreviewDefault(Guid id, [FromQuery] Guid workflowId, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new PreviewWorkflowSchemeDefaultQuery(id, workflowId), cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
 }

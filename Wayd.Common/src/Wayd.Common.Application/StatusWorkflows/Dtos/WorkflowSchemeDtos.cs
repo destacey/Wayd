@@ -89,3 +89,32 @@ public sealed record WorkflowSchemeWorkflowDto
     public required int Key { get; init; }
     public required string Name { get; init; }
 }
+
+/// <summary>What a scheme change would do, before anything is committed.</summary>
+public sealed record WorkflowSchemeChangePreviewDto
+{
+    /// <summary>How many scopes the change reaches: those pointing at the scheme, or the one being reassigned.</summary>
+    public required int AssignedScopeCount { get; init; }
+
+    /// <summary>
+    /// Whether the change can be applied: nothing moves, or the owner type can move its records by record type.
+    /// When false, applying it is refused.
+    /// </summary>
+    public required bool CanMoveRecords { get; init; }
+
+    /// <summary>Each group of records that would change workflow. Empty when no workflow changes.</summary>
+    public required IReadOnlyCollection<WorkflowSchemeMovePreviewDto> Moves { get; init; }
+
+    /// <summary>How many records would move, where the owner type can count them; otherwise 0.</summary>
+    public required int AffectedRecordCount { get; init; }
+}
+
+/// <summary>One group of records a scheme change moves between two workflows.</summary>
+public sealed record WorkflowSchemeMovePreviewDto
+{
+    /// <summary>The record type that moves, or null for the records that follow the defaults.</summary>
+    public RecordTypeNavigationDto? RecordType { get; init; }
+
+    /// <summary>How each status of its current workflow would land in the new one.</summary>
+    public required StatusRemapPreviewDto Remap { get; init; }
+}

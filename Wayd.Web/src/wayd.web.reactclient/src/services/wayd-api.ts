@@ -59216,6 +59216,73 @@ export class WorkflowAssignmentsClient {
         }
         return Promise.resolve<number>(null as any);
     }
+
+    /**
+     * Preview what pointing a scope at another workflow scheme would move, before anything is committed.
+     * @param schemeId (optional) 
+     * @return OK
+     */
+    previewAssignScheme(id: string, schemeId?: string | undefined, cancelToken?: CancelToken): Promise<WorkflowSchemeChangePreviewDto> {
+        let url_ = this.baseUrl + "/api/workflow-assignments/{id}/assign-scheme/preview?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (schemeId === null)
+            throw new globalThis.Error("The parameter 'schemeId' cannot be null.");
+        else if (schemeId !== undefined)
+            url_ += "schemeId=" + encodeURIComponent("" + schemeId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPreviewAssignScheme(_response);
+        });
+    }
+
+    protected processPreviewAssignScheme(response: AxiosResponse): Promise<WorkflowSchemeChangePreviewDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkflowSchemeChangePreviewDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkflowSchemeChangePreviewDto>(null as any);
+    }
 }
 
 export class WorkflowSchemesClient {
@@ -59758,6 +59825,141 @@ export class WorkflowSchemesClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<number>(null as any);
+    }
+
+    /**
+     * Preview what changing a record type's workflow under a scheme would move, before anything is committed.
+     * @param workflowId (optional) 
+     * @return OK
+     */
+    previewEntry(id: string, recordTypeId: string, workflowId?: string | null | undefined, cancelToken?: CancelToken): Promise<WorkflowSchemeChangePreviewDto> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{id}/entries/{recordTypeId}/preview?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (recordTypeId === undefined || recordTypeId === null)
+            throw new globalThis.Error("The parameter 'recordTypeId' must be defined.");
+        url_ = url_.replace("{recordTypeId}", encodeURIComponent("" + recordTypeId));
+        if (workflowId !== undefined && workflowId !== null)
+            url_ += "workflowId=" + encodeURIComponent("" + workflowId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPreviewEntry(_response);
+        });
+    }
+
+    protected processPreviewEntry(response: AxiosResponse): Promise<WorkflowSchemeChangePreviewDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkflowSchemeChangePreviewDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkflowSchemeChangePreviewDto>(null as any);
+    }
+
+    /**
+     * Preview what changing a scheme's default workflow would move, before anything is committed.
+     * @param workflowId (optional) 
+     * @return OK
+     */
+    previewDefault(id: string, workflowId?: string | undefined, cancelToken?: CancelToken): Promise<WorkflowSchemeChangePreviewDto> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{id}/default/preview?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (workflowId === null)
+            throw new globalThis.Error("The parameter 'workflowId' cannot be null.");
+        else if (workflowId !== undefined)
+            url_ += "workflowId=" + encodeURIComponent("" + workflowId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPreviewDefault(_response);
+        });
+    }
+
+    protected processPreviewDefault(response: AxiosResponse): Promise<WorkflowSchemeChangePreviewDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkflowSchemeChangePreviewDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkflowSchemeChangePreviewDto>(null as any);
     }
 }
 
@@ -70102,6 +70304,19 @@ it declares no label for carries the category's own name. */
     categoryLabels: StatusCategoryLabelDto[];
 }
 
+/** What a scheme change would do, before anything is committed. */
+export interface WorkflowSchemeChangePreviewDto {
+    /** How many scopes the change reaches: those pointing at the scheme, or the one being reassigned. */
+    assignedScopeCount: number;
+    /** Whether the change can be applied: nothing moves, or the owner type can move its records by record type.
+When false, applying it is refused. */
+    canMoveRecords: boolean;
+    /** Each group of records that would change workflow. Empty when no workflow changes. */
+    moves: WorkflowSchemeMovePreviewDto[];
+    /** How many records would move, where the owner type can count them; otherwise 0. */
+    affectedRecordCount: number;
+}
+
 /** A workflow scheme with its entries. */
 export interface WorkflowSchemeDetailsDto {
     id: string;
@@ -70150,6 +70365,14 @@ export interface WorkflowSchemeListDto {
     entryCount: number;
     /** How many scopes point at the scheme. A scheme with any cannot be deleted. */
     assignedScopeCount: number;
+}
+
+/** One group of records a scheme change moves between two workflows. */
+export interface WorkflowSchemeMovePreviewDto {
+    /** The record type that moves, or null for the records that follow the defaults. */
+    recordType?: RecordTypeNavigationDto | undefined;
+    /** How each status of its current workflow would land in the new one. */
+    remap: StatusRemapPreviewDto;
 }
 
 /** A workflow a scheme names, named enough to show. */

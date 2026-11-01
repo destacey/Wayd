@@ -51294,6 +51294,63 @@
         ]
       }
     },
+    "/api/workflow-assignments/{id}/assign-scheme/preview": {
+      "get": {
+        "tags": [
+          "WorkflowAssignments"
+        ],
+        "summary": "Preview what pointing a scope at another workflow scheme would move, before anything is committed.",
+        "operationId": "WorkflowAssignments_PreviewAssignScheme",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "schemeId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowSchemeChangePreviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/workflow-schemes": {
       "get": {
         "tags": [
@@ -51741,6 +51798,132 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/workflow-schemes/{id}/entries/{recordTypeId}/preview": {
+      "get": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Preview what changing a record type's workflow under a scheme would move, before anything is committed.",
+        "description": "Leave workflowId out to preview removing the entry, so the type follows the scheme's default.",
+        "operationId": "WorkflowSchemes_PreviewEntry",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "recordTypeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "workflowId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowSchemeChangePreviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/workflow-schemes/{id}/default/preview": {
+      "get": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Preview what changing a scheme's default workflow would move, before anything is committed.",
+        "operationId": "WorkflowSchemes_PreviewDefault",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "workflowId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowSchemeChangePreviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -83877,6 +84060,40 @@
         "additionalProperties": false,
         "description": "An owner type and the vocabulary its workflows are built from."
       },
+      "WorkflowSchemeChangePreviewDto": {
+        "required": [
+          "assignedScopeCount",
+          "canMoveRecords",
+          "moves",
+          "affectedRecordCount"
+        ],
+        "type": "object",
+        "properties": {
+          "assignedScopeCount": {
+            "type": "integer",
+            "description": "How many scopes the change reaches: those pointing at the scheme, or the one being reassigned.",
+            "format": "int32"
+          },
+          "canMoveRecords": {
+            "type": "boolean",
+            "description": "Whether the change can be applied: nothing moves, or the owner type can move its records by record type.\nWhen false, applying it is refused."
+          },
+          "moves": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowSchemeMovePreviewDto"
+            },
+            "description": "Each group of records that would change workflow. Empty when no workflow changes."
+          },
+          "affectedRecordCount": {
+            "type": "integer",
+            "description": "How many records would move, where the owner type can count them; otherwise 0.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "What a scheme change would do, before anything is committed."
+      },
       "WorkflowSchemeDetailsDto": {
         "required": [
           "id",
@@ -84048,6 +84265,33 @@
         },
         "additionalProperties": false,
         "description": "A workflow scheme, as listed."
+      },
+      "WorkflowSchemeMovePreviewDto": {
+        "required": [
+          "remap"
+        ],
+        "type": "object",
+        "properties": {
+          "recordType": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RecordTypeNavigationDto"
+              }
+            ],
+            "description": "The record type that moves, or null for the records that follow the defaults.",
+            "nullable": true
+          },
+          "remap": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusRemapPreviewDto"
+              }
+            ],
+            "description": "How each status of its current workflow would land in the new one."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One group of records a scheme change moves between two workflows."
       },
       "WorkflowSchemeWorkflowDto": {
         "required": [

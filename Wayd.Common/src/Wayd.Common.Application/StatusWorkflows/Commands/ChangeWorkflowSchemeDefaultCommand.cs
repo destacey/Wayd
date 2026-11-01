@@ -66,13 +66,10 @@ public sealed class ChangeWorkflowSchemeDefaultCommandHandler(
             var actor = EventActor.User(_currentUser.GetUserId(), employeeId);
             var now = _dateTimeProvider.Now;
 
-            // Types with an entry follow it, not the default, so only untyped records and types without one move.
-            var withEntries = scheme.Entries.Select(e => e.RecordTypeId).ToList();
-
             var scopeIds = await _dbContext.AssignedScopes(scheme.Id, cancellationToken);
             var moves = await SchemeRecordMoves.Apply(
                 _dbContext, _migrators, scheme.OwnerType,
-                [new SchemeRecordMoves.Move(scheme.DefaultWorkflowId, workflow.Id, null, withEntries)],
+                [SchemeRecordMoves.ForDefault(scheme, workflow.Id)],
                 scopeIds, request.Decisions, actor, now, cancellationToken);
             if (moves.IsFailure)
             {

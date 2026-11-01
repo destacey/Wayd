@@ -81,17 +81,7 @@ public sealed class AssignWorkflowSchemeCommandHandler(
                 return Result.Success(0);
             }
 
-            var current = assignment.Scheme!;
-            var changes = StatusWorkflowScheme.WorkflowChanges(current, target);
-
-            // Untyped records follow the defaults, and so do the types neither scheme has an entry for.
-            var withEntries = current.Entries.Select(e => e.RecordTypeId)
-                .Union(target.Entries.Select(e => e.RecordTypeId))
-                .ToList();
-            var moves = changes
-                .Select(c => new SchemeRecordMoves.Move(
-                    c.FromWorkflowId, c.ToWorkflowId, c.RecordTypeId, c.RecordTypeId is null ? withEntries : []))
-                .ToList();
+            var moves = SchemeRecordMoves.ForAssignment(assignment.Scheme!, target);
 
             var defaultWorkflow = await _dbContext.StatusWorkflows.FirstOrDefaultAsync(w => w.Id == target.DefaultWorkflowId, cancellationToken);
             if (defaultWorkflow is null)

@@ -3,6 +3,185 @@
 import type { ImportTemplate } from './import-template'
 
 export const importTemplates = {
+  'demand-management.intake-requests': {
+    module: 'demand-management',
+    description:
+      "Each row names its desk, channel, tags and people by id. A request is created on its desk in the status meaning Submitted, at `SubmittedAt`, then assigned, tagged and moved to `Status` — a status of the desk's workflow by name or by meaning — at `StatusChangedAt`. Withdrawn is recorded as the requester's own move; every other status as the assignee's. Needs the Demand Management Admin.",
+    files: [
+      {
+        field: 'file',
+        required: true,
+        columns: [
+          {
+            name: 'ImportId',
+            type: 'text',
+            required: false,
+            description:
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
+          },
+          {
+            name: 'Title',
+            type: 'text',
+            required: true,
+            description: 'What is being asked for, in a line. Max 256 chars.',
+            maxLength: 256,
+          },
+          {
+            name: 'Description',
+            type: 'text',
+            required: true,
+            description: 'The ask in full.',
+          },
+          {
+            name: 'ExpectedBenefits',
+            type: 'text',
+            required: false,
+            description:
+              'What gets better, and for whom, if the ask is delivered.',
+          },
+          {
+            name: 'DeskId',
+            type: 'id',
+            required: true,
+            description:
+              'The desk the request is on, by id. It must be open; it need not be one requesters can pick.',
+          },
+          {
+            name: 'ChannelId',
+            type: 'id',
+            required: false,
+            description:
+              'Where the request came from, by id: any active channel, whether or not the desk offers it.',
+          },
+          {
+            name: 'RequesterId',
+            type: 'id',
+            required: true,
+            description: 'The employee the request is for, by id.',
+          },
+          {
+            name: 'SubmittedById',
+            type: 'id',
+            required: false,
+            description:
+              'The employee who entered it, by id, when not the requester.',
+          },
+          {
+            name: 'SubmittedAt',
+            type: 'text',
+            required: false,
+            description:
+              'When it was submitted, with its offset. Blank for the moment it is imported.',
+          },
+          {
+            name: 'NeedByDate',
+            type: 'date',
+            required: false,
+            description:
+              'The date it is needed by. Needs a basis and a reference.',
+          },
+          {
+            name: 'NeedByBasis',
+            type: 'text',
+            required: false,
+            description:
+              'What makes it that date, case-insensitively. Required with a need-by date.',
+            values: [
+              'Regulatory',
+              'Contractual',
+              'ExternalEvent',
+              'Commitment',
+              'RequesterPreference',
+            ],
+          },
+          {
+            name: 'NeedByReference',
+            type: 'text',
+            required: false,
+            description:
+              'What the date rests on: the regulation and clause, the contract and clause, the event, or a note. Max 1024 chars.',
+            maxLength: 1024,
+          },
+          {
+            name: 'NeedByCommittedById',
+            type: 'id',
+            required: false,
+            description:
+              'For a Commitment, the employee who made it, by id. Required for a Commitment, and empty otherwise.',
+          },
+          {
+            name: 'NeedByCommittedOn',
+            type: 'date',
+            required: false,
+            description:
+              'For a Commitment, the date it was made. Required for a Commitment, and empty otherwise.',
+          },
+          {
+            name: 'OriginSourceSystem',
+            type: 'text',
+            required: false,
+            description:
+              'The system the request was raised in. Required with an external id.',
+          },
+          {
+            name: 'OriginExternalId',
+            type: 'text',
+            required: false,
+            description:
+              "The request's id in that system. With the source system, identifies at most one request.",
+          },
+          {
+            name: 'OriginUrl',
+            type: 'text',
+            required: false,
+            description: 'A link to the request in that system.',
+          },
+          {
+            name: 'Status',
+            type: 'text',
+            required: false,
+            description:
+              "A status of the desk's workflow, by its name (`In Review`) or its meaning (`Submitted`, `WaitingOnRequester`, `Accepted`, `Fulfilled`, `Duplicate`, `Withdrawn`), case-insensitively. Blank leaves the request submitted.",
+          },
+          {
+            name: 'StatusChangedAt',
+            type: 'text',
+            required: false,
+            description:
+              'When it moved into the status, with its offset. Blank for SubmittedAt; needs SubmittedAt, and a Status the request moves to.',
+          },
+          {
+            name: 'StatusReason',
+            type: 'text',
+            required: false,
+            description:
+              'Why, as the requester reads it. Required for a closing status other than Withdrawn, and for finishing one. Max 1024 chars.',
+          },
+          {
+            name: 'DuplicateOfId',
+            type: 'id',
+            required: false,
+            description:
+              'For a status meaning Duplicate, the request already in Wayd this one gives way to, by id.',
+          },
+          {
+            name: 'AssigneeId',
+            type: 'id',
+            required: false,
+            description:
+              'The active member of the desk who owns the request, by id.',
+          },
+          {
+            name: 'TagIds',
+            type: 'text',
+            required: false,
+            description:
+              'Semicolon-separated tag ids: tags on axes the desk offers, or free tags where it allows them.',
+          },
+        ],
+      },
+    ],
+  },
   employees: {
     module: 'organization',
     files: [

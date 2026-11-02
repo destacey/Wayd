@@ -1,6 +1,6 @@
 ---
 name: wayd-estimation
-description: Read before calling the Wayd MCP tools named PokerSessions_* or EstimationScales_*. Guides agents running Wayd planning poker via the Wayd MCP server — poker sessions, their facilitators, visibility and invites, joining as a participant or observer, rounds, voting, revealing and resetting votes, recording a consensus estimate, completing a session, and the estimation scales sessions vote on, including activating, deactivating and customizing them. Use when listing or reading a poker session or its results, creating, renaming or deleting a session, adding or removing facilitators, making a session public or private, inviting people or teams, joining, leaving or switching between participant and observer, adding, labelling, describing or removing rounds, casting or withdrawing the user's own vote, revealing or resetting a round, setting a round's consensus, completing a session, or listing, creating, changing, activating, deactivating or deleting an estimation scale.
+description: Read before calling the Wayd MCP tools named PokerSessions_* or EstimationScales_*. Guides agents running Wayd planning poker via the Wayd MCP server — poker sessions, their facilitators, visibility and invites, joining, voting or not, rounds, voting, revealing and resetting votes, recording a consensus estimate, completing a session, and the estimation scales sessions vote on, including activating, deactivating and customizing them. Use when listing or reading a poker session or its results, creating, renaming or deleting a session, adding or removing facilitators, making a session public or private, inviting people or teams, joining or turning voting on or off, adding, labelling, describing or removing rounds, casting or withdrawing the user's own vote, revealing or resetting a round, setting a round's consensus, completing a session, or listing, creating, changing, activating, deactivating or deleting an estimation scale.
 ---
 
 # Wayd Planning Poker and Estimation Scales
@@ -21,7 +21,7 @@ Estimation scale (UUID or key)       the cards a session votes with
 Poker session (UUID or key)          Active → Completed, pinned to one scale version; Public or Private
 ├── Facilitator (employee UUID)      runs the session; at least one
 ├── Invited employee / team (UUID)   who a Private session admits
-├── Member (employee)                someone who joined: Participant or Observer, present or left
+├── Member (employee)                someone who joined: voting or not
 └── Round (UUID)                     one item being estimated: Voting → Revealed → Accepted
     └── Vote                         one per participant, the participant's chosen value
 ```
@@ -37,12 +37,12 @@ Poker session (UUID or key)          Active → Completed, pinned to one scale v
 
 ### Poker session
 
-- Has a `name`, `facilitators` (the creator first, at least one), a `visibility`, one estimation scale, its `members` and its rounds.
+- Has a `name`, `facilitators` (at least one; the creator to begin with), a `visibility`, one estimation scale, its `members` and its rounds.
 - **Facilitators run it**: rounds, reveals, resets, consensus, labels and descriptions, renaming, changing facilitators, visibility and invites, completing and deleting. `canManage` on the session says whether the user is one (or holds the poker Administer permission, which counts as facilitating every session). When it is false, do not offer those changes — they will be refused.
 - **Visibility**: `Public` — anyone with the poker View permission can see and join it. `Private` — only its facilitators, `invitedEmployees`, and members of `invitedTeams` (a team's current members and those of its current team of teams). A private session the user is not admitted to is absent from `PokerSessions_GetSessions` and reads as not found, which is all you can tell the user: do not suggest it does not exist.
-- **Members** have a `mode`: `Participant` votes and counts toward the voted and waiting totals; `Observer` watches without voting and is left out of them. A member with `leftOn` has left and stays only as a record of who took part.
+- **Members** are the session's participants. Each has `isVoting`: a voting member estimates and counts toward the voted and waiting totals; one who is not voting still takes part in the discussion (a product manager answering questions, say) but is left out of those totals. A member who is also among `facilitators` runs the session. There is no leaving: a member stays one, and someone who no longer wants to vote turns voting off.
 - **Is pinned to a scale version** (`estimationScaleVersion`): the scale's current version when the session was created. It stays there when the scale later publishes a new version — votes and the consensus are always checked against the session's own version.
-- `status` is `Active` or `Completed`. **A completed session cannot be reopened**: no rounds, votes, reveals, resets, consensus or label changes, no rename, and no joining, leaving or mode changes. Its facilitators, visibility and invites can still change, and it can be deleted.
+- `status` is `Active` or `Completed`. **A completed session cannot be reopened**: no rounds, votes, reveals, resets, consensus or label changes, no rename, and no joining or voting changes. Its facilitators, visibility and invites can still change, and it can be deleted.
 - The scale can change only while the session has no rounds, and only to an active scale; changing it pins the session to that scale's current version.
 
 ### Round
@@ -58,7 +58,7 @@ A round has an optional `label` (at most 512 characters) naming what is estimate
 ### Votes are personal
 
 - `PokerSessions_SubmitVote` and `PokerSessions_WithdrawVote` act **as the signed-in user** — there is no way to vote for someone else. Cast a vote only when the user tells you their own value; never choose one for them.
-- Joining, leaving and switching mode act as the user too. Voting in a session the user has not joined joins them as a Participant; an Observer's vote is refused until they switch to Participant.
+- Joining and turning voting on or off act as the user too. Voting in a session the user has not joined joins them, voting; a member who is not voting has their vote refused until they turn voting on.
 - Every poker change needs the user's account to be linked to an employee. When a call fails for that reason, say so: it is not something another tool can fix.
 - Submitting again replaces the user's earlier vote in that round.
 - A vote's value must be one of the values on the session's version exactly as written — cards such as `?` included when the version has them; anything else is refused. Read them from `estimationScaleVersion.values` in `PokerSessions_GetSession`, not from the scale's current version, which may be newer.
@@ -72,7 +72,7 @@ A round has an optional `label` (at most 512 characters) naming what is estimate
 
 | Goal | Tool | Notes |
 | --- | --- | --- |
-| List sessions | `PokerSessions_GetSessions` | Optional `status`: `Active` or `Completed`. Only the sessions the user can see. Each entry has `roundCount`, `visibility`, `facilitators`, `participants` and `canManage`. |
+| List sessions | `PokerSessions_GetSessions` | Optional `status`: `Active` or `Completed`. Only the sessions the user can see. Each entry has `roundCount`, `visibility`, `facilitators`, `participants` (everyone who joined) and `canManage`. |
 | Read a session and its rounds | `PokerSessions_GetSession` | `idOrKey`. Includes the scale, the `estimationScaleVersion` it votes on with its values, each round's status, votes and `consensusEstimate`, and `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` and `canManage`. |
 | Who an invited team reaches | `PokerSessions_GetInvitedTeamMembers` | Session `id` and `teamId` of a team in `invitedTeams`. Its active direct members; members of its team of teams are admitted too but not listed. |
 | List scales | `EstimationScales_GetScales` | Active only, unless `includeInactive: true`. Each has its `currentVersion`. |
@@ -86,7 +86,7 @@ A round has an optional `label` (at most 512 characters) naming what is estimate
 2. **Create the session** — `PokerSessions_CreateSession` with `name` and `estimationScaleId`. The user becomes its first facilitator. Optional: `visibility` (`Public` by default), `facilitatorIds` for other facilitators, and for a Private session `invitedEmployeeIds` and `invitedTeamIds` (employee and team UUIDs). Confirm the visibility with the user: a Private session with no invites admits only its facilitators.
 3. **Add a round per item** — `PokerSessions_AddRound` with a `label`. Returns the round with its `id`.
 4. **Vote** — each participant votes in the Wayd app or through their own agent; you submit only the user's own vote (`PokerSessions_SubmitVote`, body `{ "value": "5" }`).
-5. **Reveal** — `PokerSessions_RevealRound` when the facilitator says so. Check `voteCount` first and tell the user if participants have not voted yet; Observers never vote, so do not count them as waiting.
+5. **Reveal** — `PokerSessions_RevealRound` when the facilitator says so. Check `voteCount` first and tell the user if participants have not voted yet; members who are not voting never vote, so do not count them as waiting.
 6. **Agree** — `PokerSessions_SetConsensus` with the agreed `estimate`, which must be a value on the session's version. A card such as `?` is allowed — a team that cannot size an item is a real outcome; say so when reporting it rather than treating it as a size. The round must be Revealed; it becomes Accepted.
 7. **Re-vote** — `PokerSessions_ResetRound` clears every vote and any consensus and returns the round to Voting. Say so before calling it: the votes are gone for good.
 8. **Finish** — `PokerSessions_CompleteSession`. Make sure every round the user cares about is Accepted first; a completed session cannot be changed. Completing deletes empty rounds (no label, description or votes), so do not report those as missing afterwards.
@@ -106,11 +106,10 @@ Other session changes:
 | Make public or private | `PokerSessions_SetVisibility` | Body `{ "visibility": "Private" }`. Making it private disconnects anyone not admitted from the live session — say who that is before calling. |
 | Change facilitators | `PokerSessions_SetFacilitators` | **Replaces** the list with `employeeIds` (at least one); send everyone who should stay. The user can remove themselves, and then can no longer run the session. |
 | Change invites | `PokerSessions_SetInvitees` | **Replaces** both lists: `employeeIds` and `teamIds`; send the current ones to keep them, empty lists to remove all. Invites matter only while the session is Private, and grant access only — the person still needs the poker View permission. |
-| Join | `PokerSessions_Join` | Body `{ "mode": "Participant" }` or `"Observer"`. Joining again takes the new mode. |
-| Switch mode | `PokerSessions_ChangeMode` | Body `{ "mode": "Observer" }`. Switching to Observer withdraws the user's votes in rounds not yet revealed — say so first. |
-| Leave | `PokerSessions_Leave` | Withdraws the user's votes in rounds not yet revealed; revealed rounds keep them. |
+| Join | `PokerSessions_Join` | Body `{ "isVoting": true }` (the default) or `false`. Joining again changes nothing. |
+| Turn voting on or off | `PokerSessions_SetVoting` | Body `{ "isVoting": false }`. Turning voting off withdraws the user's votes in rounds not yet revealed — say so first. |
 
-These take the session's UUID. Join, leave and mode changes need an Active session; facilitators, visibility and invites can change on a completed one.
+These take the session's UUID. Join and voting changes need an Active session; facilitators, visibility and invites can change on a completed one.
 
 Write tools take UUIDs: the session's `id` and the round's `id` from `PokerSessions_GetSession`.
 

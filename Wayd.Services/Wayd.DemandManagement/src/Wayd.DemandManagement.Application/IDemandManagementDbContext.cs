@@ -3,6 +3,7 @@ using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.DemandManagement.Domain.Models;
+using Wayd.DemandManagement.Domain.Models.Estimation;
 
 namespace Wayd.DemandManagement.Application;
 
@@ -46,6 +47,12 @@ public interface IDemandManagementDbContext
     /// handlers.
     /// </summary>
     DbSet<DemandProject> DemandProjects { get; }
+
+    /// <summary>
+    /// The module's same-Id copies of Planning's estimation scales, with their versions, which desks pin and
+    /// estimates point at. Written only by the replication handlers.
+    /// </summary>
+    DbSet<DemandEstimationScale> DemandEstimationScales { get; }
 
     /// <summary>
     /// The shared employee table, read-only: requesters, submitters, desk members and participants are employees.

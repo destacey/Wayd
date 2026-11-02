@@ -6,6 +6,8 @@ using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Notifications.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
+using Wayd.Common.Application.Requests.Planning.Queries;
+using Wayd.DemandManagement.Application.DemandEstimationScales.Commands;
 using Wayd.DemandManagement.Application.DemandProjects.Commands;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Work.Application.Iterations.Queries;
@@ -174,6 +176,23 @@ public class JobManager(
         }
 
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncProjects));
+    }
+
+    [DisableConcurrentExecution(60 * 3)]
+    public async Task RunSyncEstimationScales(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncEstimationScales));
+
+        var asOf = _dateTimeProvider.Now;
+        var scales = await _dispatcher.Send(new GetEstimationScaleSnapshotsQuery(), cancellationToken);
+
+        var result = await _dispatcher.Send(new SyncDemandEstimationScalesCommand(scales, asOf), cancellationToken);
+        if (result.IsFailure)
+        {
+            _logger.LogError("Failed to sync Demand Management estimation scales: {Error}", result.Error);
+        }
+
+        _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncEstimationScales));
     }
 
     [DisableConcurrentExecution(60 * 3)]

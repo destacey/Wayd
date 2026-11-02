@@ -25917,7 +25917,7 @@
           "EstimationScales"
         ],
         "summary": "Delete a custom estimation scale.",
-        "description": "Permanently deletes the scale with all its versions. Refused while any poker session uses it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's UUID.",
+        "description": "Permanently deletes the scale with all its versions. Refused while any poker session uses it, while an intake desk estimates on it or an intake request was estimated on it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's UUID.",
         "operationId": "EstimationScales_Delete",
         "parameters": [
           {
@@ -42972,6 +42972,120 @@
         ]
       }
     },
+    "/api/demand-management/intake-desks/{id}/estimation-scale": {
+      "put": {
+        "tags": [
+          "IntakeDesks"
+        ],
+        "summary": "Set the estimation scale a desk's requests are estimated on.",
+        "description": "Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version. A null `estimationScaleId` stops estimating the desk's requests. Refused while any open request on the desk has an estimate. A desk changed meanwhile answers 409.",
+        "operationId": "IntakeDesks_ChangeEstimationScale",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeIntakeDeskEstimationScaleRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-desks/estimation-scale-choices": {
+      "get": {
+        "tags": [
+          "IntakeDesks"
+        ],
+        "summary": "Get the active estimation scales a desk can estimate its requests on.",
+        "description": "Each with the estimate values of its current version, which a desk choosing it is pinned to; cards are left out. Building and editing scales is in Settings, under estimation scales.",
+        "operationId": "IntakeDesks_GetEstimationScaleChoices",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeEstimationScaleChoiceDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/demand-management/intake-desks/workflow-choices": {
       "get": {
         "tags": [
@@ -43228,6 +43342,66 @@
         ]
       }
     },
+    "/api/demand-management/intake-requests/estimates": {
+      "get": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Get the estimates of the intake requests you can see.",
+        "description": "Takes the same filters as the list and answers beside it, for the requests whose estimate you may read: an estimate is substance, so a request whose substance is withheld from you is absent, as is one never estimated. Sort on `position`, the value's place on its scale version, rather than on the text; positions compare only between estimates on the same version (`scale.versionId`).",
+        "operationId": "IntakeRequests_GetIntakeRequestEstimates",
+        "parameters": [
+          {
+            "name": "deskId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "mine",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 2
+          },
+          {
+            "name": "openOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeRequestCurrentEstimateDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/demand-management/intake-requests/{idOrKey}": {
       "get": {
         "tags": [
@@ -43359,7 +43533,7 @@
           "IntakeRequests"
         ],
         "summary": "Submit a csv file of intake requests to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
-        "description": "Each row names its desk, channel, tags and people by id. A request is created on its desk in the status meaning Submitted, at `SubmittedAt`, then assigned, tagged and moved to `Status` — a status of the desk's workflow by name or by meaning — at `StatusChangedAt`. Withdrawn is recorded as the requester's own move; every other status as the assignee's. Needs the Demand Management Admin.",
+        "description": "Each row names its desk, channel, tags and people by id. A request is created on its desk in the status meaning Submitted, at `SubmittedAt`, then assigned, tagged, estimated and moved to `Status` — a status of the desk's workflow by name or by meaning — at `StatusChangedAt`. Withdrawn is recorded as the requester's own move; every other status as the assignee's. Needs the Demand Management Admin.",
         "operationId": "IntakeRequests_Import",
         "parameters": [
           {
@@ -43609,6 +43783,80 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ChangeIntakeRequestAssigneeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{id}/estimate": {
+      "put": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Estimate an intake request on its desk's estimation scale, or clear its estimate.",
+        "description": "Needs an agent on the request's desk, never the requester, and an open request. The value must be an estimate value of the scale version the desk pins, not a card; the request's `estimateValues` lists them. A null `value` clears the estimate. An estimate is a rough order of magnitude for the desk, not a delivery commitment.",
+        "operationId": "IntakeRequests_ChangeEstimate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeIntakeRequestEstimateRequest"
               }
             }
           },
@@ -52648,6 +52896,19 @@
         "additionalProperties": false,
         "description": "The share of production deployments that failed or were rolled back."
       },
+      "ChangeIntakeDeskEstimationScaleRequest": {
+        "type": "object",
+        "properties": {
+          "estimationScaleId": {
+            "type": "string",
+            "description": "An active estimation scale, from the estimation scale choices, or null to stop estimating the desk's requests.\nThe desk is pinned to the scale's current version.",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The estimation scale a desk's requests should be estimated on."
+      },
       "ChangeIntakeDeskScoringModelRequest": {
         "type": "object",
         "properties": {
@@ -52689,6 +52950,18 @@
         },
         "additionalProperties": false,
         "description": "The member of an intake request's desk who owns it."
+      },
+      "ChangeIntakeRequestEstimateRequest": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "An estimate value of the scale version the request's desk pins, exactly as the scale writes it (`M`,\n`8`), never a card such as `?`; or null to clear the estimate. Blank is refused. At most 32 characters\nonce trimmed.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "How big an intake request is, on its desk's estimation scale."
       },
       "ChangeIntakeRequestStatusRequest": {
         "required": [
@@ -57897,6 +58170,49 @@
         "additionalProperties": false,
         "description": "One published version of an estimation scale. A version never changes once published."
       },
+      "EstimationScaleVersionNavigationDto": {
+        "required": [
+          "name",
+          "id",
+          "key",
+          "versionId",
+          "versionNumber",
+          "isCurrentVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The scale's id.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "description": "The scale's key.",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "description": "The scale's name."
+          },
+          "versionId": {
+            "type": "string",
+            "description": "The version's id.",
+            "format": "uuid"
+          },
+          "versionNumber": {
+            "type": "integer",
+            "description": "The version's number within its scale, starting at 1.",
+            "format": "int32"
+          },
+          "isCurrentVersion": {
+            "type": "boolean",
+            "description": "Whether the version is the scale's latest. False once the scale's values have changed since."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One version of an estimation scale, named by its scale: what a desk pins and an estimate was given on."
+      },
       "EvaluateScoringModelRequest": {
         "required": [
           "criterionValues"
@@ -59441,6 +59757,12 @@
             "description": "Semicolon-separated tag ids: tags on axes the desk offers, or free tags where it allows them.",
             "nullable": true,
             "x-csv-column": "TagIds"
+          },
+          "estimate": {
+            "type": "string",
+            "description": "The request's estimate: an estimate value of the desk's estimation scale, exactly as the scale writes it\n(`M`, `8`), never a card such as `?`. Needs a desk with an estimation scale. Blank leaves the\nrequest unestimated, and the column may be left out of the file. Max 32 chars.",
+            "nullable": true,
+            "x-csv-column": "Estimate"
           }
         },
         "additionalProperties": false,
@@ -61616,6 +61938,15 @@
             "description": "The scoring model the desk's agents score its requests with, or null when the desk does not score them.",
             "nullable": true
           },
+          "estimationScale": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EstimationScaleVersionNavigationDto"
+              }
+            ],
+            "description": "The estimation scale version the desk team estimates the desk's requests on, or null when the desk does not\nestimate them.",
+            "nullable": true
+          },
           "revision": {
             "type": "integer",
             "description": "How many changes the desk has recorded; sent back with a change so a stale one is refused.",
@@ -61806,6 +62137,46 @@
         "additionalProperties": false,
         "description": "The review workflow a desk's requests follow, and whether the reader may point the desk at another."
       },
+      "IntakeEstimationScaleChoiceDto": {
+        "required": [
+          "name",
+          "estimateValues",
+          "id",
+          "key",
+          "versionNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The scale's id.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "description": "The scale's key.",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "description": "The scale's name."
+          },
+          "versionNumber": {
+            "type": "integer",
+            "description": "The number of the scale's current version.",
+            "format": "int32"
+          },
+          "estimateValues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The estimate values of the current version, in order; cards are left out, since no request is estimated with one."
+          }
+        },
+        "additionalProperties": false,
+        "description": "An active estimation scale a desk can estimate its requests on, with the values of its current version, which\na desk choosing it is pinned to."
+      },
       "IntakeRequestArrivalStatusesDto": {
         "required": [
           "statuses"
@@ -61855,6 +62226,30 @@
         },
         "additionalProperties": false,
         "description": "One criterion's rating: a level of its scale, or a number for a criterion with no scale."
+      },
+      "IntakeRequestCurrentEstimateDto": {
+        "required": [
+          "estimate",
+          "requestId"
+        ],
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "description": "The request estimated.",
+            "format": "uuid"
+          },
+          "estimate": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRequestEstimateDto"
+              }
+            ],
+            "description": "The estimate."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request's estimate, as the requests list and board sort and filter on it. Substance tier, which is why it is\nreturned beside the summaries rather than on them."
       },
       "IntakeRequestCurrentScoreDto": {
         "required": [
@@ -61932,6 +62327,8 @@
           "canChangeTags",
           "outcomes",
           "canChangeOutcomes",
+          "canChangeEstimate",
+          "estimateValues",
           "canWithdraw"
         ],
         "type": "object",
@@ -62000,6 +62397,17 @@
             "type": "boolean",
             "description": "Whether the reader may add and remove outcomes: an agent on its desk, while the request is accepted."
           },
+          "canChangeEstimate": {
+            "type": "boolean",
+            "description": "Whether the reader may set, change or clear the request's estimate: an agent on its desk, while the request\nis open, and only when the desk has an estimation scale or the request has an estimate to clear. Never the\nrequester."
+          },
+          "estimateValues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The estimate values of the scale version the request's desk pins, in order, for a reader who may change the\nestimate; empty otherwise, and when the desk does not estimate its requests."
+          },
           "canWithdraw": {
             "type": "boolean",
             "description": "Whether the reader may withdraw the request: its requester, while it is open."
@@ -62016,6 +62424,35 @@
         },
         "additionalProperties": false,
         "description": "One intake request as its reader may see it: the summary always, the substance only when they may read it."
+      },
+      "IntakeRequestEstimateDto": {
+        "required": [
+          "value",
+          "scale",
+          "position"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "The estimate value, such as `M` or `8`."
+          },
+          "position": {
+            "type": "integer",
+            "description": "Where the value sits among its version's values, from 0. Estimates sort by it rather than by the text, so\n`XL` follows `S`; positions compare only between estimates on the same version, since a later version\ncan add values and shift them.",
+            "format": "int32"
+          },
+          "scale": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EstimationScaleVersionNavigationDto"
+              }
+            ],
+            "description": "The scale and version the estimate was given on."
+          }
+        },
+        "additionalProperties": false,
+        "description": "How big an intake request is, on the estimation scale version it was given on. Substance tier."
       },
       "IntakeRequestNavigationDto": {
         "required": [
@@ -62595,6 +63032,15 @@
           "statusReason": {
             "type": "string",
             "description": "Why the request is in its current status: the desk's reason for declining, deferring, marking a duplicate\nor finishing it, or the requester's note on withdrawing. Null when the move recorded none.",
+            "nullable": true
+          },
+          "estimate": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IntakeRequestEstimateDto"
+              }
+            ],
+            "description": "How big the ask is, on the scale the desk team estimated it on, or null when it has not been estimated.",
             "nullable": true
           }
         },

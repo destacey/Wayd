@@ -57556,7 +57556,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a custom estimation scale.
         /// </summary>
         /// <remarks>
-        /// Permanently deletes the scale with all its versions. Refused while any poker session uses it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's UUID.
+        /// Permanently deletes the scale with all its versions. Refused while any poker session uses it, while an intake desk estimates on it or an intake request was estimated on it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -58008,7 +58008,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a custom estimation scale.
         /// </summary>
         /// <remarks>
-        /// Permanently deletes the scale with all its versions. Refused while any poker session uses it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's UUID.
+        /// Permanently deletes the scale with all its versions. Refused while any poker session uses it, while an intake desk estimates on it or an intake request was estimated on it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -90164,6 +90164,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Set the estimation scale a desk's requests are estimated on.
+        /// </summary>
+        /// <remarks>
+        /// Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version. A null `estimationScaleId` stops estimating the desk's requests. Refused while any open request on the desk has an estimate. A desk changed meanwhile answers 409.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task ChangeEstimationScaleAsync(System.Guid id, ChangeIntakeDeskEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the active estimation scales a desk can estimate its requests on.
+        /// </summary>
+        /// <remarks>
+        /// Each with the estimate values of its current version, which a desk choosing it is pinned to; cards are left out. Building and editing scales is in Settings, under estimation scales.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeEstimationScaleChoiceDto>> GetEstimationScaleChoicesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the published intake request workflows a desk can follow.
         /// </summary>
         /// <remarks>
@@ -91198,6 +91220,206 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Set the estimation scale a desk's requests are estimated on.
+        /// </summary>
+        /// <remarks>
+        /// Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version. A null `estimationScaleId` stops estimating the desk's requests. Refused while any open request on the desk has an estimate. A desk changed meanwhile answers 409.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task ChangeEstimationScaleAsync(System.Guid id, ChangeIntakeDeskEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-desks/{id}/estimation-scale"
+                    urlBuilder_.Append("api/demand-management/intake-desks/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/estimation-scale");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the active estimation scales a desk can estimate its requests on.
+        /// </summary>
+        /// <remarks>
+        /// Each with the estimate values of its current version, which a desk choosing it is pinned to; cards are left out. Building and editing scales is in Settings, under estimation scales.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeEstimationScaleChoiceDto>> GetEstimationScaleChoicesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-desks/estimation-scale-choices"
+                    urlBuilder_.Append("api/demand-management/intake-desks/estimation-scale-choices");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<IntakeEstimationScaleChoiceDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the published intake request workflows a desk can follow.
         /// </summary>
         /// <remarks>
@@ -91786,6 +92008,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the estimates of the intake requests you can see.
+        /// </summary>
+        /// <remarks>
+        /// Takes the same filters as the list and answers beside it, for the requests whose estimate you may read: an estimate is substance, so a request whose substance is withheld from you is absent, as is one never estimated. Sort on `position`, the value's place on its scale version, rather than on the text; positions compare only between estimates on the same version (`scale.versionId`).
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestCurrentEstimateDto>> GetIntakeRequestEstimatesAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get an intake request in the tiers you can read.
         /// </summary>
         /// <remarks>
@@ -91808,7 +92041,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of intake requests to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
-        /// Each row names its desk, channel, tags and people by id. A request is created on its desk in the status meaning Submitted, at `SubmittedAt`, then assigned, tagged and moved to `Status` — a status of the desk's workflow by name or by meaning — at `StatusChangedAt`. Withdrawn is recorded as the requester's own move; every other status as the assignee's. Needs the Demand Management Admin.
+        /// Each row names its desk, channel, tags and people by id. A request is created on its desk in the status meaning Submitted, at `SubmittedAt`, then assigned, tagged, estimated and moved to `Status` — a status of the desk's workflow by name or by meaning — at `StatusChangedAt`. Withdrawn is recorded as the requester's own move; every other status as the assignee's. Needs the Demand Management Admin.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -91846,6 +92079,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ChangeAssigneeAsync(System.Guid id, ChangeIntakeRequestAssigneeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Estimate an intake request on its desk's estimation scale, or clear its estimate.
+        /// </summary>
+        /// <remarks>
+        /// Needs an agent on the request's desk, never the requester, and an open request. The value must be an estimate value of the scale version the desk pins, not a card; the request's `estimateValues` lists them. A null `value` clears the estimate. An estimate is a rough order of magnitude for the desk, not a delivery commitment.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task ChangeEstimateAsync(System.Guid id, ChangeIntakeRequestEstimateRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -92404,6 +92648,97 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the estimates of the intake requests you can see.
+        /// </summary>
+        /// <remarks>
+        /// Takes the same filters as the list and answers beside it, for the requests whose estimate you may read: an estimate is substance, so a request whose substance is withheld from you is absent, as is one never estimated. Sort on `position`, the value's place on its scale version, rather than on the text; positions compare only between estimates on the same version (`scale.versionId`).
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestCurrentEstimateDto>> GetIntakeRequestEstimatesAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-requests/estimates"
+                    urlBuilder_.Append("api/demand-management/intake-requests/estimates");
+                    urlBuilder_.Append('?');
+                    if (deskId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("deskId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(deskId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (mine != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("mine")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(mine, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (openOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("openOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(openOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<IntakeRequestCurrentEstimateDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get an intake request in the tiers you can read.
         /// </summary>
         /// <remarks>
@@ -92607,7 +92942,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of intake requests to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
-        /// Each row names its desk, channel, tags and people by id. A request is created on its desk in the status meaning Submitted, at `SubmittedAt`, then assigned, tagged and moved to `Status` — a status of the desk's workflow by name or by meaning — at `StatusChangedAt`. Withdrawn is recorded as the requester's own move; every other status as the assignee's. Needs the Demand Management Admin.
+        /// Each row names its desk, channel, tags and people by id. A request is created on its desk in the status meaning Submitted, at `SubmittedAt`, then assigned, tagged, estimated and moved to `Status` — a status of the desk's workflow by name or by meaning — at `StatusChangedAt`. Withdrawn is recorded as the requester's own move; every other status as the assignee's. Needs the Demand Management Admin.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -92976,6 +93311,119 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     urlBuilder_.Append("api/demand-management/intake-requests/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/assignee");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Estimate an intake request on its desk's estimation scale, or clear its estimate.
+        /// </summary>
+        /// <remarks>
+        /// Needs an agent on the request's desk, never the requester, and an open request. The value must be an estimate value of the scale version the desk pins, not a card; the request's `estimateValues` lists them. A null `value` clears the estimate. An estimate is a rough order of magnitude for the desk, not a delivery commitment.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task ChangeEstimateAsync(System.Guid id, ChangeIntakeRequestEstimateRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-requests/{id}/estimate"
+                    urlBuilder_.Append("api/demand-management/intake-requests/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/estimate");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -109720,6 +110168,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// The estimation scale a desk's requests should be estimated on.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ChangeIntakeDeskEstimationScaleRequest
+    {
+
+        /// <summary>
+        /// An active estimation scale, from the estimation scale choices, or null to stop estimating the desk's requests.
+        /// <br/>The desk is pinned to the scale's current version.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimationScaleId")]
+        public System.Guid? EstimationScaleId { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// The scoring model a desk's requests should be scored with.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -109762,6 +110226,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("assigneeId")]
         public System.Guid? AssigneeId { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// How big an intake request is, on its desk's estimation scale.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ChangeIntakeRequestEstimateRequest
+    {
+
+        /// <summary>
+        /// An estimate value of the scale version the request's desk pins, exactly as the scale writes it (`M`,
+        /// <br/>`8`), never a card such as `?`; or null to clear the estimate. Blank is refused. At most 32 characters
+        /// <br/>once trimmed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public string? Value { get; set; } = default!;
 
     }
 
@@ -114770,6 +115251,54 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// One version of an estimation scale, named by its scale: what a desk pins and an estimate was given on.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class EstimationScaleVersionNavigationDto
+    {
+
+        /// <summary>
+        /// The scale's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The scale's key.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
+
+        /// <summary>
+        /// The scale's name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// The version's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("versionId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid VersionId { get; set; } = default!;
+
+        /// <summary>
+        /// The version's number within its scale, starting at 1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("versionNumber")]
+        public int VersionNumber { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the version is the scale's latest. False once the scale's values have changed since.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isCurrentVersion")]
+        public bool IsCurrentVersion { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// A request to evaluate (test) a scoring model against a set of supplied criterion values, returning
     /// <br/>the resulting output values without persisting anything.
     /// </summary>
@@ -116283,6 +116812,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tagIds")]
         public string? TagIds { get; set; } = default!;
+
+        /// <summary>
+        /// The request's estimate: an estimate value of the desk's estimation scale, exactly as the scale writes it
+        /// <br/>(`M`, `8`), never a card such as `?`. Needs a desk with an estimation scale. Blank leaves the
+        /// <br/>request unestimated, and the column may be left out of the file. Max 32 chars.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimate")]
+        public string? Estimate { get; set; } = default!;
 
     }
 
@@ -118397,6 +118934,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public NavigationDto? ScoringModel { get; set; } = default!;
 
         /// <summary>
+        /// The estimation scale version the desk team estimates the desk's requests on, or null when the desk does not
+        /// <br/>estimate them.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimationScale")]
+        public EstimationScaleVersionNavigationDto? EstimationScale { get; set; } = default!;
+
+        /// <summary>
         /// How many changes the desk has recorded; sent back with a change so a stale one is refused.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("revision")]
@@ -118595,6 +119139,49 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// An active estimation scale a desk can estimate its requests on, with the values of its current version, which
+    /// <br/>a desk choosing it is pinned to.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeEstimationScaleChoiceDto
+    {
+
+        /// <summary>
+        /// The scale's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The scale's key.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
+
+        /// <summary>
+        /// The scale's name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// The number of the scale's current version.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("versionNumber")]
+        public int VersionNumber { get; set; } = default!;
+
+        /// <summary>
+        /// The estimate values of the current version, in order; cards are left out, since no request is estimated with one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimateValues")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> EstimateValues { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
+    /// <summary>
     /// The statuses an intake request can arrive in when moved to a desk, and the one it arrives in unless the
     /// <br/>mover chooses.
     /// </summary>
@@ -118644,6 +119231,30 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ratingLevelId")]
         public System.Guid? RatingLevelId { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A request's estimate, as the requests list and board sort and filter on it. Substance tier, which is why it is
+    /// <br/>returned beside the summaries rather than on them.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestCurrentEstimateDto
+    {
+
+        /// <summary>
+        /// The request estimated.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("requestId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid RequestId { get; set; } = default!;
+
+        /// <summary>
+        /// The estimate.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimate")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public IntakeRequestEstimateDto Estimate { get; set; } = new IntakeRequestEstimateDto();
 
     }
 
@@ -118804,6 +119415,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool CanChangeOutcomes { get; set; } = default!;
 
         /// <summary>
+        /// Whether the reader may set, change or clear the request's estimate: an agent on its desk, while the request
+        /// <br/>is open, and only when the desk has an estimation scale or the request has an estimate to clear. Never the
+        /// <br/>requester.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canChangeEstimate")]
+        public bool CanChangeEstimate { get; set; } = default!;
+
+        /// <summary>
+        /// The estimate values of the scale version the request's desk pins, in order, for a reader who may change the
+        /// <br/>estimate; empty otherwise, and when the desk does not estimate its requests.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimateValues")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> EstimateValues { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
         /// Whether the reader may withdraw the request: its requester, while it is open.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canWithdraw")]
@@ -118816,6 +119443,37 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("duplicateOf")]
         public IntakeRequestNavigationDto? DuplicateOf { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// How big an intake request is, on the estimation scale version it was given on. Substance tier.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestEstimateDto
+    {
+
+        /// <summary>
+        /// The estimate value, such as `M` or `8`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Value { get; set; } = default!;
+
+        /// <summary>
+        /// Where the value sits among its version's values, from 0. Estimates sort by it rather than by the text, so
+        /// <br/>`XL` follows `S`; positions compare only between estimates on the same version, since a later version
+        /// <br/>can add values and shift them.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("position")]
+        public int Position { get; set; } = default!;
+
+        /// <summary>
+        /// The scale and version the estimate was given on.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scale")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public EstimationScaleVersionNavigationDto Scale { get; set; } = new EstimationScaleVersionNavigationDto();
 
     }
 
@@ -119418,6 +120076,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("statusReason")]
         public string? StatusReason { get; set; } = default!;
+
+        /// <summary>
+        /// How big the ask is, on the scale the desk team estimated it on, or null when it has not been estimated.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimate")]
+        public IntakeRequestEstimateDto? Estimate { get; set; } = default!;
 
     }
 

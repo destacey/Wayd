@@ -39,6 +39,7 @@ public sealed class SchedulableBackgroundJobTypesTests
     [InlineData(BackgroundJobType.StrategicThemesSync)]
     [InlineData(BackgroundJobType.ProjectsSync)]
     [InlineData(BackgroundJobType.TeamsSync)]
+    [InlineData(BackgroundJobType.EstimationScalesSync)]
     public void Contains_ForRunOnDemandOnlyTypes_IsFalse(BackgroundJobType jobType)
     {
         // Arrange & Act

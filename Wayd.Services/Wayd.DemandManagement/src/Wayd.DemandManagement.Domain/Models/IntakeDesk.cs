@@ -6,6 +6,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.Scoring.Enums;
+using Wayd.DemandManagement.Domain.Models.Estimation;
 
 namespace Wayd.DemandManagement.Domain.Models;
 
@@ -230,6 +231,76 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// The estimation scale version the desk team estimates the desk's requests on, or null when the desk does not
+    /// estimate them.
+    /// </summary>
+    /// <remarks>
+    /// A desk without one is a normal state: its requests simply cannot be estimated. The desk pins a version, not
+    /// the scale, so a scale whose values change later does not change what the desk's estimates mean. Only an
+    /// active scale can be chosen, but one deactivated afterwards stays pinned.
+    /// </remarks>
+    public Guid? EstimationScaleVersionId { get; private set; }
+
+    /// <summary>
+    /// Whether the desk estimates its requests on the version.
+    /// </summary>
+    public bool EstimatesOn(DemandEstimationScaleVersion version) => version is not null && EstimationScaleVersionId == version.Id;
+
+    /// <summary>
+    /// Pins the desk to the current version of an estimation scale, or stops estimating its requests with null.
+    /// Choosing the scale the desk already uses moves it to that scale's current version.
+    /// </summary>
+    /// <remarks>
+    /// Refused while any open request on the desk has an estimate on the version the desk pins now, which the caller
+    /// counts: nothing yet moves those estimates to another version. An open request can also hold an estimate on an
+    /// older version, kept from before the desk last changed scale while the request was closed; that one does not
+    /// block, since it already sits off the desk's version.
+    /// </remarks>
+    /// <param name="scale">The scale to estimate on, with its versions loaded, or null to stop estimating.</param>
+    /// <param name="current">
+    /// The scale the desk's pinned version belongs to, with its versions loaded, or null when it has none. The change
+    /// names it as the one it replaces.
+    /// </param>
+    /// <param name="hasEstimatedOpenRequests">Whether any open request on the desk has an estimate on the version it pins.</param>
+    public Result ChangeEstimationScale(DemandEstimationScale? scale, DemandEstimationScale? current, bool hasEstimatedOpenRequests,
+        EventActor actor, Instant timestamp)
+    {
+        var currentVersion = current?.Versions.FirstOrDefault(v => v.Id == EstimationScaleVersionId);
+        if ((current is null) != (EstimationScaleVersionId is null) || currentVersion?.Id != EstimationScaleVersionId)
+            throw new ArgumentException("The current scale must be the one the desk's pinned version belongs to.", nameof(current));
+
+        var toVersion = scale?.CurrentVersion;
+        if (toVersion?.Id == EstimationScaleVersionId)
+            return Result.Success();
+
+        if (scale is not null && !scale.IsActive)
+            return Result.Failure(InactiveEstimationScaleError);
+
+        if (hasEstimatedOpenRequests)
+            return Result.Failure(EstimatedOpenRequestsError);
+
+        EstimationScaleVersionId = toVersion?.Id;
+
+        RaiseWhenKeyed(() => new IntakeDeskEstimationScaleChangedEvent(Id, Key,
+            current?.Id, current?.Name, currentVersion?.Id, currentVersion?.Number,
+            scale?.Id, scale?.Name, toVersion?.Id, toVersion?.Number,
+            actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// The failure for choosing an estimation scale that has been deactivated.
+    /// </summary>
+    public const string InactiveEstimationScaleError = "Only an active estimation scale can be chosen for a desk.";
+
+    /// <summary>
+    /// The failure for changing the scale of a desk whose open requests have estimates.
+    /// </summary>
+    public const string EstimatedOpenRequestsError =
+        "Open requests on this desk have estimates on the scale it uses now. Clear their estimates before changing the scale.";
 
     /// <summary>
     /// How many changes the desk has recorded. A change made from a page loaded before another is refused by

@@ -3,6 +3,7 @@ using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.DemandManagement.Application.DemandEstimationScales;
 using Wayd.DemandManagement.Application.DemandProjects.Dtos;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 using Wayd.DemandManagement.Domain.Models;
@@ -54,7 +55,22 @@ public sealed class GetIntakeRequestQueryHandler(
             .Select(IntakeRequestProjections.Substance(_dbContext))
             .FirstOrDefaultAsync(cancellationToken);
 
+        if (substance is not null)
+        {
+            var estimate = await visible
+                .Where(r => r.Estimate != null)
+                .Select(IntakeRequestProjections.Estimate(_dbContext))
+                .FirstOrDefaultAsync(cancellationToken);
+            substance = substance with { Estimate = estimate?.Estimate };
+        }
+
         var record = await visible.FirstAsync(cancellationToken);
+
+        // The estimate command needs a linked employee, so the flag does too. Without a scale the command can only
+        // clear, so the flag needs an estimate to clear.
+        var deskEstimates = await _dbContext.IntakeDesks.AnyAsync(d => d.Id == record.DeskId && d.EstimationScaleVersionId != null, cancellationToken);
+        var canChangeEstimate = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id)
+            && record.IsOpen && (deskEstimates || record.Estimate is not null);
 
         return new IntakeRequestDetailsDto
         {
@@ -77,6 +93,8 @@ public sealed class GetIntakeRequestQueryHandler(
             Outcomes = await Outcomes(record.Id, cancellationToken),
             CanChangeOutcomes = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id)
                 && record.StatusCategory == StatusCategory.Active,
+            CanChangeEstimate = canChangeEstimate,
+            EstimateValues = canChangeEstimate ? await EstimateValues(summary.Desk.Id, cancellationToken) : [],
             CanWithdraw = !_currentPrincipal.IsReadOnly && reader.EmployeeId == record.RequesterId && record.IsOpen,
             DuplicateOf = record.DuplicateOfId is { } survivorId ? await VisibleRequest(survivorId, reader, cancellationToken) : null,
         };
@@ -132,6 +150,18 @@ public sealed class GetIntakeRequestQueryHandler(
                 AddedOn = o.AddedOn,
             }),
         ];
+    }
+
+    /// <summary>
+    /// The estimate values of the version the desk pins, in order, or none when it pins none.
+    /// </summary>
+    private async Task<IReadOnlyList<string>> EstimateValues(Guid deskId, CancellationToken cancellationToken)
+    {
+        var desk = await _dbContext.IntakeDesks.AsNoTracking().FirstAsync(d => d.Id == deskId, cancellationToken);
+        var scale = await _dbContext.FindPinnedScale(desk, cancellationToken);
+        var version = scale?.Versions.Single(v => v.Id == desk.EstimationScaleVersionId);
+
+        return version is null ? [] : [.. version.Values.Where(v => v.IsEstimate).Select(v => v.Value)];
     }
 
     /// <summary>

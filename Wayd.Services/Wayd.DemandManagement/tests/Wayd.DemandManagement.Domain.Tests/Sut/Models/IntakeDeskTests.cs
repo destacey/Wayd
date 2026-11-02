@@ -9,6 +9,7 @@ using Wayd.Common.Domain.Tests.Data;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.DemandManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
+using Wayd.DemandManagement.Domain.Models.Estimation;
 
 namespace Wayd.DemandManagement.Domain.Tests.Sut.Models;
 
@@ -858,4 +859,195 @@ public sealed class IntakeDeskTests
     }
 
     #endregion Scoring model
+
+
+    #region Estimation scale
+
+    [Fact]
+    public void ChangeEstimationScale_ToAnActiveScale_PinsItsCurrentVersionAndRaisesTheChange()
+    {
+        // Arrange
+        var scale = DemandEstimationScaleFactory.Create(name: "T-Shirt Sizes");
+        var current = scale.PublishNext();
+        var sut = new IntakeDeskFaker().Generate();
+        var revision = sut.Revision;
+
+        // Act
+        var result = sut.ChangeEstimationScale(scale, null, hasEstimatedOpenRequests: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.EstimationScaleVersionId.Should().Be(current.Id);
+        sut.EstimatesOn(current).Should().BeTrue();
+        sut.Revision.Should().Be(revision + 1);
+        var raised = sut.DomainEvents.OfType<IntakeDeskEstimationScaleChangedEvent>().Should().ContainSingle().Subject;
+        raised.Id.Should().Be(sut.Id);
+        raised.FromScaleId.Should().BeNull();
+        raised.FromScaleVersionId.Should().BeNull();
+        raised.ToScaleId.Should().Be(scale.Id);
+        raised.ToScaleName.Should().Be("T-Shirt Sizes");
+        raised.ToScaleVersionId.Should().Be(current.Id);
+        raised.ToScaleVersionNumber.Should().Be(2);
+    }
+
+    [Fact]
+    public void ChangeEstimationScale_ToAnotherScale_CarriesBothEnds()
+    {
+        // Arrange
+        var from = DemandEstimationScaleFactory.Create(name: "Fibonacci");
+        var to = DemandEstimationScaleFactory.Create(name: "T-Shirt Sizes");
+        var sut = new IntakeDeskFaker().WithEstimationScaleVersion(from.CurrentVersion).Generate();
+
+        // Act
+        var result = sut.ChangeEstimationScale(to, from, hasEstimatedOpenRequests: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.EstimationScaleVersionId.Should().Be(to.CurrentVersion.Id);
+        var raised = sut.DomainEvents.OfType<IntakeDeskEstimationScaleChangedEvent>().Should().ContainSingle().Subject;
+        raised.FromScaleId.Should().Be(from.Id);
+        raised.FromScaleName.Should().Be("Fibonacci");
+        raised.FromScaleVersionId.Should().Be(from.CurrentVersion.Id);
+        raised.FromScaleVersionNumber.Should().Be(1);
+        raised.ToScaleId.Should().Be(to.Id);
+        raised.ToScaleVersionId.Should().Be(to.CurrentVersion.Id);
+    }
+
+    [Fact]
+    public void ChangeEstimationScale_ToTheSameScaleWithANewerVersion_MovesToThatVersion()
+    {
+        // Arrange
+        var scale = DemandEstimationScaleFactory.Create();
+        var pinned = scale.CurrentVersion;
+        var sut = new IntakeDeskFaker().WithEstimationScaleVersion(pinned).Generate();
+        var newer = scale.PublishNext();
+
+        // Act
+        var result = sut.ChangeEstimationScale(scale, scale, hasEstimatedOpenRequests: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.EstimationScaleVersionId.Should().Be(newer.Id);
+        var raised = sut.DomainEvents.OfType<IntakeDeskEstimationScaleChangedEvent>().Should().ContainSingle().Subject;
+        raised.FromScaleVersionId.Should().Be(pinned.Id);
+        raised.ToScaleVersionId.Should().Be(newer.Id);
+    }
+
+    [Fact]
+    public void ChangeEstimationScale_ToNull_StopsEstimating()
+    {
+        // Arrange
+        var from = DemandEstimationScaleFactory.Create();
+        var sut = new IntakeDeskFaker().WithEstimationScaleVersion(from.CurrentVersion).Generate();
+
+        // Act
+        var result = sut.ChangeEstimationScale(null, from, hasEstimatedOpenRequests: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.EstimationScaleVersionId.Should().BeNull();
+        var raised = sut.DomainEvents.OfType<IntakeDeskEstimationScaleChangedEvent>().Should().ContainSingle().Subject;
+        raised.FromScaleId.Should().Be(from.Id);
+        raised.ToScaleId.Should().BeNull();
+        raised.ToScaleVersionId.Should().BeNull();
+    }
+
+    [Fact]
+    public void ChangeEstimationScale_ToTheVersionItPins_ChangesNothing()
+    {
+        // Arrange
+        var scale = DemandEstimationScaleFactory.Create();
+        var sut = new IntakeDeskFaker().WithEstimationScaleVersion(scale.CurrentVersion).Generate();
+        var revision = sut.Revision;
+
+        // Act
+        var result = sut.ChangeEstimationScale(scale, scale, hasEstimatedOpenRequests: true, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Revision.Should().Be(revision);
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeEstimationScale_KeepsADeactivatedScaleItAlreadyPins()
+    {
+        // Arrange
+        var scale = DemandEstimationScaleFactory.Create(isActive: false);
+        var sut = new IntakeDeskFaker().WithEstimationScaleVersion(scale.CurrentVersion).Generate();
+
+        // Act
+        var result = sut.ChangeEstimationScale(scale, scale, hasEstimatedOpenRequests: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.EstimationScaleVersionId.Should().Be(scale.CurrentVersion.Id);
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeEstimationScale_ToAnInactiveScale_FailsAndChangesNothing()
+    {
+        // Arrange
+        var scale = DemandEstimationScaleFactory.Create(isActive: false);
+        var sut = new IntakeDeskFaker().Generate();
+
+        // Act
+        var result = sut.ChangeEstimationScale(scale, null, hasEstimatedOpenRequests: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeDesk.InactiveEstimationScaleError);
+        sut.EstimationScaleVersionId.Should().BeNull();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeEstimationScale_WhileOpenRequestsHaveEstimates_FailsAndChangesNothing()
+    {
+        // Arrange
+        var from = DemandEstimationScaleFactory.Create();
+        var to = DemandEstimationScaleFactory.Create();
+        var sut = new IntakeDeskFaker().WithEstimationScaleVersion(from.CurrentVersion).Generate();
+
+        // Act
+        var result = sut.ChangeEstimationScale(to, from, hasEstimatedOpenRequests: true, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeDesk.EstimatedOpenRequestsError);
+        sut.EstimationScaleVersionId.Should().Be(from.CurrentVersion.Id);
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeEstimationScale_WithACurrentScaleThatIsNotThePinnedOnes_Throws()
+    {
+        // Arrange
+        var pinned = DemandEstimationScaleFactory.Create();
+        var other = DemandEstimationScaleFactory.Create();
+        var sut = new IntakeDeskFaker().WithEstimationScaleVersion(pinned.CurrentVersion).Generate();
+
+        // Act
+        var act = () => sut.ChangeEstimationScale(null, other, hasEstimatedOpenRequests: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void ChangeEstimationScale_WithACurrentScaleOnADeskThatPinsNone_Throws()
+    {
+        // Arrange
+        var scale = DemandEstimationScaleFactory.Create();
+        var sut = new IntakeDeskFaker().Generate();
+
+        // Act
+        var act = () => sut.ChangeEstimationScale(null, scale, hasEstimatedOpenRequests: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    #endregion Estimation scale
 }

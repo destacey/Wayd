@@ -3,6 +3,7 @@ using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Scoring;
 using Wayd.DemandManagement.Domain.Models;
+using Wayd.DemandManagement.Domain.Models.Estimation;
 using Wayd.TestData.Core;
 
 namespace Wayd.DemandManagement.Domain.Tests.Data;
@@ -108,6 +109,14 @@ public static class IntakeDeskFakerExtensions
     public static IntakeDeskFaker WithScoringModel(this IntakeDeskFaker faker, ScoringModel scoringModel)
     {
         faker.RuleFor(x => x.ScoringModelId, scoringModel.Id);
+
+        return faker;
+    }
+
+    /// <summary>A desk pinned to <paramref name="version"/>.</summary>
+    public static IntakeDeskFaker WithEstimationScaleVersion(this IntakeDeskFaker faker, DemandEstimationScaleVersion version)
+    {
+        faker.RuleFor(x => x.EstimationScaleVersionId, version.Id);
 
         return faker;
     }

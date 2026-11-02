@@ -32,6 +32,7 @@ import { requestHref } from '../../_components/intake-requests-grid'
 import AddIntakeRequestOutcomeForm from './_components/add-intake-request-outcome-form'
 import AddIntakeRequestParticipantForm from './_components/add-intake-request-participant-form'
 import ChangeIntakeRequestAssigneeForm from './_components/change-intake-request-assignee-form'
+import ChangeIntakeRequestEstimateForm from './_components/change-intake-request-estimate-form'
 import ChangeIntakeRequestStatusForm from './_components/change-intake-request-status-form'
 import EditIntakeRequestForm from './_components/edit-intake-request-form'
 import IntakeRequestDetails from './_components/intake-request-details'
@@ -68,6 +69,7 @@ type RequestDialog =
   | 'withdraw'
   | 'manage-tags'
   | 'score'
+  | 'change-estimate'
 
 /** The query parameter a redirected duplicate's number arrives in, so its surviving request can say why. */
 const DUPLICATE_PARAM = 'duplicate'
@@ -199,6 +201,15 @@ const IntakeRequestDetailsPage = (props: {
             key: 'change-assignee',
             label: 'Change Assignee',
             onClick: () => setDialog('change-assignee'),
+          },
+        ]
+      : []),
+    ...(request.canChangeEstimate
+      ? [
+          {
+            key: 'change-estimate',
+            label: 'Change Estimate',
+            onClick: () => setDialog('change-estimate'),
           },
         ]
       : []),
@@ -402,6 +413,13 @@ const IntakeRequestDetailsPage = (props: {
       )}
       {dialog === 'change-assignee' && request.canChangeAssignee && (
         <ChangeIntakeRequestAssigneeForm
+          request={request}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'change-estimate' && request.canChangeEstimate && (
+        <ChangeIntakeRequestEstimateForm
           request={request}
           onFormComplete={() => setDialog(null)}
           onFormCancel={() => setDialog(null)}

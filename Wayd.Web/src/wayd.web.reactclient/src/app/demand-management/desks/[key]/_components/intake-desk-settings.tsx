@@ -14,6 +14,7 @@ import {
 import { DiscussionChannelTypes } from '@/src/store/features/common/discussion-tags'
 import { Button, Flex, Skeleton, Typography } from 'antd'
 import { FC, useState } from 'react'
+import ChangeIntakeDeskEstimationScaleForm from './change-intake-desk-estimation-scale-form'
 import ChangeIntakeDeskScoringModelForm from './change-intake-desk-scoring-model-form'
 import IntakeDeskWorkflow from './intake-desk-workflow'
 
@@ -35,6 +36,8 @@ const IntakeDeskSettings: FC<IntakeDeskSettingsProps> = ({
 }) => {
   const visibility = visibilities?.find((v) => v.code === desk.visibility)
   const [changingScoringModel, setChangingScoringModel] = useState(false)
+  const [changingEstimationScale, setChangingEstimationScale] = useState(false)
+  const scale = desk.estimationScale
   const { data: channels } = useGetIntakeChannelsQuery({
     includeArchived: true,
   })
@@ -81,6 +84,43 @@ const IntakeDeskSettings: FC<IntakeDeskSettingsProps> = ({
             desk={desk}
             onFormComplete={() => setChangingScoringModel(false)}
             onFormCancel={() => setChangingScoringModel(false)}
+          />
+        )}
+      </LabeledContent>
+      <LabeledContent label="Estimation Scale">
+        <Flex vertical gap={4}>
+          <Flex gap={8} align="center" wrap>
+            <Text>
+              {scale ? `${scale.name}, version ${scale.versionNumber}` : 'None'}
+            </Text>
+            {desk.canManage && (
+              <Button
+                size="small"
+                onClick={() => setChangingEstimationScale(true)}
+              >
+                Change Estimation Scale
+              </Button>
+            )}
+          </Flex>
+          {!scale ? (
+            <Text type="secondary">
+              Requests on this desk are not estimated.
+            </Text>
+          ) : (
+            !scale.isCurrentVersion && (
+              <Text type="secondary">
+                The scale has a newer version. Requests here are still estimated
+                on version {scale.versionNumber}; choose the scale again to move
+                to the newer one.
+              </Text>
+            )
+          )}
+        </Flex>
+        {changingEstimationScale && desk.canManage && (
+          <ChangeIntakeDeskEstimationScaleForm
+            desk={desk}
+            onFormComplete={() => setChangingEstimationScale(false)}
+            onFormCancel={() => setChangingEstimationScale(false)}
           />
         )}
       </LabeledContent>

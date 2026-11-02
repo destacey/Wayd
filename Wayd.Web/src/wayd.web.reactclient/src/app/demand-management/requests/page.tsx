@@ -8,6 +8,7 @@ import {
   useGetIntakeChannelsQuery,
   useGetIntakeRequestTagCategoriesQuery,
   useGetIntakeDesksQuery,
+  useGetIntakeRequestEstimatesQuery,
   useGetIntakeRequestScoresQuery,
   useGetIntakeRequestsQuery,
   useGetNeedByBasesQuery,
@@ -23,6 +24,7 @@ import { TOUCH_THEME } from '../_components/touch-theme'
 import RequestBoardView from './_components/request-board-view'
 import RequestFilterBar from './_components/request-filter-bar'
 import { orderRequests, toRequestScores } from '../_components/request-scores'
+import { toRequestEstimates } from '../_components/request-estimates'
 import {
   DEFAULT_REQUEST_FILTERS,
   MY_DESKS,
@@ -81,6 +83,10 @@ const IntakeRequestsPage: FC = () => {
     openOnly: filters.scope === 'open',
   })
   const scores = toRequestScores(scoreList)
+  const { currentData: estimateList } = useGetIntakeRequestEstimatesQuery({
+    openOnly: filters.scope === 'open',
+  })
+  const estimates = toRequestEstimates(estimateList)
   const { data: needByBases } = useGetNeedByBasesQuery()
   const { data: desks } = useGetIntakeDesksQuery()
   // Archived channels too: requests keep them, so they can still be filtered on.
@@ -115,12 +121,13 @@ const IntakeRequestsPage: FC = () => {
 
   const visible = data
     ? orderRequests(
-        applyRequestFilters(data, filters, employeeId, myDeskIds),
+        applyRequestFilters(data, filters, employeeId, myDeskIds, estimates),
         filters.order,
         scores,
+        estimates,
       )
     : data
-  const ranked = filters.order === 'score'
+  const ranked = filters.order !== 'usual'
 
   const viewSelector = (
     <ConfigProvider theme={phone ? TOUCH_THEME : undefined}>
@@ -164,6 +171,7 @@ const IntakeRequestsPage: FC = () => {
         tagCategories={tagCategories}
         employeeId={employeeId}
         myDeskIds={myDeskIds}
+        estimates={estimates}
       />
       {view === 'list' ? (
         <IntakeRequestsGrid
@@ -171,6 +179,7 @@ const IntakeRequestsPage: FC = () => {
           key={filters.order}
           requests={visible}
           scores={scores}
+          estimates={estimates}
           // Ranked rows arrive in rank order, which a column sort would replace.
           initialSorting={ranked ? [] : undefined}
           isLoading={isLoading}
@@ -197,6 +206,7 @@ const IntakeRequestsPage: FC = () => {
               setFilters({ ...filters, deskIds: [deskId] })
             }
             scores={scores}
+            estimates={estimates}
           />
         </>
       )}

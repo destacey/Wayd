@@ -67,6 +67,7 @@ const renderForm = async (estimate?: ReturnType<typeof estimateOn>) => {
             substance: { estimate },
             canChangeEstimate: true,
             estimateValues: ['S', 'M', 'L'],
+            estimationScaleVersionId: 'v-1',
           } as any
         }
         onFormComplete={onFormComplete}
@@ -137,11 +138,29 @@ describe('ChangeIntakeRequestEstimateForm', () => {
     await submit()
 
     // Assert
-    expect(screen.getByRole('radio', { name: '13' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: '13 (version 1)' })).toBeChecked()
     expect(
       screen.getByText(/which this desk no longer uses/),
     ).toBeInTheDocument()
     expect(mockChangeEstimate).not.toHaveBeenCalled()
     expect(onFormComplete).toHaveBeenCalled()
+  })
+
+  it("tells an earlier version's value apart from the same value on the desk's version", async () => {
+    // Arrange — M was given on version 1, and the desk now estimates on version 2, which also has M
+    await renderForm(estimateOn('M', 'v-old', 'T-Shirt Sizes'))
+
+    // Act
+    await submit()
+    await userEvent.click(screen.getByText('M'))
+    await submit()
+
+    // Assert — keeping it sends nothing; choosing the desk's M gives it on the desk's version
+    expect(screen.getByText('M (version 1)')).toBeInTheDocument()
+    expect(mockChangeEstimate).toHaveBeenCalledTimes(1)
+    expect(mockChangeEstimate).toHaveBeenCalledWith({
+      requestId: 'r-1',
+      value: 'M',
+    })
   })
 })

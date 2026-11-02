@@ -1,18 +1,20 @@
 'use client'
 
 import ManageIncidentWorkItemsForm from '@/src/app/product-management/incidents/_components/manage-incident-work-items-form'
+import ReplaceIncidentWorkItemForm from '@/src/app/product-management/incidents/_components/replace-incident-work-item-form'
 import CreateLinkForm from '@/src/components/common/links/create-link-form'
+import EditLinkForm from '@/src/components/common/links/edit-link-form'
 import { renderWorkItemLink } from '@/src/components/common/wayd-grid'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { LinkDto } from '@/src/services/wayd-api'
+import { LinkDto, WorkItemListDto } from '@/src/services/wayd-api'
 import {
   StoreDeleteLinkRequest,
   useDeleteLinkMutation,
   useGetLinksQuery,
 } from '@/src/store/features/common/links-api'
 import { useGetIncidentWorkItemsQuery } from '@/src/store/features/product-management/incidents-api'
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
 import { Button, Modal, Popconfirm } from 'antd'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
@@ -31,10 +33,14 @@ const externalHref = (url: string) =>
 
 const GenericLinkRow = ({
   link,
+  canEdit,
   canDelete,
+  onEdit,
 }: {
   link: LinkDto
+  canEdit: boolean
   canDelete: boolean
+  onEdit: () => void
 }) => {
   const messageApi = useMessage()
   const [deleteLink, { isLoading: isDeleting }] = useDeleteLinkMutation()
@@ -67,6 +73,15 @@ const GenericLinkRow = ({
       >
         {link.name}
       </Link>
+      {canEdit ? (
+        <Button
+          type="text"
+          size="small"
+          aria-label={`Edit ${link.name}`}
+          icon={<EditOutlined />}
+          onClick={onEdit}
+        />
+      ) : null}
       {canDelete ? (
         <Popconfirm
           title="Remove this link?"
@@ -94,10 +109,16 @@ const IncidentLinks = ({
 }: IncidentLinksProps) => {
   const { hasPermissionClaim } = useAuth()
   const canCreateGenericLinks = hasPermissionClaim('Permissions.Links.Create')
+  const canUpdateGenericLinks = hasPermissionClaim('Permissions.Links.Update')
   const canDeleteGenericLinks = hasPermissionClaim('Permissions.Links.Delete')
   const canViewGenericLinks = hasPermissionClaim('Permissions.Links.View')
 
   const [addStep, setAddStep] = useState<AddLinkStep>('closed')
+  const [editingGenericLinkId, setEditingGenericLinkId] = useState<
+    string | null
+  >(null)
+  const [replacingWorkItem, setReplacingWorkItem] =
+    useState<WorkItemListDto | null>(null)
 
   const { data: workItemsData, refetch: refetchWorkItems } =
     useGetIncidentWorkItemsQuery({ idOrKey, incidentId })
@@ -134,6 +155,16 @@ const IncidentLinks = ({
     void refetchGenericLinks()
   }
 
+  const onGenericLinkUpdated = () => {
+    setEditingGenericLinkId(null)
+    void refetchGenericLinks()
+  }
+
+  const onWorkItemReplaced = () => {
+    setReplacingWorkItem(null)
+    void refetchWorkItems()
+  }
+
   return (
     <>
       <div className={styles.linksHeadingRow}>
@@ -161,6 +192,15 @@ const IncidentLinks = ({
               externalViewWorkItemUrl: item.externalViewWorkItemUrl,
               label: item.title,
             })}
+            {canManageIncident ? (
+              <Button
+                type="text"
+                size="small"
+                aria-label={`Change linked work item ${item.key}`}
+                icon={<EditOutlined />}
+                onClick={() => setReplacingWorkItem(item)}
+              />
+            ) : null}
           </div>
         ))}
         {genericLinksError ? (
@@ -170,7 +210,9 @@ const IncidentLinks = ({
             <GenericLinkRow
               key={link.id}
               link={link}
+              canEdit={canUpdateGenericLinks}
               canDelete={canDeleteGenericLinks}
+              onEdit={() => setEditingGenericLinkId(link.id)}
             />
           ))
         )}
@@ -219,6 +261,22 @@ const IncidentLinks = ({
           objectId={incidentId}
           onFormCreate={onGenericLinkCreated}
           onFormCancel={closeAddFlow}
+        />
+      ) : null}
+      {editingGenericLinkId ? (
+        <EditLinkForm
+          id={editingGenericLinkId}
+          onFormUpdate={onGenericLinkUpdated}
+          onFormCancel={() => setEditingGenericLinkId(null)}
+        />
+      ) : null}
+      {replacingWorkItem ? (
+        <ReplaceIncidentWorkItemForm
+          incidentId={incidentId}
+          idOrKey={idOrKey}
+          workItem={replacingWorkItem}
+          onFormComplete={onWorkItemReplaced}
+          onFormCancel={() => setReplacingWorkItem(null)}
         />
       ) : null}
     </>

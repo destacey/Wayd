@@ -158,27 +158,42 @@ public class IncidentsController(IDispatcher dispatcher) : ControllerBase
             cancellationToken);
         var afterById = workItemsAfter.WorkItems.ToDictionary(w => w.Id);
 
+        var removedIds = beforeIds.Except(afterIds).ToList();
+        var addedIds = afterIds.Except(beforeIds).ToList();
+
         var changes = new List<IncidentTimelineLinkChangeDto>();
 
-        foreach (var removedId in beforeIds.Except(afterIds))
+        if (removedIds.Count == 1 && addedIds.Count == 1
+            && beforeById.TryGetValue(removedIds[0], out var fromWorkItem)
+            && afterById.TryGetValue(addedIds[0], out var toWorkItem))
         {
-            if (beforeById.TryGetValue(removedId, out var removed))
-            {
-                changes.Add(new IncidentTimelineLinkChangeDto(
-                    IncidentTimelineLinkKind.WorkItem,
-                    IncidentTimelineLinkAction.Removed,
-                    removed.Title));
-            }
+            changes.Add(new IncidentTimelineLinkChangeDto(
+                IncidentTimelineLinkKind.WorkItem,
+                IncidentTimelineLinkAction.Updated,
+                $"{fromWorkItem.Title} → {toWorkItem.Title}"));
         }
-
-        foreach (var addedId in afterIds.Except(beforeIds))
+        else
         {
-            if (afterById.TryGetValue(addedId, out var added))
+            foreach (var removedId in removedIds)
             {
-                changes.Add(new IncidentTimelineLinkChangeDto(
-                    IncidentTimelineLinkKind.WorkItem,
-                    IncidentTimelineLinkAction.Added,
-                    added.Title));
+                if (beforeById.TryGetValue(removedId, out var removed))
+                {
+                    changes.Add(new IncidentTimelineLinkChangeDto(
+                        IncidentTimelineLinkKind.WorkItem,
+                        IncidentTimelineLinkAction.Removed,
+                        removed.Title));
+                }
+            }
+
+            foreach (var addedId in addedIds)
+            {
+                if (afterById.TryGetValue(addedId, out var added))
+                {
+                    changes.Add(new IncidentTimelineLinkChangeDto(
+                        IncidentTimelineLinkKind.WorkItem,
+                        IncidentTimelineLinkAction.Added,
+                        added.Title));
+                }
             }
         }
 

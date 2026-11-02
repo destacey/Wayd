@@ -22,6 +22,7 @@ import type { MenuProps } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import TextArea from 'antd/es/input/TextArea'
 import dayjs, { Dayjs } from 'dayjs'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { use, useEffect, useMemo, useState } from 'react'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
@@ -352,30 +353,25 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               </div>
             </div>
             <aside className={styles.detailAside}>
-              <h2 className={styles.asideHeading}>Status</h2>
-              <ul className={styles.asideList}>
-                <li>
-                  {incident.status ? (
-                    <WorkflowStatusTag
-                      name={incident.status.name}
-                      category={incident.status.category}
-                    />
-                  ) : (
-                    '—'
-                  )}
-                </li>
-              </ul>
               <h2 className={styles.asideHeading}>Commander</h2>
               <ul className={styles.asideList}>
                 <li>{incident.commander?.name ?? '—'}</li>
               </ul>
               <h2 className={styles.asideHeading}>Products</h2>
               <ul className={styles.asideList}>
-                <li>
-                  {incident.products.length > 0
-                    ? incident.products.map((p) => p.name).join(', ')
-                    : '—'}
-                </li>
+                {incident.products.length > 0 ? (
+                  incident.products.map((product) => (
+                    <li key={product.id}>
+                      <Link
+                        href={`/product-management/products/${product.key}`}
+                      >
+                        {product.name}
+                      </Link>
+                    </li>
+                  ))
+                ) : (
+                  <li>—</li>
+                )}
               </ul>
               <h2 className={styles.asideHeading}>Timeline</h2>
               <ul className={styles.asideList}>

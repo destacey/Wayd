@@ -1,12 +1,18 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using Wayd.Planning.Application.PokerSessions.Dtos;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
 
 namespace Wayd.Infrastructure.SignalR;
 
-internal sealed class PlanningPokerNotifier(IHubContext<PlanningPokerHub> hubContext) : IPokerSessionNotifier
+internal sealed class PlanningPokerNotifier(
+    IHubContext<PlanningPokerHub> hubContext,
+    IRealtimeAccessRevoker accessRevoker,
+    ILogger<PlanningPokerNotifier> logger) : IPokerSessionNotifier
 {
     private readonly IHubContext<PlanningPokerHub> _hubContext = hubContext;
+    private readonly IRealtimeAccessRevoker _accessRevoker = accessRevoker;
+    private readonly ILogger<PlanningPokerNotifier> _logger = logger;
 
     public async Task NotifySessionUpdated(Guid sessionId) =>
         await _hubContext.Clients.Group(sessionId.ToString())
@@ -51,4 +57,27 @@ internal sealed class PlanningPokerNotifier(IHubContext<PlanningPokerHub> hubCon
     public async Task NotifyRoundDescriptionUpdated(Guid sessionId, Guid roundId) =>
         await _hubContext.Clients.Group(sessionId.ToString())
             .SendAsync("RoundDescriptionUpdated", sessionId, roundId);
+
+    public async Task NotifyMemberUpdated(Guid sessionId, PokerSessionMemberDto member) =>
+        await _hubContext.Clients.Group(sessionId.ToString())
+            .SendAsync("MemberUpdated", sessionId, member);
+
+    /// <remarks>
+    /// Eviction comes first so the broadcast does not reach someone the session no longer admits. A failure to
+    /// evict is logged, not thrown: the change it follows is already saved.
+    /// </remarks>
+    public async Task NotifyAccessChanged(Guid sessionId)
+    {
+        try
+        {
+            await _accessRevoker.RecheckPokerSession(sessionId, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to evict connections from poker session {SessionId} after its access changed.", sessionId);
+        }
+
+        await _hubContext.Clients.Group(sessionId.ToString())
+            .SendAsync("SessionUpdated", sessionId);
+    }
 }

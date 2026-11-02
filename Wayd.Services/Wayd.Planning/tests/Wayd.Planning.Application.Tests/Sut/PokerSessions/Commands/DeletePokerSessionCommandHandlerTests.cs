@@ -9,6 +9,7 @@ namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
 
 public class DeletePokerSessionCommandHandlerTests : IDisposable
 {
+    private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly DeletePokerSessionCommandHandler _handler;
     private readonly Mock<ILogger<DeletePokerSessionCommandHandler>> _mockLogger;
@@ -21,7 +22,7 @@ public class DeletePokerSessionCommandHandlerTests : IDisposable
         _dbContext = new FakePlanningDbContext();
         _mockLogger = new Mock<ILogger<DeletePokerSessionCommandHandler>>();
 
-        _handler = new DeletePokerSessionCommandHandler(_dbContext, _mockLogger.Object);
+        _handler = new DeletePokerSessionCommandHandler(_dbContext, _access, _mockLogger.Object);
         _sessionFaker = new PokerSessionFaker();
         _scaleFaker = new EstimationScaleFaker();
     }
@@ -84,6 +85,24 @@ public class DeletePokerSessionCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not found");
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_WhenTheCallerIsNotAFacilitator()
+    {
+        // Arrange
+        var session = _sessionFaker.Generate();
+        _dbContext.AddPokerSession(session);
+        _access.Actor = PokerSessionActors.Voter("someone");
+
+        // Act
+        var result = await _handler.Handle(new DeletePokerSessionCommand(session.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(Wayd.Planning.Domain.Models.PlanningPoker.PokerSession.NotAFacilitatorError);
+        _dbContext.PokerSessions.Should().ContainSingle();
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 

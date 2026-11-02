@@ -179,6 +179,28 @@ public abstract class PresenceHub : Hub
     }
 
     /// <summary>
+    /// The users present in one of <typeparamref name="THub"/>'s groups on this instance, with their connections there.
+    /// </summary>
+    internal static IReadOnlyList<(string UserId, IReadOnlyList<string> ConnectionIds)> PresentIn<THub>(string groupKey)
+        where THub : PresenceHub
+    {
+        if (!_groups.TryGetValue($"{typeof(THub).Name}:{groupKey}", out var participants))
+            return [];
+
+        var result = new List<(string, IReadOnlyList<string>)>();
+        foreach (var (userId, entry) in participants)
+        {
+            lock (entry.ConnectionIds)
+            {
+                if (entry.ConnectionIds.Count > 0)
+                    result.Add((userId, [.. entry.ConnectionIds]));
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Removes a connection from a group from outside the hub, for a caller that is no longer allowed in it:
     /// its group membership and presence go, the group is told it left, and the connection is sent
     /// <c>AccessRevoked</c> so the client can stop it. The server cannot close a connection from outside the

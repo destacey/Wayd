@@ -4346,11 +4346,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("EstimationScaleVersionId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("FacilitatorId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<int>("Key")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
@@ -4381,6 +4376,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
                     b.HasKey("Id");
 
                     b.HasAlternateKey("Key");
@@ -4389,11 +4389,75 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("EstimationScaleVersionId");
 
-                    b.HasIndex("FacilitatorId");
-
                     b.HasIndex("Key");
 
                     b.ToTable("PokerSessions", "Planning");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionFacilitator", b =>
+                {
+                    b.Property<Guid>("PokerSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("PokerSessionId", "EmployeeId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("PokerSessionFacilitators", "Planning");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionInvitedEmployee", b =>
+                {
+                    b.Property<Guid>("PokerSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("PokerSessionId", "EmployeeId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("PokerSessionInvitedEmployees", "Planning");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionInvitedTeam", b =>
+                {
+                    b.Property<Guid>("PokerSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("PokerSessionId", "TeamId");
+
+                    b.HasIndex("TeamId");
+
+                    b.ToTable("PokerSessionInvitedTeams", "Planning");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionMember", b =>
+                {
+                    b.Property<Guid>("PokerSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsVoting")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("JoinedOn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("PokerSessionId", "EmployeeId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("PokerSessionMembers", "Planning");
                 });
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerVote", b =>
@@ -10277,17 +10341,77 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Wayd.Common.Domain.Identity.User", "Facilitator")
-                        .WithMany()
-                        .HasForeignKey("FacilitatorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("EstimationScale");
 
                     b.Navigation("EstimationScaleVersion");
+                });
 
-                    b.Navigation("Facilitator");
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionFacilitator", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Planning.Domain.Models.PlanningPoker.PokerSession", null)
+                        .WithMany("Facilitators")
+                        .HasForeignKey("PokerSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionInvitedEmployee", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Planning.Domain.Models.PlanningPoker.PokerSession", null)
+                        .WithMany("InvitedEmployees")
+                        .HasForeignKey("PokerSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionInvitedTeam", b =>
+                {
+                    b.HasOne("Wayd.Planning.Domain.Models.PlanningPoker.PokerSession", null)
+                        .WithMany("InvitedTeams")
+                        .HasForeignKey("PokerSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Planning.Domain.Models.PlanningTeam", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionMember", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Planning.Domain.Models.PlanningPoker.PokerSession", null)
+                        .WithMany("Members")
+                        .HasForeignKey("PokerSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
                 });
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerVote", b =>
@@ -11860,6 +11984,14 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSession", b =>
                 {
+                    b.Navigation("Facilitators");
+
+                    b.Navigation("InvitedEmployees");
+
+                    b.Navigation("InvitedTeams");
+
+                    b.Navigation("Members");
+
                     b.Navigation("Rounds");
                 });
 

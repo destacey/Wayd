@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
+using Wayd.Planning.Application.PokerSessions;
 
 namespace Wayd.Infrastructure.SignalR;
 
@@ -15,10 +16,16 @@ public interface IRealtimeAccessRevoker
 {
     /// <summary>Every permission some hub requires to join; a role losing one of these is worth a recheck.</summary>
     static IReadOnlySet<string> JoinPermissions { get; } =
-        new HashSet<string>([PlanningPokerHub.JoinPermission, StoryMapHub.JoinPermission]);
+        new HashSet<string>([PlanningPokerHub.JoinPermission, PlanningPokerHub.AdministerPermission, StoryMapHub.JoinPermission]);
 
-    /// <summary>Evicts each user's connections from every hub whose join permission they no longer hold.</summary>
+    /// <summary>
+    /// Evicts each user's connections from every hub whose join permission they no longer hold, and from every
+    /// poker session that no longer admits them.
+    /// </summary>
     Task RecheckUsers(IReadOnlyCollection<string> userIds, CancellationToken cancellationToken);
+
+    /// <summary>Evicts everyone connected to a poker session who it no longer admits, after its access changes.</summary>
+    Task RecheckPokerSession(Guid sessionId, CancellationToken cancellationToken);
 
     /// <summary><see cref="RecheckUsers"/> for everyone holding the role.</summary>
     Task RecheckRoleMembers(string roleId, CancellationToken cancellationToken);
@@ -31,19 +38,36 @@ internal sealed class RealtimeAccessRevoker(
     IHubContext<PlanningPokerHub> pokerHub,
     IHubContext<StoryMapHub> storyMapHub,
     IUserService userService,
+    IPokerSessionAccess pokerSessionAccess,
     ILogger<RealtimeAccessRevoker> logger) : IRealtimeAccessRevoker
 {
     private readonly IHubContext<PlanningPokerHub> _pokerHub = pokerHub;
     private readonly IHubContext<StoryMapHub> _storyMapHub = storyMapHub;
     private readonly IUserService _userService = userService;
+    private readonly IPokerSessionAccess _pokerSessionAccess = pokerSessionAccess;
     private readonly ILogger<RealtimeAccessRevoker> _logger = logger;
 
     public async Task RecheckUsers(IReadOnlyCollection<string> userIds, CancellationToken cancellationToken)
     {
         foreach (var userId in userIds)
         {
-            await Recheck(_pokerHub, PlanningPokerHub.JoinPermission, userId, cancellationToken);
+            await RecheckPokerSessions(userId, cancellationToken);
             await Recheck(_storyMapHub, StoryMapHub.JoinPermission, userId, cancellationToken);
+        }
+    }
+
+    public async Task RecheckPokerSession(Guid sessionId, CancellationToken cancellationToken)
+    {
+        var groupKey = sessionId.ToString();
+
+        foreach (var (userId, connectionIds) in PresenceHub.PresentIn<PlanningPokerHub>(groupKey))
+        {
+            if (await CanAccessPokerSession(sessionId, userId, cancellationToken))
+                continue;
+
+            _logger.LogInformation("Evicting user {UserId} from poker session {SessionId}: it no longer admits them.", userId, sessionId);
+            foreach (var connectionId in connectionIds)
+                await PresenceHub.Evict(_pokerHub, connectionId, groupKey);
         }
     }
 
@@ -74,6 +98,37 @@ internal sealed class RealtimeAccessRevoker(
         _logger.LogInformation("Evicting user {UserId} from {Hub}: they no longer hold {Permission}.", userId, typeof(THub).Name, permission);
         foreach (var (connectionId, groupKey) in connections)
             await PresenceHub.Evict(hubContext, connectionId, groupKey);
+    }
+
+    /// <summary>
+    /// A poker session admits by its visibility and invites as well as by permission, so each session the user
+    /// is connected to is asked in full.
+    /// </summary>
+    private async Task RecheckPokerSessions(string userId, CancellationToken cancellationToken)
+    {
+        foreach (var session in PresenceHub.ConnectionsOf<PlanningPokerHub>(userId).GroupBy(c => c.GroupKey))
+        {
+            if (Guid.TryParse(session.Key, out var sessionId)
+                && await CanAccessPokerSession(sessionId, userId, cancellationToken))
+                continue;
+
+            _logger.LogInformation("Evicting user {UserId} from poker session {SessionId}: they can no longer see it.", userId, session.Key);
+            foreach (var (connectionId, groupKey) in session)
+                await PresenceHub.Evict(_pokerHub, connectionId, groupKey);
+        }
+    }
+
+    private async Task<bool> CanAccessPokerSession(Guid sessionId, string userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _pokerSessionAccess.CanUserAccess(sessionId, userId, cancellationToken);
+        }
+        catch (NotFoundException)
+        {
+            // A deleted user holds nothing.
+            return false;
+        }
     }
 
     private static async Task EvictAll<THub>(IHubContext<THub> hubContext, string userId)

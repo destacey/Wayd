@@ -63399,7 +63399,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of poker sessions.
         /// </summary>
         /// <remarks>
-        /// Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `facilitator` and `roundCount`. Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.
+        /// Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (everyone who has joined, voting or not), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63410,7 +63410,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a poker session.
         /// </summary>
         /// <remarks>
-        /// Starts an Active session, facilitated by the caller, that estimates on the scale `estimationScaleId` (a UUID; EstimationScales_GetScales lists the active scales). The scale must be active. The session is pinned to the scale's current version and stays on it when the scale later publishes a new version or is deactivated. It has no rounds yet; add them with PokerSessions_AddRound. Returns the new session's `id` and `key`.
+        /// Starts an Active session, with the caller as its first facilitator, that estimates on the scale `estimationScaleId` (a UUID; EstimationScales_GetScales lists the active scales). The scale must be active. The session is pinned to the scale's current version and stays on it when the scale later publishes a new version or is deactivated. `visibility` is `Public` (the default) or `Private`; `facilitatorIds` adds facilitators beside the caller, and `invitedEmployeeIds` and `invitedTeamIds` invite people to a private session (all employee or team UUIDs, all optional). It has no rounds yet; add them with PokerSessions_AddRound. The caller's account must be linked to an employee. Returns the new session's `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63421,7 +63421,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get poker session details using the Id or key.
         /// </summary>
         /// <remarks>
-        /// Takes the session's UUID or key. Returns the session with its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
+        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63429,10 +63429,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the members of a team invited to a poker session.
+        /// </summary>
+        /// <remarks>
+        /// Lists the active direct members of `teamId`, a team the session invites, by employee `id`, `key` and `name`. An invited team admits its current members, and the members of its current team of teams, while the session is Private. Returns 404 when the caller cannot see the session, the session is Public (its invites admit no one), or the team is not invited. Both ids are UUIDs.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<EmployeeNavigationDto>> GetInvitedTeamMembersAsync(System.Guid id, System.Guid teamId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update a poker session.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it and the version the session is on, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale; changing it pins the session to that scale's current version. A completed session cannot be updated. Takes the session's UUID.
+        /// A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it and the version the session is on, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale; changing it pins the session to that scale's current version. A completed session cannot be updated; visibility, facilitators and invites have their own tools. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63443,7 +63454,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a poker session.
         /// </summary>
         /// <remarks>
-        /// Permanently deletes the session with all its rounds, votes and consensus estimates, whatever its status. To close a finished session but keep its results, use PokerSessions_CompleteSession. Takes the session's UUID.
+        /// Permanently deletes the session with all its rounds, votes and consensus estimates, whatever its status. To close a finished session but keep its results, use PokerSessions_CompleteSession. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63454,7 +63465,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Complete a poker session.
         /// </summary>
         /// <remarks>
-        /// Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.
+        /// Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63465,7 +63476,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Add a round to a poker session.
         /// </summary>
         /// <remarks>
-        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.
+        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID. Returns the new round.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63476,7 +63487,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Remove a round from a poker session.
         /// </summary>
         /// <remarks>
-        /// Deletes the round with its votes and consensus estimate. The session must be Active. Both ids are UUIDs.
+        /// Deletes the round with its votes and consensus estimate. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63487,7 +63498,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Reveal votes for a round.
         /// </summary>
         /// <remarks>
-        /// Moves a round from Voting to Revealed, showing every vote; voting stays closed until the round is reset. The session must be Active. Both ids are UUIDs.
+        /// Moves a round from Voting to Revealed, showing every vote; voting stays closed until the round is reset. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63498,7 +63509,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Reset a round to allow re-voting.
         /// </summary>
         /// <remarks>
-        /// Clears every vote and any consensus estimate and moves the round back to Voting, from Voting, Revealed or Accepted. The session must be Active. Both ids are UUIDs.
+        /// Clears every vote and any consensus estimate and moves the round back to Voting, from Voting, Revealed or Accepted. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63509,7 +63520,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the consensus estimate for a round.
         /// </summary>
         /// <remarks>
-        /// Records the agreed `estimate`, which must be one of the values on the session's scale version, a card such as `?` included, and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Both ids are UUIDs.
+        /// Records the agreed `estimate`, which must be one of the values on the session's scale version, a card such as `?` included, and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63520,7 +63531,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the label for a round.
         /// </summary>
         /// <remarks>
-        /// Replaces the round's `label`; an omitted or null label clears it. The session must be Active. Both ids are UUIDs.
+        /// Replaces the round's `label`; an omitted or null label clears it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63531,7 +63542,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the description for a round.
         /// </summary>
         /// <remarks>
-        /// Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Both ids are UUIDs.
+        /// Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63542,7 +63553,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a vote for a round.
         /// </summary>
         /// <remarks>
-        /// Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. Both ids are UUIDs.
+        /// Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. A caller who has not joined the session joins it, voting; a member who is not voting cannot vote until they turn voting on with PokerSessions_SetVoting. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63558,6 +63569,61 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task WithdrawVoteAsync(System.Guid id, System.Guid roundId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who can see a poker session.
+        /// </summary>
+        /// <remarks>
+        /// `visibility` is `Public`, which anyone with the poker View permission can see and join, or `Private`, which only the session's facilitators, invited employees and the members of invited teams can. Making a session private disconnects anyone it no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetVisibilityAsync(System.Guid id, SetPokerSessionVisibilityRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set a poker session's facilitators.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the facilitators with `employeeIds` (employee UUIDs, at least one). Facilitators run the session: rounds, reveals, resets, consensus, details, visibility, invites, completion and deletion. A facilitator can remove themselves. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetFacilitatorsAsync(System.Guid id, SetPokerSessionFacilitatorsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who is invited to a poker session.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the invites with `employeeIds` and `teamIds` (UUIDs; empty lists remove every invite). Invites admit people only while the session is Private, and a team admits its current members and the members of its current team of teams. An invite grants access only: the person still needs the poker View permission, and chooses whether to vote. Removing an invite disconnects anyone the session no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetInviteesAsync(System.Guid id, SetPokerSessionInviteesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Join a poker session.
+        /// </summary>
+        /// <remarks>
+        /// Adds the caller to the session's members, voting unless `isVoting` is false. A member who is not voting takes part in the discussion but is left out of the voted and waiting totals. Joining again changes nothing; use PokerSessions_SetVoting to change whether the caller votes. Anyone the session admits can join: on a Public session anyone with the poker View permission, on a Private one its facilitators and invitees. Facilitators join like anyone else. The session must be Active, and the caller's account must be linked to an employee. Takes the session's UUID. Returns the caller's membership.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<PokerSessionMemberDto> JoinAsync(System.Guid id, JoinPokerSessionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Turn the caller's voting on or off in a poker session.
+        /// </summary>
+        /// <remarks>
+        /// Sets whether the caller votes (`isVoting`). Turning voting off withdraws the caller's votes in rounds not yet revealed and leaves them out of the voted and waiting totals; revealed rounds keep their votes. Turning it on lets them vote at once. The caller must have joined the session, which must be Active. Takes the session's UUID. Returns the caller's membership.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<PokerSessionMemberDto> SetVotingAsync(System.Guid id, SetPokerSessionVotingRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -63614,7 +63680,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of poker sessions.
         /// </summary>
         /// <remarks>
-        /// Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `facilitator` and `roundCount`. Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.
+        /// Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (everyone who has joined, voting or not), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63707,7 +63773,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a poker session.
         /// </summary>
         /// <remarks>
-        /// Starts an Active session, facilitated by the caller, that estimates on the scale `estimationScaleId` (a UUID; EstimationScales_GetScales lists the active scales). The scale must be active. The session is pinned to the scale's current version and stays on it when the scale later publishes a new version or is deactivated. It has no rounds yet; add them with PokerSessions_AddRound. Returns the new session's `id` and `key`.
+        /// Starts an Active session, with the caller as its first facilitator, that estimates on the scale `estimationScaleId` (a UUID; EstimationScales_GetScales lists the active scales). The scale must be active. The session is pinned to the scale's current version and stays on it when the scale later publishes a new version or is deactivated. `visibility` is `Public` (the default) or `Private`; `facilitatorIds` adds facilitators beside the caller, and `invitedEmployeeIds` and `invitedTeamIds` invite people to a private session (all employee or team UUIDs, all optional). It has no rounds yet; add them with PokerSessions_AddRound. The caller's account must be linked to an employee. Returns the new session's `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63801,7 +63867,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get poker session details using the Id or key.
         /// </summary>
         /// <remarks>
-        /// Takes the session's UUID or key. Returns the session with its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
+        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63889,10 +63955,107 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the members of a team invited to a poker session.
+        /// </summary>
+        /// <remarks>
+        /// Lists the active direct members of `teamId`, a team the session invites, by employee `id`, `key` and `name`. An invited team admits its current members, and the members of its current team of teams, while the session is Private. Returns 404 when the caller cannot see the session, the session is Public (its invites admit no one), or the team is not invited. Both ids are UUIDs.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<EmployeeNavigationDto>> GetInvitedTeamMembersAsync(System.Guid id, System.Guid teamId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (teamId == null)
+                throw new System.ArgumentNullException("teamId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/invited-teams/{teamId}/members"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/invited-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(teamId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/members");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<EmployeeNavigationDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update a poker session.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it and the version the session is on, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale; changing it pins the session to that scale's current version. A completed session cannot be updated. Takes the session's UUID.
+        /// A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it and the version the session is on, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale; changing it pins the session to that scale's current version. A completed session cannot be updated; visibility, facilitators and invites have their own tools. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63984,7 +64147,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a poker session.
         /// </summary>
         /// <remarks>
-        /// Permanently deletes the session with all its rounds, votes and consensus estimates, whatever its status. To close a finished session but keep its results, use PokerSessions_CompleteSession. Takes the session's UUID.
+        /// Permanently deletes the session with all its rounds, votes and consensus estimates, whatever its status. To close a finished session but keep its results, use PokerSessions_CompleteSession. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64069,7 +64232,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Complete a poker session.
         /// </summary>
         /// <remarks>
-        /// Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.
+        /// Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64156,7 +64319,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Add a round to a poker session.
         /// </summary>
         /// <remarks>
-        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.
+        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID. Returns the new round.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64255,7 +64418,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Remove a round from a poker session.
         /// </summary>
         /// <remarks>
-        /// Deletes the round with its votes and consensus estimate. The session must be Active. Both ids are UUIDs.
+        /// Deletes the round with its votes and consensus estimate. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64345,7 +64508,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Reveal votes for a round.
         /// </summary>
         /// <remarks>
-        /// Moves a round from Voting to Revealed, showing every vote; voting stays closed until the round is reset. The session must be Active. Both ids are UUIDs.
+        /// Moves a round from Voting to Revealed, showing every vote; voting stays closed until the round is reset. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64437,7 +64600,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Reset a round to allow re-voting.
         /// </summary>
         /// <remarks>
-        /// Clears every vote and any consensus estimate and moves the round back to Voting, from Voting, Revealed or Accepted. The session must be Active. Both ids are UUIDs.
+        /// Clears every vote and any consensus estimate and moves the round back to Voting, from Voting, Revealed or Accepted. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64529,7 +64692,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the consensus estimate for a round.
         /// </summary>
         /// <remarks>
-        /// Records the agreed `estimate`, which must be one of the values on the session's scale version, a card such as `?` included, and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Both ids are UUIDs.
+        /// Records the agreed `estimate`, which must be one of the values on the session's scale version, a card such as `?` included, and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64627,7 +64790,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the label for a round.
         /// </summary>
         /// <remarks>
-        /// Replaces the round's `label`; an omitted or null label clears it. The session must be Active. Both ids are UUIDs.
+        /// Replaces the round's `label`; an omitted or null label clears it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64725,7 +64888,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the description for a round.
         /// </summary>
         /// <remarks>
-        /// Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Both ids are UUIDs.
+        /// Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64823,7 +64986,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a vote for a round.
         /// </summary>
         /// <remarks>
-        /// Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. Both ids are UUIDs.
+        /// Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. A caller who has not joined the session joins it, voting; a member who is not voting cannot vote until they turn voting on with PokerSessions_SetVoting. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64976,6 +65139,483 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 204)
                         {
                             return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who can see a poker session.
+        /// </summary>
+        /// <remarks>
+        /// `visibility` is `Public`, which anyone with the poker View permission can see and join, or `Private`, which only the session's facilitators, invited employees and the members of invited teams can. Making a session private disconnects anyone it no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetVisibilityAsync(System.Guid id, SetPokerSessionVisibilityRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/visibility"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/visibility");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set a poker session's facilitators.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the facilitators with `employeeIds` (employee UUIDs, at least one). Facilitators run the session: rounds, reveals, resets, consensus, details, visibility, invites, completion and deletion. A facilitator can remove themselves. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetFacilitatorsAsync(System.Guid id, SetPokerSessionFacilitatorsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/facilitators"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/facilitators");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who is invited to a poker session.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the invites with `employeeIds` and `teamIds` (UUIDs; empty lists remove every invite). Invites admit people only while the session is Private, and a team admits its current members and the members of its current team of teams. An invite grants access only: the person still needs the poker View permission, and chooses whether to vote. Removing an invite disconnects anyone the session no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetInviteesAsync(System.Guid id, SetPokerSessionInviteesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/invitees"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/invitees");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Join a poker session.
+        /// </summary>
+        /// <remarks>
+        /// Adds the caller to the session's members, voting unless `isVoting` is false. A member who is not voting takes part in the discussion but is left out of the voted and waiting totals. Joining again changes nothing; use PokerSessions_SetVoting to change whether the caller votes. Anyone the session admits can join: on a Public session anyone with the poker View permission, on a Private one its facilitators and invitees. Facilitators join like anyone else. The session must be Active, and the caller's account must be linked to an employee. Takes the session's UUID. Returns the caller's membership.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<PokerSessionMemberDto> JoinAsync(System.Guid id, JoinPokerSessionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/join"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/join");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<PokerSessionMemberDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Turn the caller's voting on or off in a poker session.
+        /// </summary>
+        /// <remarks>
+        /// Sets whether the caller votes (`isVoting`). Turning voting off withdraws the caller's votes in rounds not yet revealed and leaves them out of the voted and waiting totals; revealed rounds keep their votes. Turning it on lets them vote at once. The caller must have joined the session, which must be Active. Takes the session's UUID. Returns the caller's membership.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<PokerSessionMemberDto> SetVotingAsync(System.Guid id, SetPokerSessionVotingRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/voting"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/voting");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<PokerSessionMemberDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         if (status_ == 400)
@@ -113536,6 +114176,33 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Guid EstimationScaleId { get; set; } = default!;
 
+        /// <summary>
+        /// `Public` (the default): anyone with the poker View permission can see and join the session. `Private`:
+        /// <br/>only its facilitators, invited employees and the members of invited teams.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visibility")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Visibility>))]
+        public Visibility Visibility { get; set; } = default!;
+
+        /// <summary>
+        /// Employees who facilitate alongside the caller, who is always the first facilitator.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("facilitatorIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? FacilitatorIds { get; set; } = default!;
+
+        /// <summary>
+        /// Employees invited to the session, who can join it while it is private.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("invitedEmployeeIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? InvitedEmployeeIds { get; set; } = default!;
+
+        /// <summary>
+        /// Teams invited to the session, whose current members can join it while it is private.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("invitedTeamIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? InvitedTeamIds { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -122342,6 +123009,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Joins the caller to a poker session.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class JoinPokerSessionRequest
+    {
+
+        /// <summary>
+        /// True (the default) to vote, counting toward the voted and waiting totals; false to take part without voting.
+        /// <br/>Ignored when the caller has already joined.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isVoting")]
+        public bool IsVoting { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class JsonPatchDocumentOfSetGoalPersonasRequest : System.Collections.ObjectModel.Collection<JsonPatchOperation>
     {
@@ -125877,8 +126560,49 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Status { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("facilitator")]
-        public UserNavigationDto? Facilitator { get; set; } = default!;
+        /// <summary>
+        /// Public: anyone with the poker View permission can see and join the session. Private: only its
+        /// <br/>facilitators, invited employees and the members of invited teams.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visibility")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Visibility>))]
+        public Visibility Visibility { get; set; } = default!;
+
+        /// <summary>
+        /// The employees who run the session: its rounds, reveals, resets, consensus, details, access and completion.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("facilitators")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Facilitators { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// The employees invited to the session, who can join it while it is private.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("invitedEmployees")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> InvitedEmployees { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// The teams invited to the session, whose current members can join it while it is private.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("invitedTeams")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<PlanningTeamNavigationDto> InvitedTeams { get; set; } = new System.Collections.ObjectModel.Collection<PlanningTeamNavigationDto>();
+
+        /// <summary>
+        /// Everyone who has joined the session, in the order they joined, including those who have left.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("members")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<PokerSessionMemberDto> Members { get; set; } = new System.Collections.ObjectModel.Collection<PokerSessionMemberDto>();
+
+        /// <summary>
+        /// Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a
+        /// <br/>read-only token.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
+        public bool CanManage { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("estimationScale")]
         public EstimationScaleNavigationDto? EstimationScale { get; set; } = default!;
@@ -125920,11 +126644,67 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Status { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("facilitator")]
-        public UserNavigationDto? Facilitator { get; set; } = default!;
+        /// <summary>
+        /// Public: anyone with the poker View permission can see and join the session. Private: only the people on it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visibility")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Visibility>))]
+        public Visibility Visibility { get; set; } = default!;
+
+        /// <summary>
+        /// The employees who run the session.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("facilitators")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Facilitators { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// Everyone who has joined the session, voting or not, in the order they joined.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("participants")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Participants { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
         [System.Text.Json.Serialization.JsonPropertyName("roundCount")]
         public int RoundCount { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a
+        /// <br/>read-only token.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
+        public bool CanManage { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Someone who joined a poker session, and how they take part.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PokerSessionMemberDto
+    {
+
+        /// <summary>
+        /// The member. Live presence carries the same employee id, which is how a connected person is matched to
+        /// <br/>their membership.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employee")]
+        public EmployeeNavigationDto Employee { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the member votes. A voting member counts toward a round's voted and waiting totals; one who is not
+        /// <br/>voting is left out of them but still takes part.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isVoting")]
+        public bool IsVoting { get; set; } = default!;
+
+        /// <summary>
+        /// When the member first joined.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("joinedOn")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset JoinedOn { get; set; } = default!;
 
     }
 
@@ -131017,6 +131797,70 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetPokerSessionFacilitatorsRequest
+    {
+
+        /// <summary>
+        /// The employees who facilitate the session from now on, replacing the current list. At least one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employeeIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MinLength(1)]
+        public System.Collections.Generic.ICollection<System.Guid> EmployeeIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetPokerSessionInviteesRequest
+    {
+
+        /// <summary>
+        /// The employees invited to the session, replacing the current list. Empty removes every employee invite.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employeeIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> EmployeeIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+        /// <summary>
+        /// The teams invited to the session, replacing the current list. Empty removes every team invite.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> TeamIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetPokerSessionVisibilityRequest
+    {
+
+        /// <summary>
+        /// `Public`: anyone with the poker View permission can see and join the session. `Private`: only its
+        /// <br/>facilitators, invited employees and the members of invited teams.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visibility")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Visibility>))]
+        public Visibility Visibility { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Turns the caller's voting on or off in a poker session.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetPokerSessionVotingRequest
+    {
+
+        /// <summary>
+        /// True to vote, counting toward the voted and waiting totals; false to take part without voting.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isVoting")]
+        public bool IsVoting { get; set; } = default!;
 
     }
 
@@ -140204,6 +141048,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum Visibility
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Public")]
+        Public = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Private")]
+        Private = 1,
 
     }
 

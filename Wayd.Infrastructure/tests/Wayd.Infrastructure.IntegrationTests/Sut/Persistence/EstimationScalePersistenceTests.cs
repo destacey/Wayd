@@ -4,10 +4,12 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using Wayd.Common.Application.Identity;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Identity;
 using Wayd.Infrastructure.Identity;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
+using Wayd.Planning.Application.PokerSessions;
 using Wayd.Planning.Application.PokerSessions.Dtos;
 using Wayd.Planning.Application.PokerSessions.Queries;
 using Wayd.Planning.Domain.Models.PlanningPoker;
@@ -73,10 +75,11 @@ public sealed class EstimationScalePersistenceTests(SqlServerDbContextFixture fi
         // Arrange
         var ct = TestContext.Current.CancellationToken;
         _ = PlanningMappings.Value;
-        var userId = await SeedUser(ct);
+        var employee = await PokerSessionTestData.SeedEmployee(_fixture, ct);
+        var userId = await SeedUser(employee.Id, ct);
         var scale = EstimationScale.Create(UniqueName(), null,
             [new("S", true), new("M", true), new("?", false)], EventActor.System, Now).Value;
-        var session = PokerSession.Create("Refinement", scale, userId, Now).Value;
+        var session = PokerSession.Create("Refinement", scale, Visibility.Public, employee.Id, Now).Value;
         var pinned = scale.CurrentVersion.Id;
         await using (var context = _fixture.CreateContext())
         {
@@ -96,7 +99,10 @@ public sealed class EstimationScalePersistenceTests(SqlServerDbContextFixture fi
 
         // Act
         await using var read = _fixture.CreateContext();
-        var handler = new GetPokerSessionQueryHandler(read, currentUser.Object);
+        var access = new Mock<IPokerSessionAccess>();
+        access.Setup(a => a.ResolveReader(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PokerSessionReader(employee.Id, false, [], false));
+        var handler = new GetPokerSessionQueryHandler(read, access.Object, currentUser.Object);
         var dto = await handler.Handle(new GetPokerSessionQuery(session.Key.ToString()), ct);
 
         // Assert
@@ -111,7 +117,7 @@ public sealed class EstimationScalePersistenceTests(SqlServerDbContextFixture fi
 
     private static string UniqueName() => $"Scale {Guid.NewGuid():N}"[..20];
 
-    private async Task<string> SeedUser(CancellationToken ct)
+    private async Task<string> SeedUser(Guid employeeId, CancellationToken ct)
     {
         var suffix = Guid.NewGuid().ToString("N")[..12];
         var user = new ApplicationUser
@@ -124,6 +130,7 @@ public sealed class EstimationScalePersistenceTests(SqlServerDbContextFixture fi
             SecurityStamp = Guid.NewGuid().ToString(),
             IsActive = true,
             LoginProvider = LoginProviders.Wayd,
+            EmployeeId = employeeId,
         };
 
         await using var context = _fixture.CreateContext();

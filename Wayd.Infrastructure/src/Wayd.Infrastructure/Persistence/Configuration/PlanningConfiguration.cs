@@ -671,9 +671,10 @@ public class PokerSessionConfig : IEntityTypeConfiguration<PokerSession>
         builder.Property(s => s.Key).ValueGeneratedOnAdd();
         builder.Property(s => s.Name).IsRequired().HasMaxLength(256);
         builder.Property(s => s.EstimationScaleId).IsRequired();
-        builder.Property(s => s.FacilitatorId)
-            .IsRequired()
-            .HasMaxLength(450);
+        builder.Property(s => s.Visibility).IsRequired()
+            .HasConversion<EnumConverter<Visibility>>()
+            .HasMaxLength(32)
+            .HasColumnType("varchar");
         builder.Property(s => s.Status).IsRequired()
             .HasConversion<EnumConverter<PokerSessionStatus>>()
             .HasColumnType("varchar")
@@ -692,18 +693,112 @@ public class PokerSessionConfig : IEntityTypeConfiguration<PokerSession>
             .HasForeignKey(s => s.EstimationScaleVersionId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(s => s.Facilitator)
-            .WithMany()
-            .HasForeignKey(s => s.FacilitatorId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         builder.HasMany(s => s.Rounds)
             .WithOne()
             .HasForeignKey(r => r.PokerSessionId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasMany(s => s.Facilitators)
+            .WithOne()
+            .HasForeignKey(f => f.PokerSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(s => s.InvitedEmployees)
+            .WithOne()
+            .HasForeignKey(e => e.PokerSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(s => s.InvitedTeams)
+            .WithOne()
+            .HasForeignKey(t => t.PokerSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(s => s.Members)
+            .WithOne()
+            .HasForeignKey(m => m.PokerSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.Navigation(s => s.Rounds)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(s => s.Facilitators)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(s => s.InvitedEmployees)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(s => s.InvitedTeams)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(s => s.Members)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class PokerSessionFacilitatorConfig : IEntityTypeConfiguration<PokerSessionFacilitator>
+{
+    public void Configure(EntityTypeBuilder<PokerSessionFacilitator> builder)
+    {
+        builder.ToTable("PokerSessionFacilitators", SchemaNames.Planning);
+
+        builder.HasKey(f => new { f.PokerSessionId, f.EmployeeId });
+
+        // Finds the sessions an employee facilitates, which the access filter asks of every list.
+        builder.HasIndex(f => f.EmployeeId);
+
+        builder.HasOne(f => f.Employee)
+            .WithMany()
+            .HasForeignKey(f => f.EmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class PokerSessionInvitedEmployeeConfig : IEntityTypeConfiguration<PokerSessionInvitedEmployee>
+{
+    public void Configure(EntityTypeBuilder<PokerSessionInvitedEmployee> builder)
+    {
+        builder.ToTable("PokerSessionInvitedEmployees", SchemaNames.Planning);
+
+        builder.HasKey(e => new { e.PokerSessionId, e.EmployeeId });
+
+        builder.HasIndex(e => e.EmployeeId);
+
+        builder.HasOne(e => e.Employee)
+            .WithMany()
+            .HasForeignKey(e => e.EmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class PokerSessionInvitedTeamConfig : IEntityTypeConfiguration<PokerSessionInvitedTeam>
+{
+    public void Configure(EntityTypeBuilder<PokerSessionInvitedTeam> builder)
+    {
+        builder.ToTable("PokerSessionInvitedTeams", SchemaNames.Planning);
+
+        builder.HasKey(t => new { t.PokerSessionId, t.TeamId });
+
+        builder.HasIndex(t => t.TeamId);
+
+        // An invite goes with its team, as the team's other planning records do.
+        builder.HasOne(t => t.Team)
+            .WithMany()
+            .HasForeignKey(t => t.TeamId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class PokerSessionMemberConfig : IEntityTypeConfiguration<PokerSessionMember>
+{
+    public void Configure(EntityTypeBuilder<PokerSessionMember> builder)
+    {
+        builder.ToTable("PokerSessionMembers", SchemaNames.Planning);
+
+        builder.HasKey(m => new { m.PokerSessionId, m.EmployeeId });
+
+        builder.Property(m => m.IsVoting).IsRequired();
+        builder.Property(m => m.JoinedOn).IsRequired();
+
+        builder.HasOne(m => m.Employee)
+            .WithMany()
+            .HasForeignKey(m => m.EmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
 

@@ -11,6 +11,7 @@ namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
 
 public class AddPokerRoundCommandHandlerTests : IDisposable
 {
+    private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly AddPokerRoundCommandHandler _handler;
     private readonly Mock<ILogger<AddPokerRoundCommandHandler>> _mockLogger;
@@ -24,7 +25,7 @@ public class AddPokerRoundCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<AddPokerRoundCommandHandler>>();
         _mockNotifier = new Mock<IPokerSessionNotifier>();
 
-        _handler = new AddPokerRoundCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new AddPokerRoundCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
         _sessionFaker = new PokerSessionFaker();
     }
 

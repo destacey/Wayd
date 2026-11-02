@@ -28,11 +28,11 @@ Permissions are named `Permissions.{Resource}.{Action}` and follow a consistent 
 | `Run` | Trigger an operation — for example running or requeuing a [background job](./index.mdx#background-jobs) |
 | `Manage` | Create, update and delete in one permission — used for planning interval objectives |
 | `Search` / `Export` | Search or export users |
-| `Administer` | Domain-wide administrative standing (see [PPM Administrator](#ppm-administrator)) |
+| `Administer` | Domain-wide administrative standing (see [PPM Administrator](#ppm-administrator) and [Planning Poker](#planning-poker-facilitators-and-invites)) |
 
 Some resources add specific actions — `Permissions.Projects.ManageProjectWorkItems`, `Permissions.Teams.ManageTeamMemberships` and `Permissions.RateLimits.Elevated`.
 
-The server checks a user's permissions against their current roles on every request, so a role or permission change applies to what they can do straight away. That includes live updates: someone with a planning poker session or story map open stops receiving its changes as soon as they lose its `View` permission or their account is deactivated. The one exception is [`Permissions.RateLimits.Elevated`](#elevated-rate-limits), which by default takes up to five minutes. The menus and buttons the app shows are decided by the permissions carried in the user's sign-in token, so they catch up on the user's next token refresh.
+The server checks a user's permissions against their current roles on every request, so a role or permission change applies to what they can do straight away. That includes live updates: someone with a planning poker session or story map open stops receiving its changes as soon as they lose its `View` permission or their account is deactivated, or, for a private poker session, as soon as the session stops admitting them. The one exception is [`Permissions.RateLimits.Elevated`](#elevated-rate-limits), which by default takes up to five minutes. The menus and buttons the app shows are decided by the permissions carried in the user's sign-in token, so they catch up on the user's next token refresh.
 
 ## Permission catalogue
 
@@ -69,7 +69,7 @@ Every permission Wayd defines, as **Settings → Access → Roles** groups them.
 | Planning | `PlanningIntervalObjectives` | `View`, `Manage`, `Import` |
 | Planning | `Risks` | `View`, `Create`, `Update`, `Delete`, `Import` |
 | Planning | `Roadmaps` | `View`, `Create`, `Update`, `Delete` |
-| Planning | `PokerSessions` | `View`, `Create`, `Update`, `Delete` |
+| Planning | `PokerSessions` | `View`, `Create`, `Administer` (see [Planning Poker](#planning-poker-facilitators-and-invites)) |
 | Planning | `StoryMaps` | `View`, `Create`, `Update`, `Delete` |
 | Planning | `EstimationScales` | `View`, `Create`, `Update`, `Delete` |
 | Project Portfolio Management | `ProjectPortfolioManagement` | `Administer` (see [PPM Administrator](#ppm-administrator)) |
@@ -165,6 +165,23 @@ The seeded **Admin** role includes this permission.
 `Permissions.Iterations.Administer` waives the membership for every team's sprints, the way the [PPM Administrator](#ppm-administrator) permission waives leadership. Like it, it never substitutes for the `Update` permission. The seeded **Admin** role includes both.
 
 Viewing sprints needs only `Permissions.Iterations.View`.
+
+## Planning Poker: facilitators and invites
+
+A [planning poker session](../planning/planning-poker.mdx#poker-sessions) is run by its facilitators, and a private one admits only the people it names, so poker has three permissions.
+
+| Who | What they can do | How they get it |
+|---|---|---|
+| `Permissions.PokerSessions.View` | See public sessions and the private ones they are admitted to; join them, and vote or turn voting off | A role |
+| `Permissions.PokerSessions.Create` | Create a session, becoming its first facilitator | A role |
+| A **facilitator** of a session | Run it — rounds, reveals, re-votes and accepted estimates — edit it, change its facilitators, visibility and invites, complete it and delete it | Named on the session, with `View` |
+| `Permissions.PokerSessions.Administer` | What a facilitator can do, in every session, private ones included | A role |
+
+A private session admits its facilitators, the employees invited to it, and the members of the teams invited to it, including members of an invited team's current team of teams. An invite never replaces the `View` permission. Every poker action but reading needs an account linked to an employee, because facilitators, invitees and members are employees.
+
+Live updates follow the same rule: changing a session's visibility or invites disconnects anyone it no longer admits. Someone who leaves an invited team keeps their open connection until they next open the session.
+
+The seeded **Admin** role includes `Administer`.
 
 ## Demand Management: desk roles
 

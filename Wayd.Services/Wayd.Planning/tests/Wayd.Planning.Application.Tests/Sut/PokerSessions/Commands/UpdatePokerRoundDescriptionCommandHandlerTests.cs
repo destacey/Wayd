@@ -11,6 +11,7 @@ namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
 
 public class UpdatePokerRoundDescriptionCommandHandlerTests : IDisposable
 {
+    private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly UpdatePokerRoundDescriptionCommandHandler _handler;
     private readonly Mock<ILogger<UpdatePokerRoundDescriptionCommandHandler>> _mockLogger;
@@ -24,7 +25,7 @@ public class UpdatePokerRoundDescriptionCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<UpdatePokerRoundDescriptionCommandHandler>>();
         _mockNotifier = new Mock<IPokerSessionNotifier>();
 
-        _handler = new UpdatePokerRoundDescriptionCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new UpdatePokerRoundDescriptionCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
         _sessionFaker = new PokerSessionFaker();
     }
 
@@ -35,7 +36,7 @@ public class UpdatePokerRoundDescriptionCommandHandlerTests : IDisposable
         var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
         _dbContext.AddPokerSession(session);
 
-        var round = session.AddRound("Label", "Original").Value;
+        var round = session.AddRound("Label", "Original", PokerSessionActors.Facilitator).Value;
 
         var command = new UpdatePokerRoundDescriptionCommand(session.Id, round.Id, "Updated");
 
@@ -57,7 +58,7 @@ public class UpdatePokerRoundDescriptionCommandHandlerTests : IDisposable
         var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
         _dbContext.AddPokerSession(session);
 
-        var round = session.AddRound("Label", "Original").Value;
+        var round = session.AddRound("Label", "Original", PokerSessionActors.Facilitator).Value;
 
         var command = new UpdatePokerRoundDescriptionCommand(session.Id, round.Id, null);
 
@@ -110,8 +111,8 @@ public class UpdatePokerRoundDescriptionCommandHandlerTests : IDisposable
         var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
         _dbContext.AddPokerSession(session);
 
-        var round = session.AddRound("Label", "Original").Value;
-        session.Complete(Instant.FromUtc(2026, 1, 15, 10, 0));
+        var round = session.AddRound("Label", "Original", PokerSessionActors.Facilitator).Value;
+        session.Complete(PokerSessionActors.Facilitator, Instant.FromUtc(2026, 1, 15, 10, 0));
 
         var command = new UpdatePokerRoundDescriptionCommand(session.Id, round.Id, "Description");
 

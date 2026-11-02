@@ -49,9 +49,7 @@ export function usePokerSessionConnection(
   }, [onAccessRevoked])
 
   const emitPresence = () => {
-    onPresenceChangeRef.current?.(
-      Array.from(presenceMapRef.current.values()),
-    )
+    onPresenceChangeRef.current?.(Array.from(presenceMapRef.current.values()))
   }
 
   const invalidateSession = useCallback(() => {
@@ -109,6 +107,7 @@ export function usePokerSessionConnection(
           'RoundRemoved',
           'RoundLabelUpdated',
           'RoundDescriptionUpdated',
+          'MemberUpdated',
         ]
         for (const event of events) {
           connection.on(event, invalidateSession)

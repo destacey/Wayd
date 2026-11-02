@@ -15,8 +15,6 @@ export interface PokerSessionsGridProps {
   sessions: PokerSessionListDto[]
   isLoading: boolean
   refetch: () => void
-  canUpdate: boolean
-  canDelete: boolean
   gridControlMenuItems?: ItemType[]
   onEditClicked: (session: PokerSessionListDto) => void
   onCompleteClicked: (session: PokerSessionListDto) => void
@@ -25,8 +23,6 @@ export interface PokerSessionsGridProps {
 
 interface RowMenuProps {
   session: PokerSessionListDto
-  canUpdate: boolean
-  canDelete: boolean
   onEditClicked: (session: PokerSessionListDto) => void
   onCompleteClicked: (session: PokerSessionListDto) => void
   onDeleteClicked: (session: PokerSessionListDto) => void
@@ -35,14 +31,19 @@ interface RowMenuProps {
 const getRowMenuItems = (props: RowMenuProps): ItemType[] => {
   if (!props.session) return []
 
-  const items: ItemType[] = []
+  // Only the session's facilitators, or a poker administrator, run it.
+  if (!props.session.canManage) return []
 
-  if (props.canUpdate && props.session.status === 'Active') {
-    items.push({
+  // Edit stays on a completed session, whose access can still change.
+  const items: ItemType[] = [
+    {
       key: 'edit',
       label: 'Edit',
       onClick: () => props.onEditClicked(props.session),
-    })
+    },
+  ]
+
+  if (props.session.status === 'Active') {
     items.push({
       key: 'complete',
       label: 'Complete',
@@ -50,14 +51,12 @@ const getRowMenuItems = (props: RowMenuProps): ItemType[] => {
     })
   }
 
-  if (props.canDelete) {
-    items.push({
-      key: 'delete',
-      label: 'Delete',
-      danger: true,
-      onClick: () => props.onDeleteClicked(props.session),
-    })
-  }
+  items.push({
+    key: 'delete',
+    label: 'Delete',
+    danger: true,
+    onClick: () => props.onDeleteClicked(props.session),
+  })
 
   return items
 }
@@ -66,14 +65,12 @@ const PokerSessionsGrid: FC<PokerSessionsGridProps> = ({
   sessions = [],
   isLoading,
   refetch,
-  canUpdate,
-  canDelete,
   gridControlMenuItems,
   onEditClicked,
   onCompleteClicked,
   onDeleteClicked,
 }) => {
-  const showRowMenu = canUpdate || canDelete
+  const showRowMenu = sessions.some((s) => s.canManage)
 
   const columns = useMemo<ColumnDef<PokerSessionListDto, any>[]>(
     () => [
@@ -83,8 +80,6 @@ const PokerSessionsGrid: FC<PokerSessionsGridProps> = ({
         getItems: (session) =>
           getRowMenuItems({
             session,
-            canUpdate,
-            canDelete,
             onEditClicked,
             onCompleteClicked,
             onDeleteClicked,
@@ -111,10 +106,25 @@ const PokerSessionsGrid: FC<PokerSessionsGridProps> = ({
         meta: { filterType: 'set' },
       },
       {
-        id: 'facilitator',
-        accessorKey: 'facilitator.name',
-        header: 'Facilitator',
+        id: 'facilitators',
+        accessorFn: (session) =>
+          session.facilitators.map((f) => f.name).join(', '),
+        header: 'Facilitators',
         size: 200,
+      },
+      {
+        id: 'participants',
+        accessorFn: (session) =>
+          session.participants.map((p) => p.name).join(', '),
+        header: 'Participants',
+        size: 260,
+      },
+      {
+        id: 'visibility',
+        accessorKey: 'visibility',
+        header: 'Visibility',
+        size: 110,
+        meta: { filterType: 'set' },
       },
       {
         id: 'roundCount',
@@ -123,14 +133,7 @@ const PokerSessionsGrid: FC<PokerSessionsGridProps> = ({
         size: 110,
       },
     ],
-    [
-      showRowMenu,
-      canUpdate,
-      canDelete,
-      onEditClicked,
-      onCompleteClicked,
-      onDeleteClicked,
-    ],
+    [showRowMenu, onEditClicked, onCompleteClicked, onDeleteClicked],
   )
 
   return (

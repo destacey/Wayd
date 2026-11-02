@@ -188,6 +188,14 @@ Managing roles, from **Settings → Access → Roles**:
 - **A role in use can't be deleted** — not while users hold it, and not while it is an identity provider's default role.
 - Viewing roles needs `Permissions.Roles.View`; creating, editing and deleting them need `Permissions.Roles.Create`, `.Update` and `.Delete`. Changing who holds a role needs `Permissions.UserRoles.Update`.
 
+#### A baseline role for everyone
+
+A new deployment has one role, **Admin**. Every permission is granted through roles you create, so until you do, every feature that needs one is admin-only. Most organizations want a baseline role that everyone holds — the features anyone may use, such as viewing work and joining a [planning poker](../planning/planning-poker.mdx) session or a [story map](../planning/story-maps.mdx) — and add narrower roles on top for the people who administer or change more.
+
+1. **Create the role** in **Settings → Access → Roles**, for example *Member*, and give it the permissions everyone should have. A user can hold several roles; what they may do is everything their roles grant together.
+2. **Make it the default for new accounts.** On each Microsoft Entra ID provider with automatic registration, set **Default role for new users** to it. Accounts created at first sign-in then start with it.
+3. **Give it to existing users.** The default role is given at sign-in only to someone who holds no role — in practice, a new account. People who already hold a role don't get it: add them from the role's **Users** section with **Manage Users**, and include the role when you create a user by hand.
+
 :::note[PPM requires more than a permission]
 In [Project Portfolio Management](../ppm/index.mdx), a permission claim alone is not enough to change a project, program, or portfolio — you must also lead the record as an Owner or Manager. See [Permissions](./permissions.mdx) for the full rule.
 :::

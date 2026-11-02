@@ -32,11 +32,11 @@ Permissions are named `Permissions.{Resource}.{Action}` and follow a consistent 
 
 Some resources add specific actions — `Permissions.Projects.ManageProjectWorkItems`, `Permissions.Teams.ManageTeamMemberships` and `Permissions.RateLimits.Elevated`.
 
-The server checks a user's permissions against their current roles on every request, so a role or permission change applies to what they can do straight away. The one exception is [`Permissions.RateLimits.Elevated`](#elevated-rate-limits), which by default takes up to five minutes. The menus and buttons the app shows are decided by the permissions carried in the user's sign-in token, so they catch up on the user's next token refresh.
+The server checks a user's permissions against their current roles on every request, so a role or permission change applies to what they can do straight away. That includes live updates: someone with a planning poker session or story map open stops receiving its changes as soon as they lose its `View` permission or their account is deactivated. The one exception is [`Permissions.RateLimits.Elevated`](#elevated-rate-limits), which by default takes up to five minutes. The menus and buttons the app shows are decided by the permissions carried in the user's sign-in token, so they catch up on the user's next token refresh.
 
 ## Permission catalogue
 
-Every permission Wayd defines, as **Settings → Access → Roles** groups them. The seeded **Admin** role holds all of them.
+Every permission Wayd defines, as **Settings → Access → Roles** groups them. The seeded **Admin** role holds all of them; for everyone else, see [a baseline role for everyone](./index.mdx#a-baseline-role-for-everyone).
 
 | Category | Resource | Permissions |
 |---|---|---|

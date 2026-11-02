@@ -7,18 +7,15 @@ namespace Wayd.AppIntegration.Application.Connections.Commands.Teams;
 
 /// <summary>
 /// Runs the hello-world Graph test for a Teams connection: resolves the signed-in user's email in
-/// the tenant, creates a Teams chat, and a calendar event. Does not post a chat message.
+/// the tenant, creates a Teams chat, and creates a calendar event. Does not post a chat message.
 /// </summary>
-public sealed record TestTeamsConnectionCommand(Guid Id, string UserAssertion) : ICommand;
+public sealed record TestTeamsConnectionCommand(Guid Id) : ICommand;
 
 public sealed class TestTeamsConnectionCommandValidator : CustomValidator<TestTeamsConnectionCommand>
 {
     public TestTeamsConnectionCommandValidator()
     {
         RuleFor(c => c.Id).NotEmpty();
-        RuleFor(c => c.UserAssertion)
-            .NotEmpty()
-            .WithMessage(TeamsConnectionTestTokens.MissingUserAssertionMessage);
     }
 }
 
@@ -58,7 +55,6 @@ public sealed class TestTeamsConnectionCommandHandler(
             return await _teamsCommunicationGraphClient.RunHelloWorldTestAsync(
                 credentials,
                 email.Trim(),
-                request.UserAssertion.Trim(),
                 cancellationToken);
         }
         catch (Exception ex)

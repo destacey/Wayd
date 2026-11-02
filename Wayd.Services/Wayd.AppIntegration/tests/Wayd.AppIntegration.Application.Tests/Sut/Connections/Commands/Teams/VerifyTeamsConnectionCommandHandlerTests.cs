@@ -29,7 +29,7 @@ public sealed class VerifyTeamsConnectionCommandHandlerTests
 
         // Act
         var result = await _sut.Handle(
-            new VerifyTeamsConnectionCommand("tenant", "client", "secret", "assertion"),
+            new VerifyTeamsConnectionCommand("tenant", "client", "secret"),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -40,39 +40,12 @@ public sealed class VerifyTeamsConnectionCommandHandlerTests
                 c => c.RunHelloWorldTestAsync(
                     It.IsAny<TeamsGraphCredentials>(),
                     It.IsAny<string>(),
-                    It.IsAny<string>(),
                     It.IsAny<CancellationToken>()),
                 Times.Never);
     }
 
     [Fact]
-    public async Task Handle_WhenUserAssertionMissing_ReturnsFailureWithoutCallingGraph()
-    {
-        // Arrange
-        _mocker.GetMock<ICurrentUser>()
-            .Setup(u => u.GetUserEmail())
-            .Returns("admin@contoso.com");
-
-        // Act
-        var result = await _sut.Handle(
-            new VerifyTeamsConnectionCommand("tenant", "client", "secret", "  "),
-            TestContext.Current.CancellationToken);
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("Microsoft Entra sign-in is required");
-        _mocker.GetMock<ITeamsCommunicationGraphClient>()
-            .Verify(
-                c => c.RunHelloWorldTestAsync(
-                    It.IsAny<TeamsGraphCredentials>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<CancellationToken>()),
-                Times.Never);
-    }
-
-    [Fact]
-    public async Task Handle_WhenGraphTestSucceeds_UsesTrimmedCredentialsEmailAndAssertion()
+    public async Task Handle_WhenGraphTestSucceeds_UsesTrimmedCredentialsAndEmail()
     {
         // Arrange
         _mocker.GetMock<ICurrentUser>()
@@ -83,13 +56,12 @@ public sealed class VerifyTeamsConnectionCommandHandlerTests
             .Setup(c => c.RunHelloWorldTestAsync(
                 It.IsAny<TeamsGraphCredentials>(),
                 "admin@contoso.com",
-                "assertion-token",
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
 
         // Act
         var result = await _sut.Handle(
-            new VerifyTeamsConnectionCommand(" tenant ", " client ", " secret ", " assertion-token "),
+            new VerifyTeamsConnectionCommand(" tenant ", " client ", " secret "),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -101,7 +73,6 @@ public sealed class VerifyTeamsConnectionCommandHandlerTests
                     && cred.ClientId == "client"
                     && cred.ClientSecret == "secret"),
                 "admin@contoso.com",
-                "assertion-token",
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }

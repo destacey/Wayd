@@ -1,14 +1,11 @@
 'use client'
 
-import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
   ConnectionDetailsDto,
   TeamsConnectionDetailsDto,
 } from '@/src/services/wayd-api'
-import { useGetAuthProvidersQuery } from '@/src/store/features/common/auth-providers-api'
 import { useTestCommunicationConnectionMutation } from '@/src/store/features/app-integration/connections-api'
-import { getOidcSubjectAccessToken } from '../../_components/teams-entra-token'
 import { Collapse } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { useEffect, useMemo } from 'react'
@@ -54,32 +51,17 @@ const ExtraActions = ({
   setItems: (items: ItemType[]) => void
 }) => {
   const messageApi = useMessage()
-  const { loginProvider } = useAuth()
-  const { data: authProviders } = useGetAuthProvidersQuery()
   const [testConnection, { isLoading }] = useTestCommunicationConnectionMutation()
 
   const items = useMemo<ItemType[]>(() => {
     const runTest = async () => {
       try {
-        const config = (ctx.connection as TeamsConnectionDetailsDto).configuration
-        const subject = await getOidcSubjectAccessToken(
-          loginProvider,
-          authProviders?.oidc,
-          config?.clientId ?? '',
-        )
-        if ('error' in subject) {
-          messageApi.error(subject.error)
-          return
-        }
-        const subjectToken = subject.token
-
         const response = await testConnection({
           id: ctx.connectionId,
-          subjectToken,
         })
         if ('error' in response) throw response.error
         messageApi.success(
-          'Connection test sent. Check Teams for the hello-world message and your calendar for the test event.',
+          'Connection test sent. Check Teams for a chat named Wayd connection test and your calendar for the test event.',
         )
       } catch (e: unknown) {
         console.error(e)
@@ -103,8 +85,6 @@ const ExtraActions = ({
     isLoading,
     messageApi,
     testConnection,
-    loginProvider,
-    authProviders?.oidc,
   ])
 
   useEffect(() => {

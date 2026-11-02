@@ -217,15 +217,11 @@ export const connectionsApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    testCommunicationConnection: builder.mutation<
-      void,
-      { id: string; subjectToken?: string }
-    >({
-      queryFn: async ({ id, subjectToken }) => {
+    testCommunicationConnection: builder.mutation<void, { id: string }>({
+      queryFn: async ({ id }) => {
         try {
           const data = await getConnectionsClient().testCommunicationConnection(
             id,
-            subjectToken ? { subjectToken } : undefined,
           )
           return { data }
         } catch (error) {
@@ -241,7 +237,6 @@ export const connectionsApi = apiSlice.injectEndpoints({
         tenantId: string
         clientId: string
         clientSecret: string
-        subjectToken: string
       }
     >({
       queryFn: async (request) => {

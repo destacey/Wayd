@@ -21,13 +21,3 @@ export const TEAMS_GRAPH_APPLICATION_PERMISSIONS = [
       'Create and update Outlook calendar events when Wayd sends scheduling-related communication.',
   },
 ] as const
-
-/** Delegated only — not granted as an application permission. */
-export const TEAMS_GRAPH_DELEGATED_PERMISSIONS = [
-  {
-    key: 'ChatMessage.Send',
-    permission: 'ChatMessage.Send',
-    reason:
-      'Send the first message in a Wayd-created chat as the signed-in user who approved the action (Verify, Test connection, and future incident communication).',
-  },
-] as const

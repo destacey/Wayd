@@ -44848,7 +44848,7 @@
           "Connections"
         ],
         "summary": "Verify Microsoft Teams connection credentials before create.",
-        "description": "Runs the same hello-world Graph test as communication-test using credentials from the create form: resolve the signed-in user's email in the tenant (application), create a Teams chat (application), post a hello-world chat message as the signed-in user (delegated ChatMessage.Send via on-behalf-of), and create a calendar event (application). Requires subjectToken, an Entra access token issued for the Teams app registration (not the Wayd sign-in API). Does not persist a connection.",
+        "description": "Runs the same hello-world Graph test as communication-test using credentials from the create form: resolve the signed-in user's email in the tenant (application), create a Teams chat (application), and create a calendar event. Both use the connection's application permissions. Does not post a chat message and does not persist a connection.",
         "operationId": "Connections_VerifyTeamsCommunicationConnection",
         "requestBody": {
           "content": {
@@ -45186,7 +45186,7 @@
           "Connections"
         ],
         "summary": "Run the hello-world communication test for a connection.",
-        "description": "Uses the connection's Microsoft Graph app registration: application permissions resolve the signed-in user's Wayd email, create a Teams chat, and create a hello-world calendar event; delegated ChatMessage.Send (via subjectToken and on-behalf-of) posts the hello-world chat message as that user. Supported when the connector registers a communication test (currently Microsoft Teams).",
+        "description": "Uses the connection's Microsoft Graph app registration and application permissions to resolve the signed-in user's Wayd email, create a Teams chat, and create a hello-world calendar event. Does not post a chat message. Supported when the connector registers a communication test (currently Microsoft Teams).",
         "operationId": "Connections_TestCommunicationConnection",
         "parameters": [
           {
@@ -45200,17 +45200,6 @@
             "x-position": 1
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TestCommunicationConnectionRequest"
-              }
-            }
-          },
-          "x-name": "request",
-          "x-position": 2
-        },
         "responses": {
           "204": {
             "description": "No Content"
@@ -53898,8 +53887,7 @@
             "required": [
               "tenantId",
               "clientId",
-              "clientSecret",
-              "subjectToken"
+              "clientSecret"
             ],
             "type": "object",
             "properties": {
@@ -53917,11 +53905,6 @@
                 "maxLength": 512,
                 "minLength": 1,
                 "type": "string"
-              },
-              "subjectToken": {
-                "minLength": 1,
-                "type": "string",
-                "description": "Entra access token from the signed-in user's OIDC session for the hello-world chat message."
               }
             },
             "additionalProperties": false
@@ -75833,18 +75816,6 @@
         },
         "additionalProperties": false
       },
-      "TestCommunicationConnectionRequest": {
-        "type": "object",
-        "properties": {
-          "subjectToken": {
-            "type": "string",
-            "description": "Entra access token issued for the Teams app registration (on-behalf-of assertion).",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false,
-        "description": "Optional body for `POST …/communication-test` when the connector needs a delegated Entra token."
-      },
       "TestOidcProviderDiscoveryResult": {
         "required": [
           "success",
@@ -79469,8 +79440,7 @@
         "required": [
           "tenantId",
           "clientId",
-          "clientSecret",
-          "subjectToken"
+          "clientSecret"
         ],
         "type": "object",
         "properties": {
@@ -79491,11 +79461,6 @@
             "minLength": 1,
             "type": "string",
             "description": "Client secret for the Teams communication app registration."
-          },
-          "subjectToken": {
-            "minLength": 1,
-            "type": "string",
-            "description": "Entra access token issued for the Teams app registration (scope api://{client-id}/access_as_user), exchanged on-behalf-of for Graph."
           }
         },
         "additionalProperties": false,

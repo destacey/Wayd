@@ -10,8 +10,7 @@ public interface IConnectionCommunicationTest
     Connector Connector { get; }
 
     /// <param name="userAssertion">
-    /// Entra access token from the signed-in user's OIDC session, when the connector needs
-    /// delegated Graph permissions for the test.
+    /// Unused by Microsoft Teams. The Teams test uses the connection's client secret.
     /// </param>
     Task<Result> Run(
         Guid connectionId,

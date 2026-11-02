@@ -22,13 +22,8 @@ public sealed record VerifyTeamsConnectionRequest
     /// </summary>
     public required string ClientSecret { get; set; }
 
-    /// <summary>
-    /// Entra access token issued for the Teams app registration (scope api://{client-id}/access_as_user), exchanged on-behalf-of for Graph.
-    /// </summary>
-    public required string SubjectToken { get; set; }
-
     public VerifyTeamsConnectionCommand ToCommand()
-        => new(TenantId, ClientId, ClientSecret, SubjectToken);
+        => new(TenantId, ClientId, ClientSecret);
 }
 
 public sealed class VerifyTeamsConnectionRequestValidator : CustomValidator<VerifyTeamsConnectionRequest>
@@ -40,11 +35,5 @@ public sealed class VerifyTeamsConnectionRequestValidator : CustomValidator<Veri
         RuleFor(x => x.TenantId).NotEmpty().MaximumLength(64);
         RuleFor(x => x.ClientId).NotEmpty().MaximumLength(64);
         RuleFor(x => x.ClientSecret).NotEmpty().MaximumLength(512);
-        RuleFor(x => x.SubjectToken)
-            .NotEmpty()
-            .WithMessage(
-                "Microsoft Entra sign-in is required to verify a Teams connection. "
-                + "Wayd could not obtain an Entra access token from your browser session — sign in with "
-                + "Microsoft Entra ID and try again.");
     }
 }

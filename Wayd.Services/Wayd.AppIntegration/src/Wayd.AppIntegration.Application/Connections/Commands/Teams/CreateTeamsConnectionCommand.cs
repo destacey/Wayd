@@ -12,8 +12,7 @@ public sealed record CreateTeamsConnectionCommand(
     string? Description,
     string TenantId,
     string ClientId,
-    string ClientSecret,
-    string UserAssertion) : ICommand<Guid>;
+    string ClientSecret) : ICommand<Guid>;
 
 public sealed class CreateTeamsConnectionCommandValidator : CustomValidator<CreateTeamsConnectionCommand>
 {
@@ -26,9 +25,6 @@ public sealed class CreateTeamsConnectionCommandValidator : CustomValidator<Crea
         RuleFor(c => c.TenantId).NotEmpty().MaximumLength(64);
         RuleFor(c => c.ClientId).NotEmpty().MaximumLength(64);
         RuleFor(c => c.ClientSecret).NotEmpty().MaximumLength(512);
-        RuleFor(c => c.UserAssertion)
-            .NotEmpty()
-            .WithMessage(TeamsConnectionTestTokens.MissingUserAssertionMessage);
     }
 }
 
@@ -58,10 +54,6 @@ public sealed class CreateTeamsConnectionCommandHandler(
                     "Your Wayd account has no email address; verify the connection before saving.");
             }
 
-            var assertionCheck = TeamsConnectionTestTokens.RequireUserAssertion(request.UserAssertion);
-            if (assertionCheck.IsFailure)
-                return Result.Failure<Guid>(assertionCheck.Error);
-
             var credentials = new TeamsGraphCredentials(
                 request.TenantId.Trim(),
                 request.ClientId.Trim(),
@@ -70,7 +62,6 @@ public sealed class CreateTeamsConnectionCommandHandler(
             var verification = await _teamsCommunicationGraphClient.RunHelloWorldTestAsync(
                 credentials,
                 email.Trim(),
-                request.UserAssertion.Trim(),
                 cancellationToken);
             if (verification.IsFailure)
                 return Result.Failure<Guid>(verification.Error);

@@ -7,13 +7,11 @@ namespace Wayd.Common.Application.Interfaces.Communication;
 public interface ITeamsCommunicationGraphClient
 {
     /// <summary>
-    /// Proves application permissions with client credentials (user lookup, chat create, calendar
-    /// event) and sends a hello-world chat message with a delegated Graph token from
-    /// <paramref name="userAssertion"/>.
+    /// Proves the connection's application permissions: looks up the recipient, creates a Teams
+    /// chat, and creates a calendar event. Does not post a chat message.
     /// </summary>
     Task<Result> RunHelloWorldTestAsync(
         TeamsGraphCredentials credentials,
         string recipientEmail,
-        string userAssertion,
         CancellationToken cancellationToken);
 }

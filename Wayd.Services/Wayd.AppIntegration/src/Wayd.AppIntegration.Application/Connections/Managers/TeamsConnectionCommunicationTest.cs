@@ -17,6 +17,11 @@ public sealed class TeamsConnectionCommunicationTest(IDispatcher dispatcher) : I
     public Task<Result> Run(
         Guid connectionId,
         string? userAssertion,
-        CancellationToken cancellationToken) =>
-        _dispatcher.Send(new TestTeamsConnectionCommand(connectionId, userAssertion ?? string.Empty), cancellationToken);
+        CancellationToken cancellationToken)
+    {
+        // The Teams app registration lives in its own tenant. A Wayd sign-in token cannot be
+        // exchanged on-behalf-of for that app, so the test uses the connection's client secret only.
+        _ = userAssertion;
+        return _dispatcher.Send(new TestTeamsConnectionCommand(connectionId), cancellationToken);
+    }
 }

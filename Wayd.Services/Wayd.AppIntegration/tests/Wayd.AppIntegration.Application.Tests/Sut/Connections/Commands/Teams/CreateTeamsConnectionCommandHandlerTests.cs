@@ -45,7 +45,6 @@ public sealed class CreateTeamsConnectionCommandHandlerTests
             .Setup(c => c.RunHelloWorldTestAsync(
                 It.IsAny<TeamsGraphCredentials>(),
                 It.IsAny<string>(),
-                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Failure("Microsoft Graph rejected the connection test."));
 
@@ -56,8 +55,7 @@ public sealed class CreateTeamsConnectionCommandHandlerTests
                 null,
                 "tenant-id",
                 "client-id",
-                "client-secret",
-                "assertion"),
+                "client-secret"),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -78,7 +76,6 @@ public sealed class CreateTeamsConnectionCommandHandlerTests
             .Setup(c => c.RunHelloWorldTestAsync(
                 It.IsAny<TeamsGraphCredentials>(),
                 It.IsAny<string>(),
-                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
 
@@ -89,8 +86,7 @@ public sealed class CreateTeamsConnectionCommandHandlerTests
                 null,
                 "tenant-id",
                 "client-id",
-                "client-secret",
-                "assertion"),
+                "client-secret"),
             TestContext.Current.CancellationToken);
 
         // Assert

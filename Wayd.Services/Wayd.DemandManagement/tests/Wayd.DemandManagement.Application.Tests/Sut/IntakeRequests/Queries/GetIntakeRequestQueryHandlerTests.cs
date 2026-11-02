@@ -460,7 +460,8 @@ public sealed class GetIntakeRequestQueryHandlerTests
     {
         // Arrange
         var agent = _scenario.Employee();
-        var desk = _scenario.EstimatesOn(_scenario.Desk(agentIds: [agent.Id]), _scenario.EstimationScale());
+        var scale = _scenario.EstimationScale();
+        var desk = _scenario.EstimatesOn(_scenario.Desk(agentIds: [agent.Id]), scale);
         var request = _scenario.Request(desk, _scenario.Employee());
         _scenario.Estimated(request, desk, "M");
         _scenario.SignedInAs(agent);
@@ -471,6 +472,7 @@ public sealed class GetIntakeRequestQueryHandlerTests
         // Assert
         result!.CanChangeEstimate.Should().BeTrue();
         result.EstimateValues.Should().Equal("S", "M", "L", "XL");
+        result.EstimationScaleVersionId.Should().Be(scale.CurrentVersion.Id);
         result.Substance!.Estimate!.Value.Should().Be("M");
         result.Substance.Estimate.Position.Should().Be(1);
     }
@@ -492,6 +494,7 @@ public sealed class GetIntakeRequestQueryHandlerTests
         result!.CanEdit.Should().BeTrue();
         result.CanChangeEstimate.Should().BeFalse();
         result.EstimateValues.Should().BeEmpty();
+        result.EstimationScaleVersionId.Should().BeNull();
         result.Substance!.Estimate!.Value.Should().Be("L");
     }
 
@@ -546,6 +549,7 @@ public sealed class GetIntakeRequestQueryHandlerTests
         // Assert
         result!.CanChangeEstimate.Should().BeTrue();
         result.EstimateValues.Should().BeEmpty();
+        result.EstimationScaleVersionId.Should().BeNull();
     }
 
     [Fact]

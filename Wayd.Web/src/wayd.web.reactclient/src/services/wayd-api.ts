@@ -62822,6 +62822,11 @@ requester. */
     /** The estimate values of the scale version the request's desk pins, in order, for a reader who may change the
 estimate; empty otherwise, and when the desk does not estimate its requests. */
     estimateValues: string[];
+    /** The scale version the request's desk pins, which the estimate values come from, for a reader who
+may change the estimate; null otherwise, and when the desk does not estimate its requests. An estimate on
+any other version can be kept or cleared, but a value sent is always given on this one, even when the
+older version wrote the same value. */
+    estimationScaleVersionId?: string | undefined;
     /** Whether the reader may withdraw the request: its requester, while it is open. */
     canWithdraw: boolean;
     /** The request this one is a duplicate of, while its status means Duplicate and the reader can see that

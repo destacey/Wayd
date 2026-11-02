@@ -90167,7 +90167,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the estimation scale a desk's requests are estimated on.
         /// </summary>
         /// <remarks>
-        /// Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version. A null `estimationScaleId` stops estimating the desk's requests. Refused while any open request on the desk has an estimate. A desk changed meanwhile answers 409.
+        /// Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version. A null `estimationScaleId` stops estimating the desk's requests. Refused while an open request on the desk has an estimate on the version the desk pins now; estimates on an earlier version, and on closed requests, keep their version and do not block it. A desk changed meanwhile answers 409.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -91223,7 +91223,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the estimation scale a desk's requests are estimated on.
         /// </summary>
         /// <remarks>
-        /// Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version. A null `estimationScaleId` stops estimating the desk's requests. Refused while any open request on the desk has an estimate. A desk changed meanwhile answers 409.
+        /// Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version. A null `estimationScaleId` stops estimating the desk's requests. Refused while an open request on the desk has an estimate on the version the desk pins now; estimates on an earlier version, and on closed requests, keep their version and do not block it. A desk changed meanwhile answers 409.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -119429,6 +119429,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("estimateValues")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<string> EstimateValues { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// The scale version the request's desk pins, which the estimate values come from, for a reader who
+        /// <br/>may change the estimate; null otherwise, and when the desk does not estimate its requests. An estimate on
+        /// <br/>any other version can be kept or cleared, but a value sent is always given on this one, even when the
+        /// <br/>older version wrote the same value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimationScaleVersionId")]
+        public System.Guid? EstimationScaleVersionId { get; set; } = default!;
 
         /// <summary>
         /// Whether the reader may withdraw the request: its requester, while it is open.

@@ -79,6 +79,14 @@ public sealed record IntakeRequestDetailsDto
     /// </summary>
     public IReadOnlyList<string> EstimateValues { get; init; } = [];
 
+    /// <summary>
+    /// The scale version the request's desk pins, which the estimate values come from, for a reader who
+    /// may change the estimate; null otherwise, and when the desk does not estimate its requests. An estimate on
+    /// any other version can be kept or cleared, but a value sent is always given on this one, even when the
+    /// older version wrote the same value.
+    /// </summary>
+    public Guid? EstimationScaleVersionId { get; init; }
+
     /// <summary>Whether the reader may withdraw the request: its requester, while it is open.</summary>
     public bool CanWithdraw { get; init; }
 

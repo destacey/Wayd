@@ -159,7 +159,7 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     [Authorize]
     [McpTool("IntakeDesks_ChangeEstimationScale", "Change intake desk estimation scale")]
     [EndpointSummary("Set the estimation scale a desk's requests are estimated on.")]
-    [EndpointDescription("Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version. A null `estimationScaleId` stops estimating the desk's requests. Refused while any open request on the desk has an estimate. A desk changed meanwhile answers 409.")]
+    [EndpointDescription("Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version. A null `estimationScaleId` stops estimating the desk's requests. Refused while an open request on the desk has an estimate on the version the desk pins now; estimates on an earlier version, and on closed requests, keep their version and do not block it. A desk changed meanwhile answers 409.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

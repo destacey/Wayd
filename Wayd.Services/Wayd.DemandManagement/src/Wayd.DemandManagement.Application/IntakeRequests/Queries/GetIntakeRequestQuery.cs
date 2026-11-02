@@ -71,6 +71,9 @@ public sealed class GetIntakeRequestQueryHandler(
         var deskEstimates = await _dbContext.IntakeDesks.AnyAsync(d => d.Id == record.DeskId && d.EstimationScaleVersionId != null, cancellationToken);
         var canChangeEstimate = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id)
             && record.IsOpen && (deskEstimates || record.Estimate is not null);
+        var (pinnedVersionId, estimateValues) = canChangeEstimate
+            ? await PinnedVersion(summary.Desk.Id, cancellationToken)
+            : (null, []);
 
         return new IntakeRequestDetailsDto
         {
@@ -94,7 +97,8 @@ public sealed class GetIntakeRequestQueryHandler(
             CanChangeOutcomes = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id)
                 && record.StatusCategory == StatusCategory.Active,
             CanChangeEstimate = canChangeEstimate,
-            EstimateValues = canChangeEstimate ? await EstimateValues(summary.Desk.Id, cancellationToken) : [],
+            EstimateValues = estimateValues,
+            EstimationScaleVersionId = pinnedVersionId,
             CanWithdraw = !_currentPrincipal.IsReadOnly && reader.EmployeeId == record.RequesterId && record.IsOpen,
             DuplicateOf = record.DuplicateOfId is { } survivorId ? await VisibleRequest(survivorId, reader, cancellationToken) : null,
         };
@@ -153,15 +157,17 @@ public sealed class GetIntakeRequestQueryHandler(
     }
 
     /// <summary>
-    /// The estimate values of the version the desk pins, in order, or none when it pins none.
+    /// The version the desk pins with its estimate values, in order, or neither when it pins none.
     /// </summary>
-    private async Task<IReadOnlyList<string>> EstimateValues(Guid deskId, CancellationToken cancellationToken)
+    private async Task<(Guid? VersionId, IReadOnlyList<string> Values)> PinnedVersion(Guid deskId, CancellationToken cancellationToken)
     {
         var desk = await _dbContext.IntakeDesks.AsNoTracking().FirstAsync(d => d.Id == deskId, cancellationToken);
         var scale = await _dbContext.FindPinnedScale(desk, cancellationToken);
         var version = scale?.Versions.Single(v => v.Id == desk.EstimationScaleVersionId);
 
-        return version is null ? [] : [.. version.Values.Where(v => v.IsEstimate).Select(v => v.Value)];
+        return version is null
+            ? (null, [])
+            : (version.Id, [.. version.Values.Where(v => v.IsEstimate).Select(v => v.Value)]);
     }
 
     /// <summary>

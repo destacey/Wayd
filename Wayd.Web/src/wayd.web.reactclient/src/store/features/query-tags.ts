@@ -115,6 +115,7 @@ export enum QueryTags {
   IncidentSeveritySet = 'ProductManagement.IncidentSeveritySet',
   Incident = 'ProductManagement.Incident',
   IncidentWorkItemsSummary = 'ProductManagement.Incident.WorkItemsSummary',
+  IncidentTimelineNotes = 'ProductManagement.Incident.TimelineNotes',
   Sprint = 'Planning.Sprint',
   SprintBacklog = 'Planning.Sprint.Backlog',
   SprintMetrics = 'Planning.Sprint.Metrics',

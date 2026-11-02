@@ -11605,6 +11605,127 @@
         ]
       }
     },
+    "/api/product-management/incidents/{idOrKey}/timeline-notes": {
+      "get": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "List commander timeline notes for an incident.",
+        "operationId": "Incidents_GetIncidentTimelineNotes",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IncidentTimelineNoteDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incidents/{id}/timeline-notes": {
+      "post": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Add a note to an incident's operational timeline.",
+        "operationId": "Incidents_AddIncidentTimelineNote",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddIncidentTimelineNoteRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/product-management/incident-severity-sets": {
       "get": {
         "tags": [
@@ -53968,6 +54089,35 @@
         },
         "additionalProperties": false
       },
+      "AddIncidentTimelineNoteRequest": {
+        "required": [
+          "incidentId",
+          "body"
+        ],
+        "type": "object",
+        "properties": {
+          "incidentId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The incident id, repeated from the route.",
+            "format": "uuid"
+          },
+          "body": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string",
+            "description": "What happened or what responders should know."
+          },
+          "recordedAt": {
+            "type": "string",
+            "description": "When the event occurred; defaults to now when omitted.",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Records a note on an incident's operational timeline."
+      },
       "AddIntakeRequestOutcomeRequest": {
         "required": [
           "kind"
@@ -64771,6 +64921,33 @@
         },
         "additionalProperties": false,
         "description": "One incident on a list page."
+      },
+      "IncidentTimelineNoteDto": {
+        "required": [
+          "body",
+          "id",
+          "recordedAt",
+          "author"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "body": {
+            "type": "string"
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "author": {
+            "$ref": "#/components/schemas/NavigationDto"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One commander-authored entry on an incident timeline."
       },
       "InitWorkspaceIntegrationRequest": {
         "required": [

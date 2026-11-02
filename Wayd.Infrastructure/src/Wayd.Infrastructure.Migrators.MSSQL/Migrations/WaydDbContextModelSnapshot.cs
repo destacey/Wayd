@@ -5671,6 +5671,51 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("IncidentSeveritySetAssignments", "ProductManagement");
                 });
 
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentTimelineNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AuthorEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(4096)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("IncidentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("IncidentId1")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IncidentId1");
+
+                    b.HasIndex("IncidentId", "RecordedAt");
+
+                    b.ToTable("IncidentTimelineNotes", "ProductManagement");
+                });
+
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Product", b =>
                 {
                     b.Property<Guid>("Id")
@@ -11063,6 +11108,19 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentTimelineNote", b =>
+                {
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.Incident", null)
+                        .WithMany()
+                        .HasForeignKey("IncidentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.Incident", null)
+                        .WithMany("TimelineNotes")
+                        .HasForeignKey("IncidentId1");
+                });
+
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Product", b =>
                 {
                     b.HasOne("Wayd.ProductManagement.Domain.Models.Product", "Parent")
@@ -12446,6 +12504,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Incident", b =>
                 {
                     b.Navigation("ProductLinks");
+
+                    b.Navigation("TimelineNotes");
                 });
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentSeveritySet", b =>

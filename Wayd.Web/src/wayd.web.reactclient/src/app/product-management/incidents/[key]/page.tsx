@@ -19,9 +19,9 @@ import { notFound } from 'next/navigation'
 import { use, useEffect, useMemo, useState } from 'react'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { MarkdownEditor } from '@/src/components/common/markdown'
-import { IncidentSeverityRank } from '@/src/app/product-management/incidents/_components/incident-severity-rank'
 import IncidentLinks from '@/src/app/product-management/incidents/_components/incident-links'
 import IncidentDiscussion from '@/src/app/product-management/incidents/_components/incident-discussion'
+import IncidentTimeline from '@/src/app/product-management/incidents/_components/incident-timeline'
 import styles from '@/src/app/product-management/incidents/_components/incidents.module.css'
 
 const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
@@ -160,22 +160,13 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       ) : (
         <>
           <article className={styles.detail}>
-            <section className={styles.detailMain}>
-              <p className={styles.meta}>
-                INC-{incident.key}
-                {productMeta ? ` · ${productMeta}` : null}
-              </p>
-              <h1 className={styles.titleRow}>
-                <IncidentSeverityRank
-                  name={incident.severityLevel.name}
-                  color={incident.severityLevel.color}
-                />
-                <span>{incident.title}</span>
-              </h1>
-              {incident.description ? (
-                <p className={styles.desc}>{incident.description}</p>
-              ) : null}
-            </section>
+            <IncidentTimeline
+              incident={incident}
+              idOrKey={key}
+              productMeta={productMeta}
+              viewerZone={viewerZone}
+              canAddNotes={canUpdate}
+            />
             <aside className={styles.detailAside}>
               <h2 className={styles.asideHeading}>Status</h2>
               <ul className={styles.asideList}>

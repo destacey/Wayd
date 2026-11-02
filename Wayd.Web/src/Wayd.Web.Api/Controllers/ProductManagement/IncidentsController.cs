@@ -142,4 +142,49 @@ public class IncidentsController(IDispatcher dispatcher) : ControllerBase
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
+
+    [HttpGet("{idOrKey}/timeline-notes")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Incidents)]
+    [EndpointSummary("List commander timeline notes for an incident.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<IncidentTimelineNoteDto>>> GetIncidentTimelineNotes(
+        string idOrKey,
+        CancellationToken cancellationToken)
+    {
+        var incident = await _dispatcher.Send(new GetIncidentQuery(new IdOrKey(idOrKey)), cancellationToken);
+        if (incident is null)
+            return NotFound();
+
+        var notes = await _dispatcher.Send(
+            new GetIncidentTimelineNotesQuery(new IdOrKey(idOrKey)),
+            cancellationToken);
+
+        return Ok(notes);
+    }
+
+    [HttpPost("{id:guid}/timeline-notes")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Incidents)]
+    [EndpointSummary("Add a note to an incident's operational timeline.")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<Guid>> AddIncidentTimelineNote(
+        Guid id,
+        [FromBody] AddIncidentTimelineNoteRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (id != request.IncidentId)
+            return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
+
+        var incident = await _dispatcher.Send(new GetIncidentQuery(new IdOrKey(id)), cancellationToken);
+        if (incident is null)
+            return NotFound();
+
+        var result = await _dispatcher.Send(request.ToCommand(), cancellationToken);
+
+        return result.IsSuccess
+            ? CreatedAtAction(nameof(GetIncidentTimelineNotes), new { idOrKey = id.ToString() }, result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
 }

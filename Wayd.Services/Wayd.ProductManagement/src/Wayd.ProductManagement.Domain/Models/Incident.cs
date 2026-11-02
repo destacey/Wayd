@@ -15,6 +15,7 @@ namespace Wayd.ProductManagement.Domain.Models;
 public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
 {
     private readonly List<IncidentProductLink> _productLinks = [];
+    private readonly List<IncidentTimelineNote> _timelineNotes = [];
 
     private Incident() { }
 
@@ -73,6 +74,9 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
 
     /// <summary>The products implicated in the incident.</summary>
     public IReadOnlyCollection<IncidentProductLink> ProductLinks => _productLinks.AsReadOnly();
+
+    /// <summary>Commander-authored timeline entries.</summary>
+    public IReadOnlyCollection<IncidentTimelineNote> TimelineNotes => _timelineNotes.AsReadOnly();
 
     /// <summary>The well-known meaning of the current status.</summary>
     public ProductStatusAlias StatusAlias => (ProductStatusAlias)StatusAliasValue;
@@ -166,6 +170,32 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         RecoveredAt = recoveredAt;
 
         return ReplaceProductLinks(this, productIds);
+    }
+
+    /// <summary>Records an operational note on the incident timeline.</summary>
+    public Result<IncidentTimelineNote> AddTimelineNote(
+        string body,
+        Guid authorEmployeeId,
+        Instant recordedAt)
+    {
+        if (authorEmployeeId == Guid.Empty)
+        {
+            return Result.Failure<IncidentTimelineNote>("An author is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            return Result.Failure<IncidentTimelineNote>("Timeline note cannot be empty.");
+        }
+
+        if (body.Trim().Length > 4096)
+        {
+            return Result.Failure<IncidentTimelineNote>("Timeline note cannot exceed 4096 characters.");
+        }
+
+        var note = IncidentTimelineNote.Create(Id, body, authorEmployeeId, recordedAt);
+        _timelineNotes.Add(note);
+        return Result.Success(note);
     }
 
     private static Result ValidateTimeline(Instant noticedAt, Instant? startedAt, Instant? recoveredAt)

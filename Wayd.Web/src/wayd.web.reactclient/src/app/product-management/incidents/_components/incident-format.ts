@@ -1,5 +1,14 @@
-export function formatIncidentAge(noticedAt: Date, now = Date.now()): string {
-  const elapsedMs = Math.max(0, now - noticedAt.getTime())
+function instantToEpochMs(instant: Date | string): number {
+  return instant instanceof Date ? instant.getTime() : new Date(instant).getTime()
+}
+
+export function formatIncidentAge(noticedAt: Date | string, now = Date.now()): string {
+  const noticedMs = instantToEpochMs(noticedAt)
+  if (Number.isNaN(noticedMs)) {
+    return '—'
+  }
+
+  const elapsedMs = Math.max(0, now - noticedMs)
   const minutes = Math.floor(elapsedMs / 60_000)
   if (minutes < 60) {
     return `${minutes}m`

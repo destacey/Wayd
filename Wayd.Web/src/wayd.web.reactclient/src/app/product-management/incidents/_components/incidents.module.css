@@ -28,14 +28,17 @@
   background: var(--ant-color-fill-tertiary);
 }
 
-.incidentRow strong {
-  font-weight: 700;
+.titleCell a {
+  color: inherit;
+  text-decoration: none;
 }
 
-.incidentRow .id {
-  color: var(--ant-color-text-secondary);
-  font-weight: 400;
-  margin-left: 6px;
+.titleCell a:hover strong {
+  color: var(--ant-color-primary);
+}
+
+.incidentRow strong {
+  font-weight: 700;
 }
 
 .titleCell {

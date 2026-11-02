@@ -28,4 +28,5 @@ public interface IProductManagementDbContext : IWaydDbContext
     DbSet<IncidentSeverityLevel> IncidentSeverityLevels { get; }
     DbSet<IncidentSeveritySetAssignment> IncidentSeveritySetAssignments { get; }
     DbSet<Incident> Incidents { get; }
+    DbSet<IncidentTimelineNote> IncidentTimelineNotes { get; }
 }

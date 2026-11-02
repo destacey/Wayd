@@ -774,6 +774,13 @@ public class IncidentConfiguration : IEntityTypeConfiguration<Incident>
 
         builder.Navigation(i => i.ProductLinks).HasField("_productLinks").UsePropertyAccessMode(PropertyAccessMode.Field);
 
+        builder.HasMany<IncidentTimelineNote>()
+            .WithOne()
+            .HasForeignKey(n => n.IncidentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(i => i.TimelineNotes).HasField("_timelineNotes").UsePropertyAccessMode(PropertyAccessMode.Field);
+
         builder.HasOne<IncidentSeverityLevel>()
             .WithMany()
             .HasForeignKey(i => i.SeverityLevelId)
@@ -800,5 +807,22 @@ public class IncidentProductLinkConfiguration : IEntityTypeConfiguration<Inciden
             .WithMany()
             .HasForeignKey(l => l.ProductId)
             .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class IncidentTimelineNoteConfiguration : IEntityTypeConfiguration<IncidentTimelineNote>
+{
+    public void Configure(EntityTypeBuilder<IncidentTimelineNote> builder)
+    {
+        builder.ToTable("IncidentTimelineNotes", SchemaNames.ProductManagement);
+
+        builder.HasKey(n => n.Id);
+        builder.Property(n => n.Id).ValueGeneratedNever();
+        builder.Property(n => n.IncidentId).IsRequired();
+        builder.Property(n => n.Body).IsRequired().HasMaxLength(4096);
+        builder.Property(n => n.AuthorEmployeeId).IsRequired();
+        builder.Property(n => n.RecordedAt).IsRequired();
+
+        builder.HasIndex(n => new { n.IncidentId, n.RecordedAt });
     }
 }

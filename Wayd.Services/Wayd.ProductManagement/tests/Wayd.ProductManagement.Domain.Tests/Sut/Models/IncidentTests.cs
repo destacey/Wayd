@@ -61,4 +61,30 @@ public sealed class IncidentTests
         // Assert
         result.IsFailure.Should().BeTrue();
     }
+
+    [Fact]
+    public void AddTimelineNote_ShouldAppendNote()
+    {
+        // Arrange
+        var commanderId = Guid.CreateVersion7();
+        var incident = Incident.Create(
+            "Latency spike",
+            null,
+            commanderId,
+            Guid.CreateVersion7(),
+            Timestamp,
+            null,
+            null,
+            [],
+            StatusRefFactory.Open(),
+            EventActor.System,
+            Timestamp).Value;
+
+        // Act
+        var result = incident.AddTimelineNote("Checking card vault deploy.", commanderId, Timestamp.Plus(Duration.FromMinutes(4)));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.TimelineNotes.Should().ContainSingle().Which.Body.Should().Be("Checking card vault deploy.");
+    }
 }

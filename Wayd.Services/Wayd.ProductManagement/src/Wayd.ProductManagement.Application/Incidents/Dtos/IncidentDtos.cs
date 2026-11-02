@@ -56,6 +56,15 @@ public sealed record IncidentDto
     public ProductStatusAlias StatusAlias { get; init; }
 }
 
+/// <summary>One commander-authored entry on an incident timeline.</summary>
+public sealed record IncidentTimelineNoteDto
+{
+    public Guid Id { get; init; }
+    public required string Body { get; init; }
+    public Instant RecordedAt { get; init; }
+    public NavigationDto Author { get; init; } = default!;
+}
+
 internal static class IncidentProjections
 {
     internal static StatusNavigationDto Status(Incident incident) =>

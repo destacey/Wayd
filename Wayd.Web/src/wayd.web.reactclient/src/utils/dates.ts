@@ -96,3 +96,15 @@ export function formatInstantInZone(
     timeZoneName: 'short',
   }).format(new Date(instant))
 }
+
+/** Clock time in a zone for compact timeline labels (e.g. 9:41 PM). */
+export function formatInstantTimeInZone(
+  instant: Date | string,
+  timeZone: string,
+): string {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(instant))
+}

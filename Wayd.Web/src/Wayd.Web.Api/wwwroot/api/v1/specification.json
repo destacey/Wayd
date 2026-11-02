@@ -28924,7 +28924,7 @@
           "PokerSessions"
         ],
         "summary": "Get a list of poker sessions.",
-        "description": "Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `facilitator` and `roundCount`. Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.",
+        "description": "Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (members who joined as a Participant, including those who left), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.",
         "operationId": "PokerSessions_GetList",
         "parameters": [
           {
@@ -28977,7 +28977,7 @@
           "PokerSessions"
         ],
         "summary": "Create a poker session.",
-        "description": "Starts an Active session, facilitated by the caller, that estimates on the scale `estimationScaleId` (a UUID; EstimationScales_GetScales lists the active scales). The scale must be active. The session is pinned to the scale's current version and stays on it when the scale later publishes a new version or is deactivated. It has no rounds yet; add them with PokerSessions_AddRound. Returns the new session's `id` and `key`.",
+        "description": "Starts an Active session, with the caller as its first facilitator, that estimates on the scale `estimationScaleId` (a UUID; EstimationScales_GetScales lists the active scales). The scale must be active. The session is pinned to the scale's current version and stays on it when the scale later publishes a new version or is deactivated. `visibility` is `Public` (the default) or `Private`; `facilitatorIds` adds facilitators beside the caller, and `invitedEmployeeIds` and `invitedTeamIds` invite people to a private session (all employee or team UUIDs, all optional). It has no rounds yet; add them with PokerSessions_AddRound. The caller's account must be linked to an employee. Returns the new session's `id` and `key`.",
         "operationId": "PokerSessions_Create",
         "requestBody": {
           "content": {
@@ -29026,7 +29026,7 @@
           "PokerSessions"
         ],
         "summary": "Get poker session details using the Id or key.",
-        "description": "Takes the session's UUID or key. Returns the session with its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.",
+        "description": "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `mode` Participant or Observer, `joinedOn`, and `leftOn` once they leave), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.",
         "operationId": "PokerSessions_GetSession",
         "parameters": [
           {
@@ -29074,7 +29074,7 @@
           "PokerSessions"
         ],
         "summary": "Update a poker session.",
-        "description": "A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it and the version the session is on, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale; changing it pins the session to that scale's current version. A completed session cannot be updated. Takes the session's UUID.",
+        "description": "A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it and the version the session is on, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale; changing it pins the session to that scale's current version. A completed session cannot be updated; visibility, facilitators and invites have their own tools. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.",
         "operationId": "PokerSessions_Update",
         "parameters": [
           {
@@ -29126,7 +29126,7 @@
           "PokerSessions"
         ],
         "summary": "Delete a poker session.",
-        "description": "Permanently deletes the session with all its rounds, votes and consensus estimates, whatever its status. To close a finished session but keep its results, use PokerSessions_CompleteSession. Takes the session's UUID.",
+        "description": "Permanently deletes the session with all its rounds, votes and consensus estimates, whatever its status. To close a finished session but keep its results, use PokerSessions_CompleteSession. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.",
         "operationId": "PokerSessions_Delete",
         "parameters": [
           {
@@ -29168,7 +29168,7 @@
           "PokerSessions"
         ],
         "summary": "Complete a poker session.",
-        "description": "Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.",
+        "description": "Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.",
         "operationId": "PokerSessions_Complete",
         "parameters": [
           {
@@ -29210,7 +29210,7 @@
           "PokerSessions"
         ],
         "summary": "Add a round to a poker session.",
-        "description": "A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.",
+        "description": "A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID. Returns the new round.",
         "operationId": "PokerSessions_AddRound",
         "parameters": [
           {
@@ -29271,7 +29271,7 @@
           "PokerSessions"
         ],
         "summary": "Remove a round from a poker session.",
-        "description": "Deletes the round with its votes and consensus estimate. The session must be Active. Both ids are UUIDs.",
+        "description": "Deletes the round with its votes and consensus estimate. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.",
         "operationId": "PokerSessions_RemoveRound",
         "parameters": [
           {
@@ -29323,7 +29323,7 @@
           "PokerSessions"
         ],
         "summary": "Reveal votes for a round.",
-        "description": "Moves a round from Voting to Revealed, showing every vote; voting stays closed until the round is reset. The session must be Active. Both ids are UUIDs.",
+        "description": "Moves a round from Voting to Revealed, showing every vote; voting stays closed until the round is reset. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.",
         "operationId": "PokerSessions_RevealRound",
         "parameters": [
           {
@@ -29375,7 +29375,7 @@
           "PokerSessions"
         ],
         "summary": "Reset a round to allow re-voting.",
-        "description": "Clears every vote and any consensus estimate and moves the round back to Voting, from Voting, Revealed or Accepted. The session must be Active. Both ids are UUIDs.",
+        "description": "Clears every vote and any consensus estimate and moves the round back to Voting, from Voting, Revealed or Accepted. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.",
         "operationId": "PokerSessions_ResetRound",
         "parameters": [
           {
@@ -29427,7 +29427,7 @@
           "PokerSessions"
         ],
         "summary": "Set the consensus estimate for a round.",
-        "description": "Records the agreed `estimate`, which must be one of the values on the session's scale version, a card such as `?` included, and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Both ids are UUIDs.",
+        "description": "Records the agreed `estimate`, which must be one of the values on the session's scale version, a card such as `?` included, and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.",
         "operationId": "PokerSessions_SetConsensus",
         "parameters": [
           {
@@ -29491,7 +29491,7 @@
           "PokerSessions"
         ],
         "summary": "Update the label for a round.",
-        "description": "Replaces the round's `label`; an omitted or null label clears it. The session must be Active. Both ids are UUIDs.",
+        "description": "Replaces the round's `label`; an omitted or null label clears it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.",
         "operationId": "PokerSessions_UpdateRoundLabel",
         "parameters": [
           {
@@ -29555,7 +29555,7 @@
           "PokerSessions"
         ],
         "summary": "Update the description for a round.",
-        "description": "Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Both ids are UUIDs.",
+        "description": "Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.",
         "operationId": "PokerSessions_UpdateRoundDescription",
         "parameters": [
           {
@@ -29619,7 +29619,7 @@
           "PokerSessions"
         ],
         "summary": "Submit a vote for a round.",
-        "description": "Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. Both ids are UUIDs.",
+        "description": "Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. A caller who has not joined the session joins it as a Participant; an Observer cannot vote until they switch with PokerSessions_ChangeMode. Both ids are UUIDs.",
         "operationId": "PokerSessions_SubmitVote",
         "parameters": [
           {
@@ -29708,6 +29708,332 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/poker-sessions/{id}/visibility": {
+      "put": {
+        "tags": [
+          "PokerSessions"
+        ],
+        "summary": "Set who can see a poker session.",
+        "description": "`visibility` is `Public`, which anyone with the poker View permission can see and join, or `Private`, which only the session's facilitators, invited employees and the members of invited teams can. Making a session private disconnects anyone it no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.",
+        "operationId": "PokerSessions_SetVisibility",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPokerSessionVisibilityRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/poker-sessions/{id}/facilitators": {
+      "put": {
+        "tags": [
+          "PokerSessions"
+        ],
+        "summary": "Set a poker session's facilitators.",
+        "description": "Replaces the facilitators with `employeeIds` (employee UUIDs, at least one). Facilitators run the session: rounds, reveals, resets, consensus, details, visibility, invites, completion and deletion. A facilitator can remove themselves. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.",
+        "operationId": "PokerSessions_SetFacilitators",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPokerSessionFacilitatorsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/poker-sessions/{id}/invitees": {
+      "put": {
+        "tags": [
+          "PokerSessions"
+        ],
+        "summary": "Set who is invited to a poker session.",
+        "description": "Replaces the invites with `employeeIds` and `teamIds` (UUIDs; empty lists remove every invite). Invites admit people only while the session is Private, and a team admits its current members and the members of its current team of teams. An invite grants access only: the person still needs the poker View permission, and chooses whether to join as a Participant or an Observer. Removing an invite disconnects anyone the session no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.",
+        "operationId": "PokerSessions_SetInvitees",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPokerSessionInviteesRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/poker-sessions/{id}/join": {
+      "post": {
+        "tags": [
+          "PokerSessions"
+        ],
+        "summary": "Join a poker session.",
+        "description": "Adds the caller to the session's members as `mode` `Participant` (the default), who votes and counts toward the voted and waiting totals, or `Observer`, who watches without voting. Joining again, including after leaving, takes the new mode; joining again as an Observer withdraws the caller's votes in rounds not yet revealed. Anyone the session admits can join: on a Public session anyone with the poker View permission, on a Private one its facilitators and invitees. Facilitators join like anyone else. The session must be Active, and the caller's account must be linked to an employee. Takes the session's UUID. Returns the caller's membership.",
+        "operationId": "PokerSessions_Join",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinPokerSessionRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PokerSessionMemberDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/poker-sessions/{id}/leave": {
+      "post": {
+        "tags": [
+          "PokerSessions"
+        ],
+        "summary": "Leave a poker session.",
+        "description": "Marks the caller as having left (`leftOn`); they stay in the session's record of who took part. Their votes in rounds not yet revealed are withdrawn; revealed rounds keep them. Fails when the caller is not in the session. The session must be Active. Takes the session's UUID.",
+        "operationId": "PokerSessions_Leave",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/poker-sessions/{id}/mode": {
+      "put": {
+        "tags": [
+          "PokerSessions"
+        ],
+        "summary": "Switch between Participant and Observer in a poker session.",
+        "description": "Sets the caller's `mode` to `Participant` or `Observer`. Switching to Observer withdraws the caller's votes in rounds not yet revealed, and leaves them out of the voted and waiting totals; revealed rounds keep their votes. Switching to Participant lets them vote at once. The caller must have joined the session, which must be Active. Takes the session's UUID. Returns the caller's membership.",
+        "operationId": "PokerSessions_ChangeMode",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePokerSessionModeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PokerSessionMemberDto"
+                }
+              }
+            }
           },
           "400": {
             "description": "Bad Request",
@@ -53722,6 +54048,23 @@
         },
         "additionalProperties": false
       },
+      "ChangePokerSessionModeRequest": {
+        "required": [
+          "mode"
+        ],
+        "type": "object",
+        "properties": {
+          "mode": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PokerSessionMemberMode"
+              }
+            ],
+            "description": "`Participant` votes and counts toward the voted and waiting totals; `Observer` watches without voting."
+          }
+        },
+        "additionalProperties": false
+      },
       "ChangeProductDependencyTermsRequest": {
         "required": [
           "strength"
@@ -55429,7 +55772,8 @@
       "CreatePokerSessionRequest": {
         "required": [
           "name",
-          "estimationScaleId"
+          "estimationScaleId",
+          "visibility"
         ],
         "type": "object",
         "properties": {
@@ -55442,6 +55786,41 @@
             "minLength": 1,
             "type": "string",
             "format": "uuid"
+          },
+          "visibility": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Visibility"
+              }
+            ],
+            "description": "`Public` (the default): anyone with the poker View permission can see and join the session. `Private`:\nonly its facilitators, invited employees and the members of invited teams."
+          },
+          "facilitatorIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Employees who facilitate alongside the caller, who is always the first facilitator.",
+            "nullable": true
+          },
+          "invitedEmployeeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Employees invited to the session, who can join it while it is private.",
+            "nullable": true
+          },
+          "invitedTeamIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Teams invited to the session, whose current members can join it while it is private.",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -64332,6 +64711,23 @@
         "additionalProperties": false,
         "description": "A job as it appears in a list."
       },
+      "JoinPokerSessionRequest": {
+        "required": [
+          "mode"
+        ],
+        "type": "object",
+        "properties": {
+          "mode": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PokerSessionMemberMode"
+              }
+            ],
+            "description": "`Participant` (the default) votes and counts toward the voted and waiting totals; `Observer` watches\nwithout voting."
+          }
+        },
+        "additionalProperties": false
+      },
       "JsonPatchDocumentOfSetGoalPersonasRequest": {
         "type": "array",
         "items": {
@@ -67880,6 +68276,12 @@
           "status",
           "id",
           "key",
+          "visibility",
+          "facilitators",
+          "invitedEmployees",
+          "invitedTeams",
+          "members",
+          "canManage",
           "rounds"
         ],
         "type": "object",
@@ -67898,13 +68300,45 @@
           "status": {
             "type": "string"
           },
-          "facilitator": {
+          "visibility": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/UserNavigationDto"
+                "$ref": "#/components/schemas/Visibility"
               }
             ],
-            "nullable": true
+            "description": "Public: anyone with the poker View permission can see and join the session. Private: only its\nfacilitators, invited employees and the members of invited teams."
+          },
+          "facilitators": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeNavigationDto"
+            },
+            "description": "The employees who run the session: its rounds, reveals, resets, consensus, details, access and completion."
+          },
+          "invitedEmployees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeNavigationDto"
+            },
+            "description": "The employees invited to the session, who can join it while it is private."
+          },
+          "invitedTeams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanningTeamNavigationDto"
+            },
+            "description": "The teams invited to the session, whose current members can join it while it is private."
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PokerSessionMemberDto"
+            },
+            "description": "Everyone who has joined the session, in the order they joined, including those who have left."
+          },
+          "canManage": {
+            "type": "boolean",
+            "description": "Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a\nread-only token."
           },
           "estimationScale": {
             "oneOf": [
@@ -67948,7 +68382,11 @@
           "status",
           "id",
           "key",
-          "roundCount"
+          "visibility",
+          "facilitators",
+          "participants",
+          "roundCount",
+          "canManage"
         ],
         "type": "object",
         "properties": {
@@ -67966,20 +68404,84 @@
           "status": {
             "type": "string"
           },
-          "facilitator": {
+          "visibility": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/UserNavigationDto"
+                "$ref": "#/components/schemas/Visibility"
               }
             ],
-            "nullable": true
+            "description": "Public: anyone with the poker View permission can see and join the session. Private: only the people on it."
+          },
+          "facilitators": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeNavigationDto"
+            },
+            "description": "The employees who run the session."
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeNavigationDto"
+            },
+            "description": "The members who joined as a Participant, or switched to one, including those who have since left."
           },
           "roundCount": {
             "type": "integer",
             "format": "int32"
+          },
+          "canManage": {
+            "type": "boolean",
+            "description": "Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a\nread-only token."
           }
         },
         "additionalProperties": false
+      },
+      "PokerSessionMemberDto": {
+        "required": [
+          "employee",
+          "mode",
+          "joinedOn"
+        ],
+        "type": "object",
+        "properties": {
+          "employee": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ],
+            "description": "The member. Live presence carries the same employee id, which is how a connected person is matched to\ntheir membership."
+          },
+          "mode": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PokerSessionMemberMode"
+              }
+            ],
+            "description": "Participant, who votes and counts toward the voted and waiting totals, or Observer, who does neither.\nAfter the member leaves, the mode they left in."
+          },
+          "joinedOn": {
+            "type": "string",
+            "description": "When the member first joined.",
+            "format": "date-time"
+          },
+          "leftOn": {
+            "type": "string",
+            "description": "When the member left, or null while they are in the session.",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Someone who joined a poker session, and how they take part."
+      },
+      "PokerSessionMemberMode": {
+        "enum": [
+          "Participant",
+          "Observer"
+        ],
+        "type": "string"
       },
       "PokerSessionStatus": {
         "enum": [
@@ -73619,6 +74121,67 @@
         },
         "additionalProperties": false,
         "description": "Whether requests can be tagged along a tag axis."
+      },
+      "SetPokerSessionFacilitatorsRequest": {
+        "required": [
+          "employeeIds"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The employees who facilitate the session from now on, replacing the current list. At least one."
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetPokerSessionInviteesRequest": {
+        "required": [
+          "employeeIds",
+          "teamIds"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The employees invited to the session, replacing the current list. Empty removes every employee invite."
+          },
+          "teamIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The teams invited to the session, replacing the current list. Empty removes every team invite."
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetPokerSessionVisibilityRequest": {
+        "required": [
+          "visibility"
+        ],
+        "type": "object",
+        "properties": {
+          "visibility": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Visibility"
+              }
+            ],
+            "description": "`Public`: anyone with the poker View permission can see and join the session. `Private`: only its\nfacilitators, invited employees and the members of invited teams."
+          }
+        },
+        "additionalProperties": false
       },
       "SetProductTagActiveRequest": {
         "required": [
@@ -83301,6 +83864,13 @@
         },
         "additionalProperties": false,
         "description": "A version of one product."
+      },
+      "Visibility": {
+        "enum": [
+          "Public",
+          "Private"
+        ],
+        "type": "string"
       },
       "VisibilityDto": {
         "allOf": [

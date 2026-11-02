@@ -34829,6 +34829,382 @@ export class PokerSessionsClient {
         }
         return Promise.resolve<void>(null as any);
     }
+
+    /**
+     * Set who can see a poker session.
+     * @return No Content
+     */
+    setVisibility(id: string, request: SetPokerSessionVisibilityRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/visibility";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetVisibility(_response);
+        });
+    }
+
+    protected processSetVisibility(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set a poker session's facilitators.
+     * @return No Content
+     */
+    setFacilitators(id: string, request: SetPokerSessionFacilitatorsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/facilitators";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetFacilitators(_response);
+        });
+    }
+
+    protected processSetFacilitators(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set who is invited to a poker session.
+     * @return No Content
+     */
+    setInvitees(id: string, request: SetPokerSessionInviteesRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/invitees";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetInvitees(_response);
+        });
+    }
+
+    protected processSetInvitees(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Join a poker session.
+     * @return OK
+     */
+    join(id: string, request: JoinPokerSessionRequest, cancelToken?: CancelToken): Promise<PokerSessionMemberDto> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/join";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processJoin(_response);
+        });
+    }
+
+    protected processJoin(response: AxiosResponse): Promise<PokerSessionMemberDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PokerSessionMemberDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PokerSessionMemberDto>(null as any);
+    }
+
+    /**
+     * Leave a poker session.
+     * @return No Content
+     */
+    leave(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/leave";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processLeave(_response);
+        });
+    }
+
+    protected processLeave(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Switch between Participant and Observer in a poker session.
+     * @return OK
+     */
+    changeMode(id: string, request: ChangePokerSessionModeRequest, cancelToken?: CancelToken): Promise<PokerSessionMemberDto> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/mode";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeMode(_response);
+        });
+    }
+
+    protected processChangeMode(response: AxiosResponse): Promise<PokerSessionMemberDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PokerSessionMemberDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PokerSessionMemberDto>(null as any);
+    }
 }
 
 export class RisksClient {
@@ -60599,6 +60975,11 @@ export interface ChangePasswordRequest {
     newPassword: string;
 }
 
+export interface ChangePokerSessionModeRequest {
+    /** `Participant` votes and counts toward the voted and waiting totals; `Observer` watches without voting. */
+    mode: PokerSessionMemberMode;
+}
+
 /** Changes the terms a product's dependency holds on — whether the product stops working without the one it depends on, how it reaches it, or both. */
 export interface ChangeProductDependencyTermsRequest {
     /** Whether the product stops working without it (Hard) or carries on without it (Soft). */
@@ -61079,6 +61460,15 @@ export interface CreatePlanningIntervalRequest {
 export interface CreatePokerSessionRequest {
     name: string;
     estimationScaleId: string;
+    /** `Public` (the default): anyone with the poker View permission can see and join the session. `Private`:
+only its facilitators, invited employees and the members of invited teams. */
+    visibility: Visibility;
+    /** Employees who facilitate alongside the caller, who is always the first facilitator. */
+    facilitatorIds?: string[] | undefined;
+    /** Employees invited to the session, who can join it while it is private. */
+    invitedEmployeeIds?: string[] | undefined;
+    /** Teams invited to the session, whose current members can join it while it is private. */
+    invitedTeamIds?: string[] | undefined;
 }
 
 export interface CreatePortfolioRequest {
@@ -64124,6 +64514,12 @@ export interface JobSummaryResponse {
     exceptionMessage?: string | undefined;
 }
 
+export interface JoinPokerSessionRequest {
+    /** `Participant` (the default) votes and counts toward the voted and waiting totals; `Observer` watches
+without voting. */
+    mode: PokerSessionMemberMode;
+}
+
 /** One RFC 6902 operation. `from` is for move and copy; `value` for add, replace and test. */
 export interface JsonPatchOperation {
     op: JsonPatchOperationType;
@@ -65287,7 +65683,20 @@ export interface PokerSessionDetailsDto {
     key: number;
     name: string;
     status: string;
-    facilitator?: UserNavigationDto | undefined;
+    /** Public: anyone with the poker View permission can see and join the session. Private: only its
+facilitators, invited employees and the members of invited teams. */
+    visibility: Visibility;
+    /** The employees who run the session: its rounds, reveals, resets, consensus, details, access and completion. */
+    facilitators: EmployeeNavigationDto[];
+    /** The employees invited to the session, who can join it while it is private. */
+    invitedEmployees: EmployeeNavigationDto[];
+    /** The teams invited to the session, whose current members can join it while it is private. */
+    invitedTeams: PlanningTeamNavigationDto[];
+    /** Everyone who has joined the session, in the order they joined, including those who have left. */
+    members: PokerSessionMemberDto[];
+    /** Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a
+read-only token. */
+    canManage: boolean;
     estimationScale?: EstimationScaleNavigationDto | undefined;
     /** The scale version the session votes on, which stays put when the scale publishes a newer one. */
     estimationScaleVersion?: EstimationScaleVersionDto | undefined;
@@ -65301,8 +65710,35 @@ export interface PokerSessionListDto {
     key: number;
     name: string;
     status: string;
-    facilitator?: UserNavigationDto | undefined;
+    /** Public: anyone with the poker View permission can see and join the session. Private: only the people on it. */
+    visibility: Visibility;
+    /** The employees who run the session. */
+    facilitators: EmployeeNavigationDto[];
+    /** The members who joined as a Participant, or switched to one, including those who have since left. */
+    participants: EmployeeNavigationDto[];
     roundCount: number;
+    /** Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a
+read-only token. */
+    canManage: boolean;
+}
+
+/** Someone who joined a poker session, and how they take part. */
+export interface PokerSessionMemberDto {
+    /** The member. Live presence carries the same employee id, which is how a connected person is matched to
+their membership. */
+    employee: EmployeeNavigationDto;
+    /** Participant, who votes and counts toward the voted and waiting totals, or Observer, who does neither.
+After the member leaves, the mode they left in. */
+    mode: PokerSessionMemberMode;
+    /** When the member first joined. */
+    joinedOn: Date;
+    /** When the member left, or null while they are in the session. */
+    leftOn?: Date | undefined;
+}
+
+export enum PokerSessionMemberMode {
+    Participant = "Participant",
+    Observer = "Observer",
 }
 
 export enum PokerSessionStatus {
@@ -67022,6 +67458,24 @@ export interface SetIntakeRequestTagCategoryActiveRequest {
     /** True to put the axis back into use, false to take it out of use. Requests already tagged along it keep
 their tags either way. */
     isActive: boolean;
+}
+
+export interface SetPokerSessionFacilitatorsRequest {
+    /** The employees who facilitate the session from now on, replacing the current list. At least one. */
+    employeeIds: string[];
+}
+
+export interface SetPokerSessionInviteesRequest {
+    /** The employees invited to the session, replacing the current list. Empty removes every employee invite. */
+    employeeIds: string[];
+    /** The teams invited to the session, replacing the current list. Empty removes every team invite. */
+    teamIds: string[];
+}
+
+export interface SetPokerSessionVisibilityRequest {
+    /** `Public`: anyone with the poker View permission can see and join the session. `Private`: only its
+facilitators, invited employees and the members of invited teams. */
+    visibility: Visibility;
 }
 
 /** Retires a tag from new use, or puts it back. Products already carrying it keep it. */
@@ -70107,6 +70561,11 @@ export interface VersionDto {
     releasedAt?: Date | undefined;
     /** The version's current status: the organization's name for it, its category and its well-known alias. */
     status: StatusNavigationDto;
+}
+
+export enum Visibility {
+    Public = "Public",
+    Private = "Private",
 }
 
 export interface VisibilityDto extends CommonEnumDto {

@@ -5,6 +5,7 @@ import { CSSProperties } from 'react'
 import {
   CreatePokerSessionRequest,
   EstimationScaleDto,
+  Visibility,
 } from '@/src/services/wayd-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { useMessage } from '@/src/components/contexts/messaging'
@@ -90,6 +91,7 @@ const CreatePokerSessionForm = ({
             const request: CreatePokerSessionRequest = {
               name: values.name,
               estimationScaleId: values.estimationScaleId,
+              visibility: Visibility.Public,
             }
             const response = await createPokerSession(request)
             if (response.error) {

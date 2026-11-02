@@ -223,7 +223,13 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
                 timestamp));
         }
 
-        if (previousNoticedAt != NoticedAt || previousStartedAt != StartedAt || previousRecoveredAt != RecoveredAt)
+        // A browser date keeps milliseconds and drops the rest of an Instant's
+        // ticks, so 17:51:03.1234567 comes back as 17:51:03.123. That round
+        // trip is not a change to when the incident was noticed, started, or
+        // recovered. A difference of a millisecond or more still is.
+        if (!SameMillisecond(previousNoticedAt, NoticedAt)
+            || !SameMillisecond(previousStartedAt, StartedAt)
+            || !SameMillisecond(previousRecoveredAt, RecoveredAt))
         {
             AddDomainEvent(new IncidentTimelineChangedEvent(
                 Id,
@@ -421,6 +427,16 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// Both absent, or both in the same millisecond. Sub-millisecond ticks are
+    /// not a different time: a browser date cannot carry them.
+    /// </summary>
+    private static bool SameMillisecond(Instant? previous, Instant? updated) =>
+        previous is null
+            ? updated is null
+            : updated is not null
+                && previous.Value.ToUnixTimeMilliseconds() == updated.Value.ToUnixTimeMilliseconds();
 
     private static Result ValidateTimeline(Instant noticedAt, Instant? startedAt, Instant? recoveredAt)
     {

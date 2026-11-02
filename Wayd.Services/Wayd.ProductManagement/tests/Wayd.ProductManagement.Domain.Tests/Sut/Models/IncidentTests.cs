@@ -129,4 +129,72 @@ public sealed class IncidentTests
         incident.DomainEvents.Should().ContainSingle()
             .Which.Should().BeOfType<IncidentTimelineLinkRecordedEvent>();
     }
+
+    [Fact]
+    public void UpdateDetails_ShouldNotRaiseTimelineChanged_WhenTheRoundTripOnlyDropsSubMillisecondTicks()
+    {
+        // Arrange — 17:51:03.1234567, which a browser date sends back as 17:51:03.123.
+        var noticed = Instant.FromUtc(2026, 4, 1, 17, 51, 3)
+            + Duration.FromMilliseconds(123)
+            + Duration.FromTicks(4567);
+        var started = noticed + Duration.FromMinutes(5) + Duration.FromTicks(9);
+        var incident = OpenIncident(noticed, started);
+        var truncatedNoticed = Instant.FromUnixTimeMilliseconds(noticed.ToUnixTimeMilliseconds());
+        var truncatedStarted = Instant.FromUnixTimeMilliseconds(started.ToUnixTimeMilliseconds());
+
+        // Act
+        var result = incident.UpdateDetails(
+            "Checkout recovered",
+            "Payments failing in production.",
+            incident.SeverityLevelId,
+            truncatedNoticed,
+            truncatedStarted,
+            recoveredAt: null,
+            [],
+            EventActor.System,
+            Timestamp);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<IncidentDetailsUpdatedEvent>();
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldRaiseTimelineChanged_WhenNoticedAtMoves()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+
+        // Act
+        var result = incident.UpdateDetails(
+            "Checkout unavailable",
+            "Payments failing in production.",
+            incident.SeverityLevelId,
+            Timestamp.Plus(Duration.FromMinutes(2)),
+            startedAt: null,
+            recoveredAt: null,
+            [],
+            EventActor.System,
+            Timestamp);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<IncidentTimelineChangedEvent>();
+    }
+
+    private static Incident OpenIncident(Instant noticedAt, Instant? startedAt) =>
+        Incident.Create(
+            "Checkout unavailable",
+            "Payments failing in production.",
+            Guid.CreateVersion7(),
+            Guid.CreateVersion7(),
+            noticedAt,
+            startedAt,
+            recoveredAt: null,
+            [],
+            StatusRefFactory.Open(),
+            EventActor.System,
+            Timestamp).Value;
 }

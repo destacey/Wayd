@@ -283,7 +283,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       <RecordShell
         record={{
           name: incident.title,
-          recordKey: `INC-${incident.key}`,
+          recordKey: String(incident.key),
           parent: {
             label: 'Incidents',
             href: '/product-management/incidents',

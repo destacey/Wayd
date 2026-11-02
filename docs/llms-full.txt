@@ -583,6 +583,8 @@ Transition Mode is AnyToAny (default) or Restricted, set in Draft only. Under Re
 
 Which Workflow Scheme a scope's records follow. Properties: OwnerType, ScopeId (null = organization-wide), SchemeId. The container and the record's type decide the workflow, and records of one type in one container never diverge.
 
+Lookup walks a Workflow Scope Chain the owning module supplies (`WorkflowScopeChain`), most specific scope first, then the organization: at each level the scheme's entry for the record's type is tried, then its default, and the first level with an assignment decides, so a narrower scope's default beats a broader scope's type entry. The organization-level assignment is the mandatory last resort. `IStatusResolver.ForRecordType` reports which level decided (`WorkflowSource`). Owner types with one level of scope pass that scope alone (`WorkflowScopeChain.ForScope`, or `IStatusResolver.ForScope`/`ForAlias`/`Initial`, which look at one scope and then the organization); an owner type with nested scopes or record types resolves through `ForRecordType`. Moving records on a scheme change (`RecordSelection`) and `IScopedWorkflowAssignments` still assume one level of scope, and must follow the chain before an owner type with nested scopes adopts the engine.
+
 Rules: ReassignTo requires a scheme of the same owner type whose default workflow is published, and a complete remap for every record type whose workflow differs between the two schemes (`StatusWorkflowScheme.WorkflowChanges`). An owner type without record types picks a workflow, and the scope points at that workflow's implicit default-only scheme.
 
 ### Record Types and Workflow Schemes

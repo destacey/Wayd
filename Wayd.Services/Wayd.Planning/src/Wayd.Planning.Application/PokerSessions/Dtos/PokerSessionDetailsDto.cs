@@ -66,9 +66,9 @@ public sealed record PokerSessionDetailsDto : IMapFrom<PokerSession>
     {
         config.NewConfig<PokerSession, PokerSessionDetailsDto>()
             .Map(dest => dest.Status, src => src.Status.GetDisplayName())
-            .Map(dest => dest.Facilitators, src => src.Facilitators.Select(f => EmployeeNavigationDto.From(f.Employee!)))
-            .Map(dest => dest.InvitedEmployees, src => src.InvitedEmployees.Select(e => EmployeeNavigationDto.From(e.Employee!)))
-            .Map(dest => dest.InvitedTeams, src => src.InvitedTeams.Select(t => PlanningTeamNavigationDto.FromPlanningTeam(t.Team!)))
+            .Map(dest => dest.Facilitators, src => src.Facilitators.OrderBy(f => f.Employee!.Name.FirstName).ThenBy(f => f.Employee!.Name.LastName).Select(f => EmployeeNavigationDto.From(f.Employee!)))
+            .Map(dest => dest.InvitedEmployees, src => src.InvitedEmployees.OrderBy(e => e.Employee!.Name.FirstName).ThenBy(e => e.Employee!.Name.LastName).Select(e => EmployeeNavigationDto.From(e.Employee!)))
+            .Map(dest => dest.InvitedTeams, src => src.InvitedTeams.OrderBy(t => t.Team!.Name).Select(t => PlanningTeamNavigationDto.FromPlanningTeam(t.Team!)))
             .Map(dest => dest.Members, src => src.Members.OrderBy(m => m.JoinedOn))
             .Ignore(dest => dest.CanManage)
             .Map(dest => dest.Rounds, src => src.Rounds.OrderBy(r => r.Order));

@@ -14,8 +14,8 @@ namespace Wayd.Planning.Domain.Models.PlanningPoker;
 /// <remarks>
 /// The session decides who may do what. Facilitators, and holders of the poker Administer permission, run it.
 /// Anyone with the poker View permission can join a public session; a private one admits only its facilitators,
-/// its invited employees and the members of its invited teams. Joining makes someone a member, as a Participant,
-/// who votes, or an Observer, who does not.
+/// its invited employees and the members of its invited teams. Joining makes someone a member, voting or not; a
+/// member who is not voting still takes part, such as a product manager answering the team's questions.
 /// </remarks>
 public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
 {
@@ -251,18 +251,16 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     #region Members
 
     /// <summary>
-    /// The actor's membership while they are in the session, or null when they have not joined or have left.
-    /// Requires <see cref="Members"/> to be loaded.
+    /// The employee's membership, or null when they have not joined. Requires <see cref="Members"/> to be loaded.
     /// </summary>
-    public PokerSessionMember? PresentMember(Guid employeeId) =>
-        _members.FirstOrDefault(m => m.EmployeeId == employeeId && m.IsPresent);
+    public PokerSessionMember? FindMember(Guid employeeId) =>
+        _members.FirstOrDefault(m => m.EmployeeId == employeeId);
 
     /// <summary>
-    /// Join the session as a Participant or an Observer. Joining again, while in the session or after leaving,
-    /// takes the new mode and keeps the original join time; joining again as an Observer withdraws the actor's
-    /// unrevealed votes, as <see cref="ChangeMode"/> does.
+    /// Join the session, voting or not. A member stays one: there is no leaving, and someone who no longer wants to
+    /// vote turns voting off with <see cref="SetVoting"/>. Joining again changes nothing, so it cannot undo that choice.
     /// </summary>
-    public Result<PokerSessionMembershipChange> Join(PokerSessionMemberMode mode, PokerSessionActor actor, Instant timestamp)
+    public Result<PokerSessionMembershipChange> Join(bool isVoting, PokerSessionActor actor, Instant timestamp)
     {
         if (!CanAccess(actor))
             return Result.Failure<PokerSessionMembershipChange>(NotFoundError);
@@ -270,62 +268,36 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         if (Status != PokerSessionStatus.Active)
             return Result.Failure<PokerSessionMembershipChange>("Only an active session can be joined.");
 
-        var member = _members.FirstOrDefault(m => m.EmployeeId == actor.EmployeeId);
+        var member = FindMember(actor.EmployeeId);
         if (member is null)
         {
-            member = new PokerSessionMember(Id, actor.EmployeeId, mode, timestamp);
+            member = new PokerSessionMember(Id, actor.EmployeeId, isVoting, timestamp);
             _members.Add(member);
-            return Result.Success(new PokerSessionMembershipChange(member, []));
         }
 
-        var withdrawn = WithdrawVotesIfObserving(mode, actor);
-        member.Rejoin(mode);
-        return Result.Success(new PokerSessionMembershipChange(member, withdrawn));
+        return Result.Success(new PokerSessionMembershipChange(member, []));
     }
 
     /// <summary>
-    /// Switch between Participant and Observer. Switching to Observer withdraws the actor's votes in rounds that
-    /// have not been revealed; revealed rounds keep them. Switching to Participant lets them vote at once.
+    /// Turn the actor's voting on or off. Turning it off withdraws their votes in rounds that have not been revealed;
+    /// revealed rounds keep them. Turning it on lets them vote at once.
     /// </summary>
-    public Result<PokerSessionMembershipChange> ChangeMode(PokerSessionMemberMode mode, PokerSessionActor actor)
+    public Result<PokerSessionMembershipChange> SetVoting(bool isVoting, PokerSessionActor actor)
     {
         if (!CanAccess(actor))
             return Result.Failure<PokerSessionMembershipChange>(NotFoundError);
 
         if (Status != PokerSessionStatus.Active)
-            return Result.Failure<PokerSessionMembershipChange>("Cannot change mode when the session is not active.");
+            return Result.Failure<PokerSessionMembershipChange>("Cannot change voting when the session is not active.");
 
-        var member = PresentMember(actor.EmployeeId);
+        var member = FindMember(actor.EmployeeId);
         if (member is null)
-            return Result.Failure<PokerSessionMembershipChange>("Join the session before changing your mode.");
+            return Result.Failure<PokerSessionMembershipChange>("Join the session before changing whether you vote.");
 
-        var withdrawn = WithdrawVotesIfObserving(mode, actor);
-        member.ChangeMode(mode);
+        IReadOnlyList<Guid> withdrawn = isVoting ? [] : WithdrawUnrevealedVotes(actor.UserId);
+        member.SetVoting(isVoting);
         return Result.Success(new PokerSessionMembershipChange(member, withdrawn));
     }
-
-    /// <summary>
-    /// Leave the session. The membership is kept as the record that the actor took part, stamped with when they
-    /// left. Their votes in rounds that have not been revealed are withdrawn; revealed rounds keep them.
-    /// </summary>
-    public Result<PokerSessionMembershipChange> Leave(PokerSessionActor actor, Instant timestamp)
-    {
-        Guard.Against.Null(actor, nameof(actor));
-
-        if (Status != PokerSessionStatus.Active)
-            return Result.Failure<PokerSessionMembershipChange>("Cannot leave a session that is not active.");
-
-        var member = PresentMember(actor.EmployeeId);
-        if (member is null)
-            return Result.Failure<PokerSessionMembershipChange>("You are not in this session.");
-
-        var withdrawn = WithdrawUnrevealedVotes(actor.UserId);
-        member.Leave(timestamp);
-        return Result.Success(new PokerSessionMembershipChange(member, withdrawn));
-    }
-
-    private IReadOnlyList<Guid> WithdrawVotesIfObserving(PokerSessionMemberMode mode, PokerSessionActor actor) =>
-        mode == PokerSessionMemberMode.Observer ? WithdrawUnrevealedVotes(actor.UserId) : [];
 
     private List<Guid> WithdrawUnrevealedVotes(string userId) =>
         [.. _rounds.Where(r => r.WithdrawUnrevealedVote(userId)).Select(r => r.Id)];
@@ -462,8 +434,8 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
 
     /// <summary>
     /// Submit the actor's vote for a round. The value must be one of the session's scale version values, cards
-    /// such as "?" included; the scale need not still be active. An actor who has not joined, or has left, joins
-    /// as a Participant; an Observer is refused.
+    /// such as "?" included; the scale need not still be active. An actor who has not joined joins, voting; a
+    /// member who is not voting is refused.
     /// </summary>
     /// <param name="estimationScaleVersion">The session's own scale version, whose values the vote is checked against.</param>
     /// <returns>Whether the vote made the actor join the session.</returns>
@@ -485,9 +457,9 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         if (scaleValue is null)
             return Result.Failure<bool>($"'{value}' is not a value on the session's estimation scale.");
 
-        var member = PresentMember(actor.EmployeeId);
-        if (member?.Mode == PokerSessionMemberMode.Observer)
-            return Result.Failure<bool>("Observers cannot vote. Switch to Participant to vote.");
+        var member = FindMember(actor.EmployeeId);
+        if (member is { IsVoting: false })
+            return Result.Failure<bool>("You are not voting in this session. Turn on voting to vote.");
 
         var voted = round.AddOrUpdateVote(actor.UserId, scaleValue.Value, timestamp);
         if (voted.IsFailure)
@@ -496,7 +468,7 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         if (member is not null)
             return Result.Success(false);
 
-        var joined = Join(PokerSessionMemberMode.Participant, actor, timestamp);
+        var joined = Join(true, actor, timestamp);
         return joined.IsFailure
             ? Result.Failure<bool>(joined.Error)
             : Result.Success(true);

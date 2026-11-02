@@ -60,6 +60,15 @@ public class PlanningPokerHub : PresenceHub
             throw new HubException(PokerSession.NotFoundError);
 
         await JoinPresenceGroup(sessionId.ToString());
+
+        // Asked again once in the group: an access change between the two would otherwise find this connection
+        // not yet present, evict nothing, and leave it receiving a session it no longer sees.
+        if (!string.IsNullOrEmpty(userId)
+            && !await _access.CanUserAccess(sessionId, userId, Context.ConnectionAborted))
+        {
+            await LeavePresenceGroup(sessionId.ToString());
+            throw new HubException(PokerSession.NotFoundError);
+        }
     }
 
     public Task LeaveSession(Guid sessionId) =>

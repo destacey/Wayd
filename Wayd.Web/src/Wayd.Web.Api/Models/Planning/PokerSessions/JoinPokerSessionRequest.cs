@@ -1,23 +1,20 @@
 using Wayd.Planning.Application.PokerSessions.Commands;
-using Wayd.Planning.Domain.Enums;
 
 namespace Wayd.Web.Api.Models.Planning.PokerSessions;
 
+/// <summary>
+/// Joins the caller to a poker session.
+/// </summary>
 public sealed class JoinPokerSessionRequest
 {
     /// <summary>
-    /// `Participant` (the default) votes and counts toward the voted and waiting totals; `Observer` watches
-    /// without voting.
+    /// True (the default) to vote, counting toward the voted and waiting totals; false to take part without voting.
+    /// Ignored when the caller has already joined.
     /// </summary>
-    public PokerSessionMemberMode Mode { get; set; } = PokerSessionMemberMode.Participant;
+    public bool IsVoting { get; set; } = true;
 
-    public JoinPokerSessionCommand ToJoinPokerSessionCommand(Guid id) => new(id, Mode);
-}
-
-public sealed class JoinPokerSessionRequestValidator : CustomValidator<JoinPokerSessionRequest>
-{
-    public JoinPokerSessionRequestValidator()
-    {
-        RuleFor(r => r.Mode).IsInEnum();
-    }
+    /// <summary>
+    /// The command that applies this request to the session.
+    /// </summary>
+    public JoinPokerSessionCommand ToJoinPokerSessionCommand(Guid id) => new(id, IsVoting);
 }

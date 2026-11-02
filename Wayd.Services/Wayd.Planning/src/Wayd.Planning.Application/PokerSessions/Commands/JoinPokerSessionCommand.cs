@@ -1,20 +1,18 @@
 using Wayd.Planning.Application.PokerSessions.Dtos;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
-using Wayd.Planning.Domain.Enums;
 
 namespace Wayd.Planning.Application.PokerSessions.Commands;
 
 /// <summary>
-/// Join an active poker session as a Participant or an Observer. Joining again takes the new mode.
+/// Join an active poker session, voting unless told otherwise. Joining again changes nothing.
 /// </summary>
-public sealed record JoinPokerSessionCommand(Guid Id, PokerSessionMemberMode Mode = PokerSessionMemberMode.Participant) : ICommand<PokerSessionMemberDto>, IRequireLinkedEmployee;
+public sealed record JoinPokerSessionCommand(Guid Id, bool IsVoting = true) : ICommand<PokerSessionMemberDto>, IRequireLinkedEmployee;
 
 public sealed class JoinPokerSessionCommandValidator : CustomValidator<JoinPokerSessionCommand>
 {
     public JoinPokerSessionCommandValidator()
     {
         RuleFor(c => c.Id).NotEmpty();
-        RuleFor(c => c.Mode).IsInEnum();
     }
 }
 
@@ -42,7 +40,7 @@ public sealed class JoinPokerSessionCommandHandler(IPlanningDbContext planningDb
 
             var actor = await _access.ResolveActor(session, cancellationToken);
 
-            var result = session.Join(request.Mode, actor, _dateTimeProvider.Now);
+            var result = session.Join(request.IsVoting, actor, _dateTimeProvider.Now);
             if (result.IsFailure)
                 return Result.Failure<PokerSessionMemberDto>(result.Error);
 

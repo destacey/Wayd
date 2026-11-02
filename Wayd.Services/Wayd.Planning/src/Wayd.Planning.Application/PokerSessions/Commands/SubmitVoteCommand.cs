@@ -52,7 +52,7 @@ public sealed class SubmitVoteCommandHandler(IPlanningDbContext planningDbContex
 
             var joinedSession = result.Value;
             if (joinedSession)
-                await _notifier.NotifyMemberUpdated(session.Id, await _planningDbContext.MemberDto(session.PresentMember(actor.EmployeeId)!, cancellationToken));
+                await _notifier.NotifyMemberUpdated(session.Id, await _planningDbContext.MemberDto(session.FindMember(actor.EmployeeId)!, cancellationToken));
 
             var participantName = currentUser.Name ?? "Unknown";
             await _notifier.NotifyVoteSubmitted(session.Id, request.RoundId, actor.UserId, participantName);

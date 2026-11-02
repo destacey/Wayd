@@ -14,9 +14,12 @@ public sealed class PokerSessionInvitedTeam
         TeamId = teamId;
     }
 
+    /// <summary>The private session the team is invited to.</summary>
     public Guid PokerSessionId { get; private init; }
 
+    /// <summary>The invited team or team of teams.</summary>
     public Guid TeamId { get; private init; }
 
+    /// <summary>The invited team, when loaded.</summary>
     public PlanningTeam? Team { get; private init; }
 }

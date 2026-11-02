@@ -26,7 +26,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
     [EndpointSummary("Get a list of poker sessions.")]
     [EndpointDescription(
-        "Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (members who joined as a Participant, including those who left), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.")]
+        "Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (everyone who has joined, voting or not), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.")]
     [McpTool("PokerSessions_GetSessions", "List poker sessions")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -40,7 +40,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
     [EndpointSummary("Get poker session details using the Id or key.")]
     [EndpointDescription(
-        "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `mode` Participant or Observer, `joinedOn`, and `leftOn` once they leave), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.")]
+        "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.")]
     [McpTool("PokerSessions_GetSession", "Get poker session")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -56,7 +56,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
     [EndpointSummary("Get the members of a team invited to a poker session.")]
     [EndpointDescription(
-        "Lists the active direct members of `teamId`, a team the session invites, by employee `id`, `key` and `name`. An invited team admits its current members, and the members of its current team of teams, while the session is Private. Returns 404 when the caller cannot see the session or the team is not invited. Both ids are UUIDs.")]
+        "Lists the active direct members of `teamId`, a team the session invites, by employee `id`, `key` and `name`. An invited team admits its current members, and the members of its current team of teams, while the session is Private. Returns 404 when the caller cannot see the session, the session is Public (its invites admit no one), or the team is not invited. Both ids are UUIDs.")]
     [McpTool("PokerSessions_GetInvitedTeamMembers", "Get poker session invited team members")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -247,7 +247,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
     [EndpointSummary("Submit a vote for a round.")]
     [EndpointDescription(
-        "Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. A caller who has not joined the session joins it as a Participant; an Observer cannot vote until they switch with PokerSessions_ChangeMode. Both ids are UUIDs.")]
+        "Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. A caller who has not joined the session joins it, voting; a member who is not voting cannot vote until they turn voting on with PokerSessions_SetVoting. Both ids are UUIDs.")]
     [McpTool("PokerSessions_SubmitVote", "Submit poker vote")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -311,7 +311,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
     [EndpointSummary("Set who is invited to a poker session.")]
     [EndpointDescription(
-        "Replaces the invites with `employeeIds` and `teamIds` (UUIDs; empty lists remove every invite). Invites admit people only while the session is Private, and a team admits its current members and the members of its current team of teams. An invite grants access only: the person still needs the poker View permission, and chooses whether to join as a Participant or an Observer. Removing an invite disconnects anyone the session no longer admits from its live updates. Allowed on an active or a completed session." + OnlyFacilitators + " Takes the session's UUID.")]
+        "Replaces the invites with `employeeIds` and `teamIds` (UUIDs; empty lists remove every invite). Invites admit people only while the session is Private, and a team admits its current members and the members of its current team of teams. An invite grants access only: the person still needs the poker View permission, and chooses whether to vote. Removing an invite disconnects anyone the session no longer admits from its live updates. Allowed on an active or a completed session." + OnlyFacilitators + " Takes the session's UUID.")]
     [McpTool("PokerSessions_SetInvitees", "Set poker session invitees", Idempotent = true)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -327,7 +327,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
     [EndpointSummary("Join a poker session.")]
     [EndpointDescription(
-        "Adds the caller to the session's members as `mode` `Participant` (the default), who votes and counts toward the voted and waiting totals, or `Observer`, who watches without voting. Joining again, including after leaving, takes the new mode; joining again as an Observer withdraws the caller's votes in rounds not yet revealed. Anyone the session admits can join: on a Public session anyone with the poker View permission, on a Private one its facilitators and invitees. Facilitators join like anyone else. The session must be Active, and the caller's account must be linked to an employee. Takes the session's UUID. Returns the caller's membership.")]
+        "Adds the caller to the session's members, voting unless `isVoting` is false. A member who is not voting takes part in the discussion but is left out of the voted and waiting totals. Joining again changes nothing; use PokerSessions_SetVoting to change whether the caller votes. Anyone the session admits can join: on a Public session anyone with the poker View permission, on a Private one its facilitators and invitees. Facilitators join like anyone else. The session must be Active, and the caller's account must be linked to an employee. Takes the session's UUID. Returns the caller's membership.")]
     [McpTool("PokerSessions_Join", "Join poker session", Idempotent = true)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -339,33 +339,17 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    [HttpPost("{id}/leave")]
+    [HttpPut("{id}/voting")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
-    [EndpointSummary("Leave a poker session.")]
+    [EndpointSummary("Turn the caller's voting on or off in a poker session.")]
     [EndpointDescription(
-        "Marks the caller as having left (`leftOn`); they stay in the session's record of who took part. Their votes in rounds not yet revealed are withdrawn; revealed rounds keep them. Fails when the caller is not in the session. The session must be Active. Takes the session's UUID.")]
-    [McpTool("PokerSessions_Leave", "Leave poker session")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> Leave(Guid id, CancellationToken cancellationToken)
-    {
-        var result = await _dispatcher.Send(new LeavePokerSessionCommand(id), cancellationToken);
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
-    }
-
-    [HttpPut("{id}/mode")]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
-    [EndpointSummary("Switch between Participant and Observer in a poker session.")]
-    [EndpointDescription(
-        "Sets the caller's `mode` to `Participant` or `Observer`. Switching to Observer withdraws the caller's votes in rounds not yet revealed, and leaves them out of the voted and waiting totals; revealed rounds keep their votes. Switching to Participant lets them vote at once. The caller must have joined the session, which must be Active. Takes the session's UUID. Returns the caller's membership.")]
-    [McpTool("PokerSessions_ChangeMode", "Change poker session mode", Idempotent = true)]
+        "Sets whether the caller votes (`isVoting`). Turning voting off withdraws the caller's votes in rounds not yet revealed and leaves them out of the voted and waiting totals; revealed rounds keep their votes. Turning it on lets them vote at once. The caller must have joined the session, which must be Active. Takes the session's UUID. Returns the caller's membership.")]
+    [McpTool("PokerSessions_SetVoting", "Set voting in poker session", Idempotent = true)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<PokerSessionMemberDto>> ChangeMode(Guid id, [FromBody] ChangePokerSessionModeRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<PokerSessionMemberDto>> SetVoting(Guid id, [FromBody] SetPokerSessionVotingRequest request, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(request.ToChangePokerSessionModeCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToSetPokerSessionVotingCommand(id), cancellationToken);
         return result.IsSuccess
             ? Ok(result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));

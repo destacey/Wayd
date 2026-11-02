@@ -32,7 +32,8 @@ public class PlanningPokerHubTests
         ClaimsPrincipal user,
         string? connectionId = null,
         bool featureEnabled = true,
-        bool sessionAdmits = true)
+        bool sessionAdmits = true,
+        bool sessionAdmitsOnceJoined = true)
     {
         connectionId ??= Guid.NewGuid().ToString();
 
@@ -43,6 +44,9 @@ public class PlanningPokerHubTests
         var mockGroups = new Mock<IGroupManager>();
         mockGroups
             .Setup(g => g.AddToGroupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockGroups
+            .Setup(g => g.RemoveFromGroupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         // IHubCallerClients.Caller returns ISingleClientProxy (a refinement of IClientProxy
@@ -61,6 +65,7 @@ public class PlanningPokerHubTests
         var mockClients = new Mock<IHubCallerClients>();
         mockClients.Setup(c => c.Caller).Returns(callerProxy.Object);
         mockClients.Setup(c => c.OthersInGroup(It.IsAny<string>())).Returns(othersProxy.Object);
+        mockClients.Setup(c => c.Group(It.IsAny<string>())).Returns(othersProxy.Object);
 
         var featureManager = new Mock<IFeatureManager>();
         featureManager
@@ -69,8 +74,9 @@ public class PlanningPokerHubTests
 
         var access = new Mock<IPokerSessionAccess>();
         access
-            .Setup(a => a.CanUserAccess(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(sessionAdmits);
+            .SetupSequence(a => a.CanUserAccess(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(sessionAdmits)
+            .ReturnsAsync(sessionAdmitsOnceJoined);
 
         var hub = new PlanningPokerHub(featureManager.Object, access.Object)
         {
@@ -202,6 +208,28 @@ public class PlanningPokerHubTests
         callerProxy.Verify(
             p => p.SendCoreAsync("ParticipantList", It.IsAny<object?[]>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task JoinSession_WhenAccessIsLostWhileJoining_LeavesTheGroupAndIsRefused()
+    {
+        // Arrange — the session turns private between the check and the group add, so its eviction missed this connection.
+        var user = Principal(
+            (ClaimTypes.NameIdentifier, TestUserId),
+            (ClaimTypes.Name, WaydFirstName),
+            (ClaimTypes.Surname, WaydSurname));
+        var connectionId = Guid.NewGuid().ToString();
+        var sessionId = Guid.NewGuid();
+        var (hub, _, groups) = BuildHub(user, connectionId, sessionAdmitsOnceJoined: false);
+
+        // Act
+        var act = () => hub.JoinSession(sessionId);
+
+        // Assert
+        await act.Should().ThrowAsync<HubException>().WithMessage("Poker session not found.");
+        groups.Verify(
+            g => g.RemoveFromGroupAsync(connectionId, It.Is<string>(k => k.Contains(sessionId.ToString())), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]

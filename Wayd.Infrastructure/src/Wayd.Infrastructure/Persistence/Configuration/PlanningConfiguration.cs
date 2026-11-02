@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -792,14 +792,8 @@ public class PokerSessionMemberConfig : IEntityTypeConfiguration<PokerSessionMem
 
         builder.HasKey(m => new { m.PokerSessionId, m.EmployeeId });
 
-        builder.Ignore(m => m.IsPresent);
-
-        builder.Property(m => m.Mode).IsRequired()
-            .HasConversion<EnumConverter<PokerSessionMemberMode>>()
-            .HasColumnType("varchar")
-            .HasMaxLength(32);
+        builder.Property(m => m.IsVoting).IsRequired();
         builder.Property(m => m.JoinedOn).IsRequired();
-        builder.Property(m => m.LeftOn);
 
         builder.HasOne(m => m.Employee)
             .WithMany()

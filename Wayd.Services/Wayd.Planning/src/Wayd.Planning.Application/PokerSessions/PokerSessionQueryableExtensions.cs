@@ -3,6 +3,7 @@ using Wayd.Planning.Domain.Models.PlanningPoker;
 
 namespace Wayd.Planning.Application.PokerSessions;
 
+/// <summary>What the poker session handlers share: loading access, and checking the people and teams they name.</summary>
 public static class PokerSessionQueryableExtensions
 {
     /// <summary>

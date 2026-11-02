@@ -1,6 +1,5 @@
 using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Domain.Employees;
-using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 
 namespace Wayd.Planning.Application.PokerSessions.Dtos;
@@ -17,20 +16,15 @@ public sealed record PokerSessionMemberDto : IMapFrom<PokerSessionMember>
     public required EmployeeNavigationDto Employee { get; set; }
 
     /// <summary>
-    /// Participant, who votes and counts toward the voted and waiting totals, or Observer, who does neither.
-    /// After the member leaves, the mode they left in.
+    /// Whether the member votes. A voting member counts toward a round's voted and waiting totals; one who is not
+    /// voting is left out of them but still takes part.
     /// </summary>
-    public PokerSessionMemberMode Mode { get; set; }
+    public bool IsVoting { get; set; }
 
     /// <summary>
     /// When the member first joined.
     /// </summary>
     public Instant JoinedOn { get; set; }
-
-    /// <summary>
-    /// When the member left, or null while they are in the session.
-    /// </summary>
-    public Instant? LeftOn { get; set; }
 
     public void ConfigureMapping(TypeAdapterConfig config)
     {
@@ -44,8 +38,7 @@ public sealed record PokerSessionMemberDto : IMapFrom<PokerSessionMember>
     public static PokerSessionMemberDto From(PokerSessionMember member, Employee employee) => new()
     {
         Employee = EmployeeNavigationDto.From(employee),
-        Mode = member.Mode,
+        IsVoting = member.IsVoting,
         JoinedOn = member.JoinedOn,
-        LeftOn = member.LeftOn,
     };
 }

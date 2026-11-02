@@ -15,9 +15,12 @@ public sealed class PokerSessionFacilitator
         EmployeeId = employeeId;
     }
 
+    /// <summary>The session this employee facilitates.</summary>
     public Guid PokerSessionId { get; private init; }
 
+    /// <summary>The facilitating employee.</summary>
     public Guid EmployeeId { get; private init; }
 
+    /// <summary>The facilitating employee, when loaded.</summary>
     public Employee? Employee { get; private init; }
 }

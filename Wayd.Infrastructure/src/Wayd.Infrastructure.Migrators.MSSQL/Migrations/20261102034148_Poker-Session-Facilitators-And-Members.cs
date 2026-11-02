@@ -109,9 +109,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 {
                     PokerSessionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     EmployeeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Mode = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
-                    JoinedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LeftOn = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    IsVoting = table.Column<bool>(type: "bit", nullable: false),
+                    JoinedOn = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -166,11 +165,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 INNER JOIN [Organization].[Employees] e ON e.[Id] = u.[EmployeeId];
                 """);
 
-            // Everyone who voted took part, so they join as Participants from their first vote. A voter whose account
+            // Everyone who voted took part, so they join as voting members from their first vote. A voter whose account
             // is not linked to an employee cannot be a member and is left out; their votes stay.
             migrationBuilder.Sql("""
-                INSERT INTO [Planning].[PokerSessionMembers] ([PokerSessionId], [EmployeeId], [Mode], [JoinedOn], [LeftOn])
-                SELECT r.[PokerSessionId], u.[EmployeeId], 'Participant', MIN(v.[SubmittedOn]), NULL
+                INSERT INTO [Planning].[PokerSessionMembers] ([PokerSessionId], [EmployeeId], [IsVoting], [JoinedOn])
+                SELECT r.[PokerSessionId], u.[EmployeeId], 1, MIN(v.[SubmittedOn])
                 FROM [Planning].[PokerVotes] v
                 INNER JOIN [Planning].[PokerRounds] r ON r.[Id] = v.[PokerRoundId]
                 INNER JOIN [Identity].[Users] u ON u.[Id] = v.[ParticipantId]
@@ -201,7 +200,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
         /// <inheritdoc />
         /// <remarks>
-        /// Restores one facilitator per session, the account of its first facilitator's employee, falling back to
+        /// Restores one facilitator per session, the account of one of its facilitators' employees (facilitators keep no order), falling back to
         /// whoever created it. The removed claims are not restored.
         /// </remarks>
         protected override void Down(MigrationBuilder migrationBuilder)

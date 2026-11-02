@@ -4450,16 +4450,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("IsVoting")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime>("JoinedOn")
                         .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("LeftOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Mode")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar");
 
                     b.HasKey("PokerSessionId", "EmployeeId");
 

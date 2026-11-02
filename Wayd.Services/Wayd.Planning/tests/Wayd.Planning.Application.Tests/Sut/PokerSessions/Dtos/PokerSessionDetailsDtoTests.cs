@@ -27,8 +27,8 @@ public class PokerSessionDetailsDtoTests
         var early = PokerSessionActors.Voter("early");
         var late = PokerSessionActors.Voter("late");
         session.SetInvitees([invitedEmployeeId, early.EmployeeId, late.EmployeeId], [], PokerSessionActors.Facilitator);
-        session.Join(PokerSessionMemberMode.Observer, late, Instant.FromUtc(2026, 1, 15, 11, 0));
-        session.Join(PokerSessionMemberMode.Participant, early, Instant.FromUtc(2026, 1, 15, 10, 0));
+        session.Join(false, late, Instant.FromUtc(2026, 1, 15, 11, 0));
+        session.Join(true, early, Instant.FromUtc(2026, 1, 15, 10, 0));
         session.WithEmployeesLinked();
 
         // Act
@@ -39,7 +39,7 @@ public class PokerSessionDetailsDtoTests
         dto.Facilitators.Select(f => f.Id).Should().Equal(PokerSessionActors.FacilitatorEmployeeId);
         dto.InvitedEmployees.Select(e => e.Id).Should().BeEquivalentTo([invitedEmployeeId, early.EmployeeId, late.EmployeeId]);
         dto.Members.Select(m => m.Employee.Id).Should().Equal(early.EmployeeId, late.EmployeeId);
-        dto.Members.Select(m => m.Mode).Should().Equal(PokerSessionMemberMode.Participant, PokerSessionMemberMode.Observer);
+        dto.Members.Select(m => m.IsVoting).Should().Equal(true, false);
         dto.CanManage.Should().BeFalse();
     }
 }

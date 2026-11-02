@@ -66,7 +66,7 @@ public sealed class PokerSessionPersistenceTests(SqlServerDbContextFixture fixtu
         var session = await SaveSession(Visibility.Private, facilitator.Id, (s, actor) =>
         {
             s.SetInvitees([invitee.Id], [], actor).IsSuccess.Should().BeTrue();
-            s.Join(PokerSessionMemberMode.Observer, new PokerSessionActor(invitee.Id, "invitee-user", false, new HashSet<Guid>()), Now)
+            s.Join(false, new PokerSessionActor(invitee.Id, "invitee-user", false, new HashSet<Guid>()), Now)
                 .IsSuccess.Should().BeTrue();
         }, ct);
 
@@ -84,7 +84,7 @@ public sealed class PokerSessionPersistenceTests(SqlServerDbContextFixture fixtu
         var member = dto.Members.Should().ContainSingle().Subject;
         member.Employee.Id.Should().Be(invitee.Id);
         member.Employee.Name.Should().NotBeNullOrWhiteSpace();
-        member.Mode.Should().Be(PokerSessionMemberMode.Observer);
+        member.IsVoting.Should().BeFalse();
         member.JoinedOn.Should().Be(Now);
         dto.CanManage.Should().BeTrue();
     }
@@ -122,5 +122,39 @@ public sealed class PokerSessionPersistenceTests(SqlServerDbContextFixture fixtu
         forOutsider.Should().Equal(publicSession.Id);
         forNoEmployee.Should().Equal(publicSession.Id);
         forAdministrator.Should().BeEquivalentTo([publicSession.Id, privateSession.Id]);
+    }
+
+    [Fact]
+    public async Task GetPokerSessions_AdmitsAMemberOfAnInvitedTeam_AndProjectsTeamsAndParticipants()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        _ = PlanningMappings.Value;
+        var facilitator = await PokerSessionTestData.SeedEmployee(_fixture, ct);
+        var teammate = await PokerSessionTestData.SeedEmployee(_fixture, ct);
+        var team = await PokerSessionTestData.SeedTeam(_fixture, ct);
+        var session = await SaveSession(Visibility.Private, facilitator.Id, (s, actor) =>
+        {
+            s.SetInvitees([], [team.Id], actor).IsSuccess.Should().BeTrue();
+            s.Join(true, new PokerSessionActor(teammate.Id, "teammate-user", false, new HashSet<Guid> { team.Id }), Now)
+                .IsSuccess.Should().BeTrue();
+        }, ct);
+
+        // Act
+        await using var listRead = _fixture.CreateContext();
+        var listed = await new GetPokerSessionsQueryHandler(listRead, ReaderOf(new(teammate.Id, false, [team.Id], false)).Object)
+            .Handle(new GetPokerSessionsQuery(), ct);
+        await using var detailRead = _fixture.CreateContext();
+        var details = await new GetPokerSessionQueryHandler(detailRead, ReaderOf(new(teammate.Id, false, [team.Id], false)).Object, Mock.Of<ICurrentUser>())
+            .Handle(new GetPokerSessionQuery(session.Key.ToString()), ct);
+
+        // Assert
+        var row = listed.Should().ContainSingle(s => s.Id == session.Id).Subject;
+        row.Participants.Select(p => p.Id).Should().Equal(teammate.Id);
+        row.CanManage.Should().BeFalse();
+        details.Should().NotBeNull();
+        var invited = details!.InvitedTeams.Should().ContainSingle().Subject;
+        invited.Id.Should().Be(team.Id);
+        invited.Name.Should().Be(team.Name);
     }
 }

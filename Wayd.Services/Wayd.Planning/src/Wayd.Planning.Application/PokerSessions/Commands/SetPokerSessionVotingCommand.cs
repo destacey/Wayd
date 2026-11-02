@@ -1,32 +1,30 @@
 using Wayd.Planning.Application.PokerSessions.Dtos;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
-using Wayd.Planning.Domain.Enums;
 
 namespace Wayd.Planning.Application.PokerSessions.Commands;
 
 /// <summary>
-/// Switch the caller between Participant and Observer in a poker session they are in. Switching to Observer
-/// withdraws their votes in rounds that have not been revealed.
+/// Turn the caller's voting on or off in a poker session they are in. Turning it off withdraws their votes in rounds
+/// that have not been revealed.
 /// </summary>
-public sealed record ChangePokerSessionModeCommand(Guid Id, PokerSessionMemberMode Mode) : ICommand<PokerSessionMemberDto>, IRequireLinkedEmployee;
+public sealed record SetPokerSessionVotingCommand(Guid Id, bool IsVoting) : ICommand<PokerSessionMemberDto>, IRequireLinkedEmployee;
 
-public sealed class ChangePokerSessionModeCommandValidator : CustomValidator<ChangePokerSessionModeCommand>
+public sealed class SetPokerSessionVotingCommandValidator : CustomValidator<SetPokerSessionVotingCommand>
 {
-    public ChangePokerSessionModeCommandValidator()
+    public SetPokerSessionVotingCommandValidator()
     {
         RuleFor(c => c.Id).NotEmpty();
-        RuleFor(c => c.Mode).IsInEnum();
     }
 }
 
-public sealed class ChangePokerSessionModeCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionAccess access, IPokerSessionNotifier notifier, ILogger<ChangePokerSessionModeCommandHandler> logger) : ICommandHandler<ChangePokerSessionModeCommand, PokerSessionMemberDto>
+public sealed class SetPokerSessionVotingCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionAccess access, IPokerSessionNotifier notifier, ILogger<SetPokerSessionVotingCommandHandler> logger) : ICommandHandler<SetPokerSessionVotingCommand, PokerSessionMemberDto>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IPokerSessionAccess _access = access;
     private readonly IPokerSessionNotifier _notifier = notifier;
-    private readonly ILogger<ChangePokerSessionModeCommandHandler> _logger = logger;
+    private readonly ILogger<SetPokerSessionVotingCommandHandler> _logger = logger;
 
-    public async Task<Result<PokerSessionMemberDto>> Handle(ChangePokerSessionModeCommand request, CancellationToken cancellationToken)
+    public async Task<Result<PokerSessionMemberDto>> Handle(SetPokerSessionVotingCommand request, CancellationToken cancellationToken)
     {
         try
         {
@@ -42,7 +40,7 @@ public sealed class ChangePokerSessionModeCommandHandler(IPlanningDbContext plan
 
             var actor = await _access.ResolveActor(session, cancellationToken);
 
-            var result = session.ChangeMode(request.Mode, actor);
+            var result = session.SetVoting(request.IsVoting, actor);
             if (result.IsFailure)
                 return Result.Failure<PokerSessionMemberDto>(result.Error);
 

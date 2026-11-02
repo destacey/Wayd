@@ -1035,22 +1035,21 @@ public class PokerSessionTests
     #region Members
 
     [Fact]
-    public void Join_ShouldAddAParticipant()
+    public void Join_ShouldAddAVotingMember()
     {
         // Arrange
         var session = CreateActiveSession();
         var actor = PokerSessionActors.Voter("user-1");
 
         // Act
-        var result = session.Join(PokerSessionMemberMode.Participant, actor, Now);
+        var result = session.Join(true, actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         var member = session.Members.Should().ContainSingle().Subject;
         member.EmployeeId.Should().Be(actor.EmployeeId);
-        member.Mode.Should().Be(PokerSessionMemberMode.Participant);
+        member.IsVoting.Should().BeTrue();
         member.JoinedOn.Should().Be(Now);
-        member.LeftOn.Should().BeNull();
         result.Value.WithdrawnRoundIds.Should().BeEmpty();
     }
 
@@ -1061,7 +1060,7 @@ public class PokerSessionTests
         var session = CreatePrivateSession();
 
         // Act
-        var result = session.Join(PokerSessionMemberMode.Participant, PokerSessionActors.Voter("someone"), Now);
+        var result = session.Join(true, PokerSessionActors.Voter("someone"), Now);
 
         // Assert
         result.Error.Should().Be(PokerSession.NotFoundError);
@@ -1075,11 +1074,11 @@ public class PokerSessionTests
         var session = CreatePrivateSession();
 
         // Act
-        var result = session.Join(PokerSessionMemberMode.Observer, PokerSessionActors.Employee(Guid.NewGuid(), InvitedTeamId), Now);
+        var result = session.Join(false, PokerSessionActors.Employee(Guid.NewGuid(), InvitedTeamId), Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Member.Mode.Should().Be(PokerSessionMemberMode.Observer);
+        result.Value.Member.IsVoting.Should().BeFalse();
     }
 
     [Fact]
@@ -1090,14 +1089,14 @@ public class PokerSessionTests
         session.Complete(PokerSessionActors.Facilitator, Now);
 
         // Act
-        var result = session.Join(PokerSessionMemberMode.Participant, PokerSessionActors.Voter("user-1"), Now);
+        var result = session.Join(true, PokerSessionActors.Voter("user-1"), Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
     }
 
     [Fact]
-    public void Join_AgainAsObserver_ShouldWithdrawUnrevealedVotesAndKeepJoinTime()
+    public void SetVoting_Off_ShouldWithdrawUnrevealedVotesOnly()
     {
         // Arrange
         var session = CreateActiveSession();
@@ -1109,51 +1108,27 @@ public class PokerSessionTests
         session.RevealRound(revealed.Id, PokerSessionActors.Facilitator);
 
         // Act
-        var result = session.Join(PokerSessionMemberMode.Observer, actor, Now.Plus(Duration.FromMinutes(5)));
+        var result = session.SetVoting(false, actor);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.WithdrawnRoundIds.Should().Equal(voting.Id);
         voting.Votes.Should().BeEmpty();
         revealed.Votes.Should().ContainSingle();
-        result.Value.Member.Mode.Should().Be(PokerSessionMemberMode.Observer);
-        result.Value.Member.JoinedOn.Should().Be(Now);
+        session.FindMember(actor.EmployeeId)!.IsVoting.Should().BeFalse();
     }
 
     [Fact]
-    public void ChangeMode_ToObserver_ShouldWithdrawUnrevealedVotesOnly()
-    {
-        // Arrange
-        var session = CreateActiveSession();
-        var actor = PokerSessionActors.Voter("user-1");
-        var revealed = session.AddRound("Revealed", null, PokerSessionActors.Facilitator).Value;
-        var voting = session.AddRound("Voting", null, PokerSessionActors.Facilitator).Value;
-        session.SubmitVote(revealed.Id, "5", Scale.CurrentVersion, actor, Now);
-        session.SubmitVote(voting.Id, "3", Scale.CurrentVersion, actor, Now);
-        session.RevealRound(revealed.Id, PokerSessionActors.Facilitator);
-
-        // Act
-        var result = session.ChangeMode(PokerSessionMemberMode.Observer, actor);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.WithdrawnRoundIds.Should().Equal(voting.Id);
-        voting.Votes.Should().BeEmpty();
-        revealed.Votes.Should().ContainSingle();
-        session.PresentMember(actor.EmployeeId)!.Mode.Should().Be(PokerSessionMemberMode.Observer);
-    }
-
-    [Fact]
-    public void ChangeMode_ToParticipant_ShouldLetTheMemberVote()
+    public void SetVoting_On_ShouldLetTheMemberVote()
     {
         // Arrange
         var session = CreateActiveSession();
         var actor = PokerSessionActors.Voter("user-1");
         var round = session.AddRound("Story", null, PokerSessionActors.Facilitator).Value;
-        session.Join(PokerSessionMemberMode.Observer, actor, Now);
+        session.Join(false, actor, Now);
 
         // Act
-        var result = session.ChangeMode(PokerSessionMemberMode.Participant, actor);
+        var result = session.SetVoting(true, actor);
         var vote = session.SubmitVote(round.Id, "5", Scale.CurrentVersion, actor, Now);
 
         // Assert
@@ -1164,76 +1139,40 @@ public class PokerSessionTests
     }
 
     [Fact]
-    public void ChangeMode_NotJoined_ShouldReturnFailure()
+    public void SetVoting_NotJoined_ShouldReturnFailure()
     {
         // Arrange
         var session = CreateActiveSession();
 
         // Act
-        var result = session.ChangeMode(PokerSessionMemberMode.Observer, PokerSessionActors.Voter("user-1"));
+        var result = session.SetVoting(false, PokerSessionActors.Voter("user-1"));
 
         // Assert
         result.IsFailure.Should().BeTrue();
     }
 
     [Fact]
-    public void Leave_ShouldKeepTheMemberStampedAndWithdrawUnrevealedVotes()
+    public void Join_Again_ShouldChangeNothing()
     {
         // Arrange
         var session = CreateActiveSession();
         var actor = PokerSessionActors.Voter("user-1");
-        var round = session.AddRound("Story", null, PokerSessionActors.Facilitator).Value;
-        session.SubmitVote(round.Id, "5", Scale.CurrentVersion, actor, Now);
-        var leftOn = Now.Plus(Duration.FromMinutes(10));
+        session.Join(true, actor, Now);
+        session.SetVoting(false, actor);
 
         // Act
-        var result = session.Leave(actor, leftOn);
+        var result = session.Join(true, actor, Now.Plus(Duration.FromMinutes(2)));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.WithdrawnRoundIds.Should().Equal(round.Id);
-        round.Votes.Should().BeEmpty();
+        result.Value.WithdrawnRoundIds.Should().BeEmpty();
         var member = session.Members.Should().ContainSingle().Subject;
-        member.LeftOn.Should().Be(leftOn);
-        member.Mode.Should().Be(PokerSessionMemberMode.Participant);
-        session.PresentMember(actor.EmployeeId).Should().BeNull();
-    }
-
-    [Fact]
-    public void Leave_NotJoined_ShouldReturnFailure()
-    {
-        // Arrange
-        var session = CreateActiveSession();
-
-        // Act
-        var result = session.Leave(PokerSessionActors.Voter("user-1"), Now);
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-    }
-
-    [Fact]
-    public void Join_AfterLeaving_ShouldClearLeftOnAndKeepJoinTime()
-    {
-        // Arrange
-        var session = CreateActiveSession();
-        var actor = PokerSessionActors.Voter("user-1");
-        session.Join(PokerSessionMemberMode.Participant, actor, Now);
-        session.Leave(actor, Now.Plus(Duration.FromMinutes(1)));
-
-        // Act
-        var result = session.Join(PokerSessionMemberMode.Observer, actor, Now.Plus(Duration.FromMinutes(2)));
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        var member = session.Members.Should().ContainSingle().Subject;
-        member.LeftOn.Should().BeNull();
         member.JoinedOn.Should().Be(Now);
-        member.Mode.Should().Be(PokerSessionMemberMode.Observer);
+        member.IsVoting.Should().BeFalse();
     }
 
     [Fact]
-    public void SubmitVote_NotJoined_ShouldJoinAsParticipant()
+    public void SubmitVote_NotJoined_ShouldJoinVoting()
     {
         // Arrange
         var session = CreateActiveSession();
@@ -1246,36 +1185,17 @@ public class PokerSessionTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeTrue();
-        session.PresentMember(actor.EmployeeId)!.Mode.Should().Be(PokerSessionMemberMode.Participant);
+        session.FindMember(actor.EmployeeId)!.IsVoting.Should().BeTrue();
     }
 
     [Fact]
-    public void SubmitVote_AfterLeaving_ShouldRejoinAsParticipant()
+    public void SubmitVote_NotVoting_ShouldReturnFailure()
     {
         // Arrange
         var session = CreateActiveSession();
         var actor = PokerSessionActors.Voter("user-1");
         var round = session.AddRound("Story", null, PokerSessionActors.Facilitator).Value;
-        session.Join(PokerSessionMemberMode.Observer, actor, Now);
-        session.Leave(actor, Now);
-
-        // Act
-        var result = session.SubmitVote(round.Id, "5", Scale.CurrentVersion, actor, Now);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeTrue();
-        session.PresentMember(actor.EmployeeId)!.Mode.Should().Be(PokerSessionMemberMode.Participant);
-    }
-
-    [Fact]
-    public void SubmitVote_AsObserver_ShouldReturnFailure()
-    {
-        // Arrange
-        var session = CreateActiveSession();
-        var actor = PokerSessionActors.Voter("user-1");
-        var round = session.AddRound("Story", null, PokerSessionActors.Facilitator).Value;
-        session.Join(PokerSessionMemberMode.Observer, actor, Now);
+        session.Join(false, actor, Now);
 
         // Act
         var result = session.SubmitVote(round.Id, "5", Scale.CurrentVersion, actor, Now);

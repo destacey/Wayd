@@ -48,10 +48,10 @@ public sealed record PokerSessionReader(Guid? EmployeeId, bool IsAdministrator, 
 
     /// <summary>
     /// Whether the reader manages a session with these facilitators, as <see cref="PokerSession.CanManage"/>
-    /// decides; false for a read-only token.
+    /// decides; false for a read-only token, and for a reader with no employee, since every poker command needs one.
     /// </summary>
     public bool CanManage(IEnumerable<Guid> facilitatorIds) =>
-        !IsReadOnly && (IsAdministrator || (EmployeeId is { } id && facilitatorIds.Contains(id)));
+        !IsReadOnly && EmployeeId is { } id && (IsAdministrator || facilitatorIds.Contains(id));
 }
 
 /// <inheritdoc />
@@ -78,6 +78,7 @@ public sealed class PokerSessionAccess(
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
+    /// <inheritdoc />
     public async Task<PokerSessionActor> ResolveActor(PokerSession session, CancellationToken cancellationToken)
     {
         var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
@@ -90,6 +91,7 @@ public sealed class PokerSessionAccess(
         return new PokerSessionActor(employeeId.Value, _currentUser.GetUserId(), isAdministrator, teamIds);
     }
 
+    /// <inheritdoc />
     public async Task<PokerSessionReader> ResolveReader(CancellationToken cancellationToken)
     {
         var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
@@ -110,6 +112,7 @@ public sealed class PokerSessionAccess(
         return new PokerSessionReader(employeeId, isAdministrator, teamIds, _currentPrincipal.IsReadOnly);
     }
 
+    /// <inheritdoc />
     public async Task<bool> CanUserAccess(Guid sessionId, string userId, CancellationToken cancellationToken)
     {
         if (!await _userService.HasPermissionAsync(userId, ViewPermission, cancellationToken))

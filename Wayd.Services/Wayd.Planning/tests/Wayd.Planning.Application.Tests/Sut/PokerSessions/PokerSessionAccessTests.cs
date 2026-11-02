@@ -199,5 +199,18 @@ public class PokerSessionAccessTests : IDisposable
         canManage.Should().Be(expected);
     }
 
+    [Fact]
+    public void Reader_CanManage_AdministratorWithNoEmployee_ShouldBeFalse()
+    {
+        // Arrange — every poker command needs a linked employee, so offering the controls would only fail.
+        var reader = new PokerSessionReader(null, true, [], false);
+
+        // Act
+        var canManage = reader.CanManage([Guid.NewGuid()]);
+
+        // Assert
+        canManage.Should().BeFalse();
+    }
+
     public void Dispose() => _dbContext.Dispose();
 }

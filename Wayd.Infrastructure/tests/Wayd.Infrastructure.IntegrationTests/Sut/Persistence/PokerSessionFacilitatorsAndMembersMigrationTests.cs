@@ -10,7 +10,7 @@ namespace Wayd.Infrastructure.IntegrationTests.Sut.Persistence;
 
 /// <summary>
 /// Proves the Poker-Session-Facilitators-And-Members migration makes existing sessions public, turns each session's
-/// facilitator account into a facilitator employee, adds everyone who voted as a Participant, and removes the
+/// facilitator account into a facilitator employee, adds everyone who voted as a voting member, and removes the
 /// dropped claims — and that its Down puts a facilitator account back.
 /// </summary>
 /// <remarks>
@@ -95,13 +95,12 @@ public sealed class PokerSessionFacilitatorsAndMembersMigrationTests(SqlServerDb
             var facilitators = await Rows(context, "SELECT [PokerSessionId], [EmployeeId] FROM [Planning].[PokerSessionFacilitators];", ct);
             facilitators.Select(r => ((Guid)r[0], (Guid)r[1])).Should().Equal((linked, facilitatorEmployee));
 
-            var members = await Rows(context, "SELECT [PokerSessionId], [EmployeeId], [Mode], [JoinedOn], [LeftOn] FROM [Planning].[PokerSessionMembers];", ct);
+            var members = await Rows(context, "SELECT [PokerSessionId], [EmployeeId], [IsVoting], [JoinedOn] FROM [Planning].[PokerSessionMembers];", ct);
             var member = members.Should().ContainSingle().Subject;
             member[0].Should().Be(linked);
             member[1].Should().Be(voterEmployee);
-            member[2].Should().Be("Participant");
+            member[2].Should().Be(true);
             member[3].Should().Be(new DateTime(2026, 1, 3, 10, 1, 0));
-            member[4].Should().Be(DBNull.Value);
 
             (await Rows(context, $"SELECT [ClaimValue] FROM [Identity].[RoleClaims] WHERE [RoleId] = '{roleId}';", ct))
                 .Select(r => (string)r[0]).Should().Equal("Permissions.PokerSessions.View");

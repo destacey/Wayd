@@ -44,34 +44,16 @@ public class JoinPokerSessionCommandHandlerTests : IDisposable
         _dbContext.AddPokerSession(session);
 
         // Act
-        var result = await _handler.Handle(new JoinPokerSessionCommand(session.Id, PokerSessionMemberMode.Observer), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new JoinPokerSessionCommand(session.Id, false), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         result.Value.Employee.Id.Should().Be(_voter.EmployeeId);
-        result.Value.Mode.Should().Be(PokerSessionMemberMode.Observer);
+        result.Value.IsVoting.Should().BeFalse();
         result.Value.JoinedOn.Should().Be(Now);
-        session.PresentMember(_voter.EmployeeId).Should().NotBeNull();
+        session.FindMember(_voter.EmployeeId).Should().NotBeNull();
         _dbContext.SaveChangesCallCount.Should().Be(1);
         _mockNotifier.Verify(n => n.NotifyMemberUpdated(session.Id, It.Is<PokerSessionMemberDto>(m => m.Employee.Id == _voter.EmployeeId)), Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_AgainAsObserver_ShouldAnnounceTheWithdrawnVote()
-    {
-        // Arrange
-        var session = new PokerSessionFaker().WithEstimationScale(_scale).Generate();
-        var round = session.AddRound("Story", null, PokerSessionActors.Facilitator).Value;
-        session.SubmitVote(round.Id, _scale.CurrentVersion.Values.First().Value, _scale.CurrentVersion, _voter, Now);
-        _dbContext.AddPokerSession(session);
-
-        // Act
-        var result = await _handler.Handle(new JoinPokerSessionCommand(session.Id, PokerSessionMemberMode.Observer), TestContext.Current.CancellationToken);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
-        round.Votes.Should().BeEmpty();
-        _mockNotifier.Verify(n => n.NotifyVoteWithdrawn(session.Id, round.Id, _voter.UserId), Times.Once);
     }
 
     [Fact]

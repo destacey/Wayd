@@ -24,7 +24,7 @@ public sealed record PokerSessionListDto : IMapFrom<PokerSession>
     public List<EmployeeNavigationDto> Facilitators { get; set; } = [];
 
     /// <summary>
-    /// The members who joined as a Participant, or switched to one, including those who have since left.
+    /// Everyone who has joined the session, voting or not, in the order they joined.
     /// </summary>
     public List<EmployeeNavigationDto> Participants { get; set; } = [];
 
@@ -40,9 +40,8 @@ public sealed record PokerSessionListDto : IMapFrom<PokerSession>
     {
         config.NewConfig<PokerSession, PokerSessionListDto>()
             .Map(dest => dest.Status, src => src.Status.GetDisplayName())
-            .Map(dest => dest.Facilitators, src => src.Facilitators.Select(f => EmployeeNavigationDto.From(f.Employee!)))
+            .Map(dest => dest.Facilitators, src => src.Facilitators.OrderBy(f => f.Employee!.Name.FirstName).ThenBy(f => f.Employee!.Name.LastName).Select(f => EmployeeNavigationDto.From(f.Employee!)))
             .Map(dest => dest.Participants, src => src.Members
-                .Where(m => m.Mode == PokerSessionMemberMode.Participant)
                 .OrderBy(m => m.JoinedOn)
                 .Select(m => EmployeeNavigationDto.From(m.Employee!)))
             .Ignore(dest => dest.CanManage)

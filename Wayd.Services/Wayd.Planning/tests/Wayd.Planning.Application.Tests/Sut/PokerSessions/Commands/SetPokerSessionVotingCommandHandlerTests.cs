@@ -11,28 +11,28 @@ using Wayd.Planning.Domain.Tests.Data;
 
 namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
 
-public class ChangePokerSessionModeCommandHandlerTests : IDisposable
+public class SetPokerSessionVotingCommandHandlerTests : IDisposable
 {
     private static readonly Instant Now = Instant.FromUtc(2026, 1, 15, 10, 0);
 
     private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext = new();
     private readonly Mock<IPokerSessionNotifier> _mockNotifier = new();
-    private readonly ChangePokerSessionModeCommandHandler _handler;
+    private readonly SetPokerSessionVotingCommandHandler _handler;
     private readonly EstimationScale _scale = new EstimationScaleFaker().Generate();
     private readonly PokerSessionActor _voter = PokerSessionActors.Voter("user-1");
 
-    public ChangePokerSessionModeCommandHandlerTests()
+    public SetPokerSessionVotingCommandHandlerTests()
     {
         _access.Actor = _voter;
         _dbContext.AddEmployee(new EmployeeFaker().WithId(_voter.EmployeeId).Generate());
         _dbContext.AddEstimationScale(_scale);
 
-        _handler = new ChangePokerSessionModeCommandHandler(_dbContext, _access, _mockNotifier.Object, new Mock<ILogger<ChangePokerSessionModeCommandHandler>>().Object);
+        _handler = new SetPokerSessionVotingCommandHandler(_dbContext, _access, _mockNotifier.Object, new Mock<ILogger<SetPokerSessionVotingCommandHandler>>().Object);
     }
 
     [Fact]
-    public async Task Handle_ToObserver_ShouldWithdrawTheUnrevealedVoteAndAnnounceIt()
+    public async Task Handle_TurningVotingOff_ShouldWithdrawTheUnrevealedVoteAndAnnounceIt()
     {
         // Arrange
         var session = new PokerSessionFaker().WithEstimationScale(_scale).Generate();
@@ -41,15 +41,15 @@ public class ChangePokerSessionModeCommandHandlerTests : IDisposable
         _dbContext.AddPokerSession(session);
 
         // Act
-        var result = await _handler.Handle(new ChangePokerSessionModeCommand(session.Id, PokerSessionMemberMode.Observer), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new SetPokerSessionVotingCommand(session.Id, false), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
-        result.Value.Mode.Should().Be(PokerSessionMemberMode.Observer);
+        result.Value.IsVoting.Should().BeFalse();
         round.Votes.Should().BeEmpty();
         _dbContext.SaveChangesCallCount.Should().Be(1);
         _mockNotifier.Verify(n => n.NotifyVoteWithdrawn(session.Id, round.Id, _voter.UserId), Times.Once);
-        _mockNotifier.Verify(n => n.NotifyMemberUpdated(session.Id, It.Is<PokerSessionMemberDto>(m => m.Mode == PokerSessionMemberMode.Observer)), Times.Once);
+        _mockNotifier.Verify(n => n.NotifyMemberUpdated(session.Id, It.Is<PokerSessionMemberDto>(m => !m.IsVoting)), Times.Once);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public class ChangePokerSessionModeCommandHandlerTests : IDisposable
         _dbContext.AddPokerSession(session);
 
         // Act
-        var result = await _handler.Handle(new ChangePokerSessionModeCommand(session.Id, PokerSessionMemberMode.Observer), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new SetPokerSessionVotingCommand(session.Id, false), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();

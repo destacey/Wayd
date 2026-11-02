@@ -26,7 +26,7 @@ public class GetPokerSessionInvitedTeamMembersQueryHandlerTests : IDisposable
     public async Task Handle_ShouldListTheTeamsActiveMembersByName()
     {
         // Arrange
-        var session = new PokerSessionFaker().WithInvitedTeams(_teamId).Generate();
+        var session = new PokerSessionFaker().WithVisibility(Visibility.Private).WithInvitedTeams(_teamId).Generate();
         _dbContext.AddPokerSession(session);
         var zoe = new EmployeeFaker().Generate();
         var adam = new EmployeeFaker().Generate();
@@ -46,10 +46,25 @@ public class GetPokerSessionInvitedTeamMembersQueryHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_PublicSession_ShouldReturnNull()
+    {
+        // Arrange
+        var session = new PokerSessionFaker().WithInvitedTeams(_teamId).Generate();
+        _dbContext.AddPokerSession(session);
+
+        // Act
+        var result = await _handler.Handle(new GetPokerSessionInvitedTeamMembersQuery(session.Id, _teamId), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeNull();
+        _dispatcher.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task Handle_TeamNotInvited_ShouldReturnNull()
     {
         // Arrange
-        var session = new PokerSessionFaker().Generate();
+        var session = new PokerSessionFaker().WithVisibility(Visibility.Private).Generate();
         _dbContext.AddPokerSession(session);
 
         // Act

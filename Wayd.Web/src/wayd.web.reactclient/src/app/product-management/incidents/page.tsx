@@ -108,17 +108,15 @@ function IncidentListRow({ row }: { row: IncidentSummaryDto }) {
   )
 
   return (
-    <Link
-      className={styles.incidentRow}
-      href={`/product-management/incidents/${row.key}`}
-    >
+    <div className={styles.incidentRow}>
       <IncidentSeverityRank
         name={row.severityLevel.name}
         color={row.severityLevel.color}
       />
       <span className={styles.titleCell}>
-        <strong>{row.title}</strong>
-        <span className={styles.id}>INC-{row.key}</span>
+        <Link href={`/product-management/incidents/${row.key}`}>
+          <strong>{row.title}</strong>
+        </Link>
       </span>
       <span>{formatIncidentProductLabel(row.products ?? [])}</span>
       <span>
@@ -131,7 +129,7 @@ function IncidentListRow({ row }: { row: IncidentSummaryDto }) {
       </span>
       <span>{age}</span>
       <span>{row.commander?.name ?? '—'}</span>
-    </Link>
+    </div>
   )
 }
 

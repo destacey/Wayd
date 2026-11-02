@@ -129,7 +129,9 @@ public sealed class ProductWorkflowOwnersTests
         { ProductWorkflowOwners.Deployment.Key, ProductStatusAlias.Failed, StatusCategory.Removed },
         { ProductWorkflowOwners.Deployment.Key, ProductStatusAlias.RolledBack, StatusCategory.Removed },
         { ProductWorkflowOwners.Incident.Key, ProductStatusAlias.Open, StatusCategory.Active },
+        { ProductWorkflowOwners.Incident.Key, ProductStatusAlias.Responding, StatusCategory.Active },
         { ProductWorkflowOwners.Incident.Key, ProductStatusAlias.Resolved, StatusCategory.Done },
+        { ProductWorkflowOwners.Incident.Key, ProductStatusAlias.Closed, StatusCategory.Done },
         { ProductWorkflowOwners.Incident.Key, ProductStatusAlias.Canceled, StatusCategory.Removed },
     };
 

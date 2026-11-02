@@ -11,6 +11,8 @@ using Wayd.Planning.Application.Persistence;
 using Wayd.Planning.Domain;
 using Wayd.ProjectPortfolioManagement.Application;
 using Wayd.ProjectPortfolioManagement.Domain;
+using Wayd.ProductManagement.Application;
+using Wayd.ProductManagement.Domain;
 
 namespace Wayd.Infrastructure.Tests.Sut.Following;
 
@@ -25,12 +27,17 @@ namespace Wayd.Infrastructure.Tests.Sut.Following;
 public sealed class FollowRegistrationTests
 {
     private static readonly string[] ApplicationOwnerTypes =
-        [.. PpmFollowOwners.All.Concat(PlanningFollowOwners.All).Concat(DemandManagementFollowOwners.All).Select(d => d.Key)];
+        [.. PpmFollowOwners.All
+            .Concat(PlanningFollowOwners.All)
+            .Concat(DemandManagementFollowOwners.All)
+            .Concat(ProductManagementFollowOwners.All)
+            .Select(d => d.Key)];
 
     private static ServiceProvider BuildProvider()
     {
         var services = new ServiceCollection();
 
+        services.AddScoped(_ => new Mock<IProductManagementDbContext>().Object);
         services.AddScoped(_ => new Mock<IProjectPortfolioManagementDbContext>().Object);
         services.AddScoped(_ => new Mock<IPlanningDbContext>().Object);
         services.AddScoped(_ => new Mock<IDemandManagementDbContext>().Object);

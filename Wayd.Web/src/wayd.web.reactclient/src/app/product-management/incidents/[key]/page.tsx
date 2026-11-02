@@ -1,18 +1,24 @@
 'use client'
 
+import { FollowButton, PageActions } from '@/src/components/common'
 import { WorkflowStatusTag } from '@/src/components/common/status-workflows'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import {
+  useApplyIncidentWorkflowActionMutation,
   useGetIncidentQuery,
+  useGetIncidentWorkflowActionsQuery,
   useUpdateIncidentDetailsMutation,
 } from '@/src/store/features/product-management/incidents-api'
+import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
 import { useGetIncidentSeveritySetsQuery } from '@/src/store/features/product-management/incident-severity-sets-api'
 import { formatInstantInZone } from '@/src/utils'
-import { Button, DatePicker, Form, Select } from 'antd'
+import { Button, DatePicker, Form, Modal, Select } from 'antd'
+import type { MenuProps } from 'antd'
+import { ItemType } from 'antd/es/menu/interface'
 import TextArea from 'antd/es/input/TextArea'
 import dayjs, { Dayjs } from 'dayjs'
 import { notFound } from 'next/navigation'
@@ -22,12 +28,20 @@ import { MarkdownEditor } from '@/src/components/common/markdown'
 import IncidentLinks from '@/src/app/product-management/incidents/_components/incident-links'
 import IncidentDiscussion from '@/src/app/product-management/incidents/_components/incident-discussion'
 import IncidentTimeline from '@/src/app/product-management/incidents/_components/incident-timeline'
+import CancelIncidentForm from '@/src/app/product-management/incidents/_components/cancel-incident-form'
+import { incidentWorkflowActionAvailability } from '@/src/app/product-management/incidents/_components/incident-workflow-actions'
 import styles from '@/src/app/product-management/incidents/_components/incidents.module.css'
+import {
+  IncidentWorkflowAction,
+  ApplyIncidentWorkflowActionRequest,
+} from '@/src/services/wayd-api'
+import { isApiError } from '@/src/utils'
 
 const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { key } = use(props.params)
   const messageApi = useMessage()
   const [editing, setEditing] = useState(false)
+  const [cancelOpen, setCancelOpen] = useState(false)
   const [form] = Form.useForm()
 
   const { hasPermissionClaim } = useAuth()
@@ -41,6 +55,13 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { data: incident, error, isLoading, refetch } = useGetIncidentQuery(key)
   const [updateDetails, { isLoading: saving }] =
     useUpdateIncidentDetailsMutation()
+  const [applyWorkflowAction, { isLoading: applyingWorkflow }] =
+    useApplyIncidentWorkflowActionMutation()
+  const {
+    data: workflowActions,
+    isError: workflowActionsFailed,
+    isLoading: workflowActionsLoading,
+  } = useGetIncidentWorkflowActionsQuery(key, { skip: !canUpdate })
   const { data: severitySets } = useGetIncidentSeveritySetsQuery(false)
   const { data: products } = useGetProductsQuery(undefined)
 
@@ -114,21 +135,161 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     }
   }
 
-  const actions =
-    canUpdate && !editing ? (
-      <Button onClick={startEditing}>Edit</Button>
-    ) : editing ? (
+  const allowedActions = workflowActionsFailed
+    ? undefined
+    : (workflowActions?.map((a) => a.action) ?? [])
+  const workflowAvailability = incidentWorkflowActionAvailability(allowedActions)
+  const lifecycleReady = !canUpdate || workflowActionsFailed || !workflowActionsLoading
+
+  const applyLifecycleAction = async (
+    action: IncidentWorkflowAction,
+    request: ApplyIncidentWorkflowActionRequest,
+    successMessage: string,
+  ) => {
+    try {
+      await applyWorkflowAction({
+        id: incident.id,
+        idOrKey: key,
+        request,
+      }).unwrap()
+      messageApi.success(successMessage)
+      refetch()
+    } catch (err) {
+      messageApi.error(
+        isApiError(err)
+          ? (err.detail ?? 'Could not update incident status.')
+          : 'Could not update incident status.',
+      )
+      throw err
+    }
+  }
+
+  const confirmLifecycleAction = (
+    title: string,
+    content: string,
+    action: IncidentWorkflowAction,
+    successMessage: string,
+  ) => {
+    Modal.confirm({
+      title,
+      content,
+      okText: title,
+      onOk: () =>
+        applyLifecycleAction(action, { action }, successMessage),
+    })
+  }
+
+  const actionsMenuItems: MenuProps['items'] = (() => {
+    if (!canUpdate || !lifecycleReady) {
+      return []
+    }
+
+    const groups: ItemType[][] = []
+
+    const corrections: ItemType[] = []
+    if (!editing) {
+      corrections.push({
+        key: 'edit',
+        label: 'Edit',
+        onClick: startEditing,
+      })
+    }
+    if (corrections.length > 0) {
+      groups.push(corrections)
+    }
+
+    const lifecycle: ItemType[] = []
+    if (workflowAvailability.canBeginResponding) {
+      lifecycle.push({
+        key: 'begin-responding',
+        label: 'Begin responding',
+        disabled: applyingWorkflow,
+        onClick: () =>
+          confirmLifecycleAction(
+            'Begin responding',
+            'Mark this incident as actively being worked.',
+            IncidentWorkflowAction.BeginResponding,
+            'Incident is now responding.',
+          ),
+      })
+    }
+    if (workflowAvailability.canMarkRecovered) {
+      lifecycle.push({
+        key: 'mark-recovered',
+        label: 'Mark recovered',
+        disabled: applyingWorkflow,
+        onClick: () =>
+          confirmLifecycleAction(
+            'Mark recovered',
+            'Record that service has been restored.',
+            IncidentWorkflowAction.MarkRecovered,
+            'Incident marked recovered.',
+          ),
+      })
+    }
+    if (workflowAvailability.canClose) {
+      lifecycle.push({
+        key: 'close',
+        label: 'Close',
+        disabled: applyingWorkflow,
+        onClick: () =>
+          confirmLifecycleAction(
+            'Close incident',
+            'Close the incident after recovery.',
+            IncidentWorkflowAction.Close,
+            'Incident closed.',
+          ),
+      })
+    }
+    if (workflowAvailability.canCancel) {
+      lifecycle.push({
+        key: 'cancel',
+        label: 'Cancel',
+        danger: true,
+        disabled: applyingWorkflow,
+        onClick: () => setCancelOpen(true),
+      })
+    }
+    if (lifecycle.length > 0) {
+      groups.push(lifecycle)
+    }
+
+    return groups
+      .filter((group) => group.length > 0)
+      .flatMap((group, index) =>
+        index === 0
+          ? group
+          : [{ type: 'divider' as const, key: `divider-${index}` }, ...group],
+      )
+  })()
+
+  const toolbar =
+    editing ? (
       <>
         <Button onClick={() => setEditing(false)}>Cancel</Button>
         <Button type="primary" loading={saving} onClick={() => void save()}>
           Save
         </Button>
       </>
-    ) : null
+    ) : (
+      <>
+        <span className={styles.detailToolbarFollow}>
+          <FollowButton
+            ownerType={FollowOwnerTypes.Incident}
+            ownerId={incident.id}
+          />
+        </span>
+        {canUpdate && actionsMenuItems.length > 0 ? (
+          <PageActions actionItems={actionsMenuItems} />
+        ) : canUpdate ? (
+          <Button onClick={startEditing}>Edit</Button>
+        ) : null}
+      </>
+    )
 
   return (
     <div className="page-gutters">
-      {actions ? <div className={styles.detailToolbar}>{actions}</div> : null}
+      <div className={styles.detailToolbar}>{toolbar}</div>
       {editing ? (
         <Form form={form} layout="vertical">
           <Form.Item name="title" label="Title" rules={[{ required: true }]}>
@@ -224,6 +385,16 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           </div>
         </>
       )}
+      {cancelOpen ? (
+        <CancelIncidentForm
+          incident={incident}
+          onFormComplete={() => {
+            setCancelOpen(false)
+            refetch()
+          }}
+          onFormCancel={() => setCancelOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }

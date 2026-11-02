@@ -11658,6 +11658,119 @@
         ]
       }
     },
+    "/api/product-management/incidents/{idOrKey}/workflow-actions": {
+      "get": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "List lifecycle actions allowed for an incident from its current status.",
+        "operationId": "Incidents_GetIncidentWorkflowActions",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IncidentWorkflowActionDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incidents/{id}/workflow-actions": {
+      "post": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Apply a lifecycle action to an incident.",
+        "operationId": "Incidents_ApplyIncidentWorkflowAction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyIncidentWorkflowActionRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/product-management/incident-severity-sets": {
       "get": {
         "tags": [
@@ -56230,6 +56343,29 @@
         },
         "additionalProperties": false
       },
+      "ApplyIncidentWorkflowActionRequest": {
+        "required": [
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IncidentWorkflowAction"
+              }
+            ],
+            "description": "The action to apply."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the incident was canceled, when IncidentWorkflowAction ApplyIncidentWorkflowActionRequest.Action is Cancel.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Applies a lifecycle action to an incident."
+      },
       "ApproveOAuthAuthorizationRequest": {
         "type": "object",
         "properties": {
@@ -67114,6 +67250,34 @@
         "additionalProperties": false,
         "description": "One commander-authored entry on an incident timeline."
       },
+      "IncidentWorkflowAction": {
+        "enum": [
+          "BeginResponding",
+          "MarkRecovered",
+          "Close",
+          "Cancel"
+        ],
+        "type": "string",
+        "description": "A lifecycle action on an incident that moves its status."
+      },
+      "IncidentWorkflowActionDto": {
+        "required": [
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IncidentWorkflowAction"
+              }
+            ],
+            "description": "The action."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A lifecycle action whose move an incident's workflow allows from the status it holds."
+      },
       "InitWorkspaceIntegrationRequest": {
         "required": [
           "id",
@@ -74217,7 +74381,9 @@
           "RolledBack",
           "Open",
           "Resolved",
-          "Canceled"
+          "Canceled",
+          "Responding",
+          "Closed"
         ],
         "type": "string"
       },

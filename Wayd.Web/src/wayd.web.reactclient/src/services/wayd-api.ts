@@ -14426,6 +14426,137 @@ export class IncidentsClient {
         }
         return Promise.resolve<string>(null as any);
     }
+
+    /**
+     * List lifecycle actions allowed for an incident from its current status.
+     * @return OK
+     */
+    getIncidentWorkflowActions(idOrKey: string, cancelToken?: CancelToken): Promise<IncidentWorkflowActionDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/incidents/{idOrKey}/workflow-actions";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIncidentWorkflowActions(_response);
+        });
+    }
+
+    protected processGetIncidentWorkflowActions(response: AxiosResponse): Promise<IncidentWorkflowActionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IncidentWorkflowActionDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IncidentWorkflowActionDto[]>(null as any);
+    }
+
+    /**
+     * Apply a lifecycle action to an incident.
+     * @return No Content
+     */
+    applyIncidentWorkflowAction(id: string, request: ApplyIncidentWorkflowActionRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/incidents/{id}/workflow-actions";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processApplyIncidentWorkflowAction(_response);
+        });
+    }
+
+    protected processApplyIncidentWorkflowAction(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
 }
 
 export class IncidentSeveritySetsClient {
@@ -64019,6 +64150,14 @@ export interface ApplicationPermission {
     name: string;
 }
 
+/** Applies a lifecycle action to an incident. */
+export interface ApplyIncidentWorkflowActionRequest {
+    /** The action to apply. */
+    action: IncidentWorkflowAction;
+    /** Why the incident was canceled, when IncidentWorkflowAction ApplyIncidentWorkflowActionRequest.Action is Cancel. */
+    reason?: string | undefined;
+}
+
 /** The user's approval of a connection request. */
 export interface ApproveOAuthAuthorizationRequest {
     /** The access to grant the application. Omitted, it gets what it asked for; a scope wider than it asked for is
@@ -67608,6 +67747,20 @@ export interface IncidentTimelineNoteDto {
     author: NavigationDto;
 }
 
+/** A lifecycle action on an incident that moves its status. */
+export enum IncidentWorkflowAction {
+    BeginResponding = "BeginResponding",
+    MarkRecovered = "MarkRecovered",
+    Close = "Close",
+    Cancel = "Cancel",
+}
+
+/** A lifecycle action whose move an incident's workflow allows from the status it holds. */
+export interface IncidentWorkflowActionDto {
+    /** The action. */
+    action: IncidentWorkflowAction;
+}
+
 export interface InitWorkspaceIntegrationRequest {
     /** Connection Id. */
     id: string;
@@ -70029,6 +70182,8 @@ export enum ProductStatusAlias {
     Open = "Open",
     Resolved = "Resolved",
     Canceled = "Canceled",
+    Responding = "Responding",
+    Closed = "Closed",
 }
 
 /** A tag category and the tags on it. */

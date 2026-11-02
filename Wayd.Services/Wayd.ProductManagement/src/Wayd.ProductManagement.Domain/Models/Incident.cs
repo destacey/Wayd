@@ -3,6 +3,7 @@ using CSharpFunctionalExtensions;
 using NodaTime;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.ProductManagement.Incidents;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain;
@@ -10,7 +11,7 @@ using Wayd.ProductManagement.Domain;
 namespace Wayd.ProductManagement.Domain.Models;
 
 /// <summary>
-/// An operational incident, linked to one or more products and tracked through a simple open lifecycle.
+/// An operational incident, linked to one or more products and tracked through a response lifecycle.
 /// </summary>
 public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
 {
@@ -136,11 +137,24 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure<Incident>(products.Error);
         }
 
+        incident.AddPostPersistenceAction(() => incident.AddDomainEvent(new IncidentCreatedEvent(
+            incident.Id,
+            incident.Key,
+            incident.Title,
+            incident.CommanderEmployeeId,
+            incident.SeverityLevelId,
+            incident.NoticedAt,
+            incident.StartedAt,
+            incident.RecoveredAt,
+            incident.StatusAlias,
+            actor,
+            timestamp)));
+
         return Result.Success(incident);
     }
 
     /// <summary>
-    /// Updates the editable details of an open incident.
+    /// Updates the editable details of an incident.
     /// </summary>
     public Result UpdateDetails(
         string title,
@@ -149,7 +163,9 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         Instant noticedAt,
         Instant? startedAt,
         Instant? recoveredAt,
-        IReadOnlyCollection<Guid> productIds)
+        IReadOnlyCollection<Guid> productIds,
+        EventActor actor,
+        Instant timestamp)
     {
         if (severityLevelId == Guid.Empty)
         {
@@ -162,6 +178,13 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
             return timeline;
         }
 
+        var previousTitle = Title;
+        var previousDescription = Description;
+        var previousSeverityLevelId = SeverityLevelId;
+        var previousNoticedAt = NoticedAt;
+        var previousStartedAt = StartedAt;
+        var previousRecoveredAt = RecoveredAt;
+
         Title = title;
         Description = description;
         SeverityLevelId = severityLevelId;
@@ -169,14 +192,114 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         StartedAt = startedAt;
         RecoveredAt = recoveredAt;
 
-        return ReplaceProductLinks(this, productIds);
+        var products = ReplaceProductLinks(this, productIds);
+        if (products.IsFailure)
+        {
+            return products;
+        }
+
+        var detailsChanged =
+            previousTitle != Title
+            || previousDescription != Description
+            || previousSeverityLevelId != SeverityLevelId;
+
+        if (detailsChanged)
+        {
+            AddDomainEvent(new IncidentDetailsUpdatedEvent(
+                Id,
+                Key,
+                previousTitle,
+                previousDescription,
+                previousSeverityLevelId,
+                Title,
+                Description,
+                SeverityLevelId,
+                actor,
+                timestamp));
+        }
+
+        if (previousNoticedAt != NoticedAt || previousStartedAt != StartedAt || previousRecoveredAt != RecoveredAt)
+        {
+            AddDomainEvent(new IncidentTimelineChangedEvent(
+                Id,
+                Key,
+                previousNoticedAt,
+                previousStartedAt,
+                previousRecoveredAt,
+                NoticedAt,
+                StartedAt,
+                RecoveredAt,
+                actor,
+                timestamp));
+        }
+
+        return Result.Success();
     }
+
+    /// <summary>Records active response has begun.</summary>
+    public Result BeginResponding(
+        StatusRef respondingStatus,
+        EventActor actor,
+        Instant timestamp,
+        Instant? responseStartedAt = null)
+    {
+        var at = responseStartedAt ?? timestamp;
+        var statusChange = ChangeStatus(respondingStatus, actor, timestamp);
+        if (statusChange.IsFailure)
+        {
+            return statusChange;
+        }
+
+        if (StartedAt is null)
+        {
+            StartedAt = at;
+        }
+
+        return Result.Success();
+    }
+
+    /// <summary>Records that service has been restored.</summary>
+    public Result MarkRecovered(
+        StatusRef recoveredStatus,
+        EventActor actor,
+        Instant timestamp,
+        Instant? recoveredAt = null)
+    {
+        var at = recoveredAt ?? timestamp;
+        var statusChange = ChangeStatus(recoveredStatus, actor, timestamp);
+        if (statusChange.IsFailure)
+        {
+            return statusChange;
+        }
+
+        if (RecoveredAt is null)
+        {
+            RecoveredAt = at;
+        }
+
+        if (StartedAt is null)
+        {
+            StartedAt = at;
+        }
+
+        return Result.Success();
+    }
+
+    /// <summary>Closes the incident after recovery.</summary>
+    public Result Close(StatusRef closedStatus, EventActor actor, Instant timestamp) =>
+        ChangeStatus(closedStatus, actor, timestamp);
+
+    /// <summary>Closes the incident without treating it as a real event.</summary>
+    public Result Cancel(StatusRef canceledStatus, EventActor actor, Instant timestamp, string? reason = null) =>
+        ChangeStatus(canceledStatus, actor, timestamp, reason);
 
     /// <summary>Records an operational note on the incident timeline.</summary>
     public Result<IncidentTimelineNote> AddTimelineNote(
         string body,
         Guid authorEmployeeId,
-        Instant recordedAt)
+        Instant recordedAt,
+        EventActor actor,
+        Instant timestamp)
     {
         if (authorEmployeeId == Guid.Empty)
         {
@@ -195,7 +318,51 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
 
         var note = IncidentTimelineNote.Create(Id, body, authorEmployeeId, recordedAt);
         _timelineNotes.Add(note);
+
+        AddDomainEvent(new IncidentTimelineNoteAddedEvent(
+            Id,
+            Key,
+            note.Id,
+            authorEmployeeId,
+            recordedAt,
+            actor,
+            timestamp));
+
         return Result.Success(note);
+    }
+
+    private Result ChangeStatus(StatusRef status, EventActor actor, Instant timestamp, string? reason = null)
+    {
+        Guard.Against.Null(status, nameof(status));
+
+        if (status.StatusId == StatusId)
+        {
+            return Result.Success();
+        }
+
+        var fromStatusId = StatusId;
+        var fromCategory = StatusCategory;
+        var fromAlias = StatusAlias;
+
+        var applied = ApplyStatus(status, actor, timestamp, reason);
+        if (applied.IsFailure)
+        {
+            return applied;
+        }
+
+        AddDomainEvent(new IncidentStatusChangedEvent(
+            Id,
+            Key,
+            fromStatusId,
+            fromCategory,
+            fromAlias,
+            status.StatusId,
+            status.Category,
+            (ProductStatusAlias)status.Alias,
+            actor,
+            timestamp));
+
+        return Result.Success();
     }
 
     private static Result ValidateTimeline(Instant noticedAt, Instant? startedAt, Instant? recoveredAt)

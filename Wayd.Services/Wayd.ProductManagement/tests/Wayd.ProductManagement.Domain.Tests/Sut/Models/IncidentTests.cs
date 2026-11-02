@@ -81,7 +81,12 @@ public sealed class IncidentTests
             Timestamp).Value;
 
         // Act
-        var result = incident.AddTimelineNote("Checking card vault deploy.", commanderId, Timestamp.Plus(Duration.FromMinutes(4)));
+        var result = incident.AddTimelineNote(
+            "Checking card vault deploy.",
+            commanderId,
+            Timestamp.Plus(Duration.FromMinutes(4)),
+            EventActor.System,
+            Timestamp.Plus(Duration.FromMinutes(4)));
 
         // Assert
         result.IsSuccess.Should().BeTrue();

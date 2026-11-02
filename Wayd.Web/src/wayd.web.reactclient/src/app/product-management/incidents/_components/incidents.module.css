@@ -209,9 +209,14 @@
   margin: 0 0 6px;
 }
 
+.detailToolbarFollow {
+  margin-right: auto;
+}
+
 .detailToolbar {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 8px;
   margin-bottom: 12px;
 }

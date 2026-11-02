@@ -2,6 +2,7 @@ using Microsoft.FeatureManagement;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.FeatureManagement;
+using Wayd.ProductManagement.Application.Incidents;
 using Wayd.ProductManagement.Application.Incidents.Commands;
 using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.ProductManagement.Application.Incidents.Queries;
@@ -186,5 +187,41 @@ public class IncidentsController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetIncidentTimelineNotes), new { idOrKey = id.ToString() }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpGet("{idOrKey}/workflow-actions")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Incidents)]
+    [EndpointSummary("List lifecycle actions allowed for an incident from its current status.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<IncidentWorkflowActionDto>>> GetIncidentWorkflowActions(
+        string idOrKey,
+        CancellationToken cancellationToken)
+    {
+        var actions = await _dispatcher.Send(
+            new GetIncidentWorkflowActionsQuery(new IdOrKey(idOrKey)),
+            cancellationToken);
+
+        return actions is null ? NotFound() : Ok(actions);
+    }
+
+    [HttpPost("{id:guid}/workflow-actions")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Incidents)]
+    [EndpointSummary("Apply a lifecycle action to an incident.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> ApplyIncidentWorkflowAction(
+        Guid id,
+        [FromBody] ApplyIncidentWorkflowActionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var incident = await _dispatcher.Send(new GetIncidentQuery(new IdOrKey(id)), cancellationToken);
+        if (incident is null)
+            return NotFound();
+
+        var result = await _dispatcher.Send(request.ToCommand(id), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 }

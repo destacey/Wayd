@@ -119,6 +119,7 @@ public partial class EventCoverageTests
         typeof(Release),
         typeof(ReleasePackage),
         typeof(Version),
+        typeof(Incident),
 
         // Project Portfolio Management
         typeof(Program),
@@ -155,6 +156,8 @@ public partial class EventCoverageTests
             "In Common, so it cannot be internal to the aggregates that own a health check; only their UpdateHealthCheck calls it, and that raises.",
         ["HealthCheckBase.ChangeExpiration(Instant)"] =
             "Called only by HealthReport when a new check supersedes the latest, inside the owning aggregate's AddHealthCheck, which raises.",
+        ["IncidentTimelineNote.Create(Guid, String, Guid, Instant)"] =
+            "Called only from Incident.AddTimelineNote, which raises IncidentTimelineNoteAddedEvent.",
 
         // Not yet evented: each awaits the issue it names.
         ["Project.CreateTask(Int32, String, String, ProjectTaskType, TaskStatus, TaskPriority, Progress, Guid, FlexibleDateRange, Nullable<LocalDate>, Nullable<Decimal>, Dictionary<TaskRole, HashSet<Guid>>)"] = "#950.",
@@ -275,6 +278,7 @@ public partial class EventCoverageTests
         [typeof(ProductDependency)] = typeof(Product),
         [typeof(ProductTeamLink)] = typeof(Product),
         [typeof(IncidentSeverityLevel)] = typeof(IncidentSeveritySet),
+        [typeof(IncidentTimelineNote)] = typeof(Incident),
         [typeof(ProductTagAssignment)] = typeof(Product),
         [typeof(ProjectDeliverable)] = typeof(Project),
         [typeof(ProjectDeliverableTask)] = typeof(Project),

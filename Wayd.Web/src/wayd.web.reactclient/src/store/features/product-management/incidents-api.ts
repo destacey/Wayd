@@ -11,6 +11,8 @@ import type {
   WorkItemsSummaryDto,
   AddIncidentTimelineNoteRequest,
   IncidentTimelineNoteDto,
+  IncidentWorkflowActionDto,
+  ApplyIncidentWorkflowActionRequest,
 } from '@/src/services/wayd-api'
 
 export interface GetIncidentsRequest {
@@ -164,6 +166,49 @@ export const incidentsApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (_result, _error, request) => [
         { type: QueryTags.IncidentTimelineNotes, id: request.incidentId },
+        { type: QueryTags.Incident, id: request.incidentId },
+      ],
+    }),
+    getIncidentWorkflowActions: builder.query<
+      IncidentWorkflowActionDto[],
+      string
+    >({
+      queryFn: async (idOrKey) => {
+        try {
+          const data =
+            await getIncidentsClient().getIncidentWorkflowActions(idOrKey)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (_result, _error, idOrKey) => [
+        { type: QueryTags.WorkflowActions, id: idOrKey },
+      ],
+    }),
+    applyIncidentWorkflowAction: builder.mutation<
+      void,
+      {
+        id: string
+        idOrKey: string
+        request: ApplyIncidentWorkflowActionRequest
+      }
+    >({
+      queryFn: async ({ id, request }) => {
+        try {
+          await getIncidentsClient().applyIncidentWorkflowAction(id, request)
+          return { data: undefined }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (_result, _error, { id, idOrKey }) => [
+        { type: QueryTags.Incident, id },
+        { type: QueryTags.Incident, id: idOrKey },
+        { type: QueryTags.Incident, id: 'LIST' },
+        { type: QueryTags.WorkflowActions, id: idOrKey },
       ],
     }),
   }),
@@ -178,4 +223,6 @@ export const {
   useManageIncidentWorkItemsMutation,
   useGetIncidentTimelineNotesQuery,
   useAddIncidentTimelineNoteMutation,
+  useGetIncidentWorkflowActionsQuery,
+  useApplyIncidentWorkflowActionMutation,
 } = incidentsApi

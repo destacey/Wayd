@@ -1,4 +1,7 @@
+using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain;
 
@@ -74,14 +77,124 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
         seeded |= await seeding.SeedIfAbsent(dbContext, ProductWorkflowOwners.Incident, "Default Incident Workflow",
             "The lifecycle of an operational incident.",
             [
-                ("Open", "Under investigation or response.", StatusCategory.Active, ProductStatusAlias.Open),
-                ("Resolved", "Work finished and service restored.", StatusCategory.Done, ProductStatusAlias.Resolved),
+                ("Open", "Under investigation.", StatusCategory.Active, ProductStatusAlias.Open),
+                ("Responding", "Active response is under way.", StatusCategory.Active, ProductStatusAlias.Responding),
+                ("Recovered", "Service restored.", StatusCategory.Done, ProductStatusAlias.Resolved),
+                ("Closed", "Closed after recovery.", StatusCategory.Done, ProductStatusAlias.Closed),
                 ("Canceled", "Closed without treating as a real incident.", StatusCategory.Removed, ProductStatusAlias.Canceled),
             ], dateTimeProvider, cancellationToken);
 
-        if (seeded)
+        var lifecycleUpgraded = await EnsureIncidentWorkflowLifecycle(dbContext, dateTimeProvider, cancellationToken);
+
+        if (seeded || lifecycleUpgraded)
         {
             await seeding.Save(dbContext, cancellationToken);
         }
+    }
+
+    /// <summary>
+    /// Brings an existing system incident workflow up to the lifecycle stages and restricted moves the
+    /// aggregate expects. New databases get this from <see cref="SystemWorkflowSeeding.SeedIfAbsent"/>; this
+    /// repairs older defaults that stopped at Open, Resolved and Canceled.
+    /// </summary>
+    private static async Task<bool> EnsureIncidentWorkflowLifecycle(
+        WaydDbContext dbContext,
+        IDateTimeProvider dateTimeProvider,
+        CancellationToken cancellationToken)
+    {
+        var workflow = await dbContext.StatusWorkflows
+            .Include(w => w.Statuses)
+            .Include(w => w.Transitions)
+            .FirstOrDefaultAsync(
+                w => w.OwnerType == ProductWorkflowOwners.Incident.Key && w.IsSystem,
+                cancellationToken);
+
+        if (workflow is null)
+        {
+            return false;
+        }
+
+        var timestamp = dateTimeProvider.Now;
+        var actor = EventActor.System;
+        var changed = false;
+
+        WorkflowStatus StatusFor(ProductStatusAlias alias) =>
+            workflow.Statuses.Single(s => s.Alias == (int)alias);
+
+        if (workflow.Statuses.All(s => s.Alias != (int)ProductStatusAlias.Responding))
+        {
+            workflow.AddSystemStatus(
+                "Responding",
+                "Active response is under way.",
+                StatusCategory.Active,
+                (int)ProductStatusAlias.Responding,
+                actor,
+                timestamp);
+            changed = true;
+        }
+
+        if (workflow.Statuses.All(s => s.Alias != (int)ProductStatusAlias.Closed))
+        {
+            workflow.AddSystemStatus(
+                "Closed",
+                "Closed after recovery.",
+                StatusCategory.Done,
+                (int)ProductStatusAlias.Closed,
+                actor,
+                timestamp);
+            changed = true;
+        }
+
+        var resolved = workflow.Statuses.SingleOrDefault(s => s.Alias == (int)ProductStatusAlias.Resolved);
+        if (resolved is not null && resolved.Name != "Recovered")
+        {
+            var rename = workflow.RenameStatus(
+                resolved.Id,
+                "Recovered",
+                "Service restored.",
+                actor,
+                timestamp);
+            if (rename.IsFailure)
+            {
+                throw new InvalidOperationException(rename.Error);
+            }
+
+            changed = true;
+        }
+
+        if (workflow.TransitionMode != TransitionMode.Restricted)
+        {
+            workflow.SetTransitionMode(TransitionMode.Restricted, actor, timestamp);
+            changed = true;
+        }
+
+        var moves = ProductWorkflowOwners.Incident.Moves
+            .Select(m => new WorkflowTransitionDefinition(
+                StatusFor((ProductStatusAlias)m.FromAlias!.Value).Id,
+                StatusFor((ProductStatusAlias)m.ToAlias!.Value).Id))
+            .ToList();
+
+        var current = workflow.Transitions
+            .Select(t => (t.FromStatusId, t.ToStatusId))
+            .ToHashSet();
+
+        var desired = moves.Select(m => (m.FromStatusId, m.ToStatusId)).ToHashSet();
+        if (!current.SetEquals(desired))
+        {
+            var set = workflow.SetTransitions(moves, actor, timestamp);
+            if (set.IsFailure)
+            {
+                throw new InvalidOperationException($"The incident workflow could not be restricted: {set.Error}");
+            }
+
+            changed = true;
+        }
+
+        if (changed)
+        {
+            dbContext.StatusWorkflows.Update(workflow);
+        }
+
+        return changed;
     }
 }

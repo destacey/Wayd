@@ -6,6 +6,7 @@ using Wayd.Common.Domain.Events.Planning.EstimationScales;
 using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervalObjectives;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervals;
+using Wayd.Common.Domain.Events.ProductManagement.Incidents;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.Events.StrategicManagement;
@@ -157,6 +158,10 @@ public static class DurableEventRoutes
         typeof(PlanningIntervalObjectiveStatusChangedEvent),
         typeof(PlanningIntervalObjectiveHealthCheckAddedEvent),
         typeof(PlanningIntervalObjectiveTimelineChangedEvent),
+        typeof(IncidentCreatedEvent),
+        typeof(IncidentStatusChangedEvent),
+        typeof(IncidentTimelineChangedEvent),
+        typeof(IncidentTimelineNoteAddedEvent),
         typeof(IntakeRequestCreatedEventV2),
         typeof(IntakeRequestStatusChangedEvent),
         typeof(IntakeRequestWithdrawnEvent),

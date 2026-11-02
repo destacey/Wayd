@@ -4,15 +4,19 @@ import { QueryTags } from '../query-tags'
 import {
   AddPokerRoundRequest,
   CreatePokerSessionRequest,
+  EmployeeNavigationDto,
   ObjectIdAndKey,
   PokerRoundDto,
   PokerSessionDetailsDto,
   PokerSessionListDto,
+  PokerSessionMemberDto,
+  PokerSessionMemberMode,
   PokerSessionStatus,
   SetConsensusRequest,
   SubmitVoteRequest,
   UpdatePokerRoundDescriptionRequest,
   UpdatePokerRoundLabelRequest,
+  Visibility,
 } from '@/src/services/wayd-api'
 
 export interface UpdatePokerSessionRequest {
@@ -333,6 +337,142 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
         { type: QueryTags.PokerSessionRound, id: arg.sessionKey },
       ],
     }),
+
+    getPokerSessionInvitedTeamMembers: builder.query<
+      EmployeeNavigationDto[],
+      { sessionId: string; teamId: string }
+    >({
+      queryFn: async ({ sessionId, teamId }) => {
+        try {
+          const data = await getPokerSessionsClient().getInvitedTeamMembers(
+            sessionId,
+            teamId,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+    }),
+
+    setPokerSessionVisibility: builder.mutation<
+      void,
+      { id: string; key: number; visibility: Visibility }
+    >({
+      queryFn: async ({ id, visibility }) => {
+        try {
+          const data = await getPokerSessionsClient().setVisibility(id, {
+            visibility,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.PokerSession, id: 'LIST' },
+        { type: QueryTags.PokerSession, id: arg.key },
+      ],
+    }),
+
+    setPokerSessionFacilitators: builder.mutation<
+      void,
+      { id: string; key: number; employeeIds: string[] }
+    >({
+      queryFn: async ({ id, employeeIds }) => {
+        try {
+          const data = await getPokerSessionsClient().setFacilitators(id, {
+            employeeIds,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.PokerSession, id: 'LIST' },
+        { type: QueryTags.PokerSession, id: arg.key },
+      ],
+    }),
+
+    setPokerSessionInvitees: builder.mutation<
+      void,
+      { id: string; key: number; employeeIds: string[]; teamIds: string[] }
+    >({
+      queryFn: async ({ id, employeeIds, teamIds }) => {
+        try {
+          const data = await getPokerSessionsClient().setInvitees(id, {
+            employeeIds,
+            teamIds,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.PokerSession, id: 'LIST' },
+        { type: QueryTags.PokerSession, id: arg.key },
+      ],
+    }),
+
+    joinPokerSession: builder.mutation<
+      PokerSessionMemberDto,
+      { id: string; key: number; mode: PokerSessionMemberMode }
+    >({
+      queryFn: async ({ id, mode }) => {
+        try {
+          const data = await getPokerSessionsClient().join(id, { mode })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.PokerSession, id: 'LIST' },
+        { type: QueryTags.PokerSession, id: arg.key },
+      ],
+    }),
+
+    leavePokerSession: builder.mutation<void, { id: string; key: number }>({
+      queryFn: async ({ id }) => {
+        try {
+          const data = await getPokerSessionsClient().leave(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.PokerSession, id: 'LIST' },
+        { type: QueryTags.PokerSession, id: arg.key },
+      ],
+    }),
+
+    changePokerSessionMode: builder.mutation<
+      PokerSessionMemberDto,
+      { id: string; key: number; mode: PokerSessionMemberMode }
+    >({
+      queryFn: async ({ id, mode }) => {
+        try {
+          const data = await getPokerSessionsClient().changeMode(id, { mode })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.PokerSession, id: 'LIST' },
+        { type: QueryTags.PokerSession, id: arg.key },
+      ],
+    }),
   }),
 })
 
@@ -352,4 +492,11 @@ export const {
   useWithdrawPokerVoteMutation,
   useUpdatePokerRoundLabelMutation,
   useUpdatePokerRoundDescriptionMutation,
+  useGetPokerSessionInvitedTeamMembersQuery,
+  useSetPokerSessionVisibilityMutation,
+  useSetPokerSessionFacilitatorsMutation,
+  useSetPokerSessionInviteesMutation,
+  useJoinPokerSessionMutation,
+  useLeavePokerSessionMutation,
+  useChangePokerSessionModeMutation,
 } = pokerSessionsApi

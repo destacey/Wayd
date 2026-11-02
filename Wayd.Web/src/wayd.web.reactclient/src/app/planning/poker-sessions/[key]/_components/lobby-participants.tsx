@@ -2,7 +2,7 @@
 
 import { PresenceParticipant } from '@/src/hooks/use-poker-session-connection'
 import { getAvatarColor } from '@/src/utils'
-import { Avatar, Button, Divider, Flex, Typography } from 'antd'
+import { Avatar, Button, Divider, Flex, Tag, Typography } from 'antd'
 import { FC } from 'react'
 import styles from './poker-session.module.css'
 
@@ -10,6 +10,8 @@ const { Text } = Typography
 
 export interface LobbyParticipantsProps {
   participants: PresenceParticipant[]
+  /** Connected people who are watching rather than voting. */
+  observerEmployeeIds?: ReadonlySet<string>
   canManage: boolean
   isActive: boolean
   onComplete: () => void
@@ -18,6 +20,7 @@ export interface LobbyParticipantsProps {
 
 const LobbyParticipants: FC<LobbyParticipantsProps> = ({
   participants,
+  observerEmployeeIds,
   canManage,
   isActive,
   onComplete,
@@ -54,6 +57,11 @@ const LobbyParticipants: FC<LobbyParticipantsProps> = ({
                 <Text ellipsis style={{ fontSize: 13 }}>
                   {p.name}
                 </Text>
+                {p.employeeId && observerEmployeeIds?.has(p.employeeId) && (
+                  <Tag style={{ margin: 0, marginInlineStart: 'auto' }}>
+                    Observer
+                  </Tag>
+                )}
               </Flex>
             ))
           )}
@@ -62,12 +70,7 @@ const LobbyParticipants: FC<LobbyParticipantsProps> = ({
           <>
             <Divider style={{ margin: 0 }} />
             <div style={{ padding: '12px 16px' }}>
-              <Button
-                danger
-                block
-                onClick={onComplete}
-                loading={isCompleting}
-              >
+              <Button danger block onClick={onComplete} loading={isCompleting}>
                 Complete Session
               </Button>
             </div>

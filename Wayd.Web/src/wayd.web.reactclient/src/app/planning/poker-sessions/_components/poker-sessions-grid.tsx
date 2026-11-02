@@ -111,6 +111,20 @@ const PokerSessionsGrid: FC<PokerSessionsGridProps> = ({
         size: 200,
       },
       {
+        id: 'participants',
+        accessorFn: (session) =>
+          session.participants.map((p) => p.name).join(', '),
+        header: 'Participants',
+        size: 260,
+      },
+      {
+        id: 'visibility',
+        accessorKey: 'visibility',
+        header: 'Visibility',
+        size: 110,
+        meta: { filterType: 'set' },
+      },
+      {
         id: 'roundCount',
         accessorKey: 'roundCount',
         header: 'Rounds',

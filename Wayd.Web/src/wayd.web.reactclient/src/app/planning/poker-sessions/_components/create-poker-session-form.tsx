@@ -13,6 +13,10 @@ import useTheme from '@/src/components/contexts/theme'
 import { useCreatePokerSessionMutation } from '@/src/store/features/planning/poker-sessions-api'
 import { useGetEstimationScalesQuery } from '@/src/store/features/planning/estimation-scales-api'
 import { useModalForm } from '@/src/hooks'
+import useAuth from '@/src/components/contexts/auth'
+import SessionAccessFields, {
+  SessionAccessValues,
+} from './session-access-fields'
 import styles from './poker-sessions.module.css'
 
 const { Item } = Form
@@ -32,7 +36,7 @@ export interface CreatePokerSessionFormProps {
   onFormCancel: () => void
 }
 
-interface CreatePokerSessionFormValues {
+interface CreatePokerSessionFormValues extends SessionAccessValues {
   name: string
   estimationScaleId: string
 }
@@ -78,6 +82,8 @@ const CreatePokerSessionForm = ({
   onFormCancel,
 }: CreatePokerSessionFormProps) => {
   const { token } = useTheme()
+  const { user } = useAuth()
+  const currentEmployeeId = user?.employeeId ?? undefined
   const messageApi = useMessage()
 
   const [createPokerSession] = useCreatePokerSessionMutation()
@@ -87,33 +93,41 @@ const CreatePokerSessionForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<CreatePokerSessionFormValues>({
       onSubmit: async (values: CreatePokerSessionFormValues, form) => {
-          try {
-            const request: CreatePokerSessionRequest = {
-              name: values.name,
-              estimationScaleId: values.estimationScaleId,
-              visibility: Visibility.Public,
-            }
-            const response = await createPokerSession(request)
-            if (response.error) {
-              throw response.error
-            }
-            messageApi.success('Successfully created poker session.')
-            return true
-          } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                'An error occurred while creating the poker session. Please try again.',
-              )
-              console.error(error)
-            }
-            return false
+        try {
+          const request: CreatePokerSessionRequest = {
+            name: values.name,
+            estimationScaleId: values.estimationScaleId,
+            visibility: values.visibility,
+            // The creator is always the first facilitator.
+            facilitatorIds: (values.facilitatorIds ?? []).filter(
+              (id) => id !== currentEmployeeId,
+            ),
+            ...(values.visibility === Visibility.Private && {
+              invitedEmployeeIds: values.invitedEmployeeIds ?? [],
+              invitedTeamIds: values.invitedTeamIds ?? [],
+            }),
           }
-        },
+          const response = await createPokerSession(request)
+          if (response.error) {
+            throw response.error
+          }
+          messageApi.success('Successfully created poker session.')
+          return true
+        } catch (error) {
+          const apiError: ApiError = isApiError(error) ? error : {}
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              'An error occurred while creating the poker session. Please try again.',
+            )
+            console.error(error)
+          }
+          return false
+        }
+      },
       onComplete: onFormCreate,
       onCancel: onFormCancel,
       errorMessage:
@@ -155,6 +169,10 @@ const CreatePokerSessionForm = ({
         size="small"
         layout="vertical"
         name="create-poker-session-form"
+        initialValues={{
+          visibility: Visibility.Public,
+          facilitatorIds: currentEmployeeId ? [currentEmployeeId] : [],
+        }}
       >
         <Item label="Name" name="name" rules={[{ required: true }]}>
           <TextArea
@@ -185,6 +203,9 @@ const CreatePokerSessionForm = ({
             />
           ))}
         </Flex>
+        <div style={{ marginTop: 16 }}>
+          <SessionAccessFields requiredFacilitatorId={currentEmployeeId} />
+        </div>
       </Form>
     </Modal>
   )

@@ -329,6 +329,9 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
                   </>
                 }
               />
+              <div className={styles.discussionSection}>
+                <IncidentDiscussion incident={incident} />
+              </div>
             </div>
             <aside className={styles.detailAside}>
               <h2 className={styles.asideHeading}>Status</h2>
@@ -382,9 +385,6 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               />
             </aside>
           </article>
-          <div className={styles.discussionSection}>
-            <IncidentDiscussion incident={incident} />
-          </div>
         </>
       )}
       {cancelOpen ? (

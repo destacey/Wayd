@@ -24,12 +24,19 @@ public sealed class DemandManagementGenerator
     /// <summary>The area name this generator draws its seed under.</summary>
     public const string AreaName = "demand-management";
 
+    /// <summary>The scale Wayd ships that the product and IT desks size requests on.</summary>
+    public const string EstimationScaleName = "T-Shirt Sizes";
+
     private const double AverageDaysPerMonth = 30.44;
 
     private readonly GeneratedOrg _org;
     private readonly DemandManagementOptions _options;
     private readonly GenerationContext _context;
     private readonly Faker _faker;
+
+    /// <summary>Draws the estimates, apart from the rest so sizing requests never shifts the other data.</summary>
+    private readonly Faker _sizing;
+
     private readonly Dictionary<string, EmployeeCsvRow> _employees;
 
     private readonly List<IntakeDeskModel> _desks = [];
@@ -49,6 +56,7 @@ public sealed class DemandManagementGenerator
 
         // Derived from the area name, so adding another generator does not shift this one's data.
         _faker = new Faker { Random = new Randomizer(context.SeedFor(AreaName)) };
+        _sizing = new Faker { Random = new Randomizer(context.SeedFor($"{AreaName}.estimates")) };
     }
 
     private DateOnly Today => _context.AsOf;
@@ -90,7 +98,8 @@ public sealed class DemandManagementGenerator
                 $"Ask for a new capability or a change to the {domain.Key} products: something customers need, a problem they keep hitting, or an idea worth trying.",
                 "Open",
                 admins,
-                agents);
+                agents,
+                EstimationScaleName);
             if (desk is not null)
                 _productDesks.Add((desk, domain.Key));
         }
@@ -101,7 +110,10 @@ public sealed class DemandManagementGenerator
             "Ask for a change to the tools and systems the company runs on: internal applications, integrations between them, reports and automation.",
             "SummaryOnly",
             it.Where(e => e.JobTitle == "VP of IT").Select(e => e.EmployeeNumber),
-            it.Where(e => e.JobTitle == "IT Manager").Select(e => e.EmployeeNumber).Take(3));
+            it.Where(e => e.JobTitle == "IT Manager").Select(e => e.EmployeeNumber).Take(3),
+            EstimationScaleName);
+
+        // Security and Compliance weighs risk rather than size, so it is the desk that does not estimate.
 
         var legal = active.Where(e => e.Department == "Legal").ToList();
         var security = active.Where(e => e.JobTitle is "VP of IT" or "Network Engineer").Select(e => e.EmployeeNumber).Take(2);
@@ -117,7 +129,8 @@ public sealed class DemandManagementGenerator
     /// Adds a desk staffed by the admins and agents named, or nothing when nobody is left to staff it — a desk
     /// with no members is where requests go to be forgotten.
     /// </summary>
-    private IntakeDeskModel? AddDesk(string name, string description, string visibility, IEnumerable<string> admins, IEnumerable<string> agents)
+    private IntakeDeskModel? AddDesk(string name, string description, string visibility, IEnumerable<string> admins,
+        IEnumerable<string> agents, string? estimationScaleName = null)
     {
         List<IntakeDeskMemberModel> members = [];
         foreach (var number in admins)
@@ -132,7 +145,14 @@ public sealed class DemandManagementGenerator
         if (members.All(m => m.Role != "Admin"))
             members[0] = members[0] with { Role = "Admin" };
 
-        var desk = new IntakeDeskModel { Name = name, Description = description, Visibility = visibility, Members = members };
+        var desk = new IntakeDeskModel
+        {
+            Name = name,
+            Description = description,
+            Visibility = visibility,
+            Members = members,
+            EstimationScaleName = estimationScaleName,
+        };
         _desks.Add(desk);
         return desk;
 
@@ -193,6 +213,7 @@ public sealed class DemandManagementGenerator
         var reviewed = status != Submitted;
         var needBy = NeedBy(kind, day, filler, desk);
         var fromServiceDesk = kind.Channel is Support or BusinessStakeholder && _faker.Random.Double() < 0.4;
+        string? assignee;
 
         _requests.Add(new IntakeRequestModel
         {
@@ -215,8 +236,10 @@ public sealed class DemandManagementGenerator
             Status = status,
             StatusChangedAt = changedOn is { } on ? Later(At(on, _faker.Random.Int(9, 17)), submittedAt.AddMinutes(5)) : null,
             StatusReason = reason,
-            AssigneeEmployeeNumber = _faker.Random.Double() < (reviewed ? 0.85 : 0.2) ? Assignee(desk, day) : null,
+            // Assigned here, in field order, since the draws must keep their order; the estimate reads it below.
+            AssigneeEmployeeNumber = assignee = _faker.Random.Double() < (reviewed ? 0.85 : 0.2) ? Assignee(desk, day) : null,
             Tags = reviewed && _faker.Random.Double() < 0.75 ? Tags() : [],
+            EstimateSize = EstimateSize(desk, reviewed, assignee),
         });
     }
 
@@ -339,6 +362,19 @@ public sealed class DemandManagementGenerator
             return new(date, "RequesterPreference", _faker.PickRandom(PreferenceReferences), null, null);
 
         return null;
+    }
+
+    /// <summary>
+    /// How big a reviewed ask is, for most of the ones someone owns on a desk that estimates. The import records
+    /// the estimate as the assignee's, so an unowned request stays unestimated rather than be sized by nobody.
+    /// </summary>
+    private double? EstimateSize(IntakeDeskModel desk, bool reviewed, string? assignee)
+    {
+        // Drawn for every request, so whether one is estimated never shifts the next one's size.
+        var estimated = _sizing.Random.Double() < 0.8;
+        var size = _sizing.Random.Double();
+
+        return desk.EstimationScaleName is not null && reviewed && assignee is not null && estimated ? size : null;
     }
 
     private IReadOnlyList<string> Tags()

@@ -35,4 +35,7 @@ public sealed class IntakeRequestCsvRow
 
     /// <summary>Semicolon-separated tag ids.</summary>
     public string? TagIds { get; init; }
+
+    /// <summary>An estimate value of the desk's scale, such as <c>M</c>.</summary>
+    public string? Estimate { get; init; }
 }

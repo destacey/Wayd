@@ -23,6 +23,12 @@ public sealed class IntakeDeskModel
     public required string Visibility { get; init; }
 
     public required IReadOnlyList<IntakeDeskMemberModel> Members { get; init; }
+
+    /// <summary>
+    /// The name of the estimation scale Wayd ships that the desk's team sizes requests on, or null when the
+    /// desk does not estimate.
+    /// </summary>
+    public string? EstimationScaleName { get; init; }
 }
 
 /// <summary>One person on a desk. <see cref="Role"/> is <c>Admin</c> or <c>Agent</c>.</summary>
@@ -65,4 +71,11 @@ public sealed class IntakeRequestModel
     public string? StatusReason { get; init; }
     public string? AssigneeEmployeeNumber { get; init; }
     public required IReadOnlyList<string> Tags { get; init; }
+
+    /// <summary>
+    /// How big the ask is, from 0 for the smallest value on the desk's scale to just under 1 for the largest,
+    /// or null when it was not estimated. A fraction rather than a value because the scale's values are read
+    /// from the environment at seed time.
+    /// </summary>
+    public double? EstimateSize { get; init; }
 }

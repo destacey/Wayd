@@ -187,6 +187,39 @@ public class DemandManagementGeneratorTests
     }
 
     [Fact]
+    public void Generate_SizesTheProductAndItDesksOnTShirtSizesAndLeavesSecurityUnestimated()
+    {
+        // Arrange & Act
+        var desks = Data.Desks.ToDictionary(d => d.Name);
+
+        // Assert
+        desks.Values.Where(d => d.Name.EndsWith(" Product Desk")).Should()
+            .OnlyContain(d => d.EstimationScaleName == DemandManagementGenerator.EstimationScaleName);
+        if (desks.TryGetValue("IT Desk", out var it))
+            it.EstimationScaleName.Should().Be(DemandManagementGenerator.EstimationScaleName);
+        if (desks.TryGetValue("Security and Compliance Desk", out var security))
+            security.EstimationScaleName.Should().BeNull();
+    }
+
+    [Fact]
+    public void Generate_EstimatesOnlyReviewedRequestsSomeoneOwnsOnADeskThatEstimates()
+    {
+        // Arrange
+        var desks = Data.Desks.ToDictionary(d => d.Name);
+
+        // Act
+        var estimated = Data.Requests.Where(r => r.EstimateSize is not null).ToList();
+
+        // Assert — the import records the estimate as the assignee's, and refuses one on a desk with no scale
+        estimated.Should().NotBeEmpty();
+        estimated.Should().OnlyContain(r => r.Status != "Submitted" && r.AssigneeEmployeeNumber != null);
+        estimated.Should().OnlyContain(r => desks[r.DeskName].EstimationScaleName != null);
+        estimated.Should().OnlyContain(r => r.EstimateSize >= 0 && r.EstimateSize < 1);
+        Data.Requests.Count(r => r.EstimateSize is null && r.AssigneeEmployeeNumber != null && r.Status != "Submitted"
+            && desks[r.DeskName].EstimationScaleName != null).Should().BeGreaterThan(0, "some owned requests are still to size");
+    }
+
+    [Fact]
     public void Generate_GivesEveryOriginItsOwnExternalId()
     {
         // Arrange & Act
@@ -279,7 +312,7 @@ public class DemandManagementGeneratorTests
         var second = Generate(seed: 99).Data;
 
         // Assert
-        second.Requests.Select(r => (r.Handle, r.Title, r.Status, r.SubmittedAt))
-            .Should().Equal(first.Requests.Select(r => (r.Handle, r.Title, r.Status, r.SubmittedAt)));
+        second.Requests.Select(r => (r.Handle, r.Title, r.Status, r.SubmittedAt, r.EstimateSize))
+            .Should().Equal(first.Requests.Select(r => (r.Handle, r.Title, r.Status, r.SubmittedAt, r.EstimateSize)));
     }
 }

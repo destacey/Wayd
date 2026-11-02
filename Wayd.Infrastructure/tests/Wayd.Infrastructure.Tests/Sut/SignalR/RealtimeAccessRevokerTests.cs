@@ -6,12 +6,14 @@ using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Identity.Users;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Infrastructure.SignalR;
+using Wayd.Planning.Application.PokerSessions;
 
 namespace Wayd.Infrastructure.Tests.Sut.SignalR;
 
 /// <summary>
 /// Covers <see cref="RealtimeAccessRevoker"/>: a connection already in a group is taken out of it once its user
-/// no longer holds the hub's join permission, and is left alone while they do.
+/// no longer holds the hub's join permission, or the poker session no longer admits them, and is left alone
+/// while they do.
 /// </summary>
 /// <remarks>
 /// Presence is static and shared by every hub instance, so each test joins a user id of its own.
@@ -25,6 +27,7 @@ public class RealtimeAccessRevokerTests
     private readonly Mock<IHubClients> _pokerClients = new();
     private readonly Mock<IHubContext<PlanningPokerHub>> _pokerHub = new();
     private readonly Mock<IHubContext<StoryMapHub>> _storyMapHub = new();
+    private readonly Mock<IPokerSessionAccess> _pokerSessionAccess = new();
 
     public RealtimeAccessRevokerTests()
     {
@@ -35,10 +38,16 @@ public class RealtimeAccessRevokerTests
 
         _storyMapHub.Setup(h => h.Groups).Returns(new Mock<IGroupManager>().Object);
         _storyMapHub.Setup(h => h.Clients).Returns(new Mock<IHubClients>().Object);
+
+        // A session admits whoever holds the join permission, unless a test says otherwise.
+        _pokerSessionAccess
+            .Setup(a => a.CanUserAccess(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns((Guid _, string userId, CancellationToken ct) =>
+                _userService.Object.HasPermissionAsync(userId, PlanningPokerHub.JoinPermission, ct));
     }
 
     private RealtimeAccessRevoker CreateSut() =>
-        new(_pokerHub.Object, _storyMapHub.Object, _userService.Object, NullLogger<RealtimeAccessRevoker>.Instance);
+        new(_pokerHub.Object, _storyMapHub.Object, _userService.Object, _pokerSessionAccess.Object, NullLogger<RealtimeAccessRevoker>.Instance);
 
     private static async Task<string> JoinPokerSession(string userId, Guid sessionId)
     {
@@ -56,7 +65,10 @@ public class RealtimeAccessRevokerTests
         var featureManager = new Mock<IFeatureManager>();
         featureManager.Setup(f => f.IsEnabledAsync(FeatureFlags.Names.PlanningPoker)).ReturnsAsync(true);
 
-        var hub = new PlanningPokerHub(featureManager.Object)
+        var access = new Mock<IPokerSessionAccess>();
+        access.Setup(a => a.CanUserAccess(sessionId, userId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+        var hub = new PlanningPokerHub(featureManager.Object, access.Object)
         {
             Context = context.Object,
             Groups = new Mock<IGroupManager>().Object,
@@ -178,6 +190,47 @@ public class RealtimeAccessRevokerTests
         _pokerGroups.Verify(
             g => g.RemoveFromGroupAsync(keptConnection, It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task RecheckUsers_WhenAPrivateSessionNoLongerAdmitsThem_EvictsOnlyThatSession()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var closedSession = Guid.NewGuid();
+        var openSession = Guid.NewGuid();
+        var closedConnection = await JoinPokerSession(userId, closedSession);
+        var openConnection = await JoinPokerSession(userId, openSession);
+        _pokerSessionAccess.Setup(a => a.CanUserAccess(closedSession, userId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _pokerSessionAccess.Setup(a => a.CanUserAccess(openSession, userId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+        // Act
+        await CreateSut().RecheckUsers([userId], TestContext.Current.CancellationToken);
+
+        // Assert
+        _pokerGroups.Verify(g => g.RemoveFromGroupAsync(closedConnection, closedSession.ToString(), It.IsAny<CancellationToken>()), Times.Once);
+        _pokerGroups.Verify(g => g.RemoveFromGroupAsync(openConnection, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RecheckPokerSession_EvictsEveryoneTheSessionNoLongerAdmits()
+    {
+        // Arrange
+        var sessionId = Guid.NewGuid();
+        var removed = Guid.NewGuid().ToString();
+        var kept = Guid.NewGuid().ToString();
+        var removedConnection = await JoinPokerSession(removed, sessionId);
+        var keptConnection = await JoinPokerSession(kept, sessionId);
+        _pokerSessionAccess.Setup(a => a.CanUserAccess(sessionId, removed, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _pokerSessionAccess.Setup(a => a.CanUserAccess(sessionId, kept, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+        // Act
+        await CreateSut().RecheckPokerSession(sessionId, TestContext.Current.CancellationToken);
+
+        // Assert
+        VerifyEvicted(removedConnection, sessionId, Times.Once());
+        _pokerGroups.Verify(g => g.RemoveFromGroupAsync(keptConnection, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        PresenceHub.PresentIn<PlanningPokerHub>(sessionId.ToString()).Select(p => p.UserId).Should().Equal(kept);
     }
 
     [Fact]

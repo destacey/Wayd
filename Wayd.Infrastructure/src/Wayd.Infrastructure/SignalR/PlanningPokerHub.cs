@@ -1,8 +1,12 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.FeatureManagement;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Infrastructure.Auth.Permissions;
+using Wayd.Planning.Application.PokerSessions;
+using Wayd.Planning.Domain.Models.PlanningPoker;
 
 namespace Wayd.Infrastructure.SignalR;
 
@@ -17,9 +21,20 @@ public class PlanningPokerHub : PresenceHub
     public static readonly string JoinPermission =
         ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.PokerSessions);
 
-    private readonly IFeatureManager _featureManager;
+    /// <summary>
+    /// The permission that admits its holder to any session, private ones included, re-checked when a member's
+    /// access changes.
+    /// </summary>
+    public static readonly string AdministerPermission = PokerSessionAccess.AdministratorPermission;
 
-    public PlanningPokerHub(IFeatureManager featureManager) => _featureManager = featureManager;
+    private readonly IFeatureManager _featureManager;
+    private readonly IPokerSessionAccess _access;
+
+    public PlanningPokerHub(IFeatureManager featureManager, IPokerSessionAccess access)
+    {
+        _featureManager = featureManager;
+        _access = access;
+    }
 
     /// <summary>
     /// Joins the caller to a session's broadcast group.
@@ -29,12 +44,20 @@ public class PlanningPokerHub : PresenceHub
     /// to reading the session — it requires the same View permission the REST endpoints demand, applied
     /// here by the policy on <see cref="MustHavePermissionAttribute"/>. The feature flag is checked in
     /// code rather than with <c>[FeatureGate]</c>, which is an MVC filter and does not run for hub methods.
+    /// A private session admits only the people the session does, so the session is asked too; a refusal reads
+    /// as not found, as the REST read does.
     /// </remarks>
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
     public async Task JoinSession(Guid sessionId)
     {
         if (!await _featureManager.IsEnabledAsync(FeatureFlags.Names.PlanningPoker))
             return;
+
+        // A connection with no user id is refused by presence itself.
+        var userId = Context.User?.GetUserId();
+        if (!string.IsNullOrEmpty(userId)
+            && !await _access.CanUserAccess(sessionId, userId, Context.ConnectionAborted))
+            throw new HubException(PokerSession.NotFoundError);
 
         await JoinPresenceGroup(sessionId.ToString());
     }

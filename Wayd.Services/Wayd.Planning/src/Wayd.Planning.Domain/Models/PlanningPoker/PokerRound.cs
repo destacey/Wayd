@@ -135,6 +135,18 @@ public sealed class PokerRound : BaseEntity
     }
 
     /// <summary>
+    /// Removes a participant's vote while the round is still Voting, for someone who stops taking part; a
+    /// revealed or accepted round keeps it. Returns whether a vote was removed.
+    /// </summary>
+    internal bool WithdrawUnrevealedVote(string participantId)
+    {
+        if (Status != PokerRoundStatus.Voting)
+            return false;
+
+        return _votes.RemoveAll(v => v.ParticipantId == participantId) > 0;
+    }
+
+    /// <summary>
     /// Submit or update a vote for this round.
     /// </summary>
     internal Result AddOrUpdateVote(string participantId, string value, Instant timestamp)

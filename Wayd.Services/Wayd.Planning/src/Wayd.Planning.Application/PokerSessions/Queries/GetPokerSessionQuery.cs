@@ -16,22 +16,31 @@ public sealed record GetPokerSessionQuery : IQuery<PokerSessionDetailsDto?>
 }
 
 /// <summary>
-/// Returns a poker session with its rounds and votes. Vote values in a round that has not been
-/// revealed are blanked for everyone but the caller, so the read cannot disclose an estimate early.
+/// Returns a poker session with its rounds and votes, or null when it does not exist or the caller cannot see it.
+/// Vote values in a round that has not been revealed are blanked for everyone but the caller, so the read cannot
+/// disclose an estimate early.
 /// </summary>
-public sealed class GetPokerSessionQueryHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser) : IQueryHandler<GetPokerSessionQuery, PokerSessionDetailsDto?>
+public sealed class GetPokerSessionQueryHandler(IPlanningDbContext planningDbContext, IPokerSessionAccess access, ICurrentUser currentUser) : IQueryHandler<GetPokerSessionQuery, PokerSessionDetailsDto?>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IPokerSessionAccess _access = access;
     private readonly ICurrentUser _currentUser = currentUser;
 
     public async Task<PokerSessionDetailsDto?> Handle(GetPokerSessionQuery request, CancellationToken cancellationToken)
     {
+        var reader = await _access.ResolveReader(cancellationToken);
+
         var session = await _planningDbContext.PokerSessions
             .Where(request.IdOrKeyFilter)
+            .Where(reader.Filter)
             .ProjectToType<PokerSessionDetailsDto>()
             .FirstOrDefaultAsync(cancellationToken);
 
-        session?.HideUnrevealedVotes(_currentUser.GetUserId());
+        if (session is null)
+            return null;
+
+        session.CanManage = reader.CanManage(session.Facilitators.Select(f => f.Id));
+        session.HideUnrevealedVotes(_currentUser.GetUserId());
 
         return session;
     }

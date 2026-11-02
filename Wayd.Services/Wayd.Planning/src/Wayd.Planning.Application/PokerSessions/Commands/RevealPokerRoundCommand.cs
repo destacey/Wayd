@@ -3,7 +3,7 @@ using Wayd.Planning.Application.PokerSessions.Interfaces;
 
 namespace Wayd.Planning.Application.PokerSessions.Commands;
 
-public sealed record RevealPokerRoundCommand(Guid SessionId, Guid RoundId) : ICommand;
+public sealed record RevealPokerRoundCommand(Guid SessionId, Guid RoundId) : ICommand, IRequireLinkedEmployee;
 
 public sealed class RevealPokerRoundCommandValidator : CustomValidator<RevealPokerRoundCommand>
 {
@@ -14,9 +14,10 @@ public sealed class RevealPokerRoundCommandValidator : CustomValidator<RevealPok
     }
 }
 
-public sealed class RevealPokerRoundCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionNotifier notifier, ILogger<RevealPokerRoundCommandHandler> logger) : ICommandHandler<RevealPokerRoundCommand>
+public sealed class RevealPokerRoundCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionAccess access, IPokerSessionNotifier notifier, ILogger<RevealPokerRoundCommandHandler> logger) : ICommandHandler<RevealPokerRoundCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IPokerSessionAccess _access = access;
     private readonly IPokerSessionNotifier _notifier = notifier;
     private readonly ILogger<RevealPokerRoundCommandHandler> _logger = logger;
 
@@ -25,6 +26,7 @@ public sealed class RevealPokerRoundCommandHandler(IPlanningDbContext planningDb
         try
         {
             var session = await _planningDbContext.PokerSessions
+                .IncludeAccess()
                 .Include(s => s.Rounds)
                     .ThenInclude(r => r.Votes)
                         .ThenInclude(v => v.Participant)
@@ -33,7 +35,9 @@ public sealed class RevealPokerRoundCommandHandler(IPlanningDbContext planningDb
             if (session is null)
                 return Result.Failure("Poker session not found.");
 
-            var result = session.RevealRound(request.RoundId);
+            var actor = await _access.ResolveActor(session, cancellationToken);
+
+            var result = session.RevealRound(request.RoundId, actor);
             if (result.IsFailure)
                 return Result.Failure(result.Error);
 
@@ -44,7 +48,7 @@ public sealed class RevealPokerRoundCommandHandler(IPlanningDbContext planningDb
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

@@ -4,7 +4,7 @@ using Wayd.Planning.Domain.Models.PlanningPoker;
 
 namespace Wayd.Planning.Application.PokerSessions.Commands;
 
-public sealed record AddPokerRoundCommand(Guid SessionId, string? Label, string? Description = null) : ICommand<PokerRoundDto>;
+public sealed record AddPokerRoundCommand(Guid SessionId, string? Label, string? Description = null) : ICommand<PokerRoundDto>, IRequireLinkedEmployee;
 
 public sealed class AddPokerRoundCommandValidator : CustomValidator<AddPokerRoundCommand>
 {
@@ -18,9 +18,10 @@ public sealed class AddPokerRoundCommandValidator : CustomValidator<AddPokerRoun
     }
 }
 
-public sealed class AddPokerRoundCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionNotifier notifier, ILogger<AddPokerRoundCommandHandler> logger) : ICommandHandler<AddPokerRoundCommand, PokerRoundDto>
+public sealed class AddPokerRoundCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionAccess access, IPokerSessionNotifier notifier, ILogger<AddPokerRoundCommandHandler> logger) : ICommandHandler<AddPokerRoundCommand, PokerRoundDto>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IPokerSessionAccess _access = access;
     private readonly IPokerSessionNotifier _notifier = notifier;
     private readonly ILogger<AddPokerRoundCommandHandler> _logger = logger;
 
@@ -29,6 +30,7 @@ public sealed class AddPokerRoundCommandHandler(IPlanningDbContext planningDbCon
         try
         {
             var session = await _planningDbContext.PokerSessions
+                .IncludeAccess()
                 .Include(s => s.Rounds)
                     .ThenInclude(r => r.Votes)
                         .ThenInclude(v => v.Participant)
@@ -37,7 +39,9 @@ public sealed class AddPokerRoundCommandHandler(IPlanningDbContext planningDbCon
             if (session is null)
                 return Result.Failure<PokerRoundDto>("Poker session not found.");
 
-            var result = session.AddRound(request.Label, request.Description);
+            var actor = await _access.ResolveActor(session, cancellationToken);
+
+            var result = session.AddRound(request.Label, request.Description, actor);
             if (result.IsFailure)
                 return Result.Failure<PokerRoundDto>(result.Error);
 
@@ -48,7 +52,7 @@ public sealed class AddPokerRoundCommandHandler(IPlanningDbContext planningDbCon
 
             return roundDto;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

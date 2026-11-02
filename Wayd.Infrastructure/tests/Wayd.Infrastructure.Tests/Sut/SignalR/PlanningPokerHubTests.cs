@@ -5,6 +5,7 @@ using Microsoft.FeatureManagement;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Infrastructure.Auth.Permissions;
 using Wayd.Infrastructure.SignalR;
+using Wayd.Planning.Application.PokerSessions;
 
 namespace Wayd.Infrastructure.Tests.Sut.SignalR;
 
@@ -15,7 +16,8 @@ namespace Wayd.Infrastructure.Tests.Sut.SignalR;
 /// the person's record. Anonymous/userless connections must not be registered as participants.
 ///
 /// Also covers the guards on group membership: broadcasts carry session content, so a connection must
-/// not join a session's group without the View permission or while the feature is off.
+/// not join a session's group without the View permission, while the feature is off, or when the session
+/// does not admit the user.
 /// </summary>
 public class PlanningPokerHubTests
 {
@@ -29,7 +31,8 @@ public class PlanningPokerHubTests
     private static (PlanningPokerHub Hub, Mock<ISingleClientProxy> CallerProxy, Mock<IGroupManager> Groups) BuildHub(
         ClaimsPrincipal user,
         string? connectionId = null,
-        bool featureEnabled = true)
+        bool featureEnabled = true,
+        bool sessionAdmits = true)
     {
         connectionId ??= Guid.NewGuid().ToString();
 
@@ -64,7 +67,12 @@ public class PlanningPokerHubTests
             .Setup(f => f.IsEnabledAsync(FeatureFlags.Names.PlanningPoker))
             .ReturnsAsync(featureEnabled);
 
-        var hub = new PlanningPokerHub(featureManager.Object)
+        var access = new Mock<IPokerSessionAccess>();
+        access
+            .Setup(a => a.CanUserAccess(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(sessionAdmits);
+
+        var hub = new PlanningPokerHub(featureManager.Object, access.Object)
         {
             Context = mockContext.Object,
             Groups = mockGroups.Object,
@@ -171,6 +179,37 @@ public class PlanningPokerHubTests
         callerProxy.Verify(
             p => p.SendCoreAsync("ParticipantList", It.IsAny<object?[]>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task JoinSession_WhenTheSessionDoesNotAdmitTheUser_IsRefusedAsNotFound()
+    {
+        // Arrange — a private session's broadcasts must reach only the people it admits.
+        var user = Principal(
+            (ClaimTypes.NameIdentifier, TestUserId),
+            (ClaimTypes.Name, WaydFirstName),
+            (ClaimTypes.Surname, WaydSurname));
+        var (hub, callerProxy, groups) = BuildHub(user, sessionAdmits: false);
+
+        // Act
+        var act = () => hub.JoinSession(Guid.NewGuid());
+
+        // Assert
+        await act.Should().ThrowAsync<HubException>().WithMessage("Poker session not found.");
+        groups.Verify(
+            g => g.AddToGroupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        callerProxy.Verify(
+            p => p.SendCoreAsync("ParticipantList", It.IsAny<object?[]>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void AdministerPermission_IsThePokerAdministerPermission()
+    {
+        // Assert — the revoker rechecks a role that loses it, so it must be the permission the session reads.
+        PlanningPokerHub.AdministerPermission.Should().Be("Permissions.PokerSessions.Administer");
+        IRealtimeAccessRevoker.JoinPermissions.Should().Contain(PlanningPokerHub.AdministerPermission);
     }
 
     [Fact]

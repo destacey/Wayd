@@ -12,6 +12,7 @@ namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
 
 public class CompletePokerSessionCommandHandlerTests : IDisposable
 {
+    private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly CompletePokerSessionCommandHandler _handler;
     private readonly Mock<ILogger<CompletePokerSessionCommandHandler>> _mockLogger;
@@ -28,7 +29,7 @@ public class CompletePokerSessionCommandHandlerTests : IDisposable
         _mockDateTimeProvider = new Mock<IDateTimeProvider>();
         _mockDateTimeProvider.Setup(d => d.Now).Returns(Instant.FromUtc(2026, 1, 15, 10, 0));
 
-        _handler = new CompletePokerSessionCommandHandler(_dbContext, _mockDateTimeProvider.Object, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new CompletePokerSessionCommandHandler(_dbContext, _access, _mockDateTimeProvider.Object, _mockNotifier.Object, _mockLogger.Object);
         _sessionFaker = new PokerSessionFaker();
     }
 
@@ -59,8 +60,8 @@ public class CompletePokerSessionCommandHandlerTests : IDisposable
         var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
         _dbContext.AddPokerSession(session);
 
-        var estimated = session.AddRound("WI-1").Value;
-        session.AddRound("");
+        var estimated = session.AddRound("WI-1", null, PokerSessionActors.Facilitator).Value;
+        session.AddRound("", null, PokerSessionActors.Facilitator);
 
         var command = new CompletePokerSessionCommand(session.Id);
 

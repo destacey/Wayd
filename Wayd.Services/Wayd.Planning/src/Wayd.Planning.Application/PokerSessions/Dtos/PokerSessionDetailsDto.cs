@@ -1,5 +1,7 @@
-﻿using Wayd.Common.Application.Identity.Users;
+﻿using Wayd.Common.Application.Employees.Dtos;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Extensions;
+using Wayd.Planning.Application.Models;
 using Wayd.Planning.Application.EstimationScales.Dtos;
 using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models.PlanningPoker;
@@ -18,7 +20,38 @@ public sealed record PokerSessionDetailsDto : IMapFrom<PokerSession>
     public int Key { get; set; }
     public required string Name { get; set; }
     public required string Status { get; set; }
-    public UserNavigationDto? Facilitator { get; set; }
+
+    /// <summary>
+    /// Public: anyone with the poker View permission can see and join the session. Private: only its
+    /// facilitators, invited employees and the members of invited teams.
+    /// </summary>
+    public Visibility Visibility { get; set; }
+
+    /// <summary>
+    /// The employees who run the session: its rounds, reveals, resets, consensus, details, access and completion.
+    /// </summary>
+    public List<EmployeeNavigationDto> Facilitators { get; set; } = [];
+
+    /// <summary>
+    /// The employees invited to the session, who can join it while it is private.
+    /// </summary>
+    public List<EmployeeNavigationDto> InvitedEmployees { get; set; } = [];
+
+    /// <summary>
+    /// The teams invited to the session, whose current members can join it while it is private.
+    /// </summary>
+    public List<PlanningTeamNavigationDto> InvitedTeams { get; set; } = [];
+
+    /// <summary>
+    /// Everyone who has joined the session, in the order they joined, including those who have left.
+    /// </summary>
+    public List<PokerSessionMemberDto> Members { get; set; } = [];
+
+    /// <summary>
+    /// Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a
+    /// read-only token.
+    /// </summary>
+    public bool CanManage { get; set; }
     public EstimationScaleNavigationDto? EstimationScale { get; set; }
 
     /// <summary>
@@ -33,6 +66,11 @@ public sealed record PokerSessionDetailsDto : IMapFrom<PokerSession>
     {
         config.NewConfig<PokerSession, PokerSessionDetailsDto>()
             .Map(dest => dest.Status, src => src.Status.GetDisplayName())
+            .Map(dest => dest.Facilitators, src => src.Facilitators.Select(f => EmployeeNavigationDto.From(f.Employee!)))
+            .Map(dest => dest.InvitedEmployees, src => src.InvitedEmployees.Select(e => EmployeeNavigationDto.From(e.Employee!)))
+            .Map(dest => dest.InvitedTeams, src => src.InvitedTeams.Select(t => PlanningTeamNavigationDto.FromPlanningTeam(t.Team!)))
+            .Map(dest => dest.Members, src => src.Members.OrderBy(m => m.JoinedOn))
+            .Ignore(dest => dest.CanManage)
             .Map(dest => dest.Rounds, src => src.Rounds.OrderBy(r => r.Order));
     }
 

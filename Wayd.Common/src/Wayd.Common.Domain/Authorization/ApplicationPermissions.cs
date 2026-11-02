@@ -312,10 +312,11 @@ public static class ApplicationPermissions
         new("Update Roadmaps", ApplicationAction.Update, ApplicationResource.Roadmaps, PlanningCategory),
         new("Delete Roadmaps", ApplicationAction.Delete, ApplicationResource.Roadmaps, PlanningCategory),
 
+        // No Update or Delete: a session's facilitators run it. Administer lets someone see and run any session,
+        // private ones included.
         new("View Poker Sessions", ApplicationAction.View, ApplicationResource.PokerSessions, PlanningCategory),
         new("Create Poker Sessions", ApplicationAction.Create, ApplicationResource.PokerSessions, PlanningCategory),
-        new("Update Poker Sessions", ApplicationAction.Update, ApplicationResource.PokerSessions, PlanningCategory),
-        new("Delete Poker Sessions", ApplicationAction.Delete, ApplicationResource.PokerSessions, PlanningCategory),
+        new("Administer Poker Sessions", ApplicationAction.Administer, ApplicationResource.PokerSessions, PlanningCategory),
 
         new("View Story Maps", ApplicationAction.View, ApplicationResource.StoryMaps, PlanningCategory),
         new("Create Story Maps", ApplicationAction.Create, ApplicationResource.StoryMaps, PlanningCategory),

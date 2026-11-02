@@ -38,36 +38,47 @@ public sealed class StatusResolver(IStatusWorkflowDbContext dbContext) : IStatus
             : Result.Success(workflow.Value.TargetRef(status.Id)!);
     }
 
-    public Task<Result<StatusWorkflow>> ForScope(string ownerType, Guid? scopeId, CancellationToken cancellationToken) =>
-        ForRecordType(ownerType, scopeId, recordTypeId: null, cancellationToken);
+    public async Task<Result<StatusWorkflow>> ForScope(string ownerType, Guid? scopeId, CancellationToken cancellationToken) =>
+        (await ForRecordType(ownerType, WorkflowScopeChain.ForScope(scopeId), recordTypeId: null, cancellationToken))
+            .Map(r => r.Workflow);
 
-    public async Task<Result<StatusWorkflow>> ForRecordType(string ownerType, Guid? scopeId, Guid? recordTypeId, CancellationToken cancellationToken)
+    public async Task<Result<ResolvedWorkflow>> ForRecordType(string ownerType, WorkflowScopeChain scopes, Guid? recordTypeId, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(scopes);
+
         var descriptor = WorkflowOwners.Resolve(ownerType);
         if (descriptor.IsFailure)
         {
-            return Result.Failure<StatusWorkflow>(descriptor.Error);
+            return Result.Failure<ResolvedWorkflow>(descriptor.Error);
         }
 
         var key = descriptor.Value.Key;
+        var scopeIds = scopes.ScopeIds.ToArray();
 
-        // The scope's own assignment, falling back to the organization-level one. Ordering puts the
-        // narrower row first; a scope with no assignment of its own is the normal case, not an error.
-        // Within the scheme, the type's entry wins over the default.
-        var workflowId = await _dbContext.WorkflowAssignments
-            .Where(a => a.OwnerType == key && (a.ScopeId == scopeId || a.ScopeId == null))
-            .OrderByDescending(a => a.ScopeId != null)
-            .Select(a => a.Scheme!.Entries
-                .Where(e => recordTypeId != null && e.RecordTypeId == recordTypeId)
-                .Select(e => (Guid?)e.WorkflowId)
-                .FirstOrDefault() ?? (Guid?)a.Scheme.DefaultWorkflowId)
-            .FirstOrDefaultAsync(cancellationToken);
+        // Every level's assignment at once — a chain is a handful of rows — then the most specific wins. A level
+        // with no assignment of its own is the normal case, not an error.
+        var candidates = await _dbContext.WorkflowAssignments
+            .Where(a => a.OwnerType == key && (a.ScopeId == null || scopeIds.Contains(a.ScopeId.Value)))
+            .Select(a => new
+            {
+                a.ScopeId,
+                EntryWorkflowId = a.Scheme!.Entries
+                    .Where(e => recordTypeId != null && e.RecordTypeId == recordTypeId)
+                    .Select(e => (Guid?)e.WorkflowId)
+                    .FirstOrDefault(),
+                a.Scheme.DefaultWorkflowId,
+            })
+            .ToListAsync(cancellationToken);
 
-        if (workflowId is null)
+        var decided = candidates.MinBy(c => scopes.Rank(c.ScopeId));
+        if (decided is null)
         {
-            return Result.Failure<StatusWorkflow>(
+            return Result.Failure<ResolvedWorkflow>(
                 $"No workflow is assigned for {descriptor.Value.DisplayName}. An administrator must assign one.");
         }
+
+        var workflowId = decided.EntryWorkflowId ?? decided.DefaultWorkflowId;
+        var source = new WorkflowSource(decided.ScopeId, IsRecordTypeEntry: decided.EntryWorkflowId is not null);
 
         // Transitions and their conditions are loaded with the statuses: every reference built from this
         // workflow carries the moves it allows and what each needs, and a missing include would silently
@@ -80,8 +91,8 @@ public sealed class StatusResolver(IStatusWorkflowDbContext dbContext) : IStatus
             .FirstOrDefaultAsync(w => w.Id == workflowId, cancellationToken);
 
         return workflow is null
-            ? Result.Failure<StatusWorkflow>($"The workflow assigned for {descriptor.Value.DisplayName} no longer exists.")
-            : Result.Success(workflow);
+            ? Result.Failure<ResolvedWorkflow>($"The workflow assigned for {descriptor.Value.DisplayName} no longer exists.")
+            : Result.Success(new ResolvedWorkflow(workflow, source));
     }
 
     private static string DescribeAlias(string ownerType, int alias) =>

@@ -23,7 +23,8 @@ namespace Wayd.Common.Domain.StatusWorkflows;
 /// </para>
 /// <para>
 /// A <c>null</c> <see cref="ScopeId"/> is the organization-level assignment, and is the mandatory
-/// fallback for records whose owner type has no narrower scope.
+/// fallback: lookup walks the record's <see cref="WorkflowScopeChain"/>, most specific scope first, and
+/// reaches the organization when no scope in the chain has an assignment of its own.
 /// </para>
 /// <para>
 /// Several workflows for one owner type are published at once by design — each scope picks its own —

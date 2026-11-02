@@ -39,6 +39,12 @@ public interface IRecordTypeStatusMigrator
 }
 
 /// <summary>The records a scheme change moves.</summary>
+/// <remarks>
+/// Assumes one level of scope below the organization. Under a <see cref="WorkflowScopeChain"/> with nested
+/// scopes, a scope's assignment also governs the records of narrower scopes that have none of their own, and
+/// the organization's governs only records with no assigned scope anywhere in their chain; this selection does
+/// not express either, so it must change before an owner type with nested scopes registers a migrator.
+/// </remarks>
 /// <param name="ScopeIds">
 /// The scopes whose assignment names the scheme. <c>null</c> among them is the organization-level
 /// assignment: records in every scope without an assignment of its own.

@@ -34,26 +34,28 @@ public interface IStatusResolver : IScopedService
     /// <param name="ownerType">The registered owner type, e.g. <c>delivery.release</c>.</param>
     /// <param name="scopeId">
     /// The scope, or <c>null</c> for the organization-level assignment. Product Management has no
-    /// container yet and always passes <c>null</c>; Project Portfolio Management will pass a portfolio.
+    /// container yet and always passes <c>null</c>; Demand Management passes the intake desk.
     /// </param>
     /// <param name="alias">The meaning to resolve, cast from the module's own alias enum.</param>
     /// <returns>
     /// The status, carrying the moves the workflow allows into it (<see cref="StatusRef.AllowedFrom"/>) and
     /// what each needs (<see cref="StatusRef.ConditionsFrom"/>).
-    /// A failure when the scope has no assignment, the workflow is missing, or no status carries that
-    /// alias — all of which are misconfiguration a caller should surface rather than throw on.
+    /// A failure when neither the scope nor the organization has an assignment, the workflow is missing, or no
+    /// status carries that alias — all of which are misconfiguration a caller should surface rather than throw on.
     /// </returns>
     /// <remarks>
-    /// Resolves against the scheme's default workflow. An owner type with record types loads the type's
-    /// workflow with <see cref="ForRecordType"/> instead and resolves the status there, or a record of a type
-    /// with its own entry gets a status of the wrong workflow.
+    /// Resolves against the scheme's default workflow, looking at one scope and then the organization. An owner
+    /// type with record types, or whose records sit in nested scopes, loads the record's workflow with
+    /// <see cref="ForRecordType"/> instead and resolves the status there: otherwise a record of a type with its
+    /// own entry, or one under a scope between its own and the organization, gets a status of the wrong
+    /// workflow.
     /// </remarks>
     Task<Result<StatusRef>> ForAlias(string ownerType, Guid? scopeId, int alias, CancellationToken cancellationToken);
 
     /// <summary>
     /// Resolves the status a newly created record starts in.
     /// </summary>
-    /// <remarks>From the scheme's default workflow; see <see cref="ForAlias"/> for owner types with record types.</remarks>
+    /// <remarks>From the scheme's default workflow; see <see cref="ForAlias"/> for owner types with record types or nested scopes.</remarks>
     Task<Result<StatusRef>> Initial(string ownerType, Guid? scopeId, CancellationToken cancellationToken);
 
     /// <summary>
@@ -67,11 +69,17 @@ public interface IStatusResolver : IScopedService
     Task<Result<StatusWorkflow>> ForScope(string ownerType, Guid? scopeId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Loads the workflow records of one record type follow in a scope: the scope's scheme's entry for the
-    /// type, otherwise its default. <see cref="ForScope"/> is this with no type.
+    /// Loads the workflow records of one record type follow, walking the scopes the record sits in, most specific
+    /// first, then the organization. At each level the scheme's entry for the type is tried, then its default;
+    /// the first level with an assignment decides. <see cref="ForScope"/> is this with one scope and no type.
     /// </summary>
+    /// <param name="scopes">The record's scopes, built by the owning module.</param>
     /// <param name="recordTypeId">
-    /// The record's type, or <c>null</c> for a record without one, which follows the scheme's default.
+    /// The record's type, or <c>null</c> for a record without one, which follows each level's default.
     /// </param>
-    Task<Result<StatusWorkflow>> ForRecordType(string ownerType, Guid? scopeId, Guid? recordTypeId, CancellationToken cancellationToken);
+    /// <returns>
+    /// The workflow and the level that decided it. A failure when no level has an assignment, not even the
+    /// organization.
+    /// </returns>
+    Task<Result<ResolvedWorkflow>> ForRecordType(string ownerType, WorkflowScopeChain scopes, Guid? recordTypeId, CancellationToken cancellationToken);
 }

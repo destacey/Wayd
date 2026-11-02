@@ -135,11 +135,12 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     }
   }
 
-  const allowedActions = workflowActionsFailed
-    ? undefined
-    : (workflowActions?.map((a) => a.action) ?? [])
+  const allowedActions =
+    !canUpdate || workflowActionsLoading || workflowActionsFailed
+      ? undefined
+      : workflowActions?.map((a) => a.action)
   const workflowAvailability = incidentWorkflowActionAvailability(allowedActions)
-  const lifecycleReady = !canUpdate || workflowActionsFailed || !workflowActionsLoading
+  const lifecyclePending = canUpdate && workflowActionsLoading
 
   const applyLifecycleAction = async (
     action: IncidentWorkflowAction,
@@ -180,7 +181,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   }
 
   const actionsMenuItems: MenuProps['items'] = (() => {
-    if (!canUpdate || !lifecycleReady) {
+    if (!canUpdate) {
       return []
     }
 
@@ -203,7 +204,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       lifecycle.push({
         key: 'begin-responding',
         label: 'Begin responding',
-        disabled: applyingWorkflow,
+        disabled: applyingWorkflow || lifecyclePending,
         onClick: () =>
           confirmLifecycleAction(
             'Begin responding',
@@ -217,7 +218,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       lifecycle.push({
         key: 'mark-recovered',
         label: 'Mark recovered',
-        disabled: applyingWorkflow,
+        disabled: applyingWorkflow || lifecyclePending,
         onClick: () =>
           confirmLifecycleAction(
             'Mark recovered',
@@ -231,7 +232,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       lifecycle.push({
         key: 'close',
         label: 'Close',
-        disabled: applyingWorkflow,
+        disabled: applyingWorkflow || lifecyclePending,
         onClick: () =>
           confirmLifecycleAction(
             'Close incident',
@@ -246,7 +247,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         key: 'cancel',
         label: 'Cancel',
         danger: true,
-        disabled: applyingWorkflow,
+        disabled: applyingWorkflow || lifecyclePending,
         onClick: () => setCancelOpen(true),
       })
     }

@@ -22,7 +22,8 @@ public sealed class GetIncidentWorkflowActionsQueryHandlerTests : ProductCommand
 {
     private readonly Mock<IStatusResolver> _statusResolver = new();
 
-    private GetIncidentWorkflowActionsQueryHandler CreateSut() => new(DbContext, _statusResolver.Object);
+    private GetIncidentWorkflowActionsQueryHandler CreateSut() =>
+        new(DbContext, DbContext, _statusResolver.Object);
 
     private void Governs(StatusWorkflow workflow) =>
         _statusResolver
@@ -62,6 +63,49 @@ public sealed class GetIncidentWorkflowActionsQueryHandlerTests : ProductCommand
         var workflow = DeliveryWorkflowFactory.RequiredMovesOnly(ProductWorkflowOwners.Incident);
         Governs(workflow);
         var incident = SeedResponding(workflow);
+
+        // Act
+        var result = await CreateSut().Handle(
+            new GetIncidentWorkflowActionsQuery(new IdOrKey(incident.Id.ToString())),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Select(a => a.Action).Should().Equal(
+            IncidentWorkflowAction.MarkRecovered,
+            IncidentWorkflowAction.Cancel);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldUseTheWorkflowTheIncidentHolds_NotTheOrgAssignment()
+    {
+        // Arrange — status ids live on one workflow; the assignment resolves another with the same
+        // aliases but different ids, which makes AllowedTargets empty when the wrong graph is queried.
+        var onRecord = DeliveryWorkflowFactory.RequiredMovesOnly(ProductWorkflowOwners.Incident);
+        DbContext.AddStatusWorkflow(onRecord);
+        var assigned = DeliveryWorkflowFactory.Published(DeliveryWorkflowFactory.Seeded(ProductWorkflowOwners.Incident));
+        DbContext.AddStatusWorkflow(assigned);
+        _statusResolver
+            .Setup(r => r.ForScope(ProductWorkflowOwners.Incident.Key, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(assigned));
+
+        var incident = Incident.Create(
+            "Checkout unavailable",
+            null,
+            ActingEmployeeId,
+            Guid.CreateVersion7(),
+            Now,
+            null,
+            null,
+            [],
+            DeliveryWorkflowFactory.Initial(onRecord),
+            EventActor.System,
+            Now).Value;
+        incident.BeginResponding(
+                DeliveryWorkflowFactory.Ref(onRecord, ProductStatusAlias.Responding),
+                EventActor.System,
+                Now)
+            .IsSuccess.Should().BeTrue();
+        DbContext.AddIncident(incident);
 
         // Act
         var result = await CreateSut().Handle(

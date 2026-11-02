@@ -241,8 +241,9 @@ A desk can size its requests on one of the company's [estimation scales](../plan
 
 - **Only while the request is open.** Estimating follows the same rule as scoring: allowed while the request is proposed or active, and frozen once it is done or removed.
 - **A size, never a card.** Only the scale's estimate values can be chosen; cards such as *?* or *☕* belong to planning poker, not to a request.
-- **An estimate keeps its scale.** Each estimate records the version of the scale it was given on, so a later change to the scale never changes what an estimate means. A request moved to a desk on another scale loses its estimate, since a size on one desk's scale says nothing beside another's.
-- **A desk without a scale does not estimate.** That is a normal setting; the request's actions menu offers no **Change Estimate**.
+- **An estimate keeps its scale.** Each estimate records the version of the scale it was given on, so a later change to the scale never changes what an estimate means. A request moved to a desk that estimates on another scale or another version of it, or not at all, loses its estimate, since a size on one desk's scale says nothing beside another's.
+- **A desk without a scale does not estimate.** That is a normal setting; the request's actions menu offers no **Change Estimate**, unless the request still carries an estimate from before, which an agent can clear.
+- **An earlier version's estimate can be kept.** A request estimated before the desk moved to a newer version keeps its estimate, shown with that version in **Change Estimate**; choosing a value there gives it on the desk's version instead.
 
 The requester and participants see the estimate on their own request but cannot change it, and changing it does not notify them; it is recorded in the request's activity. This is a request's size as the desk sees it, separate from the estimates teams give work items.
 
@@ -304,7 +305,7 @@ The form also says what the move changes:
   - Reaching **Open** from Summary Only exposes the description, expected benefits and participants, who submitted it and where it came from, earlier versions of the description, and who made each change in its history.
   - Reaching **Open** from Private exposes both.
 - **A desk the assignee does not work.** The request's assignee is always a member of its desk, so moving it to a desk they are not on unassigns it.
-- **A desk on another estimation scale.** An [estimate](#estimating-a-request) given on the first desk's scale is cleared, and the new desk's agents estimate it again.
+- **A desk on another estimation scale.** An [estimate](#estimating-a-request) is cleared unless the new desk estimates on the very version it was given on — another scale, another version of the same scale, or no scale all clear it — and the new desk's agents estimate it again.
 
 A move to an equally or more private desk needs no confirmation. Every move is recorded in the request's activity with both desks, and the requester always sees which desk has their request. If you move a request to a private desk you do not work, you will no longer be able to open it.
 

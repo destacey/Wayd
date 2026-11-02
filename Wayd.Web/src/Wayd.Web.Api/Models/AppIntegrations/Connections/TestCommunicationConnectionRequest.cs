@@ -6,7 +6,7 @@ namespace Wayd.Web.Api.Models.AppIntegrations.Connections;
 public sealed record TestCommunicationConnectionRequest
 {
     /// <summary>
-    /// Entra access token from the signed-in user's OIDC session (on-behalf-of assertion).
+    /// Entra access token issued for the Teams app registration (on-behalf-of assertion).
     /// </summary>
     public string? SubjectToken { get; set; }
 }

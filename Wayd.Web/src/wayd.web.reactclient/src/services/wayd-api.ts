@@ -65807,7 +65807,7 @@ export interface TestAzureOpenAIConnectionRequest {
 
 /** Optional body for `POST …/communication-test` when the connector needs a delegated Entra token. */
 export interface TestCommunicationConnectionRequest {
-    /** Entra access token from the signed-in user's OIDC session (on-behalf-of assertion). */
+    /** Entra access token issued for the Teams app registration (on-behalf-of assertion). */
     subjectToken?: string | undefined;
 }
 
@@ -66911,7 +66911,7 @@ export interface VerifyTeamsConnectionRequest {
     clientId: string;
     /** Client secret for the Teams communication app registration. */
     clientSecret: string;
-    /** Entra access token from the signed-in user's OIDC session, exchanged on-behalf-of for Graph. */
+    /** Entra access token issued for the Teams app registration (scope api://{client-id}/access_as_user), exchanged on-behalf-of for Graph. */
     subjectToken: string;
 }
 

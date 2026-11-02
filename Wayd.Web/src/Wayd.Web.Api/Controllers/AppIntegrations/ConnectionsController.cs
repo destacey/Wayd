@@ -156,8 +156,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
         "Runs the same hello-world Graph test as communication-test using credentials from the create form: "
         + "resolve the signed-in user's email in the tenant (application), create a Teams chat (application), "
         + "post a hello-world chat message as the signed-in user (delegated ChatMessage.Send via on-behalf-of), "
-        + "and create a calendar event (application). Requires subjectToken, the Entra access token from the "
-        + "user's Wayd sign-in session. Does not persist a connection.")]
+        + "and create a calendar event (application). Requires subjectToken, an Entra access token issued for "
+        + "the Teams app registration (not the Wayd sign-in API). Does not persist a connection.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> VerifyTeamsCommunicationConnection(

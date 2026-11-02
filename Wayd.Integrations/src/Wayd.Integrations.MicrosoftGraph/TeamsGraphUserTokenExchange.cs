@@ -59,8 +59,9 @@ public sealed class TeamsGraphUserTokenExchange(
                     error);
                 return Result.Failure<string>(
                     "Wayd could not obtain a delegated Microsoft Graph token for your signed-in user. "
-                    + "Sign in with Microsoft Entra ID and ensure the Teams app registration authorizes "
-                    + "Wayd's sign-in application for on-behalf-of access. "
+                    + "The access token must be issued for this Teams app registration "
+                    + $"(audience {connectionCredentials.ClientId}, scope api://{connectionCredentials.ClientId}/access_as_user), "
+                    + "not for Wayd's sign-in API. "
                     + $"Entra reported: {error}");
             }
 

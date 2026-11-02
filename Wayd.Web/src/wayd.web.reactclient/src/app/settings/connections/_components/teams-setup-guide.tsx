@@ -49,8 +49,17 @@ export const TeamsSetupGuide = () => (
         select <strong>Grant admin consent</strong> for the tenant.
       </li>
       <li>
-        Add the <strong>Delegated</strong> permission listed below on the same app registration so
-        Wayd can send chat messages as the signed-in approver when that flow is enabled.
+        Add the <strong>Delegated</strong> permission listed below on the same app registration.
+      </li>
+      <li>
+        Under <strong>Expose an API</strong> on the Teams app, set the Application ID URI to{' '}
+        <strong>api://</strong> plus the Teams client id, add a delegated scope named{' '}
+        <strong>access_as_user</strong>, and set the access token version to <strong>2</strong>.
+      </li>
+      <li>
+        On Wayd's <strong>sign-in client</strong> (the identity provider client id, not the
+        Wayd API app), add that <strong>access_as_user</strong> permission and{' '}
+        <strong>Grant admin consent</strong>.
       </li>
       <li>
         In Wayd, open <strong>Settings → System → Connections</strong>, choose{' '}
@@ -87,9 +96,8 @@ export const TeamsSetupGuide = () => (
       styles={{ body: { paddingTop: 12 } }}
     >
       <Paragraph style={{ marginBottom: 12 }}>
-        Delegated permission on Microsoft Graph for the signed-in Wayd user who approves sending
-        communication — not an application permission and not used by Verify or Test connection
-        today:
+        Delegated permission on Microsoft Graph for the signed-in Wayd user. Not an application
+        permission. Verify and Test connection use it to post the hello-world chat message:
       </Paragraph>
       <Table
         columns={permissionColumns}

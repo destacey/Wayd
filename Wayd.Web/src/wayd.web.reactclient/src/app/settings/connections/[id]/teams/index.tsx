@@ -8,10 +8,7 @@ import {
 } from '@/src/services/wayd-api'
 import { useGetAuthProvidersQuery } from '@/src/store/features/common/auth-providers-api'
 import { useTestCommunicationConnectionMutation } from '@/src/store/features/app-integration/connections-api'
-import {
-  getOidcSubjectAccessToken,
-  TEAMS_MISSING_ENTRA_TOKEN_MESSAGE,
-} from '../../_components/teams-entra-token'
+import { getOidcSubjectAccessToken } from '../../_components/teams-entra-token'
 import { Collapse } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { useEffect, useMemo } from 'react'
@@ -64,14 +61,17 @@ const ExtraActions = ({
   const items = useMemo<ItemType[]>(() => {
     const runTest = async () => {
       try {
-        const subjectToken = await getOidcSubjectAccessToken(
+        const config = (ctx.connection as TeamsConnectionDetailsDto).configuration
+        const subject = await getOidcSubjectAccessToken(
           loginProvider,
           authProviders?.oidc,
+          config?.clientId ?? '',
         )
-        if (!subjectToken) {
-          messageApi.error(TEAMS_MISSING_ENTRA_TOKEN_MESSAGE)
+        if ('error' in subject) {
+          messageApi.error(subject.error)
           return
         }
+        const subjectToken = subject.token
 
         const response = await testConnection({
           id: ctx.connectionId,

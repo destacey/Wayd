@@ -23,9 +23,14 @@ See the shared [integrations index](./index.mdx) for credentials, activation, an
 1. In the Entra admin portal, **register a new application** for Wayd Teams communication (not the people-sync or sign-in apps). Note the **Tenant ID** and **Application (client) ID**.
 2. Under **Certificates & secrets**, create a **client secret**. Copy the value immediately — Entra only shows it once.
 3. Grant the **Application permissions** listed in [Application permissions](#application-permissions) on Microsoft Graph, then select **Grant admin consent** for the tenant.
-4. Add the **Delegated** permission in [Delegated permission](#delegated-permission) on the same app registration. Under **Expose an API**, authorize Wayd's **sign-in** application as a client application so on-behalf-of token exchange can reach Microsoft Graph as the signed-in user.
-5. In Wayd, open **Settings → System → Connections**, choose **Microsoft Teams**, and enter the tenant ID, client ID, and secret.
-6. Sign in to Wayd with **Microsoft Entra ID**, then choose **Verify** on the create form. Wayd runs the hello-world Graph check for your Wayd account email. After verification succeeds, save the connection. You can run **Test connection** again from the connection detail page at any time.
+4. Add the **Delegated** permission in [Delegated permission](#delegated-permission) on the same app registration.
+5. Under **Expose an API** on the Teams app:
+   - Set the **Application ID URI** to `api://{teams-client-id}` (the Teams app's own client id).
+   - Add a delegated scope named `access_as_user` and enable it.
+   - In the manifest, set `api.requestedAccessTokenVersion` to `2` so the token's `aud` is that client id.
+6. On Wayd's **sign-in client** (the identity provider's client id — the SPA, not the Wayd API app registration), add a delegated permission for that `access_as_user` scope and **Grant admin consent**. Authorizing the Wayd API app does not change the audience of the sign-in token.
+7. In Wayd, open **Settings → System → Connections**, choose **Microsoft Teams**, and enter the tenant ID, client ID, and secret.
+8. Sign in to Wayd with **Microsoft Entra ID**, then choose **Verify** on the create form. Wayd runs the hello-world Graph check for your Wayd account email. After verification succeeds, save the connection. You can run **Test connection** again from the connection detail page at any time.
 
 ## Application permissions
 
@@ -55,7 +60,7 @@ Delegated permission on Microsoft Graph for the **signed-in Wayd user who approv
 
 ## Connection test behavior
 
-**Verify** (create form) and **Test connection** (detail page) require you to be signed in to Wayd with **Microsoft Entra ID**. Wayd reads the Entra access token from your browser session and exchanges it on-behalf-of for a delegated Graph token to send the hello-world chat message as you. Local Wayd accounts cannot verify or test a Teams connection.
+**Verify** (create form) and **Test connection** (detail page) require you to be signed in to Wayd with **Microsoft Entra ID**. Wayd uses that Entra session to request an access token for the Teams app (`api://{teams-client-id}/access_as_user`) and exchanges it on-behalf-of for a delegated Graph token to send the hello-world chat message as you. The sign-in token (audience = the Wayd API app) cannot be that assertion. Local Wayd accounts cannot verify or test a Teams connection.
 
 Application permissions use the connection's client credentials. The chat message uses **ChatMessage.Send** with that delegated token.
 

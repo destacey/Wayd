@@ -19,10 +19,7 @@ import {
   useVerifyTeamsConnectionMutation,
 } from '@/src/store/features/app-integration/connections-api'
 import { useModalForm } from '@/src/hooks'
-import {
-  getOidcSubjectAccessToken,
-  TEAMS_MISSING_ENTRA_TOKEN_MESSAGE,
-} from './teams-entra-token'
+import { getOidcSubjectAccessToken } from './teams-entra-token'
 
 export interface CreateConnectionFormProps {
   onFormCreate: () => void
@@ -115,22 +112,24 @@ const CreateConnectionForm = ({
           }
 
           try {
-            const subjectToken =
+            const subject =
               selectedConnector === ConnectorType.Teams
                 ? await getOidcSubjectAccessToken(
                     loginProvider,
                     authProviders?.oidc,
+                    values.clientId ?? '',
                   )
                 : null
-            if (selectedConnector === ConnectorType.Teams && !subjectToken) {
+            if (subject && 'error' in subject) {
               setTeamsVerifyState({
                 fingerprint: teamsCredentialFingerprint,
                 ok: false,
-                error: TEAMS_MISSING_ENTRA_TOKEN_MESSAGE,
+                error: subject.error,
               })
-              messageApi.error(TEAMS_MISSING_ENTRA_TOKEN_MESSAGE)
+              messageApi.error(subject.error)
               return false
             }
+            const subjectToken = subject && 'token' in subject ? subject.token : null
 
             // System.Text.Json polymorphism requires the discriminator to be the FIRST property
             // in the JSON payload — otherwise it throws "must specify a type discriminator" even
@@ -236,19 +235,21 @@ const CreateConnectionForm = ({
 
     setIsVerifyingTeams(true)
     try {
-      const subjectToken = await getOidcSubjectAccessToken(
+      const subject = await getOidcSubjectAccessToken(
         loginProvider,
         authProviders?.oidc,
+        values.clientId ?? '',
       )
-      if (!subjectToken) {
+      if ('error' in subject) {
         setTeamsVerifyState({
           fingerprint,
           ok: false,
-          error: TEAMS_MISSING_ENTRA_TOKEN_MESSAGE,
+          error: subject.error,
         })
-        messageApi.error(TEAMS_MISSING_ENTRA_TOKEN_MESSAGE)
+        messageApi.error(subject.error)
         return
       }
+      const subjectToken = subject.token
 
       const response = await verifyTeamsConnection({
         tenantId: values.tenantId!.trim(),

@@ -23,7 +23,7 @@ public sealed record VerifyTeamsConnectionRequest
     public required string ClientSecret { get; set; }
 
     /// <summary>
-    /// Entra access token from the signed-in user's OIDC session, exchanged on-behalf-of for Graph.
+    /// Entra access token issued for the Teams app registration (scope api://{client-id}/access_as_user), exchanged on-behalf-of for Graph.
     /// </summary>
     public required string SubjectToken { get; set; }
 

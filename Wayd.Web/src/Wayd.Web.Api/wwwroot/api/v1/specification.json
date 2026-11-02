@@ -44848,7 +44848,7 @@
           "Connections"
         ],
         "summary": "Verify Microsoft Teams connection credentials before create.",
-        "description": "Runs the same hello-world Graph test as communication-test using credentials from the create form: resolve the signed-in user's email in the tenant (application), create a Teams chat (application), post a hello-world chat message as the signed-in user (delegated ChatMessage.Send via on-behalf-of), and create a calendar event (application). Requires subjectToken, the Entra access token from the user's Wayd sign-in session. Does not persist a connection.",
+        "description": "Runs the same hello-world Graph test as communication-test using credentials from the create form: resolve the signed-in user's email in the tenant (application), create a Teams chat (application), post a hello-world chat message as the signed-in user (delegated ChatMessage.Send via on-behalf-of), and create a calendar event (application). Requires subjectToken, an Entra access token issued for the Teams app registration (not the Wayd sign-in API). Does not persist a connection.",
         "operationId": "Connections_VerifyTeamsCommunicationConnection",
         "requestBody": {
           "content": {
@@ -75838,7 +75838,7 @@
         "properties": {
           "subjectToken": {
             "type": "string",
-            "description": "Entra access token from the signed-in user's OIDC session (on-behalf-of assertion).",
+            "description": "Entra access token issued for the Teams app registration (on-behalf-of assertion).",
             "nullable": true
           }
         },
@@ -79495,7 +79495,7 @@
           "subjectToken": {
             "minLength": 1,
             "type": "string",
-            "description": "Entra access token from the signed-in user's OIDC session, exchanged on-behalf-of for Graph."
+            "description": "Entra access token issued for the Teams app registration (scope api://{client-id}/access_as_user), exchanged on-behalf-of for Graph."
           }
         },
         "additionalProperties": false,

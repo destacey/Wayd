@@ -1,5 +1,4 @@
 using FluentAssertions;
-using CSharpFunctionalExtensions;
 using Moq;
 using Moq.AutoMock;
 using NodaTime;
@@ -34,64 +33,35 @@ public sealed class CreateTeamsConnectionCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenGraphTestFails_DoesNotPersistConnection()
+    public async Task Handle_PersistsConnectionWithoutRunningTheCommunicationTest()
     {
         // Arrange
-        _mocker.GetMock<ICurrentUser>()
-            .Setup(u => u.GetUserEmail())
-            .Returns("admin@contoso.com");
-
-        _mocker.GetMock<ITeamsCommunicationGraphClient>()
-            .Setup(c => c.RunHelloWorldTestAsync(
-                It.IsAny<TeamsGraphCredentials>(),
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Failure("Microsoft Graph rejected the connection test."));
+        var command = new CreateTeamsConnectionCommand(
+            " Teams ",
+            "  ",
+            " tenant-id ",
+            " client-id ",
+            " client-secret ");
 
         // Act
-        var result = await _sut.Handle(
-            new CreateTeamsConnectionCommand(
-                "Teams",
-                null,
-                "tenant-id",
-                "client-id",
-                "client-secret"),
-            TestContext.Current.CancellationToken);
+        var result = await _sut.Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        _db.TeamsConnections.Should().BeEmpty();
-        _db.SaveChangesCallCount.Should().Be(0);
-    }
-
-    [Fact]
-    public async Task Handle_WhenGraphTestSucceeds_PersistsConnection()
-    {
-        // Arrange
-        _mocker.GetMock<ICurrentUser>()
-            .Setup(u => u.GetUserEmail())
-            .Returns("admin@contoso.com");
-
-        _mocker.GetMock<ITeamsCommunicationGraphClient>()
-            .Setup(c => c.RunHelloWorldTestAsync(
-                It.IsAny<TeamsGraphCredentials>(),
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success());
-
-        // Act
-        var result = await _sut.Handle(
-            new CreateTeamsConnectionCommand(
-                "Teams",
-                null,
-                "tenant-id",
-                "client-id",
-                "client-secret"),
-            TestContext.Current.CancellationToken);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        _db.TeamsConnections.Should().HaveCount(1);
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         _db.SaveChangesCallCount.Should().Be(1);
+        var connection = _db.TeamsConnections.Should().ContainSingle().Subject;
+        result.Value.Should().Be(connection.Id);
+        connection.Name.Should().Be("Teams");
+        connection.Description.Should().BeNull();
+        connection.IsValidConfiguration.Should().BeTrue();
+        connection.Configuration.TenantId.Should().Be("tenant-id");
+        connection.Configuration.ClientId.Should().Be("client-id");
+        connection.Configuration.ClientSecret.Should().Be("client-secret");
+        _mocker.GetMock<ITeamsCommunicationGraphClient>().Verify(
+            c => c.RunHelloWorldTestAsync(
+                It.IsAny<TeamsGraphCredentials>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

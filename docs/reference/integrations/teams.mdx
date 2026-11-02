@@ -55,4 +55,4 @@ The Teams app is a separate registration, often in a different tenant from Wayd 
 3. Create a one-member Teams chat named **Wayd connection test** (proves **Chat.Create**).
 4. Create an all-day calendar event for the current UTC date on that user's calendar (proves **Calendars.ReadWrite**).
 
-If step 2 finds no user, the test returns an error and does not save a new Teams connection. A Wayd account with no email address cannot be the recipient.
+If step 2 finds no user, the test returns an error and does not create the chat or the calendar event. Creating a connection saves the credentials only and does not run this test. A Wayd account with no email address cannot be the recipient.

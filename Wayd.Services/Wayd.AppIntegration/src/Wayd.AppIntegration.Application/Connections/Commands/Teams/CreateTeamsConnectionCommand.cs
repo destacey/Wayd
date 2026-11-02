@@ -2,11 +2,14 @@ using FluentValidation;
 using Wayd.AppIntegration.Application.Logging;
 using Wayd.AppIntegration.Domain.Models.Teams;
 using NodaTime;
-using Wayd.Common.Application.Interfaces;
-using Wayd.Common.Application.Interfaces.Communication;
 
 namespace Wayd.AppIntegration.Application.Connections.Commands.Teams;
 
+/// <summary>
+/// Persists a Microsoft Teams connection. Does not run the communication test — that test creates
+/// a Teams chat and a calendar event, and only <see cref="VerifyTeamsConnectionCommand"/> (create
+/// form) and <see cref="TestTeamsConnectionCommand"/> (an existing connection) run it.
+/// </summary>
 public sealed record CreateTeamsConnectionCommand(
     string Name,
     string? Description,
@@ -32,7 +35,6 @@ public sealed class CreateTeamsConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
-    ITeamsCommunicationGraphClient teamsCommunicationGraphClient,
     ILogger<CreateTeamsConnectionCommandHandler> logger)
     : ICommandHandler<CreateTeamsConnectionCommand, Guid>
 {
@@ -40,41 +42,20 @@ public sealed class CreateTeamsConnectionCommandHandler(
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ITeamsCommunicationGraphClient _teamsCommunicationGraphClient = teamsCommunicationGraphClient;
     private readonly ILogger<CreateTeamsConnectionCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(CreateTeamsConnectionCommand request, CancellationToken cancellationToken)
     {
         try
         {
-            var email = _currentUser.GetUserEmail();
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                return Result.Failure<Guid>(
-                    "Your Wayd account has no email address; verify the connection before saving.");
-            }
-
-            var credentials = new TeamsGraphCredentials(
-                request.TenantId.Trim(),
-                request.ClientId.Trim(),
-                request.ClientSecret.Trim());
-
-            var verification = await _teamsCommunicationGraphClient.RunHelloWorldTestAsync(
-                credentials,
-                email.Trim(),
-                cancellationToken);
-            if (verification.IsFailure)
-                return Result.Failure<Guid>(verification.Error);
-
             var timestamp = _dateTimeProvider.Now;
             var config = new TeamsConnectionConfiguration(request.TenantId, request.ClientId, request.ClientSecret);
-            var isConfigurationValid = true;
 
             var connection = TeamsConnection.Create(
                 request.Name,
                 request.Description,
                 config,
-                isConfigurationValid,
+                configurationIsValid: true,
                 EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
                 timestamp);
 

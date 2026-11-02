@@ -1,5 +1,9 @@
 'use client'
 
+import {
+  coerceIncidentInstant,
+  instantToEpochMs,
+} from '@/src/app/product-management/incidents/_components/incident-format'
 import { IncidentSeverityRank } from '@/src/app/product-management/incidents/_components/incident-severity-rank'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { IncidentDto, IncidentTimelineNoteDto } from '@/src/services/wayd-api'
@@ -44,7 +48,7 @@ const buildTimelineNodes = (
       id: 'noticed',
       milestone: 'noticed',
       label: 'Noticed',
-      at: incident.noticedAt,
+      at: coerceIncidentInstant(incident.noticedAt),
     },
   ]
 
@@ -54,7 +58,7 @@ const buildTimelineNodes = (
       id: 'started',
       milestone: 'started',
       label: 'Response started',
-      at: incident.startedAt,
+      at: coerceIncidentInstant(incident.startedAt),
     })
   }
 
@@ -64,20 +68,20 @@ const buildTimelineNodes = (
       id: 'recovered',
       milestone: 'recovered',
       label: 'Recovered',
-      at: incident.recoveredAt,
+      at: coerceIncidentInstant(incident.recoveredAt),
     })
   }
 
   const noteNodes: TimelineNoteNode[] = notes.map((note) => ({
     kind: 'note',
     id: note.id,
-    at: note.recordedAt,
+    at: coerceIncidentInstant(note.recordedAt),
     body: note.body,
     authorName: note.author.name,
   }))
 
   return [...milestones, ...noteNodes].sort(
-    (a, b) => a.at.getTime() - b.at.getTime(),
+    (a, b) => instantToEpochMs(a.at) - instantToEpochMs(b.at),
   )
 }
 

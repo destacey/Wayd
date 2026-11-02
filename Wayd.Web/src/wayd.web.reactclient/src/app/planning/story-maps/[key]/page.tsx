@@ -205,7 +205,20 @@ const StoryMapDetailPage: FC = () => {
     router.push('/planning/story-maps')
   }, [messageApi, router])
 
-  useStoryMapConnection(map?.id, setPresence, handleMapDeleted)
+  // The user lost access while looking at the map. The cached map would stay on screen, so show what a
+  // fresh load now shows.
+  const [accessRevoked, setAccessRevoked] = useState(false)
+  const handleAccessRevoked = useCallback(() => {
+    messageApi.warning('You no longer have access to this story map.')
+    setAccessRevoked(true)
+  }, [messageApi])
+
+  useStoryMapConnection(
+    map?.id,
+    setPresence,
+    handleMapDeleted,
+    handleAccessRevoked,
+  )
 
   // Step and task footers show one toggle dot per persona, in the same order as the filter bar.
   const orderedPersonas = useMemo(
@@ -559,7 +572,7 @@ const StoryMapDetailPage: FC = () => {
     return <StoryMapDetailsLoading />
   }
 
-  if (!map) {
+  if (!map || accessRevoked) {
     return notFound()
   }
 

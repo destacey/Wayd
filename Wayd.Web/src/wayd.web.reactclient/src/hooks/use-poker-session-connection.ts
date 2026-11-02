@@ -33,14 +33,20 @@ export function usePokerSessionConnection(
   sessionId: string | undefined,
   sessionKey: number | undefined,
   onPresenceChange?: (participants: PresenceParticipant[]) => void,
+  onAccessRevoked?: () => void,
 ) {
   const connectionRef = useRef<HubConnection | null>(null)
   const presenceMapRef = useRef(new Map<string, PresenceParticipant>())
   const onPresenceChangeRef = useRef(onPresenceChange)
+  const onAccessRevokedRef = useRef(onAccessRevoked)
 
   useEffect(() => {
     onPresenceChangeRef.current = onPresenceChange
   }, [onPresenceChange])
+
+  useEffect(() => {
+    onAccessRevokedRef.current = onAccessRevoked
+  }, [onAccessRevoked])
 
   const emitPresence = () => {
     onPresenceChangeRef.current?.(
@@ -63,6 +69,9 @@ export function usePokerSessionConnection(
     let cancelled = false
 
     const connect = async () => {
+      // Outside the try so a failure after start() can stop it: cleanup only
+      // knows connectionRef, which is set once the join succeeds.
+      let built: HubConnection | null = null
       try {
         const connection = new HubConnectionBuilder()
           .withUrl(`${API_BASE_URL}/hubs/planning-poker`, {
@@ -85,6 +94,7 @@ export function usePokerSessionConnection(
           .withAutomaticReconnect()
           .configureLogging(LogLevel.Warning)
           .build()
+        built = connection
 
         // Game events trigger cache invalidation so the UI refreshes
         const events = [
@@ -103,6 +113,17 @@ export function usePokerSessionConnection(
         for (const event of events) {
           connection.on(event, invalidateSession)
         }
+
+        // The server took this connection out of the session because the user lost access. Nothing
+        // more will arrive, so stop it. A refetch would fail but leave the cached session showing,
+        // so the page decides what to show instead.
+        connection.on('AccessRevoked', () => {
+          if (connectionRef.current === connection) connectionRef.current = null
+          presenceMapRef.current.clear()
+          emitPresence()
+          connection.stop().catch(() => {})
+          onAccessRevokedRef.current?.()
+        })
 
         // Presence events
         connection.on(
@@ -150,6 +171,8 @@ export function usePokerSessionConnection(
         await connection.invoke('JoinSession', sessionId)
         connectionRef.current = connection
       } catch (error) {
+        // A refused JoinSession leaves a started, auto-reconnecting connection.
+        await built?.stop().catch(() => {})
         // SignalR is optional — polling is the fallback
         console.warn(
           'Planning Poker SignalR connection failed, falling back to polling:',

@@ -77,10 +77,17 @@ const PokerSessionDetailPage: FC = () => {
   // Real-time updates via SignalR (falls back to polling above)
   // Skip connection for completed sessions — no live updates needed.
   const isSessionActive = session?.status === 'Active'
+  // The user lost access while in the session. The cached session would stay on screen, so show what a
+  // fresh load now shows.
+  const [accessRevoked, setAccessRevoked] = useState(false)
   usePokerSessionConnection(
     isSessionActive ? session?.id : undefined,
     isSessionActive ? session?.key : undefined,
     setConnectedParticipants,
+    () => {
+      messageApi.warning('You no longer have access to this session.')
+      setAccessRevoked(true)
+    },
   )
 
   const [completeSession, { isLoading: isCompleting }] =
@@ -220,7 +227,7 @@ const PokerSessionDetailPage: FC = () => {
     return <PokerSessionDetailsLoading />
   }
 
-  if (!session) {
+  if (!session || accessRevoked) {
     return notFound()
   }
 

@@ -143,6 +143,7 @@ public static class ConfigureServices
         }
         services.AddScoped<IPokerSessionNotifier, PlanningPokerNotifier>();
         services.AddScoped<IStoryMapNotifier, StoryMapNotifier>();
+        services.AddScoped<IRealtimeAccessRevoker, RealtimeAccessRevoker>();
 
         // Read on first resolution rather than here, so a test host's configuration overrides reach it.
         services.AddSingleton(sp => PublicUrl.From(sp.GetRequiredService<IConfiguration>()));

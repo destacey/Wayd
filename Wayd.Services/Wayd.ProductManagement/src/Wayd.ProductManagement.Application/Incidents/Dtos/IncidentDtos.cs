@@ -65,6 +65,17 @@ public sealed record IncidentTimelineNoteDto
     public NavigationDto Author { get; init; } = default!;
 }
 
+/// <summary>One link add, update, or remove entry on an incident timeline.</summary>
+public sealed record IncidentTimelineLinkEntryDto
+{
+    public Guid Id { get; init; }
+    public IncidentTimelineLinkKind Kind { get; init; }
+    public IncidentTimelineLinkAction Action { get; init; }
+    public required string Label { get; init; }
+    public Instant RecordedAt { get; init; }
+    public NavigationDto Actor { get; init; } = default!;
+}
+
 internal static class IncidentProjections
 {
     internal static StatusNavigationDto Status(Incident incident) =>

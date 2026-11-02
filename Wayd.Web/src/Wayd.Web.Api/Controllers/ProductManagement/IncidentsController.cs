@@ -3,6 +3,7 @@ using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.ProductManagement.Application.Incidents;
+using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.ProductManagement.Application.Incidents.Commands;
 using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.ProductManagement.Application.Incidents.Queries;
@@ -135,13 +136,65 @@ public class IncidentsController(IDispatcher dispatcher) : ControllerBase
         if (incident is null)
             return NotFound();
 
+        var workItemsBefore = await _dispatcher.Send(
+            new GetExternalObjectWorkItemsQuery(incident.Id),
+            cancellationToken);
+
         var result = await _dispatcher.Send(
             request.ToManageExternalObjectWorkItemsCommand(),
             cancellationToken);
 
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        if (result.IsFailure)
+        {
+            return BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+
+        var beforeById = workItemsBefore.WorkItems.ToDictionary(w => w.Id);
+        var beforeIds = beforeById.Keys.ToHashSet();
+        var afterIds = request.WorkItemIds.ToHashSet();
+
+        var workItemsAfter = await _dispatcher.Send(
+            new GetExternalObjectWorkItemsQuery(incident.Id),
+            cancellationToken);
+        var afterById = workItemsAfter.WorkItems.ToDictionary(w => w.Id);
+
+        var changes = new List<IncidentTimelineLinkChangeDto>();
+
+        foreach (var removedId in beforeIds.Except(afterIds))
+        {
+            if (beforeById.TryGetValue(removedId, out var removed))
+            {
+                changes.Add(new IncidentTimelineLinkChangeDto(
+                    IncidentTimelineLinkKind.WorkItem,
+                    IncidentTimelineLinkAction.Removed,
+                    removed.Title));
+            }
+        }
+
+        foreach (var addedId in afterIds.Except(beforeIds))
+        {
+            if (afterById.TryGetValue(addedId, out var added))
+            {
+                changes.Add(new IncidentTimelineLinkChangeDto(
+                    IncidentTimelineLinkKind.WorkItem,
+                    IncidentTimelineLinkAction.Added,
+                    added.Title));
+            }
+        }
+
+        if (changes.Count > 0)
+        {
+            var timelineResult = await _dispatcher.Send(
+                new RecordIncidentTimelineLinkEntriesCommand(incident.Id, changes),
+                cancellationToken);
+
+            if (timelineResult.IsFailure)
+            {
+                return BadRequest(timelineResult.ToBadRequestObject(HttpContext));
+            }
+        }
+
+        return NoContent();
     }
 
     [HttpGet("{idOrKey}/timeline-notes")]
@@ -162,6 +215,26 @@ public class IncidentsController(IDispatcher dispatcher) : ControllerBase
             cancellationToken);
 
         return Ok(notes);
+    }
+
+    [HttpGet("{idOrKey}/timeline-link-entries")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Incidents)]
+    [EndpointSummary("List link change entries on an incident timeline.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<IncidentTimelineLinkEntryDto>>> GetIncidentTimelineLinkEntries(
+        string idOrKey,
+        CancellationToken cancellationToken)
+    {
+        var incident = await _dispatcher.Send(new GetIncidentQuery(new IdOrKey(idOrKey)), cancellationToken);
+        if (incident is null)
+            return NotFound();
+
+        var entries = await _dispatcher.Send(
+            new GetIncidentTimelineLinkEntriesQuery(new IdOrKey(idOrKey)),
+            cancellationToken);
+
+        return Ok(entries);
     }
 
     [HttpPost("{id:guid}/timeline-notes")]

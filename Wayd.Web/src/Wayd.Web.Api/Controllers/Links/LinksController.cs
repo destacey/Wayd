@@ -1,6 +1,7 @@
 ﻿using Wayd.Links.Commands;
 using Wayd.Links.Models;
 using Wayd.Links.Queries;
+using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Links;
 
@@ -51,9 +52,19 @@ public class LinksController : ControllerBase
     {
         var result = await _dispatcher.Send(request.ToCreateLinkCommand(), cancellationToken);
 
-        return result.IsSuccess
-            ? CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value)
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        if (result.IsFailure)
+        {
+            return BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+
+        await IncidentTimelineLinkRecording.RecordGenericLinkChangeAsync(
+            _dispatcher,
+            request.ObjectId,
+            IncidentTimelineLinkAction.Added,
+            request.Name,
+            cancellationToken);
+
+        return CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value);
     }
 
     [HttpPut("{id}")]
@@ -67,11 +78,29 @@ public class LinksController : ControllerBase
         if (id != request.Id)
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
 
+        var existing = await _dispatcher.Send(new GetLinkQuery(id), cancellationToken);
+        if (existing is null)
+            return NotFound();
+
         var result = await _dispatcher.Send(request.ToUpdateLinkCommand(), cancellationToken);
 
-        return result.IsSuccess
-            ? Ok(result.Value)
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        if (result.IsFailure)
+        {
+            return BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+
+        if (!string.Equals(existing.Name, result.Value.Name, StringComparison.Ordinal)
+            || !string.Equals(existing.Url, result.Value.Url, StringComparison.Ordinal))
+        {
+            await IncidentTimelineLinkRecording.RecordGenericLinkChangeAsync(
+                _dispatcher,
+                result.Value.ObjectId,
+                IncidentTimelineLinkAction.Updated,
+                result.Value.Name,
+                cancellationToken);
+        }
+
+        return Ok(result.Value);
     }
 
     [HttpDelete("{id}")]
@@ -81,10 +110,24 @@ public class LinksController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
+        var link = await _dispatcher.Send(new GetLinkQuery(id), cancellationToken);
+        if (link is null)
+            return NotFound();
+
         var result = await _dispatcher.Send(new DeleteLinkCommand(id), cancellationToken);
 
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        if (result.IsFailure)
+        {
+            return BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+
+        await IncidentTimelineLinkRecording.RecordGenericLinkChangeAsync(
+            _dispatcher,
+            link.ObjectId,
+            IncidentTimelineLinkAction.Removed,
+            link.Name,
+            cancellationToken);
+
+        return NoContent();
     }
 }

@@ -41,6 +41,7 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     private readonly List<IncidentSeveritySetAssignment> _incidentSeveritySetAssignments = [];
     private readonly List<Incident> _incidents = [];
     private readonly List<IncidentTimelineNote> _incidentTimelineNotes = [];
+    private readonly List<IncidentTimelineLinkEntry> _incidentTimelineLinkEntries = [];
 
     private readonly List<StatusWorkflow> _statusWorkflows = [];
     private readonly List<WorkflowAssignment> _workflowAssignments = [];
@@ -79,6 +80,8 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
         _incidentSeveritySetAssignments.AsDbSet();
     public DbSet<Incident> Incidents => _incidents.AsDbSet();
     public DbSet<IncidentTimelineNote> IncidentTimelineNotes => _incidentTimelineNotes.AsDbSet();
+    public DbSet<IncidentTimelineLinkEntry> IncidentTimelineLinkEntries =>
+        _incidentTimelineLinkEntries.AsDbSet();
 
     public DbSet<StatusWorkflow> StatusWorkflows => _statusWorkflows.AsDbSet();
     public DbSet<WorkflowAssignment> WorkflowAssignments => _workflowAssignments.AsDbSet();

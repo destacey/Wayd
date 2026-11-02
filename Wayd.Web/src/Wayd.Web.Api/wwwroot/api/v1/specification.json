@@ -11587,6 +11587,56 @@
         ]
       }
     },
+    "/api/product-management/incidents/{idOrKey}/timeline-link-entries": {
+      "get": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "List link change entries on an incident timeline.",
+        "operationId": "Incidents_GetIncidentTimelineLinkEntries",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IncidentTimelineLinkEntryDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/product-management/incidents/{id}/timeline-notes": {
       "post": {
         "tags": [
@@ -67222,6 +67272,56 @@
         },
         "additionalProperties": false,
         "description": "One incident on a list page."
+      },
+      "IncidentTimelineLinkAction": {
+        "enum": [
+          "Added",
+          "Updated",
+          "Removed"
+        ],
+        "type": "string"
+      },
+      "IncidentTimelineLinkEntryDto": {
+        "required": [
+          "label",
+          "id",
+          "kind",
+          "action",
+          "recordedAt",
+          "actor"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/IncidentTimelineLinkKind"
+          },
+          "action": {
+            "$ref": "#/components/schemas/IncidentTimelineLinkAction"
+          },
+          "label": {
+            "type": "string"
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "$ref": "#/components/schemas/NavigationDto"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One link add, update, or remove entry on an incident timeline."
+      },
+      "IncidentTimelineLinkKind": {
+        "enum": [
+          "WorkItem",
+          "Generic"
+        ],
+        "type": "string"
       },
       "IncidentTimelineNoteDto": {
         "required": [

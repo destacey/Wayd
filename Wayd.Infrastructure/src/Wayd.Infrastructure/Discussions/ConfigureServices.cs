@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Application.Discussions;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Domain;
+using Wayd.ProductManagement.Application.Incidents;
+using Wayd.ProductManagement.Domain;
 using Wayd.ProjectPortfolioManagement.Application.Projects;
 using Wayd.ProjectPortfolioManagement.Domain;
 
@@ -23,9 +25,11 @@ internal static class ConfigureServices
     {
         DemandManagementDiscussionChannels.Register();
         PpmDiscussionChannels.Register();
+        ProductManagementDiscussionChannels.Register();
 
         services.AddScoped<IDiscussionChannelType, IntakeRequestDiscussionChannelType>();
         services.AddScoped<IDiscussionChannelType, ProjectDiscussionChannelType>();
+        services.AddScoped<IDiscussionChannelType, IncidentDiscussionChannelType>();
 
         return services;
     }

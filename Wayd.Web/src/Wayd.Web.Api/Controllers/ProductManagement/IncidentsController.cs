@@ -7,6 +7,9 @@ using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.ProductManagement.Application.Incidents.Queries;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.ProductManagement.Incidents;
+using Wayd.Work.Application.WorkItems.Commands;
+using Wayd.Work.Application.WorkItems.Dtos;
+using Wayd.Work.Application.WorkItems.Queries;
 
 namespace Wayd.Web.Api.Controllers.ProductManagement;
 
@@ -86,5 +89,57 @@ public class IncidentsController(IDispatcher dispatcher) : ControllerBase
         var result = await _dispatcher.Send(request.ToCommand(), cancellationToken);
 
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpGet("{idOrKey}/work-items")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Incidents)]
+    [EndpointSummary("Get work items linked to an incident.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<WorkItemsSummaryDto>> GetIncidentWorkItems(
+        string idOrKey,
+        CancellationToken cancellationToken)
+    {
+        var incident = await _dispatcher.Send(new GetIncidentQuery(new IdOrKey(idOrKey)), cancellationToken);
+        if (incident is null)
+            return NotFound();
+
+        var workItemsSummary = await _dispatcher.Send(
+            new GetExternalObjectWorkItemsQuery(incident.Id),
+            cancellationToken);
+
+        if (workItemsSummary.WorkItems.Count > 0)
+            workItemsSummary.WorkItems = [.. workItemsSummary.WorkItems.OrderBy(w => w.StackRank)];
+
+        return Ok(workItemsSummary);
+    }
+
+    [HttpPost("{id:guid}/work-items")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Incidents)]
+    [EndpointSummary("Set the complete list of work items linked to an incident.")]
+    [EndpointDescription(
+        "Replaces the links: `workItemIds` is every work item that should be linked; a linked item left out is unlinked and an empty list unlinks them all. Read the current links with GET work-items first and pass back every one that should stay. `incidentId` in the body must match the route id.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> ManageIncidentWorkItems(
+        Guid id,
+        [FromBody] ManageIncidentWorkItemsRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (id != request.IncidentId)
+            return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
+
+        var incident = await _dispatcher.Send(new GetIncidentQuery(new IdOrKey(id)), cancellationToken);
+        if (incident is null)
+            return NotFound();
+
+        var result = await _dispatcher.Send(
+            request.ToManageExternalObjectWorkItemsCommand(),
+            cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 }

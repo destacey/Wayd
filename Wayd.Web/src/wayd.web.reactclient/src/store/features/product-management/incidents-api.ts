@@ -4,9 +4,11 @@ import { QueryTags } from '../query-tags'
 import type {
   CreateIncidentRequest,
   IncidentDto,
+  ManageIncidentWorkItemsRequest,
   ObjectIdAndKey,
   PagedResponseOfIncidentSummaryDto,
   UpdateIncidentDetailsRequest,
+  WorkItemsSummaryDto,
 } from '@/src/services/wayd-api'
 
 export interface GetIncidentsRequest {
@@ -86,6 +88,44 @@ export const incidentsApi = apiSlice.injectEndpoints({
         ],
       },
     ),
+    getIncidentWorkItems: builder.query<
+      WorkItemsSummaryDto,
+      { idOrKey: string; incidentId: string }
+    >({
+      queryFn: async ({ idOrKey }) => {
+        try {
+          const data =
+            await getIncidentsClient().getIncidentWorkItems(idOrKey)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (_result, _error, { incidentId }) => [
+        { type: QueryTags.IncidentWorkItemsSummary, id: incidentId },
+      ],
+    }),
+    manageIncidentWorkItems: builder.mutation<
+      void,
+      ManageIncidentWorkItemsRequest
+    >({
+      queryFn: async (request) => {
+        try {
+          await getIncidentsClient().manageIncidentWorkItems(
+            request.incidentId,
+            request,
+          )
+          return { data: undefined }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (_result, _error, request) => [
+        { type: QueryTags.IncidentWorkItemsSummary, id: request.incidentId },
+      ],
+    }),
   }),
 })
 
@@ -94,4 +134,6 @@ export const {
   useGetIncidentQuery,
   useCreateIncidentMutation,
   useUpdateIncidentDetailsMutation,
+  useGetIncidentWorkItemsQuery,
+  useManageIncidentWorkItemsMutation,
 } = incidentsApi

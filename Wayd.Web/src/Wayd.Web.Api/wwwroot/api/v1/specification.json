@@ -11426,6 +11426,117 @@
         ]
       }
     },
+    "/api/product-management/incidents/{idOrKey}/work-items": {
+      "get": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Get work items linked to an incident.",
+        "operationId": "Incidents_GetIncidentWorkItems",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkItemsSummaryDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incidents/{id}/work-items": {
+      "post": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Set the complete list of work items linked to an incident.",
+        "description": "Replaces the links: `workItemIds` is every work item that should be linked; a linked item left out is unlinked and an empty list unlinks them all. Read the current links with GET work-items first and pass back every one that should stay. `incidentId` in the body must match the route id.",
+        "operationId": "Incidents_ManageIncidentWorkItems",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManageIncidentWorkItemsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/product-management/incident-severity-sets": {
       "get": {
         "tags": [
@@ -69336,6 +69447,30 @@
         },
         "additionalProperties": false,
         "description": "Identifies which of the caller's sessions a request concerns. Optional, but a request that\nomits it does less: logout revokes nothing, and the sessions list cannot mark \"this device\".\nUse `logout-all` to end every session."
+      },
+      "ManageIncidentWorkItemsRequest": {
+        "required": [
+          "incidentId",
+          "workItemIds"
+        ],
+        "type": "object",
+        "properties": {
+          "incidentId": {
+            "type": "string",
+            "description": "The incident id, repeated from the route.",
+            "format": "uuid"
+          },
+          "workItemIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Every work item that should stay linked; omitted ids are unlinked."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Replaces every work item linked to an incident."
       },
       "ManagePlanningIntervalDatesRequest": {
         "required": [

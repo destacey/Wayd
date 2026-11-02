@@ -79,3 +79,9 @@ public sealed class IntakeRequestModel
     /// </summary>
     public double? EstimateSize { get; init; }
 }
+
+/// <summary>
+/// A desk whose requests the seed estimates: the values its scale offers, smallest first, and the scale to give
+/// it first, or null when it is already on that scale's current version.
+/// </summary>
+public sealed record IntakeDeskEstimationPlan(string DeskName, Guid DeskId, Guid? PinScaleId, IReadOnlyList<string> Values);

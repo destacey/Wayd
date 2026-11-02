@@ -368,10 +368,9 @@ public sealed class WaydSeedClient : IDisposable
     /// estimate values each desk's requests can be given, smallest first, keyed by desk name.
     /// </summary>
     /// <remarks>
-    /// A desk already on a scale keeps it: someone chose it, and a desk with estimated open requests could not
-    /// move anyway. Its values are answered only when it is on the generated scale's current version, which is
-    /// the one the choices list; any other desk, like one whose scale the environment no longer offers by name,
-    /// gets no values, so its requests go unestimated rather than be refused by the import.
+    /// Which desks get values is decided by <see cref="PlanIntakeDeskEstimationScales"/>. A desk the API refuses
+    /// to give a scale — one with a reopened request still carrying an estimate from before — is left without
+    /// values rather than stop the seed, so its requests go unestimated.
     /// </remarks>
     public async Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> EnsureIntakeDeskEstimationScales(
         IEnumerable<IntakeDeskModel> desks,
@@ -379,34 +378,67 @@ public sealed class WaydSeedClient : IDisposable
         CancellationToken cancellationToken)
     {
         var choices = await _intakeDesksClient.GetEstimationScaleChoicesAsync(cancellationToken);
-        var existing = (await _intakeDesksClient.GetIntakeDesksAsync(submittableOnly: false, cancellationToken))
-            .ToDictionary(d => d.Id);
+        var pinnedByDeskId = (await _intakeDesksClient.GetIntakeDesksAsync(submittableOnly: false, cancellationToken))
+            .ToDictionary(d => d.Id, d => d.EstimationScale);
         Dictionary<string, IReadOnlyList<string>> valuesByDesk = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var plan in PlanIntakeDeskEstimationScales(desks, deskIdsByName, choices, pinnedByDeskId))
+        {
+            if (plan.PinScaleId is { } scaleId)
+            {
+                try
+                {
+                    await _intakeDesksClient.ChangeEstimationScaleAsync(plan.DeskId,
+                        new ChangeIntakeDeskEstimationScaleRequest { EstimationScaleId = scaleId }, cancellationToken);
+                }
+                catch (WaydApiException e) when (e.StatusCode is 400 or 409)
+                {
+                    continue;
+                }
+            }
+
+            valuesByDesk[plan.DeskName] = plan.Values;
+        }
+
+        return valuesByDesk;
+    }
+
+    /// <summary>
+    /// The desks whose requests the seed can estimate, with the values of each one's scale and whether the desk
+    /// has to be given the scale first.
+    /// </summary>
+    /// <remarks>
+    /// A desk already on a scale keeps it: someone chose it, and a desk with estimated open requests could not
+    /// move anyway. It is planned only when it is on the generated scale's current version, which is the one the
+    /// choices list; any other desk, like one whose scale the environment no longer offers by name, is left out,
+    /// so its requests go unestimated rather than be refused by the import.
+    /// </remarks>
+    public static IReadOnlyList<IntakeDeskEstimationPlan> PlanIntakeDeskEstimationScales(
+        IEnumerable<IntakeDeskModel> desks,
+        IReadOnlyDictionary<string, Guid> deskIdsByName,
+        IEnumerable<IntakeEstimationScaleChoiceDto> choices,
+        IReadOnlyDictionary<Guid, EstimationScaleVersionNavigationDto?> pinnedByDeskId)
+    {
+        var offered = choices.ToList();
+        List<IntakeDeskEstimationPlan> plans = [];
 
         foreach (var desk in desks)
         {
             if (desk.EstimationScaleName is null || !deskIdsByName.TryGetValue(desk.Name, out var deskId))
                 continue;
 
-            var scale = choices.FirstOrDefault(c => string.Equals(c.Name, desk.EstimationScaleName, StringComparison.OrdinalIgnoreCase));
+            var scale = offered.FirstOrDefault(c => string.Equals(c.Name, desk.EstimationScaleName, StringComparison.OrdinalIgnoreCase));
             if (scale is null)
                 continue;
 
-            var pinned = existing.TryGetValue(deskId, out var current) ? current.EstimationScale : null;
-            if (pinned is null)
-            {
-                await _intakeDesksClient.ChangeEstimationScaleAsync(deskId,
-                    new ChangeIntakeDeskEstimationScaleRequest { EstimationScaleId = scale.Id }, cancellationToken);
-            }
-            else if (pinned.Id != scale.Id || !pinned.IsCurrentVersion)
-            {
+            var pinned = pinnedByDeskId.GetValueOrDefault(deskId);
+            if (pinned is not null && (pinned.Id != scale.Id || !pinned.IsCurrentVersion))
                 continue;
-            }
 
-            valuesByDesk[desk.Name] = [.. scale.EstimateValues];
+            plans.Add(new IntakeDeskEstimationPlan(desk.Name, deskId, pinned is null ? scale.Id : null, [.. scale.EstimateValues]));
         }
 
-        return valuesByDesk;
+        return plans;
     }
 
     /// <summary>

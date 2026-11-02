@@ -17,6 +17,8 @@ internal static class IncidentTimelineLinkRecording
         Guid objectId,
         IncidentTimelineLinkAction action,
         string label,
+        string? fromLabel,
+        string? toLabel,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(label))
@@ -37,7 +39,9 @@ internal static class IncidentTimelineLinkRecording
                     new IncidentTimelineLinkChangeDto(
                         IncidentTimelineLinkKind.Generic,
                         action,
-                        label.Trim()),
+                        label.Trim(),
+                        fromLabel?.Trim(),
+                        toLabel?.Trim()),
                 ]),
             cancellationToken);
     }

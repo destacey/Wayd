@@ -341,10 +341,13 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         IncidentTimelineLinkKind kind,
         IncidentTimelineLinkAction action,
         string label,
-        Guid actorEmployeeId,
-        Instant recordedAt)
+        string? fromLabel,
+        string? toLabel,
+        EventActor actor,
+        Instant recordedAt,
+        Instant timestamp)
     {
-        if (actorEmployeeId == Guid.Empty)
+        if (actor.EmployeeId is null || actor.EmployeeId == Guid.Empty)
         {
             return Result.Failure<IncidentTimelineLinkEntry>("An actor is required.");
         }
@@ -359,6 +362,7 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure<IncidentTimelineLinkEntry>("Link label cannot exceed 256 characters.");
         }
 
+        var actorEmployeeId = actor.EmployeeId.Value;
         var entry = IncidentTimelineLinkEntry.Create(
             Id,
             kind,
@@ -367,6 +371,19 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
             actorEmployeeId,
             recordedAt);
         _timelineLinkEntries.Add(entry);
+
+        AddDomainEvent(new IncidentTimelineLinkRecordedEvent(
+            Id,
+            Key,
+            entry.Id,
+            kind,
+            action,
+            label.Trim(),
+            fromLabel?.Trim(),
+            toLabel?.Trim(),
+            recordedAt,
+            actor,
+            timestamp));
 
         return Result.Success(entry);
     }

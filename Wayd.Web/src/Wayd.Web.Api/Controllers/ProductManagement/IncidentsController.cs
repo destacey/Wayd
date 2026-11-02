@@ -170,7 +170,9 @@ public class IncidentsController(IDispatcher dispatcher) : ControllerBase
             changes.Add(new IncidentTimelineLinkChangeDto(
                 IncidentTimelineLinkKind.WorkItem,
                 IncidentTimelineLinkAction.Updated,
-                $"{fromWorkItem.Title} → {toWorkItem.Title}"));
+                $"{fromWorkItem.Title} → {toWorkItem.Title}",
+                fromWorkItem.Title,
+                toWorkItem.Title));
         }
         else
         {

@@ -63,6 +63,8 @@ public class LinksController : ControllerBase
             request.ObjectId,
             IncidentTimelineLinkAction.Added,
             request.Name,
+            fromLabel: null,
+            toLabel: null,
             cancellationToken);
 
         return CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value);
@@ -97,6 +99,8 @@ public class LinksController : ControllerBase
                 _dispatcher,
                 result.Value.ObjectId,
                 IncidentTimelineLinkAction.Updated,
+                $"{existing.Name} → {result.Value.Name}",
+                existing.Name,
                 result.Value.Name,
                 cancellationToken);
         }
@@ -127,6 +131,8 @@ public class LinksController : ControllerBase
             link.ObjectId,
             IncidentTimelineLinkAction.Removed,
             link.Name,
+            fromLabel: null,
+            toLabel: null,
             cancellationToken);
 
         return NoContent();

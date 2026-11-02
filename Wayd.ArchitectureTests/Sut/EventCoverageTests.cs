@@ -158,9 +158,7 @@ public partial class EventCoverageTests
         ["IncidentTimelineNote.Create(Guid, String, Guid, Instant)"] =
             "Called only from Incident.AddTimelineNote, which raises IncidentTimelineNoteAddedEvent.",
         ["IncidentTimelineLinkEntry.Create(Guid, IncidentTimelineLinkKind, IncidentTimelineLinkAction, String, Guid, Instant)"] =
-            "Called only from Incident.RecordLinkTimelineEntry; link timeline rows are audit history, not workflow state.",
-        ["Incident.RecordLinkTimelineEntry(IncidentTimelineLinkKind, IncidentTimelineLinkAction, String, Guid, Instant)"] =
-            "Persists link audit rows on the incident timeline; not workflow or notification state.",
+            "Called only from Incident.RecordLinkTimelineEntry, which raises IncidentTimelineLinkRecordedEvent.",
 
         // Not yet evented: each awaits the issue it names.
         ["Project.CreateTask(Int32, String, String, ProjectTaskType, TaskStatus, TaskPriority, Progress, Guid, FlexibleDateRange, Nullable<LocalDate>, Nullable<Decimal>, Dictionary<TaskRole, HashSet<Guid>>)"] = "#950.",

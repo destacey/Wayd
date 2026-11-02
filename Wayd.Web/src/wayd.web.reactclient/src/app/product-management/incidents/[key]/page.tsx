@@ -20,7 +20,7 @@ import { use, useEffect, useMemo, useState } from 'react'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { IncidentSeverityRank } from '@/src/app/product-management/incidents/_components/incident-severity-rank'
-import IncidentWorkItemLinks from '@/src/app/product-management/incidents/_components/incident-work-item-links'
+import IncidentLinks from '@/src/app/product-management/incidents/_components/incident-links'
 import IncidentDiscussion from '@/src/app/product-management/incidents/_components/incident-discussion'
 import styles from '@/src/app/product-management/incidents/_components/incidents.module.css'
 
@@ -221,10 +221,10 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
                     : '—'}
                 </li>
               </ul>
-              <IncidentWorkItemLinks
+              <IncidentLinks
                 incidentId={incident.id}
                 idOrKey={key}
-                canManage={canUpdate}
+                canManageIncident={canUpdate}
               />
             </aside>
           </article>

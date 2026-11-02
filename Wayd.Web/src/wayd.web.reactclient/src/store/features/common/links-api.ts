@@ -95,6 +95,7 @@ export const linksApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.Links, id: arg.id },
+        { type: QueryTags.Links, id: arg.objectId },
       ],
     }),
   }),

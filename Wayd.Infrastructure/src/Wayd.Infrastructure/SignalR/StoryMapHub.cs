@@ -14,6 +14,10 @@ namespace Wayd.Infrastructure.SignalR;
 [Authorize]
 public class StoryMapHub : PresenceHub
 {
+    /// <summary>The permission <see cref="JoinMap"/> requires, re-checked when a member's access changes.</summary>
+    public static readonly string JoinPermission =
+        ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.StoryMaps);
+
     private readonly IFeatureManager _featureManager;
 
     public StoryMapHub(IFeatureManager featureManager) => _featureManager = featureManager;

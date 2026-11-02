@@ -36,7 +36,9 @@ public sealed class PreviewStatusRemapQueryHandler(
     {
         var assignment = await _dbContext.WorkflowAssignments
             .AsNoTracking()
-            .FirstOrDefaultAsync(a => a.Id == request.AssignmentId, cancellationToken);
+            .Where(a => a.Id == request.AssignmentId)
+            .Select(a => new { a.OwnerType, a.ScopeId, WorkflowId = a.Scheme!.DefaultWorkflowId })
+            .FirstOrDefaultAsync(cancellationToken);
 
         // The target must share the assignment's owner type, which the remap checks, so the assignment
         // alone decides whether either side is hidden.
@@ -82,6 +84,16 @@ public sealed class PreviewStatusRemapQueryHandler(
             counts = counted.Value;
         }
 
+        return Result.Success(ToPreview(current, target, remap.Value, counts));
+    }
+
+    /// <summary>
+    /// How each status of <paramref name="current"/> lands in <paramref name="target"/> under the remap, with
+    /// the records on each. Both workflows need their statuses loaded.
+    /// </summary>
+    internal static StatusRemapPreviewDto ToPreview(
+        StatusWorkflow current, StatusWorkflow target, StatusRemap remap, IReadOnlyDictionary<Guid, int> counts)
+    {
         var descriptor = WorkflowOwners.Resolve(current.OwnerType);
         var owner = descriptor.IsSuccess ? descriptor.Value : null;
 
@@ -90,7 +102,7 @@ public sealed class PreviewStatusRemapQueryHandler(
         var entries = current.Statuses
             .Select(source =>
             {
-                var mapped = remap.Value.For(source.Id);
+                var mapped = remap.For(source.Id);
                 var match = targets.FirstOrDefault(t => mapped is not null && t.Id == mapped.StatusId);
 
                 return new StatusRemapEntryDto
@@ -103,14 +115,14 @@ public sealed class PreviewStatusRemapQueryHandler(
             })
             .ToList();
 
-        return Result.Success(new StatusRemapPreviewDto
+        return new StatusRemapPreviewDto
         {
             From = new NavigationDto { Id = current.Id, Key = current.Key, Name = current.Name },
             To = new NavigationDto { Id = target.Id, Key = target.Key, Name = target.Name },
             Entries = entries,
-            IsComplete = remap.Value.IsComplete,
+            IsComplete = remap.IsComplete,
             AffectedRecordCount = counts.Values.Sum(),
-        });
+        };
     }
 
     /// <summary>

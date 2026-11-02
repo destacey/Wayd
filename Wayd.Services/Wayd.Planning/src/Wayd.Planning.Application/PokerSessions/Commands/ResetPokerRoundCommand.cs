@@ -2,7 +2,7 @@
 
 namespace Wayd.Planning.Application.PokerSessions.Commands;
 
-public sealed record ResetPokerRoundCommand(Guid SessionId, Guid RoundId) : ICommand;
+public sealed record ResetPokerRoundCommand(Guid SessionId, Guid RoundId) : ICommand, IRequireLinkedEmployee;
 
 public sealed class ResetPokerRoundCommandValidator : CustomValidator<ResetPokerRoundCommand>
 {
@@ -13,9 +13,10 @@ public sealed class ResetPokerRoundCommandValidator : CustomValidator<ResetPoker
     }
 }
 
-public sealed class ResetPokerRoundCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionNotifier notifier, ILogger<ResetPokerRoundCommandHandler> logger) : ICommandHandler<ResetPokerRoundCommand>
+public sealed class ResetPokerRoundCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionAccess access, IPokerSessionNotifier notifier, ILogger<ResetPokerRoundCommandHandler> logger) : ICommandHandler<ResetPokerRoundCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IPokerSessionAccess _access = access;
     private readonly IPokerSessionNotifier _notifier = notifier;
     private readonly ILogger<ResetPokerRoundCommandHandler> _logger = logger;
 
@@ -24,6 +25,7 @@ public sealed class ResetPokerRoundCommandHandler(IPlanningDbContext planningDbC
         try
         {
             var session = await _planningDbContext.PokerSessions
+                .IncludeAccess()
                 .Include(s => s.Rounds)
                     .ThenInclude(r => r.Votes)
                 .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
@@ -31,7 +33,9 @@ public sealed class ResetPokerRoundCommandHandler(IPlanningDbContext planningDbC
             if (session is null)
                 return Result.Failure("Poker session not found.");
 
-            var result = session.ResetRound(request.RoundId);
+            var actor = await _access.ResolveActor(session, cancellationToken);
+
+            var result = session.ResetRound(request.RoundId, actor);
             if (result.IsFailure)
                 return Result.Failure(result.Error);
 
@@ -40,7 +44,7 @@ public sealed class ResetPokerRoundCommandHandler(IPlanningDbContext planningDbC
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

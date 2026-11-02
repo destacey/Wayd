@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Wayd.Tests.Shared.Data;
 using Wayd.Common.Application.StatusWorkflows.Commands;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
@@ -101,7 +102,7 @@ public sealed class StatusWorkflowLifecycleCommandHandlerTests : StatusWorkflowH
         // Something has to govern those records; archiving out from under them would strand them.
         // Arrange
         var workflow = SeedWorkflow(publish: true);
-        var assignment = WorkflowAssignment.Create(Widget.Key, null, workflow, EventActor.System, Now).Value;
+        var assignment = TestWorkflowAssignments.ForWorkflow(Widget.Key, null, workflow, EventActor.System, Now).Value;
         DbContext.AddWorkflowAssignment(assignment);
 
         var sut = new ArchiveStatusWorkflowCommandHandler(
@@ -113,6 +114,35 @@ public sealed class StatusWorkflowLifecycleCommandHandlerTests : StatusWorkflowH
 
         // Assert
         result.IsFailure.Should().BeTrue();
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Archive_ShouldFail_WhileAnUnassignedSchemeStillNamesTheWorkflow()
+    {
+        // Assigning that scheme later would move records onto an archived workflow.
+        // Arrange
+        var ticket = new WorkflowOwnerDescriptor(
+            "test.lifecycle.ticket", "Ticket", new Dictionary<int, WorkflowAlias>(), [], hasRecordTypes: true);
+        WorkflowOwners.Register(ticket);
+        var standard = SeedWorkflow("Standard", publish: true, owner: ticket);
+        var bugFlow = SeedWorkflow("Bug Flow", publish: true, owner: ticket);
+        var bug = RecordType.Create(ticket.Key, "Bug", EventActor.System, Now).Value;
+        var scheme = StatusWorkflowScheme.Create(ticket.Key, "Engineering", null, standard, EventActor.System, Now).Value;
+        scheme.SetEntry(bug, bugFlow, StatusRemap.AutoMap(standard, bugFlow).Value, EventActor.System, Now);
+        DbContext.AddStatusWorkflowScheme(scheme);
+
+        var sut = new ArchiveStatusWorkflowCommandHandler(
+            DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<ArchiveStatusWorkflowCommandHandler>());
+
+        // Act
+        var result = await sut.Handle(
+            new ArchiveStatusWorkflowCommand(bugFlow.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("This workflow is part of the workflow scheme(s) 'Engineering'. Remove it from them first.");
+        bugFlow.State.Should().Be(StatusWorkflowState.Published);
         DbContext.SaveChangesCallCount.Should().Be(0);
     }
 

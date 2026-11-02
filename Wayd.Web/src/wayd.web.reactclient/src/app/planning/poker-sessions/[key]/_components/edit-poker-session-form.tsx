@@ -1,22 +1,30 @@
 'use client'
 
 import { Alert, Flex, Form, Input, Modal, Spin, Tag, Typography } from 'antd'
-import { CSSProperties, useEffect } from 'react'
+import { CSSProperties, useEffect, useRef } from 'react'
 import {
   EstimationScaleDto,
   EstimationScaleVersionDto,
+  Visibility,
 } from '@/src/services/wayd-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import { toApiError, toFormErrors } from '@/src/utils'
+import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import useTheme from '@/src/components/contexts/theme'
 import {
   UpdatePokerSessionRequest,
   useGetPokerSessionQuery,
+  useSetPokerSessionFacilitatorsMutation,
+  useSetPokerSessionInviteesMutation,
+  useSetPokerSessionVisibilityMutation,
   useUpdatePokerSessionMutation,
 } from '@/src/store/features/planning/poker-sessions-api'
 import { useGetEstimationScalesQuery } from '@/src/store/features/planning/estimation-scales-api'
 import { useModalForm } from '@/src/hooks'
 import createStyles from '@/src/app/planning/poker-sessions/_components/poker-sessions.module.css'
+import SessionAccessFields, {
+  SessionAccessValues,
+} from '@/src/app/planning/poker-sessions/_components/session-access-fields'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -36,10 +44,13 @@ export interface EditPokerSessionFormProps {
   onFormCancel: () => void
 }
 
-interface EditPokerSessionFormValues {
+interface EditPokerSessionFormValues extends SessionAccessValues {
   name: string
   estimationScaleId: string
 }
+
+const sameSet = (a: string[], b: string[]) =>
+  a.length === b.length && a.every((id) => b.includes(id))
 
 interface EstimationScaleCardProps {
   scale: EstimationScaleDto
@@ -101,63 +112,141 @@ const EditPokerSessionForm = ({
   onFormCancel,
 }: EditPokerSessionFormProps) => {
   const { token } = useTheme()
+  const { user } = useAuth()
   const messageApi = useMessage()
 
   const { data: session, isLoading: sessionLoading } = useGetPokerSessionQuery(
     sessionKey.toString(),
   )
   const [updatePokerSession] = useUpdatePokerSessionMutation()
+  const [setVisibility] = useSetPokerSessionVisibilityMutation()
+  const [setFacilitators] = useSetPokerSessionFacilitatorsMutation()
+  const [setInvitees] = useSetPokerSessionInviteesMutation()
   const { data: estimationScales, isLoading: scalesLoading } =
     useGetEstimationScalesQuery()
 
   const hasRounds = (session?.rounds?.length ?? 0) > 0
+  // A completed session keeps its details, but who can see and run it can still change.
+  const isActive = session?.status === 'Active'
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditPokerSessionFormValues>({
       onSubmit: async (values: EditPokerSessionFormValues, form) => {
-          if (!session) return false
-          try {
+        if (!session) return false
+        // Each call validates its own request, so its errors name its own properties.
+        let fieldFor: ((key: string) => string | undefined) | undefined
+        try {
+          const target = { id: session.id, key: session.key }
+          const detailsChanged =
+            values.name !== session.name ||
+            values.estimationScaleId !== session.estimationScale?.id
+          if (isActive && detailsChanged) {
             const request: UpdatePokerSessionRequest = {
               name: values.name,
               estimationScaleId: values.estimationScaleId,
             }
-            const response = await updatePokerSession({
-              id: session.id,
-              key: session.key,
-              request,
-            })
-            if (response.error) {
-              throw response.error
-            }
-            messageApi.success('Successfully updated poker session.')
-            return true
-          } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                'An error occurred while updating the poker session. Please try again.',
-              )
-              console.error(error)
-            }
-            return false
+            const response = await updatePokerSession({ ...target, request })
+            if (response.error) throw response.error
           }
-        },
+
+          // Invites are edited only while private, and kept as they are otherwise.
+          if (values.visibility === Visibility.Private) {
+            const employeeIds = values.invitedEmployeeIds ?? []
+            const teamIds = values.invitedTeamIds ?? []
+            if (
+              !sameSet(
+                employeeIds,
+                session.invitedEmployees.map((e) => e.id),
+              ) ||
+              !sameSet(
+                teamIds,
+                session.invitedTeams.map((t) => t.id),
+              )
+            ) {
+              fieldFor = (key) =>
+                key.startsWith('employeeIds')
+                  ? 'invitedEmployeeIds'
+                  : key.startsWith('teamIds')
+                    ? 'invitedTeamIds'
+                    : undefined
+              const response = await setInvitees({
+                ...target,
+                employeeIds,
+                teamIds,
+              })
+              if (response.error) throw response.error
+            }
+          }
+
+          // After the invites, so the people invited above are let in when it turns private.
+          if (values.visibility !== session.visibility) {
+            fieldFor = undefined
+            const response = await setVisibility({
+              ...target,
+              visibility: values.visibility,
+            })
+            if (response.error) throw response.error
+          }
+
+          // Last: a facilitator who removes themselves can change nothing after it.
+          const facilitatorIds = values.facilitatorIds ?? []
+          if (
+            !sameSet(
+              facilitatorIds,
+              session.facilitators.map((f) => f.id),
+            )
+          ) {
+            fieldFor = (key) =>
+              key.startsWith('employeeIds') ? 'facilitatorIds' : undefined
+            const response = await setFacilitators({
+              ...target,
+              employeeIds: facilitatorIds,
+            })
+            if (response.error) throw response.error
+          }
+
+          messageApi.success('Successfully updated poker session.')
+          return true
+        } catch (error) {
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            form.setFields(toFormErrors(apiError.errors, { fieldFor }))
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ??
+                'An error occurred while updating the poker session. Please try again.',
+            )
+            console.error(error)
+          }
+          return false
+        }
+      },
       onComplete: onFormUpdate,
       onCancel: onFormCancel,
       errorMessage:
         'An error occurred while updating the poker session. Please try again.',
-      permission: 'Permissions.PokerSessions.Update',
+      // The session decides who may edit it; the page offers Edit only to those it allows.
+      permission: 'Permissions.PokerSessions.View',
     })
 
+  // Seeded once per opening: the session refetches on every vote and join, and
+  // reseeding would undo what the user is editing.
+  const seeded = useRef(false)
   useEffect(() => {
-    if (isOpen && session) {
+    if (!isOpen) {
+      seeded.current = false
+      return
+    }
+    if (session && !seeded.current) {
+      seeded.current = true
       form.setFieldsValue({
         name: session.name,
         estimationScaleId: session.estimationScale?.id,
+        visibility: session.visibility,
+        facilitatorIds: session.facilitators.map((f) => f.id),
+        invitedEmployeeIds: session.invitedEmployees.map((e) => e.id),
+        invitedTeamIds: session.invitedTeams.map((t) => t.id),
       })
     }
   }, [isOpen, session, form])
@@ -193,62 +282,79 @@ const EditPokerSessionForm = ({
       destroyOnHidden
     >
       <Form
-          form={form}
-          size="small"
-          layout="vertical"
-          name="edit-poker-session-form"
+        form={form}
+        size="small"
+        layout="vertical"
+        name="edit-poker-session-form"
+      >
+        {!isActive && (
+          <Alert
+            title="This session is completed. Only who can see and run it can change."
+            type="info"
+            showIcon
+            style={{ marginBottom: 8, fontSize: 12 }}
+          />
+        )}
+        <Item label="Name" name="name" rules={[{ required: true }]}>
+          <TextArea
+            autoSize={{ minRows: 1, maxRows: 2 }}
+            showCount
+            maxLength={256}
+            disabled={!isActive}
+          />
+        </Item>
+        <Item
+          name="estimationScaleId"
+          noStyle
+          rules={[
+            { required: true, message: 'Please select an estimation scale' },
+          ]}
         >
-          <Item label="Name" name="name" rules={[{ required: true }]}>
-            <TextArea
-              autoSize={{ minRows: 1, maxRows: 2 }}
-              showCount
-              maxLength={256}
-            />
-          </Item>
-          <Item
-            name="estimationScaleId"
-            noStyle
-            rules={[
-              { required: true, message: 'Please select an estimation scale' },
-            ]}
-          >
-            <Input style={{ display: 'none' }} />
-          </Item>
-          <div className={createStyles.scaleLabel}>
-            <span className={createStyles.scaleRequired}>*</span> Estimation
-            Scale
-          </div>
-          {hasRounds && (
-            <Alert
-              title="Scale cannot be changed after rounds have started."
-              type="info"
-              showIcon
-              style={{ marginBottom: 8, fontSize: 12 }}
-            />
-          )}
-          {scalesLoading ? (
-            <Flex justify="center" className={createStyles.scaleCardLoading}>
-              <Spin size="small" />
-            </Flex>
-          ) : (
-            <Flex vertical gap={8} style={cssVars}>
-              {activeScales.map((scale) => (
-                <EstimationScaleCard
-                  key={scale.id}
-                  scale={scale}
-                  pinnedVersion={
-                    scale.id === session?.estimationScale?.id
-                      ? session?.estimationScaleVersion
-                      : undefined
-                  }
-                  selected={selectedScaleId === scale.id}
-                  disabled={hasRounds}
-                  onSelect={handleScaleSelect}
-                />
-              ))}
-            </Flex>
-          )}
-        </Form>
+          <Input style={{ display: 'none' }} />
+        </Item>
+        <div className={createStyles.scaleLabel}>
+          <span className={createStyles.scaleRequired}>*</span> Estimation Scale
+        </div>
+        {hasRounds && (
+          <Alert
+            title="Scale cannot be changed after rounds have started."
+            type="info"
+            showIcon
+            style={{ marginBottom: 8, fontSize: 12 }}
+          />
+        )}
+        {scalesLoading ? (
+          <Flex justify="center" className={createStyles.scaleCardLoading}>
+            <Spin size="small" />
+          </Flex>
+        ) : (
+          <Flex vertical gap={8} style={cssVars}>
+            {activeScales.map((scale) => (
+              <EstimationScaleCard
+                key={scale.id}
+                scale={scale}
+                pinnedVersion={
+                  scale.id === session?.estimationScale?.id
+                    ? session?.estimationScaleVersion
+                    : undefined
+                }
+                selected={selectedScaleId === scale.id}
+                disabled={hasRounds || !isActive}
+                onSelect={handleScaleSelect}
+              />
+            ))}
+          </Flex>
+        )}
+        <div style={{ marginTop: 16 }}>
+          <SessionAccessFields
+            selfEmployeeId={
+              session?.facilitators.some((f) => f.id === user?.employeeId)
+                ? (user?.employeeId ?? undefined)
+                : undefined
+            }
+          />
+        </div>
+      </Form>
     </Modal>
   )
 }

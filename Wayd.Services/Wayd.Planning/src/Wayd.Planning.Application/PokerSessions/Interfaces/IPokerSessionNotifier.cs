@@ -19,4 +19,15 @@ public interface IPokerSessionNotifier
     /// run to 2048 characters; clients refetch the session.
     /// </summary>
     Task NotifyRoundDescriptionUpdated(Guid sessionId, Guid roundId);
+
+    /// <summary>
+    /// Tells the session someone joined, left or changed mode.
+    /// </summary>
+    Task NotifyMemberUpdated(Guid sessionId, PokerSessionMemberDto member);
+
+    /// <summary>
+    /// Tells the session who can see it or run it changed, after first removing every connection whose user can
+    /// no longer see it.
+    /// </summary>
+    Task NotifyAccessChanged(Guid sessionId);
 }

@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
 
 public class UpdatePokerRoundLabelCommandHandlerTests : IDisposable
 {
+    private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly UpdatePokerRoundLabelCommandHandler _handler;
     private readonly Mock<ILogger<UpdatePokerRoundLabelCommandHandler>> _mockLogger;
@@ -23,7 +24,7 @@ public class UpdatePokerRoundLabelCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<UpdatePokerRoundLabelCommandHandler>>();
         _mockNotifier = new Mock<IPokerSessionNotifier>();
 
-        _handler = new UpdatePokerRoundLabelCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new UpdatePokerRoundLabelCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
         _sessionFaker = new PokerSessionFaker();
     }
 
@@ -34,7 +35,7 @@ public class UpdatePokerRoundLabelCommandHandlerTests : IDisposable
         var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Original Label");
+        session.AddRound("Original Label", null, PokerSessionActors.Facilitator);
         var round = session.Rounds.First();
 
         var command = new UpdatePokerRoundLabelCommand(session.Id, round.Id, "Updated Label");
@@ -56,7 +57,7 @@ public class UpdatePokerRoundLabelCommandHandlerTests : IDisposable
         var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Original Label");
+        session.AddRound("Original Label", null, PokerSessionActors.Facilitator);
         var round = session.Rounds.First();
 
         var command = new UpdatePokerRoundLabelCommand(session.Id, round.Id, null);
@@ -78,7 +79,7 @@ public class UpdatePokerRoundLabelCommandHandlerTests : IDisposable
         var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Label");
+        session.AddRound("Label", null, PokerSessionActors.Facilitator);
         var round = session.Rounds.First();
 
         var command = new UpdatePokerRoundLabelCommand(session.Id, round.Id, "  Trimmed Label  ");

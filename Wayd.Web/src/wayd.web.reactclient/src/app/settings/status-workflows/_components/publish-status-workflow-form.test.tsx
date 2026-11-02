@@ -135,6 +135,7 @@ describe('PublishStatusWorkflowForm', () => {
         requiredAliases: [],
         requiredCategories: [StatusCategory.Done],
         supportsRestrictedTransitions: false,
+        hasRecordTypes: false,
         categoryLabels: [{ category: StatusCategory.Done, label: 'Shipped' }],
       },
     ]

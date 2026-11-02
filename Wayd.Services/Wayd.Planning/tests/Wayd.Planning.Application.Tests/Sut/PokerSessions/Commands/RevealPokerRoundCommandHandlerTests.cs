@@ -12,6 +12,7 @@ namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
 
 public class RevealPokerRoundCommandHandlerTests : IDisposable
 {
+    private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly RevealPokerRoundCommandHandler _handler;
     private readonly Mock<ILogger<RevealPokerRoundCommandHandler>> _mockLogger;
@@ -25,7 +26,7 @@ public class RevealPokerRoundCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<RevealPokerRoundCommandHandler>>();
         _mockNotifier = new Mock<IPokerSessionNotifier>();
 
-        _handler = new RevealPokerRoundCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new RevealPokerRoundCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
         _sessionFaker = new PokerSessionFaker();
     }
 
@@ -38,9 +39,9 @@ public class RevealPokerRoundCommandHandlerTests : IDisposable
         var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Story to estimate");
+        session.AddRound("Story to estimate", null, PokerSessionActors.Facilitator);
         var round = session.Rounds.First();
-        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", scale.CurrentVersion, Instant.FromUtc(2026, 1, 15, 10, 0));
+        session.SubmitVote(round.Id, "5", scale.CurrentVersion, PokerSessionActors.Voter(Guid.NewGuid().ToString()), Instant.FromUtc(2026, 1, 15, 10, 0));
 
         var command = new RevealPokerRoundCommand(session.Id, round.Id);
 
@@ -78,10 +79,10 @@ public class RevealPokerRoundCommandHandlerTests : IDisposable
         var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Story");
+        session.AddRound("Story", null, PokerSessionActors.Facilitator);
         var round = session.Rounds.First();
-        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", scale.CurrentVersion, Instant.FromUtc(2026, 1, 15, 10, 0));
-        session.RevealRound(round.Id);
+        session.SubmitVote(round.Id, "5", scale.CurrentVersion, PokerSessionActors.Voter(Guid.NewGuid().ToString()), Instant.FromUtc(2026, 1, 15, 10, 0));
+        session.RevealRound(round.Id, PokerSessionActors.Facilitator);
 
         var command = new RevealPokerRoundCommand(session.Id, round.Id);
 

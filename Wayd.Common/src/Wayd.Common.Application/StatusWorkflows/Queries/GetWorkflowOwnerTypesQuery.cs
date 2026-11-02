@@ -35,6 +35,7 @@ public sealed class GetWorkflowOwnerTypesQueryHandler(IWorkflowOwnerAvailability
                 RequiredAliases = [.. descriptor.RequiredAliases],
                 RequiredCategories = [.. descriptor.RequiredCategories],
                 SupportsRestrictedTransitions = descriptor.SupportsRestrictedTransitions,
+                HasRecordTypes = descriptor.HasRecordTypes,
                 CategoryLabels =
                 [
                     .. descriptor.CategoryLabels

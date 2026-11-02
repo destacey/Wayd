@@ -28924,7 +28924,7 @@
           "PokerSessions"
         ],
         "summary": "Get a list of poker sessions.",
-        "description": "Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `facilitator` and `roundCount`. Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.",
+        "description": "Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (everyone who has joined, voting or not), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.",
         "operationId": "PokerSessions_GetList",
         "parameters": [
           {
@@ -28977,7 +28977,7 @@
           "PokerSessions"
         ],
         "summary": "Create a poker session.",
-        "description": "Starts an Active session, facilitated by the caller, that estimates on the scale `estimationScaleId` (a UUID; EstimationScales_GetScales lists the active scales). The scale must be active. The session is pinned to the scale's current version and stays on it when the scale later publishes a new version or is deactivated. It has no rounds yet; add them with PokerSessions_AddRound. Returns the new session's `id` and `key`.",
+        "description": "Starts an Active session, with the caller as its first facilitator, that estimates on the scale `estimationScaleId` (a UUID; EstimationScales_GetScales lists the active scales). The scale must be active. The session is pinned to the scale's current version and stays on it when the scale later publishes a new version or is deactivated. `visibility` is `Public` (the default) or `Private`; `facilitatorIds` adds facilitators beside the caller, and `invitedEmployeeIds` and `invitedTeamIds` invite people to a private session (all employee or team UUIDs, all optional). It has no rounds yet; add them with PokerSessions_AddRound. The caller's account must be linked to an employee. Returns the new session's `id` and `key`.",
         "operationId": "PokerSessions_Create",
         "requestBody": {
           "content": {
@@ -29026,7 +29026,7 @@
           "PokerSessions"
         ],
         "summary": "Get poker session details using the Id or key.",
-        "description": "Takes the session's UUID or key. Returns the session with its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.",
+        "description": "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.",
         "operationId": "PokerSessions_GetSession",
         "parameters": [
           {
@@ -29068,13 +29068,75 @@
         ]
       }
     },
+    "/api/planning/poker-sessions/{id}/invited-teams/{teamId}/members": {
+      "get": {
+        "tags": [
+          "PokerSessions"
+        ],
+        "summary": "Get the members of a team invited to a poker session.",
+        "description": "Lists the active direct members of `teamId`, a team the session invites, by employee `id`, `key` and `name`. An invited team admits its current members, and the members of its current team of teams, while the session is Private. Returns 404 when the caller cannot see the session, the session is Public (its invites admit no one), or the team is not invited. Both ids are UUIDs.",
+        "operationId": "PokerSessions_GetInvitedTeamMembers",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeNavigationDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/planning/poker-sessions/{id}": {
       "put": {
         "tags": [
           "PokerSessions"
         ],
         "summary": "Update a poker session.",
-        "description": "A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it and the version the session is on, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale; changing it pins the session to that scale's current version. A completed session cannot be updated. Takes the session's UUID.",
+        "description": "A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it and the version the session is on, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale; changing it pins the session to that scale's current version. A completed session cannot be updated; visibility, facilitators and invites have their own tools. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.",
         "operationId": "PokerSessions_Update",
         "parameters": [
           {
@@ -29126,7 +29188,7 @@
           "PokerSessions"
         ],
         "summary": "Delete a poker session.",
-        "description": "Permanently deletes the session with all its rounds, votes and consensus estimates, whatever its status. To close a finished session but keep its results, use PokerSessions_CompleteSession. Takes the session's UUID.",
+        "description": "Permanently deletes the session with all its rounds, votes and consensus estimates, whatever its status. To close a finished session but keep its results, use PokerSessions_CompleteSession. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.",
         "operationId": "PokerSessions_Delete",
         "parameters": [
           {
@@ -29168,7 +29230,7 @@
           "PokerSessions"
         ],
         "summary": "Complete a poker session.",
-        "description": "Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.",
+        "description": "Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.",
         "operationId": "PokerSessions_Complete",
         "parameters": [
           {
@@ -29210,7 +29272,7 @@
           "PokerSessions"
         ],
         "summary": "Add a round to a poker session.",
-        "description": "A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.",
+        "description": "A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID. Returns the new round.",
         "operationId": "PokerSessions_AddRound",
         "parameters": [
           {
@@ -29271,7 +29333,7 @@
           "PokerSessions"
         ],
         "summary": "Remove a round from a poker session.",
-        "description": "Deletes the round with its votes and consensus estimate. The session must be Active. Both ids are UUIDs.",
+        "description": "Deletes the round with its votes and consensus estimate. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.",
         "operationId": "PokerSessions_RemoveRound",
         "parameters": [
           {
@@ -29323,7 +29385,7 @@
           "PokerSessions"
         ],
         "summary": "Reveal votes for a round.",
-        "description": "Moves a round from Voting to Revealed, showing every vote; voting stays closed until the round is reset. The session must be Active. Both ids are UUIDs.",
+        "description": "Moves a round from Voting to Revealed, showing every vote; voting stays closed until the round is reset. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.",
         "operationId": "PokerSessions_RevealRound",
         "parameters": [
           {
@@ -29375,7 +29437,7 @@
           "PokerSessions"
         ],
         "summary": "Reset a round to allow re-voting.",
-        "description": "Clears every vote and any consensus estimate and moves the round back to Voting, from Voting, Revealed or Accepted. The session must be Active. Both ids are UUIDs.",
+        "description": "Clears every vote and any consensus estimate and moves the round back to Voting, from Voting, Revealed or Accepted. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.",
         "operationId": "PokerSessions_ResetRound",
         "parameters": [
           {
@@ -29427,7 +29489,7 @@
           "PokerSessions"
         ],
         "summary": "Set the consensus estimate for a round.",
-        "description": "Records the agreed `estimate`, which must be one of the values on the session's scale version, a card such as `?` included, and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Both ids are UUIDs.",
+        "description": "Records the agreed `estimate`, which must be one of the values on the session's scale version, a card such as `?` included, and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.",
         "operationId": "PokerSessions_SetConsensus",
         "parameters": [
           {
@@ -29491,7 +29553,7 @@
           "PokerSessions"
         ],
         "summary": "Update the label for a round.",
-        "description": "Replaces the round's `label`; an omitted or null label clears it. The session must be Active. Both ids are UUIDs.",
+        "description": "Replaces the round's `label`; an omitted or null label clears it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.",
         "operationId": "PokerSessions_UpdateRoundLabel",
         "parameters": [
           {
@@ -29555,7 +29617,7 @@
           "PokerSessions"
         ],
         "summary": "Update the description for a round.",
-        "description": "Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Both ids are UUIDs.",
+        "description": "Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.",
         "operationId": "PokerSessions_UpdateRoundDescription",
         "parameters": [
           {
@@ -29619,7 +29681,7 @@
           "PokerSessions"
         ],
         "summary": "Submit a vote for a round.",
-        "description": "Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. Both ids are UUIDs.",
+        "description": "Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. A caller who has not joined the session joins it, voting; a member who is not voting cannot vote until they turn voting on with PokerSessions_SetVoting. Both ids are UUIDs.",
         "operationId": "PokerSessions_SubmitVote",
         "parameters": [
           {
@@ -29708,6 +29770,290 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/poker-sessions/{id}/visibility": {
+      "put": {
+        "tags": [
+          "PokerSessions"
+        ],
+        "summary": "Set who can see a poker session.",
+        "description": "`visibility` is `Public`, which anyone with the poker View permission can see and join, or `Private`, which only the session's facilitators, invited employees and the members of invited teams can. Making a session private disconnects anyone it no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.",
+        "operationId": "PokerSessions_SetVisibility",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPokerSessionVisibilityRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/poker-sessions/{id}/facilitators": {
+      "put": {
+        "tags": [
+          "PokerSessions"
+        ],
+        "summary": "Set a poker session's facilitators.",
+        "description": "Replaces the facilitators with `employeeIds` (employee UUIDs, at least one). Facilitators run the session: rounds, reveals, resets, consensus, details, visibility, invites, completion and deletion. A facilitator can remove themselves. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.",
+        "operationId": "PokerSessions_SetFacilitators",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPokerSessionFacilitatorsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/poker-sessions/{id}/invitees": {
+      "put": {
+        "tags": [
+          "PokerSessions"
+        ],
+        "summary": "Set who is invited to a poker session.",
+        "description": "Replaces the invites with `employeeIds` and `teamIds` (UUIDs; empty lists remove every invite). Invites admit people only while the session is Private, and a team admits its current members and the members of its current team of teams. An invite grants access only: the person still needs the poker View permission, and chooses whether to vote. Removing an invite disconnects anyone the session no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.",
+        "operationId": "PokerSessions_SetInvitees",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPokerSessionInviteesRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/poker-sessions/{id}/join": {
+      "post": {
+        "tags": [
+          "PokerSessions"
+        ],
+        "summary": "Join a poker session.",
+        "description": "Adds the caller to the session's members, voting unless `isVoting` is false. A member who is not voting takes part in the discussion but is left out of the voted and waiting totals. Joining again changes nothing; use PokerSessions_SetVoting to change whether the caller votes. Anyone the session admits can join: on a Public session anyone with the poker View permission, on a Private one its facilitators and invitees. Facilitators join like anyone else. The session must be Active, and the caller's account must be linked to an employee. Takes the session's UUID. Returns the caller's membership.",
+        "operationId": "PokerSessions_Join",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinPokerSessionRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PokerSessionMemberDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/poker-sessions/{id}/voting": {
+      "put": {
+        "tags": [
+          "PokerSessions"
+        ],
+        "summary": "Turn the caller's voting on or off in a poker session.",
+        "description": "Sets whether the caller votes (`isVoting`). Turning voting off withdraws the caller's votes in rounds not yet revealed and leaves them out of the voted and waiting totals; revealed rounds keep their votes. Turning it on lets them vote at once. The caller must have joined the session, which must be Active. Takes the session's UUID. Returns the caller's membership.",
+        "operationId": "PokerSessions_SetVoting",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPokerSessionVotingRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PokerSessionMemberDto"
+                }
+              }
+            }
           },
           "400": {
             "description": "Bad Request",
@@ -48247,6 +48593,248 @@
         ]
       }
     },
+    "/api/record-types": {
+      "get": {
+        "tags": [
+          "RecordTypes"
+        ],
+        "summary": "Get the record types of workflow owner types that have them.",
+        "operationId": "RecordTypes_GetRecordTypes",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RecordTypeDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "RecordTypes"
+        ],
+        "summary": "Define a record type for an owner type that has them.",
+        "operationId": "RecordTypes_Create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRecordTypeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/record-types/{id}": {
+      "put": {
+        "tags": [
+          "RecordTypes"
+        ],
+        "summary": "Rename an owned record type.",
+        "operationId": "RecordTypes_Rename",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameRecordTypeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/record-types/{id}/activate": {
+      "post": {
+        "tags": [
+          "RecordTypes"
+        ],
+        "summary": "Let records be given a record type again.",
+        "operationId": "RecordTypes_Activate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/record-types/{id}/deactivate": {
+      "post": {
+        "tags": [
+          "RecordTypes"
+        ],
+        "summary": "Stop records being given a record type. Records that have it keep it.",
+        "operationId": "RecordTypes_Deactivate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/scoring-models": {
       "get": {
         "tags": [
@@ -51292,6 +51880,719 @@
           }
         ]
       }
+    },
+    "/api/workflow-assignments/{id}/assign-scheme": {
+      "post": {
+        "tags": [
+          "WorkflowAssignments"
+        ],
+        "summary": "Point a scope at another workflow scheme and move the records whose workflow changes.",
+        "operationId": "WorkflowAssignments_AssignScheme",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignWorkflowSchemeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/workflow-assignments/{id}/assign-scheme/preview": {
+      "get": {
+        "tags": [
+          "WorkflowAssignments"
+        ],
+        "summary": "Preview what pointing a scope at another workflow scheme would move, before anything is committed.",
+        "operationId": "WorkflowAssignments_PreviewAssignScheme",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "schemeId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowSchemeChangePreviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/workflow-schemes": {
+      "get": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Get the workflow schemes of owner types with record types.",
+        "operationId": "WorkflowSchemes_GetWorkflowSchemes",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowSchemeListDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Create a workflow scheme.",
+        "operationId": "WorkflowSchemes_Create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkflowSchemeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/workflow-schemes/{idOrKey}": {
+      "get": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Get a workflow scheme with its entries and the scopes that follow it.",
+        "operationId": "WorkflowSchemes_GetWorkflowScheme",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowSchemeDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/workflow-schemes/{id}": {
+      "put": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Edit a workflow scheme's name and description.",
+        "operationId": "WorkflowSchemes_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkflowSchemeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Delete a workflow scheme no scope follows.",
+        "operationId": "WorkflowSchemes_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/workflow-schemes/{id}/clone": {
+      "post": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Copy a workflow scheme into a new owned one, for a scope that needs to differ.",
+        "operationId": "WorkflowSchemes_Clone",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloneWorkflowSchemeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/workflow-schemes/{id}/entries/{recordTypeId}": {
+      "put": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Change which workflow one record type follows under a scheme, moving that type's records in every scope on it.",
+        "operationId": "WorkflowSchemes_SetEntry",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "recordTypeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetWorkflowSchemeEntryRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 3
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/workflow-schemes/{id}/default": {
+      "put": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Change the workflow records follow when their type has no entry, moving them in every scope on the scheme.",
+        "operationId": "WorkflowSchemes_ChangeDefault",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeWorkflowSchemeDefaultRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/workflow-schemes/{id}/entries/{recordTypeId}/preview": {
+      "get": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Preview what changing a record type's workflow under a scheme would move, before anything is committed.",
+        "description": "Leave workflowId out to preview removing the entry, so the type follows the scheme's default.",
+        "operationId": "WorkflowSchemes_PreviewEntry",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "recordTypeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "workflowId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowSchemeChangePreviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/workflow-schemes/{id}/default/preview": {
+      "get": {
+        "tags": [
+          "WorkflowSchemes"
+        ],
+        "summary": "Preview what changing a scheme's default workflow would move, before anything is committed.",
+        "operationId": "WorkflowSchemes_PreviewDefault",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "workflowId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowSchemeChangePreviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -51969,6 +53270,30 @@
           }
         },
         "additionalProperties": false
+      },
+      "AssignWorkflowSchemeRequest": {
+        "required": [
+          "schemeId",
+          "decisions"
+        ],
+        "type": "object",
+        "properties": {
+          "schemeId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The scheme the scope should follow.",
+            "format": "uuid"
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusRemapDecisionRequest"
+            },
+            "description": "Operator choices layered over the automatic mapping, for the statuses whose records move. Needed only when records move."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to point a scope at another workflow scheme and move the records whose workflow changes."
       },
       "AuditDto": {
         "required": [
@@ -53138,6 +54463,30 @@
         },
         "additionalProperties": false
       },
+      "ChangeWorkflowSchemeDefaultRequest": {
+        "required": [
+          "workflowId",
+          "decisions"
+        ],
+        "type": "object",
+        "properties": {
+          "workflowId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The published workflow those records follow from now on.",
+            "format": "uuid"
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusRemapDecisionRequest"
+            },
+            "description": "Operator choices layered over the automatic mapping, for the statuses whose records move. Needed only when records move."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to change the workflow followed by every record whose type has no entry in a scheme."
+      },
       "ClientFeatureFlagDto": {
         "required": [
           "name",
@@ -53175,6 +54524,28 @@
         },
         "additionalProperties": false,
         "description": "A request to copy an existing workflow into a new editable draft."
+      },
+      "CloneWorkflowSchemeRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the copy is called."
+          },
+          "description": {
+            "maxLength": 1024,
+            "type": "string",
+            "description": "An optional description; the source's when left out.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to copy a workflow scheme into a new owned one."
       },
       "CommonEnumDto": {
         "required": [
@@ -54677,7 +56048,8 @@
       "CreatePokerSessionRequest": {
         "required": [
           "name",
-          "estimationScaleId"
+          "estimationScaleId",
+          "visibility"
         ],
         "type": "object",
         "properties": {
@@ -54690,6 +56062,41 @@
             "minLength": 1,
             "type": "string",
             "format": "uuid"
+          },
+          "visibility": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Visibility"
+              }
+            ],
+            "description": "`Public` (the default): anyone with the poker View permission can see and join the session. `Private`:\nonly its facilitators, invited employees and the members of invited teams."
+          },
+          "facilitatorIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Employees who facilitate alongside the caller, who is always the first facilitator.",
+            "nullable": true
+          },
+          "invitedEmployeeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Employees invited to the session, who can join it while it is private.",
+            "nullable": true
+          },
+          "invitedTeamIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Teams invited to the session, whose current members can join it while it is private.",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -55181,6 +56588,29 @@
           }
         },
         "additionalProperties": false
+      },
+      "CreateRecordTypeRequest": {
+        "required": [
+          "ownerType",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "ownerType": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "The owner type the record type is a variant of, such as `work.item`."
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the record type is called, such as Bug."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to define a record type for an owner type that has them."
       },
       "CreateRecurringJobRequest": {
         "required": [
@@ -55950,6 +57380,42 @@
             "additionalProperties": false
           }
         ]
+      },
+      "CreateWorkflowSchemeRequest": {
+        "required": [
+          "ownerType",
+          "name",
+          "defaultWorkflowId"
+        ],
+        "type": "object",
+        "properties": {
+          "ownerType": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "The owner type whose records the scheme sends to workflows."
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the scheme is called."
+          },
+          "description": {
+            "maxLength": 1024,
+            "type": "string",
+            "description": "An optional explanation shown to administrators choosing between schemes.",
+            "nullable": true
+          },
+          "defaultWorkflowId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The published workflow records follow when their type has no entry.",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to create a workflow scheme for an owner type with record types."
       },
       "CreateWorkStatusRequest": {
         "required": [
@@ -63700,6 +65166,20 @@
         "additionalProperties": false,
         "description": "A job as it appears in a list."
       },
+      "JoinPokerSessionRequest": {
+        "required": [
+          "isVoting"
+        ],
+        "type": "object",
+        "properties": {
+          "isVoting": {
+            "type": "boolean",
+            "description": "True (the default) to vote, counting toward the voted and waiting totals; false to take part without voting.\nIgnored when the caller has already joined."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Joins the caller to a poker session."
+      },
       "JsonPatchDocumentOfSetGoalPersonasRequest": {
         "type": "array",
         "items": {
@@ -67248,6 +68728,12 @@
           "status",
           "id",
           "key",
+          "visibility",
+          "facilitators",
+          "invitedEmployees",
+          "invitedTeams",
+          "members",
+          "canManage",
           "rounds"
         ],
         "type": "object",
@@ -67266,13 +68752,45 @@
           "status": {
             "type": "string"
           },
-          "facilitator": {
+          "visibility": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/UserNavigationDto"
+                "$ref": "#/components/schemas/Visibility"
               }
             ],
-            "nullable": true
+            "description": "Public: anyone with the poker View permission can see and join the session. Private: only its\nfacilitators, invited employees and the members of invited teams."
+          },
+          "facilitators": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeNavigationDto"
+            },
+            "description": "The employees who run the session: its rounds, reveals, resets, consensus, details, access and completion."
+          },
+          "invitedEmployees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeNavigationDto"
+            },
+            "description": "The employees invited to the session, who can join it while it is private."
+          },
+          "invitedTeams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanningTeamNavigationDto"
+            },
+            "description": "The teams invited to the session, whose current members can join it while it is private."
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PokerSessionMemberDto"
+            },
+            "description": "Everyone who has joined the session, in the order they joined, including those who have left."
+          },
+          "canManage": {
+            "type": "boolean",
+            "description": "Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a\nread-only token."
           },
           "estimationScale": {
             "oneOf": [
@@ -67316,7 +68834,11 @@
           "status",
           "id",
           "key",
-          "roundCount"
+          "visibility",
+          "facilitators",
+          "participants",
+          "roundCount",
+          "canManage"
         ],
         "type": "object",
         "properties": {
@@ -67334,20 +68856,67 @@
           "status": {
             "type": "string"
           },
-          "facilitator": {
+          "visibility": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/UserNavigationDto"
+                "$ref": "#/components/schemas/Visibility"
               }
             ],
-            "nullable": true
+            "description": "Public: anyone with the poker View permission can see and join the session. Private: only the people on it."
+          },
+          "facilitators": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeNavigationDto"
+            },
+            "description": "The employees who run the session."
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeNavigationDto"
+            },
+            "description": "Everyone who has joined the session, voting or not, in the order they joined."
           },
           "roundCount": {
             "type": "integer",
             "format": "int32"
+          },
+          "canManage": {
+            "type": "boolean",
+            "description": "Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a\nread-only token."
           }
         },
         "additionalProperties": false
+      },
+      "PokerSessionMemberDto": {
+        "required": [
+          "employee",
+          "isVoting",
+          "joinedOn"
+        ],
+        "type": "object",
+        "properties": {
+          "employee": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ],
+            "description": "The member. Live presence carries the same employee id, which is how a connected person is matched to\ntheir membership."
+          },
+          "isVoting": {
+            "type": "boolean",
+            "description": "Whether the member votes. A voting member counts toward a round's voted and waiting totals; one who is not\nvoting is left out of them but still takes part."
+          },
+          "joinedOn": {
+            "type": "string",
+            "description": "When the member first joined.",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Someone who joined a poker session, and how they take part."
       },
       "PokerSessionStatus": {
         "enum": [
@@ -70392,6 +71961,80 @@
         },
         "additionalProperties": false
       },
+      "RecordTypeDto": {
+        "required": [
+          "id",
+          "key",
+          "name",
+          "owner",
+          "ownership",
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowOwnerNavigationDto"
+              }
+            ],
+            "description": "The kind of record this is a type of."
+          },
+          "ownership": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowOwnership"
+              }
+            ],
+            "description": "Whether administrators keep it, or a sync keeps it from its source."
+          },
+          "externalKey": {
+            "type": "string",
+            "description": "The source's identifier for a managed type; null for an owned one.",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether records can still be given this type."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A record type: a variant of an owner type's records that can follow its own workflow."
+      },
+      "RecordTypeNavigationDto": {
+        "required": [
+          "id",
+          "key",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A record type, named enough to show."
+      },
       "RecurringJobResponse": {
         "required": [
           "id"
@@ -70789,6 +72432,22 @@
         },
         "additionalProperties": false,
         "description": "Renames a tag."
+      },
+      "RenameRecordTypeRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "description": "The record type's new name."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to rename an owned record type."
       },
       "RenameStepRequest": {
         "required": [
@@ -72898,6 +74557,81 @@
         "additionalProperties": false,
         "description": "Whether requests can be tagged along a tag axis."
       },
+      "SetPokerSessionFacilitatorsRequest": {
+        "required": [
+          "employeeIds"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The employees who facilitate the session from now on, replacing the current list. At least one."
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetPokerSessionInviteesRequest": {
+        "required": [
+          "employeeIds",
+          "teamIds"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The employees invited to the session, replacing the current list. Empty removes every employee invite."
+          },
+          "teamIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The teams invited to the session, replacing the current list. Empty removes every team invite."
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetPokerSessionVisibilityRequest": {
+        "required": [
+          "visibility"
+        ],
+        "type": "object",
+        "properties": {
+          "visibility": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Visibility"
+              }
+            ],
+            "description": "`Public`: anyone with the poker View permission can see and join the session. `Private`: only its\nfacilitators, invited employees and the members of invited teams."
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetPokerSessionVotingRequest": {
+        "required": [
+          "isVoting"
+        ],
+        "type": "object",
+        "properties": {
+          "isVoting": {
+            "type": "boolean",
+            "description": "True to vote, counting toward the voted and waiting totals; false to take part without voting."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Turns the caller's voting on or off in a poker session."
+      },
       "SetProductTagActiveRequest": {
         "required": [
           "isActive"
@@ -73250,6 +74984,29 @@
           }
         },
         "additionalProperties": false
+      },
+      "SetWorkflowSchemeEntryRequest": {
+        "required": [
+          "decisions"
+        ],
+        "type": "object",
+        "properties": {
+          "workflowId": {
+            "type": "string",
+            "description": "The published workflow the record type follows from now on, or null to remove its entry so it follows the scheme's default.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusRemapDecisionRequest"
+            },
+            "description": "Operator choices layered over the automatic mapping, for the statuses whose records move. Needed only when records move."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to change which workflow one record type follows under a scheme."
       },
       "SetWorkflowTransitionModeRequest": {
         "required": [
@@ -82048,6 +83805,28 @@
           }
         ]
       },
+      "UpdateWorkflowSchemeRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the scheme is called."
+          },
+          "description": {
+            "maxLength": 1024,
+            "type": "string",
+            "description": "An optional explanation shown to administrators choosing between schemes.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to edit a workflow scheme's name and description."
+      },
       "UpdateWorkItemProjectRequest": {
         "required": [
           "workItemId"
@@ -82534,6 +84313,13 @@
         },
         "additionalProperties": false,
         "description": "A version of one product."
+      },
+      "Visibility": {
+        "enum": [
+          "Public",
+          "Private"
+        ],
+        "type": "string"
       },
       "VisibilityDto": {
         "allOf": [
@@ -83464,6 +85250,13 @@
         "additionalProperties": false,
         "description": "An owner type, as referenced from a workflow or an assignment."
       },
+      "WorkflowOwnership": {
+        "enum": [
+          "Owned",
+          "Managed"
+        ],
+        "type": "string"
+      },
       "WorkflowOwnerTypeDto": {
         "required": [
           "key",
@@ -83472,7 +85265,8 @@
           "requiredAliases",
           "requiredCategories",
           "supportsRestrictedTransitions",
-          "categoryLabels"
+          "categoryLabels",
+          "hasRecordTypes"
         ],
         "type": "object",
         "properties": {
@@ -83504,6 +85298,10 @@
             },
             "description": "The categories a workflow must have at least one status in before it can be published."
           },
+          "hasRecordTypes": {
+            "type": "boolean",
+            "description": "Whether this owner type's records come in record types that a workflow scheme can send to different\nworkflows. When false, its scopes pick a workflow and administration shows no schemes."
+          },
           "supportsRestrictedTransitions": {
             "type": "boolean",
             "description": "Whether a workflow for this owner type may restrict which moves its records make."
@@ -83518,6 +85316,112 @@
         },
         "additionalProperties": false,
         "description": "An owner type and the vocabulary its workflows are built from."
+      },
+      "WorkflowSchemeChangePreviewDto": {
+        "required": [
+          "assignedScopeCount",
+          "canMoveRecords",
+          "moves",
+          "affectedRecordCount"
+        ],
+        "type": "object",
+        "properties": {
+          "assignedScopeCount": {
+            "type": "integer",
+            "description": "How many scopes the change reaches: those pointing at the scheme, or the one being reassigned.",
+            "format": "int32"
+          },
+          "canMoveRecords": {
+            "type": "boolean",
+            "description": "Whether the change can be applied: nothing moves, or the owner type can move its records by record type.\nWhen false, applying it is refused."
+          },
+          "moves": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowSchemeMovePreviewDto"
+            },
+            "description": "Each group of records that would change workflow. Empty when no workflow changes."
+          },
+          "affectedRecordCount": {
+            "type": "integer",
+            "description": "How many records would move, where the owner type can count them; otherwise 0.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "What a scheme change would do, before anything is committed."
+      },
+      "WorkflowSchemeDetailsDto": {
+        "required": [
+          "id",
+          "key",
+          "name",
+          "owner",
+          "ownership",
+          "defaultWorkflow",
+          "entries",
+          "assignedScopeIds"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "owner": {
+            "$ref": "#/components/schemas/WorkflowOwnerNavigationDto"
+          },
+          "ownership": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowOwnership"
+              }
+            ],
+            "description": "Whether administrators keep it, or a sync keeps it from its source."
+          },
+          "externalKey": {
+            "type": "string",
+            "description": "The source's identifier for a managed scheme; null for an owned one.",
+            "nullable": true
+          },
+          "defaultWorkflow": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowSchemeWorkflowDto"
+              }
+            ],
+            "description": "The workflow records follow when their type has no entry."
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowSchemeEntryDto"
+            },
+            "description": "The record types sent somewhere other than the default, by record type name."
+          },
+          "assignedScopeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "description": "The scopes pointing at the scheme; `null` is the organization-level assignment."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A workflow scheme with its entries."
       },
       "WorkflowSchemeDto": {
         "required": [
@@ -83548,6 +85452,134 @@
           }
         },
         "additionalProperties": false
+      },
+      "WorkflowSchemeEntryDto": {
+        "required": [
+          "recordType",
+          "workflow"
+        ],
+        "type": "object",
+        "properties": {
+          "recordType": {
+            "$ref": "#/components/schemas/RecordTypeNavigationDto"
+          },
+          "workflow": {
+            "$ref": "#/components/schemas/WorkflowSchemeWorkflowDto"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One record type's workflow under a scheme."
+      },
+      "WorkflowSchemeListDto": {
+        "required": [
+          "id",
+          "key",
+          "name",
+          "owner",
+          "ownership",
+          "defaultWorkflow",
+          "entryCount",
+          "assignedScopeCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "owner": {
+            "$ref": "#/components/schemas/WorkflowOwnerNavigationDto"
+          },
+          "ownership": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowOwnership"
+              }
+            ],
+            "description": "Whether administrators keep it, or a sync keeps it from its source."
+          },
+          "defaultWorkflow": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowSchemeWorkflowDto"
+              }
+            ],
+            "description": "The workflow records follow when their type has no entry."
+          },
+          "entryCount": {
+            "type": "integer",
+            "description": "How many record types the scheme sends somewhere other than its default.",
+            "format": "int32"
+          },
+          "assignedScopeCount": {
+            "type": "integer",
+            "description": "How many scopes point at the scheme. A scheme with any cannot be deleted.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A workflow scheme, as listed."
+      },
+      "WorkflowSchemeMovePreviewDto": {
+        "required": [
+          "remap"
+        ],
+        "type": "object",
+        "properties": {
+          "recordType": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RecordTypeNavigationDto"
+              }
+            ],
+            "description": "The record type that moves, or null for the records that follow the defaults.",
+            "nullable": true
+          },
+          "remap": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusRemapPreviewDto"
+              }
+            ],
+            "description": "How each status of its current workflow would land in the new one."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One group of records a scheme change moves between two workflows."
+      },
+      "WorkflowSchemeWorkflowDto": {
+        "required": [
+          "id",
+          "key",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A workflow a scheme names, named enough to show."
       },
       "WorkflowStatusDto": {
         "required": [
@@ -85107,6 +87139,9 @@
       "name": "Messaging"
     },
     {
+      "name": "RecordTypes"
+    },
+    {
       "name": "ScoringModels"
     },
     {
@@ -85117,6 +87152,9 @@
     },
     {
       "name": "WorkflowAssignments"
+    },
+    {
+      "name": "WorkflowSchemes"
     }
   ]
 }

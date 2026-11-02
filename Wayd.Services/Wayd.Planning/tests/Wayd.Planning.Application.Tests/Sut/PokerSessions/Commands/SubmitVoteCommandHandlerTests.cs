@@ -14,6 +14,7 @@ namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
 
 public class SubmitVoteCommandHandlerTests : IDisposable
 {
+    private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly SubmitVoteCommandHandler _handler;
     private readonly Mock<ILogger<SubmitVoteCommandHandler>> _mockLogger;
@@ -31,11 +32,13 @@ public class SubmitVoteCommandHandlerTests : IDisposable
         _mockNotifier = new Mock<IPokerSessionNotifier>();
         _mockCurrentUser = new Mock<ICurrentUser>();
         _mockCurrentUser.Setup(u => u.GetUserId()).Returns(_currentUserId);
+        _access.Actor = PokerSessionActors.Voter(_currentUserId);
+        _dbContext.AddEmployee(new EmployeeFaker().WithId(_access.Actor.EmployeeId).Generate());
         _mockCurrentUser.Setup(u => u.Name).Returns("Test User");
         _mockDateTimeProvider = new Mock<IDateTimeProvider>();
         _mockDateTimeProvider.Setup(d => d.Now).Returns(Instant.FromUtc(2026, 1, 15, 10, 0));
 
-        _handler = new SubmitVoteCommandHandler(_dbContext, _mockDateTimeProvider.Object, _mockCurrentUser.Object, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new SubmitVoteCommandHandler(_dbContext, _access, _mockDateTimeProvider.Object, _mockCurrentUser.Object, _mockNotifier.Object, _mockLogger.Object);
         _sessionFaker = new PokerSessionFaker();
     }
 
@@ -48,7 +51,7 @@ public class SubmitVoteCommandHandlerTests : IDisposable
         var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Story");
+        session.AddRound("Story", null, PokerSessionActors.Facilitator);
         var round = session.Rounds.First();
 
 
@@ -75,12 +78,12 @@ public class SubmitVoteCommandHandlerTests : IDisposable
         var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Story");
+        session.AddRound("Story", null, PokerSessionActors.Facilitator);
         var round = session.Rounds.First();
 
 
         // First vote
-        session.SubmitVote(round.Id, _currentUserId, "5", scale.CurrentVersion, Instant.FromUtc(2026, 1, 15, 9, 0));
+        session.SubmitVote(round.Id, "5", scale.CurrentVersion, PokerSessionActors.Voter(_currentUserId), Instant.FromUtc(2026, 1, 15, 9, 0));
 
         var command = new SubmitVoteCommand(session.Id, round.Id, "8");
 
@@ -118,10 +121,10 @@ public class SubmitVoteCommandHandlerTests : IDisposable
         var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Story");
+        session.AddRound("Story", null, PokerSessionActors.Facilitator);
         var round = session.Rounds.First();
-        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "3", scale.CurrentVersion, Instant.FromUtc(2026, 1, 15, 9, 0));
-        session.RevealRound(round.Id);
+        session.SubmitVote(round.Id, "3", scale.CurrentVersion, PokerSessionActors.Voter(Guid.NewGuid().ToString()), Instant.FromUtc(2026, 1, 15, 9, 0));
+        session.RevealRound(round.Id, PokerSessionActors.Facilitator);
         // Round is now Revealed, not Voting
 
         var command = new SubmitVoteCommand(session.Id, round.Id, "5");
@@ -163,7 +166,7 @@ public class SubmitVoteCommandHandlerTests : IDisposable
         var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Story");
+        session.AddRound("Story", null, PokerSessionActors.Facilitator);
         var round = session.Rounds.First();
 
         var command = new SubmitVoteCommand(session.Id, round.Id, "8");
@@ -187,7 +190,7 @@ public class SubmitVoteCommandHandlerTests : IDisposable
         _dbContext.AddEstimationScale(scale);
         var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
-        session.AddRound("Story");
+        session.AddRound("Story", null, PokerSessionActors.Facilitator);
         var round = session.Rounds.First();
         scale.PublishVersion([new EstimationScaleValue("Small", true), new EstimationScaleValue("Medium", true)], EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 0));
 

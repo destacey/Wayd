@@ -60,3 +60,14 @@ public sealed record WorkflowTransitionConditionsChange(
     Guid ToStatusId,
     WorkflowTransitionConditionValues[] PreviousConditions,
     WorkflowTransitionConditionValues[] Conditions);
+
+/// <summary>
+/// A scheme's editable details taken together, as <see cref="WorkflowSchemeDetailsUpdatedEvent.Previous"/>
+/// records the values an edit replaced.
+/// </summary>
+public sealed record WorkflowSchemeDetails(string Name, string? Description);
+
+/// <summary>
+/// One record type's entry in a scheme, as carried by <see cref="WorkflowSchemeCreatedEvent"/>.
+/// </summary>
+public sealed record WorkflowSchemeEntryValues(Guid RecordTypeId, Guid WorkflowId);

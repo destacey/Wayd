@@ -6,7 +6,7 @@ namespace Wayd.Planning.Application.PokerSessions.Commands;
 /// <summary>
 /// Replaces a round's description; a null or blank description clears it.
 /// </summary>
-public sealed record UpdatePokerRoundDescriptionCommand(Guid SessionId, Guid RoundId, string? Description) : ICommand;
+public sealed record UpdatePokerRoundDescriptionCommand(Guid SessionId, Guid RoundId, string? Description) : ICommand, IRequireLinkedEmployee;
 
 /// <summary>
 /// Requires both ids and holds the description to the column's length.
@@ -26,9 +26,10 @@ public sealed class UpdatePokerRoundDescriptionCommandValidator : CustomValidato
 /// <summary>
 /// Updates the round's description on an active session and tells the session's participants to refresh.
 /// </summary>
-public sealed class UpdatePokerRoundDescriptionCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionNotifier notifier, ILogger<UpdatePokerRoundDescriptionCommandHandler> logger) : ICommandHandler<UpdatePokerRoundDescriptionCommand>
+public sealed class UpdatePokerRoundDescriptionCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionAccess access, IPokerSessionNotifier notifier, ILogger<UpdatePokerRoundDescriptionCommandHandler> logger) : ICommandHandler<UpdatePokerRoundDescriptionCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IPokerSessionAccess _access = access;
     private readonly IPokerSessionNotifier _notifier = notifier;
     private readonly ILogger<UpdatePokerRoundDescriptionCommandHandler> _logger = logger;
 
@@ -37,13 +38,16 @@ public sealed class UpdatePokerRoundDescriptionCommandHandler(IPlanningDbContext
         try
         {
             var session = await _planningDbContext.PokerSessions
+                .IncludeAccess()
                 .Include(s => s.Rounds)
                 .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
 
             if (session is null)
                 return Result.Failure("Poker session not found.");
 
-            var result = session.UpdateRoundDescription(request.RoundId, request.Description);
+            var actor = await _access.ResolveActor(session, cancellationToken);
+
+            var result = session.UpdateRoundDescription(request.RoundId, request.Description, actor);
             if (result.IsFailure)
                 return Result.Failure(result.Error);
 
@@ -52,7 +56,7 @@ public sealed class UpdatePokerRoundDescriptionCommandHandler(IPlanningDbContext
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

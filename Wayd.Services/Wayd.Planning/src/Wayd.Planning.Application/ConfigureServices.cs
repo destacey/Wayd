@@ -3,6 +3,7 @@ using Mapster.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Application.Imports;
 using Wayd.Planning.Application.PlanningIntervals.Imports;
+using Wayd.Planning.Application.PokerSessions;
 using Wayd.Planning.Application.Risks.Imports;
 
 namespace Wayd.Planning.Application;
@@ -18,6 +19,8 @@ public static class ConfigureServices
         services.AddScoped<IImportDefinition, PlanningIntervalImportDefinition>();
         services.AddScoped<IImportDefinition, PlanningIntervalObjectiveImportDefinition>();
         services.AddScoped<IImportDefinition, RiskImportDefinition>();
+
+        services.AddScoped<IPokerSessionAccess, PokerSessionAccess>();
 
         ConfigureMapster(assembly);
 

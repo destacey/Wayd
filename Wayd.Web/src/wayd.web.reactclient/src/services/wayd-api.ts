@@ -34083,6 +34083,71 @@ export class PokerSessionsClient {
     }
 
     /**
+     * Get the members of a team invited to a poker session.
+     * @return OK
+     */
+    getInvitedTeamMembers(id: string, teamId: string, cancelToken?: CancelToken): Promise<EmployeeNavigationDto[]> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/invited-teams/{teamId}/members";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (teamId === undefined || teamId === null)
+            throw new globalThis.Error("The parameter 'teamId' must be defined.");
+        url_ = url_.replace("{teamId}", encodeURIComponent("" + teamId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetInvitedTeamMembers(_response);
+        });
+    }
+
+    protected processGetInvitedTeamMembers(response: AxiosResponse): Promise<EmployeeNavigationDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<EmployeeNavigationDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<EmployeeNavigationDto[]>(null as any);
+    }
+
+    /**
      * Update a poker session.
      * @return No Content
      */
@@ -34828,6 +34893,324 @@ export class PokerSessionsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set who can see a poker session.
+     * @return No Content
+     */
+    setVisibility(id: string, request: SetPokerSessionVisibilityRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/visibility";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetVisibility(_response);
+        });
+    }
+
+    protected processSetVisibility(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set a poker session's facilitators.
+     * @return No Content
+     */
+    setFacilitators(id: string, request: SetPokerSessionFacilitatorsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/facilitators";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetFacilitators(_response);
+        });
+    }
+
+    protected processSetFacilitators(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set who is invited to a poker session.
+     * @return No Content
+     */
+    setInvitees(id: string, request: SetPokerSessionInviteesRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/invitees";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetInvitees(_response);
+        });
+    }
+
+    protected processSetInvitees(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Join a poker session.
+     * @return OK
+     */
+    join(id: string, request: JoinPokerSessionRequest, cancelToken?: CancelToken): Promise<PokerSessionMemberDto> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/join";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processJoin(_response);
+        });
+    }
+
+    protected processJoin(response: AxiosResponse): Promise<PokerSessionMemberDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PokerSessionMemberDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PokerSessionMemberDto>(null as any);
+    }
+
+    /**
+     * Turn the caller's voting on or off in a poker session.
+     * @return OK
+     */
+    setVoting(id: string, request: SetPokerSessionVotingRequest, cancelToken?: CancelToken): Promise<PokerSessionMemberDto> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/voting";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetVoting(_response);
+        });
+    }
+
+    protected processSetVoting(response: AxiosResponse): Promise<PokerSessionMemberDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PokerSessionMemberDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PokerSessionMemberDto>(null as any);
     }
 }
 
@@ -55592,6 +55975,330 @@ export class MessagingClient {
     }
 }
 
+export class RecordTypesClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get the record types of workflow owner types that have them.
+     * @param ownerType (optional) 
+     * @return OK
+     */
+    getRecordTypes(ownerType?: string | null | undefined, cancelToken?: CancelToken): Promise<RecordTypeDto[]> {
+        let url_ = this.baseUrl + "/api/record-types?";
+        if (ownerType !== undefined && ownerType !== null)
+            url_ += "ownerType=" + encodeURIComponent("" + ownerType) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetRecordTypes(_response);
+        });
+    }
+
+    protected processGetRecordTypes(response: AxiosResponse): Promise<RecordTypeDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<RecordTypeDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<RecordTypeDto[]>(null as any);
+    }
+
+    /**
+     * Define a record type for an owner type that has them.
+     * @return Created
+     */
+    create(request: CreateRecordTypeRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/record-types";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreate(_response);
+        });
+    }
+
+    protected processCreate(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Rename an owned record type.
+     * @return No Content
+     */
+    rename(id: string, request: RenameRecordTypeRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/record-types/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRename(_response);
+        });
+    }
+
+    protected processRename(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Let records be given a record type again.
+     * @return No Content
+     */
+    activate(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/record-types/{id}/activate";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processActivate(_response);
+        });
+    }
+
+    protected processActivate(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Stop records being given a record type. Records that have it keep it.
+     * @return No Content
+     */
+    deactivate(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/record-types/{id}/deactivate";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeactivate(_response);
+        });
+    }
+
+    protected processDeactivate(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
 export class ScoringModelsClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -59160,6 +59867,824 @@ export class WorkflowAssignmentsClient {
         }
         return Promise.resolve<number>(null as any);
     }
+
+    /**
+     * Point a scope at another workflow scheme and move the records whose workflow changes.
+     * @return OK
+     */
+    assignScheme(id: string, request: AssignWorkflowSchemeRequest, cancelToken?: CancelToken): Promise<number> {
+        let url_ = this.baseUrl + "/api/workflow-assignments/{id}/assign-scheme";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAssignScheme(_response);
+        });
+    }
+
+    protected processAssignScheme(response: AxiosResponse): Promise<number> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<number>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<number>(null as any);
+    }
+
+    /**
+     * Preview what pointing a scope at another workflow scheme would move, before anything is committed.
+     * @param schemeId (optional) 
+     * @return OK
+     */
+    previewAssignScheme(id: string, schemeId?: string | undefined, cancelToken?: CancelToken): Promise<WorkflowSchemeChangePreviewDto> {
+        let url_ = this.baseUrl + "/api/workflow-assignments/{id}/assign-scheme/preview?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (schemeId === null)
+            throw new globalThis.Error("The parameter 'schemeId' cannot be null.");
+        else if (schemeId !== undefined)
+            url_ += "schemeId=" + encodeURIComponent("" + schemeId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPreviewAssignScheme(_response);
+        });
+    }
+
+    protected processPreviewAssignScheme(response: AxiosResponse): Promise<WorkflowSchemeChangePreviewDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkflowSchemeChangePreviewDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkflowSchemeChangePreviewDto>(null as any);
+    }
+}
+
+export class WorkflowSchemesClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get the workflow schemes of owner types with record types.
+     * @param ownerType (optional) 
+     * @return OK
+     */
+    getWorkflowSchemes(ownerType?: string | null | undefined, cancelToken?: CancelToken): Promise<WorkflowSchemeListDto[]> {
+        let url_ = this.baseUrl + "/api/workflow-schemes?";
+        if (ownerType !== undefined && ownerType !== null)
+            url_ += "ownerType=" + encodeURIComponent("" + ownerType) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkflowSchemes(_response);
+        });
+    }
+
+    protected processGetWorkflowSchemes(response: AxiosResponse): Promise<WorkflowSchemeListDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkflowSchemeListDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkflowSchemeListDto[]>(null as any);
+    }
+
+    /**
+     * Create a workflow scheme.
+     * @return Created
+     */
+    create(request: CreateWorkflowSchemeRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/workflow-schemes";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreate(_response);
+        });
+    }
+
+    protected processCreate(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Get a workflow scheme with its entries and the scopes that follow it.
+     * @return OK
+     */
+    getWorkflowScheme(idOrKey: string, cancelToken?: CancelToken): Promise<WorkflowSchemeDetailsDto> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{idOrKey}";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkflowScheme(_response);
+        });
+    }
+
+    protected processGetWorkflowScheme(response: AxiosResponse): Promise<WorkflowSchemeDetailsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkflowSchemeDetailsDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkflowSchemeDetailsDto>(null as any);
+    }
+
+    /**
+     * Edit a workflow scheme's name and description.
+     * @return No Content
+     */
+    update(id: string, request: UpdateWorkflowSchemeRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdate(_response);
+        });
+    }
+
+    protected processUpdate(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Delete a workflow scheme no scope follows.
+     * @return No Content
+     */
+    delete(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDelete(_response);
+        });
+    }
+
+    protected processDelete(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Copy a workflow scheme into a new owned one, for a scope that needs to differ.
+     * @return Created
+     */
+    clone(id: string, request: CloneWorkflowSchemeRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{id}/clone";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processClone(_response);
+        });
+    }
+
+    protected processClone(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Change which workflow one record type follows under a scheme, moving that type's records in every scope on it.
+     * @return OK
+     */
+    setEntry(id: string, recordTypeId: string, request: SetWorkflowSchemeEntryRequest, cancelToken?: CancelToken): Promise<number> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{id}/entries/{recordTypeId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (recordTypeId === undefined || recordTypeId === null)
+            throw new globalThis.Error("The parameter 'recordTypeId' must be defined.");
+        url_ = url_.replace("{recordTypeId}", encodeURIComponent("" + recordTypeId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetEntry(_response);
+        });
+    }
+
+    protected processSetEntry(response: AxiosResponse): Promise<number> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<number>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<number>(null as any);
+    }
+
+    /**
+     * Change the workflow records follow when their type has no entry, moving them in every scope on the scheme.
+     * @return OK
+     */
+    changeDefault(id: string, request: ChangeWorkflowSchemeDefaultRequest, cancelToken?: CancelToken): Promise<number> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{id}/default";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeDefault(_response);
+        });
+    }
+
+    protected processChangeDefault(response: AxiosResponse): Promise<number> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<number>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<number>(null as any);
+    }
+
+    /**
+     * Preview what changing a record type's workflow under a scheme would move, before anything is committed.
+     * @param workflowId (optional) 
+     * @return OK
+     */
+    previewEntry(id: string, recordTypeId: string, workflowId?: string | null | undefined, cancelToken?: CancelToken): Promise<WorkflowSchemeChangePreviewDto> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{id}/entries/{recordTypeId}/preview?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (recordTypeId === undefined || recordTypeId === null)
+            throw new globalThis.Error("The parameter 'recordTypeId' must be defined.");
+        url_ = url_.replace("{recordTypeId}", encodeURIComponent("" + recordTypeId));
+        if (workflowId !== undefined && workflowId !== null)
+            url_ += "workflowId=" + encodeURIComponent("" + workflowId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPreviewEntry(_response);
+        });
+    }
+
+    protected processPreviewEntry(response: AxiosResponse): Promise<WorkflowSchemeChangePreviewDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkflowSchemeChangePreviewDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkflowSchemeChangePreviewDto>(null as any);
+    }
+
+    /**
+     * Preview what changing a scheme's default workflow would move, before anything is committed.
+     * @param workflowId (optional) 
+     * @return OK
+     */
+    previewDefault(id: string, workflowId?: string | undefined, cancelToken?: CancelToken): Promise<WorkflowSchemeChangePreviewDto> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{id}/default/preview?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (workflowId === null)
+            throw new globalThis.Error("The parameter 'workflowId' cannot be null.");
+        else if (workflowId !== undefined)
+            url_ += "workflowId=" + encodeURIComponent("" + workflowId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPreviewDefault(_response);
+        });
+    }
+
+    protected processPreviewDefault(response: AxiosResponse): Promise<WorkflowSchemeChangePreviewDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkflowSchemeChangePreviewDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkflowSchemeChangePreviewDto>(null as any);
+    }
 }
 
 export enum ActivityCategory {
@@ -59374,6 +60899,14 @@ export interface AssignProjectLifecycleRequest {
 export interface AssignUserRolesRequest {
     userId: string;
     roleNames: string[];
+}
+
+/** A request to point a scope at another workflow scheme and move the records whose workflow changes. */
+export interface AssignWorkflowSchemeRequest {
+    /** The scheme the scope should follow. */
+    schemeId: string;
+    /** Operator choices layered over the automatic mapping, for the statuses whose records move. Needed only when records move. */
+    decisions: StatusRemapDecisionRequest[];
 }
 
 export interface AuditDto {
@@ -59782,6 +61315,14 @@ export interface ChangeStoryMapOwnerRequest {
     ownerId: string;
 }
 
+/** A request to change the workflow followed by every record whose type has no entry in a scheme. */
+export interface ChangeWorkflowSchemeDefaultRequest {
+    /** The published workflow those records follow from now on. */
+    workflowId: string;
+    /** Operator choices layered over the automatic mapping, for the statuses whose records move. Needed only when records move. */
+    decisions: StatusRemapDecisionRequest[];
+}
+
 export interface ClientFeatureFlagDto {
     name: string;
     isEnabled: boolean;
@@ -59792,6 +61333,14 @@ export interface CloneStatusWorkflowRequest {
     /** The name of the new draft workflow. */
     name: string;
     /** An optional description of the new draft workflow. */
+    description?: string | undefined;
+}
+
+/** A request to copy a workflow scheme into a new owned one. */
+export interface CloneWorkflowSchemeRequest {
+    /** What the copy is called. */
+    name: string;
+    /** An optional description; the source's when left out. */
     description?: string | undefined;
 }
 
@@ -60204,6 +61753,15 @@ export interface CreatePlanningIntervalRequest {
 export interface CreatePokerSessionRequest {
     name: string;
     estimationScaleId: string;
+    /** `Public` (the default): anyone with the poker View permission can see and join the session. `Private`:
+only its facilitators, invited employees and the members of invited teams. */
+    visibility: Visibility;
+    /** Employees who facilitate alongside the caller, who is always the first facilitator. */
+    facilitatorIds?: string[] | undefined;
+    /** Employees invited to the session, who can join it while it is private. */
+    invitedEmployeeIds?: string[] | undefined;
+    /** Teams invited to the session, whose current members can join it while it is private. */
+    invitedTeamIds?: string[] | undefined;
 }
 
 export interface CreatePortfolioRequest {
@@ -60354,6 +61912,14 @@ If it matches a task, the new task becomes a child of that task and inherits the
     plannedDate?: string | undefined;
     /** The estimated effort in hours (optional). */
     estimatedEffortHours?: number | undefined;
+}
+
+/** A request to define a record type for an owner type that has them. */
+export interface CreateRecordTypeRequest {
+    /** The owner type the record type is a variant of, such as `work.item`. */
+    ownerType: string;
+    /** What the record type is called, such as Bug. */
+    name: string;
 }
 
 export interface CreateRecurringJobRequest {
@@ -60590,6 +62156,18 @@ probe, admins can pick from the discovered catalog (e.g. `COST_CENTER`,
 Organization_Type_ID plus the WID of an org of that type; workers in that org are dropped
 before upsert. Empty by default. */
     orgExclusions?: WorkdayOrgExclusionRequest[] | undefined;
+}
+
+/** A request to create a workflow scheme for an owner type with record types. */
+export interface CreateWorkflowSchemeRequest {
+    /** The owner type whose records the scheme sends to workflows. */
+    ownerType: string;
+    /** What the scheme is called. */
+    name: string;
+    /** An optional explanation shown to administrators choosing between schemes. */
+    description?: string | undefined;
+    /** The published workflow records follow when their type has no entry. */
+    defaultWorkflowId: string;
 }
 
 export interface CreateWorkStatusRequest {
@@ -63300,6 +64878,13 @@ export interface JobSummaryResponse {
     exceptionMessage?: string | undefined;
 }
 
+/** Joins the caller to a poker session. */
+export interface JoinPokerSessionRequest {
+    /** True (the default) to vote, counting toward the voted and waiting totals; false to take part without voting.
+Ignored when the caller has already joined. */
+    isVoting: boolean;
+}
+
 /** One RFC 6902 operation. `from` is for move and copy; `value` for add, replace and test. */
 export interface JsonPatchOperation {
     op: JsonPatchOperationType;
@@ -64463,7 +66048,20 @@ export interface PokerSessionDetailsDto {
     key: number;
     name: string;
     status: string;
-    facilitator?: UserNavigationDto | undefined;
+    /** Public: anyone with the poker View permission can see and join the session. Private: only its
+facilitators, invited employees and the members of invited teams. */
+    visibility: Visibility;
+    /** The employees who run the session: its rounds, reveals, resets, consensus, details, access and completion. */
+    facilitators: EmployeeNavigationDto[];
+    /** The employees invited to the session, who can join it while it is private. */
+    invitedEmployees: EmployeeNavigationDto[];
+    /** The teams invited to the session, whose current members can join it while it is private. */
+    invitedTeams: PlanningTeamNavigationDto[];
+    /** Everyone who has joined the session, in the order they joined, including those who have left. */
+    members: PokerSessionMemberDto[];
+    /** Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a
+read-only token. */
+    canManage: boolean;
     estimationScale?: EstimationScaleNavigationDto | undefined;
     /** The scale version the session votes on, which stays put when the scale publishes a newer one. */
     estimationScaleVersion?: EstimationScaleVersionDto | undefined;
@@ -64477,8 +66075,28 @@ export interface PokerSessionListDto {
     key: number;
     name: string;
     status: string;
-    facilitator?: UserNavigationDto | undefined;
+    /** Public: anyone with the poker View permission can see and join the session. Private: only the people on it. */
+    visibility: Visibility;
+    /** The employees who run the session. */
+    facilitators: EmployeeNavigationDto[];
+    /** Everyone who has joined the session, voting or not, in the order they joined. */
+    participants: EmployeeNavigationDto[];
     roundCount: number;
+    /** Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a
+read-only token. */
+    canManage: boolean;
+}
+
+/** Someone who joined a poker session, and how they take part. */
+export interface PokerSessionMemberDto {
+    /** The member. Live presence carries the same employee id, which is how a connected person is matched to
+their membership. */
+    employee: EmployeeNavigationDto;
+    /** Whether the member votes. A voting member counts toward a round's voted and waiting totals; one who is not
+voting is left out of them but still takes part. */
+    isVoting: boolean;
+    /** When the member first joined. */
+    joinedOn: Date;
 }
 
 export enum PokerSessionStatus {
@@ -65415,6 +67033,28 @@ export interface RecordProjectScoreRequest {
     ratings: CriterionRatingRequest[];
 }
 
+/** A record type: a variant of an owner type's records that can follow its own workflow. */
+export interface RecordTypeDto {
+    id: string;
+    key: number;
+    name: string;
+    /** The kind of record this is a type of. */
+    owner: WorkflowOwnerNavigationDto;
+    /** Whether administrators keep it, or a sync keeps it from its source. */
+    ownership: WorkflowOwnership;
+    /** The source's identifier for a managed type; null for an owned one. */
+    externalKey?: string | undefined;
+    /** Whether records can still be given this type. */
+    isActive: boolean;
+}
+
+/** A record type, named enough to show. */
+export interface RecordTypeNavigationDto {
+    id: string;
+    key: number;
+    name: string;
+}
+
 /** A registered recurring job. */
 export interface RecurringJobResponse {
     id: string;
@@ -65532,6 +67172,12 @@ export interface RenameProductTagRequest {
     name: string;
     /** What the tag means. Cleared when omitted. */
     description?: string | undefined;
+}
+
+/** A request to rename an owned record type. */
+export interface RenameRecordTypeRequest {
+    /** The record type's new name. */
+    name: string;
 }
 
 export interface RenameStepRequest {
@@ -66172,6 +67818,30 @@ their tags either way. */
     isActive: boolean;
 }
 
+export interface SetPokerSessionFacilitatorsRequest {
+    /** The employees who facilitate the session from now on, replacing the current list. At least one. */
+    employeeIds: string[];
+}
+
+export interface SetPokerSessionInviteesRequest {
+    /** The employees invited to the session, replacing the current list. Empty removes every employee invite. */
+    employeeIds: string[];
+    /** The teams invited to the session, replacing the current list. Empty removes every team invite. */
+    teamIds: string[];
+}
+
+export interface SetPokerSessionVisibilityRequest {
+    /** `Public`: anyone with the poker View permission can see and join the session. `Private`: only its
+facilitators, invited employees and the members of invited teams. */
+    visibility: Visibility;
+}
+
+/** Turns the caller's voting on or off in a poker session. */
+export interface SetPokerSessionVotingRequest {
+    /** True to vote, counting toward the voted and waiting totals; false to take part without voting. */
+    isVoting: boolean;
+}
+
 /** Retires a tag from new use, or puts it back. Products already carrying it keep it. */
 export interface SetProductTagActiveRequest {
     /** Whether products can still be tagged with this. */
@@ -66293,6 +67963,14 @@ export interface SetupRequest {
     lastName: string;
     email: string;
     password: string;
+}
+
+/** A request to change which workflow one record type follows under a scheme. */
+export interface SetWorkflowSchemeEntryRequest {
+    /** The published workflow the record type follows from now on, or null to remove its entry so it follows the scheme's default. */
+    workflowId?: string | undefined;
+    /** Operator choices layered over the automatic mapping, for the statuses whose records move. Needed only when records move. */
+    decisions: StatusRemapDecisionRequest[];
 }
 
 /** A request to let a draft workflow's records move between any statuses, or only along its transitions. */
@@ -69099,6 +70777,14 @@ supplied collection becomes the new full set (omitted or empty means no exclusio
     orgExclusions?: WorkdayOrgExclusionRequest[] | undefined;
 }
 
+/** A request to edit a workflow scheme's name and description. */
+export interface UpdateWorkflowSchemeRequest {
+    /** What the scheme is called. */
+    name: string;
+    /** An optional explanation shown to administrators choosing between schemes. */
+    description?: string | undefined;
+}
+
 export interface UpdateWorkItemProjectRequest {
     /** The work item's UUID; must match `workItemId` in the route. */
     workItemId: string;
@@ -69239,6 +70925,11 @@ export interface VersionDto {
     releasedAt?: Date | undefined;
     /** The version's current status: the organization's name for it, its category and its well-known alias. */
     status: StatusNavigationDto;
+}
+
+export enum Visibility {
+    Public = "Public",
+    Private = "Private",
 }
 
 export interface VisibilityDto extends CommonEnumDto {
@@ -69550,6 +71241,11 @@ export interface WorkflowOwnerNavigationDto {
     name: string;
 }
 
+export enum WorkflowOwnership {
+    Owned = "Owned",
+    Managed = "Managed",
+}
+
 /** An owner type and the vocabulary its workflows are built from. */
 export interface WorkflowOwnerTypeDto {
     key: string;
@@ -69560,11 +71256,46 @@ export interface WorkflowOwnerTypeDto {
     requiredAliases: number[];
     /** The categories a workflow must have at least one status in before it can be published. */
     requiredCategories: StatusCategory[];
+    /** Whether this owner type's records come in record types that a workflow scheme can send to different
+workflows. When false, its scopes pick a workflow and administration shows no schemes. */
+    hasRecordTypes: boolean;
     /** Whether a workflow for this owner type may restrict which moves its records make. */
     supportsRestrictedTransitions: boolean;
     /** What this owner type calls each category, one entry per category in category order. A category
 it declares no label for carries the category's own name. */
     categoryLabels: StatusCategoryLabelDto[];
+}
+
+/** What a scheme change would do, before anything is committed. */
+export interface WorkflowSchemeChangePreviewDto {
+    /** How many scopes the change reaches: those pointing at the scheme, or the one being reassigned. */
+    assignedScopeCount: number;
+    /** Whether the change can be applied: nothing moves, or the owner type can move its records by record type.
+When false, applying it is refused. */
+    canMoveRecords: boolean;
+    /** Each group of records that would change workflow. Empty when no workflow changes. */
+    moves: WorkflowSchemeMovePreviewDto[];
+    /** How many records would move, where the owner type can count them; otherwise 0. */
+    affectedRecordCount: number;
+}
+
+/** A workflow scheme with its entries. */
+export interface WorkflowSchemeDetailsDto {
+    id: string;
+    key: number;
+    name: string;
+    description?: string | undefined;
+    owner: WorkflowOwnerNavigationDto;
+    /** Whether administrators keep it, or a sync keeps it from its source. */
+    ownership: WorkflowOwnership;
+    /** The source's identifier for a managed scheme; null for an owned one. */
+    externalKey?: string | undefined;
+    /** The workflow records follow when their type has no entry. */
+    defaultWorkflow: WorkflowSchemeWorkflowDto;
+    /** The record types sent somewhere other than the default, by record type name. */
+    entries: WorkflowSchemeEntryDto[];
+    /** The scopes pointing at the scheme; `null` is the organization-level assignment. */
+    assignedScopeIds: (string | undefined)[];
 }
 
 export interface WorkflowSchemeDto {
@@ -69573,6 +71304,44 @@ export interface WorkflowSchemeDto {
     workStatusCategory: SimpleNavigationDto;
     order: number;
     isActive: boolean;
+}
+
+/** One record type's workflow under a scheme. */
+export interface WorkflowSchemeEntryDto {
+    recordType: RecordTypeNavigationDto;
+    workflow: WorkflowSchemeWorkflowDto;
+}
+
+/** A workflow scheme, as listed. */
+export interface WorkflowSchemeListDto {
+    id: string;
+    key: number;
+    name: string;
+    description?: string | undefined;
+    owner: WorkflowOwnerNavigationDto;
+    /** Whether administrators keep it, or a sync keeps it from its source. */
+    ownership: WorkflowOwnership;
+    /** The workflow records follow when their type has no entry. */
+    defaultWorkflow: WorkflowSchemeWorkflowDto;
+    /** How many record types the scheme sends somewhere other than its default. */
+    entryCount: number;
+    /** How many scopes point at the scheme. A scheme with any cannot be deleted. */
+    assignedScopeCount: number;
+}
+
+/** One group of records a scheme change moves between two workflows. */
+export interface WorkflowSchemeMovePreviewDto {
+    /** The record type that moves, or null for the records that follow the defaults. */
+    recordType?: RecordTypeNavigationDto | undefined;
+    /** How each status of its current workflow would land in the new one. */
+    remap: StatusRemapPreviewDto;
+}
+
+/** A workflow a scheme names, named enough to show. */
+export interface WorkflowSchemeWorkflowDto {
+    id: string;
+    key: number;
+    name: string;
 }
 
 /** One status within a workflow. */

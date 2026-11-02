@@ -4,15 +4,18 @@ import { QueryTags } from '../query-tags'
 import {
   AddPokerRoundRequest,
   CreatePokerSessionRequest,
+  EmployeeNavigationDto,
   ObjectIdAndKey,
   PokerRoundDto,
   PokerSessionDetailsDto,
   PokerSessionListDto,
+  PokerSessionMemberDto,
   PokerSessionStatus,
   SetConsensusRequest,
   SubmitVoteRequest,
   UpdatePokerRoundDescriptionRequest,
   UpdatePokerRoundLabelRequest,
+  Visibility,
 } from '@/src/services/wayd-api'
 
 export interface UpdatePokerSessionRequest {
@@ -333,6 +336,130 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
         { type: QueryTags.PokerSessionRound, id: arg.sessionKey },
       ],
     }),
+
+    getPokerSessionInvitedTeamMembers: builder.query<
+      EmployeeNavigationDto[],
+      { sessionId: string; teamId: string }
+    >({
+      queryFn: async ({ sessionId, teamId }) => {
+        try {
+          const data = await getPokerSessionsClient().getInvitedTeamMembers(
+            sessionId,
+            teamId,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // The session mutations invalidate this tag, so a changed invite refetches.
+      providesTags: () => [{ type: QueryTags.PokerSession, id: 'LIST' }],
+    }),
+
+    setPokerSessionVisibility: builder.mutation<
+      void,
+      { id: string; key: number; visibility: Visibility }
+    >({
+      queryFn: async ({ id, visibility }) => {
+        try {
+          const data = await getPokerSessionsClient().setVisibility(id, {
+            visibility,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.PokerSession, id: 'LIST' },
+        { type: QueryTags.PokerSession, id: arg.key },
+      ],
+    }),
+
+    setPokerSessionFacilitators: builder.mutation<
+      void,
+      { id: string; key: number; employeeIds: string[] }
+    >({
+      queryFn: async ({ id, employeeIds }) => {
+        try {
+          const data = await getPokerSessionsClient().setFacilitators(id, {
+            employeeIds,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.PokerSession, id: 'LIST' },
+        { type: QueryTags.PokerSession, id: arg.key },
+      ],
+    }),
+
+    setPokerSessionInvitees: builder.mutation<
+      void,
+      { id: string; key: number; employeeIds: string[]; teamIds: string[] }
+    >({
+      queryFn: async ({ id, employeeIds, teamIds }) => {
+        try {
+          const data = await getPokerSessionsClient().setInvitees(id, {
+            employeeIds,
+            teamIds,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.PokerSession, id: 'LIST' },
+        { type: QueryTags.PokerSession, id: arg.key },
+      ],
+    }),
+
+    joinPokerSession: builder.mutation<
+      PokerSessionMemberDto,
+      { id: string; key: number; isVoting?: boolean }
+    >({
+      queryFn: async ({ id, isVoting = true }) => {
+        try {
+          const data = await getPokerSessionsClient().join(id, { isVoting })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.PokerSession, id: 'LIST' },
+        { type: QueryTags.PokerSession, id: arg.key },
+      ],
+    }),
+
+    setPokerSessionVoting: builder.mutation<
+      PokerSessionMemberDto,
+      { id: string; key: number; isVoting: boolean }
+    >({
+      queryFn: async ({ id, isVoting }) => {
+        try {
+          const data = await getPokerSessionsClient().setVoting(id, {
+            isVoting,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.PokerSession, id: 'LIST' },
+        { type: QueryTags.PokerSession, id: arg.key },
+      ],
+    }),
   }),
 })
 
@@ -352,4 +479,10 @@ export const {
   useWithdrawPokerVoteMutation,
   useUpdatePokerRoundLabelMutation,
   useUpdatePokerRoundDescriptionMutation,
+  useGetPokerSessionInvitedTeamMembersQuery,
+  useSetPokerSessionVisibilityMutation,
+  useSetPokerSessionFacilitatorsMutation,
+  useSetPokerSessionInviteesMutation,
+  useJoinPokerSessionMutation,
+  useSetPokerSessionVotingMutation,
 } = pokerSessionsApi

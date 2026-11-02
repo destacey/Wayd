@@ -50,6 +50,8 @@ export enum QueryTags {
   StatusHistory = 'Common.StatusHistory',
   WorkflowActions = 'Common.WorkflowActions',
   WorkflowAssignment = 'Common.WorkflowAssignment',
+  WorkflowScheme = 'Common.WorkflowScheme',
+  RecordType = 'Common.RecordType',
 
   // ORGANIZATIONS
   ActiveSprint = 'Organizations.ActiveSprint',

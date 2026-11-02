@@ -18,9 +18,9 @@ namespace Wayd.Common.Domain.StatusWorkflows;
 /// always records the move. An aggregate that set the fields itself would eventually forget the
 /// history on one path, which is precisely the bug this shape prevents.
 /// <para>
-/// A record does not store its workflow. The workflow is the container's, resolved through
-/// <c>WorkflowAssignment</c>, exactly as a work item takes its process from its project — no child
-/// ever diverges from its container, so a copy per record would only be a value that can drift.
+/// A record does not store which workflow it should follow. Its container and its record type decide,
+/// through the container's <c>WorkflowAssignment</c> and the scheme it points at — records of one type
+/// in one container never diverge, so a choice per record would only be a value that can drift.
 /// Which workflow governed a past change is answered by <see cref="StatusTransition.WorkflowId"/>,
 /// frozen per transition.
 /// </para>
@@ -260,6 +260,42 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
         }
 
         return MoveOntoWorkflow(target, actor, timestamp, reason);
+    }
+
+    /// <summary>
+    /// Moves this record onto the workflow its new record type follows, recording the switch.
+    /// </summary>
+    /// <remarks>
+    /// For an aggregate whose records change record type: within one scope, each type follows its own
+    /// workflow, so a Story becoming a Bug may change workflow. Without a choice, the record lands by
+    /// <see cref="StatusWorkflow.LandingStatusFor"/> — the same alias, else the first status of the same
+    /// category — and when the target has neither, the caller must choose. A target that is the record's
+    /// own workflow changes nothing.
+    /// </remarks>
+    /// <param name="target">The workflow the record's new type follows in its scope.</param>
+    /// <param name="chosenStatusId">A status of <paramref name="target"/> chosen for this record, or null to land by the rule.</param>
+    protected Result SwitchRecordTypeWorkflow(
+        StatusWorkflow target, Guid? chosenStatusId, EventActor actor, Instant timestamp, string? reason = null)
+    {
+        Guard.Against.Null(target, nameof(target));
+
+        if (target.Id == StatusWorkflowId)
+        {
+            return Result.Success();
+        }
+
+        var landingId = chosenStatusId ?? target.LandingStatusFor(StatusAliasValue, StatusCategory)?.Id;
+        if (landingId is null)
+        {
+            return Result.Failure(
+                $"'{target.Name}' has no status matching '{StatusName}'. Choose the status this record moves to.");
+        }
+
+        var landing = target.TargetRef(landingId.Value);
+
+        return landing is null
+            ? Result.Failure($"The chosen status does not belong to '{target.Name}'.")
+            : SwitchWorkflowTo(landing, actor, timestamp, reason);
     }
 
     private Result MoveOntoWorkflow(StatusRef target, EventActor actor, Instant timestamp, string? reason)

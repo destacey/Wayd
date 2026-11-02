@@ -1,6 +1,6 @@
 # AGENTS.md — Domain services
 
-The root [AGENTS.md](../AGENTS.md) applies here too. This file holds the rules for list queries, Demand Management's authorization, and domain events, which every module raises and consumes. Each rule links to its full explanation in [domain-events.mdx](../docs/contributing/domain-events.mdx) — **read the linked section before adding, changing, or consuming an event.**
+The root [AGENTS.md](../AGENTS.md) applies here too. This file holds the rules for list queries, Demand Management's and Planning Poker's authorization, and domain events, which every module raises and consumes. Each rule links to its full explanation in [domain-events.mdx](../docs/contributing/domain-events.mdx) — **read the linked section before adding, changing, or consuming an event.**
 
 ## List Queries
 
@@ -9,6 +9,10 @@ The root [AGENTS.md](../AGENTS.md) applies here too. This file holds the rules f
 ## Demand Management Authorization
 
 - **Acting on an intake request is decided by desk role alone**: Agent or Desk Admin on its desk (`IntakeRequestReader.IsAgentOn` / `IsDeskAdminOn`, read from `IntakeDeskMember`; an inactive employee is a member of nothing). Its endpoints carry `[Authorize]` only, so the handler is the whole gate. `Permissions.IntakeRequests.View` only widens browsing; `Administer` is Desk Admin on every desk. Never add a resource permission beside a desk role. [Permission-based vs membership-based](../docs/contributing/architecture.mdx#permission-based-vs-membership-based-authorization)
+
+## Planning Poker Authorization
+
+- **A poker session is gated by the session, in the domain.** Endpoints need `Permissions.PokerSessions.View` (`Create` to create); facilitators run a session (`PokerSession.CanManage`), `Permissions.PokerSessions.Administer` waives that, and a Private session admits only facilitators, invited employees and members of invited teams (`CanAccess`). Commands are `IRequireLinkedEmployee` and resolve a `PokerSessionActor` through `IPokerSessionAccess.ResolveActor`. **Their query must call `.IncludeAccess()`** — without it the facilitators and invites load empty, so facilitators are refused and a private session admits no one, and in-memory fakes cannot tell. Reads filter in SQL with `PokerSessionReader.Filter`; the hub checks `CanUserAccess`, and changing visibility or invites evicts through `RealtimeAccessRevoker.RecheckPokerSession`. Eviction reaches only the connections on the API instance that made the change, and a change to team membership or an employee link evicts nothing until the next reconnect. [Permission-based vs membership-based](../docs/contributing/architecture.mdx#permission-based-vs-membership-based-authorization)
 
 ## Domain Events
 

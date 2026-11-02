@@ -1,0 +1,122 @@
+using Wayd.Common.Domain.StatusWorkflows.Enums;
+
+namespace Wayd.Common.Application.StatusWorkflows.Dtos;
+
+/// <summary>A record type: a variant of an owner type's records that can follow its own workflow.</summary>
+public sealed record RecordTypeDto
+{
+    public required Guid Id { get; init; }
+    public required int Key { get; init; }
+    public required string Name { get; init; }
+
+    /// <summary>The kind of record this is a type of.</summary>
+    public required WorkflowOwnerNavigationDto Owner { get; init; }
+
+    /// <summary>Whether administrators keep it, or a sync keeps it from its source.</summary>
+    public required WorkflowOwnership Ownership { get; init; }
+
+    /// <summary>The source's identifier for a managed type; null for an owned one.</summary>
+    public string? ExternalKey { get; init; }
+
+    /// <summary>Whether records can still be given this type.</summary>
+    public required bool IsActive { get; init; }
+}
+
+/// <summary>A workflow scheme, as listed.</summary>
+public sealed record WorkflowSchemeListDto
+{
+    public required Guid Id { get; init; }
+    public required int Key { get; init; }
+    public required string Name { get; init; }
+    public string? Description { get; init; }
+    public required WorkflowOwnerNavigationDto Owner { get; init; }
+
+    /// <summary>Whether administrators keep it, or a sync keeps it from its source.</summary>
+    public required WorkflowOwnership Ownership { get; init; }
+
+    /// <summary>The workflow records follow when their type has no entry.</summary>
+    public required WorkflowSchemeWorkflowDto DefaultWorkflow { get; init; }
+
+    /// <summary>How many record types the scheme sends somewhere other than its default.</summary>
+    public required int EntryCount { get; init; }
+
+    /// <summary>How many scopes point at the scheme. A scheme with any cannot be deleted.</summary>
+    public required int AssignedScopeCount { get; init; }
+}
+
+/// <summary>A workflow scheme with its entries.</summary>
+public sealed record WorkflowSchemeDetailsDto
+{
+    public required Guid Id { get; init; }
+    public required int Key { get; init; }
+    public required string Name { get; init; }
+    public string? Description { get; init; }
+    public required WorkflowOwnerNavigationDto Owner { get; init; }
+
+    /// <summary>Whether administrators keep it, or a sync keeps it from its source.</summary>
+    public required WorkflowOwnership Ownership { get; init; }
+
+    /// <summary>The source's identifier for a managed scheme; null for an owned one.</summary>
+    public string? ExternalKey { get; init; }
+
+    /// <summary>The workflow records follow when their type has no entry.</summary>
+    public required WorkflowSchemeWorkflowDto DefaultWorkflow { get; init; }
+
+    /// <summary>The record types sent somewhere other than the default, by record type name.</summary>
+    public required IReadOnlyCollection<WorkflowSchemeEntryDto> Entries { get; init; }
+
+    /// <summary>The scopes pointing at the scheme; <c>null</c> is the organization-level assignment.</summary>
+    public required IReadOnlyCollection<Guid?> AssignedScopeIds { get; init; }
+}
+
+/// <summary>One record type's workflow under a scheme.</summary>
+public sealed record WorkflowSchemeEntryDto
+{
+    public required RecordTypeNavigationDto RecordType { get; init; }
+    public required WorkflowSchemeWorkflowDto Workflow { get; init; }
+}
+
+/// <summary>A record type, named enough to show.</summary>
+public sealed record RecordTypeNavigationDto
+{
+    public required Guid Id { get; init; }
+    public required int Key { get; init; }
+    public required string Name { get; init; }
+}
+
+/// <summary>A workflow a scheme names, named enough to show.</summary>
+public sealed record WorkflowSchemeWorkflowDto
+{
+    public required Guid Id { get; init; }
+    public required int Key { get; init; }
+    public required string Name { get; init; }
+}
+
+/// <summary>What a scheme change would do, before anything is committed.</summary>
+public sealed record WorkflowSchemeChangePreviewDto
+{
+    /// <summary>How many scopes the change reaches: those pointing at the scheme, or the one being reassigned.</summary>
+    public required int AssignedScopeCount { get; init; }
+
+    /// <summary>
+    /// Whether the change can be applied: nothing moves, or the owner type can move its records by record type.
+    /// When false, applying it is refused.
+    /// </summary>
+    public required bool CanMoveRecords { get; init; }
+
+    /// <summary>Each group of records that would change workflow. Empty when no workflow changes.</summary>
+    public required IReadOnlyCollection<WorkflowSchemeMovePreviewDto> Moves { get; init; }
+
+    /// <summary>How many records would move, where the owner type can count them; otherwise 0.</summary>
+    public required int AffectedRecordCount { get; init; }
+}
+
+/// <summary>One group of records a scheme change moves between two workflows.</summary>
+public sealed record WorkflowSchemeMovePreviewDto
+{
+    /// <summary>The record type that moves, or null for the records that follow the defaults.</summary>
+    public RecordTypeNavigationDto? RecordType { get; init; }
+
+    /// <summary>How each status of its current workflow would land in the new one.</summary>
+    public required StatusRemapPreviewDto Remap { get; init; }
+}

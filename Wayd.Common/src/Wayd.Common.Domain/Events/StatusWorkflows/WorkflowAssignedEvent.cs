@@ -5,7 +5,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.StatusWorkflows;
 
 /// <summary>
-/// A scope's records are now governed by a different workflow.
+/// A scope's records are now governed by a different scheme, and so by its workflows.
 /// </summary>
 /// <remarks>
 /// The engine's only event, because it is the only engine change no owning object can announce. Every
@@ -29,15 +29,19 @@ public sealed record WorkflowAssignedEvent : DomainEvent<WorkflowAssignedEvent>,
         Guid? fromWorkflowId,
         Guid toWorkflowId,
         string toWorkflowName,
+        Guid? fromSchemeId,
+        Guid? toSchemeId,
         EventActor actor,
         Instant timestamp)
-        : base(actor, "1.0")
+        : base(actor, "1.1")
     {
         OwnerType = ownerType;
         ScopeId = scopeId;
         FromWorkflowId = fromWorkflowId;
         ToWorkflowId = toWorkflowId;
         ToWorkflowName = toWorkflowName;
+        FromSchemeId = fromSchemeId;
+        ToSchemeId = toSchemeId;
 
         Timestamp = timestamp;
     }
@@ -49,11 +53,12 @@ public sealed record WorkflowAssignedEvent : DomainEvent<WorkflowAssignedEvent>,
     public Guid? ScopeId { get; }
 
     /// <summary>
-    /// The workflow the scope was on, or <c>null</c> when it is being assigned for the first time.
+    /// The default workflow of the scheme the scope was on, or <c>null</c> when it is being assigned for the
+    /// first time. Before schemes, the one workflow every record in the scope followed.
     /// </summary>
     public Guid? FromWorkflowId { get; }
 
-    /// <summary>The workflow the scope now uses.</summary>
+    /// <summary>The default workflow of the scheme the scope now follows.</summary>
     public Guid ToWorkflowId { get; }
 
     /// <summary>
@@ -61,6 +66,15 @@ public sealed record WorkflowAssignedEvent : DomainEvent<WorkflowAssignedEvent>,
     /// later rename.
     /// </summary>
     public string ToWorkflowName { get; }
+
+    /// <summary>
+    /// The scheme the scope was on. Added in 1.1; null in earlier payloads, written when a scope pointed at a
+    /// workflow directly, and on a first assignment.
+    /// </summary>
+    public Guid? FromSchemeId { get; }
+
+    /// <summary>The scheme the scope now follows. Added in 1.1; null in earlier payloads.</summary>
+    public Guid? ToSchemeId { get; }
 
     [JsonIgnore]
     public string AggregateType => "Workflow";

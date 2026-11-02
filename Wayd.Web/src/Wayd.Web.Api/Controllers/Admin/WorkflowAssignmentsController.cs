@@ -53,4 +53,33 @@ public class WorkflowAssignmentsController(ILogger<WorkflowAssignmentsController
             ? Ok(result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
+
+    [HttpPost("{id}/assign-scheme")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
+    [EndpointSummary("Point a scope at another workflow scheme and move the records whose workflow changes.")]
+    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<int>> AssignScheme(Guid id, [FromBody] AssignWorkflowSchemeRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToAssignWorkflowSchemeCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpGet("{id}/assign-scheme/preview")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
+    [EndpointSummary("Preview what pointing a scope at another workflow scheme would move, before anything is committed.")]
+    [ProducesResponseType(typeof(WorkflowSchemeChangePreviewDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<WorkflowSchemeChangePreviewDto>> PreviewAssignScheme(Guid id, [FromQuery] Guid schemeId, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new PreviewWorkflowSchemeAssignmentQuery(id, schemeId), cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
 }

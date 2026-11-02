@@ -60,6 +60,8 @@ public sealed class ReassignWorkflowCommandHandler(
         try
         {
             var assignment = await _dbContext.WorkflowAssignments
+                .Include(a => a.Scheme)
+                    .ThenInclude(s => s!.Entries)
                 .FirstOrDefaultAsync(a => a.Id == request.AssignmentId, cancellationToken);
 
             // The remap refuses a target of another owner type, so the assignment alone decides whether
@@ -70,9 +72,18 @@ public sealed class ReassignWorkflowCommandHandler(
                 return Result.Failure<int>("Workflow assignment not found.");
             }
 
+            var scheme = assignment.Scheme!;
+
+            // A scheme with entries sends record types to several workflows, so one workflow cannot replace it;
+            // its scope moves to another scheme instead.
+            if (!scheme.IsImplicit)
+            {
+                return Result.Failure<int>("This scope follows a workflow scheme. Assign it another scheme instead.");
+            }
+
             var current = await _dbContext.StatusWorkflows
                 .Include(w => w.Statuses)
-                .FirstOrDefaultAsync(w => w.Id == assignment.WorkflowId, cancellationToken);
+                .FirstOrDefaultAsync(w => w.Id == scheme.DefaultWorkflowId, cancellationToken);
 
             var target = await _dbContext.StatusWorkflows
                 .Include(w => w.Statuses)
@@ -86,7 +97,7 @@ public sealed class ReassignWorkflowCommandHandler(
             // Already there: an interrupted migration that is re-run reaches this, and it has to be a
             // no-op rather than a failure. Checked before AutoMap, which refuses to map a workflow to
             // itself — so without this the resumability the batching is built for would not exist.
-            if (assignment.WorkflowId == target.Id)
+            if (scheme.DefaultWorkflowId == target.Id)
             {
                 _logger.LogInformation(
                     "{OwnerType} is already assigned to workflow {WorkflowId}; nothing to migrate.",
@@ -153,7 +164,13 @@ public sealed class ReassignWorkflowCommandHandler(
 
             // Last, so a failure above leaves the assignment pointing at the workflow the records are
             // still on.
-            var reassigned = assignment.ReassignTo(target, remap.Value, actor, now);
+            var targetScheme = await _dbContext.ImplicitSchemeFor(target, actor, now, cancellationToken);
+            if (targetScheme.IsFailure)
+            {
+                return Result.Failure<int>(targetScheme.Error);
+            }
+
+            var reassigned = assignment.ReassignTo(targetScheme.Value, target, [remap.Value], actor, now);
             if (reassigned.IsFailure)
             {
                 assignment.ClearDomainEvents();

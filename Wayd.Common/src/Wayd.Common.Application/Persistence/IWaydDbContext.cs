@@ -55,6 +55,8 @@ public interface IStatusWorkflowDbContext
 {
     DbSet<StatusWorkflow> StatusWorkflows { get; }
     DbSet<WorkflowAssignment> WorkflowAssignments { get; }
+    DbSet<StatusWorkflowScheme> StatusWorkflowSchemes { get; }
+    DbSet<RecordType> RecordTypes { get; }
 
     /// <summary>
     /// The status history of every tracked record, across every owner type.

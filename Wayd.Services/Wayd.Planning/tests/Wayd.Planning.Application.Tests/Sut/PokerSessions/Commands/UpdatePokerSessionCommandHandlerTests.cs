@@ -13,6 +13,7 @@ namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
 
 public class UpdatePokerSessionCommandHandlerTests : IDisposable
 {
+    private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly UpdatePokerSessionCommandHandler _handler;
     private readonly Mock<ILogger<UpdatePokerSessionCommandHandler>> _mockLogger;
@@ -27,7 +28,7 @@ public class UpdatePokerSessionCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<UpdatePokerSessionCommandHandler>>();
         _mockNotifier = new Mock<IPokerSessionNotifier>();
 
-        _handler = new UpdatePokerSessionCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new UpdatePokerSessionCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
         _sessionFaker = new PokerSessionFaker();
         _scaleFaker = new EstimationScaleFaker();
     }
@@ -73,7 +74,7 @@ public class UpdatePokerSessionCommandHandlerTests : IDisposable
             .Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Round 1");
+        session.AddRound("Round 1", null, PokerSessionActors.Facilitator);
 
         var command = new UpdatePokerSessionCommand(session.Id, "Updated Name", scale.Id);
 
@@ -103,7 +104,7 @@ public class UpdatePokerSessionCommandHandlerTests : IDisposable
             .Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Round 1");
+        session.AddRound("Round 1", null, PokerSessionActors.Facilitator);
 
         var command = new UpdatePokerSessionCommand(session.Id, "Updated Name", newScale.Id);
 

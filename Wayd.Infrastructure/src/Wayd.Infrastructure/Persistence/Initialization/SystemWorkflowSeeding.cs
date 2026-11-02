@@ -86,10 +86,28 @@ internal sealed class SystemWorkflowSeeding
             dbContext.StatusWorkflows.Add(workflow);
         }
 
+        // The workflow's implicit default-only scheme, which is what an assignment points at. Reused when an
+        // interrupted run left one behind. Its creation is no domain occurrence either, so it raises nothing.
+        var scheme = await dbContext.StatusWorkflowSchemes
+            .FirstOrDefaultAsync(s => s.IsImplicit && s.DefaultWorkflowId == workflow.Id, cancellationToken);
+
+        if (scheme is null)
+        {
+            var created = StatusWorkflowScheme.CreateImplicit(workflow, EventActor.System, dateTimeProvider.Now);
+            if (created.IsFailure)
+            {
+                throw new InvalidOperationException($"The seeded '{name}' could not be given a scheme: {created.Error}");
+            }
+
+            scheme = created.Value;
+            scheme.ClearPostPersistenceActions();
+            dbContext.StatusWorkflowSchemes.Add(scheme);
+        }
+
         // Scope null: the organization-level assignment, which is also the fallback for every narrower
         // scope without one of its own, so the resolver always finds a workflow.
         var assignment = WorkflowAssignment.Create(
-            owner.Key, scopeId: null, workflow, EventActor.System, dateTimeProvider.Now);
+            owner.Key, scopeId: null, scheme, workflow, EventActor.System, dateTimeProvider.Now);
 
         if (assignment.IsFailure)
         {

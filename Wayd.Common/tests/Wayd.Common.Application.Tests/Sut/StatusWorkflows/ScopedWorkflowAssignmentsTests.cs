@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Wayd.Tests.Shared.Data;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.StatusWorkflows;
@@ -17,7 +18,7 @@ public sealed class ScopedWorkflowAssignmentsTests : StatusWorkflowHandlerTestBa
 
     private WorkflowAssignment Assign(StatusWorkflow workflow, Guid? scopeId)
     {
-        var assignment = WorkflowAssignment.Create(Widget.Key, scopeId, workflow, EventActor.System, Now).Value;
+        var assignment = TestWorkflowAssignments.ForWorkflow(Widget.Key, scopeId, workflow, EventActor.System, Now).Value;
         assignment.ClearDomainEvents();
         DbContext.AddWorkflowAssignment(assignment);
         return assignment;
@@ -83,7 +84,7 @@ public sealed class ScopedWorkflowAssignmentsTests : StatusWorkflowHandlerTestBa
         // Assert
         result.IsSuccess.Should().BeTrue();
         var own = DbContext.WorkflowAssignments.Single(a => a.ScopeId == _scopeId);
-        own.WorkflowId.Should().Be(chosen.Id);
+        own.Scheme!.DefaultWorkflowId.Should().Be(chosen.Id);
         own.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<WorkflowAssignedEvent>();
         DbContext.SaveChangesCallCount.Should().Be(1);
     }
@@ -101,7 +102,7 @@ public sealed class ScopedWorkflowAssignmentsTests : StatusWorkflowHandlerTestBa
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        own.WorkflowId.Should().Be(chosen.Id);
+        own.Scheme!.DefaultWorkflowId.Should().Be(chosen.Id);
         DbContext.WorkflowAssignments.Count(a => a.ScopeId == _scopeId).Should().Be(1);
     }
 
@@ -136,7 +137,7 @@ public sealed class ScopedWorkflowAssignmentsTests : StatusWorkflowHandlerTestBa
         result.IsSuccess.Should().BeTrue();
         DbContext.WorkflowAssignments.Should().NotContain(a => a.ScopeId == _scopeId);
         var removed = own.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<WorkflowAssignmentRemovedEvent>().Subject;
-        removed.FromWorkflowId.Should().Be(own.WorkflowId);
+        removed.FromWorkflowId.Should().Be(own.Scheme!.DefaultWorkflowId);
         removed.ToWorkflowId.Should().Be(organizationDefault.Id);
         DbContext.SaveChangesCallCount.Should().Be(1);
         (await CreateSut().Current(Widget.Key, _scopeId, TestContext.Current.CancellationToken)).Value.IsScopeOwn.Should().BeFalse();

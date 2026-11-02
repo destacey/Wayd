@@ -271,6 +271,7 @@ public static class WolverineConfiguration
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Interfaces.ExternalPeople.IWorkdayConnectionInitializer>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Planning.Application.PokerSessions.Interfaces.IPokerSessionNotifier>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Planning.Application.StoryMaps.Interfaces.IStoryMapNotifier>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<SignalR.IRealtimeAccessRevoker>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Identity.IUserIdentityStore>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Identity.Users.IUserService>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Identity.Roles.IRoleService>();

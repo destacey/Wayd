@@ -24,3 +24,12 @@ public sealed class EmployeeFaker : PrivateConstructorFaker<Employee>
         RuleFor(x => x.IsActive, true);
     }
 }
+
+public static class EmployeeFakerExtensions
+{
+    public static EmployeeFaker WithId(this EmployeeFaker faker, Guid id)
+    {
+        faker.RuleFor(x => x.Id, id);
+        return faker;
+    }
+}

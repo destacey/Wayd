@@ -1591,6 +1591,67 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("SystemSettings", "App");
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.RecordType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ExternalKey")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("OwnerType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar");
+
+                    b.Property<string>("Ownership")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Key");
+
+                    b.HasIndex("OwnerType", "ExternalKey")
+                        .IsUnique()
+                        .HasFilter("[ExternalKey] IS NOT NULL");
+
+                    b.HasIndex("OwnerType", "Name")
+                        .IsUnique();
+
+                    b.ToTable("RecordTypes", "StatusWorkflows");
+                });
+
             modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.StatusTransition", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1735,6 +1796,117 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("StatusWorkflows", "StatusWorkflows");
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.StatusWorkflowScheme", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DefaultWorkflowId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<string>("ExternalKey")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<bool>("IsImplicit")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("OwnerType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar");
+
+                    b.Property<string>("Ownership")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Key");
+
+                    b.HasIndex("DefaultWorkflowId");
+
+                    b.HasIndex("OwnerType", "ExternalKey")
+                        .IsUnique()
+                        .HasFilter("[ExternalKey] IS NOT NULL");
+
+                    b.HasIndex(new[] { "DefaultWorkflowId" }, "IX_WorkflowSchemes_DefaultWorkflowId_Implicit")
+                        .IsUnique()
+                        .HasFilter("[IsImplicit] = 1");
+
+                    b.ToTable("WorkflowSchemes", "StatusWorkflows");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.StatusWorkflowSchemeEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RecordTypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SchemeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid>("WorkflowId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecordTypeId");
+
+                    b.HasIndex("WorkflowId");
+
+                    b.HasIndex("SchemeId", "RecordTypeId")
+                        .IsUnique();
+
+                    b.ToTable("WorkflowSchemeEntries", "StatusWorkflows");
+                });
+
             modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.TransitionCondition", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1799,6 +1971,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("varchar");
 
+                    b.Property<Guid>("SchemeId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("ScopeId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1816,16 +1991,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<Guid>("WorkflowId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerType")
                         .IsUnique()
                         .HasFilter("[ScopeId] IS NULL");
 
-                    b.HasIndex("WorkflowId");
+                    b.HasIndex("SchemeId");
 
                     b.HasIndex("OwnerType", "ScopeId")
                         .IsUnique()
@@ -4229,11 +4401,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("EstimationScaleVersionId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("FacilitatorId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<int>("Key")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
@@ -4264,6 +4431,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
                     b.HasKey("Id");
 
                     b.HasAlternateKey("Key");
@@ -4272,11 +4444,75 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("EstimationScaleVersionId");
 
-                    b.HasIndex("FacilitatorId");
-
                     b.HasIndex("Key");
 
                     b.ToTable("PokerSessions", "Planning");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionFacilitator", b =>
+                {
+                    b.Property<Guid>("PokerSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("PokerSessionId", "EmployeeId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("PokerSessionFacilitators", "Planning");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionInvitedEmployee", b =>
+                {
+                    b.Property<Guid>("PokerSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("PokerSessionId", "EmployeeId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("PokerSessionInvitedEmployees", "Planning");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionInvitedTeam", b =>
+                {
+                    b.Property<Guid>("PokerSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("PokerSessionId", "TeamId");
+
+                    b.HasIndex("TeamId");
+
+                    b.ToTable("PokerSessionInvitedTeams", "Planning");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionMember", b =>
+                {
+                    b.Property<Guid>("PokerSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsVoting")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("JoinedOn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("PokerSessionId", "EmployeeId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("PokerSessionMembers", "Planning");
                 });
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerVote", b =>
@@ -9406,6 +9642,36 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .OnDelete(DeleteBehavior.NoAction);
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.StatusWorkflowScheme", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.StatusWorkflows.StatusWorkflow", null)
+                        .WithMany()
+                        .HasForeignKey("DefaultWorkflowId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.StatusWorkflowSchemeEntry", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.StatusWorkflows.RecordType", null)
+                        .WithMany()
+                        .HasForeignKey("RecordTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Common.Domain.StatusWorkflows.StatusWorkflowScheme", null)
+                        .WithMany("Entries")
+                        .HasForeignKey("SchemeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Common.Domain.StatusWorkflows.StatusWorkflow", null)
+                        .WithMany()
+                        .HasForeignKey("WorkflowId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.TransitionCondition", b =>
                 {
                     b.HasOne("Wayd.Common.Domain.StatusWorkflows.WorkflowTransition", null)
@@ -9417,11 +9683,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.WorkflowAssignment", b =>
                 {
-                    b.HasOne("Wayd.Common.Domain.StatusWorkflows.StatusWorkflow", null)
+                    b.HasOne("Wayd.Common.Domain.StatusWorkflows.StatusWorkflowScheme", "Scheme")
                         .WithMany()
-                        .HasForeignKey("WorkflowId")
+                        .HasForeignKey("SchemeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Scheme");
                 });
 
             modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.WorkflowStatus", b =>
@@ -10216,17 +10484,77 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Wayd.Common.Domain.Identity.User", "Facilitator")
-                        .WithMany()
-                        .HasForeignKey("FacilitatorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("EstimationScale");
 
                     b.Navigation("EstimationScaleVersion");
+                });
 
-                    b.Navigation("Facilitator");
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionFacilitator", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Planning.Domain.Models.PlanningPoker.PokerSession", null)
+                        .WithMany("Facilitators")
+                        .HasForeignKey("PokerSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionInvitedEmployee", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Planning.Domain.Models.PlanningPoker.PokerSession", null)
+                        .WithMany("InvitedEmployees")
+                        .HasForeignKey("PokerSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionInvitedTeam", b =>
+                {
+                    b.HasOne("Wayd.Planning.Domain.Models.PlanningPoker.PokerSession", null)
+                        .WithMany("InvitedTeams")
+                        .HasForeignKey("PokerSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Planning.Domain.Models.PlanningTeam", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionMember", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Planning.Domain.Models.PlanningPoker.PokerSession", null)
+                        .WithMany("Members")
+                        .HasForeignKey("PokerSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
                 });
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerVote", b =>
@@ -11691,6 +12019,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Transitions");
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.StatusWorkflowScheme", b =>
+                {
+                    b.Navigation("Entries");
+                });
+
             modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.WorkflowTransition", b =>
                 {
                     b.Navigation("Conditions");
@@ -11799,6 +12132,14 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSession", b =>
                 {
+                    b.Navigation("Facilitators");
+
+                    b.Navigation("InvitedEmployees");
+
+                    b.Navigation("InvitedTeams");
+
+                    b.Navigation("Members");
+
                     b.Navigation("Rounds");
                 });
 

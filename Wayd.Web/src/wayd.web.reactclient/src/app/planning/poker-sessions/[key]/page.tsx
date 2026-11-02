@@ -16,7 +16,14 @@ import {
 } from '@/src/store/features/planning/poker-sessions-api'
 import { useGetProfileQuery } from '@/src/store/features/user-management/profile-api'
 import { Button, Divider, Drawer, Flex, Grid, Tag } from 'antd'
-import { DownloadOutlined, EditOutlined, LinkOutlined } from '@ant-design/icons'
+import {
+  DownloadOutlined,
+  EditOutlined,
+  LinkOutlined,
+  LockOutlined,
+  TeamOutlined,
+} from '@ant-design/icons'
+import { Visibility } from '@/src/services/wayd-api'
 import { downloadCsvWithTimestamp, generateCsv } from '@/src/utils/csv-utils'
 import { notFound, useParams } from 'next/navigation'
 import { CSSProperties, FC, useState } from 'react'
@@ -33,6 +40,8 @@ import {
   PokerReviewView,
   ResultsPanel,
   RoundLabelHeader,
+  SessionMembersDrawer,
+  SessionMembershipBar,
   SessionSidebar,
   VotingActions,
 } from './_components'
@@ -64,10 +73,11 @@ const PokerSessionDetailPage: FC = () => {
   const screens = useBreakpoint()
   const isMobile = !screens.md
   const messageApi = useMessage()
-  const { hasPermissionClaim } = useAuth()
-  const canManage = hasPermissionClaim('Permissions.PokerSessions.Update')
-
+  const { user } = useAuth()
+  const currentEmployeeId = user?.employeeId ?? undefined
   const { data: session, isLoading } = useGetPokerSessionQuery(key)
+  // Facilitators and poker administrators run the session; the server decides who they are.
+  const canManage = session?.canManage ?? false
   const { data: profile } = useGetProfileQuery()
 
   const [connectedParticipants, setConnectedParticipants] = useState<
@@ -77,10 +87,17 @@ const PokerSessionDetailPage: FC = () => {
   // Real-time updates via SignalR (falls back to polling above)
   // Skip connection for completed sessions — no live updates needed.
   const isSessionActive = session?.status === 'Active'
+  // The user lost access while in the session. The cached session would stay on screen, so show what a
+  // fresh load now shows.
+  const [accessRevoked, setAccessRevoked] = useState(false)
   usePokerSessionConnection(
     isSessionActive ? session?.id : undefined,
     isSessionActive ? session?.key : undefined,
     setConnectedParticipants,
+    () => {
+      messageApi.warning('You no longer have access to this session.')
+      setAccessRevoked(true)
+    },
   )
 
   const [completeSession, { isLoading: isCompleting }] =
@@ -93,6 +110,7 @@ const PokerSessionDetailPage: FC = () => {
 
   const [selectedRoundId, setSelectedRoundId] = useState<string | undefined>()
   const [openEditForm, setOpenEditForm] = useState(false)
+  const [openMembers, setOpenMembers] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   const handleComplete = async () => {
@@ -163,12 +181,28 @@ const PokerSessionDetailPage: FC = () => {
       ? ('review' as const)
       : ('active' as const)
 
-  // Merge connected participants with voters from the active round
-  // so that votes from disconnected users still appear
+  const members = session?.members ?? []
+  const myMember = currentEmployeeId
+    ? members.find((m) => m.employee.id === currentEmployeeId)
+    : undefined
+  // Presence knows people by account; members are employees, which presence carries too.
+  const votingEmployeeIds = new Set(
+    members.filter((m) => m.isVoting).map((m) => m.employee.id),
+  )
+  const facilitatorEmployeeIds = new Set(
+    (session?.facilitators ?? []).map((f) => f.id),
+  )
+  const isVoter = (p: PresenceParticipant) =>
+    !!p.employeeId && votingEmployeeIds.has(p.employeeId)
+
+  // Merge connected participants with voters from the active round so that
+  // votes from disconnected users still appear. Only members who are voting
+  // count toward who the round is waiting on: not those who turned voting off,
+  // nor anyone connected who has not joined.
   const roundParticipants = (() => {
     const map = new Map<string, { id: string; name: string }>()
     for (const p of connectedParticipants) {
-      map.set(p.id, p)
+      if (isVoter(p)) map.set(p.id, p)
     }
     if (activeRound) {
       for (const vote of activeRound.votes ?? []) {
@@ -220,7 +254,7 @@ const PokerSessionDetailPage: FC = () => {
     return <PokerSessionDetailsLoading />
   }
 
-  if (!session) {
+  if (!session || accessRevoked) {
     return notFound()
   }
 
@@ -249,6 +283,11 @@ const PokerSessionDetailPage: FC = () => {
   const pageTitleTags = (
     <Flex align="center" gap={8} wrap>
       <Tag color={sessionStatusColor[session.status]}>{session.status}</Tag>
+      {session.visibility === Visibility.Private && (
+        <Tag icon={<LockOutlined />} style={{ margin: 0 }}>
+          Private
+        </Tag>
+      )}
       {session.estimationScale?.name && (
         <Tag style={{ margin: 0 }}>{session.estimationScale.name}</Tag>
       )}
@@ -263,11 +302,14 @@ const PokerSessionDetailPage: FC = () => {
 
   const pageTitleActions = (
     <Flex align="center" gap={8} wrap>
-      {canManage && isActive && (
+      {canManage && (
         <Button icon={<EditOutlined />} onClick={() => setOpenEditForm(true)}>
           Edit
         </Button>
       )}
+      <Button icon={<TeamOutlined />} onClick={() => setOpenMembers(true)}>
+        Participants ({members.length})
+      </Button>
       {isActive && (
         <Button icon={<LinkOutlined />} onClick={handleCopyInviteLink}>
           Copy Invite Link
@@ -296,7 +338,18 @@ const PokerSessionDetailPage: FC = () => {
     >
       <div className={styles.pageContainer} style={cssVars}>
         <div className={styles.presenceRow}>
-          <PresenceAvatars participants={connectedParticipants} />
+          <Flex align="center" justify="space-between" gap={12} wrap>
+            {isActive ? (
+              <SessionMembershipBar
+                session={session}
+                member={myMember}
+                canJoin={!!currentEmployeeId}
+              />
+            ) : (
+              <span />
+            )}
+            <PresenceAvatars participants={connectedParticipants} />
+          </Flex>
         </div>
         <div
           className={`${styles.pageLayout} ${isMobile ? styles.pageLayoutMobile : ''}`}
@@ -356,7 +409,15 @@ const PokerSessionDetailPage: FC = () => {
                   <ResultsPanel votes={activeRound.votes} />
                 )}
 
-                {activeRound.status === 'Voting' && (
+                {/* Joining is explained by the membership bar. */}
+                {activeRound.status === 'Voting' &&
+                  myMember?.isVoting === false && (
+                    <span className={styles.yourEstimateLabel}>
+                      You are not voting. Turn on Voting to estimate.
+                    </span>
+                  )}
+
+                {activeRound.status === 'Voting' && myMember?.isVoting && (
                   <>
                     <Divider style={{ margin: '8px 0' }}>
                       <span className={styles.yourEstimateLabel}>
@@ -402,6 +463,8 @@ const PokerSessionDetailPage: FC = () => {
               {centerViewMode === 'lobby' && isActive && (
                 <LobbyParticipants
                   participants={connectedParticipants}
+                  facilitatorEmployeeIds={facilitatorEmployeeIds}
+                  votingEmployeeIds={votingEmployeeIds}
                   canManage={canManage}
                   isActive={isActive}
                   onComplete={handleComplete}
@@ -437,6 +500,8 @@ const PokerSessionDetailPage: FC = () => {
               {centerViewMode === 'lobby' && isActive ? (
                 <LobbyParticipants
                   participants={connectedParticipants}
+                  facilitatorEmployeeIds={facilitatorEmployeeIds}
+                  votingEmployeeIds={votingEmployeeIds}
                   canManage={canManage}
                   isActive={isActive}
                   onComplete={handleComplete}
@@ -464,6 +529,11 @@ const PokerSessionDetailPage: FC = () => {
             onFormCancel={() => setOpenEditForm(false)}
           />
         )}
+        <SessionMembersDrawer
+          session={session}
+          open={openMembers}
+          onClose={() => setOpenMembers(false)}
+        />
       </div>
     </RecordShell>
   )

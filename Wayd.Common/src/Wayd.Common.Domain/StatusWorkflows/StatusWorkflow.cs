@@ -196,6 +196,16 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         alias == NoAlias ? null : _statuses.SingleOrDefault(s => s.Alias == alias);
 
     /// <summary>
+    /// Where a record holding a status of another workflow lands when it moves onto this one by itself, as
+    /// when its record type changes: the status carrying the same alias, otherwise the lowest-ordered
+    /// status in the same category.
+    /// </summary>
+    /// <returns><c>null</c> when this workflow has neither, so the caller has to choose.</returns>
+    public WorkflowStatus? LandingStatusFor(int alias, StatusCategory category) =>
+        StatusFor(alias)
+        ?? _statuses.Where(s => s.Category == category).OrderBy(s => s.Order).FirstOrDefault();
+
+    /// <summary>
     /// The default status for a newly created record: the lowest-ordered
     /// <see cref="StatusCategory.Proposed"/> status, or the lowest-ordered status when none is proposed.
     /// </summary>

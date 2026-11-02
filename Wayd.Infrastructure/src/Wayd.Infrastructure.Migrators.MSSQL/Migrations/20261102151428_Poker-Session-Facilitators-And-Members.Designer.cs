@@ -13,7 +13,7 @@ using Wayd.Infrastructure.Persistence.Context;
 namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 {
     [DbContext(typeof(WaydDbContext))]
-    [Migration("20261102034148_Poker-Session-Facilitators-And-Members")]
+    [Migration("20261102151428_Poker-Session-Facilitators-And-Members")]
     partial class PokerSessionFacilitatorsAndMembers
     {
         /// <inheritdoc />

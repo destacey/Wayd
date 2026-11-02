@@ -21,7 +21,7 @@ namespace Wayd.Infrastructure.IntegrationTests.Sut.Persistence;
 public sealed class PokerSessionFacilitatorsAndMembersMigrationTests(SqlServerDbContextFixture fixture)
 {
     private const string Previous = "20261101221339_Backfill-Estimation-Scale-Baseline-Activity";
-    private const string Target = "20261102034148_Poker-Session-Facilitators-And-Members";
+    private const string Target = "20261102151428_Poker-Session-Facilitators-And-Members";
     private const string NoPreferences = """{"Tours":"{}"}""";
 
     private readonly SqlServerDbContextFixture _fixture = fixture;

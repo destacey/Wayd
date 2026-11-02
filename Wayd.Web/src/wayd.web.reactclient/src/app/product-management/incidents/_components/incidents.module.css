@@ -64,6 +64,32 @@
 
 .timelineHeader {
   margin-bottom: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+}
+
+.timelineHeaderTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.timelineHeaderMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.timelineHeaderActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.timelineHeaderFollow {
+  display: inline-flex;
 }
 
 .timelineRow {
@@ -105,7 +131,8 @@
 }
 
 .timelineDotMilestone,
-.timelineDotNote {
+.timelineDotNote,
+.timelineDotLink {
   position: relative;
   z-index: 1;
   width: 9px;
@@ -122,6 +149,10 @@
 
 .timelineDotNote {
   background: var(--ant-color-text-secondary);
+}
+
+.timelineDotLink {
+  background: var(--ant-color-info);
 }
 
 .timelineEvent {
@@ -184,7 +215,7 @@
 .desc {
   color: var(--ant-color-text-secondary);
   font-size: 14px;
-  margin: 0 0 16px;
+  margin: 0;
   white-space: pre-wrap;
 }
 

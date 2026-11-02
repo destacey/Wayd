@@ -157,6 +157,10 @@ public partial class EventCoverageTests
             "Called only by HealthReport when a new check supersedes the latest, inside the owning aggregate's AddHealthCheck, which raises.",
         ["IncidentTimelineNote.Create(Guid, String, Guid, Instant)"] =
             "Called only from Incident.AddTimelineNote, which raises IncidentTimelineNoteAddedEvent.",
+        ["IncidentTimelineLinkEntry.Create(Guid, IncidentTimelineLinkKind, IncidentTimelineLinkAction, String, Guid, Instant)"] =
+            "Called only from Incident.RecordLinkTimelineEntry; link timeline rows are audit history, not workflow state.",
+        ["Incident.RecordLinkTimelineEntry(IncidentTimelineLinkKind, IncidentTimelineLinkAction, String, Guid, Instant)"] =
+            "Persists link audit rows on the incident timeline; not workflow or notification state.",
 
         // Not yet evented: each awaits the issue it names.
         ["Project.CreateTask(Int32, String, String, ProjectTaskType, TaskStatus, TaskPriority, Progress, Guid, FlexibleDateRange, Nullable<LocalDate>, Nullable<Decimal>, Dictionary<TaskRole, HashSet<Guid>>)"] = "#950.",
@@ -279,6 +283,7 @@ public partial class EventCoverageTests
         [typeof(ProductTeamLink)] = typeof(Product),
         [typeof(IncidentSeverityLevel)] = typeof(IncidentSeveritySet),
         [typeof(IncidentTimelineNote)] = typeof(Incident),
+        [typeof(IncidentTimelineLinkEntry)] = typeof(Incident),
         [typeof(ProductTagAssignment)] = typeof(Product),
         [typeof(ProjectHealthCheck)] = typeof(Project),
         [typeof(ProjectScore)] = typeof(Project),

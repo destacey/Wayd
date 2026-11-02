@@ -11,6 +11,7 @@ import type {
   WorkItemsSummaryDto,
   AddIncidentTimelineNoteRequest,
   IncidentTimelineNoteDto,
+  IncidentTimelineLinkEntryDto,
   IncidentWorkflowActionDto,
   ApplyIncidentWorkflowActionRequest,
 } from '@/src/services/wayd-api'
@@ -128,6 +129,10 @@ export const incidentsApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (_result, _error, request) => [
         { type: QueryTags.IncidentWorkItemsSummary, id: request.incidentId },
+        {
+          type: QueryTags.IncidentTimelineLinkEntries,
+          id: request.incidentId,
+        },
       ],
     }),
     getIncidentTimelineNotes: builder.query<
@@ -146,6 +151,24 @@ export const incidentsApi = apiSlice.injectEndpoints({
       },
       providesTags: (_result, _error, { incidentId }) => [
         { type: QueryTags.IncidentTimelineNotes, id: incidentId },
+      ],
+    }),
+    getIncidentTimelineLinkEntries: builder.query<
+      IncidentTimelineLinkEntryDto[],
+      { idOrKey: string; incidentId: string }
+    >({
+      queryFn: async ({ idOrKey }) => {
+        try {
+          const data =
+            await getIncidentsClient().getIncidentTimelineLinkEntries(idOrKey)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (_result, _error, { incidentId }) => [
+        { type: QueryTags.IncidentTimelineLinkEntries, id: incidentId },
       ],
     }),
     addIncidentTimelineNote: builder.mutation<
@@ -222,6 +245,7 @@ export const {
   useGetIncidentWorkItemsQuery,
   useManageIncidentWorkItemsMutation,
   useGetIncidentTimelineNotesQuery,
+  useGetIncidentTimelineLinkEntriesQuery,
   useAddIncidentTimelineNoteMutation,
   useGetIncidentWorkflowActionsQuery,
   useApplyIncidentWorkflowActionMutation,

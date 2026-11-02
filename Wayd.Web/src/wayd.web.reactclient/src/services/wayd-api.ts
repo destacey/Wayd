@@ -14547,6 +14547,68 @@ export class IncidentsClient {
     }
 
     /**
+     * List link change entries on an incident timeline.
+     * @return OK
+     */
+    getIncidentTimelineLinkEntries(idOrKey: string, cancelToken?: CancelToken): Promise<IncidentTimelineLinkEntryDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/incidents/{idOrKey}/timeline-link-entries";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIncidentTimelineLinkEntries(_response);
+        });
+    }
+
+    protected processGetIncidentTimelineLinkEntries(response: AxiosResponse): Promise<IncidentTimelineLinkEntryDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IncidentTimelineLinkEntryDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IncidentTimelineLinkEntryDto[]>(null as any);
+    }
+
+    /**
      * Add a note to an incident's operational timeline.
      * @return Created
      */
@@ -65911,6 +65973,27 @@ export interface IncidentSummaryDto {
     status: StatusNavigationDto;
     statusAlias: ProductStatusAlias;
     products: NavigationDto[];
+}
+
+export enum IncidentTimelineLinkAction {
+    Added = "Added",
+    Updated = "Updated",
+    Removed = "Removed",
+}
+
+/** One link add, update, or remove entry on an incident timeline. */
+export interface IncidentTimelineLinkEntryDto {
+    id: string;
+    kind: IncidentTimelineLinkKind;
+    action: IncidentTimelineLinkAction;
+    label: string;
+    recordedAt: Date;
+    actor: NavigationDto;
+}
+
+export enum IncidentTimelineLinkKind {
+    WorkItem = "WorkItem",
+    Generic = "Generic",
 }
 
 /** One commander-authored entry on an incident timeline. */

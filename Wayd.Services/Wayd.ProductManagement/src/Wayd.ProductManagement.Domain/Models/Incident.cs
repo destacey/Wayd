@@ -17,6 +17,7 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
 {
     private readonly List<IncidentProductLink> _productLinks = [];
     private readonly List<IncidentTimelineNote> _timelineNotes = [];
+    private readonly List<IncidentTimelineLinkEntry> _timelineLinkEntries = [];
 
     private Incident() { }
 
@@ -78,6 +79,10 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
 
     /// <summary>Commander-authored timeline entries.</summary>
     public IReadOnlyCollection<IncidentTimelineNote> TimelineNotes => _timelineNotes.AsReadOnly();
+
+    /// <summary>Link add, update, and remove entries on the operational timeline.</summary>
+    public IReadOnlyCollection<IncidentTimelineLinkEntry> TimelineLinkEntries =>
+        _timelineLinkEntries.AsReadOnly();
 
     /// <summary>The well-known meaning of the current status.</summary>
     public ProductStatusAlias StatusAlias => (ProductStatusAlias)StatusAliasValue;
@@ -329,6 +334,41 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
             timestamp));
 
         return Result.Success(note);
+    }
+
+    /// <summary>Records a work item or generic link change on the incident timeline.</summary>
+    public Result<IncidentTimelineLinkEntry> RecordLinkTimelineEntry(
+        IncidentTimelineLinkKind kind,
+        IncidentTimelineLinkAction action,
+        string label,
+        Guid actorEmployeeId,
+        Instant recordedAt)
+    {
+        if (actorEmployeeId == Guid.Empty)
+        {
+            return Result.Failure<IncidentTimelineLinkEntry>("An actor is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            return Result.Failure<IncidentTimelineLinkEntry>("A link label is required.");
+        }
+
+        if (label.Trim().Length > 256)
+        {
+            return Result.Failure<IncidentTimelineLinkEntry>("Link label cannot exceed 256 characters.");
+        }
+
+        var entry = IncidentTimelineLinkEntry.Create(
+            Id,
+            kind,
+            action,
+            label,
+            actorEmployeeId,
+            recordedAt);
+        _timelineLinkEntries.Add(entry);
+
+        return Result.Success(entry);
     }
 
     private Result ChangeStatus(StatusRef status, EventActor actor, Instant timestamp, string? reason = null)

@@ -263,35 +263,21 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       )
   })()
 
-  const toolbar =
-    editing ? (
-      <>
-        <Button onClick={() => setEditing(false)}>Cancel</Button>
-        <Button type="primary" loading={saving} onClick={() => void save()}>
-          Save
-        </Button>
-      </>
-    ) : (
-      <>
-        <span className={styles.detailToolbarFollow}>
-          <FollowButton
-            ownerType={FollowOwnerTypes.Incident}
-            ownerId={incident.id}
-          />
-        </span>
-        {canUpdate && actionsMenuItems.length > 0 ? (
-          <PageActions actionItems={actionsMenuItems} />
-        ) : canUpdate ? (
-          <Button onClick={startEditing}>Edit</Button>
-        ) : null}
-      </>
-    )
+  const editToolbar = (
+    <>
+      <Button onClick={() => setEditing(false)}>Cancel</Button>
+      <Button type="primary" loading={saving} onClick={() => void save()}>
+        Save
+      </Button>
+    </>
+  )
 
   return (
     <div className="page-gutters">
-      <div className={styles.detailToolbar}>{toolbar}</div>
       {editing ? (
-        <Form form={form} layout="vertical">
+        <>
+          <div className={styles.detailToolbar}>{editToolbar}</div>
+          <Form form={form} layout="vertical">
           <Form.Item name="title" label="Title" rules={[{ required: true }]}>
             <TextArea rows={2} />
           </Form.Item>
@@ -318,6 +304,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             <DatePicker showTime className="w-full" />
           </Form.Item>
         </Form>
+        </>
       ) : (
         <>
           <article className={styles.detail}>
@@ -327,6 +314,21 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               productMeta={productMeta}
               viewerZone={viewerZone}
               canAddNotes={canUpdate}
+              headerActions={
+                <>
+                  <span className={styles.timelineHeaderFollow}>
+                    <FollowButton
+                      ownerType={FollowOwnerTypes.Incident}
+                      ownerId={incident.id}
+                    />
+                  </span>
+                  {canUpdate && actionsMenuItems.length > 0 ? (
+                    <PageActions actionItems={actionsMenuItems} />
+                  ) : canUpdate ? (
+                    <Button onClick={startEditing}>Edit</Button>
+                  ) : null}
+                </>
+              }
             />
             <aside className={styles.detailAside}>
               <h2 className={styles.asideHeading}>Status</h2>

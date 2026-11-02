@@ -28924,7 +28924,7 @@
           "PokerSessions"
         ],
         "summary": "Get a list of poker sessions.",
-        "description": "Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (members who joined as a Participant, including those who left), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.",
+        "description": "Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (everyone who has joined, voting or not), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.",
         "operationId": "PokerSessions_GetList",
         "parameters": [
           {
@@ -29026,7 +29026,7 @@
           "PokerSessions"
         ],
         "summary": "Get poker session details using the Id or key.",
-        "description": "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `mode` Participant or Observer, `joinedOn`, and `leftOn` once they leave), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.",
+        "description": "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.",
         "operationId": "PokerSessions_GetSession",
         "parameters": [
           {
@@ -29074,7 +29074,7 @@
           "PokerSessions"
         ],
         "summary": "Get the members of a team invited to a poker session.",
-        "description": "Lists the active direct members of `teamId`, a team the session invites, by employee `id`, `key` and `name`. An invited team admits its current members, and the members of its current team of teams, while the session is Private. Returns 404 when the caller cannot see the session or the team is not invited. Both ids are UUIDs.",
+        "description": "Lists the active direct members of `teamId`, a team the session invites, by employee `id`, `key` and `name`. An invited team admits its current members, and the members of its current team of teams, while the session is Private. Returns 404 when the caller cannot see the session, the session is Public (its invites admit no one), or the team is not invited. Both ids are UUIDs.",
         "operationId": "PokerSessions_GetInvitedTeamMembers",
         "parameters": [
           {
@@ -29681,7 +29681,7 @@
           "PokerSessions"
         ],
         "summary": "Submit a vote for a round.",
-        "description": "Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. A caller who has not joined the session joins it as a Participant; an Observer cannot vote until they switch with PokerSessions_ChangeMode. Both ids are UUIDs.",
+        "description": "Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. A caller who has not joined the session joins it, voting; a member who is not voting cannot vote until they turn voting on with PokerSessions_SetVoting. Both ids are UUIDs.",
         "operationId": "PokerSessions_SubmitVote",
         "parameters": [
           {
@@ -29903,7 +29903,7 @@
           "PokerSessions"
         ],
         "summary": "Set who is invited to a poker session.",
-        "description": "Replaces the invites with `employeeIds` and `teamIds` (UUIDs; empty lists remove every invite). Invites admit people only while the session is Private, and a team admits its current members and the members of its current team of teams. An invite grants access only: the person still needs the poker View permission, and chooses whether to join as a Participant or an Observer. Removing an invite disconnects anyone the session no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.",
+        "description": "Replaces the invites with `employeeIds` and `teamIds` (UUIDs; empty lists remove every invite). Invites admit people only while the session is Private, and a team admits its current members and the members of its current team of teams. An invite grants access only: the person still needs the poker View permission, and chooses whether to vote. Removing an invite disconnects anyone the session no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.",
         "operationId": "PokerSessions_SetInvitees",
         "parameters": [
           {
@@ -29957,7 +29957,7 @@
           "PokerSessions"
         ],
         "summary": "Join a poker session.",
-        "description": "Adds the caller to the session's members as `mode` `Participant` (the default), who votes and counts toward the voted and waiting totals, or `Observer`, who watches without voting. Joining again, including after leaving, takes the new mode; joining again as an Observer withdraws the caller's votes in rounds not yet revealed. Anyone the session admits can join: on a Public session anyone with the poker View permission, on a Private one its facilitators and invitees. Facilitators join like anyone else. The session must be Active, and the caller's account must be linked to an employee. Takes the session's UUID. Returns the caller's membership.",
+        "description": "Adds the caller to the session's members, voting unless `isVoting` is false. A member who is not voting takes part in the discussion but is left out of the voted and waiting totals. Joining again changes nothing; use PokerSessions_SetVoting to change whether the caller votes. Anyone the session admits can join: on a Public session anyone with the poker View permission, on a Private one its facilitators and invitees. Facilitators join like anyone else. The session must be Active, and the caller's account must be linked to an employee. Takes the session's UUID. Returns the caller's membership.",
         "operationId": "PokerSessions_Join",
         "parameters": [
           {
@@ -30012,56 +30012,14 @@
         ]
       }
     },
-    "/api/planning/poker-sessions/{id}/leave": {
-      "post": {
-        "tags": [
-          "PokerSessions"
-        ],
-        "summary": "Leave a poker session.",
-        "description": "Marks the caller as having left (`leftOn`); they stay in the session's record of who took part. Their votes in rounds not yet revealed are withdrawn; revealed rounds keep them. Fails when the caller is not in the session. The session must be Active. Takes the session's UUID.",
-        "operationId": "PokerSessions_Leave",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "x-position": 1
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": [ ]
-          }
-        ]
-      }
-    },
-    "/api/planning/poker-sessions/{id}/mode": {
+    "/api/planning/poker-sessions/{id}/voting": {
       "put": {
         "tags": [
           "PokerSessions"
         ],
-        "summary": "Switch between Participant and Observer in a poker session.",
-        "description": "Sets the caller's `mode` to `Participant` or `Observer`. Switching to Observer withdraws the caller's votes in rounds not yet revealed, and leaves them out of the voted and waiting totals; revealed rounds keep their votes. Switching to Participant lets them vote at once. The caller must have joined the session, which must be Active. Takes the session's UUID. Returns the caller's membership.",
-        "operationId": "PokerSessions_ChangeMode",
+        "summary": "Turn the caller's voting on or off in a poker session.",
+        "description": "Sets whether the caller votes (`isVoting`). Turning voting off withdraws the caller's votes in rounds not yet revealed and leaves them out of the voted and waiting totals; revealed rounds keep their votes. Turning it on lets them vote at once. The caller must have joined the session, which must be Active. Takes the session's UUID. Returns the caller's membership.",
+        "operationId": "PokerSessions_SetVoting",
         "parameters": [
           {
             "name": "id",
@@ -30078,7 +30036,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ChangePokerSessionModeRequest"
+                "$ref": "#/components/schemas/SetPokerSessionVotingRequest"
               }
             }
           },
@@ -54110,23 +54068,6 @@
         },
         "additionalProperties": false
       },
-      "ChangePokerSessionModeRequest": {
-        "required": [
-          "mode"
-        ],
-        "type": "object",
-        "properties": {
-          "mode": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/PokerSessionMemberMode"
-              }
-            ],
-            "description": "`Participant` votes and counts toward the voted and waiting totals; `Observer` watches without voting."
-          }
-        },
-        "additionalProperties": false
-      },
       "ChangeProductDependencyTermsRequest": {
         "required": [
           "strength"
@@ -64775,20 +64716,17 @@
       },
       "JoinPokerSessionRequest": {
         "required": [
-          "mode"
+          "isVoting"
         ],
         "type": "object",
         "properties": {
-          "mode": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/PokerSessionMemberMode"
-              }
-            ],
-            "description": "`Participant` (the default) votes and counts toward the voted and waiting totals; `Observer` watches\nwithout voting."
+          "isVoting": {
+            "type": "boolean",
+            "description": "True (the default) to vote, counting toward the voted and waiting totals; false to take part without voting.\nIgnored when the caller has already joined."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Joins the caller to a poker session."
       },
       "JsonPatchDocumentOfSetGoalPersonasRequest": {
         "type": "array",
@@ -68486,7 +68424,7 @@
             "items": {
               "$ref": "#/components/schemas/EmployeeNavigationDto"
             },
-            "description": "The members who joined as a Participant, or switched to one, including those who have since left."
+            "description": "Everyone who has joined the session, voting or not, in the order they joined."
           },
           "roundCount": {
             "type": "integer",
@@ -68502,7 +68440,7 @@
       "PokerSessionMemberDto": {
         "required": [
           "employee",
-          "mode",
+          "isVoting",
           "joinedOn"
         ],
         "type": "object",
@@ -68515,35 +68453,18 @@
             ],
             "description": "The member. Live presence carries the same employee id, which is how a connected person is matched to\ntheir membership."
           },
-          "mode": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/PokerSessionMemberMode"
-              }
-            ],
-            "description": "Participant, who votes and counts toward the voted and waiting totals, or Observer, who does neither.\nAfter the member leaves, the mode they left in."
+          "isVoting": {
+            "type": "boolean",
+            "description": "Whether the member votes. A voting member counts toward a round's voted and waiting totals; one who is not\nvoting is left out of them but still takes part."
           },
           "joinedOn": {
             "type": "string",
             "description": "When the member first joined.",
             "format": "date-time"
-          },
-          "leftOn": {
-            "type": "string",
-            "description": "When the member left, or null while they are in the session.",
-            "format": "date-time",
-            "nullable": true
           }
         },
         "additionalProperties": false,
         "description": "Someone who joined a poker session, and how they take part."
-      },
-      "PokerSessionMemberMode": {
-        "enum": [
-          "Participant",
-          "Observer"
-        ],
-        "type": "string"
       },
       "PokerSessionStatus": {
         "enum": [
@@ -74244,6 +74165,20 @@
           }
         },
         "additionalProperties": false
+      },
+      "SetPokerSessionVotingRequest": {
+        "required": [
+          "isVoting"
+        ],
+        "type": "object",
+        "properties": {
+          "isVoting": {
+            "type": "boolean",
+            "description": "True to vote, counting toward the voted and waiting totals; false to take part without voting."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Turns the caller's voting on or off in a poker session."
       },
       "SetProductTagActiveRequest": {
         "required": [

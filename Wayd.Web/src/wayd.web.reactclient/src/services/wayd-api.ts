@@ -35148,69 +35148,11 @@ export class PokerSessionsClient {
     }
 
     /**
-     * Leave a poker session.
-     * @return No Content
-     */
-    leave(id: string, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/leave";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "POST",
-            url: url_,
-            headers: {
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processLeave(_response);
-        });
-    }
-
-    protected processLeave(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Switch between Participant and Observer in a poker session.
+     * Turn the caller's voting on or off in a poker session.
      * @return OK
      */
-    changeMode(id: string, request: ChangePokerSessionModeRequest, cancelToken?: CancelToken): Promise<PokerSessionMemberDto> {
-        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/mode";
+    setVoting(id: string, request: SetPokerSessionVotingRequest, cancelToken?: CancelToken): Promise<PokerSessionMemberDto> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/voting";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -35236,11 +35178,11 @@ export class PokerSessionsClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processChangeMode(_response);
+            return this.processSetVoting(_response);
         });
     }
 
-    protected processChangeMode(response: AxiosResponse): Promise<PokerSessionMemberDto> {
+    protected processSetVoting(response: AxiosResponse): Promise<PokerSessionMemberDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -61040,11 +60982,6 @@ export interface ChangePasswordRequest {
     newPassword: string;
 }
 
-export interface ChangePokerSessionModeRequest {
-    /** `Participant` votes and counts toward the voted and waiting totals; `Observer` watches without voting. */
-    mode: PokerSessionMemberMode;
-}
-
 /** Changes the terms a product's dependency holds on — whether the product stops working without the one it depends on, how it reaches it, or both. */
 export interface ChangeProductDependencyTermsRequest {
     /** Whether the product stops working without it (Hard) or carries on without it (Soft). */
@@ -64579,10 +64516,11 @@ export interface JobSummaryResponse {
     exceptionMessage?: string | undefined;
 }
 
+/** Joins the caller to a poker session. */
 export interface JoinPokerSessionRequest {
-    /** `Participant` (the default) votes and counts toward the voted and waiting totals; `Observer` watches
-without voting. */
-    mode: PokerSessionMemberMode;
+    /** True (the default) to vote, counting toward the voted and waiting totals; false to take part without voting.
+Ignored when the caller has already joined. */
+    isVoting: boolean;
 }
 
 /** One RFC 6902 operation. `from` is for move and copy; `value` for add, replace and test. */
@@ -65779,7 +65717,7 @@ export interface PokerSessionListDto {
     visibility: Visibility;
     /** The employees who run the session. */
     facilitators: EmployeeNavigationDto[];
-    /** The members who joined as a Participant, or switched to one, including those who have since left. */
+    /** Everyone who has joined the session, voting or not, in the order they joined. */
     participants: EmployeeNavigationDto[];
     roundCount: number;
     /** Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a
@@ -65792,18 +65730,11 @@ export interface PokerSessionMemberDto {
     /** The member. Live presence carries the same employee id, which is how a connected person is matched to
 their membership. */
     employee: EmployeeNavigationDto;
-    /** Participant, who votes and counts toward the voted and waiting totals, or Observer, who does neither.
-After the member leaves, the mode they left in. */
-    mode: PokerSessionMemberMode;
+    /** Whether the member votes. A voting member counts toward a round's voted and waiting totals; one who is not
+voting is left out of them but still takes part. */
+    isVoting: boolean;
     /** When the member first joined. */
     joinedOn: Date;
-    /** When the member left, or null while they are in the session. */
-    leftOn?: Date | undefined;
-}
-
-export enum PokerSessionMemberMode {
-    Participant = "Participant",
-    Observer = "Observer",
 }
 
 export enum PokerSessionStatus {
@@ -67541,6 +67472,12 @@ export interface SetPokerSessionVisibilityRequest {
     /** `Public`: anyone with the poker View permission can see and join the session. `Private`: only its
 facilitators, invited employees and the members of invited teams. */
     visibility: Visibility;
+}
+
+/** Turns the caller's voting on or off in a poker session. */
+export interface SetPokerSessionVotingRequest {
+    /** True to vote, counting toward the voted and waiting totals; false to take part without voting. */
+    isVoting: boolean;
 }
 
 /** Retires a tag from new use, or puts it back. Products already carrying it keep it. */

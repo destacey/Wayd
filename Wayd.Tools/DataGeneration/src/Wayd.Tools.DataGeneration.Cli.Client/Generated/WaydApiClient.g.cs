@@ -63399,7 +63399,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of poker sessions.
         /// </summary>
         /// <remarks>
-        /// Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (members who joined as a Participant, including those who left), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.
+        /// Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (everyone who has joined, voting or not), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63421,7 +63421,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get poker session details using the Id or key.
         /// </summary>
         /// <remarks>
-        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `mode` Participant or Observer, `joinedOn`, and `leftOn` once they leave), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
+        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63432,7 +63432,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the members of a team invited to a poker session.
         /// </summary>
         /// <remarks>
-        /// Lists the active direct members of `teamId`, a team the session invites, by employee `id`, `key` and `name`. An invited team admits its current members, and the members of its current team of teams, while the session is Private. Returns 404 when the caller cannot see the session or the team is not invited. Both ids are UUIDs.
+        /// Lists the active direct members of `teamId`, a team the session invites, by employee `id`, `key` and `name`. An invited team admits its current members, and the members of its current team of teams, while the session is Private. Returns 404 when the caller cannot see the session, the session is Public (its invites admit no one), or the team is not invited. Both ids are UUIDs.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63553,7 +63553,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a vote for a round.
         /// </summary>
         /// <remarks>
-        /// Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. A caller who has not joined the session joins it as a Participant; an Observer cannot vote until they switch with PokerSessions_ChangeMode. Both ids are UUIDs.
+        /// Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. A caller who has not joined the session joins it, voting; a member who is not voting cannot vote until they turn voting on with PokerSessions_SetVoting. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63597,7 +63597,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set who is invited to a poker session.
         /// </summary>
         /// <remarks>
-        /// Replaces the invites with `employeeIds` and `teamIds` (UUIDs; empty lists remove every invite). Invites admit people only while the session is Private, and a team admits its current members and the members of its current team of teams. An invite grants access only: the person still needs the poker View permission, and chooses whether to join as a Participant or an Observer. Removing an invite disconnects anyone the session no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// Replaces the invites with `employeeIds` and `teamIds` (UUIDs; empty lists remove every invite). Invites admit people only while the session is Private, and a team admits its current members and the members of its current team of teams. An invite grants access only: the person still needs the poker View permission, and chooses whether to vote. Removing an invite disconnects anyone the session no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63608,7 +63608,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Join a poker session.
         /// </summary>
         /// <remarks>
-        /// Adds the caller to the session's members as `mode` `Participant` (the default), who votes and counts toward the voted and waiting totals, or `Observer`, who watches without voting. Joining again, including after leaving, takes the new mode; joining again as an Observer withdraws the caller's votes in rounds not yet revealed. Anyone the session admits can join: on a Public session anyone with the poker View permission, on a Private one its facilitators and invitees. Facilitators join like anyone else. The session must be Active, and the caller's account must be linked to an employee. Takes the session's UUID. Returns the caller's membership.
+        /// Adds the caller to the session's members, voting unless `isVoting` is false. A member who is not voting takes part in the discussion but is left out of the voted and waiting totals. Joining again changes nothing; use PokerSessions_SetVoting to change whether the caller votes. Anyone the session admits can join: on a Public session anyone with the poker View permission, on a Private one its facilitators and invitees. Facilitators join like anyone else. The session must be Active, and the caller's account must be linked to an employee. Takes the session's UUID. Returns the caller's membership.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63616,25 +63616,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Leave a poker session.
+        /// Turn the caller's voting on or off in a poker session.
         /// </summary>
         /// <remarks>
-        /// Marks the caller as having left (`leftOn`); they stay in the session's record of who took part. Their votes in rounds not yet revealed are withdrawn; revealed rounds keep them. Fails when the caller is not in the session. The session must be Active. Takes the session's UUID.
-        /// </remarks>
-        /// <returns>No Content</returns>
-        /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task LeaveAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
-
-        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Switch between Participant and Observer in a poker session.
-        /// </summary>
-        /// <remarks>
-        /// Sets the caller's `mode` to `Participant` or `Observer`. Switching to Observer withdraws the caller's votes in rounds not yet revealed, and leaves them out of the voted and waiting totals; revealed rounds keep their votes. Switching to Participant lets them vote at once. The caller must have joined the session, which must be Active. Takes the session's UUID. Returns the caller's membership.
+        /// Sets whether the caller votes (`isVoting`). Turning voting off withdraws the caller's votes in rounds not yet revealed and leaves them out of the voted and waiting totals; revealed rounds keep their votes. Turning it on lets them vote at once. The caller must have joined the session, which must be Active. Takes the session's UUID. Returns the caller's membership.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<PokerSessionMemberDto> ChangeModeAsync(System.Guid id, ChangePokerSessionModeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<PokerSessionMemberDto> SetVotingAsync(System.Guid id, SetPokerSessionVotingRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -63691,7 +63680,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of poker sessions.
         /// </summary>
         /// <remarks>
-        /// Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (members who joined as a Participant, including those who left), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.
+        /// Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (everyone who has joined, voting or not), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63878,7 +63867,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get poker session details using the Id or key.
         /// </summary>
         /// <remarks>
-        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `mode` Participant or Observer, `joinedOn`, and `leftOn` once they leave), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
+        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63969,7 +63958,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the members of a team invited to a poker session.
         /// </summary>
         /// <remarks>
-        /// Lists the active direct members of `teamId`, a team the session invites, by employee `id`, `key` and `name`. An invited team admits its current members, and the members of its current team of teams, while the session is Private. Returns 404 when the caller cannot see the session or the team is not invited. Both ids are UUIDs.
+        /// Lists the active direct members of `teamId`, a team the session invites, by employee `id`, `key` and `name`. An invited team admits its current members, and the members of its current team of teams, while the session is Private. Returns 404 when the caller cannot see the session, the session is Public (its invites admit no one), or the team is not invited. Both ids are UUIDs.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64997,7 +64986,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a vote for a round.
         /// </summary>
         /// <remarks>
-        /// Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. A caller who has not joined the session joins it as a Participant; an Observer cannot vote until they switch with PokerSessions_ChangeMode. Both ids are UUIDs.
+        /// Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. A caller who has not joined the session joins it, voting; a member who is not voting cannot vote until they turn voting on with PokerSessions_SetVoting. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -65372,7 +65361,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set who is invited to a poker session.
         /// </summary>
         /// <remarks>
-        /// Replaces the invites with `employeeIds` and `teamIds` (UUIDs; empty lists remove every invite). Invites admit people only while the session is Private, and a team admits its current members and the members of its current team of teams. An invite grants access only: the person still needs the poker View permission, and chooses whether to join as a Participant or an Observer. Removing an invite disconnects anyone the session no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// Replaces the invites with `employeeIds` and `teamIds` (UUIDs; empty lists remove every invite). Invites admit people only while the session is Private, and a team admits its current members and the members of its current team of teams. An invite grants access only: the person still needs the poker View permission, and chooses whether to vote. Removing an invite disconnects anyone the session no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -65465,7 +65454,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Join a poker session.
         /// </summary>
         /// <remarks>
-        /// Adds the caller to the session's members as `mode` `Participant` (the default), who votes and counts toward the voted and waiting totals, or `Observer`, who watches without voting. Joining again, including after leaving, takes the new mode; joining again as an Observer withdraws the caller's votes in rounds not yet revealed. Anyone the session admits can join: on a Public session anyone with the poker View permission, on a Private one its facilitators and invitees. Facilitators join like anyone else. The session must be Active, and the caller's account must be linked to an employee. Takes the session's UUID. Returns the caller's membership.
+        /// Adds the caller to the session's members, voting unless `isVoting` is false. A member who is not voting takes part in the discussion but is left out of the voted and waiting totals. Joining again changes nothing; use PokerSessions_SetVoting to change whether the caller votes. Anyone the session admits can join: on a Public session anyone with the poker View permission, on a Private one its facilitators and invitees. Facilitators join like anyone else. The session must be Active, and the caller's account must be linked to an employee. Takes the session's UUID. Returns the caller's membership.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -65561,101 +65550,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Leave a poker session.
+        /// Turn the caller's voting on or off in a poker session.
         /// </summary>
         /// <remarks>
-        /// Marks the caller as having left (`leftOn`); they stay in the session's record of who took part. Their votes in rounds not yet revealed are withdrawn; revealed rounds keep them. Fails when the caller is not in the session. The session must be Active. Takes the session's UUID.
-        /// </remarks>
-        /// <returns>No Content</returns>
-        /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task LeaveAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
-        {
-            if (id == null)
-                throw new System.ArgumentNullException("id");
-
-            var client_ = _httpClient;
-            var disposeClient_ = false;
-            try
-            {
-                using (var request_ = new System.Net.Http.HttpRequestMessage())
-                {
-                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
-                    request_.Method = new System.Net.Http.HttpMethod("POST");
-
-                    var urlBuilder_ = new System.Text.StringBuilder();
-                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/planning/poker-sessions/{id}/leave"
-                    urlBuilder_.Append("api/planning/poker-sessions/");
-                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/leave");
-
-                    PrepareRequest(client_, request_, urlBuilder_);
-
-                    var url_ = urlBuilder_.ToString();
-                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
-
-                    PrepareRequest(client_, request_, url_);
-
-                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-                    var disposeResponse_ = true;
-                    try
-                    {
-                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
-                        foreach (var item_ in response_.Headers)
-                            headers_[item_.Key] = item_.Value;
-                        if (response_.Content != null && response_.Content.Headers != null)
-                        {
-                            foreach (var item_ in response_.Content.Headers)
-                                headers_[item_.Key] = item_.Value;
-                        }
-
-                        ProcessResponse(client_, response_);
-
-                        var status_ = (int)response_.StatusCode;
-                        if (status_ == 204)
-                        {
-                            return;
-                        }
-                        else
-                        if (status_ == 400)
-                        {
-                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
-                            if (objectResponse_.Object == null)
-                            {
-                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
-                            }
-                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
-                        }
-                        else
-                        {
-                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
-                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
-                        }
-                    }
-                    finally
-                    {
-                        if (disposeResponse_)
-                            response_.Dispose();
-                    }
-                }
-            }
-            finally
-            {
-                if (disposeClient_)
-                    client_.Dispose();
-            }
-        }
-
-        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Switch between Participant and Observer in a poker session.
-        /// </summary>
-        /// <remarks>
-        /// Sets the caller's `mode` to `Participant` or `Observer`. Switching to Observer withdraws the caller's votes in rounds not yet revealed, and leaves them out of the voted and waiting totals; revealed rounds keep their votes. Switching to Participant lets them vote at once. The caller must have joined the session, which must be Active. Takes the session's UUID. Returns the caller's membership.
+        /// Sets whether the caller votes (`isVoting`). Turning voting off withdraws the caller's votes in rounds not yet revealed and leaves them out of the voted and waiting totals; revealed rounds keep their votes. Turning it on lets them vote at once. The caller must have joined the session, which must be Active. Takes the session's UUID. Returns the caller's membership.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<PokerSessionMemberDto> ChangeModeAsync(System.Guid id, ChangePokerSessionModeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<PokerSessionMemberDto> SetVotingAsync(System.Guid id, SetPokerSessionVotingRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -65678,10 +65580,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/planning/poker-sessions/{id}/mode"
+                    // Operation Path: "api/planning/poker-sessions/{id}/voting"
                     urlBuilder_.Append("api/planning/poker-sessions/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/mode");
+                    urlBuilder_.Append("/voting");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -112691,20 +112593,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class ChangePokerSessionModeRequest
-    {
-
-        /// <summary>
-        /// `Participant` votes and counts toward the voted and waiting totals; `Observer` watches without voting.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("mode")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PokerSessionMemberMode>))]
-        public PokerSessionMemberMode Mode { get; set; } = default!;
-
-    }
-
     /// <summary>
     /// Changes the terms a product's dependency holds on — whether the product stops working without the one it
     /// <br/>depends on, how it reaches it, or both.
@@ -123121,18 +123009,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Joins the caller to a poker session.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class JoinPokerSessionRequest
     {
 
         /// <summary>
-        /// `Participant` (the default) votes and counts toward the voted and waiting totals; `Observer` watches
-        /// <br/>without voting.
+        /// True (the default) to vote, counting toward the voted and waiting totals; false to take part without voting.
+        /// <br/>Ignored when the caller has already joined.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("mode")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PokerSessionMemberMode>))]
-        public PokerSessionMemberMode Mode { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("isVoting")]
+        public bool IsVoting { get; set; } = default!;
 
     }
 
@@ -126771,7 +126660,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Collections.Generic.ICollection<EmployeeNavigationDto> Facilitators { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
         /// <summary>
-        /// The members who joined as a Participant, or switched to one, including those who have since left.
+        /// Everyone who has joined the session, voting or not, in the order they joined.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("participants")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -126804,13 +126693,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public EmployeeNavigationDto Employee { get; set; } = default!;
 
         /// <summary>
-        /// Participant, who votes and counts toward the voted and waiting totals, or Observer, who does neither.
-        /// <br/>After the member leaves, the mode they left in.
+        /// Whether the member votes. A voting member counts toward a round's voted and waiting totals; one who is not
+        /// <br/>voting is left out of them but still takes part.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("mode")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PokerSessionMemberMode>))]
-        public PokerSessionMemberMode Mode { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("isVoting")]
+        public bool IsVoting { get; set; } = default!;
 
         /// <summary>
         /// When the member first joined.
@@ -126818,24 +126705,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("joinedOn")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset JoinedOn { get; set; } = default!;
-
-        /// <summary>
-        /// When the member left, or null while they are in the session.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("leftOn")]
-        public System.DateTimeOffset? LeftOn { get; set; } = default!;
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum PokerSessionMemberMode
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Participant")]
-        Participant = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Observer")]
-        Observer = 1,
 
     }
 
@@ -131977,6 +131846,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Visibility>))]
         public Visibility Visibility { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Turns the caller's voting on or off in a poker session.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetPokerSessionVotingRequest
+    {
+
+        /// <summary>
+        /// True to vote, counting toward the voted and waiting totals; false to take part without voting.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isVoting")]
+        public bool IsVoting { get; set; } = default!;
 
     }
 

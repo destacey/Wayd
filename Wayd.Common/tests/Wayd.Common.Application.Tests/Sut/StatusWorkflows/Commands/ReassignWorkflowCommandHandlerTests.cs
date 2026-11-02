@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Wayd.Tests.Shared.Data;
 using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.StatusWorkflows;
@@ -26,7 +27,7 @@ public sealed class ReassignWorkflowCommandHandlerTests : StatusWorkflowHandlerT
         // Arrange
         var current = SeedWorkflow("Current Gadget", publish: true, owner: Gadget);
         var target = SeedWorkflow("Target Gadget", publish: true, owner: Gadget);
-        var assignment = WorkflowAssignment.Create(Gadget.Key, null, current, EventActor.System, Now).Value;
+        var assignment = TestWorkflowAssignments.ForWorkflow(Gadget.Key, null, current, EventActor.System, Now).Value;
         assignment.ClearDomainEvents();
         DbContext.AddWorkflowAssignment(assignment);
 
@@ -37,7 +38,7 @@ public sealed class ReassignWorkflowCommandHandlerTests : StatusWorkflowHandlerT
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("Workflow assignment not found.");
-        assignment.WorkflowId.Should().Be(current.Id);
+        assignment.Scheme!.DefaultWorkflowId.Should().Be(current.Id);
         DbContext.SaveChangesCallCount.Should().Be(0);
         _migrator.VerifyNoOtherCalls();
     }

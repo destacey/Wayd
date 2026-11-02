@@ -405,7 +405,7 @@ public sealed class WorkflowTransitionIntegrationTests(SqlServerDbContextFixture
             workflow = await SeedRestrictedWorkflow(setup, TransitionConditionKind.RequiresReason);
             workflow.Publish(EventActor.System, Now).IsSuccess.Should().BeTrue();
 
-            assignment = WorkflowAssignment.Create(ProductWorkflowOwners.Product.Key, scopeId, workflow, EventActor.System, Now).Value;
+            assignment = (await TestWorkflowAssignments.ForWorkflow(setup, ProductWorkflowOwners.Product.Key, scopeId, workflow, EventActor.System, Now)).Value;
             setup.WorkflowAssignments.Add(assignment);
             await setup.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
@@ -447,7 +447,7 @@ public sealed class WorkflowTransitionIntegrationTests(SqlServerDbContextFixture
             workflow = await SeedRestrictedWorkflow(setup);
             workflow.Publish(EventActor.System, Now).IsSuccess.Should().BeTrue();
 
-            assignment = WorkflowAssignment.Create(ProductWorkflowOwners.Product.Key, scopeId, workflow, EventActor.System, Now).Value;
+            assignment = (await TestWorkflowAssignments.ForWorkflow(setup, ProductWorkflowOwners.Product.Key, scopeId, workflow, EventActor.System, Now)).Value;
             setup.WorkflowAssignments.Add(assignment);
             await setup.SaveChangesAsync(TestContext.Current.CancellationToken);
         }

@@ -79,10 +79,12 @@ public partial class EventCoverageTests
         typeof(ExternalIdentityMapping),
         typeof(OidcProvider),
         typeof(PersonalAccessToken),
+        typeof(RecordType),
         typeof(ScoringModel),
         typeof(StatusWorkflow),
         typeof(SystemSettingsSection),
         typeof(WorkflowAssignment),
+        typeof(StatusWorkflowScheme),
 
         // Demand Management
         typeof(IntakeChannel),
@@ -281,6 +283,7 @@ public partial class EventCoverageTests
         [typeof(ReleaseVersion)] = typeof(Release),
         [typeof(TeamMember)] = typeof(BaseTeam),
         [typeof(TeamOperatingModel)] = typeof(Team),
+        [typeof(StatusWorkflowSchemeEntry)] = typeof(StatusWorkflowScheme),
         [typeof(WorkflowStatus)] = typeof(StatusWorkflow),
         [typeof(WorkItemDependency)] = typeof(WorkItem),
         [typeof(WorkItemHierarchy)] = typeof(WorkItem),
@@ -292,6 +295,8 @@ public partial class EventCoverageTests
     /// </summary>
     private static readonly Dictionary<string, string> SetBasedWriteMigrations = new()
     {
+        ["20261101202418_Assign-WorkflowSchemes-To-Scopes.cs"] =
+            "Points each assignment at an implicit default-only scheme for the workflow it already had; no scope's workflow changed: #1232.",
         ["20260926204406_Store-ReleasePackage-ReleasedAt-As-Instant.cs"] =
             "Retypes ReleasedDate to the ReleasedAt instant, carrying each value across; no fact about a package changed: #929.",
         ["20260926212850_Store-Version-Cut-And-Released-As-Instants.cs"] =

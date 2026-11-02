@@ -38,8 +38,7 @@ public sealed class GetStatusWorkflowsQueryHandler(
 
         // Assigned workflows are read in one go rather than per row: the set is tiny (one assignment
         // per owner type today) and a correlated subquery per workflow would be pure ceremony.
-        var assignedIds = await _dbContext.WorkflowAssignments
-            .Select(a => a.WorkflowId)
+        var assignedIds = await _dbContext.AssignedWorkflowIds()
             .ToListAsync(cancellationToken);
 
         var assigned = assignedIds.ToHashSet();

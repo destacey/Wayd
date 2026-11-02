@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NodaTime;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.ProductManagement.Incidents;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.ProductManagement.Domain.Tests.Data;
@@ -91,5 +92,41 @@ public sealed class IncidentTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         incident.TimelineNotes.Should().ContainSingle().Which.Body.Should().Be("Checking card vault deploy.");
+    }
+
+    [Fact]
+    public void RecordLinkTimelineEntry_ShouldRaiseIncidentTimelineLinkRecordedEvent()
+    {
+        // Arrange
+        var commanderId = Guid.CreateVersion7();
+        var incident = Incident.Create(
+            "Latency spike",
+            null,
+            commanderId,
+            Guid.CreateVersion7(),
+            Timestamp,
+            null,
+            null,
+            [],
+            StatusRefFactory.Open(),
+            EventActor.System,
+            Timestamp).Value;
+        var actor = EventActor.User(Guid.CreateVersion7().ToString(), commanderId);
+
+        // Act
+        var result = incident.RecordLinkTimelineEntry(
+            IncidentTimelineLinkKind.WorkItem,
+            IncidentTimelineLinkAction.Added,
+            "INC-42",
+            fromLabel: null,
+            toLabel: null,
+            actor,
+            Timestamp.Plus(Duration.FromMinutes(1)),
+            Timestamp.Plus(Duration.FromMinutes(1)));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<IncidentTimelineLinkRecordedEvent>();
     }
 }

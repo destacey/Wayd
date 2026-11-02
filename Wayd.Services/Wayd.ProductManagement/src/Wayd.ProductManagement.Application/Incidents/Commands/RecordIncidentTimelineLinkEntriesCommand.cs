@@ -1,5 +1,6 @@
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.Common.Domain.Events;
 using Wayd.ProductManagement.Domain.Models;
 
 namespace Wayd.ProductManagement.Application.Incidents.Commands;
@@ -8,7 +9,9 @@ namespace Wayd.ProductManagement.Application.Incidents.Commands;
 public sealed record IncidentTimelineLinkChangeDto(
     IncidentTimelineLinkKind Kind,
     IncidentTimelineLinkAction Action,
-    string Label);
+    string Label,
+    string? FromLabel = null,
+    string? ToLabel = null);
 
 /// <summary>Persists link timeline entries after work item or generic link changes.</summary>
 public sealed record RecordIncidentTimelineLinkEntriesCommand(
@@ -31,12 +34,14 @@ public sealed class RecordIncidentTimelineLinkEntriesCommandValidator
 public sealed class RecordIncidentTimelineLinkEntriesCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
     ILogger<RecordIncidentTimelineLinkEntriesCommandHandler> logger)
     : ICommandHandler<RecordIncidentTimelineLinkEntriesCommand>
 {
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<RecordIncidentTimelineLinkEntriesCommandHandler> _logger = logger;
 
@@ -65,14 +70,19 @@ public sealed class RecordIncidentTimelineLinkEntriesCommandHandler(
         }
 
         var recordedAt = _dateTimeProvider.Now;
+        var timestamp = _dateTimeProvider.Now;
+        var actor = EventActor.User(_currentUser.GetUserId(), employeeId.Value);
         foreach (var change in request.Changes)
         {
             var recorded = incident.RecordLinkTimelineEntry(
                 change.Kind,
                 change.Action,
                 change.Label,
-                employeeId.Value,
-                recordedAt);
+                change.FromLabel,
+                change.ToLabel,
+                actor,
+                recordedAt,
+                timestamp);
             if (recorded.IsFailure)
             {
                 return Result.Failure(recorded.Error);

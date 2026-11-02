@@ -27,7 +27,7 @@ import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import IncidentLinks from '@/src/app/product-management/incidents/_components/incident-links'
 import IncidentDiscussion from '@/src/app/product-management/incidents/_components/incident-discussion'
-import IncidentTimeline from '@/src/app/product-management/incidents/_components/incident-timeline'
+import IncidentDetailHeader from '@/src/app/product-management/incidents/_components/incident-detail-header'
 import CancelIncidentForm from '@/src/app/product-management/incidents/_components/cancel-incident-form'
 import { incidentWorkflowActionAvailability } from '@/src/app/product-management/incidents/_components/incident-workflow-actions'
 import styles from '@/src/app/product-management/incidents/_components/incidents.module.css'
@@ -309,28 +309,27 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       ) : (
         <>
           <article className={styles.detail}>
-            <IncidentTimeline
-              incident={incident}
-              idOrKey={key}
-              productMeta={productMeta}
-              viewerZone={viewerZone}
-              canAddNotes={canUpdate}
-              headerActions={
-                <>
-                  <span className={styles.timelineHeaderFollow}>
-                    <FollowButton
-                      ownerType={FollowOwnerTypes.Incident}
-                      ownerId={incident.id}
-                    />
-                  </span>
-                  {canUpdate && actionsMenuItems.length > 0 ? (
-                    <PageActions actionItems={actionsMenuItems} />
-                  ) : canUpdate ? (
-                    <Button onClick={startEditing}>Edit</Button>
-                  ) : null}
-                </>
-              }
-            />
+            <div className={styles.detailMain}>
+              <IncidentDetailHeader
+                incident={incident}
+                productMeta={productMeta}
+                headerActions={
+                  <>
+                    <span className={styles.detailHeaderFollow}>
+                      <FollowButton
+                        ownerType={FollowOwnerTypes.Incident}
+                        ownerId={incident.id}
+                      />
+                    </span>
+                    {canUpdate && actionsMenuItems.length > 0 ? (
+                      <PageActions actionItems={actionsMenuItems} />
+                    ) : canUpdate ? (
+                      <Button onClick={startEditing}>Edit</Button>
+                    ) : null}
+                  </>
+                }
+              />
+            </div>
             <aside className={styles.detailAside}>
               <h2 className={styles.asideHeading}>Status</h2>
               <ul className={styles.asideList}>

@@ -3,7 +3,6 @@
 import { useDocumentTitle } from '@/src/hooks'
 import { usePokerSessionConnection } from '@/src/hooks/use-poker-session-connection'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
-import useAuth from '@/src/components/contexts/auth'
 import useTheme from '@/src/components/contexts/theme'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
@@ -64,10 +63,9 @@ const PokerSessionDetailPage: FC = () => {
   const screens = useBreakpoint()
   const isMobile = !screens.md
   const messageApi = useMessage()
-  const { hasPermissionClaim } = useAuth()
-  const canManage = hasPermissionClaim('Permissions.PokerSessions.Update')
-
   const { data: session, isLoading } = useGetPokerSessionQuery(key)
+  // Facilitators and poker administrators run the session; the server decides who they are.
+  const canManage = session?.canManage ?? false
   const { data: profile } = useGetProfileQuery()
 
   const [connectedParticipants, setConnectedParticipants] = useState<

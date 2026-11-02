@@ -41,7 +41,8 @@ const DeletePokerSessionForm = ({
     },
     onComplete: onFormComplete,
     onCancel: onFormCancel,
-    permission: 'Permissions.PokerSessions.Delete',
+    // The session decides who may delete it; the grid offers Delete only to those it allows.
+    permission: 'Permissions.PokerSessions.View',
   })
 
   return (

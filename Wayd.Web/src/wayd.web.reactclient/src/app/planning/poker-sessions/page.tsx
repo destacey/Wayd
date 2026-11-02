@@ -47,8 +47,6 @@ const PokerSessionsPage = () => {
 
   const { hasPermissionClaim } = useAuth()
   const canCreate = hasPermissionClaim('Permissions.PokerSessions.Create')
-  const canUpdate = hasPermissionClaim('Permissions.PokerSessions.Update')
-  const canDelete = hasPermissionClaim('Permissions.PokerSessions.Delete')
 
   const controlItems: ItemType[] = [
     {
@@ -122,8 +120,6 @@ const PokerSessionsPage = () => {
         sessions={sessionsData ?? []}
         isLoading={isLoading}
         refetch={refresh}
-        canUpdate={canUpdate}
-        canDelete={canDelete}
         gridControlMenuItems={controlItems}
         onEditClicked={handleEdit}
         onCompleteClicked={handleComplete}

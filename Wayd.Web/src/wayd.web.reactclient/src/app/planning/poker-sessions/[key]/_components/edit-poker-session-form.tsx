@@ -150,7 +150,8 @@ const EditPokerSessionForm = ({
       onCancel: onFormCancel,
       errorMessage:
         'An error occurred while updating the poker session. Please try again.',
-      permission: 'Permissions.PokerSessions.Update',
+      // The session decides who may edit it; the page offers Edit only to those it allows.
+      permission: 'Permissions.PokerSessions.View',
     })
 
   useEffect(() => {

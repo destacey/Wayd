@@ -33,14 +33,20 @@ export function usePokerSessionConnection(
   sessionId: string | undefined,
   sessionKey: number | undefined,
   onPresenceChange?: (participants: PresenceParticipant[]) => void,
+  onAccessRevoked?: () => void,
 ) {
   const connectionRef = useRef<HubConnection | null>(null)
   const presenceMapRef = useRef(new Map<string, PresenceParticipant>())
   const onPresenceChangeRef = useRef(onPresenceChange)
+  const onAccessRevokedRef = useRef(onAccessRevoked)
 
   useEffect(() => {
     onPresenceChangeRef.current = onPresenceChange
   }, [onPresenceChange])
+
+  useEffect(() => {
+    onAccessRevokedRef.current = onAccessRevoked
+  }, [onAccessRevoked])
 
   const emitPresence = () => {
     onPresenceChangeRef.current?.(
@@ -109,13 +115,14 @@ export function usePokerSessionConnection(
         }
 
         // The server took this connection out of the session because the user lost access. Nothing
-        // more will arrive, so stop it, and refetch so the page shows the refusal.
+        // more will arrive, so stop it. A refetch would fail but leave the cached session showing,
+        // so the page decides what to show instead.
         connection.on('AccessRevoked', () => {
           if (connectionRef.current === connection) connectionRef.current = null
           presenceMapRef.current.clear()
           emitPresence()
           connection.stop().catch(() => {})
-          invalidateSession()
+          onAccessRevokedRef.current?.()
         })
 
         // Presence events

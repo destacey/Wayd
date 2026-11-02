@@ -37,11 +37,17 @@ export function useStoryMapConnection(
   storyMapId: string | undefined,
   onPresenceChange?: (participants: PresenceParticipant[]) => void,
   onMapDeleted?: () => void,
+  onAccessRevoked?: () => void,
 ) {
   const connectionRef = useRef<HubConnection | null>(null)
   const presenceMapRef = useRef(new Map<string, PresenceParticipant>())
   const onPresenceChangeRef = useRef(onPresenceChange)
   const onMapDeletedRef = useRef(onMapDeleted)
+  const onAccessRevokedRef = useRef(onAccessRevoked)
+
+  useEffect(() => {
+    onAccessRevokedRef.current = onAccessRevoked
+  }, [onAccessRevoked])
 
   useEffect(() => {
     onPresenceChangeRef.current = onPresenceChange
@@ -138,13 +144,14 @@ export function useStoryMapConnection(
         })
 
         // The server took this connection out of the map because the user lost access. Nothing more
-        // will arrive, so stop it, and refetch so the page shows the refusal.
+        // will arrive, so stop it. A refetch would fail but leave the cached map showing, so the page
+        // decides what to show instead.
         connection.on('AccessRevoked', () => {
           if (connectionRef.current === connection) connectionRef.current = null
           presenceMapRef.current.clear()
           emitPresence()
           connection.stop().catch(() => {})
-          invalidateMap()
+          onAccessRevokedRef.current?.()
         })
 
         // Presence events

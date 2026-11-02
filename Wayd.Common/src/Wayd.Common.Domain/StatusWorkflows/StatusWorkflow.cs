@@ -682,6 +682,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return guard;
         }
 
+        return SetTransitionModeCore(mode, actor, timestamp);
+    }
+
+    private Result SetTransitionModeCore(TransitionMode mode, EventActor actor, Instant timestamp)
+    {
         if (!Enum.IsDefined(mode))
         {
             return Result.Failure("Unknown transition mode.");
@@ -717,6 +722,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return guard;
         }
 
+        return SetTransitionsCore(transitions, actor, timestamp);
+    }
+
+    private Result SetTransitionsCore(IReadOnlyCollection<WorkflowTransitionDefinition> transitions, EventActor actor, Instant timestamp)
+    {
         foreach (var transition in transitions)
         {
             Guard.Against.Null(transition, nameof(transitions));
@@ -1181,6 +1191,36 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         RaiseStatusAdded(status, actor, timestamp);
 
         return status;
+    }
+
+    /// <summary>
+    /// Sets restricted transitions on a draft system workflow before publication. For module seeders only.
+    /// </summary>
+    public Result ConfigureSystemLifecycle(
+        TransitionMode mode,
+        IReadOnlyCollection<WorkflowTransitionDefinition> transitions,
+        EventActor actor,
+        Instant timestamp)
+    {
+        Guard.Against.Null(transitions, nameof(transitions));
+
+        if (!IsSystem)
+        {
+            return Result.Failure("Only a system workflow can be configured before publication.");
+        }
+
+        if (State != StatusWorkflowState.Draft)
+        {
+            return Result.Failure(NotDraftError);
+        }
+
+        var modeResult = SetTransitionModeCore(mode, actor, timestamp);
+        if (modeResult.IsFailure)
+        {
+            return modeResult;
+        }
+
+        return SetTransitionsCore(transitions, actor, timestamp);
     }
 
     private void RaiseStatusAdded(WorkflowStatus status, EventActor actor, Instant timestamp)

@@ -63,6 +63,9 @@ export function usePokerSessionConnection(
     let cancelled = false
 
     const connect = async () => {
+      // Outside the try so a failure after start() can stop it: cleanup only
+      // knows connectionRef, which is set once the join succeeds.
+      let built: HubConnection | null = null
       try {
         const connection = new HubConnectionBuilder()
           .withUrl(`${API_BASE_URL}/hubs/planning-poker`, {
@@ -85,6 +88,7 @@ export function usePokerSessionConnection(
           .withAutomaticReconnect()
           .configureLogging(LogLevel.Warning)
           .build()
+        built = connection
 
         // Game events trigger cache invalidation so the UI refreshes
         const events = [
@@ -103,6 +107,16 @@ export function usePokerSessionConnection(
         for (const event of events) {
           connection.on(event, invalidateSession)
         }
+
+        // The server took this connection out of the session because the user lost access. Nothing
+        // more will arrive, so stop it, and refetch so the page shows the refusal.
+        connection.on('AccessRevoked', () => {
+          if (connectionRef.current === connection) connectionRef.current = null
+          presenceMapRef.current.clear()
+          emitPresence()
+          connection.stop().catch(() => {})
+          invalidateSession()
+        })
 
         // Presence events
         connection.on(
@@ -150,6 +164,8 @@ export function usePokerSessionConnection(
         await connection.invoke('JoinSession', sessionId)
         connectionRef.current = connection
       } catch (error) {
+        // A refused JoinSession leaves a started, auto-reconnecting connection.
+        await built?.stop().catch(() => {})
         // SignalR is optional — polling is the fallback
         console.warn(
           'Planning Poker SignalR connection failed, falling back to polling:',

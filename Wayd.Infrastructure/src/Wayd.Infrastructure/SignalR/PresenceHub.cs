@@ -144,10 +144,71 @@ public abstract class PresenceHub : Hub
 
     private async Task RemovePresence(string connectionId, string presenceKey)
     {
+        var removedUserId = ReleasePresence(connectionId, presenceKey);
+
+        if (removedUserId is not null)
+        {
+            await Clients.Group(Unqualify(presenceKey))
+                .SendAsync("ParticipantLeft", new { Id = removedUserId });
+        }
+    }
+
+    /// <summary>
+    /// The connections <paramref name="userId"/> has in <typeparamref name="THub"/>'s groups on this instance,
+    /// with the group each is in.
+    /// </summary>
+    internal static IReadOnlyList<(string ConnectionId, string GroupKey)> ConnectionsOf<THub>(string userId)
+        where THub : PresenceHub
+    {
+        var prefix = $"{typeof(THub).Name}:";
+        var result = new List<(string, string)>();
+
+        foreach (var (presenceKey, participants) in _groups)
+        {
+            if (!presenceKey.StartsWith(prefix, StringComparison.Ordinal)
+                || !participants.TryGetValue(userId, out var entry))
+                continue;
+
+            lock (entry.ConnectionIds)
+            {
+                result.AddRange(entry.ConnectionIds.Select(c => (c, Unqualify(presenceKey))));
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Removes a connection from a group from outside the hub, for a caller that is no longer allowed in it:
+    /// its group membership and presence go, the group is told it left, and the connection is sent
+    /// <c>AccessRevoked</c> so the client can stop it. The server cannot close a connection from outside the
+    /// hub, but out of the group it receives nothing more.
+    /// </summary>
+    internal static async Task Evict<THub>(IHubContext<THub> hubContext, string connectionId, string groupKey)
+        where THub : PresenceHub
+    {
+        await hubContext.Groups.RemoveFromGroupAsync(connectionId, groupKey);
+
+        var removedUserId = ReleasePresence(connectionId, $"{typeof(THub).Name}:{groupKey}");
+        if (removedUserId is not null)
+        {
+            await hubContext.Clients.Group(groupKey)
+                .SendAsync("ParticipantLeft", new { Id = removedUserId });
+        }
+
+        await hubContext.Clients.Client(connectionId).SendAsync("AccessRevoked", groupKey);
+    }
+
+    /// <summary>
+    /// Drops a connection from a group's presence, returning the user who left it when that was their last
+    /// connection there.
+    /// </summary>
+    private static string? ReleasePresence(string connectionId, string presenceKey)
+    {
         _connections.TryRemove(connectionId, out _);
 
         if (!_groups.TryGetValue(presenceKey, out var participants))
-            return;
+            return null;
 
         string? removedUserId = null;
 
@@ -172,11 +233,7 @@ public abstract class PresenceHub : Hub
             break;
         }
 
-        if (removedUserId is not null)
-        {
-            await Clients.Group(Unqualify(presenceKey))
-                .SendAsync("ParticipantLeft", new { Id = removedUserId });
-        }
+        return removedUserId;
     }
 
     private static string? FirstNonBlank(params string?[] values)

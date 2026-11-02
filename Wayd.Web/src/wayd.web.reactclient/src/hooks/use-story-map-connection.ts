@@ -70,6 +70,9 @@ export function useStoryMapConnection(
     let cancelled = false
 
     const connect = async () => {
+      // Outside the try so a failure after start() can stop it: cleanup only
+      // knows connectionRef, which is set once the join succeeds.
+      let built: HubConnection | null = null
       try {
         const connection = new HubConnectionBuilder()
           .withUrl(`${API_BASE_URL}/hubs/story-maps`, {
@@ -88,6 +91,7 @@ export function useStoryMapConnection(
           .withAutomaticReconnect()
           .configureLogging(LogLevel.Warning)
           .build()
+        built = connection
 
         // Any granular change to the map refreshes the local copy.
         const changeEvents = [
@@ -131,6 +135,16 @@ export function useStoryMapConnection(
         // viewer on a broken board. The page decides where to send them.
         connection.on('MapDeleted', () => {
           onMapDeletedRef.current?.()
+        })
+
+        // The server took this connection out of the map because the user lost access. Nothing more
+        // will arrive, so stop it, and refetch so the page shows the refusal.
+        connection.on('AccessRevoked', () => {
+          if (connectionRef.current === connection) connectionRef.current = null
+          presenceMapRef.current.clear()
+          emitPresence()
+          connection.stop().catch(() => {})
+          invalidateMap()
         })
 
         // Presence events
@@ -196,6 +210,8 @@ export function useStoryMapConnection(
         await connection.invoke('JoinMap', storyMapId)
         connectionRef.current = connection
       } catch (error) {
+        // A refused JoinMap leaves a started, auto-reconnecting connection.
+        await built?.stop().catch(() => {})
         // SignalR is optional — the page still works without live updates.
         console.warn(
           'Story Map SignalR connection failed; continuing without live updates:',

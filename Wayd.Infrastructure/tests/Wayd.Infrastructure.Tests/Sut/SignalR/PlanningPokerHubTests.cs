@@ -1,5 +1,9 @@
-﻿using System.Security.Claims;
+﻿using System.Reflection;
+using System.Security.Claims;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.FeatureManagement;
+using Wayd.Common.Domain.FeatureManagement;
+using Wayd.Infrastructure.Auth.Permissions;
 using Wayd.Infrastructure.SignalR;
 
 namespace Wayd.Infrastructure.Tests.Sut.SignalR;
@@ -9,6 +13,9 @@ namespace Wayd.Infrastructure.Tests.Sut.SignalR;
 /// The display name is composed from the first-name and surname claims, which both Entra and the
 /// Wayd JWT emit, with email as a final fallback; the employee id rides along so clients can open
 /// the person's record. Anonymous/userless connections must not be registered as participants.
+///
+/// Also covers the guards on group membership: broadcasts carry session content, so a connection must
+/// not join a session's group without the View permission or while the feature is off.
 /// </summary>
 public class PlanningPokerHubTests
 {
@@ -21,7 +28,8 @@ public class PlanningPokerHubTests
 
     private static (PlanningPokerHub Hub, Mock<ISingleClientProxy> CallerProxy, Mock<IGroupManager> Groups) BuildHub(
         ClaimsPrincipal user,
-        string? connectionId = null)
+        string? connectionId = null,
+        bool featureEnabled = true)
     {
         connectionId ??= Guid.NewGuid().ToString();
 
@@ -51,7 +59,12 @@ public class PlanningPokerHubTests
         mockClients.Setup(c => c.Caller).Returns(callerProxy.Object);
         mockClients.Setup(c => c.OthersInGroup(It.IsAny<string>())).Returns(othersProxy.Object);
 
-        var hub = new PlanningPokerHub
+        var featureManager = new Mock<IFeatureManager>();
+        featureManager
+            .Setup(f => f.IsEnabledAsync(FeatureFlags.Names.PlanningPoker))
+            .ReturnsAsync(featureEnabled);
+
+        var hub = new PlanningPokerHub(featureManager.Object)
         {
             Context = mockContext.Object,
             Groups = mockGroups.Object,
@@ -121,6 +134,43 @@ public class PlanningPokerHubTests
             if (nameProp?.GetValue(p) as string == expectedName) return true;
         }
         return false;
+    }
+
+    [Fact]
+    public void JoinSession_RequiresTheViewPokerSessionsPermission()
+    {
+        // Arrange — SignalR enforces the policy before the method runs, so the attribute is the check.
+        var method = typeof(PlanningPokerHub).GetMethod(nameof(PlanningPokerHub.JoinSession))!;
+
+        // Act
+        var attribute = method.GetCustomAttribute<MustHavePermissionAttribute>();
+
+        // Assert
+        attribute.Should().NotBeNull();
+        attribute!.Policy.Should().Be("Permissions.PokerSessions.View");
+        PlanningPokerHub.JoinPermission.Should().Be(attribute.Policy, "the revoker rechecks the permission the join demands");
+    }
+
+    [Fact]
+    public async Task JoinSession_WithFeatureDisabled_DoesNotJoinTheGroup()
+    {
+        // Arrange — the hub is mapped regardless of the flag, and [FeatureGate] never runs for a hub method.
+        var user = Principal(
+            (ClaimTypes.NameIdentifier, TestUserId),
+            (ClaimTypes.Name, WaydFirstName),
+            (ClaimTypes.Surname, WaydSurname));
+        var (hub, callerProxy, groups) = BuildHub(user, featureEnabled: false);
+
+        // Act
+        await hub.JoinSession(Guid.NewGuid());
+
+        // Assert
+        groups.Verify(
+            g => g.AddToGroupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        callerProxy.Verify(
+            p => p.SendCoreAsync("ParticipantList", It.IsAny<object?[]>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]

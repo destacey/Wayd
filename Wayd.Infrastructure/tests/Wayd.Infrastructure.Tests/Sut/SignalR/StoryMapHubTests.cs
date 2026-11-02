@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.FeatureManagement;
 using Wayd.Common.Domain.FeatureManagement;
+using Wayd.Infrastructure.Auth.Permissions;
 using Wayd.Infrastructure.SignalR;
 
 namespace Wayd.Infrastructure.Tests.Sut.SignalR;
@@ -285,6 +286,22 @@ public class StoryMapHubTests
         groups.Verify(
             g => g.AddToGroupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public void JoinPermission_IsThePermissionJoinMapRequires()
+    {
+        // Arrange — the revoker rechecks JoinPermission, so it must be what the attribute enforces.
+        var method = typeof(StoryMapHub).GetMethod(nameof(StoryMapHub.JoinMap))!;
+
+        // Act
+        var attribute = method.GetCustomAttributes(typeof(MustHavePermissionAttribute), false)
+            .Cast<MustHavePermissionAttribute>()
+            .Single();
+
+        // Assert
+        attribute.Policy.Should().Be("Permissions.StoryMaps.View");
+        StoryMapHub.JoinPermission.Should().Be(attribute.Policy);
     }
 
     [Fact]

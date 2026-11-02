@@ -1,4 +1,5 @@
 ﻿using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Planning.Application.PokerSessions.Commands;
@@ -48,6 +49,22 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
         var session = await _dispatcher.Send(new GetPokerSessionQuery(idOrKey), cancellationToken);
         return session is not null
             ? Ok(session)
+            : NotFound();
+    }
+
+    [HttpGet("{id}/invited-teams/{teamId}/members")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
+    [EndpointSummary("Get the members of a team invited to a poker session.")]
+    [EndpointDescription(
+        "Lists the active direct members of `teamId`, a team the session invites, by employee `id`, `key` and `name`. An invited team admits its current members, and the members of its current team of teams, while the session is Private. Returns 404 when the caller cannot see the session or the team is not invited. Both ids are UUIDs.")]
+    [McpTool("PokerSessions_GetInvitedTeamMembers", "Get poker session invited team members")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<EmployeeNavigationDto>>> GetInvitedTeamMembers(Guid id, Guid teamId, CancellationToken cancellationToken)
+    {
+        var members = await _dispatcher.Send(new GetPokerSessionInvitedTeamMembersQuery(id, teamId), cancellationToken);
+        return members is not null
+            ? Ok(members)
             : NotFound();
     }
 

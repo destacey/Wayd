@@ -1,5 +1,6 @@
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Events;
 using Wayd.ProductManagement.Domain.Models;
 
 namespace Wayd.ProductManagement.Application.Incidents.Commands;
@@ -22,12 +23,14 @@ public sealed class AddIncidentTimelineNoteCommandValidator : AbstractValidator<
 public sealed class AddIncidentTimelineNoteCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     ICurrentPrincipal currentPrincipal,
+    ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
     ILogger<AddIncidentTimelineNoteCommandHandler> logger)
     : ICommandHandler<AddIncidentTimelineNoteCommand, Guid>
 {
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<AddIncidentTimelineNoteCommandHandler> _logger = logger;
 
@@ -51,7 +54,9 @@ public sealed class AddIncidentTimelineNoteCommandHandler(
         }
 
         var recordedAt = request.RecordedAt ?? _dateTimeProvider.Now;
-        var added = incident.AddTimelineNote(request.Body, employeeId.Value, recordedAt);
+        var actor = EventActor.User(_currentUser.GetUserId(), employeeId.Value);
+        var timestamp = _dateTimeProvider.Now;
+        var added = incident.AddTimelineNote(request.Body, employeeId.Value, recordedAt, actor, timestamp);
         if (added.IsFailure)
         {
             return Result.Failure<Guid>(added.Error);

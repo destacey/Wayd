@@ -20,6 +20,7 @@ export const FollowOwnerTypes = {
   Program: 'ppm.program',
   PlanningIntervalObjective: 'planning.planning-interval-objective',
   IntakeRequest: 'demand.intake-request',
+  Incident: 'product.incident',
 } as const
 
 export type FollowOwnerType =

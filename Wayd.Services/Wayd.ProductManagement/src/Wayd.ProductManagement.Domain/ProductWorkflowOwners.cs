@@ -206,25 +206,32 @@ public static class ProductWorkflowOwners
         ]);
 
     /// <summary>An operational incident tied to one or more products.</summary>
-    /// <remarks>
-    /// Status changes beyond the opening record arrive in a later slice; the workflow carries the aliases
-    /// those moves will need. Like the product lifecycle, incidents change status through domain methods
-    /// rather than arbitrary transitions, so no moves are declared yet.
-    /// </remarks>
     public static readonly WorkflowOwnerDescriptor Incident = new(
         "product.incident",
         "Incident",
         Names(
             (ProductStatusAlias.Open, StatusCategory.Active),
+            (ProductStatusAlias.Responding, StatusCategory.Active),
             (ProductStatusAlias.Resolved, StatusCategory.Done),
+            (ProductStatusAlias.Closed, StatusCategory.Done),
             (ProductStatusAlias.Canceled, StatusCategory.Removed)),
         [
             (int)ProductStatusAlias.Open,
+            (int)ProductStatusAlias.Responding,
             (int)ProductStatusAlias.Resolved,
+            (int)ProductStatusAlias.Closed,
             (int)ProductStatusAlias.Canceled,
         ],
         [StatusCategory.Active, StatusCategory.Done, StatusCategory.Removed],
-        supportsRestrictedTransitions: true);
+        supportsRestrictedTransitions: true,
+        moves:
+        [
+            WorkflowMove.Required("Begin Responding", (int)ProductStatusAlias.Open, (int)ProductStatusAlias.Responding),
+            WorkflowMove.Required("Mark Recovered", (int)ProductStatusAlias.Responding, (int)ProductStatusAlias.Resolved),
+            WorkflowMove.Required("Close", (int)ProductStatusAlias.Resolved, (int)ProductStatusAlias.Closed),
+            WorkflowMove.Required("Cancel", (int)ProductStatusAlias.Open, (int)ProductStatusAlias.Canceled),
+            WorkflowMove.Required("Cancel", (int)ProductStatusAlias.Responding, (int)ProductStatusAlias.Canceled),
+        ]);
 
     /// <summary>
     /// Every owner type this module contributes, for registration at startup.

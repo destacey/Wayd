@@ -58,5 +58,11 @@ public enum ProductStatusAlias
     Resolved = 31,
 
     /// <summary>An incident was canceled without resolution.</summary>
-    Canceled = 32
+    Canceled = 32,
+
+    /// <summary>Active response to an incident is under way.</summary>
+    Responding = 33,
+
+    /// <summary>An incident is closed after recovery.</summary>
+    Closed = 34,
 }

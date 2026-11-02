@@ -1,3 +1,6 @@
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
+using Wayd.Common.Domain.Events;
 using Wayd.ProductManagement.Domain.Models;
 
 namespace Wayd.ProductManagement.Application.Incidents.Commands;
@@ -25,10 +28,16 @@ public sealed class UpdateIncidentDetailsCommandValidator : AbstractValidator<Up
 
 public sealed class UpdateIncidentDetailsCommandHandler(
     IProductManagementDbContext productManagementDbContext,
+    ICurrentUser currentUser,
+    ICurrentPrincipal currentPrincipal,
+    IDateTimeProvider dateTimeProvider,
     ILogger<UpdateIncidentDetailsCommandHandler> logger)
     : ICommandHandler<UpdateIncidentDetailsCommand>
 {
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<UpdateIncidentDetailsCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateIncidentDetailsCommand request, CancellationToken cancellationToken)
@@ -57,6 +66,15 @@ public sealed class UpdateIncidentDetailsCommandHandler(
             return products;
         }
 
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (employeeId is null)
+        {
+            return Result.Failure("A linked employee is required.");
+        }
+
+        var actor = EventActor.User(_currentUser.GetUserId(), employeeId.Value);
+        var timestamp = _dateTimeProvider.Now;
+
         var updated = incident.UpdateDetails(
             request.Title,
             request.Description,
@@ -64,7 +82,9 @@ public sealed class UpdateIncidentDetailsCommandHandler(
             request.NoticedAt,
             request.StartedAt,
             request.RecoveredAt,
-            request.ProductIds);
+            request.ProductIds,
+            actor,
+            timestamp);
 
         if (updated.IsFailure)
         {

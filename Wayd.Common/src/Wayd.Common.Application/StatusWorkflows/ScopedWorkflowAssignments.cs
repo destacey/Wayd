@@ -15,6 +15,11 @@ namespace Wayd.Common.Application.StatusWorkflows;
 /// A module cannot reach the engine's tables — its database view is its own — so it asks through this. Only
 /// assigning a scope that holds no records is offered: moving a scope's records onto another workflow is a
 /// migration, which needs a remap the operator decides, and which a scoped migrator has to support.
+/// <para>
+/// For owner types with one level of scope below the organization. Under nested scopes a scope without its own
+/// assignment follows the nearest assigned scope above it, not the organization, so <see cref="Current"/> and
+/// removing an assignment would disagree with <see cref="IStatusResolver.ForRecordType"/>.
+/// </para>
 /// </remarks>
 public interface IScopedWorkflowAssignments : IScopedService
 {

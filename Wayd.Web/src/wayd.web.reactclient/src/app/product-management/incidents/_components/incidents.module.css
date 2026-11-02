@@ -106,6 +106,76 @@
   margin: 0 0 6px;
 }
 
+.detailToolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.linksHeadingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 16px 0 8px;
+}
+
+.linksHeadingRow .asideHeading {
+  margin: 0;
+}
+
+.linksets {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.linkset {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.linkMark {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.linksetBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.linkRow {
+  line-height: 1.4;
+}
+
+.linkMuted {
+  color: var(--ant-color-text-secondary);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.discussionSection {
+  margin-top: 24px;
+}
+
 .rank {
   display: inline-flex;
   align-items: center;

@@ -1,6 +1,5 @@
 'use client'
 
-import { PageTitle } from '@/src/components/common'
 import { WorkflowStatusTag } from '@/src/components/common/status-workflows'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
@@ -21,6 +20,8 @@ import { use, useEffect, useMemo, useState } from 'react'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { IncidentSeverityRank } from '@/src/app/product-management/incidents/_components/incident-severity-rank'
+import IncidentWorkItemLinks from '@/src/app/product-management/incidents/_components/incident-work-item-links'
+import IncidentDiscussion from '@/src/app/product-management/incidents/_components/incident-discussion'
 import styles from '@/src/app/product-management/incidents/_components/incidents.module.css'
 
 const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
@@ -127,7 +128,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   return (
     <div className="page-gutters">
-      <PageTitle title={`Incident ${incident.key}`} actions={actions} />
+      {actions ? <div className={styles.detailToolbar}>{actions}</div> : null}
       {editing ? (
         <Form form={form} layout="vertical">
           <Form.Item name="title" label="Title" rules={[{ required: true }]}>
@@ -157,70 +158,80 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           </Form.Item>
         </Form>
       ) : (
-        <article className={styles.detail}>
-          <section className={styles.detailMain}>
-            <p className={styles.meta}>
-              INC-{incident.key}
-              {productMeta ? ` · ${productMeta}` : null}
-            </p>
-            <h1 className={styles.titleRow}>
-              <IncidentSeverityRank
-                name={incident.severityLevel.name}
-                color={incident.severityLevel.color}
+        <>
+          <article className={styles.detail}>
+            <section className={styles.detailMain}>
+              <p className={styles.meta}>
+                INC-{incident.key}
+                {productMeta ? ` · ${productMeta}` : null}
+              </p>
+              <h1 className={styles.titleRow}>
+                <IncidentSeverityRank
+                  name={incident.severityLevel.name}
+                  color={incident.severityLevel.color}
+                />
+                <span>{incident.title}</span>
+              </h1>
+              {incident.description ? (
+                <p className={styles.desc}>{incident.description}</p>
+              ) : null}
+            </section>
+            <aside className={styles.detailAside}>
+              <h2 className={styles.asideHeading}>Status</h2>
+              <ul className={styles.asideList}>
+                <li>
+                  {incident.status ? (
+                    <WorkflowStatusTag
+                      name={incident.status.name}
+                      category={incident.status.category}
+                    />
+                  ) : (
+                    '—'
+                  )}
+                </li>
+              </ul>
+              <h2 className={styles.asideHeading}>Commander</h2>
+              <ul className={styles.asideList}>
+                <li>{incident.commander?.name ?? '—'}</li>
+              </ul>
+              <h2 className={styles.asideHeading}>Products</h2>
+              <ul className={styles.asideList}>
+                <li>
+                  {incident.products.length > 0
+                    ? incident.products.map((p) => p.name).join(', ')
+                    : '—'}
+                </li>
+              </ul>
+              <h2 className={styles.asideHeading}>Timeline</h2>
+              <ul className={styles.asideList}>
+                <li>
+                  Noticed{' '}
+                  {formatInstantInZone(incident.noticedAt, viewerZone)}
+                </li>
+                <li>
+                  Response started{' '}
+                  {incident.startedAt
+                    ? formatInstantInZone(incident.startedAt, viewerZone)
+                    : '—'}
+                </li>
+                <li>
+                  Recovered{' '}
+                  {incident.recoveredAt
+                    ? formatInstantInZone(incident.recoveredAt, viewerZone)
+                    : '—'}
+                </li>
+              </ul>
+              <IncidentWorkItemLinks
+                incidentId={incident.id}
+                idOrKey={key}
+                canManage={canUpdate}
               />
-              <span>{incident.title}</span>
-            </h1>
-            {incident.description ? (
-              <p className={styles.desc}>{incident.description}</p>
-            ) : null}
-          </section>
-          <aside className={styles.detailAside}>
-            <h2 className={styles.asideHeading}>Status</h2>
-            <ul className={styles.asideList}>
-              <li>
-                {incident.status ? (
-                  <WorkflowStatusTag
-                    name={incident.status.name}
-                    category={incident.status.category}
-                  />
-                ) : (
-                  '—'
-                )}
-              </li>
-            </ul>
-            <h2 className={styles.asideHeading}>Commander</h2>
-            <ul className={styles.asideList}>
-              <li>{incident.commander?.name ?? '—'}</li>
-            </ul>
-            <h2 className={styles.asideHeading}>Products</h2>
-            <ul className={styles.asideList}>
-              <li>
-                {incident.products.length > 0
-                  ? incident.products.map((p) => p.name).join(', ')
-                  : '—'}
-              </li>
-            </ul>
-            <h2 className={styles.asideHeading}>Timeline</h2>
-            <ul className={styles.asideList}>
-              <li>
-                Noticed{' '}
-                {formatInstantInZone(incident.noticedAt, viewerZone)}
-              </li>
-              <li>
-                Response started{' '}
-                {incident.startedAt
-                  ? formatInstantInZone(incident.startedAt, viewerZone)
-                  : '—'}
-              </li>
-              <li>
-                Recovered{' '}
-                {incident.recoveredAt
-                  ? formatInstantInZone(incident.recoveredAt, viewerZone)
-                  : '—'}
-              </li>
-            </ul>
-          </aside>
-        </article>
+            </aside>
+          </article>
+          <div className={styles.discussionSection}>
+            <IncidentDiscussion incident={incident} />
+          </div>
+        </>
       )}
     </div>
   )

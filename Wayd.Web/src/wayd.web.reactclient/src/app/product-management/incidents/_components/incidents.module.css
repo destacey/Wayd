@@ -58,52 +58,9 @@
   min-width: 0;
 }
 
-.detailHeader {
-  margin-bottom: 0;
-}
-
-.detailHeaderTop {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.detailHeaderMain {
-  flex: 1;
-  min-width: 0;
-}
-
-.detailHeaderActions {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 8px;
-}
-
-.detailHeaderFollow {
-  display: inline-flex;
-}
-
 .detailAside {
   border-left: 1px solid var(--ant-color-border-secondary);
   padding: 16px;
-}
-
-.meta {
-  color: var(--ant-color-text-secondary);
-  font-size: 13px;
-  margin-bottom: 4px;
-}
-
-.titleRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.2;
-  margin: 0 0 8px;
 }
 
 .desc {
@@ -132,18 +89,6 @@
 
 .asideList li {
   margin: 0 0 6px;
-}
-
-.detailToolbarFollow {
-  margin-right: auto;
-}
-
-.detailToolbar {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
 }
 
 .linksHeadingRow {
@@ -199,6 +144,12 @@
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--ant-color-border-secondary);
+}
+
+.detailMain > .discussionSection:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
 }
 
 .rank {

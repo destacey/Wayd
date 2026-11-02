@@ -1,6 +1,7 @@
 'use client'
 
-import { FollowButton, PageActions } from '@/src/components/common'
+import { PageActions } from '@/src/components/common'
+import { RecordShell } from '@/src/components/common/record'
 import { WorkflowStatusTag } from '@/src/components/common/status-workflows'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
@@ -16,7 +17,7 @@ import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
 import { useGetIncidentSeveritySetsQuery } from '@/src/store/features/product-management/incident-severity-sets-api'
 import { formatInstantInZone } from '@/src/utils'
-import { Button, DatePicker, Form, Modal, Select } from 'antd'
+import { Button, DatePicker, Flex, Form, Modal, Select } from 'antd'
 import type { MenuProps } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import TextArea from 'antd/es/input/TextArea'
@@ -27,7 +28,7 @@ import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import IncidentLinks from '@/src/app/product-management/incidents/_components/incident-links'
 import IncidentDiscussion from '@/src/app/product-management/incidents/_components/incident-discussion'
-import IncidentDetailHeader from '@/src/app/product-management/incidents/_components/incident-detail-header'
+import { IncidentSeverityRank } from '@/src/app/product-management/incidents/_components/incident-severity-rank'
 import CancelIncidentForm from '@/src/app/product-management/incidents/_components/cancel-incident-form'
 import { incidentWorkflowActionAvailability } from '@/src/app/product-management/incidents/_components/incident-workflow-actions'
 import styles from '@/src/app/product-management/incidents/_components/incidents.module.css'
@@ -90,11 +91,6 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     .map((product) => ({ value: product.id, label: product.name }))
     .sort((a, b) => caseInsensitiveCompare(a.label, b.label))
 
-  const productMeta =
-    incident.products.length > 0
-      ? incident.products.map((p) => p.name).join(', ')
-      : null
-
   const startEditing = () => {
     form.setFieldsValue({
       title: incident.title,
@@ -139,7 +135,8 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     !canUpdate || workflowActionsLoading || workflowActionsFailed
       ? undefined
       : workflowActions?.map((a) => a.action)
-  const workflowAvailability = incidentWorkflowActionAvailability(allowedActions)
+  const workflowAvailability =
+    incidentWorkflowActionAvailability(allowedActions)
   const lifecyclePending = canUpdate && workflowActionsLoading
 
   const applyLifecycleAction = async (
@@ -175,8 +172,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       title,
       content,
       okText: title,
-      onOk: () =>
-        applyLifecycleAction(action, { action }, successMessage),
+      onOk: () => applyLifecycleAction(action, { action }, successMessage),
     })
   }
 
@@ -273,62 +269,84 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     </>
   )
 
+  const recordActions = editing ? (
+    editToolbar
+  ) : canUpdate && actionsMenuItems.length > 0 ? (
+    <PageActions actionItems={actionsMenuItems} />
+  ) : canUpdate ? (
+    <Button onClick={startEditing}>Edit</Button>
+  ) : null
+
   return (
-    <div className="page-gutters">
-      {editing ? (
-        <>
-          <div className={styles.detailToolbar}>{editToolbar}</div>
+    <>
+      <RecordShell
+        record={{
+          name: incident.title,
+          recordKey: `INC-${incident.key}`,
+          parent: {
+            label: 'Incidents',
+            href: '/product-management/incidents',
+          },
+          subtitle: 'Incident Details',
+          tags: (
+            <Flex gap="small" align="center" wrap>
+              <IncidentSeverityRank
+                name={incident.severityLevel.name}
+                color={incident.severityLevel.color}
+              />
+              {incident.status ? (
+                <WorkflowStatusTag
+                  name={incident.status.name}
+                  category={incident.status.category}
+                />
+              ) : null}
+            </Flex>
+          ),
+          actions: recordActions,
+          follow: {
+            ownerType: FollowOwnerTypes.Incident,
+            ownerId: incident.id,
+          },
+        }}
+      >
+        {editing ? (
           <Form form={form} layout="vertical">
-          <Form.Item name="title" label="Title" rules={[{ required: true }]}>
-            <TextArea rows={2} />
-          </Form.Item>
-          <Form.Item name="description" label="Description">
-            <MarkdownEditor maxLength={4096} />
-          </Form.Item>
-          <Form.Item
-            name="severityLevelId"
-            label="Severity"
-            rules={[{ required: true }]}
-          >
-            <Select options={severityOptions} />
-          </Form.Item>
-          <Form.Item name="productIds" label="Products">
-            <Select mode="multiple" options={productOptions} allowClear />
-          </Form.Item>
-          <Form.Item name="noticedAt" label="Noticed at" rules={[{ required: true }]}>
-            <DatePicker showTime className="w-full" />
-          </Form.Item>
-          <Form.Item name="startedAt" label="Response started at">
-            <DatePicker showTime className="w-full" />
-          </Form.Item>
-          <Form.Item name="recoveredAt" label="Recovered at">
-            <DatePicker showTime className="w-full" />
-          </Form.Item>
-        </Form>
-        </>
-      ) : (
-        <>
+            <Form.Item name="title" label="Title" rules={[{ required: true }]}>
+              <TextArea rows={2} />
+            </Form.Item>
+            <Form.Item name="description" label="Description">
+              <MarkdownEditor maxLength={4096} />
+            </Form.Item>
+            <Form.Item
+              name="severityLevelId"
+              label="Severity"
+              rules={[{ required: true }]}
+            >
+              <Select options={severityOptions} />
+            </Form.Item>
+            <Form.Item name="productIds" label="Products">
+              <Select mode="multiple" options={productOptions} allowClear />
+            </Form.Item>
+            <Form.Item
+              name="noticedAt"
+              label="Noticed at"
+              rules={[{ required: true }]}
+            >
+              <DatePicker showTime className="w-full" />
+            </Form.Item>
+            <Form.Item name="startedAt" label="Response started at">
+              <DatePicker showTime className="w-full" />
+            </Form.Item>
+            <Form.Item name="recoveredAt" label="Recovered at">
+              <DatePicker showTime className="w-full" />
+            </Form.Item>
+          </Form>
+        ) : (
           <article className={styles.detail}>
             <div className={styles.detailMain}>
-              <IncidentDetailHeader
-                incident={incident}
-                productMeta={productMeta}
-                headerActions={
-                  <>
-                    <span className={styles.detailHeaderFollow}>
-                      <FollowButton
-                        ownerType={FollowOwnerTypes.Incident}
-                        ownerId={incident.id}
-                      />
-                    </span>
-                    {canUpdate && actionsMenuItems.length > 0 ? (
-                      <PageActions actionItems={actionsMenuItems} />
-                    ) : canUpdate ? (
-                      <Button onClick={startEditing}>Edit</Button>
-                    ) : null}
-                  </>
-                }
-              />
+              {incident.description ? (
+                <p className={styles.desc}>{incident.description}</p>
+              ) : null}
               <div className={styles.discussionSection}>
                 <IncidentDiscussion incident={incident} />
               </div>
@@ -362,8 +380,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               <h2 className={styles.asideHeading}>Timeline</h2>
               <ul className={styles.asideList}>
                 <li>
-                  Noticed{' '}
-                  {formatInstantInZone(incident.noticedAt, viewerZone)}
+                  Noticed {formatInstantInZone(incident.noticedAt, viewerZone)}
                 </li>
                 <li>
                   Response started{' '}
@@ -385,8 +402,8 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               />
             </aside>
           </article>
-        </>
-      )}
+        )}
+      </RecordShell>
       {cancelOpen ? (
         <CancelIncidentForm
           incident={incident}
@@ -397,12 +414,16 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           onFormCancel={() => setCancelOpen(false)}
         />
       ) : null}
-    </div>
+    </>
   )
 }
 
 const IncidentDetailsPageWithAuthorization = requireFeatureFlag(
-  authorizePage(IncidentDetailsPage, 'Permission', 'Permissions.Incidents.View'),
+  authorizePage(
+    IncidentDetailsPage,
+    'Permission',
+    'Permissions.Incidents.View',
+  ),
   'product-management',
 )
 

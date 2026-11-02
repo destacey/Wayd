@@ -31,12 +31,12 @@ public sealed class GetIncidentWorkflowActionsQueryHandler(
         GetIncidentWorkflowActionsQuery request,
         CancellationToken cancellationToken)
     {
-        var incident = await _productManagementDbContext.Incidents
+        var statusId = await _productManagementDbContext.Incidents
             .Where(request.IdOrKeyFilter)
-            .Select(i => new { i.StatusId, i.StatusAliasValue })
+            .Select(i => (Guid?)i.StatusId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (incident is null)
+        if (statusId is null)
         {
             return null;
         }
@@ -48,25 +48,13 @@ public sealed class GetIncidentWorkflowActionsQueryHandler(
         }
 
         var w = workflow.Value;
-        var alias = (ProductStatusAlias)incident.StatusAliasValue;
 
-        return alias switch
-        {
-            ProductStatusAlias.Open => IncidentWorkflowActions.Allowed(
-                w,
-                incident.StatusId,
-                (IncidentWorkflowAction.BeginResponding, w.StatusFor((int)ProductStatusAlias.Responding)),
-                (IncidentWorkflowAction.Cancel, w.StatusFor((int)ProductStatusAlias.Canceled))),
-            ProductStatusAlias.Responding => IncidentWorkflowActions.Allowed(
-                w,
-                incident.StatusId,
-                (IncidentWorkflowAction.MarkRecovered, w.StatusFor((int)ProductStatusAlias.Resolved)),
-                (IncidentWorkflowAction.Cancel, w.StatusFor((int)ProductStatusAlias.Canceled))),
-            ProductStatusAlias.Resolved => IncidentWorkflowActions.Allowed(
-                w,
-                incident.StatusId,
-                (IncidentWorkflowAction.Close, w.StatusFor((int)ProductStatusAlias.Closed))),
-            _ => [],
-        };
+        return IncidentWorkflowActions.Allowed(
+            w,
+            statusId.Value,
+            (IncidentWorkflowAction.BeginResponding, w.StatusFor((int)ProductStatusAlias.Responding)),
+            (IncidentWorkflowAction.MarkRecovered, w.StatusFor((int)ProductStatusAlias.Resolved)),
+            (IncidentWorkflowAction.Close, w.StatusFor((int)ProductStatusAlias.Closed)),
+            (IncidentWorkflowAction.Cancel, w.StatusFor((int)ProductStatusAlias.Canceled)));
     }
 }

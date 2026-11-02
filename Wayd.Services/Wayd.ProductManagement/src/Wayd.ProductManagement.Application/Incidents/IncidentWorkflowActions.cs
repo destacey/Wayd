@@ -18,7 +18,7 @@ internal static class IncidentWorkflowActions
         return
         [
             .. actions
-                .Where(a => a.Target is { } target && (target.Id == currentStatusId || allowed.Contains(target.Id)))
+                .Where(a => a.Target is { } target && allowed.Contains(target.Id))
                 .Select(a => new IncidentWorkflowActionDto { Action = a.Action }),
         ];
     }

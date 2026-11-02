@@ -35,6 +35,16 @@ public static class DeliveryWorkflowFactory
 
         var workflow = StatusWorkflow.Create($"Test {owner.DisplayName} Workflow", null, owner.Key, EventActor.System, At).Value;
 
+        if (owner == ProductWorkflowOwners.Incident)
+        {
+            foreach (var (alias, name) in owner.Aliases)
+            {
+                workflow.AddStatus(name, null, owner.AliasCategories[alias], alias, EventActor.System, At);
+            }
+
+            return workflow;
+        }
+
         (string Name, StatusCategory Category, ProductStatusAlias Alias)[] statuses = owner == ProductWorkflowOwners.Deployment
             ?
             [

@@ -28,6 +28,11 @@ export interface SessionAccessFieldsProps {
    * can be added. Omit to let the list change freely.
    */
   requiredFacilitatorId?: string
+  /**
+   * The signed-in user's employee, to warn them when they take themselves off
+   * the facilitators and so lose the ability to run the session.
+   */
+  selfEmployeeId?: string
 }
 
 /**
@@ -36,9 +41,15 @@ export interface SessionAccessFieldsProps {
  */
 const SessionAccessFields: FC<SessionAccessFieldsProps> = ({
   requiredFacilitatorId,
+  selfEmployeeId,
 }) => {
   const form = useFormInstance()
   const visibility = useWatch('visibility', form)
+  const facilitatorIds: string[] | undefined = useWatch('facilitatorIds', form)
+  const removingSelf =
+    !!selfEmployeeId &&
+    !!facilitatorIds &&
+    !facilitatorIds.includes(selfEmployeeId)
   const { data: employeeOptions } = useGetEmployeeOptionsQuery(false)
   const { data: teamOptions } = useGetTeamOptionsQuery(false)
 
@@ -48,6 +59,11 @@ const SessionAccessFields: FC<SessionAccessFieldsProps> = ({
         name="facilitatorIds"
         label="Facilitators"
         tooltip="Facilitators run the session: rounds, reveals, consensus, access and completion."
+        extra={
+          removingSelf
+            ? 'You are not on this list, so after saving you will no longer be able to run this session.'
+            : undefined
+        }
         rules={[
           { required: true, message: 'Select at least one facilitator' },
           {
@@ -89,7 +105,7 @@ const SessionAccessFields: FC<SessionAccessFieldsProps> = ({
           <Item
             name="invitedEmployeeIds"
             label="Invited People"
-            extra="An invite lets someone in; they choose to join as a Participant or an Observer."
+            extra="An invite lets someone in; they choose whether to vote."
           >
             <EmployeeSelect
               employees={employeeOptions ?? []}

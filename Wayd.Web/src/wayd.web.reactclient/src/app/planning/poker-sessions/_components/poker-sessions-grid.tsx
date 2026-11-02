@@ -34,14 +34,16 @@ const getRowMenuItems = (props: RowMenuProps): ItemType[] => {
   // Only the session's facilitators, or a poker administrator, run it.
   if (!props.session.canManage) return []
 
-  const items: ItemType[] = []
-
-  if (props.session.status === 'Active') {
-    items.push({
+  // Edit stays on a completed session, whose access can still change.
+  const items: ItemType[] = [
+    {
       key: 'edit',
       label: 'Edit',
       onClick: () => props.onEditClicked(props.session),
-    })
+    },
+  ]
+
+  if (props.session.status === 'Active') {
     items.push({
       key: 'complete',
       label: 'Complete',

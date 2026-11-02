@@ -23,7 +23,7 @@ import {
   LockOutlined,
   TeamOutlined,
 } from '@ant-design/icons'
-import { PokerSessionMemberMode, Visibility } from '@/src/services/wayd-api'
+import { Visibility } from '@/src/services/wayd-api'
 import { downloadCsvWithTimestamp, generateCsv } from '@/src/utils/csv-utils'
 import { notFound, useParams } from 'next/navigation'
 import { CSSProperties, FC, useState } from 'react'
@@ -181,26 +181,28 @@ const PokerSessionDetailPage: FC = () => {
       ? ('review' as const)
       : ('active' as const)
 
-  const presentMembers = (session?.members ?? []).filter((m) => !m.leftOn)
+  const members = session?.members ?? []
   const myMember = currentEmployeeId
-    ? presentMembers.find((m) => m.employee.id === currentEmployeeId)
+    ? members.find((m) => m.employee.id === currentEmployeeId)
     : undefined
   // Presence knows people by account; members are employees, which presence carries too.
-  const observerEmployeeIds = new Set(
-    presentMembers
-      .filter((m) => m.mode === PokerSessionMemberMode.Observer)
-      .map((m) => m.employee.id),
+  const votingEmployeeIds = new Set(
+    members.filter((m) => m.isVoting).map((m) => m.employee.id),
   )
-  const isObserver = (p: PresenceParticipant) =>
-    !!p.employeeId && observerEmployeeIds.has(p.employeeId)
+  const facilitatorEmployeeIds = new Set(
+    (session?.facilitators ?? []).map((f) => f.id),
+  )
+  const isVoter = (p: PresenceParticipant) =>
+    !!p.employeeId && votingEmployeeIds.has(p.employeeId)
 
   // Merge connected participants with voters from the active round so that
-  // votes from disconnected users still appear. Observers neither vote nor
-  // count toward who the round is waiting on.
+  // votes from disconnected users still appear. Only members who are voting
+  // count toward who the round is waiting on: not those who turned voting off,
+  // nor anyone connected who has not joined.
   const roundParticipants = (() => {
     const map = new Map<string, { id: string; name: string }>()
     for (const p of connectedParticipants) {
-      if (!isObserver(p)) map.set(p.id, p)
+      if (isVoter(p)) map.set(p.id, p)
     }
     if (activeRound) {
       for (const vote of activeRound.votes ?? []) {
@@ -306,7 +308,7 @@ const PokerSessionDetailPage: FC = () => {
         </Button>
       )}
       <Button icon={<TeamOutlined />} onClick={() => setOpenMembers(true)}>
-        Members ({presentMembers.length})
+        Participants ({members.length})
       </Button>
       {isActive && (
         <Button icon={<LinkOutlined />} onClick={handleCopyInviteLink}>
@@ -407,35 +409,33 @@ const PokerSessionDetailPage: FC = () => {
                   <ResultsPanel votes={activeRound.votes} />
                 )}
 
+                {/* Joining is explained by the membership bar. */}
                 {activeRound.status === 'Voting' &&
-                  myMember?.mode !== PokerSessionMemberMode.Participant && (
+                  myMember?.isVoting === false && (
                     <span className={styles.yourEstimateLabel}>
-                      {myMember
-                        ? 'You are observing. Switch to Participant to vote.'
-                        : 'Join as a Participant to vote.'}
+                      You are not voting. Turn on Voting to estimate.
                     </span>
                   )}
 
-                {activeRound.status === 'Voting' &&
-                  myMember?.mode === PokerSessionMemberMode.Participant && (
-                    <>
-                      <Divider style={{ margin: '8px 0' }}>
-                        <span className={styles.yourEstimateLabel}>
-                          Your Estimate
-                        </span>
-                      </Divider>
-                      <EstimationCardDeck
-                        values={
-                          session.estimationScaleVersion?.values.map(
-                            (v) => v.value,
-                          ) ?? []
-                        }
-                        selectedValue={selectedVote}
-                        onSelect={handleVote}
-                        disabled={isSubmitting || isWithdrawing}
-                      />
-                    </>
-                  )}
+                {activeRound.status === 'Voting' && myMember?.isVoting && (
+                  <>
+                    <Divider style={{ margin: '8px 0' }}>
+                      <span className={styles.yourEstimateLabel}>
+                        Your Estimate
+                      </span>
+                    </Divider>
+                    <EstimationCardDeck
+                      values={
+                        session.estimationScaleVersion?.values.map(
+                          (v) => v.value,
+                        ) ?? []
+                      }
+                      selectedValue={selectedVote}
+                      onSelect={handleVote}
+                      disabled={isSubmitting || isWithdrawing}
+                    />
+                  </>
+                )}
               </Flex>
             )}
 
@@ -463,7 +463,8 @@ const PokerSessionDetailPage: FC = () => {
               {centerViewMode === 'lobby' && isActive && (
                 <LobbyParticipants
                   participants={connectedParticipants}
-                  observerEmployeeIds={observerEmployeeIds}
+                  facilitatorEmployeeIds={facilitatorEmployeeIds}
+                  votingEmployeeIds={votingEmployeeIds}
                   canManage={canManage}
                   isActive={isActive}
                   onComplete={handleComplete}
@@ -499,7 +500,8 @@ const PokerSessionDetailPage: FC = () => {
               {centerViewMode === 'lobby' && isActive ? (
                 <LobbyParticipants
                   participants={connectedParticipants}
-                  observerEmployeeIds={observerEmployeeIds}
+                  facilitatorEmployeeIds={facilitatorEmployeeIds}
+                  votingEmployeeIds={votingEmployeeIds}
                   canManage={canManage}
                   isActive={isActive}
                   onComplete={handleComplete}

@@ -4,13 +4,13 @@ import {
   EmployeeNavigationDto,
   PlanningTeamNavigationDto,
   PokerSessionDetailsDto,
-  PokerSessionMemberMode,
   Visibility,
 } from '@/src/services/wayd-api'
 import { useGetPokerSessionInvitedTeamMembersQuery } from '@/src/store/features/planning/poker-sessions-api'
 import { DownOutlined, RightOutlined, TeamOutlined } from '@ant-design/icons'
-import { Drawer, Flex, Spin, Tag, Typography } from 'antd'
+import { Button, Drawer, Flex, Spin, Typography } from 'antd'
 import { FC, useState } from 'react'
+import ParticipantTags from './participant-tags'
 
 const { Text, Title } = Typography
 
@@ -48,43 +48,44 @@ const InvitedTeam: FC<{
   team: PlanningTeamNavigationDto
 }> = ({ sessionId, team }) => {
   const [expanded, setExpanded] = useState(false)
-  const { data: members, isFetching } =
-    useGetPokerSessionInvitedTeamMembersQuery(
-      { sessionId, teamId: team.id },
-      { skip: !expanded },
-    )
+  const {
+    data: members,
+    isFetching,
+    isError,
+  } = useGetPokerSessionInvitedTeamMembersQuery(
+    { sessionId, teamId: team.id },
+    { skip: !expanded },
+  )
 
   return (
     <Flex vertical gap={4}>
-      <Tag
+      <Button
+        type="text"
+        size="small"
         icon={<TeamOutlined />}
-        style={{ cursor: 'pointer', alignSelf: 'flex-start', margin: 0 }}
+        style={{ alignSelf: 'flex-start' }}
         onClick={() => setExpanded((e) => !e)}
         aria-expanded={expanded}
       >
         {team.name} {expanded ? <DownOutlined /> : <RightOutlined />}
-      </Tag>
+      </Button>
       {expanded &&
         (isFetching ? (
           <Spin size="small" />
+        ) : isError ? (
+          <Text type="secondary" style={{ paddingInlineStart: 16 }}>
+            Could not load this team&apos;s members.
+          </Text>
         ) : (
           <Flex vertical gap={4} style={{ paddingInlineStart: 16 }}>
             {(members ?? []).length === 0 ? (
               <Text type="secondary">No members.</Text>
             ) : (
-              members!.map((m) => (
-                <EmployeeRow
-                  key={m.id}
-                  employee={m}
-                  extra={<Text type="secondary">via {team.name}</Text>}
-                />
-              ))
+              members!.map((m) => <EmployeeRow key={m.id} employee={m} />)
             )}
-            {team.type === 'Team' && (
-              <Text type="secondary">
-                Members of its team of teams are invited too.
-              </Text>
-            )}
+            <Text type="secondary">
+              Members of its team of teams are invited too.
+            </Text>
           </Flex>
         ))}
     </Flex>
@@ -92,8 +93,8 @@ const InvitedTeam: FC<{
 }
 
 /**
- * Who runs the session, who has joined it, and, for a private session, who is
- * invited.
+ * Who runs the session, who has joined it and whether they vote, and, for a
+ * private session, who is invited.
  */
 const SessionMembersDrawer: FC<SessionMembersDrawerProps> = ({
   session,
@@ -101,11 +102,10 @@ const SessionMembersDrawer: FC<SessionMembersDrawerProps> = ({
   onClose,
 }) => {
   const isPrivate = session.visibility === Visibility.Private
-  const present = session.members.filter((m) => !m.leftOn)
-  const left = session.members.filter((m) => m.leftOn)
+  const facilitatorIds = new Set(session.facilitators.map((f) => f.id))
 
   return (
-    <Drawer title="Members" open={open} onClose={onClose} size="default">
+    <Drawer title="Participants" open={open} onClose={onClose} size="default">
       <Flex vertical gap={24}>
         <Section title="Facilitators">
           {session.facilitators.length === 0 ? (
@@ -119,42 +119,24 @@ const SessionMembersDrawer: FC<SessionMembersDrawerProps> = ({
           )}
         </Section>
 
-        <Section title={`In the session (${present.length})`}>
-          {present.length === 0 ? (
+        <Section title={`Joined (${session.members.length})`}>
+          {session.members.length === 0 ? (
             <Text type="secondary">No one has joined yet.</Text>
           ) : (
-            present.map((m) => (
+            session.members.map((m) => (
               <EmployeeRow
                 key={m.employee.id}
                 employee={m.employee}
                 extra={
-                  <Tag
-                    color={
-                      m.mode === PokerSessionMemberMode.Participant
-                        ? 'processing'
-                        : undefined
-                    }
-                    style={{ margin: 0 }}
-                  >
-                    {m.mode}
-                  </Tag>
+                  <ParticipantTags
+                    isFacilitator={facilitatorIds.has(m.employee.id)}
+                    isVoting={m.isVoting}
+                  />
                 }
               />
             ))
           )}
         </Section>
-
-        {left.length > 0 && (
-          <Section title={`Left (${left.length})`}>
-            {left.map((m) => (
-              <EmployeeRow
-                key={m.employee.id}
-                employee={m.employee}
-                extra={<Text type="secondary">{m.mode}</Text>}
-              />
-            ))}
-          </Section>
-        )}
 
         <Section title="Access">
           <Text type="secondary">
@@ -167,12 +149,15 @@ const SessionMembersDrawer: FC<SessionMembersDrawerProps> = ({
             session.invitedTeams.length === 0 && (
               <Text type="secondary">No one is invited.</Text>
             )}
-          {session.invitedEmployees.map((e) => (
-            <EmployeeRow key={e.id} employee={e} />
-          ))}
-          {session.invitedTeams.map((t) => (
-            <InvitedTeam key={t.id} sessionId={session.id} team={t} />
-          ))}
+          {/* A public session keeps its invites, but they admit no one. */}
+          {isPrivate &&
+            session.invitedEmployees.map((e) => (
+              <EmployeeRow key={e.id} employee={e} />
+            ))}
+          {isPrivate &&
+            session.invitedTeams.map((t) => (
+              <InvitedTeam key={t.id} sessionId={session.id} team={t} />
+            ))}
         </Section>
       </Flex>
     </Drawer>

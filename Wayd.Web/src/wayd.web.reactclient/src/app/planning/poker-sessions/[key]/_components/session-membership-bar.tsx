@@ -4,35 +4,28 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   PokerSessionDetailsDto,
   PokerSessionMemberDto,
-  PokerSessionMemberMode,
 } from '@/src/services/wayd-api'
 import {
-  useChangePokerSessionModeMutation,
   useJoinPokerSessionMutation,
-  useLeavePokerSessionMutation,
+  useSetPokerSessionVotingMutation,
 } from '@/src/store/features/planning/poker-sessions-api'
-import { Button, Flex, Segmented, Typography } from 'antd'
-import { FC, useState } from 'react'
+import { Button, Flex, Switch, Tooltip, Typography } from 'antd'
+import { FC, useEffect, useRef } from 'react'
 
 const { Text } = Typography
 
-const modeOptions = [
-  { label: 'Participant', value: PokerSessionMemberMode.Participant },
-  { label: 'Observer', value: PokerSessionMemberMode.Observer },
-]
-
 export interface SessionMembershipBarProps {
   session: PokerSessionDetailsDto
-  /** The caller's membership while they are in the session. */
+  /** The caller's membership once they have joined. */
   member: PokerSessionMemberDto | undefined
   /** False when the caller's account has no employee, which joining needs. */
   canJoin: boolean
 }
 
 /**
- * Joining an active session, then switching between Participant and Observer
- * or leaving it. Participant is the default; an Observer cannot vote and is
- * left out of the voted and waiting counts.
+ * The caller's place in an active session. Opening the session joins them,
+ * voting; the switch turns voting off for someone who takes part without
+ * estimating, such as a product manager answering the team's questions.
  */
 const SessionMembershipBar: FC<SessionMembershipBarProps> = ({
   session,
@@ -40,33 +33,34 @@ const SessionMembershipBar: FC<SessionMembershipBarProps> = ({
   canJoin,
 }) => {
   const messageApi = useMessage()
-  const [joinMode, setJoinMode] = useState(PokerSessionMemberMode.Participant)
   const [join, { isLoading: isJoining }] = useJoinPokerSessionMutation()
-  const [changeMode, { isLoading: isChanging }] =
-    useChangePokerSessionModeMutation()
-  const [leave, { isLoading: isLeaving }] = useLeavePokerSessionMutation()
+  const [setVoting, { isLoading: isSettingVoting }] =
+    useSetPokerSessionVotingMutation()
+  // The session this visit has been in or tried to join, so a failed join or
+  // a second effect run in development does not join again.
+  const joinedSessionId = useRef<string | undefined>(undefined)
 
   const handleJoin = async () => {
-    const response = await join({
-      id: session.id,
-      key: session.key,
-      mode: joinMode,
-    })
+    const response = await join({ id: session.id, key: session.key })
     if (response.error) messageApi.error('Failed to join the session.')
   }
 
-  const handleChangeMode = async (mode: PokerSessionMemberMode) => {
-    const response = await changeMode({
+  useEffect(() => {
+    if (!canJoin || joinedSessionId.current === session.id) return
+    joinedSessionId.current = session.id
+    if (member) return
+    join({ id: session.id, key: session.key }).then((response) => {
+      if (response.error) messageApi.error('Failed to join the session.')
+    })
+  }, [canJoin, member, session.id, session.key, join, messageApi])
+
+  const handleVotingChange = async (isVoting: boolean) => {
+    const response = await setVoting({
       id: session.id,
       key: session.key,
-      mode,
+      isVoting,
     })
-    if (response.error) messageApi.error('Failed to change your mode.')
-  }
-
-  const handleLeave = async () => {
-    const response = await leave({ id: session.id, key: session.key })
-    if (response.error) messageApi.error('Failed to leave the session.')
+    if (response.error) messageApi.error('Failed to change your voting.')
   }
 
   if (!canJoin) {
@@ -79,17 +73,12 @@ const SessionMembershipBar: FC<SessionMembershipBarProps> = ({
   }
 
   if (!member) {
-    return (
+    return isJoining ? (
+      <Text type="secondary">Joining…</Text>
+    ) : (
       <Flex align="center" gap={8} wrap>
-        <Text>Join as</Text>
-        <Segmented
-          size="small"
-          options={modeOptions}
-          value={joinMode}
-          onChange={setJoinMode}
-          aria-label="Join as"
-        />
-        <Button type="primary" onClick={handleJoin} loading={isJoining}>
+        <Text type="secondary">You are not in this session.</Text>
+        <Button type="primary" size="small" onClick={handleJoin}>
           Join Session
         </Button>
       </Flex>
@@ -97,19 +86,18 @@ const SessionMembershipBar: FC<SessionMembershipBarProps> = ({
   }
 
   return (
-    <Flex align="center" gap={8} wrap>
-      <Segmented
-        size="small"
-        options={modeOptions}
-        value={member.mode}
-        onChange={handleChangeMode}
-        disabled={isChanging}
-        aria-label="Your mode"
-      />
-      <Button size="small" onClick={handleLeave} loading={isLeaving}>
-        Leave
-      </Button>
-    </Flex>
+    <Tooltip title="Turn off if you won't estimate — you still take part in the discussion.">
+      <Flex align="center" gap={8}>
+        <Switch
+          size="small"
+          checked={member.isVoting}
+          onChange={handleVotingChange}
+          loading={isSettingVoting}
+          aria-label="Voting"
+        />
+        <Text>Voting</Text>
+      </Flex>
+    </Tooltip>
   )
 }
 

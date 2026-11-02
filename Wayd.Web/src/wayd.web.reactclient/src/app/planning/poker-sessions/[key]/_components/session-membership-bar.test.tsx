@@ -1,21 +1,18 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   PokerSessionDetailsDto,
   PokerSessionMemberDto,
-  PokerSessionMemberMode,
 } from '@/src/services/wayd-api'
 import SessionMembershipBar from './session-membership-bar'
 import {
-  useChangePokerSessionModeMutation,
   useJoinPokerSessionMutation,
-  useLeavePokerSessionMutation,
+  useSetPokerSessionVotingMutation,
 } from '@/src/store/features/planning/poker-sessions-api'
 
 jest.mock('@/src/store/features/planning/poker-sessions-api', () => ({
   useJoinPokerSessionMutation: jest.fn(),
-  useChangePokerSessionModeMutation: jest.fn(),
-  useLeavePokerSessionMutation: jest.fn(),
+  useSetPokerSessionVotingMutation: jest.fn(),
 }))
 
 jest.mock('@/src/components/contexts/messaging', () => ({
@@ -24,16 +21,15 @@ jest.mock('@/src/components/contexts/messaging', () => ({
 
 const session = { id: 'session-1', key: 7 } as PokerSessionDetailsDto
 
-const member = (mode: PokerSessionMemberMode): PokerSessionMemberDto => ({
+const member = (isVoting: boolean): PokerSessionMemberDto => ({
   employee: { id: 'employee-1', key: 1, name: 'Avery Chen' },
-  mode,
+  isVoting,
   joinedOn: new Date('2026-01-15T10:00:00Z'),
 })
 
 describe('SessionMembershipBar', () => {
   const mockJoin = jest.fn().mockResolvedValue({})
-  const mockChangeMode = jest.fn().mockResolvedValue({})
-  const mockLeave = jest.fn().mockResolvedValue({})
+  const mockSetVoting = jest.fn().mockResolvedValue({})
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -41,76 +37,66 @@ describe('SessionMembershipBar', () => {
       mockJoin,
       { isLoading: false },
     ])
-    ;(useChangePokerSessionModeMutation as jest.Mock).mockReturnValue([
-      mockChangeMode,
-      { isLoading: false },
-    ])
-    ;(useLeavePokerSessionMutation as jest.Mock).mockReturnValue([
-      mockLeave,
+    ;(useSetPokerSessionVotingMutation as jest.Mock).mockReturnValue([
+      mockSetVoting,
       { isLoading: false },
     ])
   })
 
-  it('joins as a Participant by default', async () => {
+  it('joins on opening', async () => {
     render(
       <SessionMembershipBar session={session} member={undefined} canJoin />,
     )
 
-    await userEvent.click(screen.getByRole('button', { name: 'Join Session' }))
-
-    expect(mockJoin).toHaveBeenCalledWith({
-      id: 'session-1',
-      key: 7,
-      mode: PokerSessionMemberMode.Participant,
-    })
+    await waitFor(() =>
+      expect(mockJoin).toHaveBeenCalledWith({ id: 'session-1', key: 7 }),
+    )
   })
 
-  it('joins as an Observer when chosen', async () => {
+  it('does not join a member again', () => {
     render(
+      <SessionMembershipBar session={session} member={member(false)} canJoin />,
+    )
+
+    expect(mockJoin).not.toHaveBeenCalled()
+  })
+
+  it('offers to join after a failed join, without retrying on its own', async () => {
+    mockJoin.mockResolvedValueOnce({ error: { status: 500 } })
+    const { rerender } = render(
+      <SessionMembershipBar session={session} member={undefined} canJoin />,
+    )
+    await waitFor(() => expect(mockJoin).toHaveBeenCalledTimes(1))
+
+    rerender(
       <SessionMembershipBar session={session} member={undefined} canJoin />,
     )
 
-    await userEvent.click(screen.getByText('Observer'))
+    expect(mockJoin).toHaveBeenCalledTimes(1)
     await userEvent.click(screen.getByRole('button', { name: 'Join Session' }))
-
-    expect(mockJoin).toHaveBeenCalledWith(
-      expect.objectContaining({ mode: PokerSessionMemberMode.Observer }),
-    )
+    expect(mockJoin).toHaveBeenCalledTimes(2)
   })
 
-  it('switches a member to Observer', async () => {
+  it('shows whether the member is voting', () => {
     render(
-      <SessionMembershipBar
-        session={session}
-        member={member(PokerSessionMemberMode.Participant)}
-        canJoin
-      />,
+      <SessionMembershipBar session={session} member={member(true)} canJoin />,
     )
 
-    await userEvent.click(screen.getByText('Observer'))
+    expect(screen.getByRole('switch', { name: 'Voting' })).toBeChecked()
+  })
 
-    expect(mockChangeMode).toHaveBeenCalledWith({
+  it('turns voting off', async () => {
+    render(
+      <SessionMembershipBar session={session} member={member(true)} canJoin />,
+    )
+
+    await userEvent.click(screen.getByRole('switch', { name: 'Voting' }))
+
+    expect(mockSetVoting).toHaveBeenCalledWith({
       id: 'session-1',
       key: 7,
-      mode: PokerSessionMemberMode.Observer,
+      isVoting: false,
     })
-    expect(
-      screen.queryByRole('button', { name: 'Join Session' }),
-    ).not.toBeInTheDocument()
-  })
-
-  it('leaves the session', async () => {
-    render(
-      <SessionMembershipBar
-        session={session}
-        member={member(PokerSessionMemberMode.Observer)}
-        canJoin
-      />,
-    )
-
-    await userEvent.click(screen.getByRole('button', { name: 'Leave' }))
-
-    expect(mockLeave).toHaveBeenCalledWith({ id: 'session-1', key: 7 })
   })
 
   it('explains why an account without an employee cannot join', () => {
@@ -123,8 +109,6 @@ describe('SessionMembershipBar', () => {
     )
 
     expect(screen.getByText(/not linked to an employee/)).toBeInTheDocument()
-    expect(
-      screen.queryByRole('button', { name: 'Join Session' }),
-    ).not.toBeInTheDocument()
+    expect(mockJoin).not.toHaveBeenCalled()
   })
 })

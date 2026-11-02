@@ -10,7 +10,6 @@ import {
   PokerSessionDetailsDto,
   PokerSessionListDto,
   PokerSessionMemberDto,
-  PokerSessionMemberMode,
   PokerSessionStatus,
   SetConsensusRequest,
   SubmitVoteRequest,
@@ -354,6 +353,8 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
+      // The session mutations invalidate this tag, so a changed invite refetches.
+      providesTags: () => [{ type: QueryTags.PokerSession, id: 'LIST' }],
     }),
 
     setPokerSessionVisibility: builder.mutation<
@@ -422,11 +423,11 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
 
     joinPokerSession: builder.mutation<
       PokerSessionMemberDto,
-      { id: string; key: number; mode: PokerSessionMemberMode }
+      { id: string; key: number; isVoting?: boolean }
     >({
-      queryFn: async ({ id, mode }) => {
+      queryFn: async ({ id, isVoting = true }) => {
         try {
-          const data = await getPokerSessionsClient().join(id, { mode })
+          const data = await getPokerSessionsClient().join(id, { isVoting })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -439,29 +440,15 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    leavePokerSession: builder.mutation<void, { id: string; key: number }>({
-      queryFn: async ({ id }) => {
-        try {
-          const data = await getPokerSessionsClient().leave(id)
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      invalidatesTags: (result, error, arg) => [
-        { type: QueryTags.PokerSession, id: 'LIST' },
-        { type: QueryTags.PokerSession, id: arg.key },
-      ],
-    }),
-
-    changePokerSessionMode: builder.mutation<
+    setPokerSessionVoting: builder.mutation<
       PokerSessionMemberDto,
-      { id: string; key: number; mode: PokerSessionMemberMode }
+      { id: string; key: number; isVoting: boolean }
     >({
-      queryFn: async ({ id, mode }) => {
+      queryFn: async ({ id, isVoting }) => {
         try {
-          const data = await getPokerSessionsClient().changeMode(id, { mode })
+          const data = await getPokerSessionsClient().setVoting(id, {
+            isVoting,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -497,6 +484,5 @@ export const {
   useSetPokerSessionFacilitatorsMutation,
   useSetPokerSessionInviteesMutation,
   useJoinPokerSessionMutation,
-  useLeavePokerSessionMutation,
-  useChangePokerSessionModeMutation,
+  useSetPokerSessionVotingMutation,
 } = pokerSessionsApi

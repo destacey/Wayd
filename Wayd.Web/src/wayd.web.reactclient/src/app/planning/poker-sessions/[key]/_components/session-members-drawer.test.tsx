@@ -1,10 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import {
-  PokerSessionDetailsDto,
-  PokerSessionMemberMode,
-  Visibility,
-} from '@/src/services/wayd-api'
+import { PokerSessionDetailsDto, Visibility } from '@/src/services/wayd-api'
 import SessionMembersDrawer from './session-members-drawer'
 import { useGetPokerSessionInvitedTeamMembersQuery } from '@/src/store/features/planning/poker-sessions-api'
 
@@ -25,20 +21,14 @@ const session = {
   ],
   members: [
     {
-      employee: employee('m-1', 'Pat Participant'),
-      mode: PokerSessionMemberMode.Participant,
+      employee: employee('f-1', 'Fran Facilitator'),
+      isVoting: true,
       joinedOn: new Date('2026-01-15T10:00:00Z'),
     },
     {
-      employee: employee('m-2', 'Oli Observer'),
-      mode: PokerSessionMemberMode.Observer,
+      employee: employee('m-2', 'Pat Product'),
+      isVoting: false,
       joinedOn: new Date('2026-01-15T10:01:00Z'),
-    },
-    {
-      employee: employee('m-3', 'Lee Left'),
-      mode: PokerSessionMemberMode.Participant,
-      joinedOn: new Date('2026-01-15T10:02:00Z'),
-      leftOn: new Date('2026-01-15T10:30:00Z'),
     },
   ],
 } as unknown as PokerSessionDetailsDto
@@ -51,18 +41,17 @@ describe('SessionMembersDrawer', () => {
     })
   })
 
-  it('lists facilitators, members by mode, and who has left', () => {
+  it('lists facilitators, and who joined with their tags', () => {
     render(<SessionMembersDrawer session={session} open onClose={jest.fn()} />)
 
-    expect(screen.getByText('Fran Facilitator')).toBeInTheDocument()
-    expect(screen.getByText('In the session (2)')).toBeInTheDocument()
-    expect(screen.getByText('Pat Participant')).toBeInTheDocument()
-    expect(screen.getByText('Oli Observer')).toBeInTheDocument()
-    expect(screen.getByText('Left (1)')).toBeInTheDocument()
-    expect(screen.getByText('Lee Left')).toBeInTheDocument()
+    expect(screen.getByText('Joined (2)')).toBeInTheDocument()
+    expect(screen.getByText('Pat Product')).toBeInTheDocument()
+    expect(screen.getAllByText('Fran Facilitator')).toHaveLength(2)
+    expect(screen.getByText('Facilitator')).toBeInTheDocument()
+    expect(screen.getAllByText('Voting')).toHaveLength(1)
   })
 
-  it('expands an invited team into its members, each marked via the team', async () => {
+  it('expands an invited team into its members', async () => {
     render(<SessionMembersDrawer session={session} open onClose={jest.fn()} />)
 
     expect(useGetPokerSessionInvitedTeamMembersQuery).toHaveBeenLastCalledWith(
@@ -71,14 +60,48 @@ describe('SessionMembersDrawer', () => {
     )
     expect(screen.queryByText('Tam Teammate')).not.toBeInTheDocument()
 
-    await userEvent.click(screen.getByText(/Platform/))
+    const team = screen.getByRole('button', { name: /Platform/ })
+    expect(team).toHaveAttribute('aria-expanded', 'false')
+
+    await userEvent.click(team)
 
     expect(useGetPokerSessionInvitedTeamMembersQuery).toHaveBeenLastCalledWith(
       { sessionId: 'session-1', teamId: 'team-1' },
       { skip: false },
     )
+    expect(team).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText('Tam Teammate')).toBeInTheDocument()
-    expect(screen.getByText('via Platform')).toBeInTheDocument()
     expect(screen.getByText('Ivy Invited')).toBeInTheDocument()
+  })
+
+  it('says so when a team’s members cannot be loaded', async () => {
+    ;(useGetPokerSessionInvitedTeamMembersQuery as jest.Mock).mockReturnValue({
+      data: undefined,
+      isFetching: false,
+      isError: true,
+    })
+    render(<SessionMembersDrawer session={session} open onClose={jest.fn()} />)
+
+    await userEvent.click(screen.getByRole('button', { name: /Platform/ }))
+
+    expect(
+      screen.getByText("Could not load this team's members."),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('No members.')).not.toBeInTheDocument()
+  })
+
+  it('hides the invites of a public session, which admit no one', () => {
+    render(
+      <SessionMembersDrawer
+        session={{ ...session, visibility: Visibility.Public }}
+        open
+        onClose={jest.fn()}
+      />,
+    )
+
+    expect(screen.queryByText('Ivy Invited')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Platform/ }),
+    ).not.toBeInTheDocument()
   })
 })

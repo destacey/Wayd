@@ -1,13 +1,14 @@
 'use client'
 
 import { Alert, Flex, Form, Input, Modal, Spin, Tag, Typography } from 'antd'
-import { CSSProperties, useEffect } from 'react'
+import { CSSProperties, useEffect, useRef } from 'react'
 import {
   EstimationScaleDto,
   EstimationScaleVersionDto,
   Visibility,
 } from '@/src/services/wayd-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
+import { toApiError, toFormErrors } from '@/src/utils'
+import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import useTheme from '@/src/components/contexts/theme'
 import {
@@ -111,6 +112,7 @@ const EditPokerSessionForm = ({
   onFormCancel,
 }: EditPokerSessionFormProps) => {
   const { token } = useTheme()
+  const { user } = useAuth()
   const messageApi = useMessage()
 
   const { data: session, isLoading: sessionLoading } = useGetPokerSessionQuery(
@@ -131,6 +133,8 @@ const EditPokerSessionForm = ({
     useModalForm<EditPokerSessionFormValues>({
       onSubmit: async (values: EditPokerSessionFormValues, form) => {
         if (!session) return false
+        // Each call validates its own request, so its errors name its own properties.
+        let fieldFor: ((key: string) => string | undefined) | undefined
         try {
           const target = { id: session.id, key: session.key }
           const detailsChanged =
@@ -142,20 +146,6 @@ const EditPokerSessionForm = ({
               estimationScaleId: values.estimationScaleId,
             }
             const response = await updatePokerSession({ ...target, request })
-            if (response.error) throw response.error
-          }
-
-          const facilitatorIds = values.facilitatorIds ?? []
-          if (
-            !sameSet(
-              facilitatorIds,
-              session.facilitators.map((f) => f.id),
-            )
-          ) {
-            const response = await setFacilitators({
-              ...target,
-              employeeIds: facilitatorIds,
-            })
             if (response.error) throw response.error
           }
 
@@ -173,6 +163,12 @@ const EditPokerSessionForm = ({
                 session.invitedTeams.map((t) => t.id),
               )
             ) {
+              fieldFor = (key) =>
+                key.startsWith('employeeIds')
+                  ? 'invitedEmployeeIds'
+                  : key.startsWith('teamIds')
+                    ? 'invitedTeamIds'
+                    : undefined
               const response = await setInvitees({
                 ...target,
                 employeeIds,
@@ -182,8 +178,9 @@ const EditPokerSessionForm = ({
             }
           }
 
-          // Last, so the people invited above are let in when it turns private.
+          // After the invites, so the people invited above are let in when it turns private.
           if (values.visibility !== session.visibility) {
+            fieldFor = undefined
             const response = await setVisibility({
               ...target,
               visibility: values.visibility,
@@ -191,17 +188,34 @@ const EditPokerSessionForm = ({
             if (response.error) throw response.error
           }
 
+          // Last: a facilitator who removes themselves can change nothing after it.
+          const facilitatorIds = values.facilitatorIds ?? []
+          if (
+            !sameSet(
+              facilitatorIds,
+              session.facilitators.map((f) => f.id),
+            )
+          ) {
+            fieldFor = (key) =>
+              key.startsWith('employeeIds') ? 'facilitatorIds' : undefined
+            const response = await setFacilitators({
+              ...target,
+              employeeIds: facilitatorIds,
+            })
+            if (response.error) throw response.error
+          }
+
           messageApi.success('Successfully updated poker session.')
           return true
         } catch (error) {
-          const apiError: ApiError = isApiError(error) ? error : {}
+          const apiError = toApiError(error)
           if (apiError.status === 422 && apiError.errors) {
-            const formErrors = toFormErrors(apiError.errors)
-            form.setFields(formErrors)
+            form.setFields(toFormErrors(apiError.errors, { fieldFor }))
             messageApi.error('Correct the validation error(s) to continue.')
           } else {
             messageApi.error(
-              'An error occurred while updating the poker session. Please try again.',
+              apiError.detail ??
+                'An error occurred while updating the poker session. Please try again.',
             )
             console.error(error)
           }
@@ -216,8 +230,16 @@ const EditPokerSessionForm = ({
       permission: 'Permissions.PokerSessions.View',
     })
 
+  // Seeded once per opening: the session refetches on every vote and join, and
+  // reseeding would undo what the user is editing.
+  const seeded = useRef(false)
   useEffect(() => {
-    if (isOpen && session) {
+    if (!isOpen) {
+      seeded.current = false
+      return
+    }
+    if (session && !seeded.current) {
+      seeded.current = true
       form.setFieldsValue({
         name: session.name,
         estimationScaleId: session.estimationScale?.id,
@@ -324,7 +346,13 @@ const EditPokerSessionForm = ({
           </Flex>
         )}
         <div style={{ marginTop: 16 }}>
-          <SessionAccessFields />
+          <SessionAccessFields
+            selfEmployeeId={
+              session?.facilitators.some((f) => f.id === user?.employeeId)
+                ? (user?.employeeId ?? undefined)
+                : undefined
+            }
+          />
         </div>
       </Form>
     </Modal>

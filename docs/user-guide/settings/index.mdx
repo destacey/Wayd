@@ -579,7 +579,7 @@ From there you can **Requeue** the job to try again, or **Delete** it.
 
 - **Work Full Sync** and **Work Differential Sync** — Synchronize work data from every active work-management connection (Azure DevOps). Differential fetches only items changed since the last sync. A failed run is retried up to three times.
 - **People Full Sync** and **People Differential Sync** — Synchronize people from the active people connection (Entra or Workday). A connector that cannot fetch only changes, such as Entra, runs a differential sync as a full one. A failed run is not retried: fix the cause and run it again. The run fails when more than one people connection is active.
-- **Projects Sync, Teams Sync, Iterations Sync, and Strategic Themes Sync** — Replicate their respective records across domains.
+- **Projects Sync, Teams Sync, Iterations Sync, Strategic Themes Sync, and Estimation Scales Sync** — Replicate their respective records across domains.
 - **Portfolio Rank Rebalance** — Maintenance job that re-spaces dense project ranks within portfolios after repeated drag-to-rank operations.
 - **Import Stall Recovery** — Ends an import whose worker stopped responding and republishes one whose run never started. Scheduled every five minutes by default as `import-stall-recovery`; the schedule can be changed, and a deleted one is restored the next time the server starts. See [Imports](./imports.mdx#when-a-run-fails-unexpectedly).
 - **Import Retention Sweep** — Discards the stored copy of each row once an import is past its 30-day retention window. Scheduled nightly by default as `import-retention-sweep`; like the stall sweep, the schedule can be changed and a deleted one is restored the next time the server starts. See [Imports](./imports.mdx#limits-and-rules).

@@ -1,10 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+using CSharpFunctionalExtensions;
 using NodaTime;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
-using Wayd.Infrastructure.StatusWorkflows;
 using Wayd.ProductManagement.Domain;
 
 namespace Wayd.Infrastructure.Persistence.Initialization;
@@ -21,8 +20,6 @@ namespace Wayd.Infrastructure.Persistence.Initialization;
 /// </remarks>
 public class ProductManagementWorkflowSeeder : ICustomSeeder
 {
-    private const string IncidentLifecycleUpgradeName = "Default Incident Workflow v2";
-
     public async Task Initialize(WaydDbContext dbContext, IDateTimeProvider dateTimeProvider, CancellationToken cancellationToken)
     {
         ProductWorkflowOwners.Register();
@@ -86,214 +83,19 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
                 ("Recovered", "Service restored.", StatusCategory.Done, ProductStatusAlias.Resolved),
                 ("Closed", "Closed after recovery.", StatusCategory.Done, ProductStatusAlias.Closed),
                 ("Canceled", "Closed without treating as a real incident.", StatusCategory.Removed, ProductStatusAlias.Canceled),
-            ], dateTimeProvider, cancellationToken);
+            ],
+            dateTimeProvider,
+            cancellationToken,
+            ConfigureIncidentSystemLifecycle);
 
         if (seeded)
         {
             await seeding.Save(dbContext, cancellationToken);
         }
-
-        await EnsureIncidentWorkflowLifecycle(dbContext, dateTimeProvider, cancellationToken);
     }
 
-    /// <summary>
-    /// Moves the organization assignment onto a published workflow that carries the incident lifecycle
-    /// the aggregate expects. System workflows cannot be edited in place — the same route as Settings:
-    /// clone, change the draft, publish, reassign, migrate records.
-    /// </summary>
-    private static async Task EnsureIncidentWorkflowLifecycle(
-        WaydDbContext dbContext,
-        IDateTimeProvider dateTimeProvider,
-        CancellationToken cancellationToken)
+    private static Result ConfigureIncidentSystemLifecycle(StatusWorkflow workflow, EventActor actor, Instant timestamp)
     {
-        var assignment = await dbContext.WorkflowAssignments
-            .FirstOrDefaultAsync(
-                a => a.OwnerType == ProductWorkflowOwners.Incident.Key && a.ScopeId == null,
-                cancellationToken);
-
-        if (assignment is null)
-        {
-            return;
-        }
-
-        var current = await dbContext.StatusWorkflows
-            .Include(w => w.Statuses)
-            .Include(w => w.Transitions)
-            .FirstOrDefaultAsync(w => w.Id == assignment.WorkflowId, cancellationToken);
-
-        if (current is null || IncidentWorkflowHasExpectedLifecycle(current))
-        {
-            return;
-        }
-
-        var timestamp = dateTimeProvider.Now;
-        var actor = EventActor.System;
-
-        StatusWorkflow target;
-
-        var existingUpgrade = await dbContext.StatusWorkflows
-            .Include(w => w.Statuses)
-            .Include(w => w.Transitions)
-            .FirstOrDefaultAsync(
-                w => w.OwnerType == ProductWorkflowOwners.Incident.Key
-                     && w.Name == IncidentLifecycleUpgradeName
-                     && w.State == StatusWorkflowState.Published,
-                cancellationToken);
-
-        if (existingUpgrade is not null && IncidentWorkflowHasExpectedLifecycle(existingUpgrade))
-        {
-            target = existingUpgrade;
-        }
-        else
-        {
-            var draft = current.Clone(IncidentLifecycleUpgradeName, current.Description, actor, timestamp);
-            ApplyIncidentLifecycleStructure(draft, actor, timestamp);
-
-            var publication = draft.Publish(actor, timestamp);
-            if (publication.IsFailure)
-            {
-                throw new InvalidOperationException(
-                    $"The incident lifecycle upgrade could not be published: {publication.Error}");
-            }
-
-            dbContext.StatusWorkflows.Add(draft);
-            target = draft;
-        }
-
-        var remap = StatusRemap.AutoMap(current, target);
-        if (remap.IsFailure)
-        {
-            throw new InvalidOperationException(remap.Error);
-        }
-
-        if (!remap.Value.IsComplete)
-        {
-            var unresolved = string.Join(", ", remap.Value.Unresolved.Select(s => s.Name));
-            throw new InvalidOperationException(
-                $"The incident lifecycle upgrade could not map every status: {unresolved}.");
-        }
-
-        var migrator = new IncidentStatusRecordMigrator(dbContext);
-
-        var strategy = dbContext.Database.CreateExecutionStrategy();
-        await strategy.ExecuteAsync(async () =>
-        {
-            await using var unitOfWork = await dbContext.BeginUnitOfWork(cancellationToken);
-
-            await dbContext.SaveChangesAsync(cancellationToken);
-
-            var migrated = await migrator.Migrate(remap.Value, scopeId: null, actor, timestamp, cancellationToken);
-            if (migrated.IsFailure)
-            {
-                throw new InvalidOperationException(migrated.Error);
-            }
-
-            var reassigned = assignment.ReassignTo(target, remap.Value, actor, timestamp);
-            if (reassigned.IsFailure)
-            {
-                assignment.ClearDomainEvents();
-                throw new InvalidOperationException(reassigned.Error);
-            }
-
-            assignment.ClearDomainEvents();
-            target.ClearDomainEvents();
-
-            await dbContext.SaveChangesAsync(cancellationToken);
-
-            await unitOfWork.CommitAsync(cancellationToken);
-        });
-    }
-
-    private static bool IncidentWorkflowHasExpectedLifecycle(StatusWorkflow workflow)
-    {
-        if (workflow.TransitionMode != TransitionMode.Restricted)
-        {
-            return false;
-        }
-
-        var aliases = workflow.Statuses.Select(s => s.Alias).ToHashSet();
-        foreach (var required in ProductWorkflowOwners.Incident.RequiredAliases)
-        {
-            if (!aliases.Contains(required))
-            {
-                return false;
-            }
-        }
-
-        WorkflowStatus StatusFor(ProductStatusAlias alias) =>
-            workflow.Statuses.Single(s => s.Alias == (int)alias);
-
-        var desired = ProductWorkflowOwners.Incident.Moves
-            .Select(m => (From: StatusFor((ProductStatusAlias)m.FromAlias!.Value).Id,
-                To: StatusFor((ProductStatusAlias)m.ToAlias!.Value).Id))
-            .ToHashSet();
-
-        var current = workflow.Transitions
-            .Select(t => (t.FromStatusId, t.ToStatusId))
-            .ToHashSet();
-
-        return current.SetEquals(desired);
-    }
-
-    private static void ApplyIncidentLifecycleStructure(
-        StatusWorkflow workflow,
-        EventActor actor,
-        Instant timestamp)
-    {
-        if (workflow.Statuses.All(s => s.Alias != (int)ProductStatusAlias.Responding))
-        {
-            var added = workflow.AddStatus(
-                "Responding",
-                "Active response is under way.",
-                StatusCategory.Active,
-                (int)ProductStatusAlias.Responding,
-                actor,
-                timestamp);
-            if (added.IsFailure)
-            {
-                throw new InvalidOperationException(added.Error);
-            }
-        }
-
-        if (workflow.Statuses.All(s => s.Alias != (int)ProductStatusAlias.Closed))
-        {
-            var added = workflow.AddStatus(
-                "Closed",
-                "Closed after recovery.",
-                StatusCategory.Done,
-                (int)ProductStatusAlias.Closed,
-                actor,
-                timestamp);
-            if (added.IsFailure)
-            {
-                throw new InvalidOperationException(added.Error);
-            }
-        }
-
-        var resolved = workflow.Statuses.SingleOrDefault(s => s.Alias == (int)ProductStatusAlias.Resolved);
-        if (resolved is not null && resolved.Name != "Recovered")
-        {
-            var renamed = workflow.RenameStatus(
-                resolved.Id,
-                "Recovered",
-                "Service restored.",
-                actor,
-                timestamp);
-            if (renamed.IsFailure)
-            {
-                throw new InvalidOperationException(renamed.Error);
-            }
-        }
-
-        if (workflow.TransitionMode != TransitionMode.Restricted)
-        {
-            var mode = workflow.SetTransitionMode(TransitionMode.Restricted, actor, timestamp);
-            if (mode.IsFailure)
-            {
-                throw new InvalidOperationException(mode.Error);
-            }
-        }
-
         WorkflowStatus StatusFor(ProductStatusAlias alias) =>
             workflow.Statuses.Single(s => s.Alias == (int)alias);
 
@@ -303,18 +105,6 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
                 StatusFor((ProductStatusAlias)m.ToAlias!.Value).Id))
             .ToList();
 
-        var current = workflow.Transitions
-            .Select(t => (t.FromStatusId, t.ToStatusId))
-            .ToHashSet();
-
-        var desired = moves.Select(m => (m.FromStatusId, m.ToStatusId)).ToHashSet();
-        if (!current.SetEquals(desired))
-        {
-            var set = workflow.SetTransitions(moves, actor, timestamp);
-            if (set.IsFailure)
-            {
-                throw new InvalidOperationException(set.Error);
-            }
-        }
+        return workflow.ConfigureSystemLifecycle(TransitionMode.Restricted, moves, actor, timestamp);
     }
 }

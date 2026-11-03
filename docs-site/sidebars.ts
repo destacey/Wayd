@@ -143,6 +143,7 @@ const sidebars: SidebarsConfig = {
             'contributing/testing',
             'contributing/adding-a-feature',
             'contributing/database',
+            'contributing/design-system',
             'contributing/frontend',
             'contributing/record-pages',
             'contributing/wayd-grid',

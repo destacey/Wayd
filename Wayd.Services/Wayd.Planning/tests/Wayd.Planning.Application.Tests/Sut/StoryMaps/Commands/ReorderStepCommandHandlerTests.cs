@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class ReorderStepCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly ReorderStepCommandHandler _handler;
     private readonly Mock<ILogger<ReorderStepCommandHandler>> _mockLogger;
@@ -21,16 +22,16 @@ public class ReorderStepCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<ReorderStepCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new ReorderStepCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new ReorderStepCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     [Fact]
     public async Task Handle_ShouldReorderStep_WhenStepExists()
     {
         // Arrange
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", Guid.NewGuid().ToString(), "Goal", "Step");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", null, "Goal", "Step");
         var goalId = map.Goals[0].Id;
-        map.AddStep(goalId, "Second step");
+        map.AddStep(goalId, "Second step", StoryMapActors.Owner);
         var secondStepId = map.Goals[0].Steps.Single(s => s.Name == "Second step").Id;
         _dbContext.AddStoryMap(map);
 
@@ -66,7 +67,7 @@ public class ReorderStepCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenStepDoesNotExist()
     {
         // Arrange
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", Guid.NewGuid().ToString(), "Goal", "Step");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", null, "Goal", "Step");
         _dbContext.AddStoryMap(map);
 
         var command = new ReorderStepCommand(map.Id, Guid.NewGuid(), 0);

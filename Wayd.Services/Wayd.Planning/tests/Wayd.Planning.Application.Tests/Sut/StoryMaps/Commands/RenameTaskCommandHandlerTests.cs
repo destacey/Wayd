@@ -11,6 +11,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class RenameTaskCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly RenameTaskCommandHandler _handler;
     private readonly Mock<ILogger<RenameTaskCommandHandler>> _mockLogger;
@@ -22,14 +23,14 @@ public class RenameTaskCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<RenameTaskCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new RenameTaskCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new RenameTaskCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static (StoryMap Map, Guid TaskId) CreateMapWithTask()
     {
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
         var stepId = map.Goals[0].Steps[0].Id;
-        var task = map.AddTask(stepId, "T").Value;
+        var task = map.AddTask(stepId, "T", null, StoryMapActors.Owner).Value;
         return (map, task.Id);
     }
 
@@ -61,7 +62,7 @@ public class RenameTaskCommandHandlerTests : IDisposable
     {
         // Arrange
         var (map, taskId) = CreateMapWithTask();
-        map.SetTaskDescription(taskId, "Existing notes");
+        map.SetTaskDescription(taskId, "Existing notes", StoryMapActors.Owner);
         _dbContext.AddStoryMap(map);
 
         var command = new RenameTaskCommand(map.Id, taskId, "Updated title");

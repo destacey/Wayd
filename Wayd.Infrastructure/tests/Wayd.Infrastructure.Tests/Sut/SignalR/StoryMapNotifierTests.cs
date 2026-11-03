@@ -12,7 +12,10 @@ namespace Wayd.Infrastructure.Tests.Sut.SignalR;
 /// </summary>
 public class StoryMapNotifierTests
 {
-    private static (StoryMapNotifier Notifier, Mock<IClientProxy> Group) BuildNotifier(Exception? sendThrows = null)
+    private static (StoryMapNotifier Notifier, Mock<IClientProxy> Group) BuildNotifier(Exception? sendThrows = null) =>
+        BuildNotifier(new Mock<IRealtimeAccessRevoker>(), sendThrows);
+
+    private static (StoryMapNotifier Notifier, Mock<IClientProxy> Group) BuildNotifier(Mock<IRealtimeAccessRevoker> revoker, Exception? sendThrows = null)
     {
         var group = new Mock<IClientProxy>();
         var setup = group.Setup(p => p.SendCoreAsync(
@@ -31,8 +34,48 @@ public class StoryMapNotifierTests
         var hubContext = new Mock<IHubContext<StoryMapHub>>();
         hubContext.Setup(h => h.Clients).Returns(clients.Object);
 
-        var notifier = new StoryMapNotifier(hubContext.Object, Mock.Of<ILogger<StoryMapNotifier>>());
+        var notifier = new StoryMapNotifier(hubContext.Object, revoker.Object, Mock.Of<ILogger<StoryMapNotifier>>());
         return (notifier, group);
+    }
+
+    [Fact]
+    public async Task NotifyAccessChanged_ShouldEvictFirstThenTellTheRestToRefetch()
+    {
+        // Arrange
+        var mapId = Guid.NewGuid();
+        var order = new List<string>();
+        var revoker = new Mock<IRealtimeAccessRevoker>();
+        revoker.Setup(r => r.RecheckStoryMap(mapId, It.IsAny<CancellationToken>()))
+            .Callback(() => order.Add("evict"))
+            .Returns(Task.CompletedTask);
+        var (notifier, group) = BuildNotifier(revoker);
+        group.Setup(p => p.SendCoreAsync("MapUpdated", It.IsAny<object?[]>(), It.IsAny<CancellationToken>()))
+            .Callback(() => order.Add("broadcast"))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await notifier.NotifyAccessChanged(mapId);
+
+        // Assert — evicting first keeps the broadcast from reaching someone the map no longer admits.
+        order.Should().Equal("evict", "broadcast");
+    }
+
+    [Fact]
+    public async Task NotifyAccessChanged_WhenEvictionFails_ShouldStillBroadcast()
+    {
+        // Arrange
+        var mapId = Guid.NewGuid();
+        var revoker = new Mock<IRealtimeAccessRevoker>();
+        revoker.Setup(r => r.RecheckStoryMap(mapId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("lookup failed"));
+        var (notifier, group) = BuildNotifier(revoker);
+
+        // Act
+        var notify = async () => await notifier.NotifyAccessChanged(mapId);
+
+        // Assert
+        await notify.Should().NotThrowAsync();
+        group.Verify(p => p.SendCoreAsync("MapUpdated", It.IsAny<object?[]>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -83,7 +126,7 @@ public class StoryMapNotifierTests
         var hubContext = new Mock<IHubContext<StoryMapHub>>();
         hubContext.Setup(h => h.Clients).Returns(clients.Object);
 
-        var notifier = new StoryMapNotifier(hubContext.Object, Mock.Of<ILogger<StoryMapNotifier>>());
+        var notifier = new StoryMapNotifier(hubContext.Object, Mock.Of<IRealtimeAccessRevoker>(), Mock.Of<ILogger<StoryMapNotifier>>());
 
         // Act
         await notifier.NotifyMapUpdated(mapId);

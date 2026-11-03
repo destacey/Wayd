@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class DeleteTaskCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly DeleteTaskCommandHandler _handler;
     private readonly Mock<ILogger<DeleteTaskCommandHandler>> _mockLogger;
@@ -21,14 +22,14 @@ public class DeleteTaskCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<DeleteTaskCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new DeleteTaskCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new DeleteTaskCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static (StoryMap Map, Guid TaskId) CreateMapWithTask()
     {
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
         var stepId = map.Goals[0].Steps[0].Id;
-        var task = map.AddTask(stepId, "T").Value;
+        var task = map.AddTask(stepId, "T", null, StoryMapActors.Owner).Value;
         return (map, task.Id);
     }
 

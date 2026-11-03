@@ -877,8 +877,6 @@ public class StoryMapConfig : IEntityTypeConfiguration<StoryMap>
             .WhereNotDeleted();
         builder.HasIndex(m => new { m.Key, m.IsDeleted })
             .WhereNotDeleted();
-        builder.HasIndex(m => new { m.OwnerId, m.IsDeleted })
-            .WhereNotDeleted();
 
         builder.Property(m => m.Id).ValueGeneratedNever();
         builder.Property(m => m.Key).ValueGeneratedOnAdd();
@@ -886,9 +884,14 @@ public class StoryMapConfig : IEntityTypeConfiguration<StoryMap>
         builder.Property(m => m.Name).IsRequired().HasMaxLength(128);
         builder.Property(m => m.Description).HasMaxLength(2048);
 
-        builder.Property(m => m.OwnerId)
-            .IsRequired()
-            .HasMaxLength(450);
+        builder.Property(m => m.Visibility).IsRequired()
+            .HasConversion<EnumConverter<Visibility>>()
+            .HasMaxLength(32)
+            .HasColumnType("varchar");
+        builder.Property(m => m.EditAccess).IsRequired()
+            .HasConversion<EnumConverter<StoryMapEditAccess>>()
+            .HasMaxLength(32)
+            .HasColumnType("varchar");
 
         builder.Property(m => m.Status).IsRequired()
             .HasConversion<EnumConverter<StatusCategory>>()
@@ -903,10 +906,26 @@ public class StoryMapConfig : IEntityTypeConfiguration<StoryMap>
         builder.Property(m => m.IsDeleted);
 
         // Relationships
-        builder.HasOne(m => m.Owner)
-            .WithMany()
-            .HasForeignKey(m => m.OwnerId)
-            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasMany(m => m.Owners)
+            .WithOne()
+            .HasForeignKey(o => o.StoryMapId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(m => m.Owners)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(m => m.Editors)
+            .WithOne()
+            .HasForeignKey(e => e.StoryMapId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(m => m.Editors)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(m => m.EditorTeams)
+            .WithOne()
+            .HasForeignKey(t => t.StoryMapId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(m => m.EditorTeams)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasMany(m => m.Goals)
             .WithOne()
@@ -928,6 +947,59 @@ public class StoryMapConfig : IEntityTypeConfiguration<StoryMap>
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(m => m.Personas)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class StoryMapOwnerConfig : IEntityTypeConfiguration<StoryMapOwner>
+{
+    public void Configure(EntityTypeBuilder<StoryMapOwner> builder)
+    {
+        builder.ToTable("StoryMapOwners", SchemaNames.Planning);
+
+        builder.HasKey(o => new { o.StoryMapId, o.EmployeeId });
+
+        // Finds the maps an employee owns, which the access filter asks of every list.
+        builder.HasIndex(o => o.EmployeeId);
+
+        builder.HasOne(o => o.Employee)
+            .WithMany()
+            .HasForeignKey(o => o.EmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class StoryMapEditorConfig : IEntityTypeConfiguration<StoryMapEditor>
+{
+    public void Configure(EntityTypeBuilder<StoryMapEditor> builder)
+    {
+        builder.ToTable("StoryMapEditors", SchemaNames.Planning);
+
+        builder.HasKey(e => new { e.StoryMapId, e.EmployeeId });
+
+        builder.HasIndex(e => e.EmployeeId);
+
+        builder.HasOne(e => e.Employee)
+            .WithMany()
+            .HasForeignKey(e => e.EmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class StoryMapEditorTeamConfig : IEntityTypeConfiguration<StoryMapEditorTeam>
+{
+    public void Configure(EntityTypeBuilder<StoryMapEditorTeam> builder)
+    {
+        builder.ToTable("StoryMapEditorTeams", SchemaNames.Planning);
+
+        builder.HasKey(t => new { t.StoryMapId, t.TeamId });
+
+        builder.HasIndex(t => t.TeamId);
+
+        // An editor team goes with its team, as the team's other planning records do.
+        builder.HasOne(t => t.Team)
+            .WithMany()
+            .HasForeignKey(t => t.TeamId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 

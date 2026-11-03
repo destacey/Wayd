@@ -69,7 +69,8 @@ const EditStoryMapForm = ({
       onCancel: onFormCancel,
       errorMessage:
         'An error occurred while updating the story map. Please try again.',
-      permission: 'Permissions.StoryMaps.Update',
+      // The map decides who may do this; the page offers it only to its owners.
+      permission: 'Permissions.StoryMaps.View',
     })
 
   useEffect(() => {

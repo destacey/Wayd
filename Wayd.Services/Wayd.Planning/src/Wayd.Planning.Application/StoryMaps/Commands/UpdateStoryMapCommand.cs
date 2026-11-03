@@ -2,7 +2,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record UpdateStoryMapCommand(Guid Id, string Name, string? Description) : ICommand;
+public sealed record UpdateStoryMapCommand(Guid Id, string Name, string? Description) : ICommand, IRequireLinkedEmployee;
 
 public sealed class UpdateStoryMapCommandValidator : CustomValidator<UpdateStoryMapCommand>
 {
@@ -21,9 +21,10 @@ public sealed class UpdateStoryMapCommandValidator : CustomValidator<UpdateStory
     }
 }
 
-public sealed class UpdateStoryMapCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<UpdateStoryMapCommandHandler> logger) : ICommandHandler<UpdateStoryMapCommand>
+public sealed class UpdateStoryMapCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<UpdateStoryMapCommandHandler> logger) : ICommandHandler<UpdateStoryMapCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<UpdateStoryMapCommandHandler> _logger = logger;
 
@@ -32,12 +33,15 @@ public sealed class UpdateStoryMapCommandHandler(IPlanningDbContext planningDbCo
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken);
 
             if (map is null)
                 return Result.Failure("Story map not found.");
 
-            var result = map.Update(request.Name, request.Description);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.Update(request.Name, request.Description, actor);
             if (result.IsFailure)
                 return result;
 
@@ -46,7 +50,7 @@ public sealed class UpdateStoryMapCommandHandler(IPlanningDbContext planningDbCo
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

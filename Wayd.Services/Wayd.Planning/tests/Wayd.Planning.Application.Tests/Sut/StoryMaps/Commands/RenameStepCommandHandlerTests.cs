@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class RenameStepCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly RenameStepCommandHandler _handler;
     private readonly Mock<ILogger<RenameStepCommandHandler>> _mockLogger;
@@ -21,14 +22,14 @@ public class RenameStepCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<RenameStepCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new RenameStepCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new RenameStepCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     [Fact]
     public async Task Handle_ShouldRenameStep_WhenStepExists()
     {
         // Arrange
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", Guid.NewGuid().ToString(), "Goal", "Step");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", null, "Goal", "Step");
         var stepId = map.Goals[0].Steps[0].Id;
         _dbContext.AddStoryMap(map);
 
@@ -64,7 +65,7 @@ public class RenameStepCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenStepDoesNotExist()
     {
         // Arrange
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", Guid.NewGuid().ToString(), "Goal", "Step");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", null, "Goal", "Step");
         _dbContext.AddStoryMap(map);
 
         var command = new RenameStepCommand(map.Id, Guid.NewGuid(), "Renamed step");

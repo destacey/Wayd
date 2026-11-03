@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class RenameGoalCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly RenameGoalCommandHandler _handler;
     private readonly Mock<ILogger<RenameGoalCommandHandler>> _mockLogger;
@@ -21,11 +22,11 @@ public class RenameGoalCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<RenameGoalCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new RenameGoalCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new RenameGoalCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static StoryMap CreateMap() =>
-        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
 
     [Fact]
     public async Task Handle_ShouldRenameGoal_WhenGoalExists()

@@ -31731,7 +31731,8 @@
         "tags": [
           "StoryMaps"
         ],
-        "summary": "Get a list of story maps (id, key, name, description, status, owner).",
+        "summary": "Get a list of story maps (id, key, name, description, status, owners, access).",
+        "description": "Lists the maps the caller can see: every Public map, and the Private maps they own or edit, directly or through a team (all of them for a Story Maps administrator). Each entry has its `id`, `key`, `name`, `description`, `status`, `visibility` (Public or Private), `editAccess` (AnyoneWhoCanView or OwnersAndEditors), `owners`, `canManage` (whether the caller owns or administers it) and `canEdit` (whether the caller can change its content). Archived maps are left out unless `includeArchived` is true.",
         "operationId": "StoryMaps_GetList",
         "parameters": [
           {
@@ -31780,7 +31781,7 @@
           "StoryMaps"
         ],
         "summary": "Create a story map.",
-        "description": "Returns the new map's ID and key.",
+        "description": "Creates an empty map, with the caller as its first owner. `visibility` is `Public` (the default) or `Private`; `editAccess` is `AnyoneWhoCanView` (the default) or `OwnersAndEditors`; `ownerIds` adds owners beside the caller, and `editorIds` and `editorTeamIds` invite people and teams to edit (all employee or team UUIDs, all optional). The caller's account must be linked to an employee. Returns the new map's ID and key.",
         "operationId": "StoryMaps_Create",
         "requestBody": {
           "content": {
@@ -31829,6 +31830,7 @@
           "StoryMaps"
         ],
         "summary": "Get a story map in full: goals, each with ordered steps and tasks (including checklists, persona tags, and linked work item IDs), plus the map's swim lanes and personas.",
+        "description": "Takes the map's UUID or key; returns 404 for a Private map the caller cannot see. Also returns its access: `visibility`, `editAccess`, `owners`, `editors`, `editorTeams`, `canManage` (whether the caller owns or administers it) and `canEdit` (whether the caller can change its goals, steps, tasks, swim lanes, personas, checklists and work item links). Check `canEdit` before changing content: the change tools refuse a caller who cannot edit.",
         "operationId": "StoryMaps_Get",
         "parameters": [
           {
@@ -31870,12 +31872,75 @@
         ]
       }
     },
+    "/api/planning/story-maps/{id}/editor-teams/{teamId}/members": {
+      "get": {
+        "tags": [
+          "StoryMaps"
+        ],
+        "summary": "Get the members of a team invited to edit a story map.",
+        "description": "Lists the active direct members of `teamId`, one of the map's editor teams, by employee `id`, `key` and `name`. An editor team admits its current members, and the members of its current team of teams. Returns 404 when the caller cannot see the map or the team is not one of its editor teams. Both ids are UUIDs.",
+        "operationId": "StoryMaps_GetEditorTeamMembers",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmployeeNavigationDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/planning/story-maps/{id}": {
       "put": {
         "tags": [
           "StoryMaps"
         ],
         "summary": "Update a story map's name and description.",
+        "description": "An archived map cannot be updated. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.",
         "operationId": "StoryMaps_Update",
         "parameters": [
           {
@@ -31927,7 +31992,7 @@
           "StoryMaps"
         ],
         "summary": "Delete a story map and everything on it.",
-        "description": "This is permanent — prefer StoryMaps_ArchiveStoryMap unless deletion is explicitly intended.",
+        "description": "This is permanent — prefer StoryMaps_ArchiveStoryMap unless deletion is explicitly intended. Only the map's owners, and holders of the Story Maps Administer permission, can do this.",
         "operationId": "StoryMaps_Delete",
         "parameters": [
           {
@@ -31963,13 +32028,14 @@
         ]
       }
     },
-    "/api/planning/story-maps/{id}/owner": {
+    "/api/planning/story-maps/{id}/owners": {
       "put": {
         "tags": [
           "StoryMaps"
         ],
-        "summary": "Change the owner of a story map.",
-        "operationId": "StoryMaps_ChangeOwner",
+        "summary": "Set a story map's owners.",
+        "description": "Replaces the owners with `employeeIds` (employee UUIDs, at least one). Owners manage the map: its name and description, archiving, deletion, owners, editors, visibility and edit access. An owner can remove themselves. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.",
+        "operationId": "StoryMaps_SetOwners",
         "parameters": [
           {
             "name": "id",
@@ -31986,7 +32052,169 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ChangeStoryMapOwnerRequest"
+                "$ref": "#/components/schemas/SetStoryMapOwnersRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/story-maps/{id}/editors": {
+      "put": {
+        "tags": [
+          "StoryMaps"
+        ],
+        "summary": "Set who is invited to edit a story map.",
+        "description": "Replaces the editors with `employeeIds` and `teamIds` (UUIDs; empty lists remove every editor). Editors can see a Private map and change its content whatever its edit access; a team admits its current members and the members of its current team of teams. An editor still needs the Story Maps View permission. Removing an editor disconnects anyone the map no longer admits from its live updates. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.",
+        "operationId": "StoryMaps_SetEditors",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetStoryMapEditorsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/story-maps/{id}/visibility": {
+      "put": {
+        "tags": [
+          "StoryMaps"
+        ],
+        "summary": "Set who can see a story map.",
+        "description": "`visibility` is `Public`, which anyone with the Story Maps View permission can see, or `Private`, which only the map's owners, editors and the members of its editor teams can. Making a map private disconnects anyone it no longer admits from its live updates. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.",
+        "operationId": "StoryMaps_SetVisibility",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetStoryMapVisibilityRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/story-maps/{id}/edit-access": {
+      "put": {
+        "tags": [
+          "StoryMaps"
+        ],
+        "summary": "Set who can edit a public story map.",
+        "description": "`editAccess` is `AnyoneWhoCanView`, which lets everyone who can see a Public map change its content, or `OwnersAndEditors`, which lets only its owners, editors and the members of its editor teams. A Private map admits only its owners and editors, so there it has no effect. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.",
+        "operationId": "StoryMaps_SetEditAccess",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetStoryMapEditAccessRequest"
               }
             }
           },
@@ -32022,6 +32250,7 @@
           "StoryMaps"
         ],
         "summary": "Archive a story map.",
+        "description": "An archived map is read-only and cannot be restored. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.",
         "operationId": "StoryMaps_Archive",
         "parameters": [
           {
@@ -54450,19 +54679,6 @@
         },
         "additionalProperties": false
       },
-      "ChangeStoryMapOwnerRequest": {
-        "required": [
-          "ownerId"
-        ],
-        "type": "object",
-        "properties": {
-          "ownerId": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
       "ChangeWorkflowSchemeDefaultRequest": {
         "required": [
           "workflowId",
@@ -56940,7 +57156,9 @@
       },
       "CreateStoryMapRequest": {
         "required": [
-          "name"
+          "name",
+          "visibility",
+          "editAccess"
         ],
         "type": "object",
         "properties": {
@@ -56953,9 +57171,53 @@
             "maxLength": 2048,
             "type": "string",
             "nullable": true
+          },
+          "visibility": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Visibility"
+              }
+            ],
+            "description": "`Public` (the default): anyone with the Story Maps View permission can see the map. `Private`: only its\nowners, editors and the members of its editor teams."
+          },
+          "editAccess": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StoryMapEditAccess"
+              }
+            ],
+            "description": "Who can change a public map's content: `AnyoneWhoCanView` (the default), or `OwnersAndEditors`."
+          },
+          "ownerIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Employees who own the map alongside the caller, who is always an owner.",
+            "nullable": true
+          },
+          "editorIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Employees invited to edit the map.",
+            "nullable": true
+          },
+          "editorTeamIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Teams whose current members are invited to edit the map.",
+            "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "A new story map, with who owns it, who can edit it and who can see it."
       },
       "CreateStrategicInitiativeKpiRequest": {
         "required": [
@@ -74802,6 +75064,88 @@
         },
         "additionalProperties": false
       },
+      "SetStoryMapEditAccessRequest": {
+        "required": [
+          "editAccess"
+        ],
+        "type": "object",
+        "properties": {
+          "editAccess": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StoryMapEditAccess"
+              }
+            ],
+            "description": "Who can change a public map's content: `AnyoneWhoCanView`, or `OwnersAndEditors`. A private map admits only\nits owners and editors, so there it has no effect."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Who can edit a public story map from now on."
+      },
+      "SetStoryMapEditorsRequest": {
+        "required": [
+          "employeeIds",
+          "teamIds"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The employees invited to edit the map, replacing the current list. Empty removes every employee editor."
+          },
+          "teamIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The teams invited to edit the map, replacing the current list. Empty removes every team."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The people and teams invited to edit a story map from now on."
+      },
+      "SetStoryMapOwnersRequest": {
+        "required": [
+          "employeeIds"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The employees who own the map from now on, replacing the current list. At least one."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The owners a story map has from now on."
+      },
+      "SetStoryMapVisibilityRequest": {
+        "required": [
+          "visibility"
+        ],
+        "type": "object",
+        "properties": {
+          "visibility": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Visibility"
+              }
+            ],
+            "description": "`Public`: anyone with the Story Maps View permission can see the map. `Private`: only its owners, editors\nand the members of its editor teams."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Who can see a story map from now on."
+      },
       "SetSwimLaneDatesRequest": {
         "type": "object",
         "properties": {
@@ -77132,7 +77476,14 @@
           "swimLanes",
           "personas",
           "id",
-          "key"
+          "key",
+          "visibility",
+          "editAccess",
+          "owners",
+          "editors",
+          "editorTeams",
+          "canManage",
+          "canEdit"
         ],
         "type": "object",
         "properties": {
@@ -77154,13 +77505,50 @@
           "status": {
             "type": "string"
           },
-          "owner": {
+          "visibility": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/UserNavigationDto"
+                "$ref": "#/components/schemas/Visibility"
               }
             ],
-            "nullable": true
+            "description": "Public: anyone with the Story Maps View permission can see the map. Private: only its owners and editors."
+          },
+          "editAccess": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StoryMapEditAccess"
+              }
+            ],
+            "description": "Who can change a public map's content: anyone who can view it, or only its owners and editors. A private map\nadmits only its owners and editors, so there it has no effect."
+          },
+          "owners": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeNavigationDto"
+            },
+            "description": "The employees who own the map: its details, lifecycle and access."
+          },
+          "editors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeNavigationDto"
+            },
+            "description": "The employees invited to edit the map."
+          },
+          "editorTeams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanningTeamNavigationDto"
+            },
+            "description": "The teams whose current members, and the members of their current team of teams, are invited to edit the map."
+          },
+          "canManage": {
+            "type": "boolean",
+            "description": "Whether the caller manages the map, as an owner or a Story Maps administrator. Always false for a read-only\ntoken or an account with no linked employee."
+          },
+          "canEdit": {
+            "type": "boolean",
+            "description": "Whether the caller can change the map's content. Says nothing about whether the map is archived. Always false\nfor a read-only token or an account with no linked employee."
           },
           "goals": {
             "type": "array",
@@ -77182,7 +77570,14 @@
           }
         },
         "additionalProperties": false,
-        "description": "The full Story Map: its goals (each with steps and tasks), swim lanes, and personas."
+        "description": "The full Story Map: its access, goals (each with steps and tasks), swim lanes, and personas."
+      },
+      "StoryMapEditAccess": {
+        "enum": [
+          "AnyoneWhoCanView",
+          "OwnersAndEditors"
+        ],
+        "type": "string"
       },
       "StoryMapGoalDto": {
         "required": [
@@ -77226,7 +77621,12 @@
           "name",
           "status",
           "id",
-          "key"
+          "key",
+          "visibility",
+          "editAccess",
+          "owners",
+          "canManage",
+          "canEdit"
         ],
         "type": "object",
         "properties": {
@@ -77248,17 +77648,40 @@
           "status": {
             "type": "string"
           },
-          "owner": {
+          "visibility": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/UserNavigationDto"
+                "$ref": "#/components/schemas/Visibility"
               }
             ],
-            "nullable": true
+            "description": "Public: anyone with the Story Maps View permission can see the map. Private: only its owners and editors."
+          },
+          "editAccess": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StoryMapEditAccess"
+              }
+            ],
+            "description": "Who can change a public map's content: anyone who can view it, or only its owners and editors."
+          },
+          "owners": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmployeeNavigationDto"
+            },
+            "description": "The employees who own the map."
+          },
+          "canManage": {
+            "type": "boolean",
+            "description": "Whether the caller manages the map, as an owner or a Story Maps administrator. Always false for a read-only\ntoken or an account with no linked employee."
+          },
+          "canEdit": {
+            "type": "boolean",
+            "description": "Whether the caller can change the map's content. Says nothing about whether the map is archived. Always false\nfor a read-only token or an account with no linked employee."
           }
         },
         "additionalProperties": false,
-        "description": "A Story Map summarised for lists: name, description, owner, and status, without its content."
+        "description": "A Story Map summarised for lists: name, description, owners, access and status, without its content."
       },
       "StoryMapPersonaDto": {
         "required": [

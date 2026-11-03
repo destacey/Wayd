@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class MoveStepCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly MoveStepCommandHandler _handler;
     private readonly Mock<ILogger<MoveStepCommandHandler>> _mockLogger;
@@ -21,19 +22,19 @@ public class MoveStepCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<MoveStepCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new MoveStepCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new MoveStepCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     [Fact]
     public async Task Handle_ShouldMoveStep_WhenSourceGoalKeepsAStep()
     {
         // Arrange
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", Guid.NewGuid().ToString(), "Goal 1", "Step");
-        map.AddGoal("Goal 2");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", null, "Goal 1", "Step");
+        map.AddGoal("Goal 2", StoryMapActors.Owner);
         var sourceGoalId = map.Goals[0].Id;
         var targetGoalId = map.Goals[1].Id;
         // Give the source goal a second step so it can survive the move.
-        map.AddStep(sourceGoalId, "Movable step");
+        map.AddStep(sourceGoalId, "Movable step", StoryMapActors.Owner);
         var stepId = map.Goals[0].Steps.Single(s => s.Name == "Movable step").Id;
         _dbContext.AddStoryMap(map);
 
@@ -70,8 +71,8 @@ public class MoveStepCommandHandlerTests : IDisposable
     public async Task Handle_ShouldSucceed_WhenMovingLastStepOutOfGoal()
     {
         // Arrange — moving a goal's only step is allowed; the source goal is left with no steps.
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", Guid.NewGuid().ToString(), "Goal 1", "Step");
-        map.AddGoal("Goal 2");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", null, "Goal 1", "Step");
+        map.AddGoal("Goal 2", StoryMapActors.Owner);
         var sourceGoalId = map.Goals[0].Id;
         var targetGoalId = map.Goals[1].Id;
         var stepId = map.Goals.Single(g => g.Id == sourceGoalId).Steps[0].Id;

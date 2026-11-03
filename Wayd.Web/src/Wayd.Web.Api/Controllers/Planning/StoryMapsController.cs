@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
 using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Planning.Application.StoryMaps.Commands;
@@ -17,11 +18,15 @@ namespace Wayd.Web.Api.Controllers.Planning;
 [McpTools(McpToolset.Planning, "wayd-story-maps")]
 public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
 {
+    private const string OnlyOwners = " Only the map's owners, and holders of the Story Maps Administer permission, can do this.";
+
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
-    [EndpointSummary("Get a list of story maps (id, key, name, description, status, owner).")]
+    [EndpointSummary("Get a list of story maps (id, key, name, description, status, owners, access).")]
+    [EndpointDescription(
+        "Lists the maps the caller can see: every Public map, and the Private maps they own or edit, directly or through a team (all of them for a Story Maps administrator). Each entry has its `id`, `key`, `name`, `description`, `status`, `visibility` (Public or Private), `editAccess` (AnyoneWhoCanView or OwnersAndEditors), `owners`, `canManage` (whether the caller owns or administers it) and `canEdit` (whether the caller can change its content). Archived maps are left out unless `includeArchived` is true.")]
     [McpTool("StoryMaps_GetStoryMaps", "List story maps")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -35,6 +40,8 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary(
         "Get a story map in full: goals, each with ordered steps and tasks (including checklists, persona tags, and linked work item IDs), plus the map's swim lanes and personas.")]
+    [EndpointDescription(
+        "Takes the map's UUID or key; returns 404 for a Private map the caller cannot see. Also returns its access: `visibility`, `editAccess`, `owners`, `editors`, `editorTeams`, `canManage` (whether the caller owns or administers it) and `canEdit` (whether the caller can change its goals, steps, tasks, swim lanes, personas, checklists and work item links). Check `canEdit` before changing content: the change tools refuse a caller who cannot edit.")]
     [McpTool("StoryMaps_GetStoryMap", "Get story map")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -46,10 +53,27 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
             : NotFound();
     }
 
+    [HttpGet("{id}/editor-teams/{teamId}/members")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
+    [EndpointSummary("Get the members of a team invited to edit a story map.")]
+    [EndpointDescription(
+        "Lists the active direct members of `teamId`, one of the map's editor teams, by employee `id`, `key` and `name`. An editor team admits its current members, and the members of its current team of teams. Returns 404 when the caller cannot see the map or the team is not one of its editor teams. Both ids are UUIDs.")]
+    [McpTool("StoryMaps_GetEditorTeamMembers", "Get story map editor team members")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<EmployeeNavigationDto>>> GetEditorTeamMembers(Guid id, Guid teamId, CancellationToken cancellationToken)
+    {
+        var members = await _dispatcher.Send(new GetStoryMapEditorTeamMembersQuery(id, teamId), cancellationToken);
+        return members is not null
+            ? Ok(members)
+            : NotFound();
+    }
+
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.StoryMaps)]
     [EndpointSummary("Create a story map.")]
-    [EndpointDescription("Returns the new map's ID and key.")]
+    [EndpointDescription(
+        "Creates an empty map, with the caller as its first owner. `visibility` is `Public` (the default) or `Private`; `editAccess` is `AnyoneWhoCanView` (the default) or `OwnersAndEditors`; `ownerIds` adds owners beside the caller, and `editorIds` and `editorTeamIds` invite people and teams to edit (all employee or team UUIDs, all optional). The caller's account must be linked to an employee. Returns the new map's ID and key.")]
     [McpTool("StoryMaps_CreateStoryMap", "Create a story map", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateStoryMapRequest request, CancellationToken cancellationToken)
@@ -61,8 +85,9 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Update a story map's name and description.")]
+    [EndpointDescription("An archived map cannot be updated." + OnlyOwners + " Takes the map's UUID.")]
     [McpTool("StoryMaps_UpdateStoryMap", "Update a story map")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -74,23 +99,74 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
-    [HttpPut("{id}/owner")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
-    [EndpointSummary("Change the owner of a story map.")]
+    [HttpPut("{id}/owners")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
+    [EndpointSummary("Set a story map's owners.")]
+    [EndpointDescription(
+        "Replaces the owners with `employeeIds` (employee UUIDs, at least one). Owners manage the map: its name and description, archiving, deletion, owners, editors, visibility and edit access. An owner can remove themselves. Allowed on an active or an archived map." + OnlyOwners + " Takes the map's UUID.")]
     [McpTool("StoryMaps_ChangeStoryMapOwner", "Change story map owner")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> ChangeOwner(Guid id, [FromBody] ChangeStoryMapOwnerRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult> SetOwners(Guid id, [FromBody] SetStoryMapOwnersRequest request, CancellationToken cancellationToken)
     {
-        var result = await _dispatcher.Send(request.ToChangeStoryMapOwnerCommand(id), cancellationToken);
+        var result = await _dispatcher.Send(request.ToSetStoryMapOwnersCommand(id), cancellationToken);
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/editors")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
+    [EndpointSummary("Set who is invited to edit a story map.")]
+    [EndpointDescription(
+        "Replaces the editors with `employeeIds` and `teamIds` (UUIDs; empty lists remove every editor). Editors can see a Private map and change its content whatever its edit access; a team admits its current members and the members of its current team of teams. An editor still needs the Story Maps View permission. Removing an editor disconnects anyone the map no longer admits from its live updates. Allowed on an active or an archived map." + OnlyOwners + " Takes the map's UUID.")]
+    [McpTool("StoryMaps_SetStoryMapEditors", "Set story map editors", Idempotent = true)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> SetEditors(Guid id, [FromBody] SetStoryMapEditorsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToSetStoryMapEditorsCommand(id), cancellationToken);
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/visibility")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
+    [EndpointSummary("Set who can see a story map.")]
+    [EndpointDescription(
+        "`visibility` is `Public`, which anyone with the Story Maps View permission can see, or `Private`, which only the map's owners, editors and the members of its editor teams can. Making a map private disconnects anyone it no longer admits from its live updates. Allowed on an active or an archived map." + OnlyOwners + " Takes the map's UUID.")]
+    [McpTool("StoryMaps_SetStoryMapVisibility", "Set story map visibility", Idempotent = true)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> SetVisibility(Guid id, [FromBody] SetStoryMapVisibilityRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToSetStoryMapVisibilityCommand(id), cancellationToken);
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/edit-access")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
+    [EndpointSummary("Set who can edit a public story map.")]
+    [EndpointDescription(
+        "`editAccess` is `AnyoneWhoCanView`, which lets everyone who can see a Public map change its content, or `OwnersAndEditors`, which lets only its owners, editors and the members of its editor teams. A Private map admits only its owners and editors, so there it has no effect. Allowed on an active or an archived map." + OnlyOwners + " Takes the map's UUID.")]
+    [McpTool("StoryMaps_SetStoryMapEditAccess", "Set story map edit access", Idempotent = true)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> SetEditAccess(Guid id, [FromBody] SetStoryMapEditAccessRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToSetStoryMapEditAccessCommand(id), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
     [HttpPut("{id}/archive")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Archive a story map.")]
+    [EndpointDescription("An archived map is read-only and cannot be restored." + OnlyOwners + " Takes the map's UUID.")]
     [McpTool("StoryMaps_ArchiveStoryMap", "Archive a story map")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -103,9 +179,9 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [MustHavePermission(ApplicationAction.Delete, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Delete a story map and everything on it.")]
-    [EndpointDescription("This is permanent — prefer StoryMaps_ArchiveStoryMap unless deletion is explicitly intended.")]
+    [EndpointDescription("This is permanent — prefer StoryMaps_ArchiveStoryMap unless deletion is explicitly intended." + OnlyOwners)]
     [McpTool("StoryMaps_DeleteStoryMap", "Delete a story map")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -122,7 +198,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     // ---------------------------------------------------------------------------------------------
 
     [HttpPost("{storyMapId}/goals")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Add a goal to a story map.")]
     [EndpointDescription("The goal is created empty; add its steps with StoryMaps_AddStep.")]
     [McpTool("StoryMaps_AddGoal", "Add a story map goal", Destructive = false)]
@@ -135,7 +211,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/goals/{goalId}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Rename a goal.")]
     [McpTool("StoryMaps_RenameGoal", "Rename a story map goal")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -147,7 +223,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/goals/{goalId}/order")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Reorder a goal within the map.")]
     [McpTool("StoryMaps_ReorderGoal", "Reorder a story map goal")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -159,7 +235,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpDelete("{storyMapId}/goals/{goalId}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Delete a goal, along with its steps and their tasks.")]
     [McpTool("StoryMaps_DeleteGoal", "Delete a story map goal")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -175,7 +251,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     // ---------------------------------------------------------------------------------------------
 
     [HttpPost("{storyMapId}/steps")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Add a step to a goal.")]
     [McpTool("StoryMaps_AddStep", "Add a story map step", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -187,7 +263,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/steps/{stepId}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Rename a step.")]
     [McpTool("StoryMaps_RenameStep", "Rename a story map step")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -199,7 +275,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/steps/{stepId}/order")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Reorder a step within its goal.")]
     [McpTool("StoryMaps_ReorderStep", "Reorder a story map step")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -211,7 +287,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/steps/{stepId}/move")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Move a step into a different goal.")]
     [McpTool("StoryMaps_MoveStep", "Move a step to another goal")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -223,7 +299,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpDelete("{storyMapId}/steps/{stepId}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Delete a step and its tasks.")]
     [McpTool("StoryMaps_DeleteStep", "Delete a story map step")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -239,7 +315,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     // ---------------------------------------------------------------------------------------------
 
     [HttpPost("{storyMapId}/tasks")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Add a task (story card) to a step.")]
     [EndpointDescription("Without a swimLaneId, it lands in the default swim lane.")]
     [McpTool("StoryMaps_AddTask", "Add a story map task", Destructive = false)]
@@ -252,7 +328,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/tasks/{taskId}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Update a task's title and description.")]
     [McpTool("StoryMaps_UpdateTask", "Update a story map task")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -264,7 +340,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/tasks/{taskId}/title")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Rename a task.")]
     [EndpointDescription("Updates only the title, leaving the description untouched. Prefer this over the combined update when editing one field, so a concurrent edit to the other is not reverted.")]
     [McpTool("StoryMaps_RenameTask", "Rename a story map task")]
@@ -277,7 +353,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/tasks/{taskId}/description")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Set a task's description.")]
     [EndpointDescription("Updates only the description, leaving the title untouched. Prefer this over the combined update when editing one field, so a concurrent edit to the other is not reverted.")]
     [McpTool("StoryMaps_SetTaskDescription", "Set a story map task description")]
@@ -290,7 +366,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/tasks/{taskId}/move")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Move a task to a step and swim lane.")]
     [McpTool("StoryMaps_MoveTask", "Move a story map task")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -302,7 +378,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpDelete("{storyMapId}/tasks/{taskId}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Delete a task.")]
     [McpTool("StoryMaps_DeleteTask", "Delete a story map task")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -314,7 +390,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/tasks/{taskId}/personas")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Set the personas tagged on a task.")]
     [EndpointDescription("Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchTaskPersonas instead.")]
     [McpTool("StoryMaps_SetTaskPersonas", "Set a task's personas")]
@@ -327,7 +403,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPatch("{storyMapId}/tasks/{taskId}/personas")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Tag or untag personas on a task with a JSON Patch (RFC 6902), keeping the tags it does not name.")]
     [EndpointDescription(PersonaPatchGuidance)]
     [McpTool("StoryMaps_PatchTaskPersonas", "Patch a task's personas")]
@@ -353,7 +429,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     // ---------------------------------------------------------------------------------------------
 
     [HttpPost("{storyMapId}/tasks/{taskId}/checklist")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Add a checklist item to a task.")]
     [EndpointDescription("Returns the updated task.")]
     [McpTool("StoryMaps_AddChecklistItem", "Add a checklist item", Destructive = false)]
@@ -366,7 +442,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/tasks/{taskId}/checklist/{itemId}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Rename a checklist item.")]
     [McpTool("StoryMaps_RenameChecklistItem", "Rename a checklist item")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -378,7 +454,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/tasks/{taskId}/checklist/{itemId}/checked")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Check or uncheck a checklist item.")]
     [McpTool("StoryMaps_SetChecklistItemChecked", "Check or uncheck a checklist item")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -390,7 +466,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpDelete("{storyMapId}/tasks/{taskId}/checklist/{itemId}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Remove a checklist item from a task.")]
     [McpTool("StoryMaps_RemoveChecklistItem", "Remove a checklist item")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -402,7 +478,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPost("{storyMapId}/tasks/{taskId}/checklist/{itemId}/promote")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Promote a checklist item into its own task in the same step.")]
     [EndpointDescription("Returns the new task.")]
     [McpTool("StoryMaps_PromoteChecklistItem", "Promote a checklist item to a task")]
@@ -419,7 +495,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     // ---------------------------------------------------------------------------------------------
 
     [HttpPut("{storyMapId}/tasks/{taskId}/work-item-link")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Link a task to an existing work item. A work item can be linked to at most one task per map.")]
     [McpTool("StoryMaps_LinkWorkItem", "Link a story map task to a work item")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -431,7 +507,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpDelete("{storyMapId}/tasks/{taskId}/work-item-link")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Unlink a task from its work item.")]
     [McpTool("StoryMaps_UnlinkWorkItem", "Unlink a story map task from its work item")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -447,7 +523,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     // ---------------------------------------------------------------------------------------------
 
     [HttpPost("{storyMapId}/swim-lanes")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Add a swim lane, appended below the existing ones.")]
     [McpTool("StoryMaps_AddSwimLane", "Add a swim lane", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -459,7 +535,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/swim-lanes/{swimLaneId}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Rename a swim lane. The default swim lane cannot be renamed.")]
     [McpTool("StoryMaps_RenameSwimLane", "Rename a swim lane")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -471,7 +547,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/swim-lanes/{swimLaneId}/dates")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Set a swim lane's descriptive start and end dates.")]
     [EndpointDescription("Pass null to clear a date.")]
     [McpTool("StoryMaps_SetSwimLaneDates", "Set swim lane dates")]
@@ -484,7 +560,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/swim-lanes/{swimLaneId}/order")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Reorder a swim lane. The default swim lane cannot be reordered.")]
     [McpTool("StoryMaps_ReorderSwimLane", "Reorder a swim lane")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -496,7 +572,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpDelete("{storyMapId}/swim-lanes/{swimLaneId}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Remove a swim lane.")]
     [EndpointDescription("Its tasks return to the default swim lane; the response is the number of tasks moved.")]
     [McpTool("StoryMaps_RemoveSwimLane", "Remove a swim lane")]
@@ -513,7 +589,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     // ---------------------------------------------------------------------------------------------
 
     [HttpPost("{storyMapId}/personas")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Define a persona on the map.")]
     [McpTool("StoryMaps_AddPersona", "Add a persona", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -525,7 +601,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/personas/{personaId}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Update a persona's name, description, and color.")]
     [McpTool("StoryMaps_UpdatePersona", "Update a persona")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -537,7 +613,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpDelete("{storyMapId}/personas/{personaId}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Delete a persona and strip its tag from every goal, step, and task.")]
     [EndpointDescription("The response is the number of nodes untagged.")]
     [McpTool("StoryMaps_DeletePersona", "Delete a persona")]
@@ -550,7 +626,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/personas/{personaId}/order")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Reorder a persona within the map's persona list.")]
     [McpTool("StoryMaps_ReorderPersona", "Reorder a persona")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -562,7 +638,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{storyMapId}/goals/{goalId}/personas")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Set the personas tagged on a goal.")]
     [EndpointDescription("Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchGoalPersonas instead.")]
     [McpTool("StoryMaps_SetGoalPersonas", "Set a goal's personas")]
@@ -575,7 +651,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPatch("{storyMapId}/goals/{goalId}/personas")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Tag or untag personas on a goal with a JSON Patch (RFC 6902), keeping the tags it does not name.")]
     [EndpointDescription(PersonaPatchGuidance)]
     [McpTool("StoryMaps_PatchGoalPersonas", "Patch a goal's personas")]
@@ -595,7 +671,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
             cancellationToken);
 
     [HttpPut("{storyMapId}/steps/{stepId}/personas")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Set the personas tagged on a step.")]
     [EndpointDescription("Replaces the full set — pass every persona ID that should remain tagged. To tag one more persona, use StoryMaps_PatchStepPersonas instead.")]
     [McpTool("StoryMaps_SetStepPersonas", "Set a step's personas")]
@@ -608,7 +684,7 @@ public class StoryMapsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPatch("{storyMapId}/steps/{stepId}/personas")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StoryMaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.StoryMaps)]
     [EndpointSummary("Tag or untag personas on a step with a JSON Patch (RFC 6902), keeping the tags it does not name.")]
     [EndpointDescription(PersonaPatchGuidance)]
     [McpTool("StoryMaps_PatchStepPersonas", "Patch a step's personas")]

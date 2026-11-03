@@ -94,7 +94,7 @@ public sealed partial class JsonPatchBindingTests(WaydSqlServerApiFactory factor
             ApplicationPermission.NameFor(ApplicationAction.Update, ApplicationResource.Programs),
             ApplicationPermission.NameFor(ApplicationAction.Update, ApplicationResource.ProjectPortfolios),
             ApplicationPermission.NameFor(ApplicationAction.Update, ApplicationResource.Roadmaps),
-            ApplicationPermission.NameFor(ApplicationAction.Update, ApplicationResource.StoryMaps),
+            ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.StoryMaps),
             ApplicationPermission.NameFor(ApplicationAction.Update, ApplicationResource.Releases),
             ApplicationPermission.NameFor(ApplicationAction.Update, ApplicationResource.Delivery));
 

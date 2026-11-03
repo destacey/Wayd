@@ -5089,6 +5089,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(2048)
                         .HasColumnType("nvarchar(2048)");
 
+                    b.Property<string>("EditAccess")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -5102,11 +5107,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("OwnerId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -5132,6 +5132,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
                     b.HasKey("Id");
 
                     b.HasAlternateKey("Key");
@@ -5142,10 +5147,52 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasIndex("Key", "IsDeleted")
                         .HasFilter("[IsDeleted] = 0");
 
-                    b.HasIndex("OwnerId", "IsDeleted")
-                        .HasFilter("[IsDeleted] = 0");
-
                     b.ToTable("StoryMaps", "Planning");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.StoryMapEditor", b =>
+                {
+                    b.Property<Guid>("StoryMapId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("StoryMapId", "EmployeeId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("StoryMapEditors", "Planning");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.StoryMapEditorTeam", b =>
+                {
+                    b.Property<Guid>("StoryMapId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("StoryMapId", "TeamId");
+
+                    b.HasIndex("TeamId");
+
+                    b.ToTable("StoryMapEditorTeams", "Planning");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.StoryMapOwner", b =>
+                {
+                    b.Property<Guid>("StoryMapId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("StoryMapId", "EmployeeId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("StoryMapOwners", "Planning");
                 });
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.StoryMapTask", b =>
@@ -10729,15 +10776,55 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.StoryMap", b =>
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.StoryMapEditor", b =>
                 {
-                    b.HasOne("Wayd.Common.Domain.Identity.User", "Owner")
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "Employee")
                         .WithMany()
-                        .HasForeignKey("OwnerId")
+                        .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Owner");
+                    b.HasOne("Wayd.Planning.Domain.Models.StoryMaps.StoryMap", null)
+                        .WithMany("Editors")
+                        .HasForeignKey("StoryMapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.StoryMapEditorTeam", b =>
+                {
+                    b.HasOne("Wayd.Planning.Domain.Models.StoryMaps.StoryMap", null)
+                        .WithMany("EditorTeams")
+                        .HasForeignKey("StoryMapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Planning.Domain.Models.PlanningTeam", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.StoryMapOwner", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Planning.Domain.Models.StoryMaps.StoryMap", null)
+                        .WithMany("Owners")
+                        .HasForeignKey("StoryMapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
                 });
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.StoryMapTask", b =>
@@ -12195,7 +12282,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.StoryMap", b =>
                 {
+                    b.Navigation("EditorTeams");
+
+                    b.Navigation("Editors");
+
                     b.Navigation("Goals");
+
+                    b.Navigation("Owners");
 
                     b.Navigation("Personas");
 

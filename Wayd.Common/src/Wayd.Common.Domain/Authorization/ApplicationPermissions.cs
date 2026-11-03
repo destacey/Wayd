@@ -318,10 +318,11 @@ public static class ApplicationPermissions
         new("Create Poker Sessions", ApplicationAction.Create, ApplicationResource.PokerSessions, PlanningCategory),
         new("Administer Poker Sessions", ApplicationAction.Administer, ApplicationResource.PokerSessions, PlanningCategory),
 
+        // No Update or Delete: a map's owners manage it, and its visibility and edit access decide who changes its
+        // content. Administer lets someone see, edit and manage any map, private ones included.
         new("View Story Maps", ApplicationAction.View, ApplicationResource.StoryMaps, PlanningCategory),
         new("Create Story Maps", ApplicationAction.Create, ApplicationResource.StoryMaps, PlanningCategory),
-        new("Update Story Maps", ApplicationAction.Update, ApplicationResource.StoryMaps, PlanningCategory),
-        new("Delete Story Maps", ApplicationAction.Delete, ApplicationResource.StoryMaps, PlanningCategory),
+        new("Administer Story Maps", ApplicationAction.Administer, ApplicationResource.StoryMaps, PlanningCategory),
 
         new("View Estimation Scales", ApplicationAction.View, ApplicationResource.EstimationScales, PlanningCategory),
         new("Create Estimation Scales", ApplicationAction.Create, ApplicationResource.EstimationScales, PlanningCategory),

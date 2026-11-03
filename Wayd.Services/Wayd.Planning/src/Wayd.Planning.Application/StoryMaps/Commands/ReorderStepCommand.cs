@@ -2,7 +2,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record ReorderStepCommand(Guid StoryMapId, Guid StepId, int NewOrder) : ICommand;
+public sealed record ReorderStepCommand(Guid StoryMapId, Guid StepId, int NewOrder) : ICommand, IRequireLinkedEmployee;
 
 public sealed class ReorderStepCommandValidator : CustomValidator<ReorderStepCommand>
 {
@@ -18,9 +18,10 @@ public sealed class ReorderStepCommandValidator : CustomValidator<ReorderStepCom
     }
 }
 
-public sealed class ReorderStepCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<ReorderStepCommandHandler> logger) : ICommandHandler<ReorderStepCommand>
+public sealed class ReorderStepCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<ReorderStepCommandHandler> logger) : ICommandHandler<ReorderStepCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<ReorderStepCommandHandler> _logger = logger;
 
@@ -30,10 +31,12 @@ public sealed class ReorderStepCommandHandler(IPlanningDbContext planningDbConte
         {
             var result = await StoryMapMutation.Apply(
                 _planningDbContext,
+                _access,
                 ct => _planningDbContext.StoryMaps
+                    .IncludeAccess()
                     .Include(m => m.Goals).ThenInclude(g => g.Steps)
                     .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, ct),
-                map => map.ReorderStep(request.StepId, request.NewOrder)
+                (map, actor) => map.ReorderStep(request.StepId, request.NewOrder, actor)
                     .Map(() => map.Goals
                         .SelectMany(g => g.Steps)
                         .First(s => s.Id == request.StepId)
@@ -47,7 +50,7 @@ public sealed class ReorderStepCommandHandler(IPlanningDbContext planningDbConte
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

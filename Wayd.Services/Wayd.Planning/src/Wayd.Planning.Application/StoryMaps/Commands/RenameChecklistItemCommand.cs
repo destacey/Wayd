@@ -3,7 +3,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record RenameChecklistItemCommand(Guid StoryMapId, Guid TaskId, Guid ItemId, string Name) : ICommand;
+public sealed record RenameChecklistItemCommand(Guid StoryMapId, Guid TaskId, Guid ItemId, string Name) : ICommand, IRequireLinkedEmployee;
 
 public sealed class RenameChecklistItemCommandValidator : CustomValidator<RenameChecklistItemCommand>
 {
@@ -21,9 +21,10 @@ public sealed class RenameChecklistItemCommandValidator : CustomValidator<Rename
     }
 }
 
-public sealed class RenameChecklistItemCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<RenameChecklistItemCommandHandler> logger) : ICommandHandler<RenameChecklistItemCommand>
+public sealed class RenameChecklistItemCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<RenameChecklistItemCommandHandler> logger) : ICommandHandler<RenameChecklistItemCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<RenameChecklistItemCommandHandler> _logger = logger;
 
@@ -32,13 +33,16 @@ public sealed class RenameChecklistItemCommandHandler(IPlanningDbContext plannin
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
             if (map is null)
                 return Result.Failure("Story map not found.");
 
-            var result = map.RenameChecklistItem(request.TaskId, request.ItemId, request.Name);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.RenameChecklistItem(request.TaskId, request.ItemId, request.Name, actor);
             if (result.IsFailure)
                 return result;
 
@@ -52,7 +56,7 @@ public sealed class RenameChecklistItemCommandHandler(IPlanningDbContext plannin
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

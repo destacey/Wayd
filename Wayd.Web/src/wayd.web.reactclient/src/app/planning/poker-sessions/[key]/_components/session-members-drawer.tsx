@@ -1,46 +1,27 @@
 'use client'
 
 import {
-  EmployeeNavigationDto,
   PlanningTeamNavigationDto,
   PokerSessionDetailsDto,
   Visibility,
 } from '@/src/services/wayd-api'
+import {
+  EmployeeRow,
+  PeopleSection as Section,
+  TeamMembersTag,
+} from '@/src/components/common/planning/record-people'
 import { useGetPokerSessionInvitedTeamMembersQuery } from '@/src/store/features/planning/poker-sessions-api'
-import { DownOutlined, RightOutlined, TeamOutlined } from '@ant-design/icons'
-import { Button, Drawer, Flex, Spin, Typography } from 'antd'
+import { Drawer, Flex, Typography } from 'antd'
 import { FC, useState } from 'react'
 import ParticipantTags from './participant-tags'
 
-const { Text, Title } = Typography
+const { Text } = Typography
 
 export interface SessionMembersDrawerProps {
   session: PokerSessionDetailsDto
   open: boolean
   onClose: () => void
 }
-
-const Section: FC<{ title: string; children: React.ReactNode }> = ({
-  title,
-  children,
-}) => (
-  <Flex vertical gap={8}>
-    <Title level={5} style={{ margin: 0 }}>
-      {title}
-    </Title>
-    {children}
-  </Flex>
-)
-
-const EmployeeRow: FC<{
-  employee: EmployeeNavigationDto
-  extra?: React.ReactNode
-}> = ({ employee, extra }) => (
-  <Flex align="center" justify="space-between" gap={8}>
-    <Text ellipsis>{employee.name}</Text>
-    {extra}
-  </Flex>
-)
 
 /** An invited team as one tag; opening it lists who the invite reaches. */
 const InvitedTeam: FC<{
@@ -58,37 +39,15 @@ const InvitedTeam: FC<{
   )
 
   return (
-    <Flex vertical gap={4}>
-      <Button
-        type="text"
-        size="small"
-        icon={<TeamOutlined />}
-        style={{ alignSelf: 'flex-start' }}
-        onClick={() => setExpanded((e) => !e)}
-        aria-expanded={expanded}
-      >
-        {team.name} {expanded ? <DownOutlined /> : <RightOutlined />}
-      </Button>
-      {expanded &&
-        (isFetching ? (
-          <Spin size="small" />
-        ) : isError ? (
-          <Text type="secondary" style={{ paddingInlineStart: 16 }}>
-            Could not load this team&apos;s members.
-          </Text>
-        ) : (
-          <Flex vertical gap={4} style={{ paddingInlineStart: 16 }}>
-            {(members ?? []).length === 0 ? (
-              <Text type="secondary">No members.</Text>
-            ) : (
-              members!.map((m) => <EmployeeRow key={m.id} employee={m} />)
-            )}
-            <Text type="secondary">
-              Members of its team of teams are invited too.
-            </Text>
-          </Flex>
-        ))}
-    </Flex>
+    <TeamMembersTag
+      team={team}
+      expanded={expanded}
+      onToggle={() => setExpanded((e) => !e)}
+      members={members}
+      isFetching={isFetching}
+      isError={isError}
+      note="Members of its team of teams are invited too."
+    />
   )
 }
 

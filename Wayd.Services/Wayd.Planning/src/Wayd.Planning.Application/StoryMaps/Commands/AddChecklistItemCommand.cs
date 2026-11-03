@@ -3,7 +3,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record AddChecklistItemCommand(Guid StoryMapId, Guid TaskId, string Name) : ICommand<StoryMapTaskDto>;
+public sealed record AddChecklistItemCommand(Guid StoryMapId, Guid TaskId, string Name) : ICommand<StoryMapTaskDto>, IRequireLinkedEmployee;
 
 public sealed class AddChecklistItemCommandValidator : CustomValidator<AddChecklistItemCommand>
 {
@@ -20,9 +20,10 @@ public sealed class AddChecklistItemCommandValidator : CustomValidator<AddCheckl
     }
 }
 
-public sealed class AddChecklistItemCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<AddChecklistItemCommandHandler> logger) : ICommandHandler<AddChecklistItemCommand, StoryMapTaskDto>
+public sealed class AddChecklistItemCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<AddChecklistItemCommandHandler> logger) : ICommandHandler<AddChecklistItemCommand, StoryMapTaskDto>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<AddChecklistItemCommandHandler> _logger = logger;
 
@@ -31,13 +32,16 @@ public sealed class AddChecklistItemCommandHandler(IPlanningDbContext planningDb
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
             if (map is null)
                 return Result.Failure<StoryMapTaskDto>("Story map not found.");
 
-            var result = map.AddChecklistItem(request.TaskId, request.Name);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.AddChecklistItem(request.TaskId, request.Name, actor);
             if (result.IsFailure)
                 return Result.Failure<StoryMapTaskDto>(result.Error);
 
@@ -51,7 +55,7 @@ public sealed class AddChecklistItemCommandHandler(IPlanningDbContext planningDb
 
             return Result.Success(taskDto);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

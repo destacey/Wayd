@@ -137,6 +137,15 @@ export function useStoryMapConnection(
           connection.on(event, invalidateMap)
         }
 
+        // An access change arrives as MapUpdated; it may have changed the editor teams.
+        connection.on('MapUpdated', () => {
+          store.dispatch(
+            storyMapsApi.util.invalidateTags([
+              { type: QueryTags.StoryMapEditorTeamMembers, id: storyMapId },
+            ]),
+          )
+        })
+
         // Deletion is not a change to refetch — the map is gone, and refetching would leave the
         // viewer on a broken board. The page decides where to send them.
         connection.on('MapDeleted', () => {
@@ -157,7 +166,9 @@ export function useStoryMapConnection(
         // Presence events
         connection.on(
           'ParticipantList',
-          (participants: { id: string; name: string; employeeId?: string }[]) => {
+          (
+            participants: { id: string; name: string; employeeId?: string }[],
+          ) => {
             presenceMapRef.current.clear()
             for (const p of participants) {
               presenceMapRef.current.set(p.id, {

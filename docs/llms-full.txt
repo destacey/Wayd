@@ -184,7 +184,7 @@ Notifications are best-effort: `StoryMapNotifier` logs and swallows hub failures
 
 Ordering: zero-based throughout. Adds append at max(Order)+1; reorders renumber the collection contiguously. Task deletion does not renumber, so a cell's task order can go non-contiguous. Swim lane reorder pins the default lane at 0 and renumbers the rest from 1. `Step.Tasks` is returned unsorted — clients must sort by Order.
 
-Permissions: all child mutations (goals, steps, tasks, lanes, personas, checklist, work-item links) require `Permissions.StoryMaps.Update` on the map. There are no per-entity permissions.
+Access: claims are `View`, `Create` and `Administer`; the map decides the rest. Owners (employees, at least one when changed) manage the map: details, archive, delete, owners, editors, visibility and edit access. Editors (employees, and teams whose current members and team-of-teams members count) change its content: goals, steps, tasks, lanes, personas, checklists and work-item links. Visibility is Public (anyone with `View` sees it) or Private (only owners and editors). On a Public map, EditAccess is AnyoneWhoCanView (default; everyone who can see it edits content) or OwnersAndEditors. `Administer` manages every map. Every mutator takes a `StoryMapActor`; commands are `IRequireLinkedEmployee` and load the map with `IncludeAccess()`. A Private map the caller is not on reads as not found; DTOs carry `canManage` and `canEdit`. Changing visibility, owners or editors evicts live connections the map no longer admits. Maps created before owners and editors became Public and AnyoneWhoCanView; an owner with no linked employee left the map with no owner, which only an administrator can manage.
 
 ---
 

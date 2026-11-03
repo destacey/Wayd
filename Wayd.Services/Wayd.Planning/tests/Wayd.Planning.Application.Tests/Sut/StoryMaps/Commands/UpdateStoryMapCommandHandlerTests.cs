@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class UpdateStoryMapCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly UpdateStoryMapCommandHandler _handler;
     private readonly Mock<ILogger<UpdateStoryMapCommandHandler>> _mockLogger;
@@ -21,14 +22,14 @@ public class UpdateStoryMapCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<UpdateStoryMapCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new UpdateStoryMapCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new UpdateStoryMapCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     [Fact]
     public async Task Handle_ShouldUpdateNameAndDescription_WhenMapExists()
     {
         // Arrange
-        var map = StoryMapFakerExtensions.CreateSeeded("Original", "Original description", Guid.NewGuid().ToString(), "Goal", "Step");
+        var map = StoryMapFakerExtensions.CreateSeeded("Original", "Original description", null, "Goal", "Step");
         _dbContext.AddStoryMap(map);
 
         var command = new UpdateStoryMapCommand(map.Id, "Updated name", "Updated description");

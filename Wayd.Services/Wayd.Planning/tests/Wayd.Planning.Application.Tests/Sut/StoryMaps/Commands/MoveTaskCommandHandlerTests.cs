@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class MoveTaskCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly MoveTaskCommandHandler _handler;
     private readonly Mock<ILogger<MoveTaskCommandHandler>> _mockLogger;
@@ -21,15 +22,15 @@ public class MoveTaskCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<MoveTaskCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new MoveTaskCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new MoveTaskCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static (StoryMap Map, Guid TaskId, Guid StepId, Guid SwimLaneId) CreateMapWithTask()
     {
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
         var stepId = map.Goals[0].Steps[0].Id;
         var swimLaneId = map.SwimLanes.Single(l => l.IsDefault).Id;
-        var task = map.AddTask(stepId, "T").Value;
+        var task = map.AddTask(stepId, "T", null, StoryMapActors.Owner).Value;
         return (map, task.Id, stepId, swimLaneId);
     }
 

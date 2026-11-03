@@ -2,7 +2,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record SetTaskPersonasCommand(Guid StoryMapId, Guid TaskId, IReadOnlyList<Guid> PersonaIds) : ICommand;
+public sealed record SetTaskPersonasCommand(Guid StoryMapId, Guid TaskId, IReadOnlyList<Guid> PersonaIds) : ICommand, IRequireLinkedEmployee;
 
 public sealed class SetTaskPersonasCommandValidator : CustomValidator<SetTaskPersonasCommand>
 {
@@ -16,9 +16,10 @@ public sealed class SetTaskPersonasCommandValidator : CustomValidator<SetTaskPer
     }
 }
 
-public sealed class SetTaskPersonasCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<SetTaskPersonasCommandHandler> logger) : ICommandHandler<SetTaskPersonasCommand>
+public sealed class SetTaskPersonasCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<SetTaskPersonasCommandHandler> logger) : ICommandHandler<SetTaskPersonasCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<SetTaskPersonasCommandHandler> _logger = logger;
 
@@ -27,6 +28,7 @@ public sealed class SetTaskPersonasCommandHandler(IPlanningDbContext planningDbC
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
                 .Include(m => m.Personas)
                 .AsSplitQuery()
@@ -35,7 +37,9 @@ public sealed class SetTaskPersonasCommandHandler(IPlanningDbContext planningDbC
             if (map is null)
                 return Result.Failure("Story map not found.");
 
-            var result = map.SetTaskPersonas(request.TaskId, request.PersonaIds);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.SetTaskPersonas(request.TaskId, request.PersonaIds, actor);
             if (result.IsFailure)
                 return result;
 
@@ -49,7 +53,7 @@ public sealed class SetTaskPersonasCommandHandler(IPlanningDbContext planningDbC
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

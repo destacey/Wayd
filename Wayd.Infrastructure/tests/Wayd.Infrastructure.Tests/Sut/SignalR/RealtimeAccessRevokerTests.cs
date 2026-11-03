@@ -7,13 +7,14 @@ using Wayd.Common.Application.Identity.Users;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Infrastructure.SignalR;
 using Wayd.Planning.Application.PokerSessions;
+using Wayd.Planning.Application.StoryMaps;
 
 namespace Wayd.Infrastructure.Tests.Sut.SignalR;
 
 /// <summary>
 /// Covers <see cref="RealtimeAccessRevoker"/>: a connection already in a group is taken out of it once its user
-/// no longer holds the hub's join permission, or the poker session no longer admits them, and is left alone
-/// while they do.
+/// no longer holds the hub's join permission, or the poker session or story map no longer admits them, and is left
+/// alone while they do.
 /// </summary>
 /// <remarks>
 /// Presence is static and shared by every hub instance, so each test joins a user id of its own.
@@ -27,7 +28,10 @@ public class RealtimeAccessRevokerTests
     private readonly Mock<IHubClients> _pokerClients = new();
     private readonly Mock<IHubContext<PlanningPokerHub>> _pokerHub = new();
     private readonly Mock<IHubContext<StoryMapHub>> _storyMapHub = new();
+    private readonly Mock<IGroupManager> _storyMapGroups = new();
+    private readonly Mock<IHubClients> _storyMapClients = new();
     private readonly Mock<IPokerSessionAccess> _pokerSessionAccess = new();
+    private readonly Mock<IStoryMapAccess> _storyMapAccess = new();
 
     public RealtimeAccessRevokerTests()
     {
@@ -36,8 +40,10 @@ public class RealtimeAccessRevokerTests
         _pokerHub.Setup(h => h.Groups).Returns(_pokerGroups.Object);
         _pokerHub.Setup(h => h.Clients).Returns(_pokerClients.Object);
 
-        _storyMapHub.Setup(h => h.Groups).Returns(new Mock<IGroupManager>().Object);
-        _storyMapHub.Setup(h => h.Clients).Returns(new Mock<IHubClients>().Object);
+        _storyMapClients.Setup(c => c.Group(It.IsAny<string>())).Returns(new Mock<IClientProxy>().Object);
+        _storyMapClients.Setup(c => c.Client(It.IsAny<string>())).Returns(new Mock<ISingleClientProxy>().Object);
+        _storyMapHub.Setup(h => h.Groups).Returns(_storyMapGroups.Object);
+        _storyMapHub.Setup(h => h.Clients).Returns(_storyMapClients.Object);
 
         // A session admits whoever holds the join permission, unless a test says otherwise.
         _pokerSessionAccess
@@ -47,7 +53,37 @@ public class RealtimeAccessRevokerTests
     }
 
     private RealtimeAccessRevoker CreateSut() =>
-        new(_pokerHub.Object, _storyMapHub.Object, _userService.Object, _pokerSessionAccess.Object, NullLogger<RealtimeAccessRevoker>.Instance);
+        new(_pokerHub.Object, _storyMapHub.Object, _userService.Object, _pokerSessionAccess.Object, _storyMapAccess.Object, NullLogger<RealtimeAccessRevoker>.Instance);
+
+    private static async Task<string> JoinStoryMap(string userId, Guid storyMapId)
+    {
+        var connectionId = Guid.NewGuid().ToString();
+
+        var context = new Mock<HubCallerContext>();
+        context.Setup(c => c.ConnectionId).Returns(connectionId);
+        context.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim(ClaimTypes.NameIdentifier, userId), new Claim(ClaimTypes.Name, "Jane")], "TestAuth")));
+
+        var callerClients = new Mock<IHubCallerClients>();
+        callerClients.Setup(c => c.Caller).Returns(new Mock<ISingleClientProxy>().Object);
+        callerClients.Setup(c => c.OthersInGroup(It.IsAny<string>())).Returns(new Mock<IClientProxy>().Object);
+
+        var featureManager = new Mock<IFeatureManager>();
+        featureManager.Setup(f => f.IsEnabledAsync(FeatureFlags.Names.StoryMaps)).ReturnsAsync(true);
+
+        var access = new Mock<IStoryMapAccess>();
+        access.Setup(a => a.CanUserAccess(storyMapId, userId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+        var hub = new StoryMapHub(featureManager.Object, access.Object)
+        {
+            Context = context.Object,
+            Groups = new Mock<IGroupManager>().Object,
+            Clients = callerClients.Object,
+        };
+
+        await hub.JoinMap(storyMapId);
+        return connectionId;
+    }
 
     private static async Task<string> JoinPokerSession(string userId, Guid sessionId)
     {
@@ -231,6 +267,61 @@ public class RealtimeAccessRevokerTests
         VerifyEvicted(removedConnection, sessionId, Times.Once());
         _pokerGroups.Verify(g => g.RemoveFromGroupAsync(keptConnection, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         PresenceHub.PresentIn<PlanningPokerHub>(sessionId.ToString()).Select(p => p.UserId).Should().Equal(kept);
+    }
+
+    [Fact]
+    public async Task RecheckStoryMap_EvictsEveryoneTheMapNoLongerAdmits()
+    {
+        // Arrange
+        var mapId = Guid.NewGuid();
+        var removed = Guid.NewGuid().ToString();
+        var kept = Guid.NewGuid().ToString();
+        var removedConnection = await JoinStoryMap(removed, mapId);
+        var keptConnection = await JoinStoryMap(kept, mapId);
+        _storyMapAccess.Setup(a => a.CanUserAccess(mapId, removed, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _storyMapAccess.Setup(a => a.CanUserAccess(mapId, kept, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+        // Act
+        await CreateSut().RecheckStoryMap(mapId, TestContext.Current.CancellationToken);
+
+        // Assert
+        _storyMapGroups.Verify(g => g.RemoveFromGroupAsync(removedConnection, mapId.ToString(), It.IsAny<CancellationToken>()), Times.Once);
+        _storyMapGroups.Verify(g => g.RemoveFromGroupAsync(keptConnection, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        PresenceHub.PresentIn<StoryMapHub>(mapId.ToString()).Select(p => p.UserId).Should().Equal(kept);
+    }
+
+    [Fact]
+    public async Task RecheckUsers_WhenAStoryMapNoLongerAdmitsThem_EvictsTheirConnection()
+    {
+        // Arrange — losing the View permission, or a private map's invite, both read as the map no longer admitting them.
+        var userId = Guid.NewGuid().ToString();
+        var mapId = Guid.NewGuid();
+        var connectionId = await JoinStoryMap(userId, mapId);
+        _storyMapAccess.Setup(a => a.CanUserAccess(mapId, userId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+
+        // Act
+        await CreateSut().RecheckUsers([userId], TestContext.Current.CancellationToken);
+
+        // Assert
+        _storyMapGroups.Verify(g => g.RemoveFromGroupAsync(connectionId, mapId.ToString(), It.IsAny<CancellationToken>()), Times.Once);
+        PresenceHub.ConnectionsOf<StoryMapHub>(userId).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RecheckUsers_WhenAStoryMapStillAdmitsThem_LeavesTheirConnection()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var mapId = Guid.NewGuid();
+        var connectionId = await JoinStoryMap(userId, mapId);
+        _storyMapAccess.Setup(a => a.CanUserAccess(mapId, userId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+        // Act
+        await CreateSut().RecheckUsers([userId], TestContext.Current.CancellationToken);
+
+        // Assert
+        _storyMapGroups.Verify(g => g.RemoveFromGroupAsync(connectionId, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        PresenceHub.ConnectionsOf<StoryMapHub>(userId).Should().ContainSingle();
     }
 
     [Fact]

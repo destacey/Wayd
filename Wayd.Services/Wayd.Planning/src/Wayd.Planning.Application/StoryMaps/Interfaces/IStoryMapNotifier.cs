@@ -15,8 +15,14 @@ public interface IStoryMapNotifier
 {
     #region Map
 
-    /// <summary>The map's header (name, description, owner) changed.</summary>
+    /// <summary>The map's header (name, description) changed.</summary>
     Task NotifyMapUpdated(Guid storyMapId);
+
+    /// <summary>
+    /// Who can see, edit or manage the map changed. Removes every connection whose user can no longer see it
+    /// first, then tells the rest to refetch, since what each of them may do can have changed.
+    /// </summary>
+    Task NotifyAccessChanged(Guid storyMapId);
 
     /// <summary>The map was archived.</summary>
     Task NotifyMapArchived(Guid storyMapId);

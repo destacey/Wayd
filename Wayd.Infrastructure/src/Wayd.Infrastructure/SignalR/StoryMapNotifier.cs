@@ -17,9 +17,11 @@ namespace Wayd.Infrastructure.SignalR;
 /// </remarks>
 internal sealed class StoryMapNotifier(
     IHubContext<StoryMapHub> hubContext,
+    IRealtimeAccessRevoker accessRevoker,
     ILogger<StoryMapNotifier> logger) : IStoryMapNotifier
 {
     private readonly IHubContext<StoryMapHub> _hubContext = hubContext;
+    private readonly IRealtimeAccessRevoker _accessRevoker = accessRevoker;
     private readonly ILogger<StoryMapNotifier> _logger = logger;
 
     /// <summary>Sends to the map's group, with the map id leading the payload as every event expects.</summary>
@@ -50,6 +52,25 @@ internal sealed class StoryMapNotifier(
 
     public Task NotifyMapDeleted(Guid storyMapId) =>
         Send(storyMapId, "MapDeleted");
+
+    /// <remarks>
+    /// Eviction comes first so the broadcast does not reach someone the map no longer admits. A failure to evict is
+    /// logged, not thrown: the change it follows is already saved. The remaining viewers refetch on
+    /// <c>MapUpdated</c>, which also brings them their new edit rights.
+    /// </remarks>
+    public async Task NotifyAccessChanged(Guid storyMapId)
+    {
+        try
+        {
+            await _accessRevoker.RecheckStoryMap(storyMapId, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to evict connections from story map {StoryMapId} after its access changed.", storyMapId);
+        }
+
+        await Send(storyMapId, "MapUpdated");
+    }
 
     #endregion Map
 

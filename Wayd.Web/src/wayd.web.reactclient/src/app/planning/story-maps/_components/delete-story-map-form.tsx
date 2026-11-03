@@ -41,7 +41,8 @@ const DeleteStoryMapForm = ({
     },
     onComplete: onFormComplete,
     onCancel: onFormCancel,
-    permission: 'Permissions.StoryMaps.Delete',
+    // The map decides who may do this; the page offers it only to its owners.
+    permission: 'Permissions.StoryMaps.View',
   })
 
   return (

@@ -1,8 +1,10 @@
 import {
   StoryMapDetailsDto,
+  StoryMapEditAccess,
   StoryMapGoalDto,
   StoryMapStepDto,
   StoryMapTaskDto,
+  Visibility,
 } from '@/src/services/wayd-api'
 import { countBoard, countTasksByLane } from './board-counts'
 
@@ -54,6 +56,13 @@ const map = (goals: StoryMapGoalDto[]): StoryMapDetailsDto =>
     id: 'map-1',
     key: 1,
     name: 'Map',
+    visibility: Visibility.Public,
+    editAccess: StoryMapEditAccess.AnyoneWhoCanView,
+    owners: [],
+    editors: [],
+    editorTeams: [],
+    canManage: true,
+    canEdit: true,
     status: 'Active',
     goals,
     swimLanes: [],

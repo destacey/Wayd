@@ -2,7 +2,7 @@
 
 import PageTitle from '@/src/components/common/page-title'
 import { useState } from 'react'
-import { useDocumentTitle } from '@/src/hooks'
+import { useDocumentTitle, useLinkedEmployee } from '@/src/hooks'
 import {
   ArchiveStoryMapForm,
   CreateStoryMapForm,
@@ -35,9 +35,10 @@ const StoryMapsPage = () => {
   } = useGetStoryMapsQuery(includeArchived ? true : undefined)
 
   const { hasPermissionClaim } = useAuth()
-  const canCreate = hasPermissionClaim('Permissions.StoryMaps.Create')
-  const canUpdate = hasPermissionClaim('Permissions.StoryMaps.Update')
-  const canDelete = hasPermissionClaim('Permissions.StoryMaps.Delete')
+  const { hasLinkedEmployee } = useLinkedEmployee()
+  // The creator becomes the first owner, so creating needs an employee.
+  const canCreate =
+    hasPermissionClaim('Permissions.StoryMaps.Create') && hasLinkedEmployee
 
   const storyMaps = storyMapsData ?? []
 
@@ -105,8 +106,6 @@ const StoryMapsPage = () => {
         storyMaps={storyMaps}
         isLoading={isLoading}
         refetch={refresh}
-        canUpdate={canUpdate}
-        canDelete={canDelete}
         gridControlMenuItems={controlItems}
         onArchiveClicked={handleArchive}
         onDeleteClicked={handleDelete}

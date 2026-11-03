@@ -1,9 +1,11 @@
 import {
   StoryMapDetailsDto,
+  StoryMapEditAccess,
   StoryMapGoalDto,
   StoryMapStepDto,
   StoryMapSwimLaneDto,
   StoryMapTaskDto,
+  Visibility,
 } from '@/src/services/wayd-api'
 import {
   applyMoveStep,
@@ -80,6 +82,13 @@ const map = (
     id: 'map-1',
     key: 1,
     name: 'Map',
+    visibility: Visibility.Public,
+    editAccess: StoryMapEditAccess.AnyoneWhoCanView,
+    owners: [],
+    editors: [],
+    editorTeams: [],
+    canManage: true,
+    canEdit: true,
     status: 'Active',
     goals,
     swimLanes,

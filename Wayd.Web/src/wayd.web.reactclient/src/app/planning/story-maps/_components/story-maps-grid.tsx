@@ -15,8 +15,6 @@ export interface StoryMapsGridProps {
   storyMaps: StoryMapListDto[]
   isLoading: boolean
   refetch: () => void
-  canUpdate: boolean
-  canDelete: boolean
   gridControlMenuItems?: ItemType[]
   onArchiveClicked: (storyMap: StoryMapListDto) => void
   onDeleteClicked: (storyMap: StoryMapListDto) => void
@@ -24,18 +22,17 @@ export interface StoryMapsGridProps {
 
 interface RowMenuProps {
   storyMap: StoryMapListDto
-  canUpdate: boolean
-  canDelete: boolean
   onArchiveClicked: (storyMap: StoryMapListDto) => void
   onDeleteClicked: (storyMap: StoryMapListDto) => void
 }
 
 const getRowMenuItems = (props: RowMenuProps): ItemType[] => {
-  if (!props.storyMap) return []
+  // Each map says whether the caller manages it: an owner or a Story Maps administrator.
+  if (!props.storyMap?.canManage) return []
 
   const items: ItemType[] = []
 
-  if (props.canUpdate && props.storyMap.status === 'Active') {
+  if (props.storyMap.status === 'Active') {
     items.push({
       key: 'archive',
       label: 'Archive',
@@ -43,14 +40,12 @@ const getRowMenuItems = (props: RowMenuProps): ItemType[] => {
     })
   }
 
-  if (props.canDelete) {
-    items.push({
-      key: 'delete',
-      label: 'Delete',
-      danger: true,
-      onClick: () => props.onDeleteClicked(props.storyMap),
-    })
-  }
+  items.push({
+    key: 'delete',
+    label: 'Delete',
+    danger: true,
+    onClick: () => props.onDeleteClicked(props.storyMap),
+  })
 
   return items
 }
@@ -59,13 +54,11 @@ const StoryMapsGrid: FC<StoryMapsGridProps> = ({
   storyMaps = [],
   isLoading,
   refetch,
-  canUpdate,
-  canDelete,
   gridControlMenuItems,
   onArchiveClicked,
   onDeleteClicked,
 }) => {
-  const showRowMenu = canUpdate || canDelete
+  const showRowMenu = storyMaps.some((m) => m.canManage)
 
   const columns = useMemo<ColumnDef<StoryMapListDto, any>[]>(
     () => [
@@ -75,8 +68,6 @@ const StoryMapsGrid: FC<StoryMapsGridProps> = ({
         getItems: (storyMap) =>
           getRowMenuItems({
             storyMap,
-            canUpdate,
-            canDelete,
             onArchiveClicked,
             onDeleteClicked,
           }),
@@ -102,13 +93,20 @@ const StoryMapsGrid: FC<StoryMapsGridProps> = ({
         meta: { filterType: 'set' },
       },
       {
-        id: 'owner',
-        accessorKey: 'owner.name',
-        header: 'Owner',
+        id: 'owners',
+        accessorFn: (row) => row.owners.map((o) => o.name).join(', '),
+        header: 'Owners',
         size: 200,
       },
+      {
+        id: 'visibility',
+        accessorKey: 'visibility',
+        header: 'Visibility',
+        size: 110,
+        meta: { filterType: 'set' },
+      },
     ],
-    [showRowMenu, canUpdate, canDelete, onArchiveClicked, onDeleteClicked],
+    [showRowMenu, onArchiveClicked, onDeleteClicked],
   )
 
   return (

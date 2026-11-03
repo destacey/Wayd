@@ -1,11 +1,19 @@
 'use client'
 
 import { Form, Input, Modal } from 'antd'
-import { CreateStoryMapRequest } from '@/src/services/wayd-api'
+import {
+  CreateStoryMapRequest,
+  StoryMapEditAccess,
+  Visibility,
+} from '@/src/services/wayd-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { useMessage } from '@/src/components/contexts/messaging'
+import useAuth from '@/src/components/contexts/auth'
 import { useCreateStoryMapMutation } from '@/src/store/features/planning/story-maps-api'
 import { useModalForm } from '@/src/hooks'
+import StoryMapAccessFields, {
+  type StoryMapAccessValues,
+} from './story-map-access-fields'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -15,7 +23,7 @@ export interface CreateStoryMapFormProps {
   onFormCancel: () => void
 }
 
-interface CreateStoryMapFormValues {
+interface CreateStoryMapFormValues extends StoryMapAccessValues {
   name: string
   description?: string
 }
@@ -25,6 +33,9 @@ const CreateStoryMapForm = ({
   onFormCancel,
 }: CreateStoryMapFormProps) => {
   const messageApi = useMessage()
+  const { user } = useAuth()
+  // The creator is always an owner; the page offers Create only to accounts linked to an employee.
+  const currentEmployeeId = user?.employeeId ?? undefined
 
   const [createStoryMap] = useCreateStoryMapMutation()
 
@@ -35,6 +46,14 @@ const CreateStoryMapForm = ({
           const request: CreateStoryMapRequest = {
             name: values.name,
             description: values.description,
+            visibility: values.visibility,
+            editAccess:
+              values.editAccess ?? StoryMapEditAccess.AnyoneWhoCanView,
+            ownerIds: (values.ownerIds ?? []).filter(
+              (id) => id !== currentEmployeeId,
+            ),
+            editorIds: values.editorIds ?? [],
+            editorTeamIds: values.editorTeamIds ?? [],
           }
           const response = await createStoryMap(request)
           if (response.error) {
@@ -50,7 +69,8 @@ const CreateStoryMapForm = ({
             messageApi.error('Correct the validation error(s) to continue.')
           } else {
             messageApi.error(
-              'An error occurred while creating the story map. Please try again.',
+              apiError.detail ??
+                'An error occurred while creating the story map. Please try again.',
             )
             console.error(error)
           }
@@ -81,6 +101,13 @@ const CreateStoryMapForm = ({
         size="small"
         layout="vertical"
         name="create-story-map-form"
+        initialValues={{
+          visibility: Visibility.Public,
+          editAccess: StoryMapEditAccess.AnyoneWhoCanView,
+          ownerIds: currentEmployeeId ? [currentEmployeeId] : [],
+          editorIds: [],
+          editorTeamIds: [],
+        }}
       >
         <Item label="Name" name="name" rules={[{ required: true }]}>
           <TextArea
@@ -96,6 +123,7 @@ const CreateStoryMapForm = ({
             maxLength={2048}
           />
         </Item>
+        <StoryMapAccessFields requiredOwnerId={currentEmployeeId} />
       </Form>
     </Modal>
   )

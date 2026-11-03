@@ -109,6 +109,7 @@ export enum QueryTags {
   PokerSessionRound = 'Planning.PokerSession.Round',
   StoryMap = 'Planning.StoryMap',
   StoryMapList = 'Planning.StoryMap.List',
+  StoryMapEditorTeamMembers = 'Planning.StoryMap.EditorTeamMembers',
   EstimationScale = 'Planning.EstimationScale',
   IncidentSeveritySet = 'ProductManagement.IncidentSeveritySet',
   Sprint = 'Planning.Sprint',

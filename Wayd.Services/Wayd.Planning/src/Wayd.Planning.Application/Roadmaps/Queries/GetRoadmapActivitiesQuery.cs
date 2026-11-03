@@ -1,6 +1,5 @@
 ﻿using System.Linq.Expressions;
 using Wayd.Common.Application.Models;
-using Wayd.Common.Domain.Enums;
 using Wayd.Planning.Application.Roadmaps.Dtos;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Planning.Domain.Models.Roadmaps;
@@ -24,20 +23,13 @@ public sealed class GetRoadmapActivitiesQueryHandler(IPlanningDbContext planning
 
     public async Task<List<RoadmapActivityListDto>> Handle(GetRoadmapActivitiesQuery request, CancellationToken cancellationToken)
     {
-        var publicVisibility = Visibility.Public;
-
-        // Unlinked callers manage nothing and so see public roadmaps only. The manager check is
-        // omitted rather than run against a sentinel id.
-        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        var reader = await _currentPrincipal.ResolveRoadmapReader(cancellationToken);
 
         // Tracked, unlike most reads: the tree is built from the Parent and Children navigations EF fixes up
         // between the loaded rows, and a no-tracking query leaves every activity at the root.
         var roadmaps = _planningDbContext.Roadmaps
-            .Where(request.IdOrKeyFilter);
-
-        roadmaps = employeeId is { } managerId
-            ? roadmaps.Where(r => r.Visibility == publicVisibility || r.RoadmapManagers.Any(m => m.ManagerId == managerId))
-            : roadmaps.Where(r => r.Visibility == publicVisibility);
+            .Where(request.IdOrKeyFilter)
+            .Where(reader.Filter);
 
         var items = await roadmaps
             .SelectMany(r => r.Items)

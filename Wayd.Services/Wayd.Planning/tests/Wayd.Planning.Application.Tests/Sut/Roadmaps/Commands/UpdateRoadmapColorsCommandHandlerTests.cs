@@ -35,15 +35,15 @@ public class UpdateRoadmapColorsCommandHandlerTests : IDisposable
     private UpdateRoadmapColorsCommandHandler CreateHandler() =>
         new(_dbContext, _mockCurrentPrincipal.Object, Mock.Of<ICurrentUser>(u => u.GetUserId() == "user-1"), new TestingDateTimeProvider(new FakeClock(Now)), _mockLogger.Object);
 
-    private Roadmap CreateActiveRoadmap(Guid? managerId = null)
+    private Roadmap CreateActiveRoadmap(Guid? ownerId = null)
     {
-        var mgrId = managerId ?? _currentEmployeeId;
+        var ownerIdOrCurrent = ownerId ?? _currentEmployeeId;
         var fakeRoadmap = _faker.Generate();
-        return Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [mgrId], Actor, Now).Value;
+        return Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerIdOrCurrent], Actor, Now).Value;
     }
 
     [Fact]
-    public async Task Handle_ShouldUpdateColors_WhenValidAndUserIsManager()
+    public async Task Handle_ShouldUpdateColors_WhenValidAndUserIsOwner()
     {
         // Arrange
         var roadmap = CreateActiveRoadmap();
@@ -73,7 +73,7 @@ public class UpdateRoadmapColorsCommandHandlerTests : IDisposable
         var roadmap = CreateActiveRoadmap();
         roadmap.UpdateColors(
             [new UpsertRoadmapColorModel("#111111", "Old", 1, false)],
-            _currentEmployeeId, Actor, Now);
+            new RoadmapActor(_currentEmployeeId, false), Actor, Now);
         _dbContext.AddRoadmap(roadmap);
         var handler = CreateHandler();
 
@@ -99,7 +99,7 @@ public class UpdateRoadmapColorsCommandHandlerTests : IDisposable
         var roadmap = CreateActiveRoadmap();
         roadmap.UpdateColors(
             [new UpsertRoadmapColorModel("#111111", "Old", 1, false)],
-            _currentEmployeeId, Actor, Now);
+            new RoadmapActor(_currentEmployeeId, false), Actor, Now);
         _dbContext.AddRoadmap(roadmap);
         var handler = CreateHandler();
 
@@ -134,11 +134,11 @@ public class UpdateRoadmapColorsCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_ShouldNotSave_WhenUserIsNotManager()
+    public async Task Handle_ShouldNotSave_WhenUserIsNotOwner()
     {
         // Arrange
-        var otherManagerId = Guid.NewGuid();
-        var roadmap = CreateActiveRoadmap(managerId: otherManagerId);
+        var otherOwnerId = Guid.NewGuid();
+        var roadmap = CreateActiveRoadmap(ownerId: otherOwnerId);
         _dbContext.AddRoadmap(roadmap);
         var handler = CreateHandler();
 

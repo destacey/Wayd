@@ -357,9 +357,9 @@ public class RoadmapConfig : IEntityTypeConfiguration<Roadmap>
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         // Relationships
-        builder.HasMany(r => r.RoadmapManagers)
+        builder.HasMany(r => r.Owners)
             .WithOne()
-            .HasForeignKey(rm => rm.RoadmapId)
+            .HasForeignKey(o => o.RoadmapId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(r => r.Items)
@@ -369,26 +369,26 @@ public class RoadmapConfig : IEntityTypeConfiguration<Roadmap>
     }
 }
 
-public class RoadmapManagerConfiguration : IEntityTypeConfiguration<RoadmapManager>
+public class RoadmapOwnerConfiguration : IEntityTypeConfiguration<RoadmapOwner>
 {
-    public void Configure(EntityTypeBuilder<RoadmapManager> builder)
+    public void Configure(EntityTypeBuilder<RoadmapOwner> builder)
     {
-        builder.ToTable("RoadmapManagers", SchemaNames.Planning);
+        builder.ToTable("RoadmapOwners", SchemaNames.Planning);
 
-        builder.HasKey(rm => new { rm.RoadmapId, rm.ManagerId });
+        builder.HasKey(o => new { o.RoadmapId, o.EmployeeId });
 
-        builder.HasIndex(rm => rm.RoadmapId)
-            .IncludeProperties(rm => new { rm.ManagerId });
+        builder.HasIndex(o => o.RoadmapId)
+            .IncludeProperties(o => new { o.EmployeeId });
 
-        builder.Property(rm => rm.RoadmapId)
+        builder.Property(o => o.RoadmapId)
             .IsRequired();
 
-        builder.Property(rm => rm.ManagerId)
+        builder.Property(o => o.EmployeeId)
             .IsRequired();
 
-        builder.HasOne(rm => rm.Manager)
+        builder.HasOne(o => o.Employee)
             .WithMany()
-            .HasForeignKey(rm => rm.ManagerId)
+            .HasForeignKey(o => o.EmployeeId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

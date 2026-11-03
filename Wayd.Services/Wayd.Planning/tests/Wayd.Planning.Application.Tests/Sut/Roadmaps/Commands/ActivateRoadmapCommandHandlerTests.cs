@@ -36,24 +36,24 @@ public class ActivateRoadmapCommandHandlerTests : IDisposable
     private ActivateRoadmapCommandHandler CreateHandler() =>
         new(_dbContext, _mockCurrentPrincipal.Object, Mock.Of<ICurrentUser>(u => u.GetUserId() == "user-1"), new TestingDateTimeProvider(new FakeClock(Now)), _mockLogger.Object);
 
-    private Roadmap CreateArchivedRoadmap(Guid? managerId = null)
+    private Roadmap CreateArchivedRoadmap(Guid? ownerId = null)
     {
-        var mgrId = managerId ?? _currentEmployeeId;
+        var ownerIdOrCurrent = ownerId ?? _currentEmployeeId;
         var fakeRoadmap = _faker.Generate();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [mgrId], Actor, Now).Value;
-        roadmap.Archive(mgrId, Actor, Now);
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerIdOrCurrent], Actor, Now).Value;
+        roadmap.Archive(new RoadmapActor(ownerIdOrCurrent, false), Actor, Now);
         return roadmap;
     }
 
-    private Roadmap CreateActiveRoadmap(Guid? managerId = null)
+    private Roadmap CreateActiveRoadmap(Guid? ownerId = null)
     {
-        var mgrId = managerId ?? _currentEmployeeId;
+        var ownerIdOrCurrent = ownerId ?? _currentEmployeeId;
         var fakeRoadmap = _faker.Generate();
-        return Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [mgrId], Actor, Now).Value;
+        return Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerIdOrCurrent], Actor, Now).Value;
     }
 
     [Fact]
-    public async Task Handle_ShouldActivateRoadmap_WhenArchivedAndUserIsManager()
+    public async Task Handle_ShouldActivateRoadmap_WhenArchivedAndUserIsOwner()
     {
         // Arrange
         var roadmap = CreateArchivedRoadmap();
@@ -88,11 +88,11 @@ public class ActivateRoadmapCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_ShouldFail_WhenUserIsNotManager()
+    public async Task Handle_ShouldFail_WhenUserIsNotOwner()
     {
         // Arrange
-        var otherManagerId = Guid.NewGuid();
-        var roadmap = CreateArchivedRoadmap(managerId: otherManagerId);
+        var otherOwnerId = Guid.NewGuid();
+        var roadmap = CreateArchivedRoadmap(ownerId: otherOwnerId);
         _dbContext.AddRoadmap(roadmap);
         var handler = CreateHandler();
 

@@ -62,14 +62,12 @@ public sealed class CreateRoadmapItemCommandHandler(IPlanningDbContext planningD
     {
         // Outside the try: this is a refusal, and the catch-all below would turn it into a
         // generic failure, losing both the 403 and its explanation.
-        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        if (currentUserEmployeeId is null)
-            LinkedEmployeeRequired.Throw();
+        var caller = await _currentPrincipal.ResolveRoadmapActor(cancellationToken);
 
         try
         {
             var roadmap = await _planningDbContext.Roadmaps
-                .Include(x => x.RoadmapManagers)
+                .Include(x => x.Owners)
                 .Include(x => x.Items)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(r => r.Id == request.RoadmapId, cancellationToken);
@@ -78,9 +76,9 @@ public sealed class CreateRoadmapItemCommandHandler(IPlanningDbContext planningD
                 return Result.Failure<Guid>($"Roadmap with id {request.RoadmapId} not found");
 
             Result<BaseRoadmapItem> result = request.Item.Match(
-               activity => roadmap.CreateActivity(activity, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now).Map(x => (BaseRoadmapItem)x),
-               milestone => roadmap.CreateMilestone(milestone, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now).Map(x => (BaseRoadmapItem)x),
-               timebox => roadmap.CreateTimebox(timebox, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now).Map(x => (BaseRoadmapItem)x)
+               activity => roadmap.CreateActivity(activity, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now).Map(x => (BaseRoadmapItem)x),
+               milestone => roadmap.CreateMilestone(milestone, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now).Map(x => (BaseRoadmapItem)x),
+               timebox => roadmap.CreateTimebox(timebox, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now).Map(x => (BaseRoadmapItem)x)
             );
 
             if (result.IsFailure)

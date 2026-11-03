@@ -307,10 +307,11 @@ public static class ApplicationPermissions
         new("Delete Risks", ApplicationAction.Delete, ApplicationResource.Risks, PlanningCategory),
         new("Import Risks", ApplicationAction.Import, ApplicationResource.Risks, PlanningCategory),
 
+        // No Update or Delete: a roadmap's owners manage it and its items. Administer lets someone see and manage any
+        // roadmap, private ones included.
         new("View Roadmaps", ApplicationAction.View, ApplicationResource.Roadmaps, PlanningCategory),
         new("Create Roadmaps", ApplicationAction.Create, ApplicationResource.Roadmaps, PlanningCategory),
-        new("Update Roadmaps", ApplicationAction.Update, ApplicationResource.Roadmaps, PlanningCategory),
-        new("Delete Roadmaps", ApplicationAction.Delete, ApplicationResource.Roadmaps, PlanningCategory),
+        new("Administer Roadmaps", ApplicationAction.Administer, ApplicationResource.Roadmaps, PlanningCategory),
 
         // No Update or Delete: a session's facilitators run it. Administer lets someone see and run any session,
         // private ones included.

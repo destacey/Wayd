@@ -35,14 +35,12 @@ public sealed class UpdateRoadmapRootActivitiesOrderCommandHandler(IPlanningDbCo
     {
         // Outside the try: this is a refusal, and the catch-all below would turn it into a
         // generic failure, losing both the 403 and its explanation.
-        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        if (currentUserEmployeeId is null)
-            LinkedEmployeeRequired.Throw();
+        var caller = await _currentPrincipal.ResolveRoadmapActor(cancellationToken);
 
         try
         {
             var roadmap = await _planningDbContext.Roadmaps
-                .Include(x => x.RoadmapManagers)
+                .Include(x => x.Owners)
                 .Include(x => x.Items)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(r => r.Id == request.RoadmapId, cancellationToken);
@@ -59,7 +57,7 @@ public sealed class UpdateRoadmapRootActivitiesOrderCommandHandler(IPlanningDbCo
                 return Result.Failure("Not all root roadmap activities provided were found.");
             }
 
-            var updateResult = roadmap.SetChildrenOrder(request.ChildrenOrder, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now);
+            var updateResult = roadmap.SetChildrenOrder(request.ChildrenOrder, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
             if (updateResult.IsFailure)
             {
                 // Reset the entity

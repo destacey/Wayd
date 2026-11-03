@@ -1,6 +1,5 @@
 ﻿using System.Linq.Expressions;
 using Wayd.Common.Application.Models;
-using Wayd.Common.Domain.Enums;
 using Wayd.Planning.Application.Roadmaps.Dtos;
 using Wayd.Planning.Domain.Models.Roadmaps;
 
@@ -25,17 +24,10 @@ public sealed class GetRoadmapItemQueryHandler(IPlanningDbContext planningDbCont
 
     public async Task<RoadmapItemDetailsDto?> Handle(GetRoadmapItemQuery request, CancellationToken cancellationToken)
     {
-        var publicVisibility = Visibility.Public;
+        var reader = await _currentPrincipal.ResolveRoadmapReader(cancellationToken);
 
-        // Unlinked callers manage nothing and so see public roadmaps only. The manager check is
-        // omitted rather than run against a sentinel id.
-        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-
-        var roadmaps = _planningDbContext.Roadmaps.Where(request.IdOrKeyFilter);
-
-        roadmaps = employeeId is { } managerId
-            ? roadmaps.Where(r => r.Visibility == publicVisibility || r.RoadmapManagers.Any(m => m.ManagerId == managerId))
-            : roadmaps.Where(r => r.Visibility == publicVisibility);
+        var roadmaps = _planningDbContext.Roadmaps.Where(request.IdOrKeyFilter)
+            .Where(reader.Filter);
 
         var item = await roadmaps
             .SelectMany(r => r.Items)

@@ -1,7 +1,7 @@
 ﻿using Wayd.Common.Application.Search;
 using Wayd.Common.Application.Search.Dtos;
-using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Planning.Application.Roadmaps;
 using Wayd.Planning.Domain.Models.Roadmaps;
 
 namespace Wayd.Planning.Application.Search;
@@ -126,15 +126,9 @@ public sealed class SearchPlanningForGlobalSearchQueryHandler(IPlanningDbContext
             TotalCount = piTeamCount
         });
 
-        // Roadmaps (respect visibility: public or current user is a manager). An unlinked caller
-        // manages nothing and sees public roadmaps only — this used to throw, which took the whole
-        // of global search down for anyone without an employee record, not just this one category.
-        var employeeId = await currentPrincipal.GetEmployeeId(cancellationToken);
-        var publicVisibility = Visibility.Public;
-
-        var visibleRoadmaps = employeeId is { } managerId
-            ? planningDbContext.Roadmaps.Where(r => r.Visibility == publicVisibility || r.RoadmapManagers.Any(m => m.ManagerId == managerId))
-            : planningDbContext.Roadmaps.Where(r => r.Visibility == publicVisibility);
+        // Roadmaps the caller can see: public ones, those they own, and all of them for a Roadmaps administrator.
+        var roadmapReader = await currentPrincipal.ResolveRoadmapReader(cancellationToken);
+        var visibleRoadmaps = planningDbContext.Roadmaps.Where(roadmapReader.Filter);
 
         var roadmapQuery = visibleRoadmaps
             .Where(r => r.Name.Contains(term));

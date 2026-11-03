@@ -126,13 +126,13 @@ public sealed class RoadmapBaselineBackfillTests(SqlServerDbContextFixture fixtu
         {
             roadmap.UpdateColors([
                 new ColorOption("#4096FF", "Committed", 1, true),
-                new ColorOption("#FA8C16", "Stretch", 2, false)], managerId, EventActor.System, Now);
+                new ColorOption("#FA8C16", "Stretch", 2, false)], new RoadmapActor(managerId, false), EventActor.System, Now);
 
-            var parent = roadmap.CreateActivity(new Activity("Discovery", null, new LocalDateRange(Start, Start.PlusDays(30)), "#4096FF"), managerId, EventActor.System, Now).Value;
-            roadmap.CreateActivity(new Activity("Delivery", "Build it", new LocalDateRange(Start.PlusDays(31), Start.PlusDays(90)), null), managerId, EventActor.System, Now);
-            roadmap.CreateActivity(new Activity("Research", null, new LocalDateRange(Start.PlusDays(2), Start.PlusDays(10)), null) { ParentId = parent.Id }, managerId, EventActor.System, Now);
-            roadmap.CreateMilestone(new Milestone("Beta", Start.PlusDays(20)) { ParentId = parent.Id }, managerId, EventActor.System, Now);
-            roadmap.CreateTimebox(new Timebox("Hardening", new LocalDateRange(Start.PlusDays(60), Start.PlusDays(74))), managerId, EventActor.System, Now);
+            var parent = roadmap.CreateActivity(new Activity("Discovery", null, new LocalDateRange(Start, Start.PlusDays(30)), "#4096FF"), new RoadmapActor(managerId, false), EventActor.System, Now).Value;
+            roadmap.CreateActivity(new Activity("Delivery", "Build it", new LocalDateRange(Start.PlusDays(31), Start.PlusDays(90)), null), new RoadmapActor(managerId, false), EventActor.System, Now);
+            roadmap.CreateActivity(new Activity("Research", null, new LocalDateRange(Start.PlusDays(2), Start.PlusDays(10)), null) { ParentId = parent.Id }, new RoadmapActor(managerId, false), EventActor.System, Now);
+            roadmap.CreateMilestone(new Milestone("Beta", Start.PlusDays(20)) { ParentId = parent.Id }, new RoadmapActor(managerId, false), EventActor.System, Now);
+            roadmap.CreateTimebox(new Timebox("Hardening", new LocalDateRange(Start.PlusDays(60), Start.PlusDays(74))), new RoadmapActor(managerId, false), EventActor.System, Now);
         }
 
         await using var context = _fixture.CreateContext();
@@ -151,7 +151,10 @@ public sealed class RoadmapBaselineBackfillTests(SqlServerDbContextFixture fixtu
         var connection = context.Database.GetDbConnection();
         await connection.OpenAsync(ct);
         await using var command = connection.CreateCommand();
-        command.CommandText = BackfillRoadmapBaselineActivity.UpSql;
+        // The backfill was written when owners were managers; the fixture's schema is the current one.
+        command.CommandText = BackfillRoadmapBaselineActivity.UpSql
+            .Replace("[Planning].[RoadmapManagers]", "[Planning].[RoadmapOwners]")
+            .Replace("m.[ManagerId]", "m.[EmployeeId]");
         await command.ExecuteNonQueryAsync(ct);
     }
 
@@ -160,7 +163,7 @@ public sealed class RoadmapBaselineBackfillTests(SqlServerDbContextFixture fixtu
         await using var verify = _fixture.CreateContext();
         var entry = await verify.ActivityLogs.AsNoTracking().SingleAsync(a => a.AggregateId == roadmapId, ct);
         var roadmap = await verify.Roadmaps.AsNoTracking()
-            .Include(r => r.RoadmapManagers)
+            .Include(r => r.Owners)
             .Include(r => r.Items)
             .SingleAsync(r => r.Id == roadmapId, ct);
         var recordCreatedOn = await verify.Roadmaps
@@ -168,8 +171,8 @@ public sealed class RoadmapBaselineBackfillTests(SqlServerDbContextFixture fixtu
             .Select(r => EF.Property<Instant>(r, "SystemCreated"))
             .SingleAsync(ct);
 
-        // The migration's order: managers by id, items by type, order, start and id, each id as SQL Server sorts it.
-        Guid[] managerIds = [.. roadmap.RoadmapManagers.Select(m => m.ManagerId).OrderBy(id => new SqlGuid(id))];
+        // The migration's order: owners by id, items by type, order, start and id, each id as SQL Server sorts it.
+        Guid[] ownerIds = [.. roadmap.Owners.Select(m => m.EmployeeId).OrderBy(id => new SqlGuid(id))];
         RoadmapColorValues[] colors = [.. roadmap.Colors.OrderBy(c => c.Order)
             .Select(c => new RoadmapColorValues(c.Color, c.Name, c.Order, c.IsDefault))];
         RoadmapItemValues[] items = [.. roadmap.Items
@@ -186,7 +189,7 @@ public sealed class RoadmapBaselineBackfillTests(SqlServerDbContextFixture fixtu
             .ThenBy(i => new SqlGuid(i.ItemId))];
 
         var expectedEvent = new RoadmapBaselinedEvent(roadmap.Id, roadmap.Key, roadmap.Name, roadmap.Description,
-            roadmap.DateRange, roadmap.Visibility, roadmap.State, managerIds, colors, items,
+            roadmap.DateRange, roadmap.Visibility, roadmap.State, ownerIds, colors, items,
             recordCreatedOn, null, entry.Timestamp);
         var expected = ActivityLogEntryFactory.CreateActivityLogEntry(expectedEvent, roadmap, 0, null);
 

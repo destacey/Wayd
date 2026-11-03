@@ -3,16 +3,12 @@ using Wayd.Common.Domain.Enums;
 
 namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-public sealed record UpdateRoadmapCommand(Guid Id, string Name, string? Description, LocalDateRange DateRange, List<Guid> RoadmapManagerIds, Visibility Visibility) : ICommand, IRequireLinkedEmployee;
+public sealed record UpdateRoadmapCommand(Guid Id, string Name, string? Description, LocalDateRange DateRange, List<Guid> OwnerIds, Visibility Visibility) : ICommand, IRequireLinkedEmployee;
 
 public sealed class UpdateRoadmapCommandValidator : AbstractValidator<UpdateRoadmapCommand>
 {
-    private readonly ICurrentPrincipal _currentPrincipal;
-
-    public UpdateRoadmapCommandValidator(ICurrentPrincipal currentPrincipal)
+    public UpdateRoadmapCommandValidator()
     {
-        _currentPrincipal = currentPrincipal;
-
         RuleFor(x => x.Id)
             .NotEmpty();
 
@@ -26,22 +22,15 @@ public sealed class UpdateRoadmapCommandValidator : AbstractValidator<UpdateRoad
         RuleFor(x => x.DateRange)
             .NotNull();
 
-        RuleFor(x => x.RoadmapManagerIds)
-            .NotEmpty()
-            .MustAsync(IncludeCurrentUser).WithMessage("The current user must be a manager of the Roadmap.");
+        // That the caller stays an owner is the roadmap's rule, since a Roadmaps administrator need not be one.
+        RuleFor(x => x.OwnerIds)
+            .NotEmpty();
 
-        RuleForEach(x => x.RoadmapManagerIds)
+        RuleForEach(x => x.OwnerIds)
             .NotEmpty();
 
         RuleFor(x => x.Visibility)
             .IsInEnum();
-    }
-
-    // Resolved rather than read from the token claim (a sign-in snapshot); see CreateRoadmapCommand.
-    public async Task<bool> IncludeCurrentUser(IEnumerable<Guid> roadmapManagerIds, CancellationToken cancellationToken)
-    {
-        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        return employeeId.HasValue && roadmapManagerIds.Contains(employeeId.Value);
     }
 }
 
@@ -59,14 +48,12 @@ public sealed class UpdateRoadmapCommandHandler(IPlanningDbContext planningDbCon
     {
         // Outside the try: this is a refusal, and the catch-all below would turn it into a
         // generic failure, losing both the 403 and its explanation.
-        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        if (currentUserEmployeeId is null)
-            LinkedEmployeeRequired.Throw();
+        var caller = await _currentPrincipal.ResolveRoadmapActor(cancellationToken);
 
         try
         {
             var roadmap = await _planningDbContext.Roadmaps
-                .Include(x => x.RoadmapManagers)
+                .Include(x => x.Owners)
                 .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
 
             if (roadmap is null)
@@ -79,10 +66,10 @@ public sealed class UpdateRoadmapCommandHandler(IPlanningDbContext planningDbCon
                 request.Name,
                 request.Description,
                 request.DateRange,
-                request.RoadmapManagerIds,
+                request.OwnerIds,
                 request.Visibility,
-                currentUserEmployeeId.Value,
-                EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value),
+                caller,
+                EventActor.User(_currentUser.GetUserId(), caller.EmployeeId),
                 _dateTimeProvider.Now);
 
             if (updateResult.IsFailure)

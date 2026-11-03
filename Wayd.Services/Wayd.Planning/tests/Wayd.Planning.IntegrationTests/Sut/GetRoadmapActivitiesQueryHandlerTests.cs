@@ -36,20 +36,20 @@ public sealed class GetRoadmapActivitiesQueryHandlerTests(SqlServerDbContextFixt
         var now = SqlServerDbContextFixture.FixedNow;
 
         await using var seed = _fixture.CreateContext();
-        var manager = Employee.Create(new PersonName("Grace", null, "Hopper"), "E" + Guid.NewGuid().ToString("N")[..11], now,
+        var owner = Employee.Create(new PersonName("Grace", null, "Hopper"), "E" + Guid.NewGuid().ToString("N")[..11], now,
             new EmailAddress($"grace.{Guid.NewGuid():N}@acme.example"), null, null, null, null, true, null, EventActor.System, now);
-        seed.Employees.Add(manager);
+        seed.Employees.Add(owner);
         await seed.SaveChangesAsync(ct);
 
-        var roadmap = Roadmap.Create("Platform 2027", null, Year, Visibility.Public, [manager.Id], EventActor.System, now).Value;
-        var platform = roadmap.CreateActivity(new Activity("Platform", null, Year), manager.Id, EventActor.System, now).Value;
-        var edgeCache = roadmap.CreateActivity(new Activity("Edge cache rollout", platform.Id, Year), manager.Id, EventActor.System, now).Value;
+        var roadmap = Roadmap.Create("Platform 2027", null, Year, Visibility.Public, [owner.Id], EventActor.System, now).Value;
+        var platform = roadmap.CreateActivity(new Activity("Platform", null, Year), new RoadmapActor(owner.Id, false), EventActor.System, now).Value;
+        var edgeCache = roadmap.CreateActivity(new Activity("Edge cache rollout", platform.Id, Year), new RoadmapActor(owner.Id, false), EventActor.System, now).Value;
         seed.Roadmaps.Add(roadmap);
         await seed.SaveChangesAsync(ct);
 
         await using var context = _fixture.CreateContext();
         var principal = new Mock<ICurrentPrincipal>();
-        principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(manager.Id);
+        principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(owner.Id);
         var sut = new GetRoadmapActivitiesQueryHandler(context, principal.Object);
 
         // Act

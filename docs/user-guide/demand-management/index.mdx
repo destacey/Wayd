@@ -173,19 +173,20 @@ The same filters apply to both layouts, so switching between them never changes 
 - **Assignee** — Anyone, **Assigned to me**, or **Not assigned**. **Assigned to me**, as a filter and as a view, is offered only when your account is linked to an employee record
 - **Need by** — Any date, **Fixed for us**, **We chose it**, or **No date given**
 - **Tags** — Pick one or more, grouped by axis, to keep requests carrying any of them. Inactive tags are listed too, since requests keep them. Shown once the company has added tags
-- **Order** — **Usual order**, or **Highest score first**, which ranks both layouts by each request's current score. Scores from different models are on different scales, so desks that score with different models rank in separate runs, one per model; desks sharing a model rank together. A score from a model its desk no longer uses ranks after the comparable ones, and requests with no score, or whose score you cannot read, come last
+- **Estimate** — Estimated or not, **Estimated**, or **Not estimated**, to find what is still to be sized. A request whose [estimate](#estimating-a-request) you cannot read counts as not estimated. Shown once a desk estimates its requests
+- **Order** — **Usual order**, **Highest score first** or **Largest estimate first**. **Highest score first** ranks both layouts by each request's current score. Scores from different models are on different scales, so desks that score with different models rank in separate runs, one per model; desks sharing a model rank together. A score from a model its desk no longer uses ranks after the comparable ones, and requests with no score, or whose score you cannot read, come last. **Largest estimate first** orders by each request's estimate, largest first, in a separate run for each version of each scale, since sizes on different scales do not compare; requests with no estimate, or whose estimate you cannot read, come last. It is offered once a desk estimates its requests
 
 The filters and the layout are kept in the page's address, so a view can be bookmarked or sent to someone. If you work a desk, the page opens on **My desks**; otherwise it opens on every open request. Switch between **List** and **Board** with the icons at the right of the toolbar. **Reset filters**, the clear icon at the end of the filters, puts them all back to every open request. On a phone the filters fold behind a **Filters** button.
 
-**List** shows each request's number, title, [score](#scoring-a-request) where you can read it, status, how long it has been in that status, its need-by date with what makes it that date, its age, assignee, desk, requester and channel, or **Not recorded** for a request with none, and its [tags](#tags), each named with its axis. **Submitted**, the date and time the request arrived, is hidden at first; turn it on from the grid's column chooser. Need-by dates are coloured by their basis — red for a date fixed for us, amber for a promise — and time in status and age turn amber after a week and red after three. Sorting **Need By** ascending puts the earliest date first, a fixed date before a chosen one on the same day, and requests with no date last; descending reverses that. Hovering a status shows its category. The desk links to its page, and the requester and assignee link to theirs if you can view employees; otherwise they are plain names.
+**List** shows each request's number, title, [score](#scoring-a-request) and [estimate](#estimating-a-request) where you can read them, status, how long it has been in that status, its need-by date with what makes it that date, its age, assignee, desk, requester and channel, or **Not recorded** for a request with none, and its [tags](#tags), each named with its axis. **Submitted**, the date and time the request arrived, is hidden at first; turn it on from the grid's column chooser. Need-by dates are coloured by their basis — red for a date fixed for us, amber for a promise — and time in status and age turn amber after a week and red after three. Sorting **Need By** ascending puts the earliest date first, a fixed date before a chosen one on the same day, and requests with no date last; descending reverses that. Sorting **Estimate** orders by size on the scale rather than alphabetically, so *XL* follows *S*; hovering an estimate names the scale and version it was given on. Hovering a status shows its category. The desk links to its page, and the requester and assignee link to theirs if you can view employees; otherwise they are plain names.
 
-**Board** shows the same requests as cards in columns, one per stage of the desk's review workflow, in the workflow's order, so a stage with nothing in it still shows. A heading names the desk the board is for. Desks that follow different workflows have no single board, so with more than one such desk in scope the page asks you to pick one. Each card shows the number, its score where you can read it, the title, need-by date, requester and time in its stage, with a red edge when the date is fixed for us; opening it opens the request. Moving a request between stages is done from the request, since some moves ask for a reason. On a phone the board shows one stage at a time, chosen from a list with each stage's count.
+**Board** shows the same requests as cards in columns, one per stage of the desk's review workflow, in the workflow's order, so a stage with nothing in it still shows. A heading names the desk the board is for. Desks that follow different workflows have no single board, so with more than one such desk in scope the page asks you to pick one. Each card shows the number, its estimate and score where you can read them, the title, need-by date, requester and time in its stage, with a red edge when the date is fixed for us; opening it opens the request. Moving a request between stages is done from the request, since some moves ask for a reason. On a phone the board shows one stage at a time, chosen from a list with each stage's count.
 
 **My Requests** shows the list's columns, limited to requests you asked for or submitted.
 
 ### The request page
 
-Opening a request shows its number and title, with its status and [tags](#tags) beside the title; clicking the status opens its history. An agent on the request's desk changes the tags with the edit icon beside them or **Manage Tags** in the actions menu, choosing from the axes the desk uses. A tag the request carries along an axis the desk does not use — one it brought from another desk — can be removed there but not added to. The trail beneath the title leads back to **Requests** through the desk the request is on, and beneath that a line says who raised it, when, and where it came from when that was recorded. The panel opened from the header lists its desk, channel, requester and assignee and, where you can read them, who submitted it and where it came from.
+Opening a request shows its number and title, with its status and [tags](#tags) beside the title; clicking the status opens its history. An agent on the request's desk changes the tags with the edit icon beside them or **Manage Tags** in the actions menu, choosing from the axes the desk uses. A tag the request carries along an axis the desk does not use — one it brought from another desk — can be removed there but not added to. The trail beneath the title leads back to **Requests** through the desk the request is on, and beneath that a line says who raised it, when, and where it came from when that was recorded. The panel opened from the header lists its desk, channel, requester and assignee and, where you can read them, who submitted it, where it came from and its [estimate](#estimating-a-request).
 
 - **Details** — The reason for its current status, when it has one, then the description, the expected benefits and the need-by date, which says what makes it that date and whether it can move. On a desk that keeps its detail to itself, people outside it see a message saying the detail is limited to that desk, rather than empty fields
 - **Discussion** — The request's conversation with its requester, and the desk's internal notes. Shown only to people who can read the request's detail; see [Discussing a request](#discussing-a-request)
@@ -233,6 +234,18 @@ A desk can rank its requests with one of the company's [scoring models](../setti
 - **A desk without a model does not score.** That is a normal setting, not a fault; the section says so.
 
 The requester and participants read the score and its ratings on their own request, since a decision is easier to accept with the reasoning attached, but only the desk's agents set it. A score is not needed to accept a request.
+
+### Estimating a request
+
+A desk can size its requests on one of the company's [estimation scales](../planning/planning-poker.mdx#estimation-scales), such as T-shirt sizes. An agent on the desk chooses **Change Estimate** in the request's actions menu and picks a value of the desk's scale, from smallest to largest, or **None** to clear it. The estimate shows in the panel opened from the header, and on the Requests list and board.
+
+- **Only while the request is open.** Estimating follows the same rule as scoring: allowed while the request is proposed or active, and frozen once it is done or removed.
+- **A size, never a card.** Only the scale's estimate values can be chosen; cards such as *?* or *☕* belong to planning poker, not to a request.
+- **An estimate keeps its scale.** Each estimate records the version of the scale it was given on, so a later change to the scale never changes what an estimate means. A request moved to a desk that estimates on another scale or another version of it, or not at all, loses its estimate, since a size on one desk's scale says nothing beside another's.
+- **A desk without a scale does not estimate.** That is a normal setting; the request's actions menu offers no **Change Estimate**, unless the request still carries an estimate from before, which an agent can clear.
+- **An earlier version's estimate can be kept.** A request estimated before the desk moved to a newer version keeps its estimate, shown with that version in **Change Estimate**; choosing a value there gives it on the desk's version instead.
+
+The requester and participants see the estimate on their own request but cannot change it, and changing it does not notify them; it is recorded in the request's activity. This is a request's size as the desk sees it, separate from the estimates teams give work items.
 
 ### Changing a request's status
 
@@ -292,6 +305,7 @@ The form also says what the move changes:
   - Reaching **Open** from Summary Only exposes the description, expected benefits and participants, who submitted it and where it came from, earlier versions of the description, and who made each change in its history.
   - Reaching **Open** from Private exposes both.
 - **A desk the assignee does not work.** The request's assignee is always a member of its desk, so moving it to a desk they are not on unassigns it.
+- **A desk on another estimation scale.** An [estimate](#estimating-a-request) is cleared unless the new desk estimates on the very version it was given on — another scale, another version of the same scale, or no scale all clear it — and the new desk's agents estimate it again.
 
 A move to an equally or more private desk needs no confirmation. Every move is recorded in the request's activity with both desks, and the requester always sees which desk has their request. If you move a request to a private desk you do not work, you will no longer be able to open it.
 
@@ -370,6 +384,12 @@ A desk that has not changed these follows the default for every desk, and the pa
 
 Changing the model changes only what the next score uses. Scores already recorded keep the model they were scored with, and only scores from the desk's current model rank together. A model archived after it was chosen stays on the desk, with a warning on the request's Score section, until a Desk Admin chooses another.
 
+#### Choosing a desk's estimation scale
+
+**Estimation Scale** in the desk's Settings names the scale the desk's agents [estimate its requests](#estimating-a-request) on, with the version the desk uses, or **None**. **Change Estimation Scale** lets a Desk Admin or the Demand Management Admin choose any active scale, each listed with its values, or clear it to stop estimating. Scales are built in [Settings → Estimation Scales](../settings/index.mdx#estimation-scales).
+
+The desk uses the scale's version current when it was chosen. When the scale's values change later, the desk stays on its version until a Desk Admin chooses the scale again. The scale can be changed only while no open request on the desk has an estimate on the version the desk uses now; clear those estimates first. Estimates on closed requests, and on an earlier version, keep the version they were given on. A scale deactivated after it was chosen stays on the desk until a Desk Admin chooses another, and a scale a desk or an estimate uses cannot be deleted.
+
 #### Choosing a desk's review workflow
 
 **Review Workflow** in the desk's Settings names the workflow its requests follow, marked **Organization default** while the desk follows the default. **Change Workflow** lets a Desk Admin or the Demand Management Admin choose any published intake workflow. The workflows themselves are built and changed in [Settings → Status Workflows](../settings/status-workflows.mdx), which needs the status workflow permissions.
@@ -414,7 +434,7 @@ Every change is recorded in the activity log.
 A request is read in three tiers:
 
 - **Summary** — Number, title, desk, status, requester, channel, assignee, tags, and the need-by date with its basis and reference
-- **Substance** — Description, expected benefits, who submitted it, its participants, where it came from, the reason for its status, evidence, replies, score and ratings
+- **Substance** — Description, expected benefits, who submitted it, its participants, where it came from, the reason for its status, evidence, replies, score and ratings, and estimate
 - **Internal** — Internal notes and triage reasoning, for the desk's members only
 
 Each desk sets how much of that reaches the rest of the company:

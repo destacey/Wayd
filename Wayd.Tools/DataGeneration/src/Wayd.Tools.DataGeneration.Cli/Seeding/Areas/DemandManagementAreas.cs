@@ -68,8 +68,8 @@ public sealed class DemandManagementSettingsArea() : DemandManagementSeedArea(
 }
 
 /// <summary>
-/// Creates the desks with the people who work them, through the ordinary endpoint. Members are employees, so
-/// the employee import goes first.
+/// Creates the desks with the people who work them, and gives each the estimation scale it was generated
+/// with, through the ordinary endpoints. Members are employees, so the employee import goes first.
 /// </summary>
 public sealed class IntakeDesksArea() : DemandManagementSeedArea(
     DemandManagementArea.Desks, DemandManagementArea.FeatureFlag, OrganizationArea.Employees)
@@ -83,6 +83,9 @@ public sealed class IntakeDesksArea() : DemandManagementSeedArea(
 
         var created = await context.Client.EnsureIntakeDesks(desks, context.Ids(OrganizationArea.Employees), cancellationToken);
         context.Publish(Name, created);
+
+        context.IntakeDeskEstimateValues = await context.Client.EnsureIntakeDeskEstimationScales(desks, created, cancellationToken);
+        context.Log($"{context.IntakeDeskEstimateValues.Count} of {desks.Count} intake desks estimate their requests.");
     }
 }
 
@@ -127,6 +130,7 @@ public sealed class IntakeRequestsArea() : DemandManagementSeedArea(
             StatusReason = r.StatusReason,
             AssigneeId = r.AssigneeEmployeeNumber is { } assignee ? context.Id(OrganizationArea.Employees, assignee) : null,
             TagIds = r.Tags.Count == 0 ? null : string.Join(';', context.Ids(DemandManagementArea.Tags, r.Tags)),
+            Estimate = Estimate(r.EstimateSize, context.IntakeDeskEstimateValues.GetValueOrDefault(r.DeskName)),
         }).ToList();
 
         var batches = Batch(context, rows, r => r.ImportId);
@@ -137,4 +141,13 @@ public sealed class IntakeRequestsArea() : DemandManagementSeedArea(
 
         context.Publish(Name, created);
     }
+
+    /// <summary>
+    /// The value of the desk's scale a generated size falls on, or null when the request was not sized or its
+    /// desk has no values to give it.
+    /// </summary>
+    public static string? Estimate(double? size, IReadOnlyList<string>? values) =>
+        size is { } s && values is { Count: > 0 }
+            ? values[Math.Clamp((int)(s * values.Count), 0, values.Count - 1)]
+            : null;
 }

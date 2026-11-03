@@ -713,7 +713,9 @@ with the asks its departments have raised.
   Counsel, exist where the company has those people. A desk nobody could staff is left out. Every member is in
   post today, since a desk names only active employees. Value streams that share a domain share its desk, so
   no two desks have one name. A request is assigned, and a need-by commitment made, only by a member who
-  already worked here on the day it was submitted.
+  already worked here on the day it was submitted. The product desks and the IT Desk estimate on the
+  **T-Shirt Sizes** scale Wayd ships; Security and Compliance weighs risk rather than size, so it does not
+  estimate. A desk already on a scale keeps it.
 - **Tag axes** — **Size** (one tag: Small to Extra Large) and **Theme** (several: Revenue Growth, Customer
   Experience, and so on), created through the API if the environment does not have them.
 - **Requests** — about `--requests-per-month` a month across the history, each raised by someone in the
@@ -725,7 +727,10 @@ with the asks its departments have raised.
   Declined and Fulfilled carry the reason the requester reads. Regulatory asks always have a need-by date set
   by the regulation, sales asks often one from the contract, and others sometimes a date someone chose or
   committed to. Reviewed requests are usually assigned to a desk member and tagged; a share of support and
-  business asks arrive from a service desk with its ticket number as their origin.
+  business asks arrive from a service desk with its ticket number as their origin. Most reviewed requests with
+  an assignee, on a desk that estimates, carry an estimate, recorded as the assignee's; the generator draws a
+  size between smallest and largest and the seed places it on the scale's values as the environment has them,
+  so a desk whose scale has since changed, or is no longer offered, gets no estimates rather than refused rows.
 
 Duplicates, outcomes, scores and discussion are not generated. A duplicate has to name a request already in
 Wayd, which the import cannot do within one file; an outcome needs a project or work item to point at; and
@@ -778,7 +783,7 @@ team staffing → planning intervals (+ rosters) → planning interval objective
               → risks
 
 demand-management feature flag → tag axes (+ the seeded channels, read back)
-                    employees + flag → intake desks (+ members)
+                    employees + flag → intake desks (+ members, estimation scales)
                                      → intake requests (after the axes and desks)
 
 application roles → user accounts (after employees)

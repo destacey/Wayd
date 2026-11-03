@@ -50158,6 +50158,141 @@ export class IntakeDesksClient {
     }
 
     /**
+     * Set the estimation scale a desk's requests are estimated on.
+     * @return No Content
+     */
+    changeEstimationScale(id: string, request: ChangeIntakeDeskEstimationScaleRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks/{id}/estimation-scale";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeEstimationScale(_response);
+        });
+    }
+
+    protected processChangeEstimationScale(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get the active estimation scales a desk can estimate its requests on.
+     * @return OK
+     */
+    getEstimationScaleChoices( cancelToken?: CancelToken): Promise<IntakeEstimationScaleChoiceDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks/estimation-scale-choices";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetEstimationScaleChoices(_response);
+        });
+    }
+
+    protected processGetEstimationScaleChoices(response: AxiosResponse): Promise<IntakeEstimationScaleChoiceDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeEstimationScaleChoiceDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeEstimationScaleChoiceDto[]>(null as any);
+    }
+
+    /**
      * Get the published intake request workflows a desk can follow.
      * @return OK
      */
@@ -50532,6 +50667,71 @@ export class IntakeRequestsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<IntakeRequestCurrentScoreDto[]>(null as any);
+    }
+
+    /**
+     * Get the estimates of the intake requests you can see.
+     * @param deskId (optional) 
+     * @param mine (optional) 
+     * @param openOnly (optional) 
+     * @return OK
+     */
+    getIntakeRequestEstimates(deskId?: string | null | undefined, mine?: boolean | undefined, openOnly?: boolean | undefined, cancelToken?: CancelToken): Promise<IntakeRequestCurrentEstimateDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/estimates?";
+        if (deskId !== undefined && deskId !== null)
+            url_ += "deskId=" + encodeURIComponent("" + deskId) + "&";
+        if (mine === null)
+            throw new globalThis.Error("The parameter 'mine' cannot be null.");
+        else if (mine !== undefined)
+            url_ += "mine=" + encodeURIComponent("" + mine) + "&";
+        if (openOnly === null)
+            throw new globalThis.Error("The parameter 'openOnly' cannot be null.");
+        else if (openOnly !== undefined)
+            url_ += "openOnly=" + encodeURIComponent("" + openOnly) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIntakeRequestEstimates(_response);
+        });
+    }
+
+    protected processGetIntakeRequestEstimates(response: AxiosResponse): Promise<IntakeRequestCurrentEstimateDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeRequestCurrentEstimateDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeRequestCurrentEstimateDto[]>(null as any);
     }
 
     /**
@@ -50940,6 +51140,82 @@ export class IntakeRequestsClient {
     }
 
     protected processChangeAssignee(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Estimate an intake request on its desk's estimation scale, or clear its estimate.
+     * @return No Content
+     */
+    changeEstimate(id: string, request: ChangeIntakeRequestEstimateRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}/estimate";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeEstimate(_response);
+        });
+    }
+
+    protected processChangeEstimate(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -61196,6 +61472,13 @@ judge", which is not the same as a rate of zero. */
     rate?: number | undefined;
 }
 
+/** The estimation scale a desk's requests should be estimated on. */
+export interface ChangeIntakeDeskEstimationScaleRequest {
+    /** An active estimation scale, from the estimation scale choices, or null to stop estimating the desk's requests.
+The desk is pinned to the scale's current version. */
+    estimationScaleId?: string | undefined;
+}
+
 /** The scoring model a desk's requests should be scored with. */
 export interface ChangeIntakeDeskScoringModelRequest {
     /** An active scoring model, from the scoring model choices, or null to stop scoring the desk's requests. */
@@ -61212,6 +61495,14 @@ export interface ChangeIntakeDeskWorkflowRequest {
 export interface ChangeIntakeRequestAssigneeRequest {
     /** A member of the request's desk, or null to unassign it. */
     assigneeId?: string | undefined;
+}
+
+/** How big an intake request is, on its desk's estimation scale. */
+export interface ChangeIntakeRequestEstimateRequest {
+    /** An estimate value of the scale version the request's desk pins, exactly as the scale writes it (`M`,
+`8`), never a card such as `?`; or null to clear the estimate. Blank is refused. At most 32 characters
+once trimmed. */
+    value?: string | undefined;
 }
 
 /** The status to move an intake request to, with what that move needs. */
@@ -62927,6 +63218,22 @@ export interface EstimationScaleVersionDto {
     values: EstimationScaleValueDto[];
 }
 
+/** One version of an estimation scale, named by its scale: what a desk pins and an estimate was given on. */
+export interface EstimationScaleVersionNavigationDto {
+    /** The scale's id. */
+    id: string;
+    /** The scale's key. */
+    key: number;
+    /** The scale's name. */
+    name: string;
+    /** The version's id. */
+    versionId: string;
+    /** The version's number within its scale, starting at 1. */
+    versionNumber: number;
+    /** Whether the version is the scale's latest. False once the scale's values have changed since. */
+    isCurrentVersion: boolean;
+}
+
 /** A request to evaluate (test) a scoring model against a set of supplied criterion values, returning the resulting output values without persisting anything. */
 export interface EvaluateScoringModelRequest {
     /** The value to plug in for each criterion, keyed by criterion id. */
@@ -63457,6 +63764,10 @@ one. Max 1024 chars. */
     assigneeId?: string | undefined;
     /** Semicolon-separated tag ids: tags on axes the desk offers, or free tags where it allows them. */
     tagIds?: string | undefined;
+    /** The request's estimate: an estimate value of the desk's estimation scale, exactly as the scale writes it
+(`M`, `8`), never a card such as `?`. Needs a desk with an estimation scale. Blank leaves the
+request unestimated, and the column may be left out of the file. Max 32 chars. */
+    estimate?: string | undefined;
 }
 
 export interface ImportPlanningIntervalObjectivesRequest {
@@ -64164,6 +64475,9 @@ along none. */
     allowsFreeTags: boolean;
     /** The scoring model the desk's agents score its requests with, or null when the desk does not score them. */
     scoringModel?: NavigationDto | undefined;
+    /** The estimation scale version the desk team estimates the desk's requests on, or null when the desk does not
+estimate them. */
+    estimationScale?: EstimationScaleVersionNavigationDto | undefined;
     /** How many changes the desk has recorded; sent back with a change so a stale one is refused. */
     revision: number;
     /** The employees named on the desk, by name, with their roles. */
@@ -64240,6 +64554,20 @@ before submitting. */
     statuses: IntakeWorkflowStatusDto[];
 }
 
+/** An active estimation scale a desk can estimate its requests on, with the values of its current version, which a desk choosing it is pinned to. */
+export interface IntakeEstimationScaleChoiceDto {
+    /** The scale's id. */
+    id: string;
+    /** The scale's key. */
+    key: number;
+    /** The scale's name. */
+    name: string;
+    /** The number of the scale's current version. */
+    versionNumber: number;
+    /** The estimate values of the current version, in order; cards are left out, since no request is estimated with one. */
+    estimateValues: string[];
+}
+
 /** The statuses an intake request can arrive in when moved to a desk, and the one it arrives in unless the mover chooses. */
 export interface IntakeRequestArrivalStatusesDto {
     /** The destination workflow's open statuses that need no reason, in the workflow's order. */
@@ -64258,6 +64586,14 @@ export interface IntakeRequestCriterionRatingRequest {
     value?: number | undefined;
     /** The level chosen, for a criterion rated on a scale. */
     ratingLevelId?: string | undefined;
+}
+
+/** A request's estimate, as the requests list and board sort and filter on it. Substance tier, which is why it is returned beside the summaries rather than on them. */
+export interface IntakeRequestCurrentEstimateDto {
+    /** The request estimated. */
+    requestId: string;
+    /** The estimate. */
+    estimate: IntakeRequestEstimateDto;
 }
 
 /** A request's current score, as the requests list and board rank on it. Substance tier, which is why it is returned beside the summaries rather than on them. */
@@ -64316,12 +64652,36 @@ request sees its tags. */
     outcomes: IntakeRequestOutcomeDto[];
     /** Whether the reader may add and remove outcomes: an agent on its desk, while the request is accepted. */
     canChangeOutcomes: boolean;
+    /** Whether the reader may set, change or clear the request's estimate: an agent on its desk, while the request
+is open, and only when the desk has an estimation scale or the request has an estimate to clear. Never the
+requester. */
+    canChangeEstimate: boolean;
+    /** The estimate values of the scale version the request's desk pins, in order, for a reader who may change the
+estimate; empty otherwise, and when the desk does not estimate its requests. */
+    estimateValues: string[];
+    /** The scale version the request's desk pins, which the estimate values come from, for a reader who
+may change the estimate; null otherwise, and when the desk does not estimate its requests. An estimate on
+any other version can be kept or cleared, but a value sent is always given on this one, even when the
+older version wrote the same value. */
+    estimationScaleVersionId?: string | undefined;
     /** Whether the reader may withdraw the request: its requester, while it is open. */
     canWithdraw: boolean;
     /** The request this one is a duplicate of, while its status means Duplicate and the reader can see that
 request; its page shows that one instead. Null otherwise, so a request the reader cannot see is never
 named or counted. */
     duplicateOf?: IntakeRequestNavigationDto | undefined;
+}
+
+/** How big an intake request is, on the estimation scale version it was given on. Substance tier. */
+export interface IntakeRequestEstimateDto {
+    /** The estimate value, such as `M` or `8`. */
+    value: string;
+    /** Where the value sits among its version's values, from 0. Estimates sort by it rather than by the text, so
+`XL` follows `S`; positions compare only between estimates on the same version, since a later version
+can add values and shift them. */
+    position: number;
+    /** The scale and version the estimate was given on. */
+    scale: EstimationScaleVersionNavigationDto;
 }
 
 /** Another intake request, named enough to link to: its number and title, both summary tier. */
@@ -64543,6 +64903,8 @@ export interface IntakeRequestSubstanceDto {
     /** Why the request is in its current status: the desk's reason for declining, deferring, marking a duplicate
 or finishing it, or the requester's note on withdrawing. Null when the move recorded none. */
     statusReason?: string | undefined;
+    /** How big the ask is, on the scale the desk team estimated it on, or null when it has not been estimated. */
+    estimate?: IntakeRequestEstimateDto | undefined;
 }
 
 /** The summary tier of an intake request: enough to recognise that an ask exists. */

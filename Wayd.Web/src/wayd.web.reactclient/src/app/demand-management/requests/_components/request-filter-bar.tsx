@@ -25,11 +25,13 @@ import {
   Select,
 } from 'antd'
 import { FC, useState } from 'react'
+import type { RequestEstimates } from '../../_components/request-estimates'
 import { TOUCH_THEME } from '../../_components/touch-theme'
 import styles from './request-filter-bar.module.css'
 import {
   AssigneeFilter,
   BUILT_IN_VIEWS,
+  EstimateFilter,
   DEFAULT_REQUEST_FILTERS,
   MY_DESKS,
   NeedByFilter,
@@ -56,6 +58,8 @@ export interface RequestFilterBarProps {
   employeeId: string | null | undefined
   /** The desks the reader works, for "My desks"; empty for someone who works none. */
   myDeskIds: string[]
+  /** The estimates the reader may read, for the estimate filter and the views' counts. */
+  estimates?: RequestEstimates
 }
 
 const countBy = (
@@ -90,6 +94,7 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
   tagCategories,
   employeeId,
   myDeskIds,
+  estimates,
   stacked,
 }) => {
   const set = (patch: Partial<RequestFilters>) =>
@@ -133,6 +138,11 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
     }))
   const controlClass = stacked ? styles.stackedControl : styles.control
   const current = matchingView(filters)
+  // Offered once a desk estimates, and kept while applied so a shared link's filter can be cleared.
+  const offersEstimates =
+    (desks ?? []).some((d) => d.estimationScale) ||
+    filters.estimate !== 'any' ||
+    filters.order === 'estimate'
 
   return (
     <>
@@ -154,7 +164,7 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
           // Every built-in view is of open requests, so it can be counted only from the open set.
           label:
             filters.scope === 'open' && requests
-              ? `${v.name} (${applyRequestFilters(requests, v.filters, employeeId, myDeskIds).length})`
+              ? `${v.name} (${applyRequestFilters(requests, v.filters, employeeId, myDeskIds, estimates).length})`
               : v.name,
           title: v.description,
         }))}
@@ -238,6 +248,19 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
           { value: 'none', label: 'No date given' },
         ]}
       />
+      {offersEstimates && (
+        <Select<EstimateFilter>
+          className={controlClass}
+          aria-label="Estimate"
+          value={filters.estimate}
+          onChange={(estimate) => set({ estimate })}
+          options={[
+            { value: 'any', label: 'Estimated or not' },
+            { value: 'estimated', label: 'Estimated' },
+            { value: 'unestimated', label: 'Not estimated' },
+          ]}
+        />
+      )}
       <Select<RequestOrder>
         className={controlClass}
         aria-label="Order"
@@ -246,6 +269,9 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
         options={[
           { value: 'usual', label: 'Usual order' },
           { value: 'score', label: 'Highest score first' },
+          ...(offersEstimates
+            ? [{ value: 'estimate' as const, label: 'Largest estimate first' }]
+            : []),
         ]}
       />
       <Select

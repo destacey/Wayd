@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Wayd.Common.Domain.Authorization;
 using Moq;
 using NodaTime;
@@ -18,6 +19,7 @@ using Wayd.Common.Models;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
+using Wayd.DemandManagement.Domain.Models.Estimation;
 using Wayd.DemandManagement.Domain.Models.Scoring;
 using Wayd.DemandManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
@@ -153,6 +155,32 @@ public sealed class IntakeScenario
         desk.ChangeScoringModel(model, current, EventActor.System, Instant.MinValue);
         desk.ClearDomainEvents();
         return desk;
+    }
+
+    /// <summary>Demand Management's copy of an estimation scale, of T-shirt sizes S to XL and a <c>?</c> card.</summary>
+    public DemandEstimationScale EstimationScale(string name = "T-Shirt Sizes", bool isActive = true)
+    {
+        var scale = DemandEstimationScaleFactory.Create(name, isActive, asOf: Clock.Now);
+        DbContext.AddEstimationScales(scale);
+        return scale;
+    }
+
+    /// <summary>Pins the desk to the scale's current version, as already saved, raising nothing.</summary>
+    public IntakeDesk EstimatesOn(IntakeDesk desk, DemandEstimationScale? scale)
+    {
+        var current = DbContext.DemandEstimationScales.SingleOrDefault(s => s.Versions.Any(v => v.Id == desk.EstimationScaleVersionId));
+        desk.ChangeEstimationScale(scale, current, hasEstimatedOpenRequests: false, EventActor.System, Instant.MinValue);
+        desk.ClearDomainEvents();
+        return desk;
+    }
+
+    /// <summary>Estimates an open request on its desk's pinned version, as already saved, raising nothing.</summary>
+    public void Estimated(IntakeRequest request, IntakeDesk desk, string value)
+    {
+        var scale = DbContext.DemandEstimationScales.Single(s => s.Versions.Any(v => v.Id == desk.EstimationScaleVersionId));
+        request.ChangeEstimate(value, desk, scale, IntakeRequestEstimateSource.Manual, IntakeRequestEditor.System, Instant.MinValue)
+            .IsSuccess.Should().BeTrue();
+        request.ClearDomainEvents();
     }
 
     /// <summary>The criterion ratings for <see cref="ScoringModel"/>, as an agent enters them.</summary>

@@ -1,7 +1,10 @@
-﻿namespace Wayd.Planning.Application.EstimationScales.Commands;
+﻿using Wayd.Common.Application.Requests.DemandManagement;
+
+namespace Wayd.Planning.Application.EstimationScales.Commands;
 
 /// <summary>
-/// Delete an estimation scale and its versions. Refused while any poker session uses the scale.
+/// Delete an estimation scale and its versions. Refused while any poker session uses the scale, or while Demand
+/// Management does: an intake desk pins one of its versions, or a request was estimated on one.
 /// </summary>
 public sealed record DeleteEstimationScaleCommand(Guid Id) : ICommand;
 
@@ -14,11 +17,15 @@ public sealed class DeleteEstimationScaleCommandValidator : CustomValidator<Dele
     }
 }
 
-public sealed class DeleteEstimationScaleCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<DeleteEstimationScaleCommandHandler> logger) : ICommandHandler<DeleteEstimationScaleCommand>
+public sealed class DeleteEstimationScaleCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, IDispatcher dispatcher, ILogger<DeleteEstimationScaleCommandHandler> logger) : ICommandHandler<DeleteEstimationScaleCommand>
 {
+    /// <summary>The failure for a scale an intake desk or an intake request estimate uses.</summary>
+    public const string UsedByDemandError = "Cannot delete an estimation scale that an intake desk or an intake request estimate uses.";
+
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ILogger<DeleteEstimationScaleCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeleteEstimationScaleCommand request, CancellationToken cancellationToken)
@@ -37,6 +44,9 @@ public sealed class DeleteEstimationScaleCommandHandler(IPlanningDbContext plann
 
             if (isInUse)
                 return Result.Failure("Cannot delete an estimation scale that is in use by poker sessions.");
+
+            if (await _dispatcher.Send(new IsEstimationScaleUsedByDemandQuery(request.Id), cancellationToken))
+                return Result.Failure(UsedByDemandError);
 
             if (scale.IsActive)
             {

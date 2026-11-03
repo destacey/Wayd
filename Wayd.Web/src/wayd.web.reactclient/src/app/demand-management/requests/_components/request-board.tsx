@@ -15,6 +15,8 @@ import { NeedByTag } from '../../_components/need-by'
 import { WaitTime } from '../../_components/request-age'
 import { TOUCH_THEME } from '../../_components/touch-theme'
 import type { RequestScores } from '../../_components/request-scores'
+import type { RequestEstimates } from '../../_components/request-estimates'
+import { EstimateValue } from '../../_components/estimate-value'
 import { ScoreValue } from '../../_components/score-value'
 import styles from './request-board.module.css'
 import { RequestScope } from './request-filters'
@@ -49,7 +51,8 @@ export const boardColumns = (
 const RequestCard: FC<{
   request: IntakeRequestSummaryDto
   scores: RequestScores
-}> = ({ request, scores }) => {
+  estimates: RequestEstimates
+}> = ({ request, scores, estimates }) => {
   const fixed = request.needBy?.family === NeedByBasisFamily.FixedForUs
   return (
     <Link
@@ -60,7 +63,10 @@ const RequestCard: FC<{
         <Text type="secondary" className={styles.number}>
           {request.key}
         </Text>
-        <ScoreValue score={scores.get(request.id)} />
+        <span className={styles.sizing}>
+          <EstimateValue estimate={estimates.get(request.id)} />
+          <ScoreValue score={scores.get(request.id)} />
+        </span>
       </span>
       <Text strong className={styles.title}>
         {request.title}
@@ -85,7 +91,8 @@ const ColumnView: FC<{
   column: BoardColumn
   showHeader: boolean
   scores: RequestScores
-}> = ({ column, showHeader, scores }) => (
+  estimates: RequestEstimates
+}> = ({ column, showHeader, scores, estimates }) => (
   <section
     className={styles.column}
     aria-label={`${column.status.name}, ${column.requests.length}`}
@@ -106,7 +113,12 @@ const ColumnView: FC<{
         </Text>
       ) : (
         column.requests.map((r) => (
-          <RequestCard key={r.id} request={r} scores={scores} />
+          <RequestCard
+            key={r.id}
+            request={r}
+            scores={scores}
+            estimates={estimates}
+          />
         ))
       )}
     </div>
@@ -117,6 +129,8 @@ export interface RequestBoardProps {
   columns: BoardColumn[]
   /** The current scores the reader may read, shown on the cards. */
   scores?: RequestScores
+  /** The estimates the reader may read, shown on the cards. */
+  estimates?: RequestEstimates
 }
 
 /**
@@ -128,6 +142,7 @@ export interface RequestBoardProps {
 const RequestBoard: FC<RequestBoardProps> = ({
   columns,
   scores = new Map(),
+  estimates = new Map(),
 }) => {
   const screens = useBreakpoint()
   const [chosenId, setChosenId] = useState<string>()
@@ -154,7 +169,12 @@ const RequestBoard: FC<RequestBoardProps> = ({
             }))}
           />
         </ConfigProvider>
-        <ColumnView column={shown} showHeader={false} scores={scores} />
+        <ColumnView
+          column={shown}
+          showHeader={false}
+          scores={scores}
+          estimates={estimates}
+        />
       </div>
     )
   }
@@ -162,7 +182,13 @@ const RequestBoard: FC<RequestBoardProps> = ({
   return (
     <div className={styles.board}>
       {columns.map((c) => (
-        <ColumnView key={c.status.id} column={c} showHeader scores={scores} />
+        <ColumnView
+          key={c.status.id}
+          column={c}
+          showHeader
+          scores={scores}
+          estimates={estimates}
+        />
       ))}
     </div>
   )

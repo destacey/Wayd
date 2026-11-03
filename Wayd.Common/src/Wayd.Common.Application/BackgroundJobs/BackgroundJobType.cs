@@ -33,6 +33,9 @@ public enum BackgroundJobType
     [Display(Name = "Teams Sync", Description = "Synchronize the latest teams data.", Order = 1005, GroupName = "Data Replication Jobs")]
     TeamsSync = 1004,
 
+    [Display(Name = "Estimation Scales Sync", Description = "Synchronize the latest estimation scales data.", Order = 1006, GroupName = "Data Replication Jobs")]
+    EstimationScalesSync = 1005,
+
 
     // Maintenance Jobs
 

@@ -27,7 +27,9 @@ import {
   CreateIntakeDeskRequest,
   CreateIntakeRequestRequest,
   IntakeDeskWorkflowDto,
+  IntakeRequestCurrentEstimateDto,
   IntakeRequestCurrentScoreDto,
+  IntakeEstimationScaleChoiceDto,
   IntakeRequestScoringDto,
   IntakeScoringModelChoiceDto,
   ScoreIntakeRequestRequest,
@@ -191,6 +193,18 @@ export interface ChangeIntakeDeskScoringModelArgs {
   scoringModelId?: string
 }
 
+export interface ChangeIntakeDeskEstimationScaleArgs {
+  deskId: string
+  /** An active scale, or undefined to stop estimating the desk's requests. */
+  estimationScaleId?: string
+}
+
+export interface ChangeIntakeRequestEstimateArgs {
+  requestId: string
+  /** An estimate value of the desk's scale version, or undefined to clear the estimate. */
+  value?: string
+}
+
 /**
  * Rejects with what the generated client threw, unchanged, so pages and forms read it with `toApiError`:
  * a documented response arrives as its problem details and an undocumented one as an `ApiException`.
@@ -242,6 +256,52 @@ export const demandManagementApi = apiSlice.injectEndpoints({
         }
       },
       providesTags: [{ type: QueryTags.IntakeRequestScore, id: 'LIST' }],
+    }),
+
+    // Answered beside the list for the same reason as the scores. It also carries the list's tag: a move,
+    // a reroute or an import changes which requests hold an estimate as surely as estimating does.
+    getIntakeRequestEstimates: builder.query<
+      IntakeRequestCurrentEstimateDto[],
+      IntakeRequestListArgs | void
+    >({
+      queryFn: async (args) => {
+        try {
+          const data =
+            await getIntakeRequestsClient().getIntakeRequestEstimates(
+              args?.deskId,
+              args?.mine,
+              args?.openOnly,
+            )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      providesTags: [
+        { type: QueryTags.IntakeRequestEstimate, id: 'LIST' },
+        listTag,
+      ],
+    }),
+
+    changeIntakeRequestEstimate: builder.mutation<
+      void,
+      ChangeIntakeRequestEstimateArgs
+    >({
+      queryFn: async ({ requestId, value }) => {
+        try {
+          const data = await getIntakeRequestsClient().changeEstimate(
+            requestId,
+            { value },
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: (_result, _error, { requestId }) => [
+        ...requestTags(requestId),
+        QueryTags.IntakeRequestEstimate,
+      ],
     }),
 
     getIntakeRequestScoring: builder.query<IntakeRequestScoringDto, string>({
@@ -862,6 +922,45 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    getIntakeEstimationScaleChoices: builder.query<
+      IntakeEstimationScaleChoiceDto[],
+      void
+    >({
+      queryFn: async () => {
+        try {
+          const data = await getIntakeDesksClient().getEstimationScaleChoices()
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      // Planning's scale settings change the choices, and invalidate this tag when they do.
+      providesTags: [{ type: QueryTags.EstimationScale, id: 'LIST' }],
+    }),
+
+    // The desk's scale decides which values its requests' pages offer, so cached requests refresh too.
+    changeIntakeDeskEstimationScale: builder.mutation<
+      void,
+      ChangeIntakeDeskEstimationScaleArgs
+    >({
+      queryFn: async ({ deskId, estimationScaleId }) => {
+        try {
+          const data = await getIntakeDesksClient().changeEstimationScale(
+            deskId,
+            { estimationScaleId },
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: (_result, _error, { deskId }) => [
+        { type: QueryTags.IntakeDesk, id: deskId },
+        deskListTag,
+        QueryTags.IntakeRequest,
+      ],
+    }),
+
     getIntakeDeskRoles: builder.query<IntakeDeskRoleDto[], void>({
       queryFn: async () => {
         try {
@@ -1373,4 +1472,8 @@ export const {
   usePreviewIntakeRequestScoreMutation,
   useGetIntakeScoringModelChoicesQuery,
   useChangeIntakeDeskScoringModelMutation,
+  useGetIntakeRequestEstimatesQuery,
+  useChangeIntakeRequestEstimateMutation,
+  useGetIntakeEstimationScaleChoicesQuery,
+  useChangeIntakeDeskEstimationScaleMutation,
 } = demandManagementApi

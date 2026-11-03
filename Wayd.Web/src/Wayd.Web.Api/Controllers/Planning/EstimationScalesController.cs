@@ -106,7 +106,7 @@ public class EstimationScalesController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.EstimationScales)]
     [EndpointSummary("Delete a custom estimation scale.")]
     [EndpointDescription(
-        "Permanently deletes the scale with all its versions. Refused while any poker session uses it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's UUID.")]
+        "Permanently deletes the scale with all its versions. Refused while any poker session uses it, while an intake desk estimates on it or an intake request was estimated on it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's UUID.")]
     [McpTool("EstimationScales_DeleteScale", "Delete estimation scale")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

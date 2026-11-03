@@ -27,6 +27,8 @@ import EmployeeName from './employee-name'
 import { WaitTime, daysSince } from './request-age'
 import { ScoreValue } from './score-value'
 import type { RequestScores } from './request-scores'
+import { EstimateValue } from './estimate-value'
+import { compareEstimates, type RequestEstimates } from './request-estimates'
 
 export interface IntakeRequestsGridProps {
   requests: IntakeRequestSummaryDto[] | undefined
@@ -46,6 +48,11 @@ export interface IntakeRequestsGridProps {
    * column when given.
    */
   scores?: RequestScores
+  /**
+   * The requests' estimates, fetched beside the summaries since an estimate is substance. Adds an Estimate
+   * column when given, which sorts by size rather than by the text.
+   */
+  estimates?: RequestEstimates
   /** The sort the grid opens on; newest first unless given. Empty keeps the order the requests arrive in. */
   initialSorting?: SortingState
 }
@@ -85,6 +92,7 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
   leftSlot,
   rightSlot,
   scores,
+  estimates,
   initialSorting = [{ id: 'key', desc: true }],
 }) => {
   const basisName = (code: string | undefined) =>
@@ -121,6 +129,30 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
             size: 100,
             cell: ({ row }: { row: { original: IntakeRequestSummaryDto } }) => (
               <ScoreValue score={scores.get(row.original.id)} />
+            ),
+          } satisfies ColumnDef<IntakeRequestSummaryDto, any>,
+        ]
+      : []),
+    ...(estimates
+      ? [
+          {
+            id: 'estimate',
+            // The text, for the set filter and the CSV; the sort compares positions on the scale.
+            accessorFn: (request: IntakeRequestSummaryDto) =>
+              estimates.get(request.id)?.value ?? null,
+            sortFn: (
+              a: { original: IntakeRequestSummaryDto },
+              b: { original: IntakeRequestSummaryDto },
+            ) =>
+              compareEstimates(
+                estimates.get(a.original.id),
+                estimates.get(b.original.id),
+              ),
+            header: 'Estimate',
+            size: 100,
+            meta: { filterType: 'set' },
+            cell: ({ row }: { row: { original: IntakeRequestSummaryDto } }) => (
+              <EstimateValue estimate={estimates.get(row.original.id)} />
             ),
           } satisfies ColumnDef<IntakeRequestSummaryDto, any>,
         ]

@@ -6,7 +6,7 @@ export const importTemplates = {
   'demand-management.intake-requests': {
     module: 'demand-management',
     description:
-      "Each row names its desk, channel, tags and people by id. A request is created on its desk in the status meaning Submitted, at `SubmittedAt`, then assigned, tagged and moved to `Status` — a status of the desk's workflow by name or by meaning — at `StatusChangedAt`. Withdrawn is recorded as the requester's own move; every other status as the assignee's. Needs the Demand Management Admin.",
+      "Each row names its desk, channel, tags and people by id. A request is created on its desk in the status meaning Submitted, at `SubmittedAt`, then assigned, tagged, estimated and moved to `Status` — a status of the desk's workflow by name or by meaning — at `StatusChangedAt`. Withdrawn is recorded as the requester's own move; every other status as the assignee's. Needs the Demand Management Admin.",
     files: [
       {
         field: 'file',
@@ -177,6 +177,13 @@ export const importTemplates = {
             required: false,
             description:
               'Semicolon-separated tag ids: tags on axes the desk offers, or free tags where it allows them.',
+          },
+          {
+            name: 'Estimate',
+            type: 'text',
+            required: false,
+            description:
+              "The request's estimate: an estimate value of the desk's estimation scale, exactly as the scale writes it (`M`, `8`), never a card such as `?`. Needs a desk with an estimation scale. Blank leaves the request unestimated, and the column may be left out of the file. Max 32 chars.",
           },
         ],
       },

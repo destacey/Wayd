@@ -3,6 +3,7 @@ import {
   NeedByBasisFamily,
 } from '@/src/services/wayd-api'
 import { NOT_RECORDED_CHANNEL } from '../../_components/channel'
+import type { RequestEstimates } from '../../_components/request-estimates'
 
 /** Who a request is assigned to, as the Requests page filters it. */
 export type AssigneeFilter = 'anyone' | 'me' | 'unassigned'
@@ -17,10 +18,13 @@ export type NeedByFilter = 'any' | 'fixed' | 'chosen' | 'none'
 export type RequestView = 'list' | 'board'
 
 /**
- * The order requests are shown in: the layout's usual one, or ranked by score, highest first. Part of the
- * filters so a view can rank, and so a ranked page can be bookmarked or sent.
+ * The order requests are shown in: the layout's usual one, ranked by score, highest first, or by estimate,
+ * largest first. Part of the filters so a view can rank, and so a ranked page can be bookmarked or sent.
  */
-export type RequestOrder = 'usual' | 'score'
+export type RequestOrder = 'usual' | 'score' | 'estimate'
+
+/** Whether to keep requests with an estimate, those without one, or both. */
+export type EstimateFilter = 'any' | 'estimated' | 'unestimated'
 
 /**
  * The one filter set the Requests page applies to both the list and the board, so switching view never
@@ -41,6 +45,8 @@ export interface RequestFilters {
   /** Empty for any tags; otherwise requests carrying at least one of these. */
   tagIds: string[]
   needBy: NeedByFilter
+  /** An estimate is substance, so the filter reads the estimates the reader may read. */
+  estimate: EstimateFilter
   order: RequestOrder
 }
 
@@ -52,6 +58,7 @@ export const DEFAULT_REQUEST_FILTERS: RequestFilters = {
   channelIds: [],
   tagIds: [],
   needBy: 'any',
+  estimate: 'any',
   order: 'usual',
 }
 
@@ -85,16 +92,25 @@ export const resolveDeskIds = (
   ...new Set(deskIds.flatMap((id) => (id === MY_DESKS ? myDeskIds : [id]))),
 ]
 
+const keepsEstimate = (
+  filter: EstimateFilter,
+  request: IntakeRequestSummaryDto,
+  estimates: RequestEstimates,
+): boolean =>
+  filter === 'any' || (filter === 'estimated') === estimates.has(request.id)
+
 /**
  * The requests the filters keep. The scope is applied by the server, so it is not repeated here.
  * `employeeId` is the signed-in reader's, for "Assigned to me"; without one, that filter keeps nothing.
  * `myDeskIds` are the desks the reader works, for "My desks"; without any, that filter keeps nothing.
+ * `estimates` are the ones the reader may read; a request whose estimate is withheld counts as unestimated.
  */
 export const applyRequestFilters = (
   requests: IntakeRequestSummaryDto[],
   filters: RequestFilters,
   employeeId: string | null | undefined,
   myDeskIds: string[] = [],
+  estimates: RequestEstimates = new Map(),
 ): IntakeRequestSummaryDto[] => {
   const deskIds = resolveDeskIds(filters.deskIds, myDeskIds)
   return requests.filter(
@@ -111,7 +127,8 @@ export const applyRequestFilters = (
         (filters.assignee === 'me' &&
           !!employeeId &&
           r.assignee?.id === employeeId)) &&
-      keepsNeedBy(filters.needBy, r),
+      keepsNeedBy(filters.needBy, r) &&
+      keepsEstimate(filters.estimate, r, estimates),
   )
 }
 
@@ -125,6 +142,7 @@ export const activeFilterCount = (filters: RequestFilters): number =>
     filters.channelIds.length > 0,
     filters.tagIds.length > 0,
     filters.needBy !== 'any',
+    filters.estimate !== 'any',
     filters.order !== 'usual',
   ].filter(Boolean).length
 
@@ -191,6 +209,7 @@ const sameFilters = (a: RequestFilters, b: RequestFilters) =>
   a.scope === b.scope &&
   a.assignee === b.assignee &&
   a.needBy === b.needBy &&
+  a.estimate === b.estimate &&
   a.order === b.order &&
   sameSet(a.deskIds, b.deskIds) &&
   sameSet(a.statusNames, b.statusNames) &&
@@ -239,7 +258,16 @@ export const fromSearchParams = (
       ['any', 'fixed', 'chosen', 'none'] as const,
       'any',
     ),
-    order: pick(params.get('order'), ['usual', 'score'] as const, 'usual'),
+    estimate: pick(
+      params.get('estimate'),
+      ['any', 'estimated', 'unestimated'] as const,
+      'any',
+    ),
+    order: pick(
+      params.get('order'),
+      ['usual', 'score', 'estimate'] as const,
+      'usual',
+    ),
   },
 })
 
@@ -257,6 +285,7 @@ export const toSearchParams = (
   filters.channelIds.forEach((id) => params.append('channel', id))
   filters.tagIds.forEach((id) => params.append('tag', id))
   if (filters.needBy !== 'any') params.set('needBy', filters.needBy)
+  if (filters.estimate !== 'any') params.set('estimate', filters.estimate)
   if (filters.order !== 'usual') params.set('order', filters.order)
   return params
 }

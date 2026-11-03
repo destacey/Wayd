@@ -2133,6 +2133,56 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("DemandProjects", "DemandManagement");
                 });
 
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.Estimation.DemandEstimationScale", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Key")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Watermarks")
+                        .IsRequired()
+                        .HasColumnType("varchar(1024)")
+                        .HasColumnName("Watermarks");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DemandEstimationScales", "DemandManagement");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.Estimation.DemandEstimationScaleVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ScaleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScaleId", "Number")
+                        .IsUnique();
+
+                    b.ToTable("DemandEstimationScaleVersions", "DemandManagement");
+                });
+
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeChannel", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2187,6 +2237,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired()
                         .HasMaxLength(1024)
                         .HasColumnType("nvarchar(1024)");
+
+                    b.Property<Guid?>("EstimationScaleVersionId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsOpen")
                         .HasColumnType("bit");
@@ -2243,6 +2296,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasKey("Id");
 
                     b.HasAlternateKey("Key");
+
+                    b.HasIndex("EstimationScaleVersionId");
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -9714,8 +9769,49 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.Estimation.DemandEstimationScaleVersion", b =>
+                {
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.Estimation.DemandEstimationScale", null)
+                        .WithMany("Versions")
+                        .HasForeignKey("ScaleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsMany("Wayd.DemandManagement.Domain.Models.Estimation.DemandEstimationScaleValue", "Values", b1 =>
+                        {
+                            b1.Property<Guid>("DemandEstimationScaleVersionId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAddOrUpdate();
+
+                            b1.Property<bool>("IsEstimate");
+
+                            b1.Property<string>("Value")
+                                .IsRequired()
+                                .HasMaxLength(32);
+
+                            b1.HasKey("DemandEstimationScaleVersionId", "__synthesizedOrdinal");
+
+                            b1.ToTable("DemandEstimationScaleVersions", "DemandManagement");
+
+                            b1
+                                .ToJson("Values")
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.WithOwner()
+                                .HasForeignKey("DemandEstimationScaleVersionId");
+                        });
+
+                    b.Navigation("Values");
+                });
+
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDesk", b =>
                 {
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.Estimation.DemandEstimationScaleVersion", null)
+                        .WithMany()
+                        .HasForeignKey("EstimationScaleVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Wayd.Common.Domain.Scoring.ScoringModel", null)
                         .WithMany()
                         .HasForeignKey("ScoringModelId")
@@ -9806,6 +9902,51 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .WithMany()
                         .HasForeignKey("DeskId", "AssigneeId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.OwnsOne("Wayd.DemandManagement.Domain.Models.Estimation.IntakeRequestEstimate", "Estimate", b1 =>
+                        {
+                            b1.Property<Guid>("IntakeRequestId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<int>("Position")
+                                .HasColumnType("int")
+                                .HasColumnName("EstimatePosition");
+
+                            b1.Property<string>("ScaleName")
+                                .IsRequired()
+                                .HasMaxLength(128)
+                                .HasColumnType("nvarchar(128)")
+                                .HasColumnName("EstimateScaleName");
+
+                            b1.Property<Guid>("ScaleVersionId")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("EstimateScaleVersionId");
+
+                            b1.Property<int>("ScaleVersionNumber")
+                                .HasColumnType("int")
+                                .HasColumnName("EstimateScaleVersionNumber");
+
+                            b1.Property<string>("Value")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("nvarchar(32)")
+                                .HasColumnName("EstimateValue");
+
+                            b1.HasKey("IntakeRequestId");
+
+                            b1.HasIndex("ScaleVersionId");
+
+                            b1.ToTable("IntakeRequests", "DemandManagement");
+
+                            b1.WithOwner()
+                                .HasForeignKey("IntakeRequestId");
+
+                            b1.HasOne("Wayd.DemandManagement.Domain.Models.Estimation.DemandEstimationScaleVersion", null)
+                                .WithMany()
+                                .HasForeignKey("ScaleVersionId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+                        });
 
                     b.OwnsOne("Wayd.DemandManagement.Domain.Models.IntakeRequestNeedBy", "NeedBy", b1 =>
                         {
@@ -9929,6 +10070,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         });
 
                     b.Navigation("CurrentScore");
+
+                    b.Navigation("Estimate");
 
                     b.Navigation("NeedBy");
 
@@ -11971,6 +12114,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             modelBuilder.Entity("Wayd.Common.Domain.StatusWorkflows.WorkflowTransition", b =>
                 {
                     b.Navigation("Conditions");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.Estimation.DemandEstimationScale", b =>
+                {
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeDesk", b =>

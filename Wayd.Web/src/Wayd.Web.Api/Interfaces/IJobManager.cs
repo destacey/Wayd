@@ -11,6 +11,7 @@ public interface IJobManager
     Task RunSyncStrategicThemes(CancellationToken cancellationToken);
     Task RunSyncProjects(CancellationToken cancellationToken);
     Task RunSyncTeams(CancellationToken cancellationToken);
+    Task RunSyncEstimationScales(CancellationToken cancellationToken);
     Task RunPortfolioRankRebalance(CancellationToken cancellationToken);
     Task RunImportStallRecovery(CancellationToken cancellationToken);
     Task RunImportRetentionSweep(CancellationToken cancellationToken);

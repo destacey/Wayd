@@ -4,6 +4,7 @@ import {
 } from '@/src/services/wayd-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import type { RequestOrder } from '../requests/_components/request-filters'
+import { compareByEstimate, type RequestEstimates } from './request-estimates'
 
 /** Each request's current score by request id, for the requests whose score the reader may read. */
 export type RequestScores = Map<string, IntakeRequestCurrentScoreDto>
@@ -43,5 +44,10 @@ export const orderRequests = (
   requests: IntakeRequestSummaryDto[],
   order: RequestOrder,
   scores: RequestScores,
+  estimates: RequestEstimates = new Map(),
 ): IntakeRequestSummaryDto[] =>
-  order === 'score' ? [...requests].sort(compareByScore(scores)) : requests
+  order === 'score'
+    ? [...requests].sort(compareByScore(scores))
+    : order === 'estimate'
+      ? [...requests].sort(compareByEstimate(estimates))
+      : requests

@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Employees.Dtos;
+using Wayd.DemandManagement.Application.DemandEstimationScales.Dtos;
 using Wayd.DemandManagement.Application.IntakeDesks.Dtos;
 using Wayd.DemandManagement.Domain.Models;
 
@@ -17,6 +18,7 @@ internal static class IntakeDeskProjections
         var channels = dbContext.IntakeChannels;
         var tagCategories = dbContext.IntakeRequestTagCategories;
         var scoringModels = dbContext.ScoringModels;
+        var estimationScales = dbContext.DemandEstimationScales;
 
         return d => new IntakeDeskDto
         {
@@ -43,6 +45,19 @@ internal static class IntakeDeskProjections
                 .ToList(),
             ScoringModel = scoringModels.Where(m => m.Id == d.ScoringModelId)
                 .Select(m => new NavigationDto { Id = m.Id, Key = m.Key, Name = m.Name })
+                .FirstOrDefault(),
+            EstimationScale = estimationScales
+                .SelectMany(s => s.Versions, (s, v) => new { Scale = s, Version = v })
+                .Where(x => x.Version.Id == d.EstimationScaleVersionId)
+                .Select(x => new EstimationScaleVersionNavigationDto
+                {
+                    Id = x.Scale.Id,
+                    Key = x.Scale.Key,
+                    Name = x.Scale.Name,
+                    VersionId = x.Version.Id,
+                    VersionNumber = x.Version.Number,
+                    IsCurrentVersion = !x.Scale.Versions.Any(o => o.Number > x.Version.Number),
+                })
                 .FirstOrDefault(),
             Revision = d.Revision,
             Members = d.Members

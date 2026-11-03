@@ -6,6 +6,7 @@ using Moq;
 using NodaTime;
 using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Requests.DemandManagement;
 using Wayd.Common.Domain.Events.Planning.EstimationScales;
 using Wayd.Tests.Shared;
 
@@ -17,6 +18,7 @@ public class DeleteEstimationScaleCommandHandlerTests : IDisposable
     private readonly DeleteEstimationScaleCommandHandler _handler;
     private readonly Mock<ILogger<DeleteEstimationScaleCommandHandler>> _mockLogger;
     private readonly Mock<ICurrentUser> _currentUser = new();
+    private readonly Mock<IDispatcher> _dispatcher = new();
     private readonly TestingDateTimeProvider _dateTimeProvider = new(new FakeClock(Now));
 
     private static readonly Instant Now = Instant.FromUtc(2026, 1, 15, 9, 30);
@@ -26,7 +28,7 @@ public class DeleteEstimationScaleCommandHandlerTests : IDisposable
         _dbContext = new FakePlanningDbContext();
         _mockLogger = new Mock<ILogger<DeleteEstimationScaleCommandHandler>>();
 
-        _handler = new DeleteEstimationScaleCommandHandler(_dbContext, _currentUser.Object, _dateTimeProvider, _mockLogger.Object);
+        _handler = new DeleteEstimationScaleCommandHandler(_dbContext, _currentUser.Object, _dateTimeProvider, _dispatcher.Object, _mockLogger.Object);
     }
 
     [Fact]
@@ -106,6 +108,32 @@ public class DeleteEstimationScaleCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("in use");
+        scale.DomainEvents.Should().BeEmpty();
+        _dbContext.EstimationScales.Should().Contain(scale);
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_WhenScaleIsUsedByDemandManagement()
+    {
+        // Arrange
+        var scale = new EstimationScaleFaker().Generate();
+        var otherScale = new EstimationScaleFaker().Generate();
+        _dbContext.AddEstimationScale(scale);
+        _dbContext.AddEstimationScale(otherScale);
+
+        _dispatcher
+            .Setup(d => d.Send(It.Is<IsEstimationScaleUsedByDemandQuery>(q => q.EstimationScaleId == scale.Id), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var command = new DeleteEstimationScaleCommand(scale.Id);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(DeleteEstimationScaleCommandHandler.UsedByDemandError);
         scale.DomainEvents.Should().BeEmpty();
         _dbContext.EstimationScales.Should().Contain(scale);
         _dbContext.SaveChangesCallCount.Should().Be(0);

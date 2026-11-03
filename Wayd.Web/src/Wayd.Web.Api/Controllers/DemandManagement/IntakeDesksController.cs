@@ -155,6 +155,31 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
         return Ok(choices);
     }
 
+    [HttpPut("{id}/estimation-scale")]
+    [Authorize]
+    [McpTool("IntakeDesks_ChangeEstimationScale", "Change intake desk estimation scale")]
+    [EndpointSummary("Set the estimation scale a desk's requests are estimated on.")]
+    [EndpointDescription("Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version. A null `estimationScaleId` stops estimating the desk's requests. Refused while an open request on the desk has an estimate on the version the desk pins now; estimates on an earlier version, and on closed requests, keep their version and do not block it. A desk changed meanwhile answers 409.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> ChangeEstimationScale(Guid id, [FromBody] ChangeIntakeDeskEstimationScaleRequest request, CancellationToken cancellationToken) =>
+        NoContentOrError(await _dispatcher.Send(new ChangeIntakeDeskEstimationScaleCommand(id, request.EstimationScaleId), cancellationToken));
+
+    [HttpGet("estimation-scale-choices")]
+    [Authorize]
+    [McpTool("IntakeDesks_GetEstimationScaleChoices", "List intake desk estimation scale choices")]
+    [EndpointSummary("Get the active estimation scales a desk can estimate its requests on.")]
+    [EndpointDescription("Each with the estimate values of its current version, which a desk choosing it is pinned to; cards are left out. Building and editing scales is in Settings, under estimation scales.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<IntakeEstimationScaleChoiceDto>>> GetEstimationScaleChoices(CancellationToken cancellationToken)
+    {
+        var choices = await _dispatcher.Send(new GetIntakeEstimationScaleChoicesQuery(), cancellationToken);
+        return Ok(choices);
+    }
+
     [HttpGet("workflow-choices")]
     [McpTool("IntakeDesks_GetWorkflowChoices", "List intake desk workflow choices")]
     [Authorize]

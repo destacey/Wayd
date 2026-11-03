@@ -587,7 +587,7 @@ From there you can **Requeue** the job to try again, or **Delete** it.
 
 - **Work Full Sync** and **Work Differential Sync** — Synchronize work data from every active work-management connection (Azure DevOps). Differential fetches only items changed since the last sync. A failed run is retried up to three times.
 - **People Full Sync** and **People Differential Sync** — Synchronize people from the active people connection (Entra or Workday). A connector that cannot fetch only changes, such as Entra, runs a differential sync as a full one. A failed run is not retried: fix the cause and run it again. The run fails when more than one people connection is active.
-- **Projects Sync, Teams Sync, Iterations Sync, and Strategic Themes Sync** — Replicate their respective records across domains.
+- **Projects Sync, Teams Sync, Iterations Sync, Strategic Themes Sync, and Estimation Scales Sync** — Replicate their respective records across domains.
 - **Portfolio Rank Rebalance** — Maintenance job that re-spaces dense project ranks within portfolios after repeated drag-to-rank operations.
 - **Import Stall Recovery** — Ends an import whose worker stopped responding and republishes one whose run never started. Scheduled every five minutes by default as `import-stall-recovery`; the schedule can be changed, and a deleted one is restored the next time the server starts. See [Imports](./imports.mdx#when-a-run-fails-unexpectedly).
 - **Import Retention Sweep** — Discards the stored copy of each row once an import is past its 30-day retention window. Scheduled nightly by default as `import-retention-sweep`; like the stall sweep, the schedule can be changed and a deleted one is restored the next time the server starts. See [Imports](./imports.mdx#limits-and-rules).
@@ -639,13 +639,13 @@ From a message's row menu:
 
 > This feature is behind the `planning-poker` feature flag.
 
-**Estimation Scales** define the sets of values used for story point estimation in Planning Poker sessions. Scales are configured in **Settings > Planning > Estimation Scales**.
+**Estimation Scales** define the sets of values used for story point estimation in Planning Poker sessions, and that intake desks [size their requests](../demand-management/index.mdx#estimating-a-request) on. Scales are configured in **Settings > Planning > Estimation Scales**; an intake desk can choose one whether or not the flag is on.
 
 Each value on a scale is either an **Estimate** — a size, such as `5` or `M` — or a **Card**, such as `?`, `∞` or `☕`, which participants can vote but which never becomes a size. A scale needs at least 2 estimates, and no value can appear twice. The scales Wayd seeds end with those three cards.
 
 ### Versions
 
-A scale's values are published as numbered **versions**. Saving a scale with changed values — a value added, removed, renamed, reordered, or switched between estimate and card — publishes the next version. A published version never changes, so a poker session keeps voting on the version it was created on: renaming `M` to `Medium` does not change a vote already cast on `M`. Only sessions created afterwards, or a session whose scale is changed before its first round, use the new version.
+A scale's values are published as numbered **versions**. Saving a scale with changed values — a value added, removed, renamed, reordered, or switched between estimate and card — publishes the next version. A published version never changes, so a poker session keeps voting on the version it was created on: renaming `M` to `Medium` does not change a vote already cast on `M`. Only sessions created afterwards, or a session whose scale is changed before its first round, use the new version. An intake desk likewise stays on its version until a Desk Admin chooses the scale again, and each request estimate keeps the version it was given on.
 
 Renaming a scale, editing its description, and activating or deactivating it publish no version.
 
@@ -653,4 +653,4 @@ The list shows each scale's current **Version** and how many **Values** it has. 
 
 ### Active Scales and Deleting
 
-New sessions choose from active scales. Deactivating a scale leaves the sessions that use it untouched, and at least one scale must stay active. A scale any poker session uses cannot be deleted; deactivate it instead.
+New sessions and intake desks choose from active scales. Deactivating a scale leaves the sessions and desks that use it untouched, and at least one scale must stay active. A scale any poker session, intake desk or request estimate uses cannot be deleted; deactivate it instead.

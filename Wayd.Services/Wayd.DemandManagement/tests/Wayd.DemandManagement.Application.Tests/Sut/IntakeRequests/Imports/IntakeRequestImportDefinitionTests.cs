@@ -6,6 +6,7 @@ using Wayd.Common.Application.Imports;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.Imports;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
@@ -50,7 +51,8 @@ public sealed class IntakeRequestImportDefinitionTests
         Guid? assigneeId = null,
         IReadOnlyList<Guid>? tagIds = null,
         ImportIntakeRequestOriginDto? origin = null,
-        Guid? duplicateOfId = null) =>
+        Guid? duplicateOfId = null,
+        string? estimate = null) =>
         new(
             "Export invoices to the new ledger",
             "Finance needs invoices in the new ledger before year end.",
@@ -67,7 +69,8 @@ public sealed class IntakeRequestImportDefinitionTests
             statusReason,
             duplicateOfId,
             assigneeId,
-            tagIds ?? []);
+            tagIds ?? [],
+            estimate);
 
     private ImportProcessRow[] Rows(params ImportIntakeRequestDto[] rows) =>
         [.. rows.Select((r, i) => ImportProcessRow.Create($"r{i + 1}", i + 1, _definition.SerializeRow(r)))];
@@ -396,5 +399,83 @@ public sealed class IntakeRequestImportDefinitionTests
 
         // Assert — the unique index compares case-insensitively, and nothing is saved until the chunk is applied
         result.Value.Rows.Select(r => r.Failed).Should().Equal(false, true);
+    }
+
+    [Fact]
+    public async Task CreateIntakeRequests_EstimatesTheRequestOnTheDesksVersion()
+    {
+        // Arrange
+        var scale = _scenario.EstimationScale("T-Shirt Sizes");
+        _scenario.EstimatesOn(_desk, scale);
+
+        // Act
+        var result = await Run(Row(estimate: "L"));
+
+        // Assert
+        result.Value.Rows.Single().Failed.Should().BeFalse();
+        var request = _scenario.DbContext.IntakeRequests.Single();
+        request.Estimate!.Value.Should().Be("L");
+        request.Estimate.ScaleVersionId.Should().Be(scale.CurrentVersion.Id);
+        request.Estimate.ScaleName.Should().Be("T-Shirt Sizes");
+        request.ExecutePostPersistenceActions();
+        request.DomainEvents.OfType<IntakeRequestEstimateChangedEvent>().Should().ContainSingle()
+            .Which.Source.Should().Be(IntakeRequestEstimateSource.Imported);
+    }
+
+    [Fact]
+    public async Task CreateIntakeRequests_EstimatesARequestImportedClosedBeforeClosingIt()
+    {
+        // Arrange — an estimate is frozen once a request closes, so it must be given while still open
+        _scenario.EstimatesOn(_desk, _scenario.EstimationScale());
+
+        // Act
+        var result = await Run(Row(status: "Declined", statusReason: "Covered by the ledger project.", estimate: "M"));
+
+        // Assert
+        result.Value.Rows.Single().Failed.Should().BeFalse();
+        var request = _scenario.DbContext.IntakeRequests.Single();
+        request.StatusName.Should().Be("Declined");
+        request.Estimate!.Value.Should().Be("M");
+    }
+
+    [Fact]
+    public async Task CreateIntakeRequests_RejectsACardAsAnEstimate()
+    {
+        // Arrange
+        _scenario.EstimatesOn(_desk, _scenario.EstimationScale());
+
+        // Act
+        var result = await Run(Row(estimate: "?"));
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().Contain(IntakeRequest.NotAnEstimateValueError);
+        _scenario.DbContext.IntakeRequests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CreateIntakeRequests_RejectsAnEstimateOnADeskWithNoScale()
+    {
+        // Arrange & Act
+        var result = await Run(Row(estimate: "M"));
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().Contain(IntakeRequest.DeskDoesNotEstimateError);
+    }
+
+    [Fact]
+    public async Task CreateIntakeRequests_LeavesARowWithNoEstimateUnestimated()
+    {
+        // Arrange
+        _scenario.EstimatesOn(_desk, _scenario.EstimationScale());
+
+        // Act
+        await Run(Row());
+
+        // Assert
+        _scenario.DbContext.IntakeRequests.Single().Estimate.Should().BeNull();
     }
 }

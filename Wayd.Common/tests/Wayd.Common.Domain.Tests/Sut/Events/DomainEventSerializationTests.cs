@@ -2503,4 +2503,45 @@ public sealed class DomainEventSerializationTests
     /// <summary>Minimal <see cref="IStrategicThemeData"/> so the event can be constructed without the full aggregate.</summary>
     private sealed record StrategicThemeDataStub(Guid Id, int Key, string Name, string Description, StrategicThemeState State)
         : IStrategicThemeData;
+
+    [Fact]
+    public void IntakeRequestEstimateChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - a nested estimate record at one end and null at the other, and the closed-set source.
+        var original = new IntakeRequestEstimateChangedEvent(
+            Guid.NewGuid(), 12,
+            new IntakeRequestEstimateDetails("L", Guid.NewGuid(), "T-Shirt Sizes", 2),
+            null,
+            IntakeRequestEstimateSource.Rerouted,
+            EventActor.System,
+            Instant.FromUtc(2026, 1, 2, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.From.Should().Be(original.From);
+        roundTripped.To.Should().BeNull();
+        roundTripped.Source.Should().Be(IntakeRequestEstimateSource.Rerouted);
+    }
+
+    [Fact]
+    public void IntakeDeskEstimationScaleChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - a desk moving from no scale to a pinned version.
+        var original = new IntakeDeskEstimationScaleChangedEvent(
+            Guid.NewGuid(), 3, null, null, null, null, Guid.NewGuid(), "Fibonacci", Guid.NewGuid(), 4,
+            EventActor.System, Instant.FromUtc(2026, 1, 2, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.FromScaleId.Should().BeNull();
+        roundTripped.FromScaleVersionNumber.Should().BeNull();
+        roundTripped.ToScaleId.Should().Be(original.ToScaleId);
+        roundTripped.ToScaleName.Should().Be("Fibonacci");
+        roundTripped.ToScaleVersionId.Should().Be(original.ToScaleVersionId);
+        roundTripped.ToScaleVersionNumber.Should().Be(4);
+    }
 }

@@ -2,6 +2,7 @@
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Events.Discussions;
 using Wayd.Common.Domain.Events.Organization;
+using Wayd.Common.Domain.Events.Planning.EstimationScales;
 using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervalObjectives;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervals;
@@ -59,6 +60,15 @@ public static class DurableEventRoutes
 #pragma warning disable CS0618
         typeof(ProjectKeyChangedEvent),
 #pragma warning restore CS0618
+
+        // Planning EstimationScale → Demand Management DemandEstimationScale. Choosing a desk's scale and estimating a
+        // request check the copy exists, so a scale not yet copied fails cleanly.
+        typeof(EstimationScaleCreatedEvent),
+        typeof(EstimationScaleDetailsUpdatedEvent),
+        typeof(EstimationScaleActivatedEvent),
+        typeof(EstimationScaleDeactivatedEvent),
+        typeof(EstimationScaleVersionPublishedEvent),
+        typeof(EstimationScaleDeletedEvent),
 
         // Work Iteration → Planning PlanningSprint.
         typeof(IterationCreatedEventV3),

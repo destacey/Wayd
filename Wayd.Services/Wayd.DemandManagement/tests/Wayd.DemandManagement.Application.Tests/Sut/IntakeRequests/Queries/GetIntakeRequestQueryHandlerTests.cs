@@ -454,4 +454,133 @@ public sealed class GetIntakeRequestQueryHandlerTests
         // Assert
         result!.CanChangeOutcomes.Should().Be(expected);
     }
+
+    [Fact]
+    public async Task Handle_ForAnAgentOnADeskWithAScale_OffersTheEstimateWithTheVersionsEstimateValues()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var scale = _scenario.EstimationScale();
+        var desk = _scenario.EstimatesOn(_scenario.Desk(agentIds: [agent.Id]), scale);
+        var request = _scenario.Request(desk, _scenario.Employee());
+        _scenario.Estimated(request, desk, "M");
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.CanChangeEstimate.Should().BeTrue();
+        result.EstimateValues.Should().Equal("S", "M", "L", "XL");
+        result.EstimationScaleVersionId.Should().Be(scale.CurrentVersion.Id);
+        result.Substance!.Estimate!.Value.Should().Be("M");
+        result.Substance.Estimate.Position.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ForTheRequester_ShowsTheEstimateWithoutOfferingIt()
+    {
+        // Arrange — the requester may edit a Proposed request, but never size it
+        var requester = _scenario.Employee();
+        var desk = _scenario.EstimatesOn(_scenario.Desk(), _scenario.EstimationScale());
+        var request = _scenario.Request(desk, requester);
+        _scenario.Estimated(request, desk, "L");
+        _scenario.SignedInAs(requester);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.CanEdit.Should().BeTrue();
+        result.CanChangeEstimate.Should().BeFalse();
+        result.EstimateValues.Should().BeEmpty();
+        result.EstimationScaleVersionId.Should().BeNull();
+        result.Substance!.Estimate!.Value.Should().Be("L");
+    }
+
+    [Fact]
+    public async Task Handle_ForAReaderOfTheSummaryOnly_ReturnsNoEstimate()
+    {
+        // Arrange
+        var desk = _scenario.EstimatesOn(_scenario.Desk(IntakeDeskVisibility.SummaryOnly), _scenario.EstimationScale());
+        var request = _scenario.Request(desk, _scenario.Employee());
+        _scenario.Estimated(request, desk, "L");
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.View);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Substance.Should().BeNull();
+        result.CanChangeEstimate.Should().BeFalse();
+        result.EstimateValues.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ForAnAgentOnADeskWithNoScale_DoesNotOfferAnEstimateToSet()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(agentIds: [agent.Id]), _scenario.Employee());
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.CanChangeEstimate.Should().BeFalse();
+        result.Substance!.Estimate.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_ForAnAgentOnADeskThatStoppedEstimating_OffersClearingTheEstimate()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var desk = _scenario.EstimatesOn(_scenario.Desk(agentIds: [agent.Id]), _scenario.EstimationScale());
+        var request = _scenario.Request(desk, _scenario.Employee());
+        _scenario.Estimated(request, desk, "S");
+        _scenario.EstimatesOn(desk, null);
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.CanChangeEstimate.Should().BeTrue();
+        result.EstimateValues.Should().BeEmpty();
+        result.EstimationScaleVersionId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_ForAnAgentOnAClosedRequest_DoesNotOfferTheEstimate()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var desk = _scenario.EstimatesOn(_scenario.Desk(agentIds: [agent.Id]), _scenario.EstimationScale());
+        var request = _scenario.RequestIn(desk, _scenario.Employee(), StatusCategory.Done);
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.CanChangeEstimate.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ForAnAgentWithAReadOnlyToken_DoesNotOfferTheEstimate()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var desk = _scenario.EstimatesOn(_scenario.Desk(agentIds: [agent.Id]), _scenario.EstimationScale());
+        var request = _scenario.Request(desk, _scenario.Employee());
+        _scenario.SignedInAs(agent).WithReadOnlyToken();
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.CanChangeEstimate.Should().BeFalse();
+    }
 }

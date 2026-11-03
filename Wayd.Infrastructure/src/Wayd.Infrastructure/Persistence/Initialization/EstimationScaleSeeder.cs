@@ -1,11 +1,24 @@
 ﻿using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Planning.EstimationScales;
+using Wayd.Common.Domain.Models.Planning.EstimationScales;
+using Wayd.DemandManagement.Domain.Models.Estimation;
+using Wayd.Infrastructure.Persistence.Activities;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using NodaTime;
 
 namespace Wayd.Infrastructure.Persistence.Initialization;
 
+/// <summary>
+/// Seeds the estimation scales an install starts with, recording each one's creation in the activity log and
+/// giving Demand Management its copy of each.
+/// </summary>
+/// <remarks>
+/// Initial seed only: once any scale exists this stays out of the way. The creation events are taken off the
+/// scales so SaveChanges cannot publish them, because Wolverine cannot route while seeders run, before the
+/// host starts; the copies those events would have made are written here instead.
+/// </remarks>
 public class EstimationScaleSeeder : ICustomSeeder
 {
     /// <summary>
@@ -31,16 +44,61 @@ public class EstimationScaleSeeder : ICustomSeeder
                 ["1", "2", "3", "4", "5"], now),
         };
 
-        foreach (var seed in seeds)
+        List<EstimationScale> scales = [.. seeds.Where(s => s.IsSuccess).Select(s => s.Value)];
+
+        // The creation events wait for the key, so they are post-persistence actions.
+        Action[] raiseCreationEvents = [.. scales.SelectMany(s => s.PostPersistenceActions)];
+        foreach (var scale in scales)
         {
-            if (seed.IsSuccess)
-            {
-                dbContext.EstimationScales.Add(seed.Value);
-            }
+            scale.ClearDomainEvents();
+            scale.ClearPostPersistenceActions();
+            dbContext.EstimationScales.Add(scale);
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        // One transaction: a scale committed without its activity or its copy would stay that way, because any
+        // scale existing stops every later run from seeding.
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var unitOfWork = await dbContext.BeginUnitOfWork(cancellationToken);
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            foreach (var raise in raiseCreationEvents)
+            {
+                raise();
+            }
+
+            var ordinal = 0;
+            foreach (var scale in scales)
+            {
+                foreach (var domainEvent in scale.DomainEvents)
+                {
+                    dbContext.ActivityLogs.Add(
+                        ActivityLogEntryFactory.CreateActivityLogEntry(domainEvent, scale, ordinal++, correlationId: null));
+                }
+
+                scale.ClearDomainEvents();
+                dbContext.DemandEstimationScales.Add(new DemandEstimationScale(Snapshot(scale), now));
+            }
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            await unitOfWork.CommitAsync(cancellationToken);
+        });
     }
+
+    private static EstimationScaleSnapshot Snapshot(EstimationScale scale) => new(
+        scale.Id,
+        scale.Key,
+        scale.Name,
+        scale.IsActive,
+        [.. scale.Versions
+            .OrderBy(v => v.Number)
+            .Select(v => new EstimationScaleVersionValues(
+                v.Id,
+                v.Number,
+                [.. v.Values.Select(x => new EstimationScaleValueValues(x.Value, x.IsEstimate))]))]);
 
     private static Result<EstimationScale> CreateScale(string name, string description, string[] estimates, Instant now)
     {

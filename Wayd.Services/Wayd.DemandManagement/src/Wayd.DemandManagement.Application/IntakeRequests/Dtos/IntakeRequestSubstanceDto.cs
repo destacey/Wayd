@@ -31,4 +31,7 @@ public sealed record IntakeRequestSubstanceDto
     /// or finishing it, or the requester's note on withdrawing. Null when the move recorded none.
     /// </summary>
     public string? StatusReason { get; init; }
+
+    /// <summary>How big the ask is, on the scale the desk team estimated it on, or null when it has not been estimated.</summary>
+    public IntakeRequestEstimateDto? Estimate { get; init; }
 }

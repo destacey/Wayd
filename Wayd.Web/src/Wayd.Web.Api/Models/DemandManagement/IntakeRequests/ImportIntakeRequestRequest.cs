@@ -1,3 +1,4 @@
+using CsvHelper.Configuration.Attributes;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Extensions;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
@@ -97,6 +98,14 @@ public sealed class ImportIntakeRequestRequest
     /// <summary>Semicolon-separated tag ids: tags on axes the desk offers, or free tags where it allows them.</summary>
     public string? TagIds { get; set; }
 
+    /// <summary>
+    /// The request's estimate: an estimate value of the desk's estimation scale, exactly as the scale writes it
+    /// (<c>M</c>, <c>8</c>), never a card such as <c>?</c>. Needs a desk with an estimation scale. Blank leaves the
+    /// request unestimated, and the column may be left out of the file. Max 32 chars.
+    /// </summary>
+    [Optional]
+    public string? Estimate { get; set; }
+
     public ImportIntakeRequestDto ToImportIntakeRequestDto() =>
         new(Title,
             Description,
@@ -122,7 +131,8 @@ public sealed class ImportIntakeRequestRequest
             Blank(StatusReason),
             DuplicateOfId,
             AssigneeId,
-            CsvList.SplitIds(TagIds));
+            CsvList.SplitIds(TagIds),
+            Blank(Estimate)?.Trim());
 
     /// <summary>
     /// Reads a basis by name. Null for a blank cell, and for a value the validator has already refused.
@@ -185,5 +195,9 @@ public sealed class ImportIntakeRequestRequestValidator : CustomValidator<Import
         RuleFor(r => r.TagIds)
             .Must(CsvList.AreAllIds)
                 .WithMessage("TagIds must be a semicolon-separated list of ids.");
+
+        RuleFor(r => r.Estimate)
+            .Must(e => e is null || e.Trim().Length <= 32)
+                .WithMessage("Estimate can be at most 32 characters.");
     }
 }

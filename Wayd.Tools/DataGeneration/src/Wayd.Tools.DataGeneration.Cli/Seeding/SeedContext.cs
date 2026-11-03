@@ -49,6 +49,13 @@ public sealed class SeedContext(WaydSeedClient client, Action<string> log)
     public IReadOnlyDictionary<string, int> ExpenditureCategoryIds { get; set; } =
         new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// The estimate values each intake desk's scale offers, smallest first, keyed by desk name; a desk that
+    /// does not estimate, or whose scale the environment no longer offers as generated, is absent.
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> IntakeDeskEstimateValues { get; set; } =
+        new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>The active project lifecycle every generated project is assigned.</summary>
     public Guid ProjectLifecycleId { get; set; }
 

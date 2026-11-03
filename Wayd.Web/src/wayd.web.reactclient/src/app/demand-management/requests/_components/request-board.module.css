@@ -62,13 +62,19 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* The number on the left, the score, when there is one, on the right. */
+/* The number on the left, the estimate and score, when there are any, on the right. */
 .header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
   font-variant-numeric: tabular-nums;
+}
+
+.sizing {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .title {

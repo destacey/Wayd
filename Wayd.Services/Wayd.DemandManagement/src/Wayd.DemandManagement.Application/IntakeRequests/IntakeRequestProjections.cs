@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
+using Wayd.DemandManagement.Application.DemandEstimationScales.Dtos;
 using Wayd.DemandManagement.Application.IntakeChannels.Dtos;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 using Wayd.DemandManagement.Application.IntakeRequestTagCategories.Dtos;
@@ -121,6 +122,38 @@ internal static class IntakeRequestProjections
                     Url = r.Origin.Url,
                 },
             StatusReason = r.StatusReason,
+        };
+    }
+
+    /// <summary>
+    /// The request's estimate with the scale and version it was given on. Substance tier: compose it only into a
+    /// query already narrowed to readers of the substance, and only over requests that have an estimate.
+    /// </summary>
+    public static Expression<Func<IntakeRequest, IntakeRequestCurrentEstimateDto>> Estimate(IDemandManagementDbContext dbContext)
+    {
+        var scales = dbContext.DemandEstimationScales;
+
+        return r => new IntakeRequestCurrentEstimateDto
+        {
+            RequestId = r.Id,
+            Estimate = new IntakeRequestEstimateDto
+            {
+                Value = r.Estimate!.Value,
+                Position = r.Estimate.Position,
+                Scale = scales
+                    .SelectMany(s => s.Versions, (s, v) => new { Scale = s, Version = v })
+                    .Where(x => x.Version.Id == r.Estimate.ScaleVersionId)
+                    .Select(x => new EstimationScaleVersionNavigationDto
+                    {
+                        Id = x.Scale.Id,
+                        Key = x.Scale.Key,
+                        Name = x.Scale.Name,
+                        VersionId = x.Version.Id,
+                        VersionNumber = x.Version.Number,
+                        IsCurrentVersion = !x.Scale.Versions.Any(o => o.Number > x.Version.Number),
+                    })
+                    .First(),
+            },
         };
     }
 }

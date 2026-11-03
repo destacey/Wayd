@@ -3,6 +3,7 @@ using NodaTime;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Domain.Models;
+using Wayd.DemandManagement.Domain.Models.Estimation;
 using Wayd.TestData.Core;
 
 namespace Wayd.DemandManagement.Domain.Tests.Data;
@@ -151,6 +152,20 @@ public static class IntakeRequestFakerExtensions
     public static IntakeRequestFaker WithStatusReason(this IntakeRequestFaker faker, string? reason)
     {
         faker.RuleFor(x => x.StatusReason, reason);
+
+        return faker;
+    }
+
+    /// <summary>
+    /// A request already estimated as <paramref name="value"/>, which must be a value of <paramref name="scale"/>'s
+    /// current version.
+    /// </summary>
+    public static IntakeRequestFaker WithEstimate(this IntakeRequestFaker faker, DemandEstimationScale scale, string value)
+    {
+        var version = scale.CurrentVersion;
+        var (found, position) = version.FindEstimate(value)
+            ?? throw new ArgumentException($"'{value}' is not an estimate value of the version.", nameof(value));
+        faker.RuleFor(x => x.Estimate, _ => new IntakeRequestEstimate(found.Value, version.Id, position, scale.Name, version.Number));
 
         return faker;
     }

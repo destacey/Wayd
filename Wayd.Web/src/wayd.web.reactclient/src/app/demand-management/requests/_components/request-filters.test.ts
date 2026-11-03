@@ -76,6 +76,47 @@ describe('applyRequestFilters', () => {
     expect(result.map((r) => r.id)).toEqual(['payments', 'enterprise'])
   })
 
+  it('keeps the requests with an estimate the reader may read, or those without', () => {
+    // Arrange
+    const estimates = new Map([
+      [
+        'mine',
+        {
+          value: 'M',
+          position: 2,
+          scale: {
+            id: 's-1',
+            key: 1,
+            name: 'T-Shirt Sizes',
+            versionId: 'v-1',
+            versionNumber: 1,
+            isCurrentVersion: true,
+          },
+        },
+      ],
+    ])
+
+    // Act
+    const estimated = applyRequestFilters(
+      requests,
+      { ...DEFAULT_REQUEST_FILTERS, estimate: 'estimated' },
+      'e-me',
+      [],
+      estimates,
+    )
+    const unestimated = applyRequestFilters(
+      requests,
+      { ...DEFAULT_REQUEST_FILTERS, estimate: 'unestimated' },
+      'e-me',
+      [],
+      estimates,
+    )
+
+    // Assert
+    expect(estimated.map((r) => r.id)).toEqual(['mine'])
+    expect(unestimated.map((r) => r.id)).toEqual(['theirs', 'nobodys'])
+  })
+
   it('keeps everything with the default filters', () => {
     // Act
     const result = applyRequestFilters(
@@ -266,7 +307,8 @@ describe('the address', () => {
       channelIds: ['c-1'],
       tagIds: ['t-1', 't-2'],
       needBy: 'chosen',
-      order: 'score',
+      estimate: 'unestimated',
+      order: 'estimate',
     }
 
     // Act
@@ -319,9 +361,10 @@ describe('activeFilterCount', () => {
       scope: 'all',
       deskIds: ['d-1', 'd-2'],
       assignee: 'me',
+      estimate: 'unestimated',
     })
 
     // Assert
-    expect(count).toBe(3)
+    expect(count).toBe(4)
   })
 })

@@ -40,7 +40,8 @@ Each row is then applied the way the request would have been handled by hand:
 1. **The request is created on its desk** in the status meaning Submitted, at `SubmittedAt`, recorded as entered
    by `SubmittedById` (or the requester). Like a request from an upstream system, it may name any active channel
    — whether or not the desk offers it — and any open desk, including one requesters cannot pick.
-2. **It is assigned and tagged**, when the row says so.
+2. **It is assigned, tagged and estimated**, when the row says so. The estimate is given while the request is
+   still open, so a request imported as closed keeps it.
 3. **It is moved to `Status`**, at `StatusChangedAt`. A status of the desk's workflow is matched by its **name**
    first (`In Review`), then by its **meaning** (`Waiting on Requester` or `WaitingOnRequester`, `Accepted`, `Fulfilled`,
    `Duplicate`, `Withdrawn`), case-insensitively, so a file written for the default workflow still lands on a desk that has
@@ -51,8 +52,8 @@ The status change follows the same rules as one made on the request page:
 - **Every closing status except Withdrawn** — Declined, Duplicate, and any your desk adds — needs a
   `StatusReason` the requester can read, and so does finishing a request. Imported requests carry no outcomes,
   so a request imported as Fulfilled always needs one.
-- **Withdrawn** is recorded as the requester's own move. Every other status is recorded against the assignee
-  when the row names one.
+- **Withdrawn** is recorded as the requester's own move. Every other status, like the assignment, tags and
+  estimate, is recorded against the assignee when the row names one.
 - **Duplicate** needs `DuplicateOfId`, a request **already in Wayd**. A row cannot point at another row of the same
   file.
 
@@ -114,10 +115,12 @@ in [Settings → System → Imports → Limits and rules](../settings/imports.md
 | `DuplicateOfId` | For a duplicate | The request already in Wayd this one gives way to. |
 | `AssigneeId` | No | The active member of the desk who owns the request. |
 | `TagIds` | No | Semicolon-separated tag ids: tags on axes the desk offers, at most one on an axis that takes one, or free tags where the desk allows them. |
+| `Estimate` | No | An estimate value of the desk's [estimation scale](./index.mdx#estimating-a-request), exactly as the scale writes it (`M`, `8`), never a card such as `?`. Needs a desk with a scale. Blank leaves the request unestimated, and the column may be left out of the file. Max 32 characters. The request's activity records it as imported. |
 
 A row is rejected, with the reason, when a desk, channel, tag or employee it names does not exist; when the
 assignee is not an active member of the desk; when the desk's workflow has no status of that name or meaning;
 when a status needs a reason or a surviving request the row does not give; when it names two tags on an axis
-that takes one; or when its origin is already taken. A file in which two rows share an origin is refused whole.
+that takes one; when its estimate is not a value of the desk's scale, or the desk has none; or when its origin
+is already taken. A file in which two rows share an origin is refused whole.
 
 The run links each imported row to the request it created.

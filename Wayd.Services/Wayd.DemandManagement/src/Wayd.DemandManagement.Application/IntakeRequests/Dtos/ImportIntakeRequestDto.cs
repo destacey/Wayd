@@ -32,6 +32,9 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 /// <param name="DuplicateOfId">For a status meaning Duplicate, the request already in Wayd it gives way to.</param>
 /// <param name="AssigneeId">The member of the desk who owns it.</param>
 /// <param name="TagIds">Tags along axes the desk offers, or free tags where the desk allows them.</param>
+/// <param name="Estimate">
+/// An estimate value, not a card, of the estimation scale version the desk pins; null leaves the request unestimated.
+/// </param>
 public sealed record ImportIntakeRequestDto(
     string Title,
     string Description,
@@ -48,7 +51,8 @@ public sealed record ImportIntakeRequestDto(
     string? StatusReason,
     Guid? DuplicateOfId,
     Guid? AssigneeId,
-    IReadOnlyList<Guid> TagIds);
+    IReadOnlyList<Guid> TagIds,
+    string? Estimate = null);
 
 /// <summary>A need-by date with its basis and reference, as an import row carries it.</summary>
 /// <param name="Date">The date the request is needed by.</param>
@@ -87,6 +91,7 @@ public sealed class ImportIntakeRequestDtoValidator : CustomValidator<ImportInta
         RuleFor(r => r.StatusReason).MaximumLength(1024);
         RuleFor(r => r.TagIds).NotNull();
         RuleForEach(r => r.TagIds).NotEmpty();
+        RuleFor(r => r.Estimate).MaximumLength(32);
 
         RuleFor(r => r.SubmittedAt)
             .Must(at => at <= dateTimeProvider.Now)

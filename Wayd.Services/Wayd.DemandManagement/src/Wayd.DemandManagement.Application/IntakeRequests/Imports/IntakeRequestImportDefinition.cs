@@ -10,6 +10,7 @@ using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 using Wayd.DemandManagement.Domain.Models;
+using Wayd.DemandManagement.Domain.Models.Estimation;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Imports;
 
@@ -20,7 +21,7 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Imports;
 /// <remarks>
 /// A request is created the way an upstream system creates one (<see cref="IntakeRequest.Create"/>): any
 /// open desk, any active channel, and the origin it came from. It then walks the steps an agent would take
-/// — assignee, tags, status — so its history reads as the moves the row describes rather than a record
+/// — assignee, tags, estimate, status — so its history reads as the moves the row describes rather than a record
 /// that appeared fully formed.
 /// <para>
 /// Per row: a request depends on nothing else in the file. A duplicate names a request already in Wayd,
@@ -183,6 +184,14 @@ public sealed class IntakeRequestImportDefinition(
                 continue;
             }
 
+            // Estimated before the move, while the request is still open: an estimate is frozen once it closes.
+            var estimated = Estimate(request, desk, data.Estimate, references.PinnedScalesByVersionId, reviewer, submittedAt);
+            if (estimated.IsFailure)
+            {
+                row.Failed(estimated.Error);
+                continue;
+            }
+
             var moved = Move(request, data, statuses.Value.Target, references.SurvivorsById, userId,
                 reviewer, data.StatusChangedAt ?? submittedAt);
             if (moved.IsFailure)
@@ -244,6 +253,30 @@ public sealed class IntakeRequestImportDefinition(
             return Result.Failure($"No intake request was found with id '{survivorId}' for this one to duplicate.");
 
         return request.ChangeStatus(target, data.StatusReason, survivor, reviewer, timestamp);
+    }
+
+    /// <summary>
+    /// Gives a new request the estimate its row names, on the version its desk pins, as the platform estimating
+    /// for the desk team that sized it in the tool it came from.
+    /// </summary>
+    private static Result Estimate(
+        IntakeRequest request,
+        IntakeDesk desk,
+        string? estimate,
+        IReadOnlyDictionary<Guid, DemandEstimationScale> pinnedScalesByVersionId,
+        EventActor actor,
+        Instant timestamp)
+    {
+        if (string.IsNullOrWhiteSpace(estimate))
+            return Result.Success();
+
+        var scale = desk.EstimationScaleVersionId is { } versionId ? pinnedScalesByVersionId[versionId] : null;
+        var estimated = request.ChangeEstimate(estimate, desk, scale, IntakeRequestEstimateSource.Imported,
+            new IntakeRequestEditor(null, IsDeskAgent: true, actor), timestamp);
+
+        return estimated.IsFailure
+            ? Result.Failure($"Could not estimate the request as '{estimate.Trim()}': {estimated.Error}")
+            : Result.Success();
     }
 
     private static Result ApplyTags(
@@ -429,6 +462,18 @@ public sealed class IntakeRequestImportDefinition(
                 .Select(r => new { r.Origin!.SourceSystem, r.Origin.ExternalId })
                 .ToListAsync(cancellationToken);
 
+        var versionIds = desks.Values.Where(d => d.EstimationScaleVersionId is not null)
+            .Select(d => d.EstimationScaleVersionId!.Value).Distinct().ToList();
+        var pinnedScales = versionIds.Count == 0
+            ? []
+            : await _dbContext.DemandEstimationScales.AsNoTracking()
+                .Include(s => s.Versions)
+                .Where(s => s.Versions.Any(v => versionIds.Contains(v.Id)))
+                .ToListAsync(cancellationToken);
+        var pinnedScalesByVersionId = pinnedScales
+            .SelectMany(s => s.Versions.Where(v => versionIds.Contains(v.Id)), (s, v) => (VersionId: v.Id, Scale: s))
+            .ToDictionary(x => x.VersionId, x => x.Scale);
+
         return new ResolvedReferences(
             desks,
             channels,
@@ -437,7 +482,8 @@ public sealed class IntakeRequestImportDefinition(
             tags,
             categories,
             survivors,
-            [.. origins.Select(o => OriginKey(o.SourceSystem, o.ExternalId))]);
+            [.. origins.Select(o => OriginKey(o.SourceSystem, o.ExternalId))],
+            pinnedScalesByVersionId);
     }
 
     /// <summary>The records a chunk's rows point at, by id.</summary>
@@ -449,5 +495,6 @@ public sealed class IntakeRequestImportDefinition(
         Dictionary<Guid, IntakeRequestTag> TagsById,
         Dictionary<Guid, IntakeRequestTagCategory> CategoriesById,
         Dictionary<Guid, IntakeRequest> SurvivorsById,
-        HashSet<(string, string)> TakenOrigins);
+        HashSet<(string, string)> TakenOrigins,
+        Dictionary<Guid, DemandEstimationScale> PinnedScalesByVersionId);
 }

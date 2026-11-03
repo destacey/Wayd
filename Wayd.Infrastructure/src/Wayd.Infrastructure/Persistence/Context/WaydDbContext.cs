@@ -35,6 +35,7 @@ using Wayd.StrategicManagement.Application;
 using Wayd.DemandManagement.Application;
 using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
+using Wayd.DemandManagement.Domain.Models.Estimation;
 using Wayd.StrategicManagement.Domain.Models;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Domain.Models;
@@ -218,6 +219,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<IntakeRequestTagCategory> IntakeRequestTagCategories => Set<IntakeRequestTagCategory>();
     public DbSet<IntakeRequestTag> IntakeRequestTags => Set<IntakeRequestTag>();
     public DbSet<DemandProject> DemandProjects => Set<DemandProject>();
+    public DbSet<DemandEstimationScale> DemandEstimationScales => Set<DemandEstimationScale>();
 
     IQueryable<Employee> IDemandManagementDbContext.Employees => Employees.AsNoTracking();
 

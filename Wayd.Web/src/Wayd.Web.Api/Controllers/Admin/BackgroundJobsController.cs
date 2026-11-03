@@ -80,6 +80,9 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
             case BackgroundJobType.TeamsSync:
                 _jobService.Enqueue(() => jobManager.RunSyncTeams(cancellationToken));
                 break;
+            case BackgroundJobType.EstimationScalesSync:
+                _jobService.Enqueue(() => jobManager.RunSyncEstimationScales(cancellationToken));
+                break;
             case BackgroundJobType.PortfolioRankRebalance:
                 _jobService.EnqueueSystem(() => jobManager.RunPortfolioRankRebalance(cancellationToken));
                 break;

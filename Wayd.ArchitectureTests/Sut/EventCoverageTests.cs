@@ -28,6 +28,7 @@ using Wayd.Planning.Domain.Models.Roadmaps;
 using Wayd.Planning.Domain.Models.StoryMaps;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.DemandManagement.Domain.Models;
+using Wayd.DemandManagement.Domain.Models.Estimation;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
@@ -207,6 +208,7 @@ public partial class EventCoverageTests
             "A drafting canvas of fine-grained edits whose current state is the artifact.",
 
         // Copies built from another module's events, which are their history.
+        [typeof(DemandEstimationScale)] = "A copy of Planning's EstimationScale.",
         [typeof(DemandProject)] = "A copy of PPM's Project.",
         [typeof(PlanningSprint)] = "A copy of Work's Iteration.",
         [typeof(PlanningTeam)] = "A copy of Organization's team.",

@@ -66,6 +66,18 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
         return Ok(scores);
     }
 
+    [HttpGet("estimates")]
+    [Authorize]
+    [McpTool("IntakeRequests_GetEstimates", "List intake request estimates")]
+    [EndpointSummary("Get the estimates of the intake requests you can see.")]
+    [EndpointDescription("Takes the same filters as the list and answers beside it, for the requests whose estimate you may read: an estimate is substance, so a request whose substance is withheld from you is absent, as is one never estimated. Sort on `position`, the value's place on its scale version, rather than on the text; positions compare only between estimates on the same version (`scale.versionId`).")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<IntakeRequestCurrentEstimateDto>>> GetIntakeRequestEstimates([FromQuery] Guid? deskId, [FromQuery] bool mine = false, [FromQuery] bool openOnly = false, CancellationToken cancellationToken = default)
+    {
+        var estimates = await _dispatcher.Send(new GetIntakeRequestEstimatesQuery(deskId, mine, openOnly), cancellationToken);
+        return Ok(estimates);
+    }
+
     [HttpGet("{idOrKey}")]
     [Authorize]
     [McpTool("IntakeRequests_GetIntakeRequest", "Get intake request")]
@@ -153,7 +165,7 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
     [EndpointSummary(
         "Submit a csv file of intake requests to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]
     [EndpointDescription(
-        "Each row names its desk, channel, tags and people by id. A request is created on its desk in the status meaning Submitted, at `SubmittedAt`, then assigned, tagged and moved to `Status` — a status of the desk's workflow by name or by meaning — at `StatusChangedAt`. Withdrawn is recorded as the requester's own move; every other status as the assignee's. Needs the Demand Management Admin.")]
+        "Each row names its desk, channel, tags and people by id. A request is created on its desk in the status meaning Submitted, at `SubmittedAt`, then assigned, tagged, estimated and moved to `Status` — a status of the desk's workflow by name or by meaning — at `StatusChangedAt`. Withdrawn is recorded as the requester's own move; every other status as the assignee's. Needs the Demand Management Admin.")]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -225,6 +237,18 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ChangeAssignee(Guid id, [FromBody] ChangeIntakeRequestAssigneeRequest request, CancellationToken cancellationToken) =>
         NoContentOrError(await _dispatcher.Send(new ChangeIntakeRequestAssigneeCommand(id, request.AssigneeId), cancellationToken));
+
+    [HttpPut("{id}/estimate")]
+    [McpTool("IntakeRequests_ChangeEstimate", "Change intake request estimate")]
+    [Authorize]
+    [EndpointSummary("Estimate an intake request on its desk's estimation scale, or clear its estimate.")]
+    [EndpointDescription("Needs an agent on the request's desk, never the requester, and an open request. The value must be an estimate value of the scale version the desk pins, not a card; the request's `estimateValues` lists them. A null `value` clears the estimate. An estimate is a rough order of magnitude for the desk, not a delivery commitment.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> ChangeEstimate(Guid id, [FromBody] ChangeIntakeRequestEstimateRequest request, CancellationToken cancellationToken) =>
+        NoContentOrError(await _dispatcher.Send(new ChangeIntakeRequestEstimateCommand(id, request.Value), cancellationToken));
 
     [HttpPost("{id}/reroute")]
     [McpTool("IntakeRequests_Reroute", "Move intake request to another desk")]

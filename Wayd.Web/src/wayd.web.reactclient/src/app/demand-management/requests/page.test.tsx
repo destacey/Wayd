@@ -82,6 +82,7 @@ jest.mock('next/navigation', () => ({
 
 let mockDesks: any[] = []
 let mockScores: any[] = []
+let mockEstimates: any[] = []
 const mockRequestsQuery = jest.fn((_args?: unknown) => ({
   currentData: [],
   isFetching: false,
@@ -92,6 +93,7 @@ jest.mock(
   () => ({
     useGetIntakeRequestsQuery: (args: unknown) => mockRequestsQuery(args),
     useGetIntakeRequestScoresQuery: () => ({ currentData: mockScores }),
+    useGetIntakeRequestEstimatesQuery: () => ({ currentData: mockEstimates }),
     useGetNeedByBasesQuery: () => ({ data: [] }),
     useGetIntakeDesksQuery: () => ({ data: mockDesks }),
     useGetIntakeChannelsQuery: () => ({ data: [] }),
@@ -109,6 +111,7 @@ describe('IntakeRequestsPage', () => {
     mockSearch = new URLSearchParams()
     mockDesks = []
     mockScores = []
+    mockEstimates = []
   })
 
   it('opens on the desks the reader works when the address names no filters', () => {
@@ -344,6 +347,87 @@ describe('IntakeRequestsPage', () => {
         'data-sorting',
         'null',
       )
+    })
+  })
+
+  describe('by estimate', () => {
+    const request = (id: string, key: number) => ({
+      id,
+      key,
+      title: id,
+      status: { id: 's-1', name: 'Submitted', category: 'Proposed' },
+      desk: { id: 'd-1', key: 1, name: 'IT' },
+      requester: { id: 'e-r', key: 1, name: 'Requester' },
+      tags: [],
+    })
+    const estimate = (requestId: string, value: string, position: number) => ({
+      requestId,
+      estimate: {
+        value,
+        position,
+        scale: {
+          id: 's-1',
+          key: 1,
+          name: 'T-Shirt Sizes',
+          versionId: 'v-1',
+          versionNumber: 1,
+          isCurrentVersion: true,
+        },
+      },
+    })
+
+    beforeEach(() => {
+      mockRequestsQuery.mockReturnValue({
+        currentData: [
+          request('unsized', 1),
+          request('small', 2),
+          request('large', 3),
+        ] as any,
+        isFetching: false,
+        refetch: jest.fn(),
+      })
+      // XL sits after S on the scale, though it sorts before it as text.
+      mockEstimates = [estimate('small', 'S', 2), estimate('large', 'XL', 4)]
+    })
+
+    afterEach(() => {
+      mockRequestsQuery.mockReturnValue({
+        currentData: [],
+        isFetching: false,
+        refetch: jest.fn(),
+      })
+    })
+
+    it('hands the grid the requests largest estimate first, with no sort of its own', () => {
+      // Arrange
+      mockSearch = new URLSearchParams('order=estimate')
+
+      // Act
+      render(<IntakeRequestsPage />)
+
+      // Assert
+      expect(screen.getAllByTestId('row').map((r) => r.textContent)).toEqual([
+        'large',
+        'small',
+        'unsized',
+      ])
+      expect(screen.getByTestId('requests-grid')).toHaveAttribute(
+        'data-sorting',
+        '[]',
+      )
+    })
+
+    it('keeps only the requests still to estimate', () => {
+      // Arrange
+      mockSearch = new URLSearchParams('estimate=unestimated')
+
+      // Act
+      render(<IntakeRequestsPage />)
+
+      // Assert
+      expect(screen.getAllByTestId('row').map((r) => r.textContent)).toEqual([
+        'unsized',
+      ])
     })
   })
 })

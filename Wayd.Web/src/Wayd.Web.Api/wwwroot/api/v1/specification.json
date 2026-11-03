@@ -77217,6 +77217,7 @@
           "owner",
           "state",
           "isSystem",
+          "ownership",
           "isAssigned",
           "statuses",
           "transitionMode",
@@ -77229,6 +77230,8 @@
           "missingRequiredCategories",
           "misfiledAliases",
           "canEdit",
+          "canReclassify",
+          "warnings",
           "canPublish",
           "canArchive"
         ],
@@ -77258,6 +77261,19 @@
           "isSystem": {
             "type": "boolean"
           },
+          "ownership": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowOwnership"
+              }
+            ],
+            "description": "Whether administrators author this workflow, or a sync keeps it from its source. A managed\nworkflow's statuses follow the source; only their categories and aliases are edited here."
+          },
+          "externalKey": {
+            "type": "string",
+            "description": "The source's identifier for this workflow when it is managed; null when owned.",
+            "nullable": true
+          },
           "isAssigned": {
             "type": "boolean"
           },
@@ -77265,7 +77281,8 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/WorkflowStatusDto"
-            }
+            },
+            "description": "Every status in display order, retired ones last and flagged."
           },
           "transitionMode": {
             "oneOf": [
@@ -77332,6 +77349,17 @@
             "type": "boolean",
             "description": "Whether the statuses may be restructured — Draft, and not platform-seeded."
           },
+          "canReclassify": {
+            "type": "boolean",
+            "description": "Whether a status's category and alias may be changed: on a draft owned workflow, and on a managed one\nuntil it is archived. Retired statuses never."
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "What a check found wrong that does not stop this workflow being used, one sentence each. Only a\nmanaged workflow has any: it syncs regardless, and administration flags it until they are fixed."
+          },
           "canPublish": {
             "type": "boolean"
           },
@@ -77350,6 +77378,7 @@
           "owner",
           "state",
           "isSystem",
+          "ownership",
           "statusCount",
           "isAssigned"
         ],
@@ -77384,8 +77413,17 @@
           "isSystem": {
             "type": "boolean"
           },
+          "ownership": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowOwnership"
+              }
+            ],
+            "description": "Whether administrators author this workflow, or a sync keeps it from its source."
+          },
           "statusCount": {
             "type": "integer",
+            "description": "How many statuses a record can be given, leaving out those the source retired.",
             "format": "int32"
           },
           "isAssigned": {
@@ -86010,7 +86048,8 @@
           "name",
           "category",
           "alias",
-          "order"
+          "order",
+          "isRetired"
         ],
         "type": "object",
         "properties": {
@@ -86046,6 +86085,15 @@
           "order": {
             "type": "integer",
             "format": "int32"
+          },
+          "externalKey": {
+            "type": "string",
+            "description": "The source's identifier for this status when its workflow is managed; null when owned.",
+            "nullable": true
+          },
+          "isRetired": {
+            "type": "boolean",
+            "description": "Whether the source dropped this status. Records that hold it still show it, but no record can be\ngiven it again."
           }
         },
         "additionalProperties": false,

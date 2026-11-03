@@ -5,6 +5,7 @@ import {
   StatusWorkflowDetailsDto,
   TransitionMode,
   WorkflowOwnerTypeDto,
+  WorkflowOwnership,
 } from '@/src/services/wayd-api'
 import PublishStatusWorkflowForm from './publish-status-workflow-form'
 
@@ -60,6 +61,9 @@ const workflow = (
   canEdit: true,
   canPublish: true,
   canArchive: false,
+  ownership: WorkflowOwnership.Owned,
+  canReclassify: false,
+  warnings: [],
   ...overrides,
 })
 

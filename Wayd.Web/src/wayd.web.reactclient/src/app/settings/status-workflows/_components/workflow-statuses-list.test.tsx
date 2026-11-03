@@ -9,12 +9,12 @@ import {
   StatusWorkflowDetailsDto,
   TransitionMode,
   WorkflowStatusDto,
+  WorkflowOwnership,
 } from '@/src/services/wayd-api'
 import WorkflowStatusesList from './workflow-statuses-list'
 
 /** The list reaches for `App.useApp().modal` to confirm a delete. */
-const render = (ui: React.ReactElement) =>
-  rtlRender(<App>{ui}</App>)
+const render = (ui: React.ReactElement) => rtlRender(<App>{ui}</App>)
 
 global.ResizeObserver = class {
   observe() {}
@@ -46,6 +46,7 @@ const status = (
   category: { id: 2, name: 'Active' },
   alias: 0,
   order,
+  isRetired: false,
 })
 
 const NEW = status('11111111-0000-4000-a000-000000000001', 'New', 1)
@@ -75,6 +76,9 @@ const workflow = (
   canEdit: true,
   canPublish: false,
   canArchive: false,
+  ownership: WorkflowOwnership.Owned,
+  canReclassify: false,
+  warnings: [],
   ...overrides,
 })
 
@@ -95,12 +99,12 @@ describe('WorkflowStatusesList', () => {
   it('hides the actions column entirely when the workflow cannot be edited', () => {
     // Arrange — a published or system workflow is frozen, so offering row
     // actions that would all fail is worse than offering none.
-    render(<WorkflowStatusesList statusWorkflow={workflow({ canEdit: false })} />)
+    render(
+      <WorkflowStatusesList statusWorkflow={workflow({ canEdit: false })} />,
+    )
 
     // Assert
-    expect(
-      screen.queryByLabelText('Status actions'),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Status actions')).not.toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: 'Add Status' }),
     ).not.toBeInTheDocument()

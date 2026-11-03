@@ -135322,9 +135322,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("isSystem")]
         public bool IsSystem { get; set; } = default!;
 
+        /// <summary>
+        /// Whether administrators author this workflow, or a sync keeps it from its source. A managed
+        /// <br/>workflow's statuses follow the source; only their categories and aliases are edited here.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ownership")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkflowOwnership>))]
+        public WorkflowOwnership Ownership { get; set; } = default!;
+
+        /// <summary>
+        /// The source's identifier for this workflow when it is managed; null when owned.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("externalKey")]
+        public string? ExternalKey { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("isAssigned")]
         public bool IsAssigned { get; set; } = default!;
 
+        /// <summary>
+        /// Every status in display order, retired ones last and flagged.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("statuses")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<WorkflowStatusDto> Statuses { get; set; } = new System.Collections.ObjectModel.Collection<WorkflowStatusDto>();
@@ -135407,6 +135425,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("canEdit")]
         public bool CanEdit { get; set; } = default!;
 
+        /// <summary>
+        /// Whether a status's category and alias may be changed: on a draft owned workflow, and on a managed one
+        /// <br/>until it is archived. Retired statuses never.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canReclassify")]
+        public bool CanReclassify { get; set; } = default!;
+
+        /// <summary>
+        /// What a check found wrong that does not stop this workflow being used, one sentence each. Only a
+        /// <br/>managed workflow has any: it syncs regardless, and administration flags it until they are fixed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("warnings")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> Warnings { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
         [System.Text.Json.Serialization.JsonPropertyName("canPublish")]
         public bool CanPublish { get; set; } = default!;
 
@@ -135450,6 +135483,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("isSystem")]
         public bool IsSystem { get; set; } = default!;
 
+        /// <summary>
+        /// Whether administrators author this workflow, or a sync keeps it from its source.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ownership")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkflowOwnership>))]
+        public WorkflowOwnership Ownership { get; set; } = default!;
+
+        /// <summary>
+        /// How many statuses a record can be given, leaving out those the source retired.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("statusCount")]
         public int StatusCount { get; set; } = default!;
 
@@ -143608,6 +143652,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
+
+        /// <summary>
+        /// The source's identifier for this status when its workflow is managed; null when owned.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("externalKey")]
+        public string? ExternalKey { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the source dropped this status. Records that hold it still show it, but no record can be
+        /// <br/>given it again.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isRetired")]
+        public bool IsRetired { get; set; } = default!;
 
     }
 

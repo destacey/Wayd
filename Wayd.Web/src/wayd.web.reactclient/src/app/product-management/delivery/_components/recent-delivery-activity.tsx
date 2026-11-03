@@ -11,7 +11,8 @@ import {
   CloseCircleOutlined,
   InboxOutlined,
 } from '@ant-design/icons'
-import { Empty, Flex, List, Tooltip, Typography, theme } from 'antd'
+import { WaydList } from '@/src/components/common'
+import { Empty, Flex, Tooltip, Typography, theme } from 'antd'
 import dayjs from 'dayjs'
 import Link from 'next/link'
 
@@ -105,14 +106,14 @@ const RecentDeliveryActivity = ({ events }: RecentDeliveryActivityProps) => {
   }
 
   return (
-    <List
+    <WaydList
       size="small"
       dataSource={events}
       renderItem={(event) => {
         const { icon, tone } = appearance(event.alias)
 
         return (
-          <List.Item
+          <WaydList.Item
             key={`${event.recordId}-${event.changedOn}`}
             style={
               event.alias === ProductStatusAlias.Withdrawn
@@ -147,7 +148,7 @@ const RecentDeliveryActivity = ({ events }: RecentDeliveryActivityProps) => {
                 </Tooltip>
               </Flex>
             </Flex>
-          </List.Item>
+          </WaydList.Item>
         )
       }}
     />

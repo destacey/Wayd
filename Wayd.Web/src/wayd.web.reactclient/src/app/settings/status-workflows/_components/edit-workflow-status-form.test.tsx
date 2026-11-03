@@ -82,6 +82,7 @@ const statusIn = (
   category: { id: CATEGORY_IDS[category], name: categoryName },
   alias,
   order: 1,
+  isRetired: false,
 })
 
 // An owner type that names two categories its own way.

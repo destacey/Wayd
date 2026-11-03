@@ -11,7 +11,7 @@ public sealed class StatusWorkflowSchemeTests
     private static readonly Instant Now = Instant.FromUtc(2026, 1, 15, 9, 30, 0);
 
     private static readonly WorkflowOwnerDescriptor Ticket = new(
-        "test.scheme.ticket", "Ticket", new Dictionary<int, WorkflowAlias>(), [], hasRecordTypes: true);
+        "test.scheme.ticket", "Ticket", new Dictionary<int, WorkflowAlias>(), [], hasRecordTypes: true, hasManagedWorkflows: true);
 
     private static readonly WorkflowOwnerDescriptor Plain = new(
         "test.scheme.plain", "Plain", new Dictionary<int, WorkflowAlias>(), []);

@@ -20,13 +20,18 @@ public sealed record WorkflowStatusDetails(string Name, string? Description);
 /// <param name="Alias">
 /// The well-known meaning, in the vocabulary of the workflow's owner type; 0 for none.
 /// </param>
+/// <param name="ExternalKey">
+/// The source's identifier for the status when the workflow is managed; null when owned, which every
+/// payload written before managed workflows reads as.
+/// </param>
 public sealed record WorkflowStatusValues(
     Guid StatusId,
     string Name,
     string? Description,
     StatusCategory Category,
     int Alias,
-    int Order);
+    int Order,
+    string? ExternalKey = null);
 
 /// <summary>
 /// One move a workflow allows, as carried by <see cref="WorkflowTransitionsChangedEvent"/> and

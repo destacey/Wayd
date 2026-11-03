@@ -20,6 +20,9 @@ public class StatusWorkflowConfiguration : IEntityTypeConfiguration<StatusWorkfl
         builder.HasIndex(w => new { w.OwnerType, w.State })
             .IncludeProperties(w => new { w.Id, w.Key, w.Name, w.IsSystem });
 
+        // A source identifies each of its workflows once; owned workflows have no external key.
+        builder.HasIndex(w => new { w.OwnerType, w.ExternalKey }).IsUnique().WhereNotNull("ExternalKey");
+
         builder.Property(w => w.Id).ValueGeneratedNever();
         builder.Property(w => w.Key).ValueGeneratedOnAdd();
 
@@ -38,6 +41,13 @@ public class StatusWorkflowConfiguration : IEntityTypeConfiguration<StatusWorkfl
             .HasMaxLength(32);
 
         builder.Property(w => w.IsSystem).IsRequired();
+
+        builder.Property(w => w.Ownership).IsRequired()
+            .HasConversion<EnumConverter<WorkflowOwnership>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
+        builder.Property(w => w.ExternalKey).HasMaxLength(256);
 
         builder.Property(w => w.TransitionMode).IsRequired()
             .HasConversion<EnumConverter<TransitionMode>>()
@@ -64,6 +74,8 @@ public class StatusWorkflowConfiguration : IEntityTypeConfiguration<StatusWorkfl
         builder.Ignore(w => w.InitialStatus);
         builder.Ignore(w => w.SupportsRestrictedTransitions);
         builder.Ignore(w => w.EnforcesTransitions);
+        builder.Ignore(w => w.IsManaged);
+        builder.Ignore(w => w.ActiveStatuses);
     }
 }
 
@@ -135,7 +147,14 @@ public class WorkflowStatusConfiguration : IEntityTypeConfiguration<WorkflowStat
 
         builder.HasKey(s => s.Id);
 
-        builder.HasIndex(s => new { s.WorkflowId, s.Name }).IsUnique();
+        // Owned statuses only. A managed workflow's names are kept unique by StatusWorkflow, which refuses
+        // a source listing a name twice: SQL Server checks a unique index after each row's UPDATE, so a
+        // sync that swaps two names, or gives one the name of a status it retires, could never be saved.
+        // Retired statuses are always managed, so they may share a name with the one that replaced them.
+        builder.HasIndex(s => new { s.WorkflowId, s.Name }).IsUnique().HasFilter("[ExternalKey] IS NULL");
+
+        // Unique with retired statuses included, so a status the source brings back is reinstated.
+        builder.HasIndex(s => new { s.WorkflowId, s.ExternalKey }).IsUnique().WhereNotNull("ExternalKey");
 
         // Filtered so many statuses may carry NoAlias while a real alias stays unique per workflow.
         builder.HasIndex(s => new { s.WorkflowId, s.Alias })
@@ -160,6 +179,8 @@ public class WorkflowStatusConfiguration : IEntityTypeConfiguration<WorkflowStat
 
         builder.Property(s => s.Order).IsRequired();
         builder.Property(s => s.IsSystem).IsRequired();
+        builder.Property(s => s.ExternalKey).HasMaxLength(256);
+        builder.Property(s => s.IsRetired).IsRequired();
     }
 }
 
@@ -201,7 +222,9 @@ public class RecordTypeConfiguration : IEntityTypeConfiguration<RecordType>
         builder.HasKey(r => r.Id);
         builder.HasAlternateKey(r => r.Key);
 
-        builder.HasIndex(r => new { r.OwnerType, r.Name }).IsUnique();
+        // Unique among active types: a source that drops a type and later re-creates it under a new key,
+        // or a type retired so another can take its name, must not be refused for an inactive one.
+        builder.HasIndex(r => new { r.OwnerType, r.Name }).IsUnique().HasFilter("[IsActive] = 1");
 
         // A source identifies each of its types once; owned types have no external key.
         builder.HasIndex(r => new { r.OwnerType, r.ExternalKey }).IsUnique().WhereNotNull("ExternalKey");

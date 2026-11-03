@@ -13,8 +13,8 @@ namespace Wayd.Common.Domain.Events.StatusWorkflows;
 /// </remarks>
 public sealed record WorkflowBaselinedEvent : BaselineEvent<WorkflowBaselinedEvent, WorkflowCreatedEvent>
 {
-    public WorkflowBaselinedEvent(Guid id, int key, string name, string? description, string ownerType, bool isSystem, Guid? sourceWorkflowId, WorkflowStatusValues[] statuses, TransitionMode transitionMode, WorkflowTransitionValues[]? transitions, Instant? recordCreatedOn, Guid? recordCreatedById, Instant timestamp)
-        : base("Workflow", id, recordCreatedOn, recordCreatedById, timestamp, "1.2")
+    public WorkflowBaselinedEvent(Guid id, int key, string name, string? description, string ownerType, bool isSystem, Guid? sourceWorkflowId, WorkflowStatusValues[] statuses, TransitionMode transitionMode, WorkflowTransitionValues[]? transitions, string? externalKey, Instant? recordCreatedOn, Guid? recordCreatedById, Instant timestamp)
+        : base("Workflow", id, recordCreatedOn, recordCreatedById, timestamp, "1.3")
     {
         Id = id;
         Key = key;
@@ -26,6 +26,7 @@ public sealed record WorkflowBaselinedEvent : BaselineEvent<WorkflowBaselinedEve
         Statuses = [.. statuses];
         TransitionMode = transitionMode;
         Transitions = [.. transitions ?? []];
+        ExternalKey = externalKey;
     }
 
     public Guid Id { get; }
@@ -38,4 +39,5 @@ public sealed record WorkflowBaselinedEvent : BaselineEvent<WorkflowBaselinedEve
     public WorkflowStatusValues[] Statuses { get; }
     public TransitionMode TransitionMode { get; }
     public WorkflowTransitionValues[] Transitions { get; }
+    public string? ExternalKey { get; }
 }

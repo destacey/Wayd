@@ -97,7 +97,7 @@ public sealed class PreviewStatusRemapQueryHandler(
         var descriptor = WorkflowOwners.Resolve(current.OwnerType);
         var owner = descriptor.IsSuccess ? descriptor.Value : null;
 
-        var targets = target.Statuses.ToList();
+        var targets = target.ActiveStatuses.ToList();
 
         var entries = current.Statuses
             .Select(source =>
@@ -140,6 +140,8 @@ public sealed class PreviewStatusRemapQueryHandler(
                 ? name
                 : null,
             Order = status.Order,
+            ExternalKey = status.ExternalKey,
+            IsRetired = status.IsRetired,
         };
 
     /// <summary>

@@ -68897,7 +68897,13 @@ export interface StatusWorkflowDetailsDto {
     owner: WorkflowOwnerNavigationDto;
     state: string;
     isSystem: boolean;
+    /** Whether administrators author this workflow, or a sync keeps it from its source. A managed
+workflow's statuses follow the source; only their categories and aliases are edited here. */
+    ownership: WorkflowOwnership;
+    /** The source's identifier for this workflow when it is managed; null when owned. */
+    externalKey?: string | undefined;
     isAssigned: boolean;
+    /** Every status in display order, retired ones last and flagged. */
     statuses: WorkflowStatusDto[];
     /** Whether records may move between any two statuses, or only along IReadOnlyCollection&lt;WorkflowTransitionDto&gt; StatusWorkflowDetailsDto.Transitions. */
     transitionMode: TransitionMode;
@@ -68926,6 +68932,12 @@ status. Publishing is refused until each is moved or loses its alias. */
     misfiledAliases: string[];
     /** Whether the statuses may be restructured — Draft, and not platform-seeded. */
     canEdit: boolean;
+    /** Whether a status's category and alias may be changed: on a draft owned workflow, and on a managed one
+until it is archived. Retired statuses never. */
+    canReclassify: boolean;
+    /** What a check found wrong that does not stop this workflow being used, one sentence each. Only a
+managed workflow has any: it syncs regardless, and administration flags it until they are fixed. */
+    warnings: string[];
     canPublish: boolean;
     canArchive: boolean;
 }
@@ -68940,6 +68952,9 @@ export interface StatusWorkflowListDto {
     owner: WorkflowOwnerNavigationDto;
     state: string;
     isSystem: boolean;
+    /** Whether administrators author this workflow, or a sync keeps it from its source. */
+    ownership: WorkflowOwnership;
+    /** How many statuses a record can be given, leaving out those the source retired. */
     statusCount: number;
     /** Whether any scope currently uses this workflow. Archiving is refused while it does. */
     isAssigned: boolean;
@@ -71676,6 +71691,11 @@ labels it. */
     /** The alias in the module's vocabulary, or null when it carries none. */
     aliasName?: string | undefined;
     order: number;
+    /** The source's identifier for this status when its workflow is managed; null when owned. */
+    externalKey?: string | undefined;
+    /** Whether the source dropped this status. Records that hold it still show it, but no record can be
+given it again. */
+    isRetired: boolean;
 }
 
 /** A move a workflow allows, from one of its statuses to another. */

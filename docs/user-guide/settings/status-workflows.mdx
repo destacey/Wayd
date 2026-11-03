@@ -211,6 +211,18 @@ Every record carries a copy of its status's category and alias. Changing a publi
 
 The workflows Wayd seeds are marked **System**. They cannot be edited, published or archived, so an upgrade always finds them as it left them. To diverge from one, clone it.
 
+### Managed workflows
+
+A workflow can be **managed**: kept by a sync from the system its records come from, rather than authored here. Its statuses are that system's — they appear, change name, change order and disappear when the source changes them — so it is published as soon as the sync creates it.
+
+What you change on a managed workflow is what Wayd adds to the source's statuses: each status's **category** and **alias**. Those can change while it is published. You cannot add, remove, rename or reorder its statuses, change its name, restrict its transitions, or archive it; the source decides those. A move the source allows between statuses is not imported, and records on a managed workflow are never held to one. To diverge from a managed workflow, clone it: the copy is a draft of your own, which nothing syncs.
+
+When the source drops a status, Wayd **retires** it rather than deleting it. A retired status is listed after the others. No record can be given it, but records that already hold it, and their history, still show it. If the source brings it back, it returns to use. A retired status gives up its alias, so you can move that meaning to a status records can still be given.
+
+A source's workflow does not have to meet the record type's requirements. When a managed workflow has no status in a required category, lacks a required alias, or has an alias in the wrong category, it keeps syncing, and each problem is reported as a warning until you fix the mapping.
+
+No record type is synced yet: work items will be the first.
+
 ## Changing a published workflow
 
 Renames and reordering apply directly. Anything structural — adding or removing a status, changing its category or alias, or changing the transitions — cannot be made in place. You clone the workflow, change the copy, publish that, and reassign.

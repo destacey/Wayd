@@ -18,7 +18,8 @@ public sealed class WorkflowStatus : BaseAuditableEntity
 {
     private WorkflowStatus() { }
 
-    internal WorkflowStatus(Guid workflowId, string name, string? description, StatusCategory category, int alias, int order, bool isSystem = false)
+    internal WorkflowStatus(
+        Guid workflowId, string name, string? description, StatusCategory category, int alias, int order, bool isSystem = false, string? externalKey = null)
     {
         WorkflowId = workflowId;
         Name = name;
@@ -27,6 +28,7 @@ public sealed class WorkflowStatus : BaseAuditableEntity
         Alias = alias;
         Order = order;
         IsSystem = isSystem;
+        ExternalKey = externalKey;
     }
 
     /// <summary>
@@ -90,6 +92,21 @@ public sealed class WorkflowStatus : BaseAuditableEntity
     public bool IsSystem { get; private init; }
 
     /// <summary>
+    /// The source's identifier for this status when its workflow is managed — an Azure DevOps state name
+    /// within its work item type, a Jira status id — or <c>null</c> when the workflow is owned. What the sync
+    /// matches on, so a rename at the source renames the status rather than adding another. Unique within
+    /// the workflow, retired statuses included, so a status the source brings back is reinstated.
+    /// </summary>
+    public string? ExternalKey { get; private init; }
+
+    /// <summary>
+    /// Whether the source has dropped this status. A retired status cannot be given to a record again, but
+    /// stays in its workflow so the records and history that hold it still resolve. Only a managed workflow's
+    /// statuses retire.
+    /// </summary>
+    public bool IsRetired { get; private set; }
+
+    /// <summary>
     /// Renames a status and reworks its description. Always safe: records hold the id, not the name.
     /// </summary>
     internal void Rename(string name, string? description)
@@ -114,4 +131,10 @@ public sealed class WorkflowStatus : BaseAuditableEntity
     /// Repositions the status for display.
     /// </summary>
     internal void Reorder(int order) => Order = order;
+
+    /// <summary>Withdraws the status from use because its source dropped it.</summary>
+    internal void Retire() => IsRetired = true;
+
+    /// <summary>Returns a retired status to use because its source brought it back.</summary>
+    internal void Reinstate() => IsRetired = false;
 }

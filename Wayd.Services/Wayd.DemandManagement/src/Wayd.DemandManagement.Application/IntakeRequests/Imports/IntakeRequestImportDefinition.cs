@@ -331,7 +331,7 @@ public sealed class IntakeRequestImportDefinition(
             return (submitted, null);
 
         var name = status.Trim();
-        var match = workflow.Statuses.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase))
+        var match = workflow.ActiveStatuses.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase))
             ?? (Meaning(name) is { } alias ? workflow.StatusFor((int)alias) : null);
 
         if (match is null)

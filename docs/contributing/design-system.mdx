@@ -1,0 +1,76 @@
+---
+title: Design System
+description: Start here before building UI — the page types Wayd has, which component to reach for, the rules every page follows, and which of them lint enforces.
+sidebar_position: 6.2
+audience: [developer, agent]
+---
+
+# Design System
+
+Wayd's UI is [Ant Design 6](https://ant.design) themed through tokens, a set of house components (the `Wayd*` prefix and the shared components in `src/components/common`), and a small number of page structures. This page is the index: it says which page type and which component a piece of UI should use, and links to the page that has the details. It does not repeat them.
+
+Read it before building a new page or a new piece of UI. When something here and an older page in the codebase disagree, follow this page — areas are still migrating, and the older page is the one that is out of date.
+
+## Page types
+
+Every screen is one of these. Pick the type first, then copy the reference file rather than starting from a blank page.
+
+| Page type | Frame and heading | Copy this | Details |
+| --- | --- | --- | --- |
+| **List page** — browse, filter and open records | `<div className="page-gutters">`, `PageTitle`, a filter bar, then `WaydGrid` (`advanced`) | `src/app/ppm/projects/page.tsx` | [List pages](./record-pages.mdx#list-pages), [Filter bars](./frontend.mdx#filter-bars) |
+| **Record page** — one record's detail | `RecordLayout` with a `record` prop, which renders `RecordHeader`, the section rail and the facts panel | `src/app/ppm/projects/[key]/page.tsx` | [Record Pages](./record-pages.mdx) — start with [Does it get a record page at all?](./record-pages.mdx#does-it-get-a-record-page-at-all) |
+| **Settings page** — configuration under Settings | The settings layout supplies the menu rail; a list page inside it adds its own `page-gutters` and `PageTitle` | `src/app/settings/work-management/work-processes/page.tsx` | [Page padding](./record-pages.mdx#page-padding) |
+| **Dashboard** — metrics and attention for a scope | `page-gutters`, `PageTitle`, then tiles, charts and grids | `src/app/ppm/dashboards/projects/page.tsx` | [Overview metrics](./record-pages.mdx#overview-metrics), [Charts on an Overview](./record-pages.mdx#charts-on-an-overview) |
+| **Form** — create or change something | antd `Modal` + `Form` driven by `useModalForm`; a 422 goes through `toFormErrors` | `src/app/ppm/projects/_components/edit-project-form.tsx` | [Form Validation Errors](./frontend.mdx#form-validation-errors) |
+
+## Which component
+
+Reach for the house component before the library it wraps. A row marked **lint** fails `npm run lint` when the library component is imported.
+
+| Need | Use | Not |
+| --- | --- | --- |
+| Any table of rows — a list page, a record section, a drawer, a form | `WaydGrid` — `variant="advanced"` on a list page, `variant="simple"` everywhere else | antd `Table`, raw TanStack Table (**lint**) |
+| Picking a set of rows from a larger one (assign teams, add work items) | `WaydGridTransfer` | |
+| A list of items that is not tabular | `WaydList` | antd `List` (**lint**; `Form.List` is fine) |
+| A list page's heading | `PageTitle` | |
+| A record's identity bar | `RecordLayout`'s `record` prop (renders `RecordHeader`) | `PageTitle` on a record page |
+| A record's stable facts | `LabeledContent` in the facts rail | `Descriptions` |
+| Secondary page actions | `PageActions` beside one primary button | A row of buttons |
+| An entity title in a dense list, card or grid | `EntityLink` | A plain blue `Link` |
+| A person | `PersonAvatar`, `PersonPopover` | |
+| A lifecycle status | `LifecycleStatusTag` | A hand-coloured `Tag` |
+| A date range as text | `WaydDateRange` | Formatting it inline |
+| A timeline or Gantt chart | `WaydTimeline` (`src/components/common/timeline`) | |
+| User markdown | `MarkdownRenderer`, `MarkdownEditor` | |
+| A chart | `@ant-design/charts`; on a record page also `autoFit` and `useChartRemountOnResize()` | |
+| Content that stacks on a phone | `ResponsiveFlex` | Hand-written breakpoint branching |
+
+The grid has its own guide: [WaydGrid](./wayd-grid.mdx). If a table needs something `WaydGrid` cannot do yet, the fix is a `WaydGrid` feature, not an antd `Table`.
+
+## Rules every page follows
+
+- **Colours come from theme tokens.** CSS variables (`var(--ant-color-primary)`) in CSS modules; `theme.useToken()` only when JavaScript needs the value. See [Styling](./frontend.mdx#styling) and [Theming](./frontend.mdx#theming).
+- **Every page works at every width.** `!screens.md` (below 768px) is the mobile cut. Check 1440, 1100, 834 and 390, and the boundaries either side of each rule. See [Responsive](./record-pages.mdx#responsive).
+- **Padding belongs to the page's frame.** `page-gutters` on a list, dashboard or tool; `RecordLayout` supplies its own. Never pad a parent and negate it in a child. See [Page padding](./record-pages.mdx#page-padding).
+- **Horizontal scroll belongs to the element, never the page.**
+- **Filter bars: unselected buttons are dashed, and colour means identity, never state.** See [Filter Bars](./frontend.mdx#filter-bars).
+- **Calendar dates go through `src/utils/calendar-date.ts`.** See [Dates and instants](./frontend.mdx#dates-and-instants).
+- **User-facing strings sort with `caseInsensitiveCompare`.**
+
+## What lint enforces
+
+`eslint.config.mjs` in the client restricts the imports marked **lint** above, and the error message names the replacement.
+
+Files written before the rule existed are listed in `legacyAntdTableFiles` in the same config. That list only shrinks: migrate a file to `WaydGrid` and remove it from the list. Never add a file to it.
+
+When a rule on this page can be checked by a tool, add it to lint. A rule in lint reaches every developer and every agent, whichever editor or tool they use; a rule only in prose reaches the ones who read it.
+
+## Library reference
+
+For antd component APIs and tokens, use antd's own machine-readable docs rather than copying them here: `https://ant.design/components/<name>.md` per component, the full index at [ant.design/llms-full.txt](https://ant.design/llms-full.txt), and the token spec at [ant.design/design.md](https://ant.design/design.md). See [antd for agents](https://ant.design/docs/react/for-agents).
+
+## Keeping this page current
+
+- A new house component that replaces a library component gets a row in [Which component](#which-component), and a lint restriction when the library component should no longer be imported.
+- A new page structure gets a row in [Page types](#page-types), naming a page that already follows it.
+- A reference file that stops being the best example is replaced in its row.

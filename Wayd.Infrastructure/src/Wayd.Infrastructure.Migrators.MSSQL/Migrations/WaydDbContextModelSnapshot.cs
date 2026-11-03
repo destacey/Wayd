@@ -1647,7 +1647,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasFilter("[ExternalKey] IS NOT NULL");
 
                     b.HasIndex("OwnerType", "Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("RecordTypes", "StatusWorkflows");
                 });
@@ -1742,6 +1743,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(1024)
                         .HasColumnType("nvarchar(1024)");
 
+                    b.Property<string>("ExternalKey")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.Property<bool>("IsSystem")
                         .HasColumnType("bit");
 
@@ -1759,6 +1764,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<string>("OwnerType")
                         .IsRequired()
                         .HasMaxLength(64)
+                        .HasColumnType("varchar");
+
+                    b.Property<string>("Ownership")
+                        .IsRequired()
+                        .HasMaxLength(32)
                         .HasColumnType("varchar");
 
                     b.Property<string>("State")
@@ -1788,6 +1798,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasKey("Id");
 
                     b.HasAlternateKey("Key");
+
+                    b.HasIndex("OwnerType", "ExternalKey")
+                        .IsUnique()
+                        .HasFilter("[ExternalKey] IS NOT NULL");
 
                     b.HasIndex("OwnerType", "State");
 
@@ -2023,6 +2037,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");
 
+                    b.Property<string>("ExternalKey")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<bool>("IsRetired")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsSystem")
                         .HasColumnType("bit");
 
@@ -2057,8 +2078,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsUnique()
                         .HasFilter("[Alias] <> 0");
 
+                    b.HasIndex("WorkflowId", "ExternalKey")
+                        .IsUnique()
+                        .HasFilter("[ExternalKey] IS NOT NULL");
+
                     b.HasIndex("WorkflowId", "Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[ExternalKey] IS NULL");
 
                     b.ToTable("WorkflowStatuses", "StatusWorkflows");
                 });

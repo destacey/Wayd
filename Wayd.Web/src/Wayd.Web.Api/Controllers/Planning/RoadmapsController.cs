@@ -58,7 +58,7 @@ public class RoadmapsController : ControllerBase
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Roadmaps)]
     [EndpointSummary("Create a roadmap.")]
     [EndpointDescription(
-        "`roadmapManagerIds` are employee UUIDs and must include the caller's own employee: only roadmap managers can change a roadmap. `visibilityId` is 1 Public (everyone can see it) or 2 Private (only its managers can); Roadmaps_GetVisibilityOptions lists them. `start` must be on or before `end`. The new roadmap is Active and has no items. Returns its `id` and `key`.")]
+        "`ownerIds` are employee UUIDs and must include the caller's own employee: only a roadmap's owners, and Roadmaps administrators, can change it. `visibilityId` is 1 Public (everyone can see it) or 2 Private (only its owners and Roadmaps administrators can); Roadmaps_GetVisibilityOptions lists them. `start` must be on or before `end`. The new roadmap is Active and has no items. Returns its `id` and `key`.")]
     [McpTool("Roadmaps_CreateRoadmap", "Create roadmap", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateRoadmapRequest request, CancellationToken cancellationToken)
@@ -74,7 +74,7 @@ public class RoadmapsController : ControllerBase
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Roadmaps)]
     [EndpointSummary("Copy an existing roadmap.")]
     [EndpointDescription(
-        "Creates a new Active roadmap with the source's description, dates and every item (activities, timeboxes and milestones, with their nesting, colors and order), under the given `name`, `roadmapManagerIds` and `visibilityId` (1 Public, 2 Private). The source's color legend is not copied. `sourceRoadmapId` is the source's UUID; it must be public or managed by the caller. `roadmapManagerIds` are employee UUIDs and must include the caller's own employee. The source is unchanged. Returns the copy's `id` and `key`.")]
+        "Creates a new Active roadmap with the source's description, dates and every item (activities, timeboxes and milestones, with their nesting, colors and order), under the given `name`, `ownerIds` and `visibilityId` (1 Public, 2 Private). The source's color legend is not copied. `sourceRoadmapId` is the source's UUID; it must be public or owned by the caller, unless the caller is a Roadmaps administrator. `ownerIds` are employee UUIDs and must include the caller's own employee. The source is unchanged. Returns the copy's `id` and `key`.")]
     [McpTool("Roadmaps_CopyRoadmap", "Copy roadmap", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Copy([FromBody] CopyRoadmapRequest request, CancellationToken cancellationToken)
@@ -87,10 +87,10 @@ public class RoadmapsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
     [EndpointSummary("Update a roadmap.")]
     [EndpointDescription(
-        "A whole-record overwrite of the name, description, dates, managers and visibility: an omitted `description` is cleared and `roadmapManagerIds` replaces the managers, so leaving a manager out removes them. Read the roadmap with Roadmaps_GetRoadmap first and pass back what should stay. The managers must include the caller's own employee, and only a manager can update. `visibilityId` is 1 Public or 2 Private. An archived roadmap cannot be changed; reactivate it first. Takes the roadmap's UUID, in the path and again as `id` in the body.")]
+        "A whole-record overwrite of the name, description, dates, owners and visibility: an omitted `description` is cleared and `ownerIds` replaces the owners, so leaving an owner out removes them. Read the roadmap with Roadmaps_GetRoadmap first and pass back what should stay. Only an owner or a Roadmaps administrator can update, and an owner must keep their own employee among the owners. `visibilityId` is 1 Public or 2 Private. An archived roadmap cannot be changed; reactivate it first. Takes the roadmap's UUID, in the path and again as `id` in the body.")]
     [McpTool("Roadmaps_UpdateRoadmap", "Update roadmap")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -108,10 +108,10 @@ public class RoadmapsController : ControllerBase
     }
 
     [HttpPut("{id}/colors")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
     [EndpointSummary("Update the configured colors for a roadmap.")]
     [EndpointDescription(
-        "Replaces the roadmap's color legend: `colors` is the complete set, each a hex `color` (e.g. #4096FF) with a caption `name` (at most 32 characters), an `order` and `isDefault`; a color left out is removed and an empty list clears the legend. At most 30 colors, at most one default, no color value twice. Items keep their own colors. Read the current legend with Roadmaps_GetRoadmap first. Only a manager of an active roadmap can change it. Takes the roadmap's UUID, in the path and again as `roadmapId` in the body.")]
+        "Replaces the roadmap's color legend: `colors` is the complete set, each a hex `color` (e.g. #4096FF) with a caption `name` (at most 32 characters), an `order` and `isDefault`; a color left out is removed and an empty list clears the legend. At most 30 colors, at most one default, no color value twice. Items keep their own colors. Read the current legend with Roadmaps_GetRoadmap first. Only an owner of an active roadmap, or a Roadmaps administrator, can change it. Takes the roadmap's UUID, in the path and again as `roadmapId` in the body.")]
     [McpTool("Roadmaps_UpdateColors", "Set roadmap colors")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -129,10 +129,10 @@ public class RoadmapsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Roadmaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
     [EndpointSummary("Delete a roadmap.")]
     [EndpointDescription(
-        "Permanently deletes the roadmap and all its items. Only a manager can delete it, and an archived roadmap must be reactivated first; to retire a roadmap but keep it, use Roadmaps_ArchiveRoadmap instead. Takes the roadmap's UUID.")]
+        "Permanently deletes the roadmap and all its items. Only an owner or a Roadmaps administrator can delete it, and an archived roadmap must be reactivated first; to retire a roadmap but keep it, use Roadmaps_ArchiveRoadmap instead. Takes the roadmap's UUID.")]
     [McpTool("Roadmaps_DeleteRoadmap", "Delete roadmap")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -146,10 +146,10 @@ public class RoadmapsController : ControllerBase
     }
 
     [HttpPost("{id}/archive")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
     [EndpointSummary("Archive a roadmap.")]
     [EndpointDescription(
-        "Moves an Active roadmap to Archived, keeping it and its items; an archived roadmap is read-only until reactivated with Roadmaps_ActivateRoadmap. Only a manager can archive it. Takes the roadmap's UUID.")]
+        "Moves an Active roadmap to Archived, keeping it and its items; an archived roadmap is read-only until reactivated with Roadmaps_ActivateRoadmap. Only an owner or a Roadmaps administrator can archive it. Takes the roadmap's UUID.")]
     [McpTool("Roadmaps_ArchiveRoadmap", "Archive roadmap")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -163,10 +163,10 @@ public class RoadmapsController : ControllerBase
     }
 
     [HttpPost("{id}/activate")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
     [EndpointSummary("Activate a roadmap.")]
     [EndpointDescription(
-        "Moves an Archived roadmap back to Active so it can be changed again. Only a manager can activate it. Takes the roadmap's UUID.")]
+        "Moves an Archived roadmap back to Active so it can be changed again. Only an owner or a Roadmaps administrator can activate it. Takes the roadmap's UUID.")]
     [McpTool("Roadmaps_ActivateRoadmap", "Activate roadmap")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -219,10 +219,10 @@ public class RoadmapsController : ControllerBase
     }
 
     [HttpPost("{roadmapId}/items")]
-    [MustHavePermission(ApplicationAction.Create, ApplicationResource.Roadmaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
     [EndpointSummary("Create a roadmap item of type: Activity, Timebox, Milestone.")]
     [EndpointDescription(
-        "The body's `$type` picks the item type and must be its first property: \"activity\" or \"timebox\" with `start` and `end`, or \"milestone\" with `date`. Every type takes `roadmapId` (the roadmap's UUID, also in the path), `name`, and optional `description`, hex `color` and `parentId` — the UUID of an activity on the roadmap to nest the item under; only activities can be parents, and with no parent the item is top-level. Only a manager of an active roadmap can add items. Returns the new item's id.")]
+        "The body's `$type` picks the item type and must be its first property: \"activity\" or \"timebox\" with `start` and `end`, or \"milestone\" with `date`. Every type takes `roadmapId` (the roadmap's UUID, also in the path), `name`, and optional `description`, hex `color` and `parentId` — the UUID of an activity on the roadmap to nest the item under; only activities can be parents, and with no parent the item is top-level. Only an owner of an active roadmap, or a Roadmaps administrator, can add items. Returns the new item's id.")]
     [McpTool("Roadmaps_CreateItem", "Create roadmap item", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> CreateItem(Guid roadmapId, [FromBody] CreateRoadmapItemRequest request, CancellationToken cancellationToken)
@@ -246,10 +246,10 @@ public class RoadmapsController : ControllerBase
     }
 
     [HttpPut("{roadmapId}/items/{itemId}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
     [EndpointSummary("Update a roadmap item of type: Activity, Timebox, Milestone.")]
     [EndpointDescription(
-        "A whole-record overwrite: name, description, parent, color and dates are all set from the body, so an omitted `description` or `color` is cleared and an omitted `parentId` moves the item to the top level. Read the item with Roadmaps_GetItem first and pass back what should stay, or use Roadmaps_PatchItem to change only some fields. The body's `$type` must be its first property and match the item's type: \"activity\" or \"timebox\" with `start` and `end`, \"milestone\" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only a manager of an active roadmap can change it.")]
+        "A whole-record overwrite: name, description, parent, color and dates are all set from the body, so an omitted `description` or `color` is cleared and an omitted `parentId` moves the item to the top level. Read the item with Roadmaps_GetItem first and pass back what should stay, or use Roadmaps_PatchItem to change only some fields. The body's `$type` must be its first property and match the item's type: \"activity\" or \"timebox\" with `start` and `end`, \"milestone\" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only an owner of an active roadmap, or a Roadmaps administrator, can change it.")]
     [McpTool("Roadmaps_UpdateItem", "Update roadmap item")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -277,7 +277,7 @@ public class RoadmapsController : ControllerBase
     }
 
     [HttpPatch("{roadmapId}/items/{itemId}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
     [EndpointSummary("Partially update a roadmap item using JSON Patch (RFC 6902).")]
     [EndpointDescription(
         "Works for an Activity, Timebox or Milestone; the item keeps its type. Paths are the update's camelCase fields: /name, /description, /parentId, /color, plus /start and /end for an activity or timebox, or /date for a milestone. `replace` changes a field; a field the patch does not name keeps its value. Confirm with the user before calling.")]
@@ -300,10 +300,10 @@ public class RoadmapsController : ControllerBase
             cancellationToken);
 
     [HttpPut("{roadmapId}/items/{itemId}/dates")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
     [EndpointSummary("Update the date(s) on a roadmap item of type: Activity, Timebox, Milestone.")]
     [EndpointDescription(
-        "Changes only the item's dates, leaving its other fields as they are. The body's `$type` must be its first property and match the item's type: \"activity\" or \"timebox\" with `start` and `end`, \"milestone\" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only a manager of an active roadmap can change it.")]
+        "Changes only the item's dates, leaving its other fields as they are. The body's `$type` must be its first property and match the item's type: \"activity\" or \"timebox\" with `start` and `end`, \"milestone\" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only an owner of an active roadmap, or a Roadmaps administrator, can change it.")]
     [McpTool("Roadmaps_UpdateItemDates", "Update roadmap item dates")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -331,10 +331,10 @@ public class RoadmapsController : ControllerBase
     }
 
     [HttpPut("{roadmapId}/items/{itemId}/placement")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
     [EndpointSummary("Update a roadmap activity's placement.")]
     [EndpointDescription(
-        "Places an activity at `order` (1-based) among its siblings under `parentId`, the UUID of another activity, or at the top level when `parentId` is null. With the activity's current parent this reorders it; with a different one it moves it there, renumbering both sets of siblings. Activities only — a milestone or timebox moves to another parent through Roadmaps_UpdateItem or Roadmaps_PatchItem. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only a manager of an active roadmap can change it.")]
+        "Places an activity at `order` (1-based) among its siblings under `parentId`, the UUID of another activity, or at the top level when `parentId` is null. With the activity's current parent this reorders it; with a different one it moves it there, renumbering both sets of siblings. Activities only — a milestone or timebox moves to another parent through Roadmaps_UpdateItem or Roadmaps_PatchItem. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only an owner of an active roadmap, or a Roadmaps administrator, can change it.")]
     [McpTool("Roadmaps_UpdateActivityPlacement", "Place a roadmap activity")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -353,10 +353,10 @@ public class RoadmapsController : ControllerBase
     }
 
     [HttpDelete("{roadmapId}/items/{itemId}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Roadmaps)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
     [EndpointSummary("Delete a roadmap item.")]
     [EndpointDescription(
-        "Deleting an activity also deletes everything nested under it, at every level; read the roadmap with Roadmaps_GetItems first to see what goes with it. Both ids are UUIDs. Only a manager of an active roadmap can delete items.")]
+        "Deleting an activity also deletes everything nested under it, at every level; read the roadmap with Roadmaps_GetItems first to see what goes with it. Both ids are UUIDs. Only an owner of an active roadmap, or a Roadmaps administrator, can delete items.")]
     [McpTool("Roadmaps_DeleteItem", "Delete roadmap item")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

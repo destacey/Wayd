@@ -16,18 +16,18 @@ public sealed record CopyRoadmapRequest
     public string Name { get; set; } = default!;
 
     /// <summary>
-    /// The managers of the new Roadmap.
+    /// The owners of the new Roadmap: employee ids, which must include the caller's own.
     /// </summary>
-    public List<Guid> RoadmapManagerIds { get; set; } = default!;
+    public List<Guid> OwnerIds { get; set; } = default!;
 
     /// <summary>
-    /// The visibility id for the new Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap.
+    /// The visibility id for the new Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it.
     /// </summary>
     public int VisibilityId { get; set; }
 
     public CopyRoadmapCommand ToCopyRoadmapCommand()
     {
-        return new CopyRoadmapCommand(SourceRoadmapId, Name, RoadmapManagerIds, (Visibility)VisibilityId);
+        return new CopyRoadmapCommand(SourceRoadmapId, Name, OwnerIds, (Visibility)VisibilityId);
     }
 }
 
@@ -44,10 +44,10 @@ public sealed class CopyRoadmapRequestValidator : CustomValidator<CopyRoadmapReq
             .NotEmpty()
             .MaximumLength(128);
 
-        RuleFor(t => t.RoadmapManagerIds)
+        RuleFor(t => t.OwnerIds)
             .NotEmpty();
 
-        RuleForEach(t => t.RoadmapManagerIds)
+        RuleForEach(t => t.OwnerIds)
             .NotEmpty();
 
         RuleFor(t => (Visibility)t.VisibilityId)

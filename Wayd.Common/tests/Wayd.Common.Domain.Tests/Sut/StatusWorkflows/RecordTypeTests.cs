@@ -11,12 +11,16 @@ public sealed class RecordTypeTests
     private static readonly Instant Now = Instant.FromUtc(2026, 1, 15, 9, 30, 0);
 
     private static readonly WorkflowOwnerDescriptor Ticket = new(
-        "test.recordtype.ticket", "Ticket", new Dictionary<int, WorkflowAlias>(), [], hasRecordTypes: true);
+        "test.recordtype.ticket", "Ticket", new Dictionary<int, WorkflowAlias>(), [], hasRecordTypes: true, hasManagedWorkflows: true);
 
     private static readonly WorkflowOwnerDescriptor Plain = new(
         "test.recordtype.plain", "Plain", new Dictionary<int, WorkflowAlias>(), []);
 
-    public RecordTypeTests() => WorkflowOwners.Register(Ticket, Plain);
+    // Has record types, but only administrators define them.
+    private static readonly WorkflowOwnerDescriptor Authored = new(
+        "test.recordtype.authored", "Authored", new Dictionary<int, WorkflowAlias>(), [], hasRecordTypes: true);
+
+    public RecordTypeTests() => WorkflowOwners.Register(Ticket, Plain, Authored);
 
     /// <summary>
     /// Stands in for the first save: assigns the key the events wait for, raises what was waiting on it,
@@ -218,4 +222,116 @@ public sealed class RecordTypeTests
     }
 
     #endregion Activation
+
+    #region Managed
+
+    private static RecordType ManagedBug() =>
+        Saved(RecordType.CreateManaged(Ticket.Key, "Bug", "conn-1:bug", EventActor.Sync(null), Now).Value);
+
+    [Fact]
+    public void CreateManaged_ShouldFail_WhenTheOwnerTypesTypesAreNotSynced()
+    {
+        // Act
+        var result = RecordType.CreateManaged(Authored.Key, "Bug", "conn-1:bug", EventActor.Sync(null), Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Authored record types are not kept by a sync.");
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldTakeTheSourcesName()
+    {
+        // Arrange
+        var recordType = ManagedBug();
+
+        // Act
+        var result = recordType.SyncFromSource(" Defect ", EventActor.Sync(null), Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        recordType.Name.Should().Be("Defect");
+        recordType.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<RecordTypeRenamedEvent>()
+            .Which.PreviousName.Should().Be("Bug");
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldRaiseNothing_WhenTheSourceIsUnchanged()
+    {
+        // Arrange
+        var recordType = ManagedBug();
+
+        // Act
+        var result = recordType.SyncFromSource("Bug", EventActor.Sync(null), Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        recordType.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RetireFromSource_ShouldDeactivate_AndSyncFromSourceShouldReinstate()
+    {
+        // Arrange
+        var recordType = ManagedBug();
+
+        // Act
+        recordType.RetireFromSource(EventActor.Sync(null), Now);
+        var retired = recordType.IsActive;
+        recordType.SyncFromSource("Bug", EventActor.Sync(null), Now);
+
+        // Assert
+        retired.Should().BeFalse();
+        recordType.IsActive.Should().BeTrue();
+        recordType.DomainEvents.Select(e => e.GetType()).Should().Equal(typeof(RecordTypeDeactivatedEvent), typeof(RecordTypeActivatedEvent));
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldFail_ForAnOwnedType()
+    {
+        // Arrange
+        var recordType = Saved(RecordType.Create(Ticket.Key, "Bug", EventActor.System, Now).Value);
+
+        // Act
+        var result = recordType.SyncFromSource("Defect", EventActor.Sync(null), Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        recordType.Name.Should().Be("Bug");
+        recordType.RetireFromSource(EventActor.Sync(null), Now).IsFailure.Should().BeTrue();
+        recordType.IsActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Deactivate_ShouldFail_ForAManagedType()
+    {
+        // Arrange
+        var recordType = ManagedBug();
+
+        // Act
+        var result = recordType.Deactivate(EventActor.System, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        recordType.IsActive.Should().BeTrue();
+        recordType.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Activate_ShouldFail_ForARetiredManagedType()
+    {
+        // Arrange
+        var recordType = ManagedBug();
+        recordType.RetireFromSource(EventActor.Sync(null), Now);
+        recordType.ClearDomainEvents();
+
+        // Act
+        var result = recordType.Activate(EventActor.System, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        recordType.IsActive.Should().BeFalse();
+    }
+
+    #endregion Managed
 }

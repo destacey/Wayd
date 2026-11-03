@@ -15,6 +15,11 @@ public sealed record StatusWorkflowListDto
 
     public required string State { get; init; }
     public required bool IsSystem { get; init; }
+
+    /// <summary>Whether administrators author this workflow, or a sync keeps it from its source.</summary>
+    public required WorkflowOwnership Ownership { get; init; }
+
+    /// <summary>How many statuses a record can be given, leaving out those the source retired.</summary>
     public required int StatusCount { get; init; }
 
     /// <summary>Whether any scope currently uses this workflow. Archiving is refused while it does.</summary>
@@ -40,6 +45,15 @@ public sealed record WorkflowStatusDto
     public string? AliasName { get; init; }
 
     public required int Order { get; init; }
+
+    /// <summary>The source's identifier for this status when its workflow is managed; null when owned.</summary>
+    public string? ExternalKey { get; init; }
+
+    /// <summary>
+    /// Whether the source dropped this status. Records that hold it still show it, but no record can be
+    /// given it again.
+    /// </summary>
+    public required bool IsRetired { get; init; }
 }
 
 /// <summary>A move a workflow allows, from one of its statuses to another.</summary>
@@ -100,7 +114,19 @@ public sealed record StatusWorkflowDetailsDto
     public required WorkflowOwnerNavigationDto Owner { get; init; }
     public required string State { get; init; }
     public required bool IsSystem { get; init; }
+
+    /// <summary>
+    /// Whether administrators author this workflow, or a sync keeps it from its source. A managed
+    /// workflow's statuses follow the source; only their categories and aliases are edited here.
+    /// </summary>
+    public required WorkflowOwnership Ownership { get; init; }
+
+    /// <summary>The source's identifier for this workflow when it is managed; null when owned.</summary>
+    public string? ExternalKey { get; init; }
+
     public required bool IsAssigned { get; init; }
+
+    /// <summary>Every status in display order, retired ones last and flagged.</summary>
     public required IReadOnlyCollection<WorkflowStatusDto> Statuses { get; init; }
 
     /// <summary>
@@ -171,6 +197,18 @@ public sealed record StatusWorkflowDetailsDto
     /// refusal by hitting it. The aggregate remains the authority.
     /// </remarks>
     public required bool CanEdit { get; init; }
+
+    /// <summary>
+    /// Whether a status's category and alias may be changed: on a draft owned workflow, and on a managed one
+    /// until it is archived. Retired statuses never.
+    /// </summary>
+    public required bool CanReclassify { get; init; }
+
+    /// <summary>
+    /// What a check found wrong that does not stop this workflow being used, one sentence each. Only a
+    /// managed workflow has any: it syncs regardless, and administration flags it until they are fixed.
+    /// </summary>
+    public required IReadOnlyCollection<string> Warnings { get; init; }
 
     public required bool CanPublish { get; init; }
     public required bool CanArchive { get; init; }

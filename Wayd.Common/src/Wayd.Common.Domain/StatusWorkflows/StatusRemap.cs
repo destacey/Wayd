@@ -75,6 +75,11 @@ public sealed class StatusRemap
             return Result.Failure("A status can only be mapped to one in the workflow being moved to.");
         }
 
+        if (target.IsRetired)
+        {
+            return Result.Failure($"'{target.Name}' is retired, so no record can be moved into it.");
+        }
+
         if (!_decisions.ContainsKey(fromStatusId) && _unresolved.All(s => s.Id != fromStatusId))
         {
             return Result.Failure("That status is not in the workflow being moved from.");
@@ -115,7 +120,7 @@ public sealed class StatusRemap
         }
 
         var remap = new StatusRemap(from.Id, to);
-        var targets = to.Statuses.ToList();
+        var targets = to.ActiveStatuses.ToList();
 
         foreach (var source in from.Statuses)
         {

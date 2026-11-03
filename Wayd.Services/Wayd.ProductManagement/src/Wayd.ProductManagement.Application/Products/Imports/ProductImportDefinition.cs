@@ -432,7 +432,7 @@ public sealed class ProductImportDefinition(
             return Result.Failure<(StatusRef, Dictionary<string, StatusRef>)>(initial.Error);
         }
 
-        var statusesByName = workflow.Value.Statuses.ToDictionary(
+        var statusesByName = workflow.Value.ActiveStatuses.ToDictionary(
             s => s.Name, StatusRef.From, StringComparer.OrdinalIgnoreCase);
 
         return Result.Success((initial.Value, statusesByName));

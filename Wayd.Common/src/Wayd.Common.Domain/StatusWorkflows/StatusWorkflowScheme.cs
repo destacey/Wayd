@@ -345,6 +345,11 @@ public sealed class StatusWorkflowScheme : BaseAuditableEntity, IHasIdAndKey
     {
         Guard.Against.NullOrWhiteSpace(externalKey, nameof(externalKey));
 
+        if (WorkflowOwners.Resolve(ownerType) is { IsSuccess: true, Value: { HasManagedWorkflows: false } descriptor })
+        {
+            return Result.Failure<StatusWorkflowScheme>($"{descriptor.DisplayName} schemes are not kept by a sync.");
+        }
+
         return Create(ownerType, name, description: null, WorkflowOwnership.Managed, externalKey.Trim(), defaultWorkflow, actor, timestamp);
     }
 

@@ -51,7 +51,7 @@ public sealed class GetIntakeRequestStatusOptionsQueryHandler(
 
         return
         [
-            .. workflow.Value.Statuses
+            .. workflow.Value.ActiveStatuses
                 .Where(s => s.Id != target.StatusId && s.Alias != (int)IntakeRequestStatusAlias.Withdrawn)
                 .Select(s => new IntakeRequestStatusOptionDto
                 {

@@ -886,6 +886,7 @@ public sealed class DomainEventSerializationTests
             TransitionMode.Restricted,
             [new WorkflowTransitionValues(
                 Guid.NewGuid(), proposedId, doneId, [new WorkflowTransitionConditionValues(Guid.NewGuid(), TransitionConditionKind.RequiresReason)])],
+            externalKey: null,
             EventActor.System,
             Instant.FromUtc(2026, 3, 1, 12, 0, 0));
 

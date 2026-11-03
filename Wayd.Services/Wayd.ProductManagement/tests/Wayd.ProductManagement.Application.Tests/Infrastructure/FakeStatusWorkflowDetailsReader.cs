@@ -23,6 +23,7 @@ public sealed class FakeStatusWorkflowDetailsReader(StatusWorkflow workflow) : I
         Owner = new WorkflowOwnerNavigationDto { Key = workflow.OwnerType, Name = workflow.OwnerType },
         State = workflow.State.ToString(),
         IsSystem = false,
+        Ownership = WorkflowOwnership.Owned,
         IsAssigned = true,
         Statuses = [],
         TransitionMode = TransitionMode.AnyToAny,
@@ -35,6 +36,8 @@ public sealed class FakeStatusWorkflowDetailsReader(StatusWorkflow workflow) : I
         MissingRequiredCategories = [],
         MisfiledAliases = [],
         CanEdit = false,
+        CanReclassify = false,
+        Warnings = [],
         CanPublish = false,
         CanArchive = false,
     };

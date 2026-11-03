@@ -6,6 +6,7 @@ import {
   TransitionConditionKind,
   TransitionMode,
   WorkflowStatusDto,
+  WorkflowOwnership,
 } from '@/src/services/wayd-api'
 import WorkflowTransitionsEditor from './workflow-transitions-editor'
 
@@ -38,6 +39,7 @@ const status = (
   category: { id: 0, name: category },
   alias: 0,
   order,
+  isRetired: false,
 })
 
 const CONCEPT = '11111111-0000-4000-a000-000000000001'
@@ -74,6 +76,9 @@ const workflow = (
   canEdit: true,
   canPublish: true,
   canArchive: false,
+  ownership: WorkflowOwnership.Owned,
+  canReclassify: false,
+  warnings: [],
   ...overrides,
 })
 

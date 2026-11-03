@@ -64,7 +64,7 @@ public sealed class GetIntakeDeskWorkflowQueryHandler(
             FollowsOrganizationDefault = !current.Value.IsScopeOwn,
             HasRequests = hasRequests,
             CanChange = mayChange && !hasRequests,
-            Statuses = [.. statuses.Value.Statuses.Select(s => new IntakeWorkflowStatusDto
+            Statuses = [.. statuses.Value.ActiveStatuses.Select(s => new IntakeWorkflowStatusDto
             {
                 Id = s.Id,
                 Name = s.Name,

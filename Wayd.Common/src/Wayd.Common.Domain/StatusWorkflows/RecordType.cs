@@ -91,7 +91,61 @@ public sealed class RecordType : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>Stops records being given this type. Existing records keep it.</summary>
+    /// <remarks>A managed type is retired by its sync, when its source drops it.</remarks>
     public Result Deactivate(EventActor actor, Instant timestamp)
+    {
+        if (Ownership == WorkflowOwnership.Managed)
+        {
+            return Result.Failure("A managed record type stays active while its source keeps it.");
+        }
+
+        return SetInactive(actor, timestamp);
+    }
+
+    /// <summary>Lets records be given this type again.</summary>
+    /// <remarks>A managed type is reinstated by its sync, when its source brings it back.</remarks>
+    public Result Activate(EventActor actor, Instant timestamp)
+    {
+        if (Ownership == WorkflowOwnership.Managed)
+        {
+            return Result.Failure("A managed record type is retired and reinstated by its source.");
+        }
+
+        return SetActive(actor, timestamp);
+    }
+
+    /// <summary>
+    /// Brings a managed type into line with its source, which still has it: takes the source's name, and
+    /// returns to use if it had been retired.
+    /// </summary>
+    public Result SyncFromSource(string name, EventActor actor, Instant timestamp)
+    {
+        if (Ownership != WorkflowOwnership.Managed)
+        {
+            return Result.Failure("Only a managed record type is kept by a sync.");
+        }
+
+        var previous = Name;
+        Name = name;
+        if (Name != previous)
+        {
+            var current = Name;
+            AddKeyedDomainEvent(() => new RecordTypeRenamedEvent(Id, Key, OwnerType, current, previous, actor, timestamp));
+        }
+
+        return SetActive(actor, timestamp);
+    }
+
+    /// <summary>
+    /// Retires a managed type its source has dropped. Records and scheme entries keep it, so they resolve as
+    /// before; no record can be given it until the source brings it back.
+    /// </summary>
+    public Result RetireFromSource(EventActor actor, Instant timestamp) =>
+        Ownership == WorkflowOwnership.Managed
+            ? SetInactive(actor, timestamp)
+            : Result.Failure("Only a managed record type is kept by a sync.");
+
+    private Result SetInactive(EventActor actor, Instant timestamp)
     {
         if (!IsActive)
         {
@@ -104,8 +158,7 @@ public sealed class RecordType : BaseAuditableEntity, IHasIdAndKey
         return Result.Success();
     }
 
-    /// <summary>Lets records be given this type again.</summary>
-    public Result Activate(EventActor actor, Instant timestamp)
+    private Result SetActive(EventActor actor, Instant timestamp)
     {
         if (IsActive)
         {
@@ -126,6 +179,11 @@ public sealed class RecordType : BaseAuditableEntity, IHasIdAndKey
     public static Result<RecordType> CreateManaged(string ownerType, string name, string externalKey, EventActor actor, Instant timestamp)
     {
         Guard.Against.NullOrWhiteSpace(externalKey, nameof(externalKey));
+
+        if (WorkflowOwners.Resolve(ownerType) is { IsSuccess: true, Value: { HasManagedWorkflows: false } descriptor })
+        {
+            return Result.Failure<RecordType>($"{descriptor.DisplayName} record types are not kept by a sync.");
+        }
 
         return Create(ownerType, name, WorkflowOwnership.Managed, externalKey.Trim(), actor, timestamp);
     }

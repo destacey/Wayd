@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Wayd.Common.Application.StatusWorkflows.Commands;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.Common.Application.Tests.Sut.StatusWorkflows.Commands;
 
@@ -18,6 +19,21 @@ public sealed class CreateRecordTypeCommandHandlerTests : WorkflowSchemeHandlerT
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         DbContext.RecordTypes.Single(r => r.Id == result.Value).Name.Should().Be("Spike");
+        DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldDefineTheType_WhenOnlyAnInactiveTypeHasTheName()
+    {
+        // Arrange
+        Bug.Deactivate(EventActor.System, Now);
+
+        // Act
+        var result = await CreateSut().Handle(new CreateRecordTypeCommand(Ticket.Key, "Bug"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Should().NotBe(Bug.Id);
         DbContext.SaveChangesCallCount.Should().Be(1);
     }
 

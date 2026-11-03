@@ -6,6 +6,7 @@ import {
   TransitionMode,
   WorkflowMoveDto,
   WorkflowStatusDto,
+  WorkflowOwnership,
 } from '@/src/services/wayd-api'
 import {
   anyMoveNote,
@@ -34,6 +35,7 @@ const status = (
   alias: aliasName ? 1 : 0,
   aliasName,
   order,
+  isRetired: false,
 })
 
 // Listed out of order on purpose: the layout, not the list, decides where each status goes.
@@ -82,6 +84,9 @@ const workflow = (
   canEdit: false,
   canPublish: false,
   canArchive: false,
+  ownership: WorkflowOwnership.Owned,
+  canReclassify: false,
+  warnings: [],
   ...overrides,
 })
 

@@ -65,10 +65,8 @@ const CreateRoadmapActivityForm = ({
 }: CreateRoadmapActivityFormProps) => {
   const messageApi = useMessage()
 
-  const {
-    data: activities,
-    error: activitiesError,
-  } = useGetRoadmapActivitiesQuery(roadmapId)
+  const { data: activities, error: activitiesError } =
+    useGetRoadmapActivitiesQuery(roadmapId)
 
   const { data: roadmap } = useGetRoadmapQuery(roadmapId)
   const roadmapColors = roadmap?.colors ?? []
@@ -78,35 +76,35 @@ const CreateRoadmapActivityForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<CreateRoadmapActivityFormValues>({
       onSubmit: async (values: CreateRoadmapActivityFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values, roadmapId)
-            const response = await createRoadmapActivity(request)
-            if (response.error) throw response.error
+        try {
+          const request = mapToRequestValues(values, roadmapId)
+          const response = await createRoadmapActivity(request)
+          if (response.error) throw response.error
 
-            messageApi.success('Roadmap Activity created successfully.')
-            return true
-          } catch (error) {
-            const apiError = toApiError(error)
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors, {
-                fieldFor: rangeErrorsOn('range'),
-              })
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                (isApiError(apiError) ? apiError.detail : undefined) ??
-                  'An error occurred while creating the roadmap activity. Please try again.',
-              )
-            }
-            return false
+          messageApi.success('Roadmap Activity created successfully.')
+          return true
+        } catch (error) {
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors, {
+              fieldFor: rangeErrorsOn('range'),
+            })
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              (isApiError(apiError) ? apiError.detail : undefined) ??
+                'An error occurred while creating the roadmap activity. Please try again.',
+            )
           }
-        },
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:
         'An error occurred while creating the roadmap activity. Please try again.',
-      permission: 'Permissions.Roadmaps.Update',
+      permission: 'Permissions.Roadmaps.View',
     })
 
   const selectedParentId = Form.useWatch('parentId', form)
@@ -121,7 +119,9 @@ const CreateRoadmapActivityForm = ({
   useEffect(() => {
     if (activitiesError) {
       messageApi.error(
-        (isApiError(activitiesError) ? activitiesError.supportMessage : undefined) ??
+        (isApiError(activitiesError)
+          ? activitiesError.supportMessage
+          : undefined) ??
           'An error occurred while loading roadmap activities. Please try again.',
       )
     }
@@ -175,9 +175,7 @@ const CreateRoadmapActivityForm = ({
         >
           <MarkdownEditor
             value={form.getFieldValue('description')}
-            onChange={(value) =>
-              form.setFieldValue('description', value || '')
-            }
+            onChange={(value) => form.setFieldValue('description', value || '')}
             maxLength={2048}
           />
         </Item>

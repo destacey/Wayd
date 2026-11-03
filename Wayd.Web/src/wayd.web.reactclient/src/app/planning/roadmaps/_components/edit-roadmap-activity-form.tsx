@@ -70,7 +70,10 @@ const mapToRequestValues = (
   } satisfies UpdateRoadmapActivityRequest
 }
 
-const filterActivities = (activities: RoadmapActivityListDto[], activityId: string): RoadmapActivityListDto[] => {
+const filterActivities = (
+  activities: RoadmapActivityListDto[],
+  activityId: string,
+): RoadmapActivityListDto[] => {
   return activities
     .filter((a) => a.id !== activityId)
     .map((a) => ({
@@ -117,35 +120,35 @@ const EditRoadmapActivityForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditRoadmapActivityFormValues>({
       onSubmit: async (values: EditRoadmapActivityFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values, activityId, roadmapId)
-            const response = await updateRoadmapActivity(request)
-            if (response.error) throw response.error
+        try {
+          const request = mapToRequestValues(values, activityId, roadmapId)
+          const response = await updateRoadmapActivity(request)
+          if (response.error) throw response.error
 
-            messageApi.success('Roadmap Activity updated successfully.')
-            return true
-          } catch (error) {
-            const apiError = toApiError(error)
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors, {
-                fieldFor: rangeErrorsOn('range'),
-              })
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                (isApiError(apiError) ? apiError.detail : undefined) ??
-                  'An error occurred while updating the roadmap activity. Please try again.',
-              )
-            }
-            return false
+          messageApi.success('Roadmap Activity updated successfully.')
+          return true
+        } catch (error) {
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors, {
+              fieldFor: rangeErrorsOn('range'),
+            })
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              (isApiError(apiError) ? apiError.detail : undefined) ??
+                'An error occurred while updating the roadmap activity. Please try again.',
+            )
           }
-        },
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:
         'An error occurred while updating the roadmap activity. Please try again.',
-      permission: 'Permissions.Roadmaps.Update',
+      permission: 'Permissions.Roadmaps.View',
     })
 
   const activitiesTree =
@@ -181,13 +184,17 @@ const EditRoadmapActivityForm = ({
   useEffect(() => {
     if (activityDataError) {
       messageApi.error(
-        (isApiError(activityDataError) ? activityDataError.supportMessage : undefined) ??
+        (isApiError(activityDataError)
+          ? activityDataError.supportMessage
+          : undefined) ??
           'An error occurred while loading roadmap activity. Please try again.',
       )
     }
     if (activitiesError) {
       messageApi.error(
-        (isApiError(activitiesError) ? activitiesError.supportMessage : undefined) ??
+        (isApiError(activitiesError)
+          ? activitiesError.supportMessage
+          : undefined) ??
           'An error occurred while loading roadmap activities. Please try again.',
       )
     }
@@ -234,9 +241,7 @@ const EditRoadmapActivityForm = ({
         <Item name="description" label="Description" rules={[{ max: 2048 }]}>
           <MarkdownEditor
             value={form.getFieldValue('description')}
-            onChange={(value) =>
-              form.setFieldValue('description', value || '')
-            }
+            onChange={(value) => form.setFieldValue('description', value || '')}
             maxLength={2048}
           />
         </Item>
@@ -258,10 +263,18 @@ const EditRoadmapActivityForm = ({
                     new Error('End date must be on or after start date'),
                   )
                 }
-                const activity = activityData as RoadmapActivityDetailsDto | undefined
-                const originalStart = activity?.start ? dayjs(activity.start) : null
+                const activity = activityData as
+                  RoadmapActivityDetailsDto | undefined
+                const originalStart = activity?.start
+                  ? dayjs(activity.start)
+                  : null
                 const originalEnd = activity?.end ? dayjs(activity.end) : null
-                const isShift = isShiftOnlyChange(originalStart, originalEnd, start, end)
+                const isShift = isShiftOnlyChange(
+                  originalStart,
+                  originalEnd,
+                  start,
+                  end,
+                )
 
                 if (!isShift) {
                   const containmentError = getChildrenContainmentError(

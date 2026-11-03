@@ -34,7 +34,7 @@ interface CreateRoadmapFormValues {
   name: string
   description?: string
   range: any[]
-  roadmapManagerIds: string[]
+  ownerIds: string[]
   visibilityId: number
 }
 
@@ -46,7 +46,7 @@ const mapToRequestValues = (
     description: values.description,
     start: (values.range?.[0] as any)?.format('YYYY-MM-DD'),
     end: (values.range?.[1] as any)?.format('YYYY-MM-DD'),
-    roadmapManagerIds: values.roadmapManagerIds,
+    ownerIds: values.ownerIds,
     visibilityId: values.visibilityId,
   } as CreateRoadmapRequest
 }
@@ -68,32 +68,32 @@ const CreateRoadmapForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<CreateRoadmapFormValues>({
       onSubmit: async (values: CreateRoadmapFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values)
-            const response = await createRoadmap(request)
-            if (response.error) throw response.error
+        try {
+          const request = mapToRequestValues(values)
+          const response = await createRoadmap(request)
+          if (response.error) throw response.error
 
-            messageApi.success(
-              `Roadmap created successfully. Roadmap key ${response.data!.key}`,
+          messageApi.success(
+            `Roadmap created successfully. Roadmap key ${response.data!.key}`,
+          )
+          return true
+        } catch (error) {
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors, {
+              fieldFor: rangeErrorsOn('range'),
+            })
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              (isApiError(apiError) ? apiError.detail : undefined) ??
+                'An error occurred while creating the roadmap. Please try again.',
             )
-            return true
-          } catch (error) {
-            const apiError = toApiError(error)
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors, {
-                fieldFor: rangeErrorsOn('range'),
-              })
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                (isApiError(apiError) ? apiError.detail : undefined) ??
-                  'An error occurred while creating the roadmap. Please try again.',
-              )
-            }
-            return false
           }
-        },
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:
@@ -105,7 +105,7 @@ const CreateRoadmapForm = ({
   useEffect(() => {
     if (currentUserInternalEmployeeId) {
       form.setFieldsValue({
-        roadmapManagerIds: [currentUserInternalEmployeeId],
+        ownerIds: [currentUserInternalEmployeeId],
         description: '',
       })
     }
@@ -121,15 +121,13 @@ const CreateRoadmapForm = ({
     }
     if (employeeOptionsError) {
       messageApi.error(
-        (isApiError(employeeOptionsError) ? employeeOptionsError.supportMessage : undefined) ??
+        (isApiError(employeeOptionsError)
+          ? employeeOptionsError.supportMessage
+          : undefined) ??
           'An error occurred while loading employee options. Please try again.',
       )
     }
-  }, [
-    employeeOptionsError,
-    error,
-    messageApi,
-  ])
+  }, [employeeOptionsError, error, messageApi])
 
   return (
     <Modal
@@ -190,19 +188,19 @@ const CreateRoadmapForm = ({
           <RangePicker />
         </Item>
         <Item
-          name="roadmapManagerIds"
-          label="Roadmap Managers"
+          name="ownerIds"
+          label="Owners"
           rules={[
             {
               required: true,
-              message: 'Select at least one roadmap manager',
+              message: 'Select at least one owner',
             },
             {
               validator: async (_, value) => {
                 if (!value.includes(currentUserInternalEmployeeId)) {
                   return Promise.reject(
                     new Error(
-                      'You must also be a roadmap manager to create this roadmap',
+                      'You must also be an owner to create this roadmap',
                     ),
                   )
                 }
@@ -214,7 +212,7 @@ const CreateRoadmapForm = ({
           <EmployeeSelect
             employees={employeeData ?? []}
             allowMultiple={true}
-            placeholder="Select one or more roadmap managers"
+            placeholder="Select one or more owners"
           />
         </Item>
         <Item

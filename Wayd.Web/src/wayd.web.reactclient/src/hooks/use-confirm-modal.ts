@@ -21,7 +21,7 @@ export interface UseConfirmModalOptions {
   errorMessage?: string
 
   /**
-   * Optional permission claim string (e.g. `'Permissions.Roadmaps.Delete'`).
+   * Optional permission claim string (e.g. `'Permissions.Risks.Delete'`).
    * When provided, the hook checks the claim via `useAuth().hasPermissionClaim()`.
    * If denied, `onCancel` is called immediately and an error toast is shown —
    * the modal never becomes visible.
@@ -55,19 +55,14 @@ function useConfirmModal({
 
   // Permission gate
   const { hasPermissionClaim } = useAuth()
-  const permissionAllowed = permission
-    ? hasPermissionClaim(permission)
-    : true
+  const permissionAllowed = permission ? hasPermissionClaim(permission) : true
   const permissionDeniedRef = useRef(false)
   const isOpen = permissionAllowed
 
   useEffect(() => {
-    if (!permission || permissionAllowed || permissionDeniedRef.current)
-      return
+    if (!permission || permissionAllowed || permissionDeniedRef.current) return
     permissionDeniedRef.current = true
-    messageApi.error(
-      'You do not have permission to perform this action.',
-    )
+    messageApi.error('You do not have permission to perform this action.')
     onCancel()
   }, [permission, permissionAllowed, messageApi, onCancel])
 

@@ -41,7 +41,7 @@ export interface RoadmapTimelineProps {
   refreshRoadmapItems: () => void
   viewSelector?: ReactNode
   openRoadmapItemDrawer: (itemId: string) => void
-  isRoadmapManager: boolean
+  canManage: boolean
 }
 
 enum RoadmapItemType {
@@ -259,7 +259,7 @@ const RoadmapTimeline: FC<RoadmapTimelineProps> = (props) => {
       onRefresh={props.refreshRoadmapItems}
       height={650}
       isLoading={props.isRoadmapItemsLoading || updatingId !== null}
-      editable={props.isRoadmapManager}
+      editable={props.canManage}
       allowFullScreen
       allowSaveAsImage
       saveImageFileName={props.roadmap.name}

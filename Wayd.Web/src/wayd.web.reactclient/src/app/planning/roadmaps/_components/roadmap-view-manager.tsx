@@ -66,7 +66,7 @@ const RoadmapViewManager = (props: RoadmapViewManagerProps) => {
           refreshRoadmapItems={refreshTimelineWithFeedback}
           viewSelector={viewSelector}
           openRoadmapItemDrawer={props.openRoadmapItemDrawer}
-          isRoadmapManager={props.canUpdateRoadmap}
+          canManage={props.canUpdateRoadmap}
         />
       )}
       {currentView === 'List' && (
@@ -77,7 +77,7 @@ const RoadmapViewManager = (props: RoadmapViewManagerProps) => {
           viewSelector={viewSelector}
           roadmapId={props.roadmap.id}
           openRoadmapItemDrawer={props.openRoadmapItemDrawer}
-          isRoadmapManager={props.canUpdateRoadmap}
+          canManage={props.canUpdateRoadmap}
         />
       )}
     </>

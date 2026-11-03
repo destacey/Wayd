@@ -155,12 +155,14 @@ function FocusableColorPickerField({
         if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'Enter') {
           e.preventDefault()
           e.stopPropagation()
-          const trigger = (
-            e.currentTarget.querySelector('.ant-color-picker-trigger') ??
+          const trigger = (e.currentTarget.querySelector(
+            '.ant-color-picker-trigger',
+          ) ??
             e.currentTarget
               .closest('[data-cell-id]')
-              ?.querySelector('.ant-color-picker-trigger')
-          ) as HTMLElement | null
+              ?.querySelector(
+                '.ant-color-picker-trigger',
+              )) as HTMLElement | null
           trigger?.focus({ preventScroll: true })
           trigger?.click()
           return
@@ -175,7 +177,7 @@ function FocusableColorPickerField({
 }
 
 interface RoadmapItemsGridColumnsParams {
-  isRoadmapManager: boolean
+  canManage: boolean
   selectedRowId: string | null
   onEditItem: (item: RoadmapItemTreeNode) => void
   onDeleteItem: (item: RoadmapItemTreeNode) => void
@@ -220,7 +222,7 @@ export const roadmapColorDisplayText = (
 }
 
 export const getRoadmapItemsGridColumns = ({
-  isRoadmapManager,
+  canManage,
   selectedRowId,
   onEditItem,
   onDeleteItem,
@@ -240,7 +242,7 @@ export const getRoadmapItemsGridColumns = ({
   const colorDisplayText = (color: string | null | undefined): string =>
     roadmapColorDisplayText(color, roadmapColors)
   return [
-    ...(isRoadmapManager
+    ...(canManage
       ? [
           {
             id: 'actions',
@@ -380,7 +382,7 @@ export const getRoadmapItemsGridColumns = ({
               )}
             </Flex>
             {!isSelected &&
-              isRoadmapManager &&
+              canManage &&
               !isDraft &&
               isActivity &&
               addDraftItemAsChild && (
@@ -484,8 +486,7 @@ export const getRoadmapItemsGridColumns = ({
                       )
                       if (cell) {
                         const input = cell.querySelector('input') as
-                          | HTMLInputElement
-                          | undefined
+                          HTMLInputElement | undefined
                         input?.focus({ preventScroll: true })
                       }
                     }, 0)
@@ -537,8 +538,7 @@ export const getRoadmapItemsGridColumns = ({
                       )
                       if (cell) {
                         const input = cell.querySelector('input') as
-                          | HTMLInputElement
-                          | undefined
+                          HTMLInputElement | undefined
                         input?.focus({ preventScroll: true })
                       }
                     }, 0)

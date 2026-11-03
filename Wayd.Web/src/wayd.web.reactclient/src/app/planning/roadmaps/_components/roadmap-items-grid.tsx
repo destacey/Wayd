@@ -72,7 +72,7 @@ export interface RoadmapItemsGridProps {
   refreshRoadmapItems: () => void
   viewSelector?: ReactNode | undefined
   openRoadmapItemDrawer: (itemId: string) => void
-  isRoadmapManager: boolean
+  canManage: boolean
 }
 
 type RoadmapItemUnion =
@@ -184,7 +184,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
   refreshRoadmapItems,
   viewSelector,
   openRoadmapItemDrawer,
-  isRoadmapManager,
+  canManage,
 }) => {
   const [form] = Form.useForm()
   const selectedDraftItemType = Form.useWatch('itemType', form)
@@ -210,7 +210,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
   const [patchRoadmapItem] = usePatchRoadmapItemMutation()
   const [updateActivityPlacement] = useUpdateRoadmapActivityPlacementMutation()
 
-  const enableDragAndDrop = isRoadmapManager
+  const enableDragAndDrop = canManage
 
   const onEditItem = useCallback((item: RoadmapItemTreeNode) => {
     setSelectedItemId(item.id)
@@ -318,7 +318,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
     treeData,
     {
       pxPerDay: zoom.pxPerDay,
-      editable: isRoadmapManager,
+      editable: canManage,
       activeDrag: barDrag.active,
       onBarPointerDown,
       moveGrabOffset: barDrag.active?.mode === 'move' ? grabOffset : undefined,
@@ -750,7 +750,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
   const columns = useCallback(
     (ctx: GridColumnContext) =>
       getRoadmapItemsGridColumns({
-        isRoadmapManager,
+        canManage,
         selectedRowId: ctx.selectedRowId,
         onEditItem,
         onDeleteItem,
@@ -768,7 +768,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
         roadmapColors,
       }),
     [
-      isRoadmapManager,
+      canManage,
       openRoadmapItemDrawer,
       onEditItem,
       onDeleteItem,
@@ -841,7 +841,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
           }
           moveValidator={roadmapActivityMoveValidator}
           editingConfig={{
-            canEdit: isRoadmapManager,
+            canEdit: canManage,
             form,
             editableColumnIds: (rowId) => {
               if (rowId?.startsWith('draft-')) {
@@ -872,7 +872,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
             draftsRef.current = drafts
           }}
           leftSlot={(ctx) =>
-            isRoadmapManager && (
+            canManage && (
               <Button
                 icon={<PlusOutlined />}
                 onClick={() => ctx.addDraftAtRoot()}

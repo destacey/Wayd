@@ -57,11 +57,8 @@ const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const { user, hasPermissionClaim } = useAuth()
   const currentUserInternalEmployeeId = user?.employeeId
-  const canUpdateRoadmap = hasPermissionClaim('Permissions.Roadmaps.Update')
-  const canDeleteRoadmap = hasPermissionClaim('Permissions.Roadmaps.Delete')
-  // Copying creates a roadmap managed by the current user, so it needs an employee link as well as
-  // the permission — the API rejects an unlinked account with 403. The manager-only actions below
-  // are already unreachable without a link, since isRoadmapManager requires one.
+  // Copying creates a roadmap owned by the current user, so it needs an employee link as well as
+  // the permission — the API rejects an unlinked account with 403.
   const canCreateRoadmap =
     hasPermissionClaim('Permissions.Roadmaps.Create') &&
     !!currentUserInternalEmployeeId
@@ -82,40 +79,37 @@ const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     skip: !roadmap,
   })
 
-  const isRoadmapManager =
-    !!roadmap &&
-    !!currentUserInternalEmployeeId &&
-    roadmap.roadmapManagers.some((rm) => rm.id === currentUserInternalEmployeeId)
+  const canManage = roadmap?.canManage ?? false
 
   const isArchived = roadmap?.state?.id === ROADMAP_STATE.Archived
 
   const actionsMenuItems: MenuProps['items'] = (() => {
     const items: ItemType[] = []
 
-    // First section: roadmap-management actions (managers only).
-    if (isRoadmapManager) {
-      if (canUpdateRoadmap && !isArchived) {
+    // First section: roadmap-management actions (owners and administrators only).
+    if (canManage) {
+      if (!isArchived) {
         items.push({
           key: 'edit',
           label: 'Edit',
           onClick: () => setOpenEditRoadmapForm(true),
         })
       }
-      if (canUpdateRoadmap && !isArchived) {
+      if (!isArchived) {
         items.push({
           key: 'archive',
           label: 'Archive',
           onClick: () => setOpenChangeStateForm(RoadmapStateAction.Archive),
         })
       }
-      if (canDeleteRoadmap && !isArchived) {
+      if (!isArchived) {
         items.push({
           key: 'delete',
           label: 'Delete',
           onClick: () => setOpenDeleteRoadmapForm(true),
         })
       }
-      if (canUpdateRoadmap && isArchived) {
+      if (isArchived) {
         items.push({
           key: 'activate',
           label: 'Activate',
@@ -124,10 +118,10 @@ const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       }
     }
 
-    // Second section: configure colors (managers only) and copy (anyone who can
+    // Second section: configure colors (owners only) and copy (anyone who can
     // create roadmaps).
     const secondSection: ItemType[] = []
-    if (isRoadmapManager && canUpdateRoadmap && !isArchived) {
+    if (canManage && !isArchived) {
       secondSection.push({
         key: 'configure-colors',
         label: 'Configure Colors',
@@ -148,8 +142,8 @@ const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       items.push(...secondSection)
     }
 
-    // Third section: create actions (managers only).
-    if (isRoadmapManager && canUpdateRoadmap && !isArchived) {
+    // Third section: create actions (owners only).
+    if (canManage && !isArchived) {
       items.push(
         {
           key: 'create-divider',
@@ -235,7 +229,7 @@ const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     return notFound()
   }
 
-  // The managers are the panel's Relationships group; the icon says which of
+  // The owners are the panel's Relationships group; the icon says which of
   // the two visibilities is set without spending a row on it.
   const visibilityTag = (
     <WaydTooltip title={`This roadmap is ${roadmap.visibility?.name}`}>
@@ -279,9 +273,7 @@ const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             roadmapItems={roadmapItems ?? []}
             isRoadmapItemsLoading={isRoadmapItemsLoading}
             refreshRoadmapItems={refetchRoadmapItems}
-            canUpdateRoadmap={
-              canUpdateRoadmap && isRoadmapManager && !isArchived
-            }
+            canUpdateRoadmap={canManage && !isArchived}
             openRoadmapItemDrawer={openRoadmapItemDrawer}
           />
         )}
@@ -344,7 +336,7 @@ const RoadmapDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           drawerOpen={drawerOpen}
           onDrawerClose={onDrawerClose}
           openRoadmapItemDrawer={openRoadmapItemDrawer}
-          isReadOnly={isArchived}
+          isReadOnly={isArchived || !canManage}
         />
       )}
     </>

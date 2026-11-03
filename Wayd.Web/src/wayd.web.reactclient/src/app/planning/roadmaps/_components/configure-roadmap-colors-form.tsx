@@ -83,7 +83,7 @@ const ConfigureRoadmapColorsForm = ({
     onCancel: onFormCancel,
     errorMessage:
       'An error occurred while updating the roadmap colors. Please try again.',
-    permission: 'Permissions.Roadmaps.Update',
+    permission: 'Permissions.Roadmaps.View',
   })
 
   return (
@@ -108,4 +108,3 @@ const ConfigureRoadmapColorsForm = ({
 }
 
 export default ConfigureRoadmapColorsForm
-

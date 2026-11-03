@@ -20,12 +20,12 @@ export interface RoadmapFactsProps {
 /**
  * A roadmap's stable facts, for the details panel.
  *
- * Its span and visibility, then who manages it — which the legacy page carried
+ * Its span and visibility, then who owns it — which the legacy page carried
  * only inside a tooltip on the visibility icon, so the names were unreachable
  * without hovering and unlinkable once found.
  */
 const RoadmapFacts = ({ roadmap }: RoadmapFactsProps) => {
-  const managers = [...roadmap.roadmapManagers].sort((a, b) =>
+  const owners = [...roadmap.owners].sort((a, b) =>
     caseInsensitiveCompare(a.name, b.name),
   )
 
@@ -54,14 +54,14 @@ const RoadmapFacts = ({ roadmap }: RoadmapFactsProps) => {
       <Divider size="small" style={{ margin: 0 }} />
 
       <RecordFactsGroup label="Relationships">
-        <LabeledContent label="Managers">
-          {managers.length ? (
+        <LabeledContent label="Owners">
+          {owners.length ? (
             <Flex vertical gap={6}>
-              {managers.map((manager) => (
+              {owners.map((owner) => (
                 <RecordPersonLink
-                  key={manager.id}
-                  name={manager.name}
-                  href={`/organizations/employees/${manager.key}`}
+                  key={owner.id}
+                  name={owner.name}
+                  href={`/organizations/employees/${owner.key}`}
                 />
               ))}
             </Flex>

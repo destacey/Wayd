@@ -28,7 +28,7 @@ export interface CopyRoadmapFormProps {
 
 interface CopyRoadmapFormValues {
   name: string
-  roadmapManagerIds: string[]
+  ownerIds: string[]
   visibilityId: number
 }
 
@@ -39,7 +39,7 @@ const mapToRequestValues = (
   return {
     sourceRoadmapId: sourceRoadmapId,
     name: values.name,
-    roadmapManagerIds: values.roadmapManagerIds,
+    ownerIds: values.ownerIds,
     visibilityId: values.visibilityId,
   } as CopyRoadmapRequest
 }
@@ -55,48 +55,43 @@ const CopyRoadmapForm = ({
   const { user } = useAuth()
   const currentUserInternalEmployeeId = user?.employeeId
 
-  const {
-    data: visibilityData,
-    error,
-  } = useGetVisibilityOptionsQuery()
+  const { data: visibilityData, error } = useGetVisibilityOptionsQuery()
   const [copyRoadmap] = useCopyRoadmapMutation()
 
-  const {
-    data: employeeData,
-    error: employeeOptionsError,
-  } = useGetEmployeeOptionsQuery(false)
+  const { data: employeeData, error: employeeOptionsError } =
+    useGetEmployeeOptionsQuery(false)
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<CopyRoadmapFormValues>({
       onSubmit: async (values: CopyRoadmapFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values, sourceRoadmapId)
-            const response = await copyRoadmap(request)
-            if (response.error) throw response.error
+        try {
+          const request = mapToRequestValues(values, sourceRoadmapId)
+          const response = await copyRoadmap(request)
+          if (response.error) throw response.error
 
-            messageApi.success(
-              `Roadmap copied successfully. Roadmap key ${response.data!.key}`,
+          messageApi.success(
+            `Roadmap copied successfully. Roadmap key ${response.data!.key}`,
+          )
+
+          // Navigate to the new roadmap
+          router.push(`/planning/roadmaps/${response.data!.key}`)
+
+          return true
+        } catch (error) {
+          const apiError: ApiError = isApiError(error) ? error : {}
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              (isApiError(apiError) ? apiError.detail : undefined) ??
+                'An error occurred while copying the roadmap. Please try again.',
             )
-
-            // Navigate to the new roadmap
-            router.push(`/planning/roadmaps/${response.data!.key}`)
-
-            return true
-          } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                (isApiError(apiError) ? apiError.detail : undefined) ??
-                  'An error occurred while copying the roadmap. Please try again.',
-              )
-            }
-            return false
           }
-        },
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:
@@ -109,7 +104,7 @@ const CopyRoadmapForm = ({
     if (isOpen && currentUserInternalEmployeeId) {
       form.setFieldsValue({
         name: `Copy of ${sourceRoadmapName}`,
-        roadmapManagerIds: [currentUserInternalEmployeeId],
+        ownerIds: [currentUserInternalEmployeeId],
       })
     }
   }, [isOpen, currentUserInternalEmployeeId, sourceRoadmapName, form])
@@ -124,15 +119,13 @@ const CopyRoadmapForm = ({
     }
     if (employeeOptionsError) {
       messageApi.error(
-        (isApiError(employeeOptionsError) ? employeeOptionsError.supportMessage : undefined) ??
+        (isApiError(employeeOptionsError)
+          ? employeeOptionsError.supportMessage
+          : undefined) ??
           'An error occurred while loading employee options. Please try again.',
       )
     }
-  }, [
-    employeeOptionsError,
-    error,
-    messageApi,
-  ])
+  }, [employeeOptionsError, error, messageApi])
 
   return (
     <Modal
@@ -147,12 +140,7 @@ const CopyRoadmapForm = ({
       keyboard={false} // disable esc key to close modal
       destroyOnHidden
     >
-      <Form
-        form={form}
-        size="small"
-        layout="vertical"
-        name="copy-roadmap-form"
-      >
+      <Form form={form} size="small" layout="vertical" name="copy-roadmap-form">
         <Item label="Name" name="name" rules={[{ required: true }]}>
           <TextArea
             autoSize={{ minRows: 1, maxRows: 2 }}
@@ -161,20 +149,18 @@ const CopyRoadmapForm = ({
           />
         </Item>
         <Item
-          name="roadmapManagerIds"
-          label="Roadmap Managers"
+          name="ownerIds"
+          label="Owners"
           rules={[
             {
               required: true,
-              message: 'Select at least one roadmap manager',
+              message: 'Select at least one owner',
             },
             {
               validator: async (_, value) => {
                 if (!value.includes(currentUserInternalEmployeeId)) {
                   return Promise.reject(
-                    new Error(
-                      'You must also be a roadmap manager to copy this roadmap',
-                    ),
+                    new Error('You must also be an owner to copy this roadmap'),
                   )
                 }
                 return Promise.resolve()
@@ -185,7 +171,7 @@ const CopyRoadmapForm = ({
           <EmployeeSelect
             employees={employeeData ?? []}
             allowMultiple={true}
-            placeholder="Select one or more roadmap managers"
+            placeholder="Select one or more owners"
           />
         </Item>
         <Item

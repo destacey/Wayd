@@ -70,7 +70,7 @@ const ChangeRoadmapStateForm = ({
     onComplete: onFormComplete,
     onCancel: onFormCancel,
     errorMessage: `An unexpected error occurred while ${stateAction.toLowerCase()}ing the roadmap.`,
-    permission: 'Permissions.Roadmaps.Update',
+    permission: 'Permissions.Roadmaps.View',
   })
 
   return (

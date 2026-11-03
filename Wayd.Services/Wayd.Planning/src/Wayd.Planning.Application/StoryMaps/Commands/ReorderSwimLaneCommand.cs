@@ -2,7 +2,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record ReorderSwimLaneCommand(Guid StoryMapId, Guid SwimLaneId, int NewOrder) : ICommand;
+public sealed record ReorderSwimLaneCommand(Guid StoryMapId, Guid SwimLaneId, int NewOrder) : ICommand, IRequireLinkedEmployee;
 
 public sealed class ReorderSwimLaneCommandValidator : CustomValidator<ReorderSwimLaneCommand>
 {
@@ -15,9 +15,10 @@ public sealed class ReorderSwimLaneCommandValidator : CustomValidator<ReorderSwi
     }
 }
 
-public sealed class ReorderSwimLaneCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<ReorderSwimLaneCommandHandler> logger) : ICommandHandler<ReorderSwimLaneCommand>
+public sealed class ReorderSwimLaneCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<ReorderSwimLaneCommandHandler> logger) : ICommandHandler<ReorderSwimLaneCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<ReorderSwimLaneCommandHandler> _logger = logger;
 
@@ -27,10 +28,12 @@ public sealed class ReorderSwimLaneCommandHandler(IPlanningDbContext planningDbC
         {
             var result = await StoryMapMutation.Apply(
                 _planningDbContext,
+                _access,
                 ct => _planningDbContext.StoryMaps
+                    .IncludeAccess()
                     .Include(m => m.SwimLanes)
                     .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, ct),
-                map => map.ReorderSwimLane(request.SwimLaneId, request.NewOrder)
+                (map, actor) => map.ReorderSwimLane(request.SwimLaneId, request.NewOrder, actor)
                     .Map(() => map.SwimLanes.First(l => l.Id == request.SwimLaneId).Order),
                 cancellationToken);
 
@@ -41,7 +44,7 @@ public sealed class ReorderSwimLaneCommandHandler(IPlanningDbContext planningDbC
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

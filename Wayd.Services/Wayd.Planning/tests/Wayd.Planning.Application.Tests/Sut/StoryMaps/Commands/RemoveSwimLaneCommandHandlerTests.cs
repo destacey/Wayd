@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class RemoveSwimLaneCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly RemoveSwimLaneCommandHandler _handler;
     private readonly Mock<ILogger<RemoveSwimLaneCommandHandler>> _mockLogger;
@@ -21,18 +22,18 @@ public class RemoveSwimLaneCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<RemoveSwimLaneCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new RemoveSwimLaneCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new RemoveSwimLaneCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static StoryMap CreateMap() =>
-        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
 
     [Fact]
     public async Task Handle_ShouldRemoveLane_WhenLaneIsNotDefault()
     {
         // Arrange
         var map = CreateMap();
-        var lane = map.AddSwimLane("Release 1").Value;
+        var lane = map.AddSwimLane("Release 1", StoryMapActors.Owner).Value;
         var defaultSwimLaneId = map.SwimLanes.Single(l => l.IsDefault).Id;
         _dbContext.AddStoryMap(map);
 

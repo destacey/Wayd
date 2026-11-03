@@ -1,5 +1,4 @@
 using Wayd.Common.Application.Employees.Dtos;
-using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Domain.Enums;
 
 namespace Wayd.Planning.Application.PokerSessions.Queries;
@@ -33,17 +32,6 @@ public sealed class GetPokerSessionInvitedTeamMembersQueryHandler(IPlanningDbCon
         if (!invited)
             return null;
 
-        var memberIds = await _dispatcher.Send(new GetTeamMemberIdsQuery(request.TeamId), cancellationToken);
-        if (memberIds.Count == 0)
-            return [];
-
-        var employees = await _planningDbContext.Employees
-            .AsNoTracking()
-            .Where(e => memberIds.Contains(e.Id) && e.IsActive)
-            .ToListAsync(cancellationToken);
-
-        return [.. employees
-            .Select(EmployeeNavigationDto.From)
-            .OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase)];
+        return await _planningDbContext.ActiveTeamMembers(_dispatcher, request.TeamId, cancellationToken);
     }
 }

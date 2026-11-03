@@ -11,6 +11,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class SetTaskDescriptionCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly SetTaskDescriptionCommandHandler _handler;
     private readonly Mock<ILogger<SetTaskDescriptionCommandHandler>> _mockLogger;
@@ -22,14 +23,14 @@ public class SetTaskDescriptionCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<SetTaskDescriptionCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new SetTaskDescriptionCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new SetTaskDescriptionCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static (StoryMap Map, Guid TaskId) CreateMapWithTask()
     {
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
         var stepId = map.Goals[0].Steps[0].Id;
-        var task = map.AddTask(stepId, "T").Value;
+        var task = map.AddTask(stepId, "T", null, StoryMapActors.Owner).Value;
         return (map, task.Id);
     }
 
@@ -61,7 +62,7 @@ public class SetTaskDescriptionCommandHandlerTests : IDisposable
     {
         // Arrange
         var (map, taskId) = CreateMapWithTask();
-        map.RenameTask(taskId, "Renamed on the card");
+        map.RenameTask(taskId, "Renamed on the card", StoryMapActors.Owner);
         _dbContext.AddStoryMap(map);
 
         var command = new SetTaskDescriptionCommand(map.Id, taskId, "Some notes");
@@ -81,7 +82,7 @@ public class SetTaskDescriptionCommandHandlerTests : IDisposable
     {
         // Arrange
         var (map, taskId) = CreateMapWithTask();
-        map.SetTaskDescription(taskId, "Existing notes");
+        map.SetTaskDescription(taskId, "Existing notes", StoryMapActors.Owner);
         _dbContext.AddStoryMap(map);
 
         var command = new SetTaskDescriptionCommand(map.Id, taskId, null);

@@ -3,7 +3,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record AddPersonaCommand(Guid StoryMapId, string Name, string? Description, string Color) : ICommand<StoryMapPersonaDto>;
+public sealed record AddPersonaCommand(Guid StoryMapId, string Name, string? Description, string Color) : ICommand<StoryMapPersonaDto>, IRequireLinkedEmployee;
 
 public sealed class AddPersonaCommandValidator : CustomValidator<AddPersonaCommand>
 {
@@ -26,9 +26,10 @@ public sealed class AddPersonaCommandValidator : CustomValidator<AddPersonaComma
     }
 }
 
-public sealed class AddPersonaCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<AddPersonaCommandHandler> logger) : ICommandHandler<AddPersonaCommand, StoryMapPersonaDto>
+public sealed class AddPersonaCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<AddPersonaCommandHandler> logger) : ICommandHandler<AddPersonaCommand, StoryMapPersonaDto>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<AddPersonaCommandHandler> _logger = logger;
 
@@ -37,13 +38,16 @@ public sealed class AddPersonaCommandHandler(IPlanningDbContext planningDbContex
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.Personas)
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
             if (map is null)
                 return Result.Failure<StoryMapPersonaDto>("Story map not found.");
 
-            var result = map.AddPersona(request.Name, request.Description, request.Color);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.AddPersona(request.Name, request.Description, request.Color, actor);
             if (result.IsFailure)
                 return Result.Failure<StoryMapPersonaDto>(result.Error);
 
@@ -54,7 +58,7 @@ public sealed class AddPersonaCommandHandler(IPlanningDbContext planningDbContex
 
             return Result.Success(dto);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

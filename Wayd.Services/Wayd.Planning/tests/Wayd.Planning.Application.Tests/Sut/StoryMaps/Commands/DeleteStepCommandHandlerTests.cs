@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class DeleteStepCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly DeleteStepCommandHandler _handler;
     private readonly Mock<ILogger<DeleteStepCommandHandler>> _mockLogger;
@@ -21,17 +22,17 @@ public class DeleteStepCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<DeleteStepCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new DeleteStepCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new DeleteStepCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     [Fact]
     public async Task Handle_ShouldDeleteStep_WhenGoalKeepsAStep()
     {
         // Arrange
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", Guid.NewGuid().ToString(), "Goal", "Step");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", null, "Goal", "Step");
         var goalId = map.Goals[0].Id;
         // Add a second step so the goal survives the delete.
-        map.AddStep(goalId, "Second step");
+        map.AddStep(goalId, "Second step", StoryMapActors.Owner);
         var stepId = map.Goals[0].Steps.Single(s => s.Name == "Second step").Id;
         _dbContext.AddStoryMap(map);
 
@@ -67,7 +68,7 @@ public class DeleteStepCommandHandlerTests : IDisposable
     public async Task Handle_ShouldSucceed_WhenDeletingLastStepInGoal()
     {
         // Arrange — deleting a goal's only step is allowed; the goal is left with no steps.
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", Guid.NewGuid().ToString(), "Goal", "Step");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", null, "Goal", "Step");
         var goal = map.Goals[0];
         var stepId = goal.Steps[0].Id;
         _dbContext.AddStoryMap(map);

@@ -2,7 +2,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record ReorderPersonaCommand(Guid StoryMapId, Guid PersonaId, int NewOrder) : ICommand;
+public sealed record ReorderPersonaCommand(Guid StoryMapId, Guid PersonaId, int NewOrder) : ICommand, IRequireLinkedEmployee;
 
 public sealed class ReorderPersonaCommandValidator : CustomValidator<ReorderPersonaCommand>
 {
@@ -16,9 +16,10 @@ public sealed class ReorderPersonaCommandValidator : CustomValidator<ReorderPers
     }
 }
 
-public sealed class ReorderPersonaCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<ReorderPersonaCommandHandler> logger) : ICommandHandler<ReorderPersonaCommand>
+public sealed class ReorderPersonaCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<ReorderPersonaCommandHandler> logger) : ICommandHandler<ReorderPersonaCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<ReorderPersonaCommandHandler> _logger = logger;
 
@@ -28,10 +29,12 @@ public sealed class ReorderPersonaCommandHandler(IPlanningDbContext planningDbCo
         {
             var result = await StoryMapMutation.Apply(
                 _planningDbContext,
+                _access,
                 ct => _planningDbContext.StoryMaps
+                    .IncludeAccess()
                     .Include(m => m.Personas)
                     .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, ct),
-                map => map.ReorderPersona(request.PersonaId, request.NewOrder)
+                (map, actor) => map.ReorderPersona(request.PersonaId, request.NewOrder, actor)
                     .Map(() => map.Personas.First(p => p.Id == request.PersonaId).Order),
                 cancellationToken);
 
@@ -42,7 +45,7 @@ public sealed class ReorderPersonaCommandHandler(IPlanningDbContext planningDbCo
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

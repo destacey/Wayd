@@ -3,7 +3,7 @@ using Wayd.Planning.Domain.Models.PlanningPoker;
 
 namespace Wayd.Planning.Application.PokerSessions;
 
-/// <summary>What the poker session handlers share: loading access, and checking the people and teams they name.</summary>
+/// <summary>What the poker session handlers share: loading access, and a member as live updates send them.</summary>
 public static class PokerSessionQueryableExtensions
 {
     /// <summary>
@@ -26,37 +26,5 @@ public static class PokerSessionQueryableExtensions
             .FirstAsync(e => e.Id == member.EmployeeId, cancellationToken);
 
         return PokerSessionMemberDto.From(member, employee);
-    }
-
-    /// <summary>
-    /// Fails unless every id is an existing employee, so a facilitator or invite cannot name someone unknown.
-    /// </summary>
-    public static async Task<Result> EnsureEmployeesExist(this IPlanningDbContext planningDbContext, IReadOnlyCollection<Guid> employeeIds, CancellationToken cancellationToken)
-    {
-        if (employeeIds.Count == 0)
-            return Result.Success();
-
-        var distinct = employeeIds.Distinct().ToList();
-        var found = await planningDbContext.Employees.CountAsync(e => distinct.Contains(e.Id), cancellationToken);
-
-        return found == distinct.Count
-            ? Result.Success()
-            : Result.Failure("One or more employees were not found.");
-    }
-
-    /// <summary>
-    /// Fails unless every id is an existing team.
-    /// </summary>
-    public static async Task<Result> EnsureTeamsExist(this IPlanningDbContext planningDbContext, IReadOnlyCollection<Guid> teamIds, CancellationToken cancellationToken)
-    {
-        if (teamIds.Count == 0)
-            return Result.Success();
-
-        var distinct = teamIds.Distinct().ToList();
-        var found = await planningDbContext.PlanningTeams.CountAsync(t => distinct.Contains(t.Id), cancellationToken);
-
-        return found == distinct.Count
-            ? Result.Success()
-            : Result.Failure("One or more teams were not found.");
     }
 }

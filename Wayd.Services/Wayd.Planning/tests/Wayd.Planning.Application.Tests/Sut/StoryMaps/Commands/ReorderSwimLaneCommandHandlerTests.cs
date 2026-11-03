@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class ReorderSwimLaneCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly ReorderSwimLaneCommandHandler _handler;
     private readonly Mock<ILogger<ReorderSwimLaneCommandHandler>> _mockLogger;
@@ -21,19 +22,19 @@ public class ReorderSwimLaneCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<ReorderSwimLaneCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new ReorderSwimLaneCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new ReorderSwimLaneCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static StoryMap CreateMap() =>
-        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
 
     [Fact]
     public async Task Handle_ShouldReorderLane_WhenLaneIsNotDefault()
     {
         // Arrange
         var map = CreateMap();
-        map.AddSwimLane("Release 1");
-        var lane = map.AddSwimLane("Release 2").Value;
+        map.AddSwimLane("Release 1", StoryMapActors.Owner);
+        var lane = map.AddSwimLane("Release 2", StoryMapActors.Owner).Value;
         _dbContext.AddStoryMap(map);
 
         var command = new ReorderSwimLaneCommand(map.Id, lane.Id, 1);

@@ -11,6 +11,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class RenameChecklistItemCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly RenameChecklistItemCommandHandler _handler;
     private readonly Mock<ILogger<RenameChecklistItemCommandHandler>> _mockLogger;
@@ -22,16 +23,16 @@ public class RenameChecklistItemCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<RenameChecklistItemCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new RenameChecklistItemCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new RenameChecklistItemCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     [Fact]
     public async Task Handle_ShouldRenameAndNotify_WhenItemExists()
     {
         // Arrange
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
-        var task = map.AddTask(map.Goals[0].Steps[0].Id, "T").Value;
-        var item = map.AddChecklistItem(task.Id, "item").Value;
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
+        var task = map.AddTask(map.Goals[0].Steps[0].Id, "T", null, StoryMapActors.Owner).Value;
+        var item = map.AddChecklistItem(task.Id, "item", StoryMapActors.Owner).Value;
         _dbContext.AddStoryMap(map);
 
         var command = new RenameChecklistItemCommand(map.Id, task.Id, item.Id, "renamed");
@@ -65,7 +66,7 @@ public class RenameChecklistItemCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenTaskNotFound()
     {
         // Arrange
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
         _dbContext.AddStoryMap(map);
 
         var command = new RenameChecklistItemCommand(map.Id, Guid.NewGuid(), Guid.NewGuid(), "renamed");

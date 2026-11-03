@@ -5,7 +5,9 @@ using Wayd.Common.Extensions;
 using Wayd.Planning.Application.StoryMaps.Dtos;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Models.StoryMaps;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Planning.Domain.Enums;
 
 namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Dtos;
 
@@ -21,7 +23,7 @@ public class StoryMapDtoMappingTests
     private static readonly TypeAdapterConfig Config = MapsterTestConfiguration.Config;
 
     private static StoryMap CreateMap() =>
-        StoryMapFakerExtensions.CreateSeeded("My Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        StoryMapFakerExtensions.CreateSeeded("My Map", "Desc", null, "Goal", "Step").WithPeopleLinked();
 
     [Fact]
     public void StoryMapDetailsDto_MapsStatusToDisplayName()
@@ -43,7 +45,7 @@ public class StoryMapDtoMappingTests
         var map = CreateMap();
         var goalId = map.Goals.Single().Id;
         var stepId = map.Goals.Single().Steps.Single().Id;
-        map.AddTask(stepId, "A task");
+        map.AddTask(stepId, "A task", null, StoryMapActors.Owner);
 
         // Act
         var dto = map.Adapt<StoryMapDetailsDto>(Config);
@@ -63,12 +65,12 @@ public class StoryMapDtoMappingTests
         // Arrange — a task with 3 checklist items, 2 of them checked, maps to 2/3.
         var map = CreateMap();
         var stepId = map.Goals.Single().Steps.Single().Id;
-        var task = map.AddTask(stepId, "Scoped task").Value;
-        var item1 = map.AddChecklistItem(task.Id, "one").Value;
-        var item2 = map.AddChecklistItem(task.Id, "two").Value;
-        map.AddChecklistItem(task.Id, "three");
-        map.SetChecklistItemChecked(task.Id, item1.Id, true);
-        map.SetChecklistItemChecked(task.Id, item2.Id, true);
+        var task = map.AddTask(stepId, "Scoped task", null, StoryMapActors.Owner).Value;
+        var item1 = map.AddChecklistItem(task.Id, "one", StoryMapActors.Owner).Value;
+        var item2 = map.AddChecklistItem(task.Id, "two", StoryMapActors.Owner).Value;
+        map.AddChecklistItem(task.Id, "three", StoryMapActors.Owner);
+        map.SetChecklistItemChecked(task.Id, item1.Id, true, StoryMapActors.Owner);
+        map.SetChecklistItemChecked(task.Id, item2.Id, true, StoryMapActors.Owner);
 
         // Act
         var dto = task.Adapt<StoryMapTaskDto>(Config);
@@ -85,10 +87,10 @@ public class StoryMapDtoMappingTests
         // Arrange
         var map = CreateMap();
         var stepId = map.Goals.Single().Steps.Single().Id;
-        var task = map.AddTask(stepId, "Linked task").Value;
-        var persona = map.AddPersona("Field tech", null, "#4096FF").Value;
-        map.SetTaskPersonas(task.Id, [persona.Id]);
-        map.LinkWorkItem(task.Id, 4242);
+        var task = map.AddTask(stepId, "Linked task", null, StoryMapActors.Owner).Value;
+        var persona = map.AddPersona("Field tech", null, "#4096FF", StoryMapActors.Owner).Value;
+        map.SetTaskPersonas(task.Id, [persona.Id], StoryMapActors.Owner);
+        map.LinkWorkItem(task.Id, 4242, StoryMapActors.Owner);
 
         // Act
         var dto = task.Adapt<StoryMapTaskDto>(Config);
@@ -103,10 +105,10 @@ public class StoryMapDtoMappingTests
     {
         // Arrange
         var map = CreateMap();
-        var lane = map.AddSwimLane("Release 1").Value;
+        var lane = map.AddSwimLane("Release 1", StoryMapActors.Owner).Value;
         var start = new LocalDate(2026, 1, 1);
         var end = new LocalDate(2026, 3, 31);
-        map.SetSwimLaneDates(lane.Id, start, end);
+        map.SetSwimLaneDates(lane.Id, start, end, StoryMapActors.Owner);
 
         // Act
         var dto = lane.Adapt<StoryMapSwimLaneDto>(Config);
@@ -123,7 +125,7 @@ public class StoryMapDtoMappingTests
     {
         // Arrange
         var map = CreateMap();
-        var persona = map.AddPersona("Dispatcher", "Routes jobs", "#52C41A").Value;
+        var persona = map.AddPersona("Dispatcher", "Routes jobs", "#52C41A", StoryMapActors.Owner).Value;
 
         // Act
         var dto = persona.Adapt<StoryMapPersonaDto>(Config);
@@ -145,5 +147,47 @@ public class StoryMapDtoMappingTests
 
         // Assert
         dto.Status.Should().Be(StatusCategory.Active.GetDisplayName());
+    }
+
+    [Fact]
+    public void StoryMapDetailsDto_MapsAccess()
+    {
+        // Arrange
+        var editorId = Guid.NewGuid();
+        var teamId = Guid.NewGuid();
+        var map = new StoryMapFaker()
+            .WithVisibility(Visibility.Private)
+            .WithEditAccess(StoryMapEditAccess.OwnersAndEditors)
+            .WithEditors(editorId)
+            .WithEditorTeams(teamId)
+            .Generate()
+            .WithPeopleLinked();
+
+        // Act
+        var dto = map.Adapt<StoryMapDetailsDto>(Config);
+
+        // Assert — CanManage and CanEdit are the caller's, which the query sets.
+        dto.Visibility.Should().Be(Visibility.Private);
+        dto.EditAccess.Should().Be(StoryMapEditAccess.OwnersAndEditors);
+        dto.Owners.Select(o => o.Id).Should().Equal(StoryMapActors.OwnerEmployeeId);
+        dto.Editors.Select(e => e.Id).Should().Equal(editorId);
+        dto.EditorTeams.Select(t => t.Id).Should().Equal(teamId);
+        dto.CanManage.Should().BeFalse();
+        dto.CanEdit.Should().BeFalse();
+    }
+
+    [Fact]
+    public void StoryMapListDto_MapsOwnersAndAccess()
+    {
+        // Arrange
+        var map = new StoryMapFaker().WithVisibility(Visibility.Private).Generate().WithPeopleLinked();
+
+        // Act
+        var dto = map.Adapt<StoryMapListDto>(Config);
+
+        // Assert
+        dto.Visibility.Should().Be(Visibility.Private);
+        dto.EditAccess.Should().Be(StoryMapEditAccess.AnyoneWhoCanView);
+        dto.Owners.Select(o => o.Id).Should().Equal(StoryMapActors.OwnerEmployeeId);
     }
 }

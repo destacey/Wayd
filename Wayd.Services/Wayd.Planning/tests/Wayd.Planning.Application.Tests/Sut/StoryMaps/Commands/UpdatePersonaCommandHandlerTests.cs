@@ -11,6 +11,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class UpdatePersonaCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly UpdatePersonaCommandHandler _handler;
     private readonly Mock<ILogger<UpdatePersonaCommandHandler>> _mockLogger;
@@ -22,18 +23,18 @@ public class UpdatePersonaCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<UpdatePersonaCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new UpdatePersonaCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new UpdatePersonaCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static StoryMap CreateMap() =>
-        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
 
     [Fact]
     public async Task Handle_ShouldUpdatePersona_WhenMapAndPersonaExist()
     {
         // Arrange
         var map = CreateMap();
-        var p = map.AddPersona("Field tech", null, "#4096FF").Value;
+        var p = map.AddPersona("Field tech", null, "#4096FF", StoryMapActors.Owner).Value;
         _dbContext.AddStoryMap(map);
 
         var command = new UpdatePersonaCommand(map.Id, p.Id, "Support agent", "Desk-based", "#FF4D4F");

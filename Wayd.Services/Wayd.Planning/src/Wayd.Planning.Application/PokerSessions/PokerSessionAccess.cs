@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
 using Wayd.Common.Application.Identity.Users;
-using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums;
 using Wayd.Planning.Domain.Models.PlanningPoker;
@@ -142,11 +141,6 @@ public sealed class PokerSessionAccess(
         return session.CanAccess(new PokerSessionActor(employeeId.Value, userId, isAdministrator, teamIds));
     }
 
-    private async Task<IReadOnlySet<Guid>> TeamsWithMember(IReadOnlyCollection<Guid> teamIds, Guid employeeId, CancellationToken cancellationToken)
-    {
-        if (teamIds.Count == 0)
-            return new HashSet<Guid>();
-
-        return await _dispatcher.Send(new GetTeamsWithMemberQuery(teamIds, employeeId, _dateTimeProvider.Today), cancellationToken);
-    }
+    private Task<IReadOnlySet<Guid>> TeamsWithMember(IReadOnlyCollection<Guid> teamIds, Guid employeeId, CancellationToken cancellationToken) =>
+        _dispatcher.TeamsWithMember(teamIds, employeeId, _dateTimeProvider.Today, cancellationToken);
 }

@@ -2,7 +2,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record RemoveSwimLaneCommand(Guid StoryMapId, Guid SwimLaneId) : ICommand<int>;
+public sealed record RemoveSwimLaneCommand(Guid StoryMapId, Guid SwimLaneId) : ICommand<int>, IRequireLinkedEmployee;
 
 public sealed class RemoveSwimLaneCommandValidator : CustomValidator<RemoveSwimLaneCommand>
 {
@@ -15,9 +15,10 @@ public sealed class RemoveSwimLaneCommandValidator : CustomValidator<RemoveSwimL
     }
 }
 
-public sealed class RemoveSwimLaneCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<RemoveSwimLaneCommandHandler> logger) : ICommandHandler<RemoveSwimLaneCommand, int>
+public sealed class RemoveSwimLaneCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<RemoveSwimLaneCommandHandler> logger) : ICommandHandler<RemoveSwimLaneCommand, int>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<RemoveSwimLaneCommandHandler> _logger = logger;
 
@@ -26,6 +27,7 @@ public sealed class RemoveSwimLaneCommandHandler(IPlanningDbContext planningDbCo
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
                 .Include(m => m.SwimLanes)
                 .AsSplitQuery()
@@ -34,7 +36,9 @@ public sealed class RemoveSwimLaneCommandHandler(IPlanningDbContext planningDbCo
             if (map is null)
                 return Result.Failure<int>("Story map not found.");
 
-            var result = map.RemoveSwimLane(request.SwimLaneId);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.RemoveSwimLane(request.SwimLaneId, actor);
             if (result.IsFailure)
                 return Result.Failure<int>(result.Error);
 
@@ -47,7 +51,7 @@ public sealed class RemoveSwimLaneCommandHandler(IPlanningDbContext planningDbCo
 
             return Result.Success(movedCount);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

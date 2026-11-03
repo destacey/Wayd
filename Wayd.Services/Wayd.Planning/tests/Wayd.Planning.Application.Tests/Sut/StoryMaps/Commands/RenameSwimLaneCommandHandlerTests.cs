@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class RenameSwimLaneCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly RenameSwimLaneCommandHandler _handler;
     private readonly Mock<ILogger<RenameSwimLaneCommandHandler>> _mockLogger;
@@ -21,18 +22,18 @@ public class RenameSwimLaneCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<RenameSwimLaneCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new RenameSwimLaneCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new RenameSwimLaneCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static StoryMap CreateMap() =>
-        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
 
     [Fact]
     public async Task Handle_ShouldRenameLane_WhenLaneIsNotDefault()
     {
         // Arrange
         var map = CreateMap();
-        var lane = map.AddSwimLane("Release 1").Value;
+        var lane = map.AddSwimLane("Release 1", StoryMapActors.Owner).Value;
         _dbContext.AddStoryMap(map);
 
         var command = new RenameSwimLaneCommand(map.Id, lane.Id, "Release 2");

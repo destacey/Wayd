@@ -11,6 +11,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class AddChecklistItemCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly AddChecklistItemCommandHandler _handler;
     private readonly Mock<ILogger<AddChecklistItemCommandHandler>> _mockLogger;
@@ -22,15 +23,15 @@ public class AddChecklistItemCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<AddChecklistItemCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new AddChecklistItemCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new AddChecklistItemCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     [Fact]
     public async Task Handle_ShouldAddChecklistItemAndNotify_WhenTaskExists()
     {
         // Arrange
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
-        var task = map.AddTask(map.Goals[0].Steps[0].Id, "T").Value;
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
+        var task = map.AddTask(map.Goals[0].Steps[0].Id, "T", null, StoryMapActors.Owner).Value;
         _dbContext.AddStoryMap(map);
 
         var command = new AddChecklistItemCommand(map.Id, task.Id, "item");
@@ -68,7 +69,7 @@ public class AddChecklistItemCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenTaskNotFound()
     {
         // Arrange
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
         _dbContext.AddStoryMap(map);
 
         var command = new AddChecklistItemCommand(map.Id, Guid.NewGuid(), "item");

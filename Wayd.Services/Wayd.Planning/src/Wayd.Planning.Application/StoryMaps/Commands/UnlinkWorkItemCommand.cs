@@ -2,7 +2,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record UnlinkWorkItemCommand(Guid StoryMapId, Guid TaskId) : ICommand;
+public sealed record UnlinkWorkItemCommand(Guid StoryMapId, Guid TaskId) : ICommand, IRequireLinkedEmployee;
 
 public sealed class UnlinkWorkItemCommandValidator : CustomValidator<UnlinkWorkItemCommand>
 {
@@ -15,9 +15,10 @@ public sealed class UnlinkWorkItemCommandValidator : CustomValidator<UnlinkWorkI
     }
 }
 
-public sealed class UnlinkWorkItemCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<UnlinkWorkItemCommandHandler> logger) : ICommandHandler<UnlinkWorkItemCommand>
+public sealed class UnlinkWorkItemCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<UnlinkWorkItemCommandHandler> logger) : ICommandHandler<UnlinkWorkItemCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<UnlinkWorkItemCommandHandler> _logger = logger;
 
@@ -26,13 +27,16 @@ public sealed class UnlinkWorkItemCommandHandler(IPlanningDbContext planningDbCo
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
             if (map is null)
                 return Result.Failure("Story map not found.");
 
-            var result = map.UnlinkWorkItem(request.TaskId);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.UnlinkWorkItem(request.TaskId, actor);
             if (result.IsFailure)
                 return Result.Failure(result.Error);
 
@@ -41,7 +45,7 @@ public sealed class UnlinkWorkItemCommandHandler(IPlanningDbContext planningDbCo
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

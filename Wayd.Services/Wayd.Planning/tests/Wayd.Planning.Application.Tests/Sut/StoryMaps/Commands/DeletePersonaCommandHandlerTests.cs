@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class DeletePersonaCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly DeletePersonaCommandHandler _handler;
     private readonly Mock<ILogger<DeletePersonaCommandHandler>> _mockLogger;
@@ -21,20 +22,20 @@ public class DeletePersonaCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<DeletePersonaCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new DeletePersonaCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new DeletePersonaCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static StoryMap CreateMap() =>
-        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
 
     [Fact]
     public async Task Handle_ShouldDeletePersonaAndReturnUntaggedCount_WhenTaggedOnGoal()
     {
         // Arrange
         var map = CreateMap();
-        var p = map.AddPersona("Field tech", null, "#4096FF").Value;
+        var p = map.AddPersona("Field tech", null, "#4096FF", StoryMapActors.Owner).Value;
         var goalId = map.Goals[0].Id;
-        map.SetGoalPersonas(goalId, new[] { p.Id });
+        map.SetGoalPersonas(goalId, new[] { p.Id }, StoryMapActors.Owner);
         _dbContext.AddStoryMap(map);
 
         var command = new DeletePersonaCommand(map.Id, p.Id);

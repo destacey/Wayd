@@ -2,7 +2,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record DeletePersonaCommand(Guid StoryMapId, Guid PersonaId) : ICommand<int>;
+public sealed record DeletePersonaCommand(Guid StoryMapId, Guid PersonaId) : ICommand<int>, IRequireLinkedEmployee;
 
 public sealed class DeletePersonaCommandValidator : CustomValidator<DeletePersonaCommand>
 {
@@ -15,9 +15,10 @@ public sealed class DeletePersonaCommandValidator : CustomValidator<DeletePerson
     }
 }
 
-public sealed class DeletePersonaCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<DeletePersonaCommandHandler> logger) : ICommandHandler<DeletePersonaCommand, int>
+public sealed class DeletePersonaCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<DeletePersonaCommandHandler> logger) : ICommandHandler<DeletePersonaCommand, int>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<DeletePersonaCommandHandler> _logger = logger;
 
@@ -26,6 +27,7 @@ public sealed class DeletePersonaCommandHandler(IPlanningDbContext planningDbCon
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
                 .Include(m => m.Personas)
                 .AsSplitQuery()
@@ -34,7 +36,9 @@ public sealed class DeletePersonaCommandHandler(IPlanningDbContext planningDbCon
             if (map is null)
                 return Result.Failure<int>("Story map not found.");
 
-            var result = map.DeletePersona(request.PersonaId);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.DeletePersona(request.PersonaId, actor);
             if (result.IsFailure)
                 return Result.Failure<int>(result.Error);
 
@@ -45,7 +49,7 @@ public sealed class DeletePersonaCommandHandler(IPlanningDbContext planningDbCon
 
             return Result.Success(untaggedCount);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

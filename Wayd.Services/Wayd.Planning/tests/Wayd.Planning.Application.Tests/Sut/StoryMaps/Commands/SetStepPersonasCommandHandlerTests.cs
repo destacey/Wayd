@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class SetStepPersonasCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly SetStepPersonasCommandHandler _handler;
     private readonly Mock<ILogger<SetStepPersonasCommandHandler>> _mockLogger;
@@ -21,18 +22,18 @@ public class SetStepPersonasCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<SetStepPersonasCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new SetStepPersonasCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new SetStepPersonasCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static StoryMap CreateMap() =>
-        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
 
     [Fact]
     public async Task Handle_ShouldSetStepPersonas_WhenPersonaExists()
     {
         // Arrange
         var map = CreateMap();
-        var p = map.AddPersona("Field tech", null, "#4096FF").Value;
+        var p = map.AddPersona("Field tech", null, "#4096FF", StoryMapActors.Owner).Value;
         var stepId = map.Goals[0].Steps[0].Id;
         _dbContext.AddStoryMap(map);
 

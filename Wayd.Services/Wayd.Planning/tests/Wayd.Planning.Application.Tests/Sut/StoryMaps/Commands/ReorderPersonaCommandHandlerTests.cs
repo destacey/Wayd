@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class ReorderPersonaCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly ReorderPersonaCommandHandler _handler;
     private readonly Mock<ILogger<ReorderPersonaCommandHandler>> _mockLogger;
@@ -21,20 +22,20 @@ public class ReorderPersonaCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<ReorderPersonaCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new ReorderPersonaCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new ReorderPersonaCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static StoryMap CreateMap() =>
-        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
 
     [Fact]
     public async Task Handle_ShouldReorderPersona_WhenMapExists()
     {
         // Arrange
         var map = CreateMap();
-        var first = map.AddPersona("First", null, "#4096FF").Value;
-        var second = map.AddPersona("Second", null, "#52C41A").Value;
-        var third = map.AddPersona("Third", null, "#FA8C16").Value;
+        var first = map.AddPersona("First", null, "#4096FF", StoryMapActors.Owner).Value;
+        var second = map.AddPersona("Second", null, "#52C41A", StoryMapActors.Owner).Value;
+        var third = map.AddPersona("Third", null, "#FA8C16", StoryMapActors.Owner).Value;
         _dbContext.AddStoryMap(map);
 
         var command = new ReorderPersonaCommand(map.Id, third.Id, 0);
@@ -55,8 +56,8 @@ public class ReorderPersonaCommandHandlerTests : IDisposable
         // Arrange — an order past the end is clamped by the domain, so the broadcast must carry
         // where the persona landed rather than what was asked for.
         var map = CreateMap();
-        var first = map.AddPersona("First", null, "#4096FF").Value;
-        map.AddPersona("Second", null, "#52C41A");
+        var first = map.AddPersona("First", null, "#4096FF", StoryMapActors.Owner).Value;
+        map.AddPersona("Second", null, "#52C41A", StoryMapActors.Owner);
         _dbContext.AddStoryMap(map);
 
         var command = new ReorderPersonaCommand(map.Id, first.Id, 99);
@@ -109,8 +110,8 @@ public class ReorderPersonaCommandHandlerTests : IDisposable
     {
         // Arrange
         var map = CreateMap();
-        var persona = map.AddPersona("First", null, "#4096FF").Value;
-        map.Archive();
+        var persona = map.AddPersona("First", null, "#4096FF", StoryMapActors.Owner).Value;
+        map.Archive(StoryMapActors.Owner);
         _dbContext.AddStoryMap(map);
 
         var command = new ReorderPersonaCommand(map.Id, persona.Id, 0);

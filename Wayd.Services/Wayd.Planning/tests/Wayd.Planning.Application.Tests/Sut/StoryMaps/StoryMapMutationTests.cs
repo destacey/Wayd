@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Wayd.Planning.Application.StoryMaps;
 using Wayd.Planning.Application.Tests.Infrastructure;
+using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models.StoryMaps;
+using Wayd.Planning.Domain.Tests.Data;
 
 namespace Wayd.Planning.Application.Tests.Sut.StoryMaps;
 
@@ -12,10 +14,12 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps;
 /// </summary>
 public class StoryMapMutationTests
 {
+    private readonly FakeStoryMapAccess _access = new();
+
     private static StoryMap CreateMap()
     {
-        var map = StoryMap.Create("My Map", null, Guid.NewGuid().ToString()).Value;
-        map.AddGoal("Goal");
+        var map = StoryMap.Create("My Map", null, StoryMapActors.OwnerEmployeeId).Value;
+        map.AddGoal("Goal", StoryMapActors.Owner);
         return map;
     }
 
@@ -36,8 +40,9 @@ public class StoryMapMutationTests
         // Act
         var result = await StoryMapMutation.Apply(
             context,
+            _access,
             _ => Task.FromResult<StoryMap?>(map),
-            m => m.AddGoal("Another"),
+            (m, actor) => m.AddGoal("Another", actor),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -57,17 +62,19 @@ public class StoryMapMutationTests
         // Act
         var result = await StoryMapMutation.Apply(
             context,
+            _access,
             _ =>
             {
                 loadCount++;
                 return Task.FromResult<StoryMap?>(map);
             },
-            m => m.RenameGoal(m.Goals[0].Id, "Renamed"),
+            (m, actor) => m.RenameGoal(m.Goals[0].Id, "Renamed", actor),
             TestContext.Current.CancellationToken);
 
-        // Assert — reloaded and re-applied rather than failing the caller.
+        // Assert — reloaded, the caller resolved again, and re-applied rather than failing the caller.
         result.IsSuccess.Should().BeTrue();
         loadCount.Should().Be(2);
+        _access.ResolveActorCallCount.Should().Be(2);
         context.SaveChangesCallCount.Should().Be(2);
         map.Goals[0].Name.Should().Be("Renamed");
     }
@@ -83,8 +90,9 @@ public class StoryMapMutationTests
         // Act
         var apply = async () => await StoryMapMutation.Apply(
             context,
+            _access,
             _ => Task.FromResult<StoryMap?>(map),
-            m => m.AddGoal("Another"),
+            (m, actor) => m.AddGoal("Another", actor),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -100,14 +108,16 @@ public class StoryMapMutationTests
         // Act
         var result = await StoryMapMutation.Apply(
             context,
+            _access,
             _ => Task.FromResult<StoryMap?>(null),
-            m => m.AddGoal("Goal"),
+            (m, actor) => m.AddGoal("Goal", actor),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Story map not found.");
+        result.Error.Should().Be(StoryMap.NotFoundError);
         context.SaveChangesCallCount.Should().Be(0);
+        _access.ResolveActorCallCount.Should().Be(0);
     }
 
     [Fact]
@@ -119,8 +129,9 @@ public class StoryMapMutationTests
         // Act — an id that does not resolve on this map.
         var result = await StoryMapMutation.Apply(
             context,
+            _access,
             _ => Task.FromResult<StoryMap?>(map),
-            m => m.RenameGoal(Guid.NewGuid(), "Renamed"),
+            (m, actor) => m.RenameGoal(Guid.NewGuid(), "Renamed", actor),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -141,17 +152,46 @@ public class StoryMapMutationTests
         // Act
         var result = await StoryMapMutation.Apply(
             context,
+            _access,
             _ =>
             {
                 attempt++;
-                if (attempt == 2) map.Archive();
+                if (attempt == 2) map.Archive(StoryMapActors.Owner);
                 return Task.FromResult<StoryMap?>(map);
             },
-            m => m.AddGoal("Another"),
+            (m, actor) => m.AddGoal("Another", actor),
             TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("This story map is archived and cannot be changed.");
+    }
+
+    [Fact]
+    public async Task Apply_OnRetry_ShouldRefuseACallerWhoLostEditAccess()
+    {
+        // Arrange — a viewer may edit until an owner restricts editing between the attempts.
+        var (context, map) = BuildContext();
+        context.ConcurrencyConflictsToThrow = 1;
+        _access.Actor = StoryMapActors.Viewer;
+
+        var attempt = 0;
+
+        // Act
+        var result = await StoryMapMutation.Apply(
+            context,
+            _access,
+            _ =>
+            {
+                attempt++;
+                if (attempt == 2) map.SetEditAccess(StoryMapEditAccess.OwnersAndEditors, StoryMapActors.Owner);
+                return Task.FromResult<StoryMap?>(map);
+            },
+            (m, actor) => m.AddGoal("Another", actor),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(StoryMap.NotAnEditorError);
     }
 }

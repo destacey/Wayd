@@ -11,6 +11,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class AddStepCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly AddStepCommandHandler _handler;
     private readonly Mock<ILogger<AddStepCommandHandler>> _mockLogger;
@@ -22,14 +23,14 @@ public class AddStepCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<AddStepCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new AddStepCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new AddStepCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     [Fact]
     public async Task Handle_ShouldAddStep_WhenMapAndGoalExist()
     {
         // Arrange
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", Guid.NewGuid().ToString(), "Goal", "Step");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", null, "Goal", "Step");
         var goalId = map.Goals[0].Id;
         _dbContext.AddStoryMap(map);
 
@@ -67,7 +68,7 @@ public class AddStepCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenGoalDoesNotExist()
     {
         // Arrange
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", Guid.NewGuid().ToString(), "Goal", "Step");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Description", null, "Goal", "Step");
         _dbContext.AddStoryMap(map);
 
         var command = new AddStepCommand(map.Id, Guid.NewGuid(), "New step");

@@ -6,7 +6,8 @@ namespace Wayd.Planning.Application.StoryMaps;
 /// <summary>
 /// Runs a story map mutation, reloading and re-applying it once if someone else changed the map in
 /// between. The retry re-runs <c>mutate</c> against fresh state, so its rules (does this step still
-/// exist, is the map archived) are re-evaluated rather than assumed; a second conflict throws.
+/// exist, is the map archived, may the caller still edit it) are re-evaluated rather than assumed; a
+/// second conflict throws.
 /// </summary>
 /// <remarks>
 /// Used by the reorder and move commands, where collaborators dragging at the same time would
@@ -17,38 +18,42 @@ namespace Wayd.Planning.Application.StoryMaps;
 public static class StoryMapMutation
 {
     /// <summary>
-    /// Loads the map, applies <paramref name="mutate"/>, and saves — retrying once on a concurrency
-    /// conflict. <paramref name="load"/> must return a freshly-tracked graph each time it is called.
+    /// Loads the map, resolves the caller against it, applies <paramref name="mutate"/>, and saves —
+    /// retrying once on a concurrency conflict. <paramref name="load"/> must return a freshly-tracked
+    /// graph each time it is called, loaded with <see cref="StoryMapQueryableExtensions.IncludeAccess"/>.
     /// </summary>
     public static async Task<Result<T>> Apply<T>(
         IPlanningDbContext dbContext,
+        IStoryMapAccess access,
         Func<CancellationToken, Task<StoryMap?>> load,
-        Func<StoryMap, Result<T>> mutate,
+        Func<StoryMap, StoryMapActor, Result<T>> mutate,
         CancellationToken cancellationToken)
     {
         try
         {
-            return await Run(dbContext, load, mutate, cancellationToken);
+            return await Run(dbContext, access, load, mutate, cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {
             // Discard the stale graph before reloading, or EF returns the tracked copy.
             dbContext.ChangeTracker?.Clear();
-            return await Run(dbContext, load, mutate, cancellationToken);
+            return await Run(dbContext, access, load, mutate, cancellationToken);
         }
     }
 
     /// <summary>Result-less overload for commands that only report success or failure.</summary>
     public static async Task<Result> Apply(
         IPlanningDbContext dbContext,
+        IStoryMapAccess access,
         Func<CancellationToken, Task<StoryMap?>> load,
-        Func<StoryMap, Result> mutate,
+        Func<StoryMap, StoryMapActor, Result> mutate,
         CancellationToken cancellationToken)
     {
         var result = await Apply(
             dbContext,
+            access,
             load,
-            map => mutate(map).Map(() => 0),
+            (map, actor) => mutate(map, actor).Map(() => 0),
             cancellationToken);
 
         return result.IsSuccess ? Result.Success() : Result.Failure(result.Error);
@@ -56,15 +61,18 @@ public static class StoryMapMutation
 
     private static async Task<Result<T>> Run<T>(
         IPlanningDbContext dbContext,
+        IStoryMapAccess access,
         Func<CancellationToken, Task<StoryMap?>> load,
-        Func<StoryMap, Result<T>> mutate,
+        Func<StoryMap, StoryMapActor, Result<T>> mutate,
         CancellationToken cancellationToken)
     {
         var map = await load(cancellationToken);
         if (map is null)
-            return Result.Failure<T>("Story map not found.");
+            return Result.Failure<T>(StoryMap.NotFoundError);
 
-        var result = mutate(map);
+        var actor = await access.ResolveActor(map, cancellationToken);
+
+        var result = mutate(map, actor);
         if (result.IsFailure)
             return result;
 

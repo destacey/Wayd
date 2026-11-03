@@ -39,6 +39,12 @@ public sealed class SetRecordTypeActiveCommandHandler(
                 return Result.Failure("Record type not found.");
             }
 
+            if (request.IsActive && !recordType.IsActive
+                && await RecordTypeNames.IsTaken(_dbContext, recordType.OwnerType, recordType.Name, recordType.Id, cancellationToken))
+            {
+                return Result.Failure($"Another active record type is named '{recordType.Name}'. Rename one of them first.");
+            }
+
             var actor = EventActor.User(_currentUser.GetUserId());
             var result = request.IsActive
                 ? recordType.Activate(actor, _dateTimeProvider.Now)

@@ -5,7 +5,7 @@ using Wayd.Common.Domain.StatusWorkflows.Enums;
 namespace Wayd.Common.Domain.Events.StatusWorkflows;
 
 /// <summary>
-/// A workflow was created as a draft, empty or as a copy of another.
+/// A workflow was created as a draft, empty or as a copy of another, or by a sync to mirror its source's.
 /// </summary>
 /// <remarks>
 /// A clone is a creation rather than a separate occurrence: the new workflow comes into existence either
@@ -27,9 +27,10 @@ public sealed record WorkflowCreatedEvent : DomainEvent<WorkflowCreatedEvent>, I
         WorkflowStatusValues[] statuses,
         TransitionMode transitionMode,
         WorkflowTransitionValues[]? transitions,
+        string? externalKey,
         EventActor actor,
         Instant timestamp)
-        : base(actor, "1.2")
+        : base(actor, "1.3")
     {
         Id = id;
         Key = key;
@@ -41,6 +42,7 @@ public sealed record WorkflowCreatedEvent : DomainEvent<WorkflowCreatedEvent>, I
         Statuses = [.. statuses];
         TransitionMode = transitionMode;
         Transitions = [.. transitions ?? []];
+        ExternalKey = externalKey;
 
         Timestamp = timestamp;
     }
@@ -72,6 +74,12 @@ public sealed record WorkflowCreatedEvent : DomainEvent<WorkflowCreatedEvent>, I
     /// conditions from 1.2; earlier payloads read as none.
     /// </summary>
     public WorkflowTransitionValues[] Transitions { get; }
+
+    /// <summary>
+    /// The source's identifier for the workflow when a sync keeps it (managed); null when it is owned.
+    /// Added in 1.3; earlier payloads read as null, since every workflow was owned then.
+    /// </summary>
+    public string? ExternalKey { get; }
 
     [JsonIgnore]
     public string AggregateType => "Workflow";

@@ -66,12 +66,15 @@ public sealed class CreateRecordTypeCommandHandler(
     }
 }
 
-/// <summary>Whether a record type name is already in use within its owner type.</summary>
+/// <summary>
+/// Whether a record type name is already in use within its owner type. Only active types hold a name, so
+/// one that is deactivated or retired does not block a new type, and is checked again when reactivated.
+/// </summary>
 internal static class RecordTypeNames
 {
     public static Task<bool> IsTaken(
         IStatusWorkflowDbContext dbContext, string ownerType, string name, Guid? exceptId, CancellationToken cancellationToken) =>
         dbContext.RecordTypes.AnyAsync(
-            r => r.OwnerType == ownerType && r.Name == name && r.Id != exceptId,
+            r => r.OwnerType == ownerType && r.Name == name && r.IsActive && r.Id != exceptId,
             cancellationToken);
 }

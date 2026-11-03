@@ -70,6 +70,10 @@ public sealed class WorkflowOwnerDescriptor
     /// Whether records of this owner type come in record types that can follow different workflows. See
     /// <see cref="HasRecordTypes"/>.
     /// </param>
+    /// <param name="hasManagedWorkflows">
+    /// Whether records of this owner type are synced from a source system whose workflows a sync keeps.
+    /// See <see cref="HasManagedWorkflows"/>.
+    /// </param>
     public WorkflowOwnerDescriptor(
         string key,
         string displayName,
@@ -80,7 +84,8 @@ public sealed class WorkflowOwnerDescriptor
         IReadOnlyCollection<WorkflowMove>? moves = null,
         string? featureFlag = null,
         IReadOnlyDictionary<StatusCategory, string>? categoryLabels = null,
-        bool hasRecordTypes = false)
+        bool hasRecordTypes = false,
+        bool hasManagedWorkflows = false)
     {
         Key = Guard.Against.NullOrWhiteSpace(key, nameof(key)).Trim();
         DisplayName = Guard.Against.NullOrWhiteSpace(displayName, nameof(displayName)).Trim();
@@ -89,6 +94,7 @@ public sealed class WorkflowOwnerDescriptor
         RequiredAliases = Guard.Against.Null(requiredAliases, nameof(requiredAliases));
         SupportsRestrictedTransitions = supportsRestrictedTransitions;
         HasRecordTypes = hasRecordTypes;
+        HasManagedWorkflows = hasManagedWorkflows;
 
         if (aliases.ContainsKey(StatusWorkflow.NoAlias))
         {
@@ -344,6 +350,27 @@ public sealed class WorkflowOwnerDescriptor
     /// default-only scheme per workflow behind it.
     /// </remarks>
     public bool HasRecordTypes { get; }
+
+    /// <summary>
+    /// Whether a sync may keep workflows, record types and schemes of this owner type from a source system
+    /// (<see cref="WorkflowOwnership.Managed"/>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Off for an owner type whose workflows only administrators author. Its workflows never hold a retired
+    /// status, and a status's category and alias change only while the workflow is a draft that no record
+    /// follows.
+    /// </para>
+    /// <para>
+    /// Turning it on brings two duties. Offer records <see cref="StatusWorkflow.ActiveStatuses"/>, never
+    /// <see cref="StatusWorkflow.Statuses"/>, which keeps retired ones. And re-stamp the category and alias
+    /// each record copies from its status when <see cref="Events.StatusWorkflows.WorkflowStatusReclassifiedEvent"/>
+    /// or <see cref="Events.StatusWorkflows.WorkflowStatusAliasChangedEvent"/> arrives: a managed workflow
+    /// is published from the start, so both reach records that already hold the status, and retiring a
+    /// status clears its alias.
+    /// </para>
+    /// </remarks>
+    public bool HasManagedWorkflows { get; }
 
     /// <summary>What this owner type calls <paramref name="category"/>.</summary>
     public string CategoryLabel(StatusCategory category) =>

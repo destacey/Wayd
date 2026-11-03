@@ -38,6 +38,7 @@ const status = (id: string, alias: number): WorkflowStatusDto => ({
   category: { id: 2, name: 'Active' },
   alias,
   order: 1,
+  isRetired: false,
 })
 
 describe('buildAliasOptions', () => {

@@ -4924,23 +4924,23 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("Roadmaps", "Planning");
                 });
 
-            modelBuilder.Entity("Wayd.Planning.Domain.Models.Roadmaps.RoadmapManager", b =>
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.Roadmaps.RoadmapOwner", b =>
                 {
                     b.Property<Guid>("RoadmapId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("ManagerId")
+                    b.Property<Guid>("EmployeeId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.HasKey("RoadmapId", "ManagerId");
+                    b.HasKey("RoadmapId", "EmployeeId");
 
-                    b.HasIndex("ManagerId");
+                    b.HasIndex("EmployeeId");
 
                     b.HasIndex("RoadmapId");
 
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("RoadmapId"), new[] { "ManagerId" });
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("RoadmapId"), new[] { "EmployeeId" });
 
-                    b.ToTable("RoadmapManagers", "Planning");
+                    b.ToTable("RoadmapOwners", "Planning");
                 });
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.Goal", b =>
@@ -10732,21 +10732,21 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Colors");
                 });
 
-            modelBuilder.Entity("Wayd.Planning.Domain.Models.Roadmaps.RoadmapManager", b =>
+            modelBuilder.Entity("Wayd.Planning.Domain.Models.Roadmaps.RoadmapOwner", b =>
                 {
-                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "Manager")
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "Employee")
                         .WithMany()
-                        .HasForeignKey("ManagerId")
+                        .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Wayd.Planning.Domain.Models.Roadmaps.Roadmap", null)
-                        .WithMany("RoadmapManagers")
+                        .WithMany("Owners")
                         .HasForeignKey("RoadmapId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Manager");
+                    b.Navigation("Employee");
                 });
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.Goal", b =>
@@ -12267,7 +12267,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 {
                     b.Navigation("Items");
 
-                    b.Navigation("RoadmapManagers");
+                    b.Navigation("Owners");
                 });
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.StoryMaps.Goal", b =>

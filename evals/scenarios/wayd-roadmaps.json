@@ -22,13 +22,14 @@
               "name": "Active"
             },
             "color": "#4096FF",
-            "roadmapManagers": [
+            "owners": [
               {
                 "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
                 "key": 101,
                 "name": "Priya Raman"
               }
-            ]
+            ],
+            "canManage": false
           },
           {
             "id": "54d43371-8d70-4d1b-90dd-a1c1e96bf6bc",
@@ -45,13 +46,14 @@
               "name": "Active"
             },
             "color": "#36CFC9",
-            "roadmapManagers": [
+            "owners": [
               {
                 "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
                 "key": 101,
                 "name": "Priya Raman"
               }
-            ]
+            ],
+            "canManage": false
           }
         ]
       },
@@ -77,13 +79,14 @@
             "id": 1,
             "name": "Active"
           },
-          "roadmapManagers": [
+          "owners": [
             {
               "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
               "key": 101,
               "name": "Priya Raman"
             }
           ],
+          "canManage": false,
           "colors": [
             {
               "color": "#4096FF",
@@ -605,13 +608,14 @@
               "name": "Active"
             },
             "color": "#4096FF",
-            "roadmapManagers": [
+            "owners": [
               {
                 "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
                 "key": 101,
                 "name": "Priya Raman"
               }
-            ]
+            ],
+            "canManage": false
           },
           {
             "id": "54d43371-8d70-4d1b-90dd-a1c1e96bf6bc",
@@ -628,13 +632,14 @@
               "name": "Active"
             },
             "color": "#36CFC9",
-            "roadmapManagers": [
+            "owners": [
               {
                 "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
                 "key": 101,
                 "name": "Priya Raman"
               }
-            ]
+            ],
+            "canManage": false
           }
         ]
       },
@@ -660,13 +665,14 @@
             "id": 1,
             "name": "Active"
           },
-          "roadmapManagers": [
+          "owners": [
             {
               "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
               "key": 101,
               "name": "Priya Raman"
             }
           ],
+          "canManage": false,
           "colors": [
             {
               "color": "#4096FF",
@@ -1188,13 +1194,14 @@
               "name": "Active"
             },
             "color": "#4096FF",
-            "roadmapManagers": [
+            "owners": [
               {
                 "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
                 "key": 101,
                 "name": "Priya Raman"
               }
-            ]
+            ],
+            "canManage": false
           },
           {
             "id": "54d43371-8d70-4d1b-90dd-a1c1e96bf6bc",
@@ -1211,13 +1218,14 @@
               "name": "Active"
             },
             "color": "#36CFC9",
-            "roadmapManagers": [
+            "owners": [
               {
                 "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
                 "key": 101,
                 "name": "Priya Raman"
               }
-            ]
+            ],
+            "canManage": false
           }
         ]
       },
@@ -1243,13 +1251,14 @@
             "id": 1,
             "name": "Active"
           },
-          "roadmapManagers": [
+          "owners": [
             {
               "id": "44a7dbab-755b-40c6-b65c-d2f3bebc8b56",
               "key": 101,
               "name": "Priya Raman"
             }
           ],
+          "canManage": false,
           "colors": [
             {
               "color": "#4096FF",

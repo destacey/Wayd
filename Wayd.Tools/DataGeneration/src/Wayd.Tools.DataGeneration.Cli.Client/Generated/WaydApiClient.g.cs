@@ -69321,8 +69321,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of story maps (id, key, name, description, status, owner).
+        /// Get a list of story maps (id, key, name, description, status, owners, access).
         /// </summary>
+        /// <remarks>
+        /// Lists the maps the caller can see: every Public map, and the Private maps they own or edit, directly or through a team (all of them for a Story Maps administrator). Each entry has its `id`, `key`, `name`, `description`, `status`, `visibility` (Public or Private), `editAccess` (AnyoneWhoCanView or OwnersAndEditors), `owners`, `canManage` (whether the caller owns or administers it) and `canEdit` (whether the caller can change its content). Archived maps are left out unless `includeArchived` is true.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StoryMapListDto>> GetListAsync(bool? includeArchived = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -69332,7 +69335,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a story map.
         /// </summary>
         /// <remarks>
-        /// Returns the new map's ID and key.
+        /// Creates an empty map, with the caller as its first owner. `visibility` is `Public` (the default) or `Private`; `editAccess` is `AnyoneWhoCanView` (the default) or `OwnersAndEditors`; `ownerIds` adds owners beside the caller, and `editorIds` and `editorTeamIds` invite people and teams to edit (all employee or team UUIDs, all optional). The caller's account must be linked to an employee. Returns the new map's ID and key.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -69342,14 +69345,31 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a story map in full: goals, each with ordered steps and tasks (including checklists, persona tags, and linked work item IDs), plus the map's swim lanes and personas.
         /// </summary>
+        /// <remarks>
+        /// Takes the map's UUID or key; returns 404 for a Private map the caller cannot see. Also returns its access: `visibility`, `editAccess`, `owners`, `editors`, `editorTeams`, `canManage` (whether the caller owns or administers it) and `canEdit` (whether the caller can change its goals, steps, tasks, swim lanes, personas, checklists and work item links). Check `canEdit` before changing content: the change tools refuse a caller who cannot edit.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<StoryMapDetailsDto> GetAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the members of a team invited to edit a story map.
+        /// </summary>
+        /// <remarks>
+        /// Lists the active direct members of `teamId`, one of the map's editor teams, by employee `id`, `key` and `name`. An editor team admits its current members, and the members of its current team of teams. Returns 404 when the caller cannot see the map or the team is not one of its editor teams. Both ids are UUIDs.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<EmployeeNavigationDto>> GetEditorTeamMembersAsync(System.Guid id, System.Guid teamId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update a story map's name and description.
         /// </summary>
+        /// <remarks>
+        /// An archived map cannot be updated. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateStoryMapRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -69359,7 +69379,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a story map and everything on it.
         /// </summary>
         /// <remarks>
-        /// This is permanent — prefer StoryMaps_ArchiveStoryMap unless deletion is explicitly intended.
+        /// This is permanent — prefer StoryMaps_ArchiveStoryMap unless deletion is explicitly intended. Only the map's owners, and holders of the Story Maps Administer permission, can do this.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -69367,16 +69387,55 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Change the owner of a story map.
+        /// Set a story map's owners.
         /// </summary>
+        /// <remarks>
+        /// Replaces the owners with `employeeIds` (employee UUIDs, at least one). Owners manage the map: its name and description, archiving, deletion, owners, editors, visibility and edit access. An owner can remove themselves. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ChangeOwnerAsync(System.Guid id, ChangeStoryMapOwnerRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task SetOwnersAsync(System.Guid id, SetStoryMapOwnersRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who is invited to edit a story map.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the editors with `employeeIds` and `teamIds` (UUIDs; empty lists remove every editor). Editors can see a Private map and change its content whatever its edit access; a team admits its current members and the members of its current team of teams. An editor still needs the Story Maps View permission. Removing an editor disconnects anyone the map no longer admits from its live updates. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetEditorsAsync(System.Guid id, SetStoryMapEditorsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who can see a story map.
+        /// </summary>
+        /// <remarks>
+        /// `visibility` is `Public`, which anyone with the Story Maps View permission can see, or `Private`, which only the map's owners, editors and the members of its editor teams can. Making a map private disconnects anyone it no longer admits from its live updates. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetVisibilityAsync(System.Guid id, SetStoryMapVisibilityRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who can edit a public story map.
+        /// </summary>
+        /// <remarks>
+        /// `editAccess` is `AnyoneWhoCanView`, which lets everyone who can see a Public map change its content, or `OwnersAndEditors`, which lets only its owners, editors and the members of its editor teams. A Private map admits only its owners and editors, so there it has no effect. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetEditAccessAsync(System.Guid id, SetStoryMapEditAccessRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Archive a story map.
         /// </summary>
+        /// <remarks>
+        /// An archived map is read-only and cannot be restored. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ArchiveAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -69774,8 +69833,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of story maps (id, key, name, description, status, owner).
+        /// Get a list of story maps (id, key, name, description, status, owners, access).
         /// </summary>
+        /// <remarks>
+        /// Lists the maps the caller can see: every Public map, and the Private maps they own or edit, directly or through a team (all of them for a Story Maps administrator). Each entry has its `id`, `key`, `name`, `description`, `status`, `visibility` (Public or Private), `editAccess` (AnyoneWhoCanView or OwnersAndEditors), `owners`, `canManage` (whether the caller owns or administers it) and `canEdit` (whether the caller can change its content). Archived maps are left out unless `includeArchived` is true.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StoryMapListDto>> GetListAsync(bool? includeArchived = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -69867,7 +69929,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a story map.
         /// </summary>
         /// <remarks>
-        /// Returns the new map's ID and key.
+        /// Creates an empty map, with the caller as its first owner. `visibility` is `Public` (the default) or `Private`; `editAccess` is `AnyoneWhoCanView` (the default) or `OwnersAndEditors`; `ownerIds` adds owners beside the caller, and `editorIds` and `editorTeamIds` invite people and teams to edit (all employee or team UUIDs, all optional). The caller's account must be linked to an employee. Returns the new map's ID and key.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -69960,6 +70022,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a story map in full: goals, each with ordered steps and tasks (including checklists, persona tags, and linked work item IDs), plus the map's swim lanes and personas.
         /// </summary>
+        /// <remarks>
+        /// Takes the map's UUID or key; returns 404 for a Private map the caller cannot see. Also returns its access: `visibility`, `editAccess`, `owners`, `editors`, `editorTeams`, `canManage` (whether the caller owns or administers it) and `canEdit` (whether the caller can change its goals, steps, tasks, swim lanes, personas, checklists and work item links). Check `canEdit` before changing content: the change tools refuse a caller who cannot edit.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<StoryMapDetailsDto> GetAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -70046,8 +70111,108 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the members of a team invited to edit a story map.
+        /// </summary>
+        /// <remarks>
+        /// Lists the active direct members of `teamId`, one of the map's editor teams, by employee `id`, `key` and `name`. An editor team admits its current members, and the members of its current team of teams. Returns 404 when the caller cannot see the map or the team is not one of its editor teams. Both ids are UUIDs.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<EmployeeNavigationDto>> GetEditorTeamMembersAsync(System.Guid id, System.Guid teamId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (teamId == null)
+                throw new System.ArgumentNullException("teamId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/story-maps/{id}/editor-teams/{teamId}/members"
+                    urlBuilder_.Append("api/planning/story-maps/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/editor-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(teamId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/members");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<EmployeeNavigationDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update a story map's name and description.
         /// </summary>
+        /// <remarks>
+        /// An archived map cannot be updated. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateStoryMapRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -70138,7 +70303,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a story map and everything on it.
         /// </summary>
         /// <remarks>
-        /// This is permanent — prefer StoryMaps_ArchiveStoryMap unless deletion is explicitly intended.
+        /// This is permanent — prefer StoryMaps_ArchiveStoryMap unless deletion is explicitly intended. Only the map's owners, and holders of the Story Maps Administer permission, can do this.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -70220,11 +70385,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Change the owner of a story map.
+        /// Set a story map's owners.
         /// </summary>
+        /// <remarks>
+        /// Replaces the owners with `employeeIds` (employee UUIDs, at least one). Owners manage the map: its name and description, archiving, deletion, owners, editors, visibility and edit access. An owner can remove themselves. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ChangeOwnerAsync(System.Guid id, ChangeStoryMapOwnerRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task SetOwnersAsync(System.Guid id, SetStoryMapOwnersRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -70246,10 +70414,289 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/planning/story-maps/{id}/owner"
+                    // Operation Path: "api/planning/story-maps/{id}/owners"
                     urlBuilder_.Append("api/planning/story-maps/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/owner");
+                    urlBuilder_.Append("/owners");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who is invited to edit a story map.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the editors with `employeeIds` and `teamIds` (UUIDs; empty lists remove every editor). Editors can see a Private map and change its content whatever its edit access; a team admits its current members and the members of its current team of teams. An editor still needs the Story Maps View permission. Removing an editor disconnects anyone the map no longer admits from its live updates. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetEditorsAsync(System.Guid id, SetStoryMapEditorsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/story-maps/{id}/editors"
+                    urlBuilder_.Append("api/planning/story-maps/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/editors");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who can see a story map.
+        /// </summary>
+        /// <remarks>
+        /// `visibility` is `Public`, which anyone with the Story Maps View permission can see, or `Private`, which only the map's owners, editors and the members of its editor teams can. Making a map private disconnects anyone it no longer admits from its live updates. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetVisibilityAsync(System.Guid id, SetStoryMapVisibilityRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/story-maps/{id}/visibility"
+                    urlBuilder_.Append("api/planning/story-maps/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/visibility");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who can edit a public story map.
+        /// </summary>
+        /// <remarks>
+        /// `editAccess` is `AnyoneWhoCanView`, which lets everyone who can see a Public map change its content, or `OwnersAndEditors`, which lets only its owners, editors and the members of its editor teams. A Private map admits only its owners and editors, so there it has no effect. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetEditAccessAsync(System.Guid id, SetStoryMapEditAccessRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/story-maps/{id}/edit-access"
+                    urlBuilder_.Append("api/planning/story-maps/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/edit-access");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -70312,6 +70759,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Archive a story map.
         /// </summary>
+        /// <remarks>
+        /// An archived map is read-only and cannot be restored. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ArchiveAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -112698,16 +113148,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class ChangeStoryMapOwnerRequest
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("ownerId")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public string OwnerId { get; set; } = default!;
-
-    }
-
     /// <summary>
     /// A request to change the workflow followed by every record whose type has no entry in a scheme.
     /// </summary>
@@ -114969,6 +115409,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A new story map, with who owns it, who can edit it and who can see it.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CreateStoryMapRequest
     {
@@ -114981,6 +115424,41 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.StringLength(2048)]
         public string? Description { get; set; } = default!;
+
+        /// <summary>
+        /// `Public` (the default): anyone with the Story Maps View permission can see the map. `Private`: only its
+        /// <br/>owners, editors and the members of its editor teams.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visibility")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Visibility>))]
+        public Visibility Visibility { get; set; } = default!;
+
+        /// <summary>
+        /// Who can change a public map's content: `AnyoneWhoCanView` (the default), or `OwnersAndEditors`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editAccess")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StoryMapEditAccess>))]
+        public StoryMapEditAccess EditAccess { get; set; } = default!;
+
+        /// <summary>
+        /// Employees who own the map alongside the caller, who is always an owner.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ownerIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? OwnerIds { get; set; } = default!;
+
+        /// <summary>
+        /// Employees invited to edit the map.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editorIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? EditorIds { get; set; } = default!;
+
+        /// <summary>
+        /// Teams whose current members are invited to edit the map.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editorTeamIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? EditorTeamIds { get; set; } = default!;
 
     }
 
@@ -132030,6 +132508,82 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Who can edit a public story map from now on.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetStoryMapEditAccessRequest
+    {
+
+        /// <summary>
+        /// Who can change a public map's content: `AnyoneWhoCanView`, or `OwnersAndEditors`. A private map admits only
+        /// <br/>its owners and editors, so there it has no effect.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editAccess")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StoryMapEditAccess>))]
+        public StoryMapEditAccess EditAccess { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The people and teams invited to edit a story map from now on.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetStoryMapEditorsRequest
+    {
+
+        /// <summary>
+        /// The employees invited to edit the map, replacing the current list. Empty removes every employee editor.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employeeIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> EmployeeIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+        /// <summary>
+        /// The teams invited to edit the map, replacing the current list. Empty removes every team.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> TeamIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+    }
+
+    /// <summary>
+    /// The owners a story map has from now on.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetStoryMapOwnersRequest
+    {
+
+        /// <summary>
+        /// The employees who own the map from now on, replacing the current list. At least one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employeeIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MinLength(1)]
+        public System.Collections.Generic.ICollection<System.Guid> EmployeeIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+    }
+
+    /// <summary>
+    /// Who can see a story map from now on.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetStoryMapVisibilityRequest
+    {
+
+        /// <summary>
+        /// `Public`: anyone with the Story Maps View permission can see the map. `Private`: only its owners, editors
+        /// <br/>and the members of its editor teams.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visibility")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Visibility>))]
+        public Visibility Visibility { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SetSwimLaneDatesRequest
     {
@@ -134270,7 +134824,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// The full Story Map: its goals (each with steps and tasks), swim lanes, and personas.
+    /// The full Story Map: its access, goals (each with steps and tasks), swim lanes, and personas.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class StoryMapDetailsDto
@@ -134294,8 +134848,57 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Status { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("owner")]
-        public UserNavigationDto? Owner { get; set; } = default!;
+        /// <summary>
+        /// Public: anyone with the Story Maps View permission can see the map. Private: only its owners and editors.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visibility")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Visibility>))]
+        public Visibility Visibility { get; set; } = default!;
+
+        /// <summary>
+        /// Who can change a public map's content: anyone who can view it, or only its owners and editors. A private map
+        /// <br/>admits only its owners and editors, so there it has no effect.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editAccess")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StoryMapEditAccess>))]
+        public StoryMapEditAccess EditAccess { get; set; } = default!;
+
+        /// <summary>
+        /// The employees who own the map: its details, lifecycle and access.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("owners")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Owners { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// The employees invited to edit the map.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editors")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Editors { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// The teams whose current members, and the members of their current team of teams, are invited to edit the map.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editorTeams")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<PlanningTeamNavigationDto> EditorTeams { get; set; } = new System.Collections.ObjectModel.Collection<PlanningTeamNavigationDto>();
+
+        /// <summary>
+        /// Whether the caller manages the map, as an owner or a Story Maps administrator. Always false for a read-only
+        /// <br/>token or an account with no linked employee.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
+        public bool CanManage { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the caller can change the map's content. Says nothing about whether the map is archived. Always false
+        /// <br/>for a read-only token or an account with no linked employee.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canEdit")]
+        public bool CanEdit { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("goals")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -134308,6 +134911,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("personas")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<StoryMapPersonaDto> Personas { get; set; } = new System.Collections.ObjectModel.Collection<StoryMapPersonaDto>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum StoryMapEditAccess
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"AnyoneWhoCanView")]
+        AnyoneWhoCanView = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"OwnersAndEditors")]
+        OwnersAndEditors = 1,
 
     }
 
@@ -134337,7 +134952,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A Story Map summarised for lists: name, description, owner, and status, without its content.
+    /// A Story Map summarised for lists: name, description, owners, access and status, without its content.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class StoryMapListDto
@@ -134361,8 +134976,42 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Status { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("owner")]
-        public UserNavigationDto? Owner { get; set; } = default!;
+        /// <summary>
+        /// Public: anyone with the Story Maps View permission can see the map. Private: only its owners and editors.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visibility")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Visibility>))]
+        public Visibility Visibility { get; set; } = default!;
+
+        /// <summary>
+        /// Who can change a public map's content: anyone who can view it, or only its owners and editors.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editAccess")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StoryMapEditAccess>))]
+        public StoryMapEditAccess EditAccess { get; set; } = default!;
+
+        /// <summary>
+        /// The employees who own the map.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("owners")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Owners { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// Whether the caller manages the map, as an owner or a Story Maps administrator. Always false for a read-only
+        /// <br/>token or an account with no linked employee.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
+        public bool CanManage { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the caller can change the map's content. Says nothing about whether the map is archived. Always false
+        /// <br/>for a read-only token or an account with no linked employee.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canEdit")]
+        public bool CanEdit { get; set; } = default!;
 
     }
 

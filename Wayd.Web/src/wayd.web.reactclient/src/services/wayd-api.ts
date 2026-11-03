@@ -37209,7 +37209,7 @@ export class StoryMapsClient {
     }
 
     /**
-     * Get a list of story maps (id, key, name, description, status, owner).
+     * Get a list of story maps (id, key, name, description, status, owners, access).
      * @param includeArchived (optional) 
      * @return OK
      */
@@ -37398,6 +37398,71 @@ export class StoryMapsClient {
     }
 
     /**
+     * Get the members of a team invited to edit a story map.
+     * @return OK
+     */
+    getEditorTeamMembers(id: string, teamId: string, cancelToken?: CancelToken): Promise<EmployeeNavigationDto[]> {
+        let url_ = this.baseUrl + "/api/planning/story-maps/{id}/editor-teams/{teamId}/members";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (teamId === undefined || teamId === null)
+            throw new globalThis.Error("The parameter 'teamId' must be defined.");
+        url_ = url_.replace("{teamId}", encodeURIComponent("" + teamId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetEditorTeamMembers(_response);
+        });
+    }
+
+    protected processGetEditorTeamMembers(response: AxiosResponse): Promise<EmployeeNavigationDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<EmployeeNavigationDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<EmployeeNavigationDto[]>(null as any);
+    }
+
+    /**
      * Update a story map's name and description.
      * @return No Content
      */
@@ -37518,11 +37583,11 @@ export class StoryMapsClient {
     }
 
     /**
-     * Change the owner of a story map.
+     * Set a story map's owners.
      * @return No Content
      */
-    changeOwner(id: string, request: ChangeStoryMapOwnerRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/planning/story-maps/{id}/owner";
+    setOwners(id: string, request: SetStoryMapOwnersRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/story-maps/{id}/owners";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -37547,11 +37612,197 @@ export class StoryMapsClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processChangeOwner(_response);
+            return this.processSetOwners(_response);
         });
     }
 
-    protected processChangeOwner(response: AxiosResponse): Promise<void> {
+    protected processSetOwners(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set who is invited to edit a story map.
+     * @return No Content
+     */
+    setEditors(id: string, request: SetStoryMapEditorsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/story-maps/{id}/editors";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetEditors(_response);
+        });
+    }
+
+    protected processSetEditors(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set who can see a story map.
+     * @return No Content
+     */
+    setVisibility(id: string, request: SetStoryMapVisibilityRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/story-maps/{id}/visibility";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetVisibility(_response);
+        });
+    }
+
+    protected processSetVisibility(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set who can edit a public story map.
+     * @return No Content
+     */
+    setEditAccess(id: string, request: SetStoryMapEditAccessRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/story-maps/{id}/edit-access";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetEditAccess(_response);
+        });
+    }
+
+    protected processSetEditAccess(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -61020,10 +61271,6 @@ export interface ChangeProjectProgramRequest {
     programId?: string | undefined;
 }
 
-export interface ChangeStoryMapOwnerRequest {
-    ownerId: string;
-}
-
 /** A request to change the workflow followed by every record whose type has no entry in a scheme. */
 export interface ChangeWorkflowSchemeDefaultRequest {
     /** The published workflow those records follow from now on. */
@@ -61719,9 +61966,21 @@ export interface CreateStatusWorkflowRequest {
     ownerType: string;
 }
 
+/** A new story map, with who owns it, who can edit it and who can see it. */
 export interface CreateStoryMapRequest {
     name: string;
     description?: string | undefined;
+    /** `Public` (the default): anyone with the Story Maps View permission can see the map. `Private`: only its
+owners, editors and the members of its editor teams. */
+    visibility: Visibility;
+    /** Who can change a public map's content: `AnyoneWhoCanView` (the default), or `OwnersAndEditors`. */
+    editAccess: StoryMapEditAccess;
+    /** Employees who own the map alongside the caller, who is always an owner. */
+    ownerIds?: string[] | undefined;
+    /** Employees invited to edit the map. */
+    editorIds?: string[] | undefined;
+    /** Teams whose current members are invited to edit the map. */
+    editorTeamIds?: string[] | undefined;
 }
 
 export interface CreateStrategicInitiativeKpiRequest {
@@ -67544,6 +67803,34 @@ export interface SetStepPersonasRequest {
     personaIds: string[];
 }
 
+/** Who can edit a public story map from now on. */
+export interface SetStoryMapEditAccessRequest {
+    /** Who can change a public map's content: `AnyoneWhoCanView`, or `OwnersAndEditors`. A private map admits only
+its owners and editors, so there it has no effect. */
+    editAccess: StoryMapEditAccess;
+}
+
+/** The people and teams invited to edit a story map from now on. */
+export interface SetStoryMapEditorsRequest {
+    /** The employees invited to edit the map, replacing the current list. Empty removes every employee editor. */
+    employeeIds: string[];
+    /** The teams invited to edit the map, replacing the current list. Empty removes every team. */
+    teamIds: string[];
+}
+
+/** The owners a story map has from now on. */
+export interface SetStoryMapOwnersRequest {
+    /** The employees who own the map from now on, replacing the current list. At least one. */
+    employeeIds: string[];
+}
+
+/** Who can see a story map from now on. */
+export interface SetStoryMapVisibilityRequest {
+    /** `Public`: anyone with the Story Maps View permission can see the map. `Private`: only its owners, editors
+and the members of its editor teams. */
+    visibility: Visibility;
+}
+
 export interface SetSwimLaneDatesRequest {
     startDate?: string | undefined;
     endDate?: string | undefined;
@@ -68309,17 +68596,38 @@ export interface StoryMapChecklistItemDto {
     order: number;
 }
 
-/** The full Story Map: its goals (each with steps and tasks), swim lanes, and personas. */
+/** The full Story Map: its access, goals (each with steps and tasks), swim lanes, and personas. */
 export interface StoryMapDetailsDto {
     id: string;
     key: number;
     name: string;
     description?: string | undefined;
     status: string;
-    owner?: UserNavigationDto | undefined;
+    /** Public: anyone with the Story Maps View permission can see the map. Private: only its owners and editors. */
+    visibility: Visibility;
+    /** Who can change a public map's content: anyone who can view it, or only its owners and editors. A private map
+admits only its owners and editors, so there it has no effect. */
+    editAccess: StoryMapEditAccess;
+    /** The employees who own the map: its details, lifecycle and access. */
+    owners: EmployeeNavigationDto[];
+    /** The employees invited to edit the map. */
+    editors: EmployeeNavigationDto[];
+    /** The teams whose current members, and the members of their current team of teams, are invited to edit the map. */
+    editorTeams: PlanningTeamNavigationDto[];
+    /** Whether the caller manages the map, as an owner or a Story Maps administrator. Always false for a read-only
+token or an account with no linked employee. */
+    canManage: boolean;
+    /** Whether the caller can change the map's content. Says nothing about whether the map is archived. Always false
+for a read-only token or an account with no linked employee. */
+    canEdit: boolean;
     goals: StoryMapGoalDto[];
     swimLanes: StoryMapSwimLaneDto[];
     personas: StoryMapPersonaDto[];
+}
+
+export enum StoryMapEditAccess {
+    AnyoneWhoCanView = "AnyoneWhoCanView",
+    OwnersAndEditors = "OwnersAndEditors",
 }
 
 export interface StoryMapGoalDto {
@@ -68330,14 +68638,25 @@ export interface StoryMapGoalDto {
     steps: StoryMapStepDto[];
 }
 
-/** A Story Map summarised for lists: name, description, owner, and status, without its content. */
+/** A Story Map summarised for lists: name, description, owners, access and status, without its content. */
 export interface StoryMapListDto {
     id: string;
     key: number;
     name: string;
     description?: string | undefined;
     status: string;
-    owner?: UserNavigationDto | undefined;
+    /** Public: anyone with the Story Maps View permission can see the map. Private: only its owners and editors. */
+    visibility: Visibility;
+    /** Who can change a public map's content: anyone who can view it, or only its owners and editors. */
+    editAccess: StoryMapEditAccess;
+    /** The employees who own the map. */
+    owners: EmployeeNavigationDto[];
+    /** Whether the caller manages the map, as an owner or a Story Maps administrator. Always false for a read-only
+token or an account with no linked employee. */
+    canManage: boolean;
+    /** Whether the caller can change the map's content. Says nothing about whether the map is archived. Always false
+for a read-only token or an account with no linked employee. */
+    canEdit: boolean;
 }
 
 export interface StoryMapPersonaDto {

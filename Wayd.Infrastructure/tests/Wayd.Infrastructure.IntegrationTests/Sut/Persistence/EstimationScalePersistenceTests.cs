@@ -75,7 +75,7 @@ public sealed class EstimationScalePersistenceTests(SqlServerDbContextFixture fi
         // Arrange
         var ct = TestContext.Current.CancellationToken;
         _ = PlanningMappings.Value;
-        var employee = await PokerSessionTestData.SeedEmployee(_fixture, ct);
+        var employee = await PlanningTestData.SeedEmployee(_fixture, ct);
         var userId = await SeedUser(employee.Id, ct);
         var scale = EstimationScale.Create(UniqueName(), null,
             [new("S", true), new("M", true), new("?", false)], EventActor.System, Now).Value;

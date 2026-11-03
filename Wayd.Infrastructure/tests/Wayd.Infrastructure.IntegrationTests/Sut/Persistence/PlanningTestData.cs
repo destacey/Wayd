@@ -10,7 +10,10 @@ using Wayd.Planning.Domain.Models;
 
 namespace Wayd.Infrastructure.IntegrationTests.Sut.Persistence;
 
-internal static class PokerSessionTestData
+/// <summary>
+/// Seeds the employees and teams that Planning records with people on them (poker sessions, story maps) point to.
+/// </summary>
+internal static class PlanningTestData
 {
     private static readonly Instant Timestamp = Instant.FromUtc(2026, 1, 15, 9, 0);
 

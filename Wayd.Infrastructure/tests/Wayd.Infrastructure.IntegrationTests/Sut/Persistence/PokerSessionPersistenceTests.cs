@@ -61,8 +61,8 @@ public sealed class PokerSessionPersistenceTests(SqlServerDbContextFixture fixtu
         // Arrange
         var ct = TestContext.Current.CancellationToken;
         _ = PlanningMappings.Value;
-        var facilitator = await PokerSessionTestData.SeedEmployee(_fixture, ct);
-        var invitee = await PokerSessionTestData.SeedEmployee(_fixture, ct);
+        var facilitator = await PlanningTestData.SeedEmployee(_fixture, ct);
+        var invitee = await PlanningTestData.SeedEmployee(_fixture, ct);
         var session = await SaveSession(Visibility.Private, facilitator.Id, (s, actor) =>
         {
             s.SetInvitees([invitee.Id], [], actor).IsSuccess.Should().BeTrue();
@@ -95,9 +95,9 @@ public sealed class PokerSessionPersistenceTests(SqlServerDbContextFixture fixtu
         // Arrange
         var ct = TestContext.Current.CancellationToken;
         _ = PlanningMappings.Value;
-        var facilitator = await PokerSessionTestData.SeedEmployee(_fixture, ct);
-        var invitee = await PokerSessionTestData.SeedEmployee(_fixture, ct);
-        var outsider = await PokerSessionTestData.SeedEmployee(_fixture, ct);
+        var facilitator = await PlanningTestData.SeedEmployee(_fixture, ct);
+        var invitee = await PlanningTestData.SeedEmployee(_fixture, ct);
+        var outsider = await PlanningTestData.SeedEmployee(_fixture, ct);
         var publicSession = await SaveSession(Visibility.Public, facilitator.Id, (_, _) => { }, ct);
         var privateSession = await SaveSession(Visibility.Private, facilitator.Id, (s, actor) =>
             s.SetInvitees([invitee.Id], [], actor).IsSuccess.Should().BeTrue(), ct);
@@ -130,9 +130,9 @@ public sealed class PokerSessionPersistenceTests(SqlServerDbContextFixture fixtu
         // Arrange
         var ct = TestContext.Current.CancellationToken;
         _ = PlanningMappings.Value;
-        var facilitator = await PokerSessionTestData.SeedEmployee(_fixture, ct);
-        var teammate = await PokerSessionTestData.SeedEmployee(_fixture, ct);
-        var team = await PokerSessionTestData.SeedTeam(_fixture, ct);
+        var facilitator = await PlanningTestData.SeedEmployee(_fixture, ct);
+        var teammate = await PlanningTestData.SeedEmployee(_fixture, ct);
+        var team = await PlanningTestData.SeedTeam(_fixture, ct);
         var session = await SaveSession(Visibility.Private, facilitator.Id, (s, actor) =>
         {
             s.SetInvitees([], [team.Id], actor).IsSuccess.Should().BeTrue();

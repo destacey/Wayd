@@ -61,7 +61,7 @@ public sealed class GetProductStatusOptionsQueryHandler(
 
         var statuses = currentStatusId is { } fromStatusId
             ? workflow.Value.AllowedTargets(fromStatusId)
-            : workflow.Value.Statuses;
+            : workflow.Value.ActiveStatuses;
 
         return
         [

@@ -36,7 +36,7 @@ internal static class IntakeRequestStatuses
     public static (IReadOnlyList<WorkflowStatus> Statuses, WorkflowStatus? Default) ArrivalStatuses(
         StatusWorkflow destination, IntakeRequest request)
     {
-        var statuses = destination.Statuses
+        var statuses = destination.ActiveStatuses
             .Where(s => IntakeRequest.CanArriveIn(s.Category))
             .OrderBy(s => s.Order)
             .ToList();

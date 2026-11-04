@@ -79243,6 +79243,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Report where a team's cross-team dependencies ran over a date range.
+        /// </summary>
+        /// <remarks>
+        /// Covers the work item dependencies, not removed, between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 731 days) where the team owns the predecessor (`source`) or the successor (`target`) and the other end belongs to another team or to none. One counts when it was created before the range ended and did not close before the range began; it closes when the predecessor is done, or when the predecessor is removed and the successor is done or removed too; a removed predecessor with an open successor stays open, since the successor needs work nobody will do. Closed dependencies report their health as `Closed`. Returns a `summary` (dependencies, created, closed, open at the end, teams involved, teams outside), `pairs` (predecessor team → successor team, most dependencies first), `periods` (7 days counted from `from` for ranges up to 31 days, 14 days up to 184, otherwise calendar months cut to the range; each with created, closed and open at its end) and the `dependencies` with their current state and health. Teams are the items' current teams. Returns 404 for an unknown team.
+        /// </remarks>
+        /// <param name="from">The first day of the range (yyyy-MM-dd, UTC).</param>
+        /// <param name="to">The last day of the range (yyyy-MM-dd, UTC).</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TeamDependencyAnalysisDto> GetDependencyAnalysisAsync(string idOrCode, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the capacity of a team over a date range, from the time people are allocated to it.
         /// </summary>
         /// <remarks>
@@ -81362,6 +81375,130 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<TeamWorkDistributionDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Report where a team's cross-team dependencies ran over a date range.
+        /// </summary>
+        /// <remarks>
+        /// Covers the work item dependencies, not removed, between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 731 days) where the team owns the predecessor (`source`) or the successor (`target`) and the other end belongs to another team or to none. One counts when it was created before the range ended and did not close before the range began; it closes when the predecessor is done, or when the predecessor is removed and the successor is done or removed too; a removed predecessor with an open successor stays open, since the successor needs work nobody will do. Closed dependencies report their health as `Closed`. Returns a `summary` (dependencies, created, closed, open at the end, teams involved, teams outside), `pairs` (predecessor team → successor team, most dependencies first), `periods` (7 days counted from `from` for ranges up to 31 days, 14 days up to 184, otherwise calendar months cut to the range; each with created, closed and open at its end) and the `dependencies` with their current state and health. Teams are the items' current teams. Returns 404 for an unknown team.
+        /// </remarks>
+        /// <param name="from">The first day of the range (yyyy-MM-dd, UTC).</param>
+        /// <param name="to">The last day of the range (yyyy-MM-dd, UTC).</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TeamDependencyAnalysisDto> GetDependencyAnalysisAsync(string idOrCode, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrCode == null)
+                throw new System.ArgumentNullException("idOrCode");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams/{idOrCode}/dependency-analysis"
+                    urlBuilder_.Append("api/organization/teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrCode, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/dependency-analysis");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("From")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(from, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("To")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(to, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamDependencyAnalysisDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -84612,6 +84749,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Report where the cross-team dependencies of a team of teams, and every team beneath it, ran over a date range.
+        /// </summary>
+        /// <remarks>
+        /// Covers the work item dependencies, not removed, between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 731 days) where a team beneath the team of teams at any point in the range, at any depth, owns the predecessor (`source`) or the successor (`target`), leaving out those within one team. The other end may belong to a team outside the team of teams. One counts when it was created before the range ended and did not close before the range began; it closes when the predecessor is done, or when the predecessor is removed and the successor is done or removed too; a removed predecessor with an open successor stays open, since the successor needs work nobody will do. Closed dependencies report their health as `Closed`. Returns a `summary` (dependencies, created, closed, open at the end, teams involved, teams outside the team of teams), `pairs` (predecessor team → successor team, most dependencies first, each end flagged in or out of scope), `periods` (7 days counted from `from` for ranges up to 31 days, 14 days up to 184, otherwise calendar months cut to the range; each with created, closed and open at its end) and the `dependencies` with their current state and health. Teams are the items' current teams. Returns 404 for an unknown team of teams.
+        /// </remarks>
+        /// <param name="from">The first day of the range (yyyy-MM-dd, UTC).</param>
+        /// <param name="to">The last day of the range (yyyy-MM-dd, UTC).</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TeamDependencyAnalysisDto> GetDependencyAnalysisAsync(string idOrCode, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the open dependencies that cross team lines for a team of teams.
         /// </summary>
         /// <remarks>
@@ -85512,6 +85662,130 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<TeamWorkDistributionDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Report where the cross-team dependencies of a team of teams, and every team beneath it, ran over a date range.
+        /// </summary>
+        /// <remarks>
+        /// Covers the work item dependencies, not removed, between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 731 days) where a team beneath the team of teams at any point in the range, at any depth, owns the predecessor (`source`) or the successor (`target`), leaving out those within one team. The other end may belong to a team outside the team of teams. One counts when it was created before the range ended and did not close before the range began; it closes when the predecessor is done, or when the predecessor is removed and the successor is done or removed too; a removed predecessor with an open successor stays open, since the successor needs work nobody will do. Closed dependencies report their health as `Closed`. Returns a `summary` (dependencies, created, closed, open at the end, teams involved, teams outside the team of teams), `pairs` (predecessor team → successor team, most dependencies first, each end flagged in or out of scope), `periods` (7 days counted from `from` for ranges up to 31 days, 14 days up to 184, otherwise calendar months cut to the range; each with created, closed and open at its end) and the `dependencies` with their current state and health. Teams are the items' current teams. Returns 404 for an unknown team of teams.
+        /// </remarks>
+        /// <param name="from">The first day of the range (yyyy-MM-dd, UTC).</param>
+        /// <param name="to">The last day of the range (yyyy-MM-dd, UTC).</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TeamDependencyAnalysisDto> GetDependencyAnalysisAsync(string idOrCode, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrCode == null)
+                throw new System.ArgumentNullException("idOrCode");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams-of-teams/{idOrCode}/dependency-analysis"
+                    urlBuilder_.Append("api/organization/teams-of-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrCode, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/dependency-analysis");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("From")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(from, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("To")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(to, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamDependencyAnalysisDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -117398,6 +117672,151 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The dependencies running from one team's predecessors to another team's successors.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DependencyAnalysisPairDto
+    {
+
+        /// <summary>
+        /// The team owning the predecessors; null when they have no team.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("predecessorTeam")]
+        public WorkTeamNavigationDto? PredecessorTeam { get; set; } = default!;
+
+        /// <summary>
+        /// The team owning the successors, waiting on the predecessors; null when they have no team.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("successorTeam")]
+        public WorkTeamNavigationDto? SuccessorTeam { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the predecessor team is in the report's scope.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("predecessorTeamInScope")]
+        public bool PredecessorTeamInScope { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the successor team is in the report's scope.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("successorTeamInScope")]
+        public bool SuccessorTeamInScope { get; set; } = default!;
+
+        /// <summary>
+        /// The pair's dependencies counted in the range: open at some point within it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("dependencies")]
+        public int Dependencies { get; set; } = default!;
+
+        /// <summary>
+        /// Of those, the ones created in the range.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("created")]
+        public int Created { get; set; } = default!;
+
+        /// <summary>
+        /// Of those, the ones that closed in the range.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("closed")]
+        public int Closed { get; set; } = default!;
+
+        /// <summary>
+        /// Of those, the ones still open when the range ended.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("openAtEnd")]
+        public int OpenAtEnd { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One calendar period of the range.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DependencyAnalysisPeriodDto
+    {
+
+        /// <summary>
+        /// The period's first day.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        /// <summary>
+        /// The period's last day, included.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset End { get; set; } = default!;
+
+        /// <summary>
+        /// Dependencies created in the period.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("created")]
+        public int Created { get; set; } = default!;
+
+        /// <summary>
+        /// Dependencies that closed in the period.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("closed")]
+        public int Closed { get; set; } = default!;
+
+        /// <summary>
+        /// Dependencies open at the end of the period.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("open")]
+        public int Open { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Totals for the range.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DependencyAnalysisSummaryDto
+    {
+
+        /// <summary>
+        /// Dependencies counted in the range: open at some point within it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("dependencies")]
+        public int Dependencies { get; set; } = default!;
+
+        /// <summary>
+        /// Of those, the ones created in the range.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("created")]
+        public int Created { get; set; } = default!;
+
+        /// <summary>
+        /// Of those, the ones that closed in the range.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("closed")]
+        public int Closed { get; set; } = default!;
+
+        /// <summary>
+        /// Of those, the ones still open when the range ended.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("openAtEnd")]
+        public int OpenAtEnd { get; set; } = default!;
+
+        /// <summary>
+        /// Teams owning either end of a counted dependency, in scope or not. Items with no team add none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamsInvolved")]
+        public int TeamsInvolved { get; set; } = default!;
+
+        /// <summary>
+        /// Of int DependencyAnalysisSummaryDto.TeamsInvolved, the teams outside the scope: for a team, every other team.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamsOutside")]
+        public int TeamsOutside { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class DependencyDto
     {
@@ -138283,6 +138702,67 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("percentOff")]
         public int PercentOff { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Where a team's dependencies, or those of every team beneath a team of teams, ran from `from` to `to`
+    /// <br/>(inclusive, UTC dates): which teams they ran between, how many, and how that changed over the range.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamDependencyAnalysisDto
+    {
+
+        /// <summary>
+        /// The team or team of teams the report is for.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("team")]
+        public WorkTeamNavigationDto Team { get; set; } = default!;
+
+        /// <summary>
+        /// The first day of the range (UTC).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("from")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset From { get; set; } = default!;
+
+        /// <summary>
+        /// The last day of the range (UTC), included.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("to")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset To { get; set; } = default!;
+
+        /// <summary>
+        /// Totals for the range.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("summary")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public DependencyAnalysisSummaryDto Summary { get; set; } = new DependencyAnalysisSummaryDto();
+
+        /// <summary>
+        /// Each predecessor team → successor team pair, most dependencies first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pairs")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<DependencyAnalysisPairDto> Pairs { get; set; } = new System.Collections.ObjectModel.Collection<DependencyAnalysisPairDto>();
+
+        /// <summary>
+        /// The range split into calendar periods, oldest first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("periods")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<DependencyAnalysisPeriodDto> Periods { get; set; } = new System.Collections.ObjectModel.Collection<DependencyAnalysisPeriodDto>();
+
+        /// <summary>
+        /// Every dependency counted in the range, oldest first, with its current state and health. A closed one's
+        /// <br/>health is Closed: planning health applies only while a dependency is open.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("dependencies")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<DependencyDto> Dependencies { get; set; } = new System.Collections.ObjectModel.Collection<DependencyDto>();
 
     }
 

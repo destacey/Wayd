@@ -574,6 +574,40 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPost("{id}/work-items")]
+    [MustHavePermission(ApplicationAction.ManageProjectWorkItems, ApplicationResource.Projects)]
+    [EndpointSummary("Link work items to a project.")]
+    [EndpointDescription("`id` is the project's UUID; `workItemIds` are work item UUIDs from any workspace, at most 100, and keys are not accepted. Only Portfolio-tier work items (epics, features) can be linked: find them with `Workspaces_SearchWorkItems` and `tier=Portfolio`. A work item already on another project moves to this one, so confirm with the user first. Work items beneath a linked item that have no project of their own inherit it, and one beneath it already linked to this project directly now inherits that link instead, so it leaves when its parent does. The listed work items all change or none do. Requires the Manage Project Work Items permission only, not delivery leadership.")]
+    [McpTool("Projects_AddWorkItems", "Link work items to a project", Idempotent = true)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> AddWorkItems(Guid id, [FromBody] ProjectWorkItemsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToAddProjectWorkItemsCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("{id}/work-items/remove")]
+    [MustHavePermission(ApplicationAction.ManageProjectWorkItems, ApplicationResource.Projects)]
+    [EndpointSummary("Unlink work items from a project.")]
+    [EndpointDescription("`id` is the project's UUID; `workItemIds` are work item UUIDs, at most 100. Each must be linked directly to the project: a work item that inherits the project from its parent is refused, and leaves the project only when its parent does. An unlinked work item inherits its parent's project, if any, and the work items beneath it follow. The listed work items all change or none do. Requires the Manage Project Work Items permission only, not delivery leadership.")]
+    [McpTool("Projects_RemoveWorkItems", "Unlink work items from a project")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> RemoveWorkItems(Guid id, [FromBody] ProjectWorkItemsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToRemoveProjectWorkItemsCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpGet("{idOrKey}/forecast")]
     [FeatureGate(FeatureFlags.Names.DeliveryForecasting)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]

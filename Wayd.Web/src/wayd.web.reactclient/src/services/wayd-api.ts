@@ -5491,9 +5491,10 @@ export class WorkspacesClient {
      * Search for a work item using its key or title.
      * @param query (optional) 
      * @param top (optional) 
+     * @param tier (optional) 
      * @return OK
      */
-    searchWorkItems(query?: string | undefined, top?: number | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+    searchWorkItems(query?: string | undefined, top?: number | undefined, tier?: WorkTypeTier | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
         let url_ = this.baseUrl + "/api/work/workspaces/work-items/search?";
         if (query === null)
             throw new globalThis.Error("The parameter 'query' cannot be null.");
@@ -5503,6 +5504,8 @@ export class WorkspacesClient {
             throw new globalThis.Error("The parameter 'top' cannot be null.");
         else if (top !== undefined)
             url_ += "top=" + encodeURIComponent("" + top) + "&";
+        if (tier !== undefined && tier !== null)
+            url_ += "tier=" + encodeURIComponent("" + tier) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -26825,6 +26828,144 @@ export class ProjectsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<WorkItemListDto[]>(null as any);
+    }
+
+    /**
+     * Link work items to a project.
+     * @return No Content
+     */
+    addWorkItems(id: string, request: ProjectWorkItemsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/work-items";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAddWorkItems(_response);
+        });
+    }
+
+    protected processAddWorkItems(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Unlink work items from a project.
+     * @return No Content
+     */
+    removeWorkItems(id: string, request: ProjectWorkItemsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/work-items/remove";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRemoveWorkItems(_response);
+        });
+    }
+
+    protected processRemoveWorkItems(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
     }
 
     /**
@@ -67399,6 +67540,12 @@ export interface ProjectTeamMemberDto {
     activeWorkItemCount: number;
 }
 
+/** The work items to link to, or unlink from, a project. */
+export interface ProjectWorkItemsRequest {
+    /** The work items' UUIDs, at most 100; work item keys are not accepted. */
+    workItemIds: string[];
+}
+
 /** One reason the caller can be told for, and whether they have muted it. */
 export interface ReasonMuteDto {
     /** The reason. */
@@ -72201,6 +72348,13 @@ export interface WorkTypeNavigationDto {
     level: SimpleNavigationDto;
     /** The work type tier. */
     tier: SimpleNavigationDto;
+}
+
+export enum WorkTypeTier {
+    Portfolio = "Portfolio",
+    Requirement = "Requirement",
+    Task = "Task",
+    Other = "Other",
 }
 
 export interface WorkTypeTierDto {

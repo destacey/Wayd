@@ -53,7 +53,7 @@ public static class WorkDistributionCalculator
 
         Measure(placed, options);
 
-        var buckets = Buckets(from, to);
+        var buckets = ReportPeriods.Between(from, to);
         var groups = new Dictionary<string, GroupAccumulator>();
         var rows = new Dictionary<Guid, RowAccumulator>();
         var periods = buckets.Select(b => new PeriodAccumulator(b.Start, b.End)).ToList();
@@ -298,38 +298,6 @@ public static class WorkDistributionCalculator
         }
 
         return result;
-    }
-
-    /// <summary>
-    /// Calendar buckets: weeks up to a month, two weeks up to six months, otherwise calendar months. The team
-    /// of teams' own teams may run different iteration cadences, so iterations cannot be the bucket.
-    /// </summary>
-    private static List<(LocalDate Start, LocalDate End)> Buckets(LocalDate from, LocalDate to)
-    {
-        var buckets = new List<(LocalDate, LocalDate)>();
-        var days = Period.Between(from, to, PeriodUnits.Days).Days + 1;
-
-        if (days > 184)
-        {
-            for (var start = from; start <= to;)
-            {
-                var monthEnd = start.With(DateAdjusters.EndOfMonth);
-                var end = monthEnd < to ? monthEnd : to;
-                buckets.Add((start, end));
-                start = end.PlusDays(1);
-            }
-
-            return buckets;
-        }
-
-        var size = days <= 31 ? 7 : 14;
-        for (var start = from; start <= to; start = start.PlusDays(size))
-        {
-            var end = start.PlusDays(size - 1);
-            buckets.Add((start, end < to ? end : to));
-        }
-
-        return buckets;
     }
 
     private static string TypeKey(string workTypeName) => workTypeName.Trim().ToUpperInvariant();

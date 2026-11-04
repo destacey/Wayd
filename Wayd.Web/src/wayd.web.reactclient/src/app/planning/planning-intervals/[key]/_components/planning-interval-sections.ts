@@ -6,6 +6,7 @@ export enum PlanningIntervalSections {
   PlanReview = 'plan-review',
   Risks = 'risks',
   Backlog = 'backlog',
+  Dependencies = 'dependencies',
   Capacity = 'capacity',
   HealthReport = 'health-report',
   Activities = 'activities',
@@ -25,6 +26,7 @@ export function planningIntervalSections(
     { id: PlanningIntervalSections.Objectives, label: 'Objectives' },
     { id: PlanningIntervalSections.Risks, label: 'Risks' },
     { id: PlanningIntervalSections.Backlog, label: 'Backlog' },
+    { id: PlanningIntervalSections.Dependencies, label: 'Dependencies' },
     ...(showsCapacity
       ? [{ id: PlanningIntervalSections.Capacity, label: 'Capacity' }]
       : []),

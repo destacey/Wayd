@@ -24,6 +24,7 @@ import {
   PagedResponseOfActivityLogDto,
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
+import { projectLinkTags } from '../work-management/workspace-api'
 import { projectActivityTags } from './ppm-activity-tags'
 import { BaseOptionType } from 'antd/es/select'
 import { StatusOptionModel } from '@/src/components/types'
@@ -351,13 +352,48 @@ export const projectsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      providesTags: (result) => [
+      providesTags: (result, error, id) => [
         QueryTags.WorkItem,
-        ...(result?.map(({ key }) => ({
-          type: QueryTags.ProjectWorkItems,
-          key,
-        })) ?? []),
+        { type: QueryTags.ProjectWorkItems, id },
       ],
+    }),
+
+    addProjectWorkItems: builder.mutation<
+      void,
+      { projectId: string; workItemIds: string[] }
+    >({
+      queryFn: async ({ projectId, workItemIds }) => {
+        try {
+          const data = await getProjectsClient().addWorkItems(projectId, {
+            workItemIds,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // A moved work item leaves another project's list too.
+      invalidatesTags: () => projectLinkTags,
+    }),
+
+    removeProjectWorkItems: builder.mutation<
+      void,
+      { projectId: string; workItemIds: string[] }
+    >({
+      queryFn: async ({ projectId, workItemIds }) => {
+        try {
+          const data = await getProjectsClient().removeWorkItems(projectId, {
+            workItemIds,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // The work items may fall back to their parent's project.
+      invalidatesTags: () => projectLinkTags,
     }),
 
     getProjectStatusOptions: builder.query<
@@ -694,6 +730,8 @@ export const {
   useRevertProjectStatusMutation,
   useDeleteProjectMutation,
   useGetProjectWorkItemsQuery,
+  useAddProjectWorkItemsMutation,
+  useRemoveProjectWorkItemsMutation,
   useGetProjectOptionsQuery,
   useGetProjectStatusOptionsQuery,
   useAssignProjectLifecycleMutation,

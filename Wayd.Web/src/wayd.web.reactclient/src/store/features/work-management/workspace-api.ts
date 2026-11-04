@@ -11,7 +11,26 @@ import {
   WorkItemProjectInfoDto,
   WorkspaceDto,
   WorkspaceListDto,
+  WorkTypeTier,
 } from '@/src/services/wayd-api'
+
+/**
+ * What changes when a work item's project does: the project lists, the work items and their children,
+ * searches that show each item's project, and forecasts built from a project's work items.
+ */
+export const projectLinkTags = [
+  QueryTags.ProjectWorkItems,
+  QueryTags.WorkItem,
+  QueryTags.WorkItemChildren,
+  QueryTags.WorkItemSearch,
+  QueryTags.Forecast,
+]
+
+/** A work item search narrowed to one tier; a bare string searches every tier. */
+export interface SearchWorkItemsArgs {
+  query: string
+  tier?: WorkTypeTier
+}
 
 export interface GetWorkItemRequest {
   idOrKey: string
@@ -161,6 +180,8 @@ export const workspaceApi = apiSlice.injectEndpoints({
         // TODO: there are a few more tags that need to be invalidated here
         { type: QueryTags.WorkItem, id: arg.cacheKey },
         { type: QueryTags.WorkItemChildren, id: arg.cacheKey },
+        // Both the project it left and the one it joined, which the request does not name.
+        ...projectLinkTags,
       ],
     }),
     getChildWorkItems: builder.query<
@@ -229,12 +250,18 @@ export const workspaceApi = apiSlice.injectEndpoints({
         { type: QueryTags.WorkItemMetrics, id: arg.workItemKey },
       ],
     }),
-    searchWorkItems: builder.query<WorkItemListDto[], string>({
-      queryFn: async (searchTerm: string) => {
+    searchWorkItems: builder.query<
+      WorkItemListDto[],
+      string | SearchWorkItemsArgs
+    >({
+      queryFn: async (arg) => {
+        const { query, tier } =
+          typeof arg === 'string' ? { query: arg, tier: undefined } : arg
         try {
           const data = await getWorkspacesClient().searchWorkItems(
-            searchTerm,
+            query,
             50,
+            tier,
           )
           return { data }
         } catch (error) {

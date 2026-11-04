@@ -1,7 +1,6 @@
 ﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using NodaTime;
-using Wayd.Common.Domain.Data;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -9,78 +8,23 @@ using Wayd.Common.Domain.StatusWorkflows.Enums;
 namespace Wayd.Common.Domain.StatusWorkflows;
 
 /// <summary>
-/// An aggregate whose status comes from a <see cref="StatusWorkflow"/>, with the history of every
-/// change it has been through.
+/// An aggregate whose status moves are Wayd's to decide: each is checked against its workflow's transitions
+/// and recorded, with the history of every change it has been through.
 /// </summary>
 /// <remarks>
-/// The status fields live here rather than on each aggregate so that moving status and appending a
-/// transition cannot come apart: <see cref="ApplyStatus"/> is the only way to change status, and it
-/// always records the move. An aggregate that set the fields itself would eventually forget the
-/// history on one path, which is precisely the bug this shape prevents.
+/// Moving status and appending a transition live together here so they cannot come apart:
+/// <see cref="ApplyStatus"/> is the only way to change status, and it always records the move. An
+/// aggregate that set the fields itself would eventually forget the history on one path, which is
+/// precisely the bug this shape prevents. A record whose source decides its moves derives from
+/// <see cref="ManagedStatusEntity"/> instead.
 /// <para>
-/// A record does not store which workflow it should follow. Its container and its record type decide,
-/// through the container's <c>WorkflowAssignment</c> and the scheme it points at — records of one type
-/// in one container never diverge, so a choice per record would only be a value that can drift.
-/// Which workflow governed a past change is answered by <see cref="StatusTransition.WorkflowId"/>,
-/// frozen per transition.
+/// Which workflow governed a past change is answered by <see cref="StatusTransition.WorkflowId"/>, frozen
+/// per transition.
 /// </para>
 /// </remarks>
-public abstract class StatusTrackedEntity : BaseAuditableEntity
+public abstract class StatusTrackedEntity : StatusHoldingEntity
 {
     private readonly List<StatusTransition> _statusTransitions = [];
-
-    /// <summary>
-    /// The registered owner type whose workflow governs this record. Fixed per aggregate.
-    /// </summary>
-    public abstract string StatusOwnerType { get; }
-
-    /// <summary>The status this record currently holds.</summary>
-    public Guid StatusId { get; private set; }
-
-    /// <summary>
-    /// The workflow that status belongs to.
-    /// </summary>
-    /// <remarks>
-    /// Denormalized onto the record for the same reason as <see cref="StatusCategory"/>: a reader must
-    /// not have to load the workflow to know which one governs this row.
-    /// <para>
-    /// It is also what makes a batched workflow migration resumable. Without it the current workflow
-    /// had to be inferred from the newest status transition — but the history is not a navigation and
-    /// <c>DrainStatusTransitions</c> empties the in-memory list on every save, so a record loaded from
-    /// the database reported no workflow at all. A re-run over an already-moved record then read as
-    /// "holds a status from neither workflow" and failed instead of doing nothing.
-    /// </para>
-    /// </remarks>
-    public Guid StatusWorkflowId { get; private set; }
-
-    /// <summary>
-    /// What that status was called when it was applied. Frozen, so renaming the status does not rewrite
-    /// what this record reads as.
-    /// </summary>
-    public string StatusName
-    {
-        get;
-        private set => field = Guard.Against.NullOrWhiteSpace(value, nameof(StatusName)).Trim();
-    } = default!;
-
-    /// <summary>
-    /// The status's category, denormalized so reads and invariants never need the workflow loaded.
-    /// </summary>
-    public StatusCategory StatusCategory { get; private set; }
-
-    /// <summary>
-    /// The well-known meaning of the current status, or <see cref="StatusWorkflow.NoAlias"/>. An
-    /// <c>int</c> because the meaning belongs to the consuming module; aggregates expose it through
-    /// their own alias enum.
-    /// </summary>
-    /// <remarks>
-    /// Public rather than protected so it maps as a real column and a query can read it directly.
-    /// Reaching it as a shadow property with <c>EF.Property</c> instead makes a projection translate
-    /// only against a real provider — it throws under LINQ-to-Objects, so any handler test running on
-    /// an in-memory fake could not exercise it. Aggregates still expose it through their own alias enum;
-    /// this is for the read side.
-    /// </remarks>
-    public int StatusAliasValue { get; private set; }
 
     /// <summary>
     /// Every status change this record has been through, oldest first.
@@ -133,7 +77,7 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
         Guard.Against.Null(status, nameof(status));
         Guard.Against.Null(actor, nameof(actor));
 
-        var isInitial = StatusId == Guid.Empty;
+        var isInitial = !HasStatus;
 
         if (!isInitial && status.StatusId == StatusId)
         {
@@ -159,19 +103,13 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
             }
         }
 
-        // The outgoing side is built from this record's own workflow, not the incoming status's. They
+        // The outgoing side carries this record's own workflow (CurrentStatus), not the incoming status's. They
         // differ during a remap — the new status belongs to the workflow being moved to — and borrowing
         // the incoming id there would record the old status against a workflow it never belonged to,
         // making the one transition that explains a migration the one that misreports it.
-        var from = isInitial
-            ? null
-            : new StatusRef(StatusWorkflowId, StatusId, StatusName, StatusCategory, StatusAliasValue);
+        var from = CurrentStatus;
 
-        StatusId = status.StatusId;
-        StatusWorkflowId = status.WorkflowId;
-        StatusName = status.Name;
-        StatusCategory = status.Category;
-        StatusAliasValue = status.Alias;
+        SetStatus(status);
 
         _statusTransitions.Add(new StatusTransition(
             StatusOwnerType,
@@ -300,7 +238,8 @@ public abstract class StatusTrackedEntity : BaseAuditableEntity
 
     private Result MoveOntoWorkflow(StatusRef target, EventActor actor, Instant timestamp, string? reason)
     {
-        var from = new StatusRef(StatusWorkflowId, StatusId, StatusName, StatusCategory, StatusAliasValue);
+        var from = CurrentStatus
+            ?? throw new InvalidOperationException("A record with no status has no workflow to switch from.");
 
         var applied = ApplyStatus(target, actor, timestamp, reason, enforceTransitions: false);
         if (applied.IsFailure)

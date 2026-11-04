@@ -4523,7 +4523,7 @@
           "Workspaces"
         ],
         "summary": "Search for a work item using its key or title.",
-        "description": "Searches every workspace: `query` matches part of a work item's key, its parent's key, or its title (a word prefix when full-text search is available). Returns at most `top` work items (default 50) in key order. Each result's `workspace` key and `key` are what the other work item tools take.",
+        "description": "Searches every workspace: `query` matches part of a work item's key, its parent's key, or its title (a word prefix when full-text search is available). Returns at most `top` work items (default 50) in key order. `tier` keeps only work items whose type is in that tier (`Portfolio` finds the epics and features a project can be linked to), and is applied before `top`. Each result's `workspace` key and `key` are what the other work item tools take.",
         "operationId": "Workspaces_SearchWorkItems",
         "parameters": [
           {
@@ -4543,6 +4543,19 @@
               "default": 50
             },
             "x-position": 2
+          },
+          {
+            "name": "tier",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/WorkTypeTier"
+                }
+              ],
+              "nullable": true
+            },
+            "x-position": 3
           }
         ],
         "responses": {
@@ -22461,6 +22474,132 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Link work items to a project.",
+        "description": "`id` is the project's UUID; `workItemIds` are work item UUIDs from any workspace, at most 100, and keys are not accepted. Only Portfolio-tier work items (epics, features) can be linked: find them with `Workspaces_SearchWorkItems` and `tier=Portfolio`. A work item already on another project moves to this one, so confirm with the user first. Work items beneath a linked item that have no project of their own inherit it, and one beneath it already linked to this project directly now inherits that link instead, so it leaves when its parent does. The listed work items all change or none do. Requires the Manage Project Work Items permission only, not delivery leadership.",
+        "operationId": "Projects_AddWorkItems",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectWorkItemsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/ppm/projects/{id}/work-items/remove": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Unlink work items from a project.",
+        "description": "`id` is the project's UUID; `workItemIds` are work item UUIDs, at most 100. Each must be linked directly to the project: a work item that inherits the project from its parent is refused, and leaves the project only when its parent does. An unlinked work item inherits its parent's project, if any, and the work items beneath it follow. The listed work items all change or none do. Requires the Manage Project Work Items permission only, not delivery leadership.",
+        "operationId": "Projects_RemoveWorkItems",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectWorkItemsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -72547,6 +72686,26 @@
         "additionalProperties": false,
         "description": "Represents a team member on a project with their roles, assigned stages, and active workload."
       },
+      "ProjectWorkItemsRequest": {
+        "required": [
+          "workItemIds"
+        ],
+        "type": "object",
+        "properties": {
+          "workItemIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "minLength": 1,
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The work items' UUIDs, at most 100; work item keys are not accepted."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The work items to link to, or unlink from, a project."
+      },
       "ReasonMuteDto": {
         "required": [
           "reason",
@@ -87955,6 +88114,15 @@
           }
         },
         "additionalProperties": false
+      },
+      "WorkTypeTier": {
+        "enum": [
+          "Portfolio",
+          "Requirement",
+          "Task",
+          "Other"
+        ],
+        "type": "string"
       },
       "WorkTypeTierDto": {
         "required": [

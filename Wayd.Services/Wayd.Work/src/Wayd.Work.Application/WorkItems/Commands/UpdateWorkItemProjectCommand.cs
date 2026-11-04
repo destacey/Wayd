@@ -1,6 +1,4 @@
-﻿using Wayd.Common.Domain.Enums.Work;
-using Wayd.Work.Application.Persistence;
-using Wayd.Work.Application.WorkItems.Dtos;
+﻿using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkItems.Commands;
 
@@ -69,7 +67,7 @@ public sealed class UpdateWorkItemProjectCommandHandler(
 
             if (originalProjectId != workItem.ProjectId)
             {
-                await UpdateChildren(workItem.Adapt<WorkItemParentInfo>(), cancellationToken);
+                await WorkItemProjectInheritance.PushToDescendants(_workDbContext, workItem, _logger, cancellationToken);
 
                 _logger.LogInformation("Work item {WorkItemId} descendants updated.", request.WorkItemId);
             }
@@ -80,51 +78,6 @@ public sealed class UpdateWorkItemProjectCommandHandler(
         {
             _logger.LogError(ex, "Exception handling {CommandName} command for request {@Request}.", AppRequestName, request);
             return Result.Failure($"Error handling {AppRequestName} command.");
-        }
-    }
-
-    // TODO: this should be moved to an event handler
-    private async Task UpdateChildren(WorkItemParentInfo parent, CancellationToken cancellationToken)
-    {
-        if (parent.Tier != WorkTypeTier.Portfolio)
-        {
-            return;
-        }
-
-        var children = await _workDbContext.WorkItems
-            .Include(wi => wi.Type)
-                .ThenInclude(t => t.Level)
-            .Where(wi => wi.ParentId == parent.Id)
-            .ToListAsync(cancellationToken);
-
-        if (children.Count == 0)
-            return;
-
-
-        int updateCount = 0;
-
-        foreach (var child in children)
-        {
-            var result = child.UpdateParent(parent, child.Type);
-            if (result.IsFailure)
-            {
-                _logger.LogError("Error updating parent for work item {WorkItemId}. {Error}", child.Id, result.Error);
-                continue;
-            }
-
-            updateCount++;
-        }
-
-        if (updateCount > 0)
-        {
-            await _workDbContext.SaveChangesAsync(cancellationToken);
-            _logger.LogDebug("Updated {UpdateCount} children for work item {WorkItemId}.", updateCount, parent.Id);
-        }
-
-        foreach (var child in children)
-        {
-            if (child.ProjectId is null)
-                await UpdateChildren(child.Adapt<WorkItemParentInfo>(), cancellationToken);
         }
     }
 }

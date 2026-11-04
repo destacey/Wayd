@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.AppIntegrations;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Scoring;
@@ -75,12 +76,13 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
 
     public DatabaseFacade Database => throw new NotImplementedException("Database operations are not supported in FakeWorkDbContext. Use integration tests with a real DbContext for database-specific functionality.");
 
-    public IQueryable<WorkItem> SearchWorkItems(string searchTerm, int top) =>
+    public IQueryable<WorkItem> SearchWorkItems(string searchTerm, WorkTypeTier? tier, int top) =>
         new TestAsyncEnumerable<WorkItem>(
             _workItems
                 .Where(e => e.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
                     || ((string)e.Key).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
                     || (e.ParentId.HasValue && ((string)e.Parent!.Key).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
+                .Where(e => tier is null || e.Type.Level!.Tier == tier)
                 // Mirror the real context's ordering (by the KeyPrefix/KeyNumber computed columns)
                 // so Take(top) selects the same subset when matches exceed the limit.
                 .OrderBy(e => e.Key.WorkspaceKey)

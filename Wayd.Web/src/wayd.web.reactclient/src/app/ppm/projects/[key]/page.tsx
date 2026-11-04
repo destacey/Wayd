@@ -37,6 +37,7 @@ import {
 } from '@/src/app/ppm/projects/_components'
 import AssignProjectLifecycleForm from '@/src/app/ppm/projects/_components/assign-project-lifecycle-form'
 import ChangeProjectLifecycleForm from '@/src/app/ppm/projects/_components/change-project-lifecycle-form'
+import AddProjectWorkItemsForm from '@/src/app/ppm/projects/_components/add-project-work-items-form'
 import { ProjectStatusAction } from '@/src/app/ppm/projects/_components/change-project-status-form'
 import ProjectDetailsLoading from './loading'
 import ProjectDefinition from './_components/project-definition'
@@ -132,6 +133,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [openCreateHealthCheckForm, setOpenCreateHealthCheckForm] =
     useState<boolean>(false)
   const [openStatusHistory, setOpenStatusHistory] = useState<boolean>(false)
+  const [openAddWorkItemsForm, setOpenAddWorkItemsForm] = useState(false)
   const [openRevertStatusForm, setOpenRevertStatusForm] =
     useState<boolean>(false)
 
@@ -140,6 +142,9 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { hasPermissionClaim } = useAuth()
   const canUpdateProject = hasPermissionClaim('Permissions.Projects.Update')
   const canDeleteProject = hasPermissionClaim('Permissions.Projects.Delete')
+  const canManageProjectWorkItems = hasPermissionClaim(
+    'Permissions.Projects.ManageProjectWorkItems',
+  )
 
   // The active section lives in the URL, owned by RecordLayout. Read here only
   // to hold back the work items query, which is the expensive one.
@@ -483,6 +488,8 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             isLoading={workItemsDataIsLoading}
             refetch={refetchWorkItemsData}
             hideProjectColumn={true}
+            projectId={projectData.id}
+            canManageWorkItems={canManageProjectWorkItems}
           />
         )
       case ProjectSections.Requests:
@@ -564,12 +571,25 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             <ProjectTaskMetricsInline projectKey={projectKey} />
           ) : activeSection === ProjectSections.Activities ? (
             <ActivityLogExportButton activityLog={activityLog} />
+          ) : activeSection === ProjectSections.WorkItems &&
+            canManageProjectWorkItems ? (
+            <Button size="small" onClick={() => setOpenAddWorkItemsForm(true)}>
+              Add Work Items
+            </Button>
           ) : null
         }
       >
         {(section) => renderSection(section as ProjectSections)}
       </RecordLayout>
 
+      {openAddWorkItemsForm && (
+        <AddProjectWorkItemsForm
+          projectId={projectData.id}
+          existingWorkItemIds={new Set(workItemsData?.map((w) => w.id))}
+          onFormComplete={() => setOpenAddWorkItemsForm(false)}
+          onFormCancel={() => setOpenAddWorkItemsForm(false)}
+        />
+      )}
       {openEditProjectForm && (
         <EditProjectForm
           projectKey={projectData.key}

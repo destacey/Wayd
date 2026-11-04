@@ -15,7 +15,8 @@ namespace Wayd.Common.Domain.StatusWorkflows;
 /// Moving status and appending a transition live together here so they cannot come apart:
 /// <see cref="ApplyStatus"/> is the only way to change status, and it always records the move. An
 /// aggregate that set the fields itself would eventually forget the history on one path, which is
-/// precisely the bug this shape prevents.
+/// precisely the bug this shape prevents. A record whose source decides its moves derives from
+/// <see cref="ManagedStatusEntity"/> instead.
 /// <para>
 /// Which workflow governed a past change is answered by <see cref="StatusTransition.WorkflowId"/>, frozen
 /// per transition.

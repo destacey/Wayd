@@ -9,10 +9,15 @@ namespace Wayd.Common.Domain.StatusWorkflows;
 /// came from, and what the status was called and meant when applied.
 /// </summary>
 /// <remarks>
-/// Every status-holding record has this state; who decides its moves does not. The constructor is
-/// <c>private protected</c>, so an aggregate derives from a kind in this assembly that decides how its
-/// status moves — <see cref="StatusTrackedEntity"/>, which checks each move against the workflow's
-/// transitions and records it as a <see cref="StatusTransition"/> — never from this directly.
+/// Every status-holding record has this state; who decides its moves does not. An aggregate derives from
+/// one of the two kinds below, never from this directly — the constructor is <c>private protected</c>, so
+/// the choice is made by type rather than by a flag a record could get wrong:
+/// <list type="bullet">
+/// <item><see cref="StatusTrackedEntity"/> — Wayd decides the moves, so each is checked against the
+/// workflow's transitions and recorded as a <see cref="StatusTransition"/>.</item>
+/// <item><see cref="ManagedStatusEntity"/> — a source system decides them, so the record takes what the
+/// source reports, unchecked and with no transition row.</item>
+/// </list>
 /// <para>
 /// A record does not store which workflow it should follow. Its container and its record type decide,
 /// through the container's <c>WorkflowAssignment</c> and the scheme it points at — records of one type
@@ -40,14 +45,16 @@ public abstract class StatusHoldingEntity : BaseAuditableEntity
     /// <para>
     /// It is also what makes a batched workflow migration resumable: a re-run tells a record already
     /// moved from one holding a status of neither workflow by this value. Transition history cannot
-    /// answer it — it is not a navigation, and <c>DrainStatusTransitions</c> empties it on every save.
+    /// answer it — it is not a navigation, <c>DrainStatusTransitions</c> empties it on every save, and
+    /// a managed record has none.
     /// </para>
     /// </remarks>
     public Guid StatusWorkflowId { get; private set; }
 
     /// <summary>
-    /// What that status was called when it was applied. Frozen, so renaming the status does not rewrite
-    /// what this record reads as.
+    /// What that status was called when it was applied. On a <see cref="StatusTrackedEntity"/> it is
+    /// frozen, so renaming the status does not rewrite what the record reads as; a
+    /// <see cref="ManagedStatusEntity"/> takes the source's new name when it re-applies the status.
     /// </summary>
     public string StatusName
     {
@@ -85,7 +92,7 @@ public abstract class StatusHoldingEntity : BaseAuditableEntity
     /// Stores <paramref name="status"/> as the record's status, with no check and no record of the move.
     /// </summary>
     /// <remarks>
-    /// <c>private protected</c> so only the kinds in this assembly reach it: an aggregate elsewhere
+    /// <c>private protected</c> so only the two kinds in this assembly reach it: an aggregate elsewhere
     /// cannot set its status without going through the rules of the kind it derives from.
     /// </remarks>
     private protected void SetStatus(StatusRef status)

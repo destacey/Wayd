@@ -10,6 +10,7 @@ import { ConnectorType, CONNECTOR_NAMES } from '@/src/types/connectors'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { Button, Flex, Form, Modal } from 'antd'
 import { useState } from 'react'
+import { flushSync } from 'react-dom'
 import { ConnectionFormBase } from './connection-form-base'
 import { ConnectorTypeSelector } from './connector-type-selector'
 import {
@@ -69,11 +70,28 @@ export const getDiscriminator = (connector: ConnectorType): string => {
     default:
       // A silent fallback would submit a request the backend can't deserialize —
       // fail loudly so a new connector can't ship without its discriminator.
-      throw new Error(`No request discriminator is registered for connector type '${connector}'.`)
+      throw new Error(
+        `No request discriminator is registered for connector type '${connector}'.`,
+      )
   }
 }
 
-const TEAMS_CREDENTIAL_FIELDS = ['tenantId', 'clientId', 'clientSecret'] as const
+const TEAMS_CREDENTIAL_FIELDS = [
+  'tenantId',
+  'clientId',
+  'clientSecret',
+] as const
+
+const teamsCredentialFingerprintOf = (values: {
+  tenantId?: string
+  clientId?: string
+  clientSecret?: string
+}) =>
+  [
+    values.tenantId ?? '',
+    values.clientId ?? '',
+    values.clientSecret ?? '',
+  ].join('\0')
 
 const CreateConnectionForm = ({
   onFormCreate,
@@ -86,93 +104,89 @@ const CreateConnectionForm = ({
     ok: boolean
     error?: string
   } | null>(null)
+  const [teamsCredentialFingerprint, setTeamsCredentialFingerprint] =
+    useState('')
   const [isVerifyingTeams, setIsVerifyingTeams] = useState(false)
   const messageApi = useMessage()
 
   const [createConnection] = useCreateConnectionMutation()
   const [verifyTeamsConnection] = useVerifyTeamsConnectionMutation()
 
-  const { form, isOpen, isValid, isSaving, handleOk, handleCancel: hookCancel } =
-    useModalForm<CreateConnectionFormValues>({
-      onSubmit: async (values: CreateConnectionFormValues, form) => {
-          if (!selectedConnector) return false
+  const {
+    form,
+    isOpen,
+    isValid,
+    isSaving,
+    handleOk,
+    handleCancel: hookCancel,
+  } = useModalForm<CreateConnectionFormValues>({
+    onSubmit: async (values: CreateConnectionFormValues, form) => {
+      if (!selectedConnector) return false
 
-          if (selectedConnector === ConnectorType.Teams && !teamsVerified) {
-            setTeamsVerifyState({
-              fingerprint: teamsCredentialFingerprint,
-              ok: false,
-              error: 'Verify the connection before saving.',
-            })
-            return false
-          }
+      if (selectedConnector === ConnectorType.Teams && !teamsVerified) {
+        setTeamsVerifyState({
+          fingerprint: teamsCredentialFingerprint,
+          ok: false,
+          error: 'Verify the connection before saving.',
+        })
+        return false
+      }
 
-          try {
-            // System.Text.Json polymorphism requires the discriminator to be the FIRST property
-            // in the JSON payload — otherwise it throws "must specify a type discriminator" even
-            // when the discriminator is present. Spread $type before the form values so it
-            // serializes first.
-            //
-            // Form.List leaves orgExclusions undefined when the admin never adds a row, and
-            // partially-filled rows (the admin opened a slot then canceled) come back with empty
-            // strings. Strip those before submit so they don't fail backend validation.
-            const cleanedExclusions = (values.orgExclusions ?? []).filter(
-              (e) =>
-                !!e?.organizationTypeId?.trim() &&
-                !!e?.organizationReference?.trim(),
-            )
+      try {
+        // System.Text.Json polymorphism requires the discriminator to be the FIRST property
+        // in the JSON payload — otherwise it throws "must specify a type discriminator" even
+        // when the discriminator is present. Spread $type before the form values so it
+        // serializes first.
+        //
+        // Form.List leaves orgExclusions undefined when the admin never adds a row, and
+        // partially-filled rows (the admin opened a slot then canceled) come back with empty
+        // strings. Strip those before submit so they don't fail backend validation.
+        const cleanedExclusions = (values.orgExclusions ?? []).filter(
+          (e) =>
+            !!e?.organizationTypeId?.trim() &&
+            !!e?.organizationReference?.trim(),
+        )
 
-            const request = {
-              $type: getDiscriminator(selectedConnector),
-              ...values,
-              orgExclusions: cleanedExclusions,
-            }
+        const request = {
+          $type: getDiscriminator(selectedConnector),
+          ...values,
+          orgExclusions: cleanedExclusions,
+        }
 
-            const response = await createConnection(request)
-            if (response.error) {
-              throw response.error
-            }
-            setSelectedConnector(null)
-            resetTeamsVerification()
-            messageApi.success('Successfully created connection.')
-            return true
-          } catch (error: unknown) {
-            const apiError = toApiError(error)
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else if (apiError.detail) {
-              setTeamsVerifyState({
-                fingerprint: teamsCredentialFingerprint,
-                ok: false,
-                error: apiError.detail,
-              })
-              messageApi.error(apiError.detail)
-            } else {
-              messageApi.error('An error occurred while creating the connection.')
-            }
-            return false
-          }
-        },
-      onComplete: onFormCreate,
-      onCancel: () => {
+        const response = await createConnection(request)
+        if (response.error) {
+          throw response.error
+        }
         setSelectedConnector(null)
         resetTeamsVerification()
-        onFormCancel()
-      },
-      errorMessage: 'An error occurred while creating the connection.',
-      permission: 'Permissions.Connections.Create',
-    })
-
-  const teamsTenantId = Form.useWatch('tenantId', form)
-  const teamsClientId = Form.useWatch('clientId', form)
-  const teamsClientSecret = Form.useWatch('clientSecret', form)
-
-  const teamsCredentialFingerprint = [
-    teamsTenantId ?? '',
-    teamsClientId ?? '',
-    teamsClientSecret ?? '',
-  ].join('\0')
+        messageApi.success('Successfully created connection.')
+        return true
+      } catch (error: unknown) {
+        const apiError = toApiError(error)
+        if (apiError.status === 422 && apiError.errors) {
+          const formErrors = toFormErrors(apiError.errors)
+          form.setFields(formErrors)
+          messageApi.error('Correct the validation error(s) to continue.')
+        } else {
+          // A save failure is not a failed verification. Putting it on the
+          // verify alert swaps Create for Verify.
+          messageApi.error(
+            apiError.detail ??
+              'An error occurred while creating the connection.',
+          )
+        }
+        return false
+      }
+    },
+    onComplete: onFormCreate,
+    onCancel: () => {
+      setSelectedConnector(null)
+      resetTeamsVerification()
+      onFormCancel()
+    },
+    errorMessage: 'An error occurred while creating the connection.',
+    permission: 'Permissions.Connections.Create',
+  })
 
   const teamsVerified =
     teamsVerifyState?.ok === true &&
@@ -184,12 +198,31 @@ const CreateConnectionForm = ({
       ? (teamsVerifyState.error ?? null)
       : null
 
-  const resetTeamsVerification = () => setTeamsVerifyState(null)
+  const resetTeamsVerification = () => {
+    setTeamsVerifyState(null)
+    setTeamsCredentialFingerprint('')
+  }
 
   const handleCancel = () => {
     setSelectedConnector(null)
     resetTeamsVerification()
     hookCancel()
+  }
+
+  // The check finishes after await. Commit the result in this turn so the footer
+  // swaps Verify for Create before the handler returns; a deferred update leaves
+  // Verify on screen.
+  const commitTeamsVerify = (state: {
+    fingerprint: string
+    ok: boolean
+    error?: string
+  }) => {
+    flushSync(() => {
+      setTeamsCredentialFingerprint(
+        teamsCredentialFingerprintOf(form.getFieldsValue()),
+      )
+      setTeamsVerifyState(state)
+    })
   }
 
   const handleTeamsVerify = async () => {
@@ -200,11 +233,7 @@ const CreateConnectionForm = ({
     }
 
     const values = form.getFieldsValue()
-    const fingerprint = [
-      values.tenantId ?? '',
-      values.clientId ?? '',
-      values.clientSecret ?? '',
-    ].join('\0')
+    const fingerprint = teamsCredentialFingerprintOf(values)
 
     setIsVerifyingTeams(true)
     try {
@@ -216,7 +245,7 @@ const CreateConnectionForm = ({
       if (response.error) {
         throw response.error
       }
-      setTeamsVerifyState({ fingerprint, ok: true })
+      commitTeamsVerify({ fingerprint, ok: true })
       messageApi.success(
         'Connection verified. Check Teams for a chat named Wayd connection test and your calendar for the test event, then create the connection.',
       )
@@ -225,7 +254,7 @@ const CreateConnectionForm = ({
       const detail =
         apiError.detail ??
         'The connection test failed. Confirm admin consent, permissions, and that your Wayd email exists in the tenant.'
-      setTeamsVerifyState({ fingerprint, ok: false, error: detail })
+      commitTeamsVerify({ fingerprint, ok: false, error: detail })
     } finally {
       setIsVerifyingTeams(false)
     }
@@ -258,34 +287,30 @@ const CreateConnectionForm = ({
       width="95vw"
       style={{ maxWidth: selectedConnector === null ? 600 : 800 }}
       footer={
-        selectedConnector === null
-          ? null
-          : isTeamsCreate
-            ? (
-                <Flex justify="flex-end" gap={8}>
-                  <Button onClick={handleCancel}>Cancel</Button>
-                  {teamsVerified ? (
-                    <Button
-                      type="primary"
-                      loading={isSaving}
-                      disabled={!isValid}
-                      onClick={() => void handleOk()}
-                    >
-                      Create
-                    </Button>
-                  ) : (
-                    <Button
-                      type="primary"
-                      loading={isVerifyingTeams}
-                      disabled={!isValid}
-                      onClick={() => void handleTeamsVerify()}
-                    >
-                      Verify
-                    </Button>
-                  )}
-                </Flex>
-              )
-            : undefined
+        selectedConnector === null ? null : isTeamsCreate ? (
+          <Flex justify="flex-end" gap={8}>
+            <Button onClick={handleCancel}>Cancel</Button>
+            {teamsVerified ? (
+              <Button
+                type="primary"
+                loading={isSaving}
+                disabled={!isValid}
+                onClick={() => void handleOk()}
+              >
+                Create
+              </Button>
+            ) : (
+              <Button
+                type="primary"
+                loading={isVerifyingTeams}
+                disabled={!isValid}
+                onClick={() => void handleTeamsVerify()}
+              >
+                Verify
+              </Button>
+            )}
+          </Flex>
+        ) : undefined
       }
     >
       {selectedConnector === null ? (
@@ -296,6 +321,13 @@ const CreateConnectionForm = ({
           size="middle"
           layout="vertical"
           name="create-connection-form"
+          onValuesChange={(_, allValues) => {
+            if (selectedConnector === ConnectorType.Teams) {
+              setTeamsCredentialFingerprint(
+                teamsCredentialFingerprintOf(allValues),
+              )
+            }
+          }}
         >
           <ConnectionFormBase
             connector={selectedConnector}

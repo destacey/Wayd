@@ -1,5 +1,72 @@
+import { act, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { ConnectorType } from '@/src/types/connectors'
-import { getDiscriminator } from './create-connection-form'
+import CreateConnectionForm, {
+  getDiscriminator,
+} from './create-connection-form'
+
+const mockCreate = jest.fn()
+const mockVerify = jest.fn()
+const mockMessage = { error: jest.fn(), success: jest.fn() }
+
+jest.mock('@/src/components/contexts/auth', () => ({
+  __esModule: true,
+  default: () => ({ hasPermissionClaim: () => true, hasClaim: () => true }),
+}))
+
+jest.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => mockMessage,
+}))
+
+jest.mock('@/src/components/common/markdown', () => ({
+  MarkdownEditor: () => null,
+}))
+
+// Form.useWatch does not refire after typing in Jest, so validity stays false and the
+// footer buttons never enable. Keep the form instance real and submit through validateFields.
+jest.mock('@/src/hooks', () => {
+  const { Form } = jest.requireActual('antd')
+  return {
+    useModalForm: ({
+      onSubmit,
+    }: {
+      onSubmit: (
+        values: Record<string, unknown>,
+        form: unknown,
+      ) => Promise<boolean>
+    }) => {
+      const [form] = Form.useForm()
+      return {
+        form,
+        isOpen: true,
+        isValid: true,
+        isSaving: false,
+        handleOk: async () => {
+          const values = await form.validateFields()
+          await onSubmit(values, form)
+        },
+        handleCancel: jest.fn(),
+      }
+    },
+  }
+})
+
+jest.mock('@/src/store/features/app-integration/connections-api', () => ({
+  useCreateConnectionMutation: () => [mockCreate],
+  useVerifyTeamsConnectionMutation: () => [mockVerify],
+  useGetConnectorsQuery: () => ({
+    data: [
+      {
+        id: 5,
+        name: 'Microsoft Teams',
+        description: 'Teams',
+        capabilities: [{ name: 'Communication', category: 'Communication' }],
+      },
+    ],
+    isLoading: false,
+  }),
+  useGetConnectionsQuery: () => ({ data: [], isLoading: false }),
+}))
 
 describe('create-connection-form helpers', () => {
   describe('getDiscriminator', () => {
@@ -34,7 +101,13 @@ describe('create-connection-form helpers', () => {
 
     it('should return valid discriminator strings matching backend expectations', () => {
       // These discriminators must match the JsonDerivedType attributes in the backend
-      const validDiscriminators = ['azure-devops', 'azure-openai', 'entra', 'workday', 'teams']
+      const validDiscriminators = [
+        'azure-devops',
+        'azure-openai',
+        'entra',
+        'workday',
+        'teams',
+      ]
 
       Object.values(ConnectorType)
         .filter((v) => typeof v === 'number')
@@ -50,5 +123,99 @@ describe('create-connection-form helpers', () => {
         /No request discriminator is registered/,
       )
     })
+  })
+})
+
+const openVerifiedTeamsForm = async () => {
+  render(
+    <CreateConnectionForm onFormCreate={jest.fn()} onFormCancel={jest.fn()} />,
+  )
+  await userEvent.click(
+    screen.getByRole('heading', { name: 'Microsoft Teams' }),
+  )
+  await userEvent.type(screen.getByLabelText('Name'), 'Ops Teams')
+  await userEvent.type(screen.getByLabelText('Tenant ID'), 'tenant-1')
+  await userEvent.type(screen.getByLabelText('Client ID'), 'client-1')
+  await userEvent.type(screen.getByLabelText('Client Secret'), 'secret-1')
+  await userEvent.click(screen.getByRole('button', { name: 'Verify' }))
+  expect(
+    await screen.findByRole('button', { name: 'Create' }),
+  ).toBeInTheDocument()
+}
+
+describe('CreateConnectionForm Teams verification', () => {
+  beforeEach(() => {
+    mockCreate.mockReset().mockResolvedValue({})
+    mockVerify.mockReset().mockResolvedValue({})
+    mockMessage.error.mockReset()
+    mockMessage.success.mockReset()
+  })
+
+  it('creates the connection without calling verify again', async () => {
+    // Arrange
+    await openVerifiedTeamsForm()
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+    // Assert
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledTimes(1))
+    expect(mockVerify).toHaveBeenCalledTimes(1)
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        $type: 'teams',
+        name: 'Ops Teams',
+        tenantId: 'tenant-1',
+        clientId: 'client-1',
+        clientSecret: 'secret-1',
+      }),
+    )
+  })
+
+  it('returns to Verify when a credential changes after verification', async () => {
+    // Arrange
+    await openVerifiedTeamsForm()
+
+    // Act
+    await userEvent.type(screen.getByLabelText('Client Secret'), 'x')
+
+    // Assert
+    expect(
+      await screen.findByRole('button', { name: 'Verify' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Create' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows a non-422 create failure as a save error', async () => {
+    // Arrange
+    mockCreate.mockResolvedValue({
+      error: {
+        isApiException: true,
+        status: 500,
+        response: { detail: 'The connection could not be saved.' },
+      },
+    })
+    await openVerifiedTeamsForm()
+
+    // Act
+    // The save finishes after await. Keep that continuation inside act so a
+    // setState that puts the failure on the verify alert is on screen.
+    await act(async () => {
+      screen.getByRole('button', { name: 'Create' }).click()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    // Assert
+    expect(mockMessage.error).toHaveBeenCalledWith(
+      'The connection could not be saved.',
+    )
+    expect(
+      screen.queryByText('Connection verification failed'),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Create' })).toBeInTheDocument()
+    expect(mockVerify).toHaveBeenCalledTimes(1)
   })
 })

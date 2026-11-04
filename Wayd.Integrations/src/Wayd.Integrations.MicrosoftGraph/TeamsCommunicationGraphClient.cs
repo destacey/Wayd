@@ -3,6 +3,9 @@ using CSharpFunctionalExtensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
+using Microsoft.Graph.Models.ODataErrors;
+using NodaTime;
+using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Interfaces.Communication;
 
 namespace Wayd.Integrations.MicrosoftGraph;
@@ -11,15 +14,40 @@ namespace Wayd.Integrations.MicrosoftGraph;
 /// Graph client for Teams communication connections. Builds a per-connection
 /// <see cref="GraphServiceClient"/>; does not share state with people sync.
 /// </summary>
-public sealed class TeamsCommunicationGraphClient(ILogger<TeamsCommunicationGraphClient> logger)
-    : ITeamsCommunicationGraphClient
+public sealed class TeamsCommunicationGraphClient : ITeamsCommunicationGraphClient
 {
     private const string HelloWorldChatTopic = "Wayd connection test";
     private const string HelloWorldEventSubject = "Wayd connection test";
     private const string HelloWorldEventBody =
         "This all-day event confirms your Wayd Microsoft Teams connection can write to your calendar.";
 
-    private readonly ILogger<TeamsCommunicationGraphClient> _logger = logger;
+    /// <summary>
+    /// Identifiers tried one at a time. Graph rejects
+    /// <c>mail eq … or userPrincipalName eq …</c> with <c>Request_UnsupportedQuery</c>,
+    /// and that rejection must not fail the whole hello-world test.
+    /// </summary>
+    private static readonly string[] _userLookupProperties = ["mail", "userPrincipalName"];
+
+    private readonly ILogger<TeamsCommunicationGraphClient> _logger;
+    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly Func<TeamsGraphCredentials, GraphServiceClient> _clientFactory;
+
+    public TeamsCommunicationGraphClient(
+        ILogger<TeamsCommunicationGraphClient> logger,
+        IDateTimeProvider dateTimeProvider)
+        : this(logger, dateTimeProvider, BuildAppClient)
+    {
+    }
+
+    internal TeamsCommunicationGraphClient(
+        ILogger<TeamsCommunicationGraphClient> logger,
+        IDateTimeProvider dateTimeProvider,
+        Func<TeamsGraphCredentials, GraphServiceClient> clientFactory)
+    {
+        _logger = logger;
+        _dateTimeProvider = dateTimeProvider;
+        _clientFactory = clientFactory;
+    }
 
     /// <inheritdoc />
     public async Task<Result> RunHelloWorldTestAsync(
@@ -29,7 +57,7 @@ public sealed class TeamsCommunicationGraphClient(ILogger<TeamsCommunicationGrap
     {
         try
         {
-            var appClient = BuildAppClient(credentials);
+            var appClient = _clientFactory(credentials);
             var user = await FindUserByEmailAsync(appClient, recipientEmail, cancellationToken);
             if (user?.Id is null)
             {
@@ -58,14 +86,45 @@ public sealed class TeamsCommunicationGraphClient(ILogger<TeamsCommunicationGrap
         return new GraphServiceClient(credential, ["https://graph.microsoft.com/.default"]);
     }
 
-    private static async Task<User?> FindUserByEmailAsync(
+    private async Task<User?> FindUserByEmailAsync(
         GraphServiceClient client,
         string recipientEmail,
         CancellationToken cancellationToken)
     {
         var escaped = recipientEmail.Replace("'", "''", StringComparison.Ordinal);
-        var filter = $"mail eq '{escaped}' or userPrincipalName eq '{escaped}'";
+        ODataError? rejectedFilter = null;
+        var anyFilterAccepted = false;
 
+        foreach (var property in _userLookupProperties)
+        {
+            try
+            {
+                var user = await QueryUserAsync(client, $"{property} eq '{escaped}'", cancellationToken);
+                anyFilterAccepted = true;
+                if (user?.Id is not null)
+                    return user;
+            }
+            catch (ODataError ex) when (IsUnsupportedUserFilter(ex))
+            {
+                rejectedFilter = ex;
+                _logger.LogWarning(
+                    ex,
+                    "Microsoft Graph rejected the {Property} user lookup filter; trying another identifier.",
+                    property);
+            }
+        }
+
+        if (!anyFilterAccepted && rejectedFilter is not null)
+            throw rejectedFilter;
+
+        return null;
+    }
+
+    private static async Task<User?> QueryUserAsync(
+        GraphServiceClient client,
+        string filter,
+        CancellationToken cancellationToken)
+    {
         var response = await client.Users.GetAsync(
             requestConfiguration =>
             {
@@ -76,6 +135,20 @@ public sealed class TeamsCommunicationGraphClient(ILogger<TeamsCommunicationGrap
             cancellationToken);
 
         return response?.Value?.FirstOrDefault();
+    }
+
+    /// <summary>
+    /// True when Graph refused the filter itself. An authorization or throttling error is not a
+    /// filter rejection and must still fail the hello-world test.
+    /// </summary>
+    private static bool IsUnsupportedUserFilter(ODataError error)
+    {
+        if (string.Equals(error.Error?.Code, "Request_UnsupportedQuery", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var message = error.Error?.Message ?? error.Message;
+        return message.Contains("Unsupported", StringComparison.OrdinalIgnoreCase)
+            && message.Contains("filter", StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task CreateHelloWorldChatAsync(
@@ -108,21 +181,28 @@ public sealed class TeamsCommunicationGraphClient(ILogger<TeamsCommunicationGrap
             throw new InvalidOperationException("Graph returned a chat without an id for the hello-world test.");
     }
 
-    private static async Task CreateHelloWorldCalendarEventAsync(
+    private async Task CreateHelloWorldCalendarEventAsync(
         GraphServiceClient client,
         string userId,
         CancellationToken cancellationToken)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var start = today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
-        var end = today.AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
-
+        // Graph rejects a date-only value for an all-day event. The day starts at midnight and the
+        // end is the next midnight; the time zone is carried separately, so the timestamp has no offset.
+        var startDate = _dateTimeProvider.Today;
         var calendarEvent = new Event
         {
             Subject = HelloWorldEventSubject,
             IsAllDay = true,
-            Start = new DateTimeTimeZone { DateTime = start, TimeZone = "UTC" },
-            End = new DateTimeTimeZone { DateTime = end, TimeZone = "UTC" },
+            Start = new DateTimeTimeZone
+            {
+                DateTime = GraphMidnight(startDate),
+                TimeZone = "UTC",
+            },
+            End = new DateTimeTimeZone
+            {
+                DateTime = GraphMidnight(startDate.PlusDays(1)),
+                TimeZone = "UTC",
+            },
             Body = new ItemBody
             {
                 ContentType = BodyType.Text,
@@ -132,4 +212,7 @@ public sealed class TeamsCommunicationGraphClient(ILogger<TeamsCommunicationGrap
 
         await client.Users[userId].Calendar.Events.PostAsync(calendarEvent, cancellationToken: cancellationToken);
     }
+
+    private static string GraphMidnight(LocalDate date) =>
+        $"{date.Year:0000}-{date.Month:00}-{date.Day:00}T00:00:00";
 }

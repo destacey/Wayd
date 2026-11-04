@@ -6,10 +6,14 @@ import {
   TeamsConnectionDetailsDto,
 } from '@/src/services/wayd-api'
 import { useTestCommunicationConnectionMutation } from '@/src/store/features/app-integration/connections-api'
+import { toApiError } from '@/src/utils'
 import { Collapse } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { useEffect, useMemo } from 'react'
-import { DetailEntry, ConnectionActionContext } from '../_components/detail-registry'
+import {
+  DetailEntry,
+  ConnectionActionContext,
+} from '../_components/detail-registry'
 import GenericConnectionDetails from '../_components/generic-connection-details'
 import { TeamsSetupGuide } from '../../_components/teams-setup-guide'
 
@@ -36,7 +40,11 @@ const Details = ({ connection }: { connection: ConnectionDetailsDto }) => {
         configFields={[
           { label: 'Tenant ID', value: config?.tenantId },
           { label: 'Client ID', value: config?.clientId },
-          { label: 'Client Secret', value: config?.clientSecret, sensitive: true },
+          {
+            label: 'Client Secret',
+            value: config?.clientSecret,
+            sensitive: true,
+          },
         ]}
       />
     </>
@@ -51,7 +59,8 @@ const ExtraActions = ({
   setItems: (items: ItemType[]) => void
 }) => {
   const messageApi = useMessage()
-  const [testConnection, { isLoading }] = useTestCommunicationConnectionMutation()
+  const [testConnection, { isLoading }] =
+    useTestCommunicationConnectionMutation()
 
   const items = useMemo<ItemType[]>(() => {
     const runTest = async () => {
@@ -63,10 +72,11 @@ const ExtraActions = ({
         messageApi.success(
           'Connection test sent. Check Teams for a chat named Wayd connection test and your calendar for the test event.',
         )
-      } catch (e: unknown) {
-        console.error(e)
+      } catch (error: unknown) {
+        const apiError = toApiError(error)
         messageApi.error(
-          'The connection test failed. Confirm admin consent, permissions, and that your Wayd email exists in the tenant.',
+          apiError.detail ??
+            'The connection test failed. Confirm admin consent, permissions, and that your Wayd email exists in the tenant.',
         )
       }
     }
@@ -79,13 +89,7 @@ const ExtraActions = ({
         onClick: runTest,
       },
     ]
-  }, [
-    ctx.canUpdate,
-    ctx.connectionId,
-    isLoading,
-    messageApi,
-    testConnection,
-  ])
+  }, [ctx.canUpdate, ctx.connectionId, isLoading, messageApi, testConnection])
 
   useEffect(() => {
     setItems(items)

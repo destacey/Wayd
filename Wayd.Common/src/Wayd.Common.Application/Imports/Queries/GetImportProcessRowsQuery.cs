@@ -2,6 +2,7 @@ using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports.Dtos;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Enums.Imports;
 
@@ -16,22 +17,22 @@ namespace Wayd.Common.Application.Imports.Queries;
 /// </remarks>
 public sealed record GetImportProcessRowsQuery(
     Guid ImportProcessId,
-    ImportRowStatus? Status = null,
-    int PageNumber = 1,
-    int PageSize = 50) : IQuery<Result<ImportProcessRowPageDto>>;
+    PageRequest Paging,
+    ImportRowStatus? Status = null) : IQuery<Result<PagedResponse<ImportProcessRowDto>>>, IPagedQuery;
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetImportProcessRowsQueryValidator : PagedQueryValidator<GetImportProcessRowsQuery>;
 
 public sealed class GetImportProcessRowsQueryHandler(
     IImportDbContext importDbContext,
     IImportDefinitionRegistry registry,
-    ICurrentPrincipal currentPrincipal) : IQueryHandler<GetImportProcessRowsQuery, Result<ImportProcessRowPageDto>>
+    ICurrentPrincipal currentPrincipal) : IQueryHandler<GetImportProcessRowsQuery, Result<PagedResponse<ImportProcessRowDto>>>
 {
-    private const int MaxPageSize = 500;
-
     private readonly IImportDbContext _importDbContext = importDbContext;
     private readonly IImportDefinitionRegistry _registry = registry;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
 
-    public async Task<Result<ImportProcessRowPageDto>> Handle(
+    public async Task<Result<PagedResponse<ImportProcessRowDto>>> Handle(
         GetImportProcessRowsQuery query, CancellationToken cancellationToken)
     {
         var importType = await _importDbContext.ImportProcesses
@@ -41,16 +42,13 @@ public sealed class GetImportProcessRowsQueryHandler(
             .FirstOrDefaultAsync(cancellationToken);
 
         if (importType is null)
-            return Result.Failure<ImportProcessRowPageDto>($"Import process '{query.ImportProcessId}' was not found.");
+            return Result.Failure<PagedResponse<ImportProcessRowDto>>($"Import process '{query.ImportProcessId}' was not found.");
 
         var definition = await ImportAuthorization.ResolveForRead(
             _registry, _currentPrincipal, importType, cancellationToken);
 
         if (definition.IsFailure)
-            return Result.Failure<ImportProcessRowPageDto>(definition.Error);
-
-        var pageNumber = Math.Max(query.PageNumber, 1);
-        var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
+            return Result.Failure<PagedResponse<ImportProcessRowDto>>(definition.Error);
 
         var rows = _importDbContext.ImportProcesses
             .AsNoTracking()
@@ -62,8 +60,8 @@ public sealed class GetImportProcessRowsQueryHandler(
 
         var page = await rows
             .OrderBy(r => r.RowNumber)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
+            .Skip(query.Paging.Skip)
+            .Take(query.Paging.PageSize)
             .Select(r => new ImportProcessRowDto(
                 r.Id, r.ImportId, r.RowNumber, r.Status, r.CreatedEntityId, r.Error, r.Warning, r.AttemptedOn))
             .ToListAsync(cancellationToken);
@@ -83,6 +81,6 @@ public sealed class GetImportProcessRowsQueryHandler(
                 : r)];
         }
 
-        return Result.Success(new ImportProcessRowPageDto(page, totalCount, pageNumber, pageSize));
+        return Result.Success(new PagedResponse<ImportProcessRowDto>(page, totalCount, query.Paging.Page, query.Paging.PageSize));
     }
 }

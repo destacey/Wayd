@@ -4,6 +4,7 @@ using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Imports.Dtos;
 using Wayd.Common.Application.Imports.Queries;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Tests.Infrastructure;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
@@ -62,9 +63,9 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
         return process;
     }
 
-    private Task<CSharpFunctionalExtensions.Result<ImportProcessPageDto>> Get(
+    private Task<CSharpFunctionalExtensions.Result<PagedResponse<ImportProcessDto>>> Get(
         GetImportProcessesQuery? query = null) =>
-        CreateHandler().Handle(query ?? new GetImportProcessesQuery(), TestContext.Current.CancellationToken);
+        CreateHandler().Handle(query ?? new GetImportProcessesQuery(new PageRequest()), TestContext.Current.CancellationToken);
 
     [Fact]
     public async Task Handle_ListsOnlyTheTypesTheCallerMaySee()
@@ -78,7 +79,7 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
 
         // Assert
         result.Value.TotalCount.Should().Be(1);
-        result.Value.Processes.Single().Id.Should().Be(mine.Id);
+        result.Value.Items.Single().Id.Should().Be(mine.Id);
     }
 
     [Fact]
@@ -94,7 +95,7 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Processes.Should().BeEmpty();
+        result.Value.Items.Should().BeEmpty();
         result.Value.TotalCount.Should().Be(0);
     }
 
@@ -105,7 +106,7 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
         AddRun(_teams, _now);
 
         // Act
-        var result = await Get(new GetImportProcessesQuery(ImportType: _teams.Key));
+        var result = await Get(new GetImportProcessesQuery(new PageRequest(), ImportType: _teams.Key));
 
         // Assert — the same answer an unknown type gets
         result.IsFailure.Should().BeTrue();
@@ -123,7 +124,7 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
         var result = await Get();
 
         // Assert
-        result.Value.Processes.Select(p => p.Id).Should().Equal(newer.Id, older.Id);
+        result.Value.Items.Select(p => p.Id).Should().Equal(newer.Id, older.Id);
     }
 
     [Fact]
@@ -135,10 +136,10 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
         AddRun(_employees, _now - Duration.FromHours(1));
 
         // Act
-        var result = await Get(new GetImportProcessesQuery(Status: ImportProcessStatus.Processing));
+        var result = await Get(new GetImportProcessesQuery(new PageRequest(), Status: ImportProcessStatus.Processing));
 
         // Assert
-        result.Value.Processes.Single().Id.Should().Be(running.Id);
+        result.Value.Items.Single().Id.Should().Be(running.Id);
     }
 
     [Fact]
@@ -149,10 +150,10 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
         AddRun(_employees, _now, userId: "user-2");
 
         // Act
-        var result = await Get(new GetImportProcessesQuery(SubmittedByUserId: "user-1"));
+        var result = await Get(new GetImportProcessesQuery(new PageRequest(), SubmittedByUserId: "user-1"));
 
         // Assert
-        result.Value.Processes.Single().Id.Should().Be(mine.Id);
+        result.Value.Items.Single().Id.Should().Be(mine.Id);
     }
 
     [Fact]
@@ -165,10 +166,10 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
         AddRun(_employees, _now.Plus(Duration.FromMinutes(2)));
 
         // Act
-        var result = await Get(new GetImportProcessesQuery(SubmissionGroupId: groupId));
+        var result = await Get(new GetImportProcessesQuery(new PageRequest(), SubmissionGroupId: groupId));
 
         // Assert
-        result.Value.Processes.Select(p => p.Id).Should().BeEquivalentTo([first.Id, second.Id]);
+        result.Value.Items.Select(p => p.Id).Should().BeEquivalentTo([first.Id, second.Id]);
     }
 
     [Fact]
@@ -182,7 +183,7 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
         var result = await Get();
 
         // Assert
-        result.Value.Processes.Single().SubmittedByName.Should().Be("Dana Reyes");
+        result.Value.Items.Single().SubmittedByName.Should().Be("Dana Reyes");
     }
 
     [Fact]
@@ -195,7 +196,7 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
         var result = await Get();
 
         // Assert
-        var run = result.Value.Processes.Single();
+        var run = result.Value.Items.Single();
         run.SubmittedByName.Should().BeNull();
         run.SubmittedByUserId.Should().Be("long-gone");
     }
@@ -211,23 +212,27 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
         var result = await Get();
 
         // Assert
-        var run = result.Value.Processes.Single();
+        var run = result.Value.Items.Single();
         run.DisplayName.Should().Be(_employees.DisplayName);
         run.Atomicity.Should().Be(ImportAtomicity.Atomic);
     }
 
     [Fact]
-    public async Task Handle_ClampsAPageSizeNobodyShouldAskFor()
+    public async Task Handle_PagesWithoutLosingTheTotal()
     {
         // Arrange
-        AddRun(_employees, _now);
+        var runs = Enumerable.Range(0, 5)
+            .Select(i => AddRun(_employees, _now.Plus(Duration.FromMinutes(i))))
+            .ToList();
 
         // Act
-        var result = await Get(new GetImportProcessesQuery(PageNumber: 0, PageSize: 100_000));
+        var result = await Get(new GetImportProcessesQuery(new PageRequest(2, 2)));
 
-        // Assert
-        result.Value.PageNumber.Should().Be(1);
-        result.Value.PageSize.Should().Be(500);
+        // Assert — newest first, so the second page holds the third and fourth newest
+        result.Value.TotalCount.Should().Be(5);
+        result.Value.TotalPages.Should().Be(3);
+        result.Value.PageNumber.Should().Be(2);
+        result.Value.Items.Select(p => p.Id).Should().Equal(runs[2].Id, runs[1].Id);
     }
 
     [Fact]
@@ -262,7 +267,7 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
         var result = await Get();
 
         // Assert — the UI has no other way to know which of its buttons would be refused
-        result.Value.Processes.Single().CanManage.Should().BeFalse();
+        result.Value.Items.Single().CanManage.Should().BeFalse();
     }
 
     [Fact]
@@ -275,7 +280,7 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
         var result = await Get();
 
         // Assert
-        result.Value.Processes.Single().CanManage.Should().BeTrue();
+        result.Value.Items.Single().CanManage.Should().BeTrue();
     }
 
     [Fact]
@@ -290,7 +295,7 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
         var result = await Get();
 
         // Assert
-        var listed = result.Value.Processes.Should().ContainSingle().Subject;
+        var listed = result.Value.Items.Should().ContainSingle().Subject;
         listed.Id.Should().Be(run.Id);
         listed.CanManage.Should().BeFalse();
     }
@@ -312,7 +317,7 @@ public sealed class GetImportProcessesQueryHandlerTests : IDisposable
         var result = await Get();
 
         // Assert
-        result.Value.Processes.Single(p => p.Id == mine.Id).CanManage.Should().BeTrue();
-        result.Value.Processes.Single(p => p.Id == theirs.Id).CanManage.Should().BeFalse();
+        result.Value.Items.Single(p => p.Id == mine.Id).CanManage.Should().BeTrue();
+        result.Value.Items.Single(p => p.Id == theirs.Id).CanManage.Should().BeFalse();
     }
 }

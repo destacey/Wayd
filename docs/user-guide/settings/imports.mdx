@@ -111,8 +111,8 @@ form of the group id and filters like any other column; a file submitted on its 
 
 Open a run to go to its page, which shows each row's outcome and updates while the run is still going. It
 opens on the **rejected** rows when there are any, since that is usually why you came, and each carries
-the reason it was refused and the line it came from. The page lists up to 500 rows for each filter; a
-larger run says how many more there are. The page has its own address, so a run can be
+the reason it was refused and the line it came from. The rows come 50 to a page, in line order; the pager
+above the grid moves between pages and shows up to 500 at a time. The page has its own address, so a run can be
 bookmarked or shared with someone who may see that kind of import. A run that was submitted as part of
 a batch lists the batch's other files under **Submitted With**, each with its status, so a seed or a
 split export can be walked file by file from any of them.
@@ -232,7 +232,7 @@ kind it is.
 | Automatic attempts | 3. An attempt that fails unexpectedly hands the run back to the queue, and the next carries on from the saved progress. After the third the run ends as **Failed**, and **Resume** takes it on from there. |
 | Stalled runs | A run queued for 15 minutes with no worker is republished; one with no progress for 30 minutes is failed so it can be resumed. Checked every five minutes by `import-stall-recovery`. A preflight records no progress until it finishes, so one that runs longer than 30 minutes is failed the same way — split the file. |
 | Retention | Submitted row data is discarded 30 days after a run finishes, nightly, by `import-retention-sweep`. The run and its per-row outcomes stay; the rows can no longer be retried. |
-| Listing | The imports list and a run's row list each return at most 500 entries per request; a larger run says how many more there are. |
+| Listing | The imports list and a run's row list are paged, 50 entries to a page by default and at most 500. The imports list in Settings shows the newest 500 runs and says how many more there are. |
 
 ## Who sees what
 

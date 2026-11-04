@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Wayd.Common.Application.Models;
 
 namespace Wayd.Common.Application.BackgroundJobs;
 
@@ -6,8 +7,8 @@ public interface IJobService : IScopedService
 {
     IEnumerable<BackgroundJobDto> GetRunningJobs();
 
-    /// <summary>A page of jobs in one lifecycle state. <paramref name="pageNumber"/> is 0-based.</summary>
-    JobPageDto GetJobs(JobStateFilter state, int pageNumber, int pageSize);
+    /// <summary>A page of jobs in one lifecycle state, in the order Hangfire keeps that state's list.</summary>
+    PagedResponse<JobSummaryDto> GetJobs(JobStateFilter state, PageRequest paging);
 
     /// <summary>Full detail for one job, or null when the id is unknown or its record has expired.</summary>
     JobDetailDto? GetJobDetail(string jobId);

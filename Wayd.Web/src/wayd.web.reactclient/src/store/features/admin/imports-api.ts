@@ -1,10 +1,10 @@
 import {
   ImportDefinitionDto,
   ImportProcessDto,
-  ImportProcessPageDto,
-  ImportProcessRowPageDto,
   ImportProcessStatus,
   ImportRowStatus,
+  PagedResponseOfImportProcessDto,
+  PagedResponseOfImportProcessRowDto,
   ResumedImport,
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
@@ -37,14 +37,16 @@ export interface GetImportProcessesRequest {
   submittedByUserId?: string
   /** Only the runs of one batch — the files a caller posted together. */
   submissionGroupId?: string
-  pageNumber?: number
+  /** 1-based. */
+  page?: number
   pageSize?: number
 }
 
 export interface GetImportProcessRowsRequest {
   importProcessId: string
   status?: ImportRowStatus
-  pageNumber?: number
+  /** 1-based. */
+  page?: number
   pageSize?: number
   /**
    * Never sent — part of the cache key only, so the rows are read again each time the run moves on. The
@@ -230,7 +232,7 @@ const SUBMITTERS: Record<
 export const importsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getImportProcesses: builder.query<
-      ImportProcessPageDto,
+      PagedResponseOfImportProcessDto,
       GetImportProcessesRequest
     >({
       queryFn: async (request) => {
@@ -240,7 +242,7 @@ export const importsApi = apiSlice.injectEndpoints({
             request.importType,
             request.submittedByUserId,
             request.submissionGroupId,
-            request.pageNumber,
+            request.page,
             request.pageSize,
           )
           return { data }
@@ -251,7 +253,7 @@ export const importsApi = apiSlice.injectEndpoints({
       },
       providesTags: (result) => [
         QueryTags.ImportProcess,
-        ...(result?.processes?.map(({ id }) => ({
+        ...(result?.items?.map(({ id }) => ({
           type: QueryTags.ImportProcess,
           id,
         })) ?? []),
@@ -272,7 +274,7 @@ export const importsApi = apiSlice.injectEndpoints({
       ],
     }),
     getImportProcessRows: builder.query<
-      ImportProcessRowPageDto,
+      PagedResponseOfImportProcessRowDto,
       GetImportProcessRowsRequest
     >({
       queryFn: async (request) => {
@@ -280,7 +282,7 @@ export const importsApi = apiSlice.injectEndpoints({
           const data = await getImportsClient().getRows(
             request.importProcessId,
             request.status,
-            request.pageNumber,
+            request.page,
             request.pageSize,
           )
           return { data }

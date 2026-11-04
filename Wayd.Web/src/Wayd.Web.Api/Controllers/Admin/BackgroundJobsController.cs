@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Application.BackgroundJobs;
 using Wayd.Common.Application.Enums;
+using Wayd.Common.Application.Models;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Interfaces;
 using Wayd.Web.Api.Models.Admin;
@@ -148,13 +149,21 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
     [MustHavePermission(ApplicationAction.View, ApplicationResource.BackgroundJobs)]
     [EndpointSummary("Get a page of jobs in the given lifecycle state.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public ActionResult<JobsResponse> GetJobs(
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public ActionResult<PagedResponse<JobSummaryResponse>> GetJobs(
         [FromQuery] JobStateFilter state = JobStateFilter.Processing,
-        [FromQuery] int pageNumber = 0,
-        [FromQuery] int pageSize = 50)
+        [FromQuery] int page = PageRequest.FirstPage,
+        [FromQuery] int pageSize = PageSizes.Default)
     {
-        var page = _jobService.GetJobs(state, Math.Max(pageNumber, 0), Math.Clamp(pageSize, 1, 500));
-        return Ok(JobsResponse.From(page));
+        var paging = new PageRequest(page, pageSize);
+        if (!paging.IsValid(ModelState))
+        {
+            return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
+        }
+
+        var jobs = _jobService.GetJobs(state, paging);
+        return Ok(new PagedResponse<JobSummaryResponse>(
+            [.. jobs.Items.Select(JobSummaryResponse.From)], jobs.TotalCount, jobs.PageNumber, jobs.PageSize));
     }
 
     [HttpGet("jobs/{jobId}")]

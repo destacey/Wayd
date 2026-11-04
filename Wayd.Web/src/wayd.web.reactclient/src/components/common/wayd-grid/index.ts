@@ -123,3 +123,11 @@ export {
 export { default as WaydGridToolbar } from '../wayd-grid-core/grid-toolbar'
 export type { GridToolbarProps as WaydGridToolbarProps } from '../wayd-grid-core/grid-toolbar'
 export { default as WaydGrid } from './wayd-grid'
+
+// Page controls for a grid over a server-paged list (PagedResponse)
+export {
+  default as WaydGridPager,
+  useGridPaging,
+  GRID_PAGE_SIZE_OPTIONS,
+} from './wayd-grid-pager'
+export type { GridPaging, WaydGridPagerProps } from './wayd-grid-pager'

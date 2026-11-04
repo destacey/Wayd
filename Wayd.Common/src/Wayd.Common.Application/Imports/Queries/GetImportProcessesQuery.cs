@@ -2,6 +2,7 @@ using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports.Dtos;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Imports;
@@ -12,33 +13,30 @@ namespace Wayd.Common.Application.Imports.Queries;
 /// A page of import runs, newest first, narrowed to the types this caller may see.
 /// </summary>
 public sealed record GetImportProcessesQuery(
+    PageRequest Paging,
     ImportProcessStatus? Status = null,
     string? ImportType = null,
     string? SubmittedByUserId = null,
-    Guid? SubmissionGroupId = null,
-    int PageNumber = 1,
-    int PageSize = 25) : IQuery<Result<ImportProcessPageDto>>;
+    Guid? SubmissionGroupId = null) : IQuery<Result<PagedResponse<ImportProcessDto>>>, IPagedQuery;
+
+/// <summary>Bounds the page a caller may ask for.</summary>
+public sealed class GetImportProcessesQueryValidator : PagedQueryValidator<GetImportProcessesQuery>;
 
 public sealed class GetImportProcessesQueryHandler(
     IImportDbContext importDbContext,
     IWaydDbContext waydDbContext,
     IImportDefinitionRegistry registry,
-    ICurrentPrincipal currentPrincipal) : IQueryHandler<GetImportProcessesQuery, Result<ImportProcessPageDto>>
+    ICurrentPrincipal currentPrincipal) : IQueryHandler<GetImportProcessesQuery, Result<PagedResponse<ImportProcessDto>>>
 {
-    // Matches the row listing's cap so the page can use one number for both. The Settings grid asks for a
-    // single large page and filters client-side rather than paging over the wire.
-    private const int MaxPageSize = 500;
-
     private readonly IImportDbContext _importDbContext = importDbContext;
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly IImportDefinitionRegistry _registry = registry;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
 
-    public async Task<Result<ImportProcessPageDto>> Handle(
+    public async Task<Result<PagedResponse<ImportProcessDto>>> Handle(
         GetImportProcessesQuery query, CancellationToken cancellationToken)
     {
-        var pageNumber = Math.Max(query.PageNumber, 1);
-        var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
+        var paging = query.Paging;
 
         var viewable = await ImportAuthorization.Viewable(_registry, _currentPrincipal, cancellationToken);
 
@@ -49,7 +47,7 @@ public sealed class GetImportProcessesQueryHandler(
             // An unknown type and one the caller cannot see are the same answer on purpose: telling them
             // apart would report which import types exist to someone not allowed to know.
             if (viewable.Count == 0)
-                return Result.Failure<ImportProcessPageDto>($"No import type '{query.ImportType}' is available to you.");
+                return Result.Failure<PagedResponse<ImportProcessDto>>($"No import type '{query.ImportType}' is available to you.");
         }
 
         var byKey = viewable.ToDictionary(d => d.Key, StringComparer.OrdinalIgnoreCase);
@@ -60,7 +58,7 @@ public sealed class GetImportProcessesQueryHandler(
         var manageableKeys = manageable.Select(d => d.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         if (byKey.Count == 0)
-            return Result.Success(new ImportProcessPageDto([], 0, pageNumber, pageSize));
+            return Result.Success(new PagedResponse<ImportProcessDto>([], 0, paging.Page, paging.PageSize));
 
         var keys = byKey.Keys.ToList();
 
@@ -76,21 +74,21 @@ public sealed class GetImportProcessesQueryHandler(
         var page = await runs
             .OrderByDescending(p => p.SubmittedOn)
             .ThenByDescending(p => p.Id)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
+            .Skip(paging.Skip)
+            .Take(paging.PageSize)
             .ToListAsync(cancellationToken);
 
         var names = await ResolveSubmitterNames(page, cancellationToken);
 
-        return Result.Success(new ImportProcessPageDto(
+        return Result.Success(new PagedResponse<ImportProcessDto>(
             [.. page.Select(p => Map(
                 p,
                 byKey[p.ImportType],
                 names.GetValueOrDefault(p.SubmittedByUserId),
                 manageableKeys.Contains(p.ImportType)))],
             totalCount,
-            pageNumber,
-            pageSize));
+            paging.Page,
+            paging.PageSize));
     }
 
     /// <summary>

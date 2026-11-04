@@ -66,7 +66,7 @@ const ImportsPage = () => {
   const { handleCancel, handleResume, handleRetryFailed, handleApply } =
     useImportActions()
 
-  const imports = data?.processes
+  const imports = data?.items
   const activeCount = imports?.filter((i) => isRunning(i.status)).length ?? 0
 
   // The tick that sees the last run finish is also the one that turns polling off.

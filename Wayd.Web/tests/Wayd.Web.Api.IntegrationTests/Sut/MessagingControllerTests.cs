@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Wayd.Common.Application.Models;
 using Wayd.Web.Api.Controllers.Admin;
 using Wayd.Web.Api.Models.Admin.Messaging;
 using Wayd.Web.Api.IntegrationTests.Infrastructure;
@@ -51,7 +52,7 @@ public sealed class MessagingControllerTests(WaydSqlServerApiFactory factory)
         var detailResponse = await controller.GetDeadLetterById(envelopeId);
 
         // Assert — the seeded envelope shows up in the page with its failure metadata...
-        var page = Assert.IsType<DeadLetterMessagesResponse>(Assert.IsType<OkObjectResult>(listResponse.Result).Value);
+        var page = Assert.IsType<PagedResponse<DeadLetterMessageResponse>>(Assert.IsType<OkObjectResult>(listResponse.Result).Value);
         Assert.True(page.TotalCount >= 1);
         var summary = Assert.Single(page.Items, i => i.Id == envelopeId);
         Assert.Equal(FakeMessageType, summary.MessageType);
@@ -63,6 +64,29 @@ public sealed class MessagingControllerTests(WaydSqlServerApiFactory factory)
         Assert.Equal(envelopeId, detail.Id);
         Assert.NotNull(detail.Body);
         Assert.Contains("\"marker\"", detail.Body);
+    }
+
+    [Fact]
+    public async Task GetDeadLetters_ReadsEachPageInTurn()
+    {
+        // Arrange — a type of its own, so dead letters other tests seed do not land on these pages
+        var ct = TestContext.Current.CancellationToken;
+        var controller = CreateController();
+        var messageType = $"{FakeMessageType}.Paging.{Guid.NewGuid():N}";
+        var seeded = new[] { await SeedDeadLetter(ct, messageType), await SeedDeadLetter(ct, messageType) };
+
+        // Act
+        var first = await controller.GetDeadLetters(ct, messageType: messageType, page: 1, pageSize: 1);
+        var second = await controller.GetDeadLetters(ct, messageType: messageType, page: 2, pageSize: 1);
+
+        // Assert — page 2 is the second message, not the first again
+        var firstPage = Assert.IsType<PagedResponse<DeadLetterMessageResponse>>(Assert.IsType<OkObjectResult>(first.Result).Value);
+        var secondPage = Assert.IsType<PagedResponse<DeadLetterMessageResponse>>(Assert.IsType<OkObjectResult>(second.Result).Value);
+        Assert.Equal(2, secondPage.TotalCount);
+        Assert.Equal(2, secondPage.PageNumber);
+        Assert.Equal(
+            seeded.Order(),
+            new[] { Assert.Single(firstPage.Items).Id, Assert.Single(secondPage.Items).Id }.Order());
     }
 
     [Fact]
@@ -154,7 +178,7 @@ public sealed class MessagingControllerTests(WaydSqlServerApiFactory factory)
         };
     }
 
-    private async Task<Guid> SeedDeadLetter(CancellationToken ct)
+    private async Task<Guid> SeedDeadLetter(CancellationToken ct, string messageType = FakeMessageType)
     {
         _ = ct; // MoveToDeadLetterStorageAsync has no cancellable overload.
 
@@ -163,7 +187,7 @@ public sealed class MessagingControllerTests(WaydSqlServerApiFactory factory)
         var envelope = new Envelope
         {
             Id = Guid.NewGuid(),
-            MessageType = FakeMessageType,
+            MessageType = messageType,
             Data = JsonSerializer.SerializeToUtf8Bytes(new { marker = "dead-letter-integration-test" }),
             ContentType = "application/json",
             Destination = new Uri("local://durable/"),

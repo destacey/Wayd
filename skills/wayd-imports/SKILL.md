@@ -30,7 +30,7 @@ A preflight is **advice, not a promise**. Each row is checked again when it is a
 3. **Write the CSV.** Start from the `header` string. Every column must be present even when no row fills it, or the whole file is refused with `Header with name 'X' was not found`.
 4. **`Imports_Preflight`** with `importType`, the CSV text in `file`, and a second file where the format lists one (`manifestFile`, `contentsFile`, `kpiFile`).
 5. **Wait for it.** The answer is the run. If `isTerminal` is false, poll `Imports_GetById` until it is true.
-6. **`Imports_GetRows`** with `status: Failed` — each refused row's `importId` and `error`. Rows with a `warning` would be imported but record something worth telling the user. A page holds at most 500 rows: page until `totalCount` is covered before telling the user every row passed.
+6. **`Imports_GetRows`** with `status: Failed` — each refused row's `importId` and `error`. Rows with a `warning` would be imported but record something worth telling the user. Rows come 50 to a `page` unless you ask for a larger `pageSize` (at most 500): while `hasNextPage` is true, ask for the next `page` before telling the user every row passed.
 7. **Fix and check again**, or present the result. Fix the file, or the data a row depends on, then run a new preflight. A preflight cannot be resumed or retried.
 8. **`Imports_Apply`** with the preflight's `id`, once the user agrees. First check the preflight's `appliedImportProcessId` (from `Imports_GetById`): if it is set, the rows went in once already, and applying again refuses them as duplicates where the import has a natural key but **creates them a second time** where it has none. Apply answers with a **new** run; follow it as in step 5 and read its rows as in step 6.
 

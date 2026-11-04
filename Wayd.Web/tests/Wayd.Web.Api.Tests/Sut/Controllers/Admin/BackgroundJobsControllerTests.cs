@@ -6,11 +6,13 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Moq.AutoMock;
 using Wayd.Common.Application.BackgroundJobs;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Infrastructure.Auth.Permissions;
 using Wayd.Web.Api.Controllers.Admin;
 using Wayd.Web.Api.Interfaces;
 using Wayd.Web.Api.Models.Admin;
+using Wayd.Web.Api.Models.Admin.BackgroundJobs;
 
 namespace Wayd.Web.Api.Tests.Sut.Controllers.Admin;
 
@@ -164,39 +166,38 @@ public sealed class BackgroundJobsControllerTests
         result.Result.Should().BeOfType<NotFoundResult>();
     }
 
-    [Theory]
-    [InlineData(-5, 0)]
-    [InlineData(0, 0)]
-    [InlineData(3, 3)]
-    public void GetJobs_ClampsNegativePageNumbersToZero(int requested, int expected)
+    [Fact]
+    public void GetJobs_ReadsTheRequestedPage()
     {
         // Arrange
         _mocker.GetMock<IJobService>()
-            .Setup(s => s.GetJobs(It.IsAny<JobStateFilter>(), It.IsAny<int>(), It.IsAny<int>()))
-            .Returns(new JobPageDto());
+            .Setup(s => s.GetJobs(It.IsAny<JobStateFilter>(), It.IsAny<PageRequest>()))
+            .Returns(new PagedResponse<JobSummaryDto>([], 120, 3, 25));
 
         // Act
-        CreateController().GetJobs(JobStateFilter.Failed, requested, 50);
+        var result = CreateController().GetJobs(JobStateFilter.Failed, 3, 25);
 
         // Assert
-        _mocker.GetMock<IJobService>().Verify(s => s.GetJobs(JobStateFilter.Failed, expected, 50), Times.Once);
+        _mocker.GetMock<IJobService>().Verify(s => s.GetJobs(JobStateFilter.Failed, new PageRequest(3, 25)), Times.Once);
+        var page = result.Result.Should().BeOfType<OkObjectResult>().Which.Value.Should().BeOfType<PagedResponse<JobSummaryResponse>>().Subject;
+        page.TotalCount.Should().Be(120);
+        page.PageNumber.Should().Be(3);
     }
 
     [Theory]
-    [InlineData(0, 1)]
-    [InlineData(50, 50)]
-    [InlineData(9000, 500)]
-    public void GetJobs_ClampsPageSizeToTheSupportedRange(int requested, int expected)
+    [InlineData(0, 50, "Page")]
+    [InlineData(1, 0, "PageSize")]
+    [InlineData(1, 9000, "PageSize")]
+    public void GetJobs_ForAPageOutsideTheSharedBounds_IsRefusedWithoutReadingTheJobStore(int page, int pageSize, string parameter)
     {
-        // Arrange
-        _mocker.GetMock<IJobService>()
-            .Setup(s => s.GetJobs(It.IsAny<JobStateFilter>(), It.IsAny<int>(), It.IsAny<int>()))
-            .Returns(new JobPageDto());
-
         // Act
-        CreateController().GetJobs(JobStateFilter.Processing, 0, requested);
+        var result = CreateController().GetJobs(JobStateFilter.Processing, page, pageSize);
 
-        // Assert — an unbounded page size lets one request pull the whole job store.
-        _mocker.GetMock<IJobService>().Verify(s => s.GetJobs(JobStateFilter.Processing, 0, expected), Times.Once);
+        // Assert — an unbounded page size lets one request pull the whole job store. The failure names the
+        // query parameter, as a query's validator would.
+        var problem = result.Result.Should().BeOfType<UnprocessableEntityObjectResult>()
+            .Which.Value.Should().BeAssignableTo<ValidationProblemDetails>().Subject;
+        problem.Errors.Keys.Should().Equal(parameter);
+        _mocker.GetMock<IJobService>().Verify(s => s.GetJobs(It.IsAny<JobStateFilter>(), It.IsAny<PageRequest>()), Times.Never);
     }
 }

@@ -3,11 +3,13 @@
 import PageTitle from '@/src/components/common/page-title'
 import {
   WaydGrid,
+  WaydGridPager,
   createActionsColumn,
+  useGridPaging,
 } from '@/src/components/common/wayd-grid'
 import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
 import { useMemo, useState } from 'react'
-import { Button, Flex, Typography } from 'antd'
+import { Button, Flex } from 'antd'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import type { ItemType } from 'antd/es/menu/interface'
 import { authorizePage } from '@/src/components/hoc'
@@ -23,17 +25,13 @@ import useDeadLetterActions, {
   shortTypeName,
 } from './_components/use-dead-letter-actions'
 
-// The server caps a dead letter query page at 500. Fetch one max-size page and
-// let the grid filter/sort client-side; the tile + overflow note carry the true
-// total when the queue is (pathologically) deeper than that.
-const DEAD_LETTER_PAGE_SIZE = 500
-
 const MessagingPage = () => {
   useDocumentTitle('Messaging')
   const [viewingDeadLetterId, setViewingDeadLetterId] = useState<string | null>(
     null,
   )
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const paging = useGridPaging()
 
   const { hasPermissionClaim } = useAuth()
   const canReplay = hasPermissionClaim('Permissions.Messaging.Run')
@@ -46,11 +44,20 @@ const MessagingPage = () => {
     refetch: refetchCounts,
   } = useGetMessagingCountsQuery()
 
+  // `currentData` for the rows and `data` for the pager, as in the jobs grid: a page that is still
+  // loading shows no rows rather than the last page's.
   const {
-    data: deadLetters,
-    isLoading: deadLettersLoading,
+    data: lastDeadLetters,
+    currentData: deadLetters,
+    isFetching: deadLettersFetching,
     refetch: refetchDeadLetters,
-  } = useGetDeadLettersQuery({ pageSize: DEAD_LETTER_PAGE_SIZE })
+  } = useGetDeadLettersQuery({
+    page: paging.page,
+    pageSize: paging.pageSize,
+  })
+
+  // Replaying or discarding the last messages on the last page leaves it empty.
+  paging.keepInRange(lastDeadLetters?.totalPages)
 
   const { handleReplay, handleDiscard } = useDeadLetterActions()
 
@@ -158,9 +165,6 @@ const MessagingPage = () => {
     ]
   }, [showRowActions, canReplay, canDiscard, handleReplay, handleDiscard])
 
-  const deadLetterOverflow =
-    deadLetters && deadLetters.totalCount > deadLetters.items.length
-
   return (
     <div className="page-gutters">
       <PageTitle title="Messaging" />
@@ -208,17 +212,16 @@ const MessagingPage = () => {
         columns={columns}
         data={deadLetters?.items}
         onRefresh={refresh}
-        isLoading={deadLettersLoading}
+        isLoading={!deadLetters && deadLettersFetching}
         persistStateKey="settings-messaging-dead-letters"
         csvFileName="dead-letter-messages"
-        initialSorting={[{ id: 'sentAt', desc: true }]}
         emptyMessage="The dead letter queue is empty."
-        leftSlot={
-          deadLetterOverflow ? (
-            <Typography.Text type="warning">
-              {`Showing the first ${deadLetters.items.length} of ${deadLetters.totalCount} dead letter messages.`}
-            </Typography.Text>
-          ) : undefined
+        rightSlot={
+          <WaydGridPager
+            paging={paging}
+            totalCount={lastDeadLetters?.totalCount}
+            noun="messages"
+          />
         }
       />
       {viewingDeadLetterId !== null && (

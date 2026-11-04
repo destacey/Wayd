@@ -3,6 +3,7 @@ using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Imports.Dtos;
 using Wayd.Common.Application.Imports.Queries;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Services;
@@ -39,23 +40,24 @@ public class ImportsController(IDispatcher dispatcher) : ControllerBase
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
-    [EndpointSummary("List import runs, newest first, as `processes` with a `totalCount`.")]
+    [EndpointSummary("List import runs, newest first.")]
     [EndpointDescription(
-        "Only runs of the kinds you may submit are included, or every kind if you hold View Imports. A run carries `status` (Queued, Processing, Cancelling, Succeeded, PartiallySucceeded, Failed, Cancelled), `isTerminal`, `isPreflight`, `atomicity` (PerRow; Atomic, where one rejected row means nothing is written; or PerGroup, where the rows sharing a group — named by `groupNoun`, such as every dependency of one product — apply together or not at all and the other groups are kept), and the counts `totalRowCount`, `succeededRowCount`, `failedRowCount` and `unappliedRowCount`. `canManage` says whether you may cancel, resume, retry or apply it.")]
+        "Only runs of the kinds you may submit are included, or every kind if you hold View Imports. A run carries `status` (Queued, Processing, Cancelling, Succeeded, PartiallySucceeded, Failed, Cancelled), `isTerminal`, `isPreflight`, `atomicity` (PerRow; Atomic, where one rejected row means nothing is written; or PerGroup, where the rows sharing a group — named by `groupNoun`, such as every dependency of one product — apply together or not at all and the other groups are kept), and the counts `totalRowCount`, `succeededRowCount`, `failedRowCount` and `unappliedRowCount`. `canManage` says whether you may cancel, resume, retry or apply it. Paged: the response carries `totalCount` and `hasNextPage`.")]
     [McpTool("Imports_GetList", "List import runs")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<ImportProcessPageDto>> GetList(
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<PagedResponse<ImportProcessDto>>> GetList(
         CancellationToken cancellationToken,
         ImportProcessStatus? status = null,
         string? importType = null,
         string? submittedByUserId = null,
         Guid? submissionGroupId = null,
-        int pageNumber = 1,
-        int pageSize = 100)
+        [FromQuery] int page = PageRequest.FirstPage,
+        [FromQuery] int pageSize = PageSizes.Default)
     {
         var result = await _dispatcher.Send(
-            new GetImportProcessesQuery(status, importType, submittedByUserId, submissionGroupId, pageNumber, pageSize),
+            new GetImportProcessesQuery(new PageRequest(page, pageSize), status, importType, submittedByUserId, submissionGroupId),
             cancellationToken);
 
         return result.IsSuccess
@@ -91,21 +93,22 @@ public class ImportsController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("{id:guid}/rows")]
-    [EndpointSummary("Get a page of an import run's row outcomes, as `rows` with a `totalCount`.")]
+    [EndpointSummary("Get a page of an import run's row outcomes, in line order.")]
     [EndpointDescription(
-        "Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing.")]
+        "Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing. Paged: the response carries `totalCount` and `hasNextPage`.")]
     [McpTool("Imports_GetRows", "Get import run rows")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<ImportProcessRowPageDto>> GetRows(
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<PagedResponse<ImportProcessRowDto>>> GetRows(
         Guid id,
         CancellationToken cancellationToken,
         ImportRowStatus? status = null,
-        int pageNumber = 1,
-        int pageSize = 50)
+        [FromQuery] int page = PageRequest.FirstPage,
+        [FromQuery] int pageSize = PageSizes.Default)
     {
         var result = await _dispatcher.Send(
-            new GetImportProcessRowsQuery(id, status, pageNumber, pageSize), cancellationToken);
+            new GetImportProcessRowsQuery(id, new PageRequest(page, pageSize), status), cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value)

@@ -6,7 +6,7 @@ import {
   JobServerResponse,
   JobStateFilter,
   JobStatisticsResponse,
-  JobsResponse,
+  PagedResponseOfJobSummaryResponse,
   RecurringJobResponse,
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
@@ -15,8 +15,8 @@ import { getBackgroundJobsClient } from '@/src/services/clients'
 
 export interface GetJobsRequest {
   state: JobStateFilter
-  /** 0-based. */
-  pageNumber?: number
+  /** 1-based. */
+  page?: number
   pageSize?: number
 }
 
@@ -56,12 +56,12 @@ export const backgroundJobsApi = apiSlice.injectEndpoints({
           []),
       ],
     }),
-    getJobs: builder.query<JobsResponse, GetJobsRequest>({
+    getJobs: builder.query<PagedResponseOfJobSummaryResponse, GetJobsRequest>({
       queryFn: async (request) => {
         try {
           const data = await getBackgroundJobsClient().getJobs(
             request.state,
-            request.pageNumber,
+            request.page,
             request.pageSize,
           )
           return { data }

@@ -168,7 +168,7 @@ export function defaultFixture(tool: string, args: Record<string, unknown>): Fix
   if (tool.endsWith('_GetStatusHistory')) return { tool, result: [] };
   if (tool.endsWith('_GetActivities') && tool !== 'Roadmaps_GetActivities') {
     const pageSize = typeof args.pageSize === 'number' ? args.pageSize : 20;
-    const pageNumber = typeof args.pageNumber === 'number' ? args.pageNumber : 1;
+    const pageNumber = typeof args.page === 'number' ? args.page : 1;
     return {
       tool,
       result: { items: [], pageNumber, pageSize, totalCount: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false },

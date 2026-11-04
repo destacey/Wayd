@@ -404,7 +404,7 @@
       },
       "arguments": [
         "importType",
-        "pageNumber",
+        "page",
         "pageSize",
         "status",
         "submissionGroupId",
@@ -423,7 +423,7 @@
       },
       "arguments": [
         "id",
-        "pageNumber",
+        "page",
         "pageSize",
         "status"
       ],

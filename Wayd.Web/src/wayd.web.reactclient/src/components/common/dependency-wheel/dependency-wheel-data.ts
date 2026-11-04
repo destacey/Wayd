@@ -36,10 +36,15 @@ export interface DependencyWheelFlow {
   /** The most severe health among the flow's dependencies. */
   health: DependencyHealth
   healthCounts: DependencyHealthCounts
-  /** Dependencies whose predecessor is To Do or In Progress. */
-  open: number
-  /** Dependencies whose predecessor is done. */
-  done: number
+  /** How many of the flow's dependencies are in each state, in the states' order; states with none are left out. */
+  states: DependencyStateCount[]
+}
+
+/** How many dependencies are in one state. */
+export interface DependencyStateCount {
+  id: number
+  name: string
+  count: number
 }
 
 export interface DependencyWheelData {
@@ -57,23 +62,22 @@ export type DependencyWheelSelection =
   | { kind: 'group'; key: string }
   | { kind: 'flow'; sourceKey: string; targetKey: string }
 
-// Higher is more severe. Unknown sits just above Healthy so it is never hidden by one.
+// Higher is more severe. Unknown sits just above Healthy so it is never hidden by one; Closed sits below
+// both, so a flow's worst health describes its open dependencies.
 const severity: Record<DependencyHealth, number> = {
+  [DependencyHealth.Closed]: -1,
   [DependencyHealth.Healthy]: 0,
   [DependencyHealth.Unknown]: 1,
   [DependencyHealth.AtRisk]: 2,
   [DependencyHealth.Unhealthy]: 3,
 }
 
-// DependencyState ids: To Do and In Progress are open; Done is done.
-const OPEN_STATE_IDS = [1, 2]
-const DONE_STATE_ID = 3
-
 const noHealth = (): DependencyHealthCounts => ({
   [DependencyHealth.Healthy]: 0,
   [DependencyHealth.AtRisk]: 0,
   [DependencyHealth.Unhealthy]: 0,
   [DependencyHealth.Unknown]: 0,
+  [DependencyHealth.Closed]: 0,
 })
 
 const groupKey = (team: { id: string } | undefined): string =>
@@ -130,8 +134,7 @@ export function buildDependencyWheelData(
         count: 0,
         health,
         healthCounts: noHealth(),
-        open: 0,
-        done: 0,
+        states: [],
       }
       flowsByKey.set(flowKey, flow)
     }
@@ -139,8 +142,14 @@ export function buildDependencyWheelData(
     flow.healthCounts[health]++
     if ((severity[health] ?? 0) > (severity[flow.health] ?? 0))
       flow.health = health
-    if (OPEN_STATE_IDS.includes(dependency.state.id)) flow.open++
-    else if (dependency.state.id === DONE_STATE_ID) flow.done++
+    const state = flow.states.find((s) => s.id === dependency.state.id)
+    if (state) state.count++
+    else
+      flow.states.push({
+        id: dependency.state.id,
+        name: dependency.state.name,
+        count: 1,
+      })
   }
 
   // A group whose only dependencies are undrawn has no arc to give it.
@@ -153,6 +162,7 @@ export function buildDependencyWheelData(
     })
 
   const flows = [...flowsByKey.values()]
+  for (const flow of flows) flow.states.sort((a, b) => a.id - b.id)
   for (const group of groups) {
     const counts = new Map<string, number>()
     for (const flow of flows) {

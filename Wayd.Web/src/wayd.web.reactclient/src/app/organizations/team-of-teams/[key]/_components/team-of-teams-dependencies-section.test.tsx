@@ -62,7 +62,7 @@ describe('TeamOfTeamsDependenciesSection', () => {
     // Assert
     expect(mockQuery).toHaveBeenCalledWith('tot-1')
     expect(
-      screen.getByRole('button', { name: /^Atlas → Beacon/ }),
+      screen.getByRole('button', { name: /^Atlas delivers to Beacon/ }),
     ).toBeInTheDocument()
     expect(screen.getByRole('list', { name: 'rows' })).toHaveTextContent('ab')
   })

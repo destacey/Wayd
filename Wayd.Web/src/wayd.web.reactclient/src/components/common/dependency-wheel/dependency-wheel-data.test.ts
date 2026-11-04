@@ -23,6 +23,7 @@ const healthNames: Record<DependencyHealth, string> = {
   [DependencyHealth.AtRisk]: 'At Risk',
   [DependencyHealth.Unhealthy]: 'Unhealthy',
   [DependencyHealth.Unknown]: 'Unknown',
+  [DependencyHealth.Closed]: 'Closed',
 }
 
 let nextId = 1
@@ -154,6 +155,32 @@ describe('buildDependencyWheelData', () => {
     )
   })
 
+  it("ranks closed below healthy, so a flow's health describes its open dependencies", () => {
+    // Arrange
+    const dependencies = [
+      dependency(atlas, beacon, DependencyHealth.Closed),
+      dependency(atlas, beacon, DependencyHealth.Healthy),
+      dependency(beacon, atlas, DependencyHealth.Closed),
+    ]
+
+    // Act
+    const data = buildDependencyWheelData(dependencies)
+
+    // Assert
+    expect(data.flows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceKey: atlas.id,
+          health: DependencyHealth.Healthy,
+        }),
+        expect.objectContaining({
+          sourceKey: beacon.id,
+          health: DependencyHealth.Closed,
+        }),
+      ]),
+    )
+  })
+
   it('leaves a dependency between two items with no team off the wheel and counts it', () => {
     // Arrange
     const dependencies = [
@@ -169,11 +196,14 @@ describe('buildDependencyWheelData', () => {
     expect(data.groups.map((g) => g.key)).toEqual([atlas.id, beacon.id])
     expect(data.flows).toHaveLength(1)
   })
-  it('counts health, open and done per flow, and partners per team by size', () => {
+  it('counts health and states per flow, and partners per team by size', () => {
     // Arrange
     const done = dependency(atlas, beacon, DependencyHealth.Healthy)
     done.state = { id: 3, name: 'Done' }
+    const removed = dependency(atlas, beacon, DependencyHealth.Unhealthy)
+    removed.state = { id: 4, name: 'Removed' }
     const dependencies = [
+      removed,
       done,
       dependency(atlas, beacon, DependencyHealth.AtRisk),
       dependency(beacon, comet, DependencyHealth.Unhealthy),
@@ -190,13 +220,17 @@ describe('buildDependencyWheelData', () => {
     )!
     expect(atlasToBeacon).toEqual(
       expect.objectContaining({
-        open: 1,
-        done: 1,
+        states: [
+          { id: 1, name: 'To Do', count: 1 },
+          { id: 3, name: 'Done', count: 1 },
+          { id: 4, name: 'Removed', count: 1 },
+        ],
         healthCounts: {
           [DependencyHealth.Healthy]: 1,
           [DependencyHealth.AtRisk]: 1,
-          [DependencyHealth.Unhealthy]: 0,
+          [DependencyHealth.Unhealthy]: 1,
           [DependencyHealth.Unknown]: 0,
+          [DependencyHealth.Closed]: 0,
         },
       }),
     )
@@ -204,7 +238,7 @@ describe('buildDependencyWheelData', () => {
     expect(atlasGroup.healthCounts[DependencyHealth.Healthy]).toBe(3)
     expect(atlasGroup.healthCounts[DependencyHealth.AtRisk]).toBe(1)
     expect(atlasGroup.partners).toEqual([
-      { key: beacon.id, label: 'BCN', count: 2 },
+      { key: beacon.id, label: 'BCN', count: 3 },
       { key: comet.id, label: 'CMT', count: 2 },
     ])
   })

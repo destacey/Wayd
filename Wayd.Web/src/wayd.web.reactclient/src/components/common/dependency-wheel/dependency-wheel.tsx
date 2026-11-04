@@ -140,7 +140,7 @@ const useLabelSize = (
 
 /**
  * A directed chord diagram of dependencies between teams. Each arc is a team, sized by the dependencies it
- * takes part in; each ribbon runs from the team that owns the predecessors to the team waiting on them, in
+ * takes part in; each ribbon runs from the team that owns the predecessors to the team waiting on them, pointing at it, in
  * the predecessors' team's colour. Teams take the theme's preset colours in name order, repeating past nine;
  * items with no team are grey. Picking an arc or ribbon reports it, so the caller can narrow a
  * list to match; picking it again clears it.
@@ -381,7 +381,7 @@ const DependencyWheel = ({
                 sourceKey: sourceGroup.key,
                 targetKey: targetGroup.key,
               }
-              const label = `${sourceGroup.name} → ${targetGroup.name}: ${plural(chord.source.value)}, worst health ${healthName(health)}`
+              const label = `${sourceGroup.name} delivers to ${targetGroup.name}: ${plural(chord.source.value)}, worst health ${healthName(health)}`
               return (
                 <path
                   key={`${sourceGroup.key}>${targetGroup.key}`}

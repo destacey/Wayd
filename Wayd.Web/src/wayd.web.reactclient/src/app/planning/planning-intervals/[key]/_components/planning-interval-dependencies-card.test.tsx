@@ -17,6 +17,7 @@ const healthNames: Record<DependencyHealth, string> = {
   [DependencyHealth.AtRisk]: 'At Risk',
   [DependencyHealth.Unhealthy]: 'Unhealthy',
   [DependencyHealth.Unknown]: 'Unknown',
+  [DependencyHealth.Closed]: 'Closed',
 }
 
 const dependency = (

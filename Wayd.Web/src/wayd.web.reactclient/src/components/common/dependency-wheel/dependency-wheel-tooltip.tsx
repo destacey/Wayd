@@ -1,10 +1,11 @@
 'use client'
 
 import { DependencyHealth } from '@/src/components/types'
-import { getSemanticChartColor } from '@/src/utils'
 import { Flex, theme, Typography } from 'antd'
-import { DEPENDENCY_HEALTH_VALUES } from '../work/dependency-health-colors'
-import { getDependencyHealthTagColor } from '../work/dependency-health-tag'
+import {
+  DEPENDENCY_HEALTH_VALUES,
+  getDependencyHealthChartColor,
+} from '../work/dependency-health-colors'
 import {
   DependencyHealthCounts,
   DependencyWheelFlow,
@@ -43,7 +44,7 @@ const HealthBreakdown = ({ counts }: { counts: DependencyHealthCounts }) => {
   )
   const present = DEPENDENCY_HEALTH_VALUES.filter((v) => counts[v.health] > 0)
   const color = (health: DependencyHealth) =>
-    getSemanticChartColor(getDependencyHealthTagColor(health), token)
+    getDependencyHealthChartColor(health, token)
 
   return (
     <Flex vertical gap={4}>
@@ -119,16 +120,16 @@ const DependencyWheelTooltip = ({
       <Flex align="center" gap={6}>
         <Swatch color={sourceColor} />
         <Text strong>{source.label}</Text>
-        <Text type="secondary">→</Text>
+        <Text type="secondary">delivers to</Text>
         <Swatch color={targetColor} />
         <Text strong>{target.label}</Text>
       </Flex>
       <Text type="secondary">
-        {plural(flow.count)} {target.label} waits on
+        {target.label} waits on {source.label}: {plural(flow.count)}
       </Text>
       <HealthBreakdown counts={flow.healthCounts} />
       <Text type="secondary">
-        Open {flow.open} · Done {flow.done}
+        {flow.states.map((s) => `${s.count} ${s.name}`).join(' · ')}
       </Text>
       <Text type="secondary">Click to filter the list</Text>
     </Flex>

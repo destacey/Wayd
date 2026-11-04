@@ -55,6 +55,7 @@ export enum DependencyHealth {
   AtRisk = 2,
   Unhealthy = 3,
   Unknown = 4,
+  Closed = 5,
 }
 
 export interface SprintMetricsData {

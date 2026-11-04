@@ -17,6 +17,8 @@ export const getHealthDescription = (health: DependencyHealth): string => {
       return 'Neither the predecessor nor successor have future planned dates. Sprints in the past are not considered for date comparisons.'
     case DependencyHealth.Unhealthy:
       return 'The predecessor was removed, is planned to complete after the successor needs it, or the successor is done or removed.'
+    case DependencyHealth.Closed:
+      return 'The predecessor is done, or it was removed and the successor is done or removed too. Planning no longer applies.'
     default:
       return 'The health status of this dependency has not been determined or reported.'
   }

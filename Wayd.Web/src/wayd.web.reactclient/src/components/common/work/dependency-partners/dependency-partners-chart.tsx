@@ -1,10 +1,11 @@
 'use client'
 
 import { DependencyHealth } from '@/src/components/types'
-import { getSemanticChartColor } from '@/src/utils'
 import { Flex, theme, Typography } from 'antd'
-import { DEPENDENCY_HEALTH_VALUES } from '../dependency-health-colors'
-import { getDependencyHealthTagColor } from '../dependency-health-tag'
+import {
+  DEPENDENCY_HEALTH_VALUES,
+  getDependencyHealthChartColor,
+} from '../dependency-health-colors'
 import {
   DependencyPartner,
   DependencyPartnersData,
@@ -44,7 +45,7 @@ const DependencyPartnersChart = ({
 }: DependencyPartnersChartProps) => {
   const { token } = theme.useToken()
   const color = (health: DependencyHealth) =>
-    getSemanticChartColor(getDependencyHealthTagColor(health), token)
+    getDependencyHealthChartColor(health, token)
 
   const max = Math.max(
     1,

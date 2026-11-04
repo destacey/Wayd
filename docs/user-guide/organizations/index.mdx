@@ -89,7 +89,7 @@ A Team of Teams shares the same core properties as a Team (name, code, dates) bu
 - It can also be a member of a parent Team of Teams
 - It provides rollup visibility across its descendant teams
 
-**Team of Teams** have a simplified detail page focused on hierarchy, members and risk management. They do not have backlogs, sprints or dependencies — those belong to the leaf-level delivery teams — but their [Work Distribution](#work-distribution-report) report rolls up the completed work of every team beneath them. They have their own [operating model](#team-of-teams-operating-model), holding the time zone for their own rollups.
+**Team of Teams** have a simplified detail page focused on hierarchy, members and risk management. They do not have backlogs or sprints — those belong to the leaf-level delivery teams — but their [Dependencies](#dependencies) section, [Work Distribution](#work-distribution-report) report and [Dependency Analysis](#dependency-analysis-report) report roll up every team beneath them. They have their own [operating model](#team-of-teams-operating-model), holding the time zone for their own rollups.
 
 ### Operating Model
 
@@ -352,7 +352,7 @@ The **Dependencies** section shows all cross-work-item dependencies involving th
 
 Dependencies within the team have no other team, so they are in the list but not on the chart; a note says how many.
 
-A Team of Teams has a **Dependencies** section too. It lists the open dependencies — the predecessor is To Do or In Progress — where a team beneath it today, at any depth, owns either item, leaving out those within one team. The other item may belong to a team outside the team of teams. Above the list, a **dependency wheel** shows where they run: each arc is a team in its own colour, each ribbon runs from the team that owns the predecessors to the team waiting on them, and hovering a team or ribbon shows a summary of its counts and health. Click a team or ribbon to filter the list. It works as the [wheel on a planning interval](../planning/planning-intervals.mdx#dependencies) does.
+A Team of Teams has a **Dependencies** section too. It lists the open dependencies — the predecessor is To Do or In Progress — where a team beneath it today, at any depth, owns either item, leaving out those within one team. The other item may belong to a team outside the team of teams. Above the list, a **dependency wheel** shows where they run: each arc is a team in its own colour, each ribbon runs from the team doing the work (the predecessors' team) to the team waiting on it, pointing at the team waiting, and hovering a team or ribbon shows a summary of its counts and health. Click a team or ribbon to filter the list. It works as the [wheel on a planning interval](../planning/planning-intervals.mdx#dependencies) does.
 
 The dependency grid is organized into three column groups:
 
@@ -462,6 +462,12 @@ See [Backlog Health Report](../work-management/backlog-health-report.mdx) for ea
 Listed under **Reports** in the section rail on both teams and teams of teams, the **Work Distribution** report shows where completed work went over a date range — by portfolio, program, project, strategic theme or work type — and how much of it was linked to no project. On a team of teams it covers every team beneath it, each counted toward the parent it had on the day the work was done.
 
 See [Work Distribution Report](../work-management/work-distribution-report.mdx) for what it counts, each measure, and how themes and unestimated work are handled.
+
+### Dependency Analysis (Report)
+
+Listed under **Reports** in the section rail on both teams and teams of teams, the **Dependency Analysis** report shows where cross-team dependencies ran over a date range of up to two years: which teams waited on which, how many dependencies each pair shared, and how many were open, created and closed in each period. On a team of teams it covers every team beneath it at any point in the range, and draws them on a dependency wheel.
+
+See [Dependency Analysis Report](../work-management/dependency-analysis-report.mdx) for what it counts and how to read each view.
 
 ### Throughput Forecast (Report)
 

@@ -55,6 +55,7 @@ const sidebars: SidebarsConfig = {
             'user-guide/work-management/cycle-time-report',
             'user-guide/work-management/backlog-health-report',
             'user-guide/work-management/work-distribution-report',
+            'user-guide/work-management/dependency-analysis-report',
             'user-guide/work-management/delivery-forecasting',
           ],
         },

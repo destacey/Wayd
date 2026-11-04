@@ -59,6 +59,16 @@ const WorkDistributionReport = dynamic(
   { ssr: false, loading: () => <Spin /> },
 )
 
+const DependencyAnalysisReport = dynamic(
+  () =>
+    import('@/src/components/common/work/dependency-analysis').then(
+      (mod) => ({
+        default: mod.DependencyAnalysisReport,
+      }),
+    ),
+  { ssr: false, loading: () => <Spin /> },
+)
+
 const CapacityReport = dynamic(
   () => import('@/src/app/organizations/_components/capacity-report'),
   { ssr: false, loading: () => <Spin /> },
@@ -75,6 +85,7 @@ enum TeamOfTeamsTabs {
   Activities = 'activities',
   OperatingModelHistory = 'operating-model-history',
   WorkDistribution = 'work-distribution',
+  DependencyAnalysis = 'dependency-analysis',
   CapacityReport = 'capacity-report',
 }
 
@@ -295,6 +306,13 @@ const TeamOfTeamsDetailsPage = (props: {
             teamCode={team!.code}
           />
         )
+      case TeamOfTeamsTabs.DependencyAnalysis:
+        return (
+          <DependencyAnalysisReport
+            teamType="team-of-teams"
+            teamCode={team!.code}
+          />
+        )
       case TeamOfTeamsTabs.CapacityReport:
         return capacityEnabled ? (
           <CapacityReport teamId={team!.id} teamType="TeamOfTeams" />
@@ -328,6 +346,11 @@ const TeamOfTeamsDetailsPage = (props: {
       id: TeamOfTeamsTabs.WorkDistribution,
       label: 'Work Distribution',
       // The report renders its own title alongside its controls.
+      hideHeading: true,
+    },
+    {
+      id: TeamOfTeamsTabs.DependencyAnalysis,
+      label: 'Dependency Analysis',
       hideHeading: true,
     },
     ...(capacityEnabled

@@ -84,6 +84,16 @@ const WorkDistributionReport = dynamic(
   { ssr: false, loading: () => <Spin /> },
 )
 
+const DependencyAnalysisReport = dynamic(
+  () =>
+    import('@/src/components/common/work/dependency-analysis').then(
+      (mod) => ({
+        default: mod.DependencyAnalysisReport,
+      }),
+    ),
+  { ssr: false, loading: () => <Spin /> },
+)
+
 const CapacityReport = dynamic(
   () => import('@/src/app/organizations/_components/capacity-report'),
   { ssr: false, loading: () => <Spin /> },
@@ -127,6 +137,7 @@ enum TeamTabs {
   CycleTimeReport = 'cycle-time-report',
   BacklogHealth = 'backlog-health',
   WorkDistribution = 'work-distribution',
+  DependencyAnalysis = 'dependency-analysis',
   CapacityReport = 'capacity-report',
   ThroughputForecast = 'throughput-forecast',
   SprintMetrics = 'sprint-metrics',
@@ -400,6 +411,10 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return <TeamCadenceMetricsReport teamId={team!.id!} />
       case TeamTabs.WorkDistribution:
         return <WorkDistributionReport teamType="team" teamCode={team!.code} />
+      case TeamTabs.DependencyAnalysis:
+        return (
+          <DependencyAnalysisReport teamType="team" teamCode={team!.code} />
+        )
       case TeamTabs.CapacityReport:
         return capacityEnabled ? (
           <CapacityReport
@@ -496,6 +511,11 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     {
       id: TeamTabs.WorkDistribution,
       label: 'Work Distribution',
+      hideHeading: true,
+    },
+    {
+      id: TeamTabs.DependencyAnalysis,
+      label: 'Dependency Analysis',
       hideHeading: true,
     },
     ...(capacityEnabled

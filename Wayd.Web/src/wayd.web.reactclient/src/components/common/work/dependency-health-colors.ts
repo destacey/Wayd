@@ -18,7 +18,20 @@ export const DEPENDENCY_HEALTH_VALUES: {
   { name: 'At Risk', health: DependencyHealth.AtRisk },
   { name: 'Unhealthy', health: DependencyHealth.Unhealthy },
   { name: 'Unknown', health: DependencyHealth.Unknown },
+  { name: 'Closed', health: DependencyHealth.Closed },
 ]
+
+/**
+ * The chart color for a dependency health: its tag's color, except Closed, which takes a lighter grey than
+ * Unknown so finished dependencies recede rather than reading as undetermined ones.
+ */
+export const getDependencyHealthChartColor = (
+  health: DependencyHealth,
+  token: ChartColorTokens,
+): string =>
+  health === DependencyHealth.Closed
+    ? token.colorTextQuaternary
+    : getSemanticChartColor(getDependencyHealthTagColor(health), token)
 
 type ChartColorTokens = Pick<
   GlobalToken,
@@ -27,6 +40,7 @@ type ChartColorTokens = Pick<
   | 'colorError'
   | 'colorWarning'
   | 'colorTextSecondary'
+  | 'colorTextQuaternary'
   | 'colorBgContainer'
 >
 
@@ -42,7 +56,7 @@ export const getDependencyHealthColorScale = (token: ChartColorTokens) => ({
   domain: DEPENDENCY_HEALTH_VALUES.map((v) => v.name),
   range: DEPENDENCY_HEALTH_VALUES.map((v) =>
     softenChartColor(
-      getSemanticChartColor(getDependencyHealthTagColor(v.health), token),
+      getDependencyHealthChartColor(v.health, token),
       token.colorBgContainer,
     ),
   ),

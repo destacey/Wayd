@@ -162,6 +162,8 @@ Each dependency tracks:
 | **Unhealthy** | Predecessor is Removed; or successor is already Active, Done or Removed while the predecessor is not done; or successor is planned and predecessor is not; or predecessor is planned after the successor |
 | **Unknown** | The link was deleted |
 
+The [Dependency Analysis Report](./dependency-analysis-report.mdx) shows a closed dependency as **Closed** instead, because planning no longer applies: the predecessor is Done, or it is Removed and the successor is Done or Removed too. A removed predecessor whose successor is still open stays **Unhealthy** there, because the successor needs work nobody will do.
+
 - **Scope** — Whether the dependency is within a team (Intra-Team) or across teams (Cross-Team)
 
 Dependencies are visible on:

@@ -40,6 +40,7 @@ import {
   WorkDistributionMeasure,
   TeamWorkDistributionDto,
   TeamBacklogHealthDto,
+  TeamDependencyAnalysisDto,
   ThemeCounting,
   UnestimatedHandling,
   WorkItemBacklogItemDto,
@@ -66,6 +67,16 @@ export interface GetTeamWorkDistributionRequest {
   measure: WorkDistributionMeasure
   unestimated: UnestimatedHandling
   themeCounting: ThemeCounting
+}
+
+export interface GetTeamDependencyAnalysisRequest {
+  /** Teams of teams are served by their own endpoint, which covers every team beneath them. */
+  teamType: 'team' | 'team-of-teams'
+  teamIdOrCode: string
+  /** yyyy-MM-dd, inclusive. */
+  from: string
+  /** yyyy-MM-dd, inclusive. */
+  to: string
 }
 
 /**
@@ -734,6 +745,35 @@ export const teamApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    getTeamDependencyAnalysis: builder.query<
+      TeamDependencyAnalysisDto,
+      GetTeamDependencyAnalysisRequest
+    >({
+      queryFn: async ({ teamType, teamIdOrCode, from, to }) => {
+        try {
+          const data =
+            teamType === 'team-of-teams'
+              ? await getTeamsOfTeamsClient().getDependencyAnalysis(
+                  teamIdOrCode,
+                  from,
+                  to,
+                )
+              : await getTeamsClient().getDependencyAnalysis(
+                  teamIdOrCode,
+                  from,
+                  to,
+                )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // Built from synced dependencies and work items, so it goes stale with either. Tagged by type only:
+      // the request names the team by code, and an id-scoped invalidation would name it by its id.
+      providesTags: [QueryTags.TeamDependency, QueryTags.TeamBacklog],
+    }),
+
     // TEAM OPERATING MODELS
     getOperatingModelDefaults: builder.query<
       OperatingModelDefaultsDto,
@@ -1230,6 +1270,7 @@ export const {
   useGetTeamRisksQuery,
   useGetTeamOfTeamsRisksQuery,
   useGetTeamOfTeamsDependenciesQuery,
+  useGetTeamDependencyAnalysisQuery,
   // Operating Models
   useGetOperatingModelDefaultsQuery,
   useGetTeamOperatingModelQuery,

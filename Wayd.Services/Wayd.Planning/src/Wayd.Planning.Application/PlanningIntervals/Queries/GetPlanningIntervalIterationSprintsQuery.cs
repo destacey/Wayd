@@ -28,8 +28,14 @@ public sealed class GetPlanningIntervalIterationSprintsQueryHandler(IPlanningDbC
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
 
+    /// <summary>
+    /// Returns null for an unknown planning interval, so callers can tell it apart from one with nothing mapped.
+    /// </summary>
     public async Task<List<PlanningIntervalIterationSprintsDto>?> Handle(GetPlanningIntervalIterationSprintsQuery request, CancellationToken cancellationToken)
     {
+        if (!await _planningDbContext.PlanningIntervals.AnyAsync(request.IdOrKeyFilter, cancellationToken))
+            return null;
+
         var query = _planningDbContext.PlanningIntervals
             .Where(request.IdOrKeyFilter)
             .SelectMany(pi => pi.Iterations);

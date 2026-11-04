@@ -9,6 +9,7 @@ export {
 } from './work-status-category-colors'
 export { default as WorkItemsDashboardModal } from './work-items-dashboard-modal'
 export { default as WorkItemDependenciesGrid } from './work-item-dependencies-grid'
+export { default as DependenciesGrid } from './dependencies-grid'
 export { CycleTimeAnalysisChart } from './cycle-time-analysis-chart'
 export {
   defaultEstimate,

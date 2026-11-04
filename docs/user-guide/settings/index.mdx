@@ -571,7 +571,7 @@ Three tabs sit below the tiles:
 
 | Tab | What it is for |
 |---|---|
-| **Jobs** | Browse jobs by state — Processing, Scheduled, Enqueued, Failed, Succeeded, Deleted. Select a job to open its detail panel. |
+| **Jobs** | Browse jobs by state — Processing, Scheduled, Enqueued, Failed, Succeeded, Deleted — 50 to a page; the pager above the grid moves between pages and shows up to 500 at a time. Select a job to open its detail panel. |
 | **Recurring** | Every registered schedule, with its cron expression, next and last run, and the outcome of the last run. Remove a schedule here. |
 | **Servers** | The worker processes polling for jobs, with their heartbeat. No servers means nothing will run. |
 
@@ -620,7 +620,7 @@ Wayd hands much of its internal work — keeping one area's records in step with
 | **Dead Letters** | Messages that failed every retry. These stay until you replay or discard them — this is the tile to watch. |
 | **Handled** | Processed messages kept for five minutes to detect duplicates, then removed. Usually zero; it is not a history of past work. |
 
-Below the tiles, the dead letter grid lists each failed message with its **Message Type**, **Exception Type**, **Exception Message**, **Sent At**, **Attempts**, whether it is **Queued for Replay**, and its **Queue**. Select a message type to open its details, including where it came from, its correlation id and the message body. The grid shows up to 500 messages and says how many more there are.
+Below the tiles, the dead letter grid lists each failed message with its **Message Type**, **Exception Type**, **Exception Message**, **Sent At**, **Attempts**, whether it is **Queued for Replay**, and its **Queue**. Select a message type to open its details, including where it came from, its correlation id and the message body. Messages come 50 to a page; the pager above the grid moves between pages and shows up to 500 at a time.
 
 ### Replaying and discarding
 

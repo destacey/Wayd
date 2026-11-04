@@ -235,6 +235,39 @@ These come for free — no wiring beyond the column defs:
 
 **Reset Columns** restores the columns' default sizing, visibility, pinning, **and order** — it deliberately does _not_ clear sorting or filters (the toolbar's Clear button does that).
 
+## Server-paged lists
+
+A grid over a list that pages on the server (`PagedResponse<T>`, see [Paging](./api.mdx#paging)) holds one page,
+so it gets its page controls from `WaydGridPager` in the toolbar's `rightSlot`, with `useGridPaging` holding the
+page and size it requests:
+
+```tsx
+const paging = useGridPaging()
+const { data } = useGetJobsQuery({ state, page: paging.page, pageSize: paging.pageSize })
+paging.keepInRange(data?.totalPages)
+
+<WaydGrid
+  data={data?.items}
+  rightSlot={<WaydGridPager paging={paging} totalCount={data?.totalCount} noun="jobs" />}
+  …
+/>
+```
+
+- **Call `keepInRange` during render** with the response's `totalPages`, so a list that shrinks while someone
+  reads its last page (jobs finishing, messages replayed) moves back to the page that is now last.
+- **Call `resetPage` when a filter sent to the server changes**: page 4 of one filter is not page 4 of another.
+  Changing the page size goes back to the first page on its own.
+- **Pass `currentData` as the rows and `data` to the pager.** RTK Query's `data` is the last answer for any
+  page, so passing it as the rows shows the previous page under the new page's range while the next one
+  loads; `currentData` is empty until it arrives. Show loading only while there is no `currentData`, so a
+  poll of the same page does not flash.
+- **Leave out `initialSorting`.** The page arrives in the list's own order, and sorting it in the browser
+  reorders only that page: with jobs that run soonest first, "latest first" would put each page backwards
+  against the next.
+- **The grid's sorting, search, filters and CSV export act on the page it holds**, not the list. Offer a filter
+  the API takes as a request parameter (a `Segmented` over states, as the jobs and import rows grids do) rather
+  than leaving the reader to filter a page.
+
 ## Column reordering
 
 Reordering is **on by default**. The whole header cell is the drag handle — grab a header and drag it left/right to reorder. A plain click still sorts (a drag only starts after a few pixels of movement); the resize edge, filter icon, and `⋮` menu don't trigger a drag. Columns can also be reordered by dragging rows in the **Choose Columns** modal.

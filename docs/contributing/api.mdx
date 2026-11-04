@@ -254,11 +254,13 @@ response type but those two carries paging. `PagingTests` (`Wayd.ArchitectureTes
 answering with either shape implements the matching interface, has the matching validator, and carries no
 paging properties of its own.
 
-Some lists predate this rule and page in shapes of their own: imports (`ImportProcessPageDto`), background jobs
-and dead letters (0-based `pageNumber`), and recent delivery events (`take`). Each is on an allow-list in those
-tests naming the issue that moves it ([#1144](https://github.com/destacey/Wayd/issues/1144),
-[#1145](https://github.com/destacey/Wayd/issues/1145)); the lists only shrink. `PaginationFilter`, behind the
-user service's search, reaches no endpoint and is retired under #1144. Do not copy any of them.
+An action that reads its page without a query, because it reads host plumbing outside the handler pipeline
+(background jobs from Hangfire, dead letters from Wolverine), checks the `PageRequest` it builds with
+`PageRequestValidation.IsValid` and answers 422 on failure, so it holds the same bounds as a query would.
+
+One list predates this rule and pages in a shape of its own: recent delivery events (`take`). It is on an
+allow-list in those tests naming the issue that moves it ([#1145](https://github.com/destacey/Wayd/issues/1145));
+the lists only shrink. Do not copy it.
 
 ### Partial updates
 

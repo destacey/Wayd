@@ -37,7 +37,7 @@ interface EditRoadmapFormValues {
   name: string
   description?: string
   range: any[]
-  roadmapManagerIds: string[]
+  ownerIds: string[]
   visibilityId: number
 }
 
@@ -51,7 +51,7 @@ const mapToRequestValues = (
     description: values.description,
     start: (values.range?.[0] as any)?.format('YYYY-MM-DD'),
     end: (values.range?.[1] as any)?.format('YYYY-MM-DD'),
-    roadmapManagerIds: values.roadmapManagerIds,
+    ownerIds: values.ownerIds,
     visibilityId: values.visibilityId,
   } as UpdateRoadmapRequest
 }
@@ -62,7 +62,9 @@ const EditRoadmapForm = ({
   onFormCancel,
 }: EditRoadmapFormProps) => {
   const messageApi = useMessage()
-  const { user } = useAuth()
+  const { user, hasPermissionClaim } = useAuth()
+  // A Roadmaps administrator manages roadmaps they do not own, so only an owner must stay among the owners.
+  const isAdministrator = hasPermissionClaim('Permissions.Roadmaps.Administer')
   const currentUserInternalEmployeeId = user?.employeeId
 
   const { data: roadmapData, error } = useGetRoadmapQuery(roadmapKey.toString())
@@ -77,38 +79,38 @@ const EditRoadmapForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditRoadmapFormValues>({
       onSubmit: async (values: EditRoadmapFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values, roadmapData!.id)
-            const response = await updateRoadmap({
-              request,
-              cacheKey: roadmapData!.key,
+        try {
+          const request = mapToRequestValues(values, roadmapData!.id)
+          const response = await updateRoadmap({
+            request,
+            cacheKey: roadmapData!.key,
+          })
+          if (response.error) throw response.error
+          messageApi.success('Roadmap updated successfully.')
+          return true
+        } catch (error) {
+          const apiError = toApiError(error)
+          console.error('update error', error)
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors, {
+              fieldFor: rangeErrorsOn('range'),
             })
-            if (response.error) throw response.error
-            messageApi.success('Roadmap updated successfully.')
-            return true
-          } catch (error) {
-            const apiError = toApiError(error)
-            console.error('update error', error)
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors, {
-                fieldFor: rangeErrorsOn('range'),
-              })
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                (isApiError(apiError) ? apiError.detail : undefined) ??
-                  'An error occurred while updating the roadmap. Please try again.',
-              )
-            }
-            return false
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              (isApiError(apiError) ? apiError.detail : undefined) ??
+                'An error occurred while updating the roadmap. Please try again.',
+            )
           }
-        },
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:
         'An error occurred while updating the roadmap. Please try again.',
-      permission: 'Permissions.Roadmaps.Update',
+      permission: 'Permissions.Roadmaps.View',
     })
 
   // Initialize form values when data is loaded
@@ -119,9 +121,7 @@ const EditRoadmapForm = ({
       description: roadmapData.description || '',
       range: [dayjs(roadmapData.start), dayjs(roadmapData.end)],
       visibilityId: roadmapData.visibility.id,
-      roadmapManagerIds: roadmapData.roadmapManagers.map(
-        (rm: { id: string }) => rm.id,
-      ),
+      ownerIds: roadmapData.owners.map((rm: { id: string }) => rm.id),
     })
   }, [roadmapData, visibilityData, form])
 
@@ -135,22 +135,21 @@ const EditRoadmapForm = ({
     }
     if (visibilityError) {
       messageApi.error(
-        (isApiError(visibilityError) ? visibilityError.supportMessage : undefined) ??
+        (isApiError(visibilityError)
+          ? visibilityError.supportMessage
+          : undefined) ??
           'An error occurred while loading visibility options. Please try again.',
       )
     }
     if (employeeOptionsError) {
       messageApi.error(
-        (isApiError(employeeOptionsError) ? employeeOptionsError.supportMessage : undefined) ??
+        (isApiError(employeeOptionsError)
+          ? employeeOptionsError.supportMessage
+          : undefined) ??
           'An error occurred while loading employee options. Please try again.',
       )
     }
-  }, [
-    employeeOptionsError,
-    error,
-    messageApi,
-    visibilityError,
-  ])
+  }, [employeeOptionsError, error, messageApi, visibilityError])
 
   return (
     <Modal
@@ -211,19 +210,22 @@ const EditRoadmapForm = ({
           <RangePicker />
         </Item>
         <Item
-          name="roadmapManagerIds"
-          label="Roadmap Managers"
+          name="ownerIds"
+          label="Owners"
           rules={[
             {
               required: true,
-              message: 'Select at least one roadmap manager',
+              message: 'Select at least one owner',
             },
             {
               validator: async (_, value) => {
-                if (!value.includes(currentUserInternalEmployeeId)) {
+                if (
+                  !isAdministrator &&
+                  !value.includes(currentUserInternalEmployeeId)
+                ) {
                   return Promise.reject(
                     new Error(
-                      'You must also be a roadmap manager to update this roadmap',
+                      'You must also be an owner to update this roadmap',
                     ),
                   )
                 }
@@ -235,7 +237,7 @@ const EditRoadmapForm = ({
           <EmployeeSelect
             employees={employeeData ?? []}
             allowMultiple={true}
-            placeholder="Select one or more roadmap managers"
+            placeholder="Select one or more owners"
           />
         </Item>
         <Item

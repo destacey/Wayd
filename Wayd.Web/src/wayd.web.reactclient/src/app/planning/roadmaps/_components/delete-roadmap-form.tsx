@@ -38,9 +38,8 @@ const DeleteRoadmapForm = ({
     },
     onComplete: onFormComplete,
     onCancel: onFormCancel,
-    errorMessage:
-      'An unexpected error occurred while deleting the roadmap.',
-    permission: 'Permissions.Roadmaps.Delete',
+    errorMessage: 'An unexpected error occurred while deleting the roadmap.',
+    permission: 'Permissions.Roadmaps.View',
   })
 
   return (

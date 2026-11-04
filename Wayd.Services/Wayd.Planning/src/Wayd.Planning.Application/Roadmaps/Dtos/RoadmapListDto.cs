@@ -28,7 +28,7 @@ public sealed record RoadmapListDto : IMapFrom<Roadmap>
     public required LocalDate End { get; set; }
 
     /// <summary>
-    /// The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap.
+    /// The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it.
     /// </summary>
     public required SimpleNavigationDto Visibility { get; set; }
 
@@ -43,9 +43,15 @@ public sealed record RoadmapListDto : IMapFrom<Roadmap>
     public string? Color { get; set; }
 
     /// <summary>
-    /// The managers of the Roadmap.
+    /// The owners of the Roadmap.
     /// </summary>
-    public required List<EmployeeNavigationDto> RoadmapManagers { get; set; } = [];
+    public required List<EmployeeNavigationDto> Owners { get; set; } = [];
+
+    /// <summary>
+    /// Whether the caller can manage the Roadmap and its items: they own it or hold the Roadmaps Administer
+    /// permission. False when the request's token is read-only. An archived Roadmap can only be activated.
+    /// </summary>
+    public bool CanManage { get; set; }
 
     public void ConfigureMapping(TypeAdapterConfig config)
     {
@@ -54,6 +60,7 @@ public sealed record RoadmapListDto : IMapFrom<Roadmap>
             .Map(dest => dest.End, src => src.DateRange.End)
             .Map(dest => dest.Visibility, src => SimpleNavigationDto.FromEnum(src.Visibility))
             .Map(dest => dest.State, src => SimpleNavigationDto.FromEnum(src.State))
-            .Map(dest => dest.RoadmapManagers, src => src.RoadmapManagers.Select(x => EmployeeNavigationDto.From(x.Manager!)).ToList());
+            .Map(dest => dest.Owners, src => src.Owners.Select(x => EmployeeNavigationDto.From(x.Employee!)).ToList())
+            .Ignore(dest => dest.CanManage);
     }
 }

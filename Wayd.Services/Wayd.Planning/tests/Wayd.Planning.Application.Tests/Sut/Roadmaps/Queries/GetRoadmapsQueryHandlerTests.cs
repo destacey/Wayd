@@ -3,6 +3,7 @@ using NodaTime;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Models;
+using Wayd.Planning.Application.Roadmaps;
 using Wayd.Planning.Application.Roadmaps.Queries;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Models.Roadmaps;
@@ -25,14 +26,14 @@ public class GetRoadmapsQueryHandlerTests
     private GetRoadmapsQueryHandler CreateSut() => new(_dbContext, _currentPrincipal.Object);
 
     /// <summary>
-    /// Adds a roadmap. A roadmap always has at least one manager (the domain requires it), so when no
-    /// manager is named the roadmap is managed by some unrelated employee — the realistic shape of a
-    /// public roadmap the caller does not manage.
+    /// Adds a roadmap. A roadmap always has at least one owner (the domain requires it), so when no
+    /// owner is named the roadmap is owned by some unrelated employee — the realistic shape of a
+    /// public roadmap the caller does not own.
     /// </summary>
-    private Roadmap AddRoadmap(string name, Visibility visibility, params Guid[] managerIds)
+    private Roadmap AddRoadmap(string name, Visibility visibility, params Guid[] ownerIds)
     {
-        var managers = managerIds.Length > 0 ? managerIds : [Guid.NewGuid()];
-        var roadmap = Roadmap.Create(name, null, AnyDateRange, visibility, managers, Actor, Now).Value;
+        var owners = ownerIds.Length > 0 ? ownerIds : [Guid.NewGuid()];
+        var roadmap = Roadmap.Create(name, null, AnyDateRange, visibility, owners, Actor, Now).Value;
         _dbContext.Roadmaps.Add(roadmap);
         return roadmap;
     }
@@ -42,10 +43,15 @@ public class GetRoadmapsQueryHandlerTests
             .Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>()))
             .ReturnsAsync(employeeId);
 
+    private void GivenAdministrator() =>
+        _currentPrincipal
+            .Setup(p => p.HoldsPermission(RoadmapAccess.AdministratorPermission, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
     [Fact]
     public async Task Handle_ShouldReturnPublicRoadmapsOnly_WhenUserHasNoEmployeeLink()
     {
-        // Arrange — an unlinked account manages nothing. This used to throw during handler
+        // Arrange — an unlinked account owns nothing. This used to throw during handler
         // construction, failing the whole list rather than degrading.
         AddRoadmap("Public one", Visibility.Public);
         AddRoadmap("Private one", Visibility.Private, Guid.NewGuid());
@@ -78,7 +84,7 @@ public class GetRoadmapsQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldReturnManagedPrivateRoadmaps_WhenUserIsLinkedAndManages()
+    public async Task Handle_ShouldReturnOwnedPrivateRoadmaps_WhenUserIsLinkedAndOwns()
     {
         // Arrange
         var employeeId = Guid.NewGuid();
@@ -97,7 +103,7 @@ public class GetRoadmapsQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldExcludePrivateRoadmapsManagedByOthers_WhenUserIsLinked()
+    public async Task Handle_ShouldExcludePrivateRoadmapsOwnedByOthers_WhenUserIsLinked()
     {
         // Arrange — the sentinel-free predicate must not accidentally widen visibility.
         var employeeId = Guid.NewGuid();
@@ -111,5 +117,61 @@ public class GetRoadmapsQueryHandlerTests
 
         // Assert
         result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnEveryRoadmap_WhenUserIsAnAdministrator()
+    {
+        // Arrange
+        AddRoadmap("Public one", Visibility.Public);
+        AddRoadmap("Someone else's", Visibility.Private, Guid.NewGuid());
+        GivenEmployeeId(Guid.NewGuid());
+        GivenAdministrator();
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new GetRoadmapsQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Select(r => r.Name).Should().BeEquivalentTo(["Public one", "Someone else's"]);
+        result.Should().OnlyContain(r => r.CanManage);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSetCanManage_OnlyOnRoadmapsTheUserOwns()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        AddRoadmap("Public one", Visibility.Public);
+        AddRoadmap("Mine", Visibility.Public, employeeId);
+        GivenEmployeeId(employeeId);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new GetRoadmapsQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Single(r => r.Name == "Mine").CanManage.Should().BeTrue();
+        result.Single(r => r.Name == "Public one").CanManage.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSetCanManageFalse_WhenTheTokenIsReadOnly()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        AddRoadmap("Mine", Visibility.Private, employeeId);
+        GivenEmployeeId(employeeId);
+        _currentPrincipal.Setup(p => p.IsReadOnly).Returns(true);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new GetRoadmapsQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().ContainSingle().Which.CanManage.Should().BeFalse();
     }
 }

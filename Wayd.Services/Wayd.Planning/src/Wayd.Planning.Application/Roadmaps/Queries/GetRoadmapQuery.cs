@@ -1,6 +1,5 @@
 ﻿using System.Linq.Expressions;
 using Wayd.Common.Application.Models;
-using Wayd.Common.Domain.Enums;
 using Wayd.Planning.Application.Roadmaps.Dtos;
 using Wayd.Planning.Domain.Models.Roadmaps;
 
@@ -23,22 +22,19 @@ public sealed class GetRoadmapQueryHandler(IPlanningDbContext planningDbContext,
 
     public async Task<RoadmapDetailsDto?> Handle(GetRoadmapQuery request, CancellationToken cancellationToken)
     {
-        var publicVisibility = Visibility.Public;
+        var reader = await _currentPrincipal.ResolveRoadmapReader(cancellationToken);
 
-        // A caller with no employee link manages nothing, so they see public roadmaps only — this
-        // used to throw, failing a viewer query outright for anyone unlinked. The manager check is
-        // omitted rather than run against a sentinel id, so the SQL says what is meant and no
-        // always-empty subquery is evaluated.
-        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        var query = _planningDbContext.Roadmaps
+            .Where(request.IdOrKeyFilter)
+            .Where(reader.Filter);
 
-        var query = _planningDbContext.Roadmaps.Where(request.IdOrKeyFilter);
-
-        query = employeeId is { } managerId
-            ? query.Where(r => r.Visibility == publicVisibility || r.RoadmapManagers.Any(m => m.ManagerId == managerId))
-            : query.Where(r => r.Visibility == publicVisibility);
-
-        return await query
+        var roadmap = await query
             .ProjectToType<RoadmapDetailsDto>()
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (roadmap is not null)
+            roadmap.CanManage = (await reader.Managed(query, cancellationToken)).Contains(roadmap.Id);
+
+        return roadmap;
     }
 }

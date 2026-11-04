@@ -61698,9 +61698,9 @@ export interface CopyRoadmapRequest {
     sourceRoadmapId: string;
     /** The name of the new Roadmap. */
     name: string;
-    /** The managers of the new Roadmap. */
-    roadmapManagerIds: string[];
-    /** The visibility id for the new Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap. */
+    /** The owners of the new Roadmap: employee ids, which must include the caller's own. */
+    ownerIds: string[];
+    /** The visibility id for the new Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it. */
     visibilityId: number;
 }
 
@@ -62222,9 +62222,9 @@ export interface CreateRoadmapRequest {
     start: string;
     /** The Roadmap end date. */
     end: string;
-    /** The managers of the Roadmap. */
-    roadmapManagerIds: string[];
-    /** The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap. */
+    /** The owners of the Roadmap: employee ids, which must include the caller's own. */
+    ownerIds: string[];
+    /** The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it. */
     visibilityId: number;
 }
 
@@ -67732,12 +67732,15 @@ export interface RoadmapDetailsDto {
     start: string;
     /** The Roadmap end date. */
     end: string;
-    /** The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap. */
+    /** The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it. */
     visibility: SimpleNavigationDto;
     /** The state of the Roadmap. */
     state: SimpleNavigationDto;
-    /** The managers of the Roadmap. */
-    roadmapManagers: EmployeeNavigationDto[];
+    /** The owners of the Roadmap. */
+    owners: EmployeeNavigationDto[];
+    /** Whether the caller can manage the Roadmap and its items: they own it or hold the Roadmaps Administer
+permission. False when the request's token is read-only. An archived Roadmap can only be activated. */
+    canManage: boolean;
     /** The colors configured on the Roadmap, ordered by their configured order. */
     colors: RoadmapColorDto[];
 }
@@ -67753,14 +67756,17 @@ export interface RoadmapListDto {
     start: string;
     /** The Roadmap end date. */
     end: string;
-    /** The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap. */
+    /** The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it. */
     visibility: SimpleNavigationDto;
     /** The state of the Roadmap. */
     state: SimpleNavigationDto;
     /** The color of the Roadmap. Must be a valid hex color code. */
     color?: string | undefined;
-    /** The managers of the Roadmap. */
-    roadmapManagers: EmployeeNavigationDto[];
+    /** The owners of the Roadmap. */
+    owners: EmployeeNavigationDto[];
+    /** Whether the caller can manage the Roadmap and its items: they own it or hold the Roadmaps Administer
+permission. False when the request's token is read-only. An archived Roadmap can only be activated. */
+    canManage: boolean;
 }
 
 export interface RoadmapMilestoneDetailsDto extends RoadmapItemDetailsDto {
@@ -70853,9 +70859,9 @@ export interface UpdateRoadmapRequest {
     start: string;
     /** The Roadmap end date. */
     end: string;
-    /** The managers of the Roadmap. */
-    roadmapManagerIds: string[];
-    /** The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap. */
+    /** The owners of the Roadmap: employee ids, which must include the caller's own unless they are a Roadmaps administrator. */
+    ownerIds: string[];
+    /** The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it. */
     visibilityId: number;
 }
 

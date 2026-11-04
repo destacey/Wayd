@@ -67052,7 +67052,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a roadmap.
         /// </summary>
         /// <remarks>
-        /// `roadmapManagerIds` are employee UUIDs and must include the caller's own employee: only roadmap managers can change a roadmap. `visibilityId` is 1 Public (everyone can see it) or 2 Private (only its managers can); Roadmaps_GetVisibilityOptions lists them. `start` must be on or before `end`. The new roadmap is Active and has no items. Returns its `id` and `key`.
+        /// `ownerIds` are employee UUIDs and must include the caller's own employee: only a roadmap's owners, and Roadmaps administrators, can change it. `visibilityId` is 1 Public (everyone can see it) or 2 Private (only its owners and Roadmaps administrators can); Roadmaps_GetVisibilityOptions lists them. `start` must be on or before `end`. The new roadmap is Active and has no items. Returns its `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67071,7 +67071,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Copy an existing roadmap.
         /// </summary>
         /// <remarks>
-        /// Creates a new Active roadmap with the source's description, dates and every item (activities, timeboxes and milestones, with their nesting, colors and order), under the given `name`, `roadmapManagerIds` and `visibilityId` (1 Public, 2 Private). The source's color legend is not copied. `sourceRoadmapId` is the source's UUID; it must be public or managed by the caller. `roadmapManagerIds` are employee UUIDs and must include the caller's own employee. The source is unchanged. Returns the copy's `id` and `key`.
+        /// Creates a new Active roadmap with the source's description, dates and every item (activities, timeboxes and milestones, with their nesting, colors and order), under the given `name`, `ownerIds` and `visibilityId` (1 Public, 2 Private). The source's color legend is not copied. `sourceRoadmapId` is the source's UUID; it must be public or owned by the caller, unless the caller is a Roadmaps administrator. `ownerIds` are employee UUIDs and must include the caller's own employee. The source is unchanged. Returns the copy's `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67082,7 +67082,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a roadmap.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite of the name, description, dates, managers and visibility: an omitted `description` is cleared and `roadmapManagerIds` replaces the managers, so leaving a manager out removes them. Read the roadmap with Roadmaps_GetRoadmap first and pass back what should stay. The managers must include the caller's own employee, and only a manager can update. `visibilityId` is 1 Public or 2 Private. An archived roadmap cannot be changed; reactivate it first. Takes the roadmap's UUID, in the path and again as `id` in the body.
+        /// A whole-record overwrite of the name, description, dates, owners and visibility: an omitted `description` is cleared and `ownerIds` replaces the owners, so leaving an owner out removes them. Read the roadmap with Roadmaps_GetRoadmap first and pass back what should stay. Only an owner or a Roadmaps administrator can update, and an owner must keep their own employee among the owners. `visibilityId` is 1 Public or 2 Private. An archived roadmap cannot be changed; reactivate it first. Takes the roadmap's UUID, in the path and again as `id` in the body.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67093,7 +67093,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a roadmap.
         /// </summary>
         /// <remarks>
-        /// Permanently deletes the roadmap and all its items. Only a manager can delete it, and an archived roadmap must be reactivated first; to retire a roadmap but keep it, use Roadmaps_ArchiveRoadmap instead. Takes the roadmap's UUID.
+        /// Permanently deletes the roadmap and all its items. Only an owner or a Roadmaps administrator can delete it, and an archived roadmap must be reactivated first; to retire a roadmap but keep it, use Roadmaps_ArchiveRoadmap instead. Takes the roadmap's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67104,7 +67104,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the configured colors for a roadmap.
         /// </summary>
         /// <remarks>
-        /// Replaces the roadmap's color legend: `colors` is the complete set, each a hex `color` (e.g. #4096FF) with a caption `name` (at most 32 characters), an `order` and `isDefault`; a color left out is removed and an empty list clears the legend. At most 30 colors, at most one default, no color value twice. Items keep their own colors. Read the current legend with Roadmaps_GetRoadmap first. Only a manager of an active roadmap can change it. Takes the roadmap's UUID, in the path and again as `roadmapId` in the body.
+        /// Replaces the roadmap's color legend: `colors` is the complete set, each a hex `color` (e.g. #4096FF) with a caption `name` (at most 32 characters), an `order` and `isDefault`; a color left out is removed and an empty list clears the legend. At most 30 colors, at most one default, no color value twice. Items keep their own colors. Read the current legend with Roadmaps_GetRoadmap first. Only an owner of an active roadmap, or a Roadmaps administrator, can change it. Takes the roadmap's UUID, in the path and again as `roadmapId` in the body.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67115,7 +67115,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Archive a roadmap.
         /// </summary>
         /// <remarks>
-        /// Moves an Active roadmap to Archived, keeping it and its items; an archived roadmap is read-only until reactivated with Roadmaps_ActivateRoadmap. Only a manager can archive it. Takes the roadmap's UUID.
+        /// Moves an Active roadmap to Archived, keeping it and its items; an archived roadmap is read-only until reactivated with Roadmaps_ActivateRoadmap. Only an owner or a Roadmaps administrator can archive it. Takes the roadmap's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67126,7 +67126,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Activate a roadmap.
         /// </summary>
         /// <remarks>
-        /// Moves an Archived roadmap back to Active so it can be changed again. Only a manager can activate it. Takes the roadmap's UUID.
+        /// Moves an Archived roadmap back to Active so it can be changed again. Only an owner or a Roadmaps administrator can activate it. Takes the roadmap's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67161,7 +67161,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a roadmap item of type: Activity, Timebox, Milestone.
         /// </summary>
         /// <remarks>
-        /// The body's `$type` picks the item type and must be its first property: "activity" or "timebox" with `start` and `end`, or "milestone" with `date`. Every type takes `roadmapId` (the roadmap's UUID, also in the path), `name`, and optional `description`, hex `color` and `parentId` — the UUID of an activity on the roadmap to nest the item under; only activities can be parents, and with no parent the item is top-level. Only a manager of an active roadmap can add items. Returns the new item's id.
+        /// The body's `$type` picks the item type and must be its first property: "activity" or "timebox" with `start` and `end`, or "milestone" with `date`. Every type takes `roadmapId` (the roadmap's UUID, also in the path), `name`, and optional `description`, hex `color` and `parentId` — the UUID of an activity on the roadmap to nest the item under; only activities can be parents, and with no parent the item is top-level. Only an owner of an active roadmap, or a Roadmaps administrator, can add items. Returns the new item's id.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67172,7 +67172,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a roadmap item of type: Activity, Timebox, Milestone.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite: name, description, parent, color and dates are all set from the body, so an omitted `description` or `color` is cleared and an omitted `parentId` moves the item to the top level. Read the item with Roadmaps_GetItem first and pass back what should stay, or use Roadmaps_PatchItem to change only some fields. The body's `$type` must be its first property and match the item's type: "activity" or "timebox" with `start` and `end`, "milestone" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only a manager of an active roadmap can change it.
+        /// A whole-record overwrite: name, description, parent, color and dates are all set from the body, so an omitted `description` or `color` is cleared and an omitted `parentId` moves the item to the top level. Read the item with Roadmaps_GetItem first and pass back what should stay, or use Roadmaps_PatchItem to change only some fields. The body's `$type` must be its first property and match the item's type: "activity" or "timebox" with `start` and `end`, "milestone" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only an owner of an active roadmap, or a Roadmaps administrator, can change it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67194,7 +67194,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a roadmap item.
         /// </summary>
         /// <remarks>
-        /// Deleting an activity also deletes everything nested under it, at every level; read the roadmap with Roadmaps_GetItems first to see what goes with it. Both ids are UUIDs. Only a manager of an active roadmap can delete items.
+        /// Deleting an activity also deletes everything nested under it, at every level; read the roadmap with Roadmaps_GetItems first to see what goes with it. Both ids are UUIDs. Only an owner of an active roadmap, or a Roadmaps administrator, can delete items.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67205,7 +67205,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the date(s) on a roadmap item of type: Activity, Timebox, Milestone.
         /// </summary>
         /// <remarks>
-        /// Changes only the item's dates, leaving its other fields as they are. The body's `$type` must be its first property and match the item's type: "activity" or "timebox" with `start` and `end`, "milestone" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only a manager of an active roadmap can change it.
+        /// Changes only the item's dates, leaving its other fields as they are. The body's `$type` must be its first property and match the item's type: "activity" or "timebox" with `start` and `end`, "milestone" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only an owner of an active roadmap, or a Roadmaps administrator, can change it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67216,7 +67216,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a roadmap activity's placement.
         /// </summary>
         /// <remarks>
-        /// Places an activity at `order` (1-based) among its siblings under `parentId`, the UUID of another activity, or at the top level when `parentId` is null. With the activity's current parent this reorders it; with a different one it moves it there, renumbering both sets of siblings. Activities only — a milestone or timebox moves to another parent through Roadmaps_UpdateItem or Roadmaps_PatchItem. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only a manager of an active roadmap can change it.
+        /// Places an activity at `order` (1-based) among its siblings under `parentId`, the UUID of another activity, or at the top level when `parentId` is null. With the activity's current parent this reorders it; with a different one it moves it there, renumbering both sets of siblings. Activities only — a milestone or timebox moves to another parent through Roadmaps_UpdateItem or Roadmaps_PatchItem. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only an owner of an active roadmap, or a Roadmaps administrator, can change it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67383,7 +67383,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a roadmap.
         /// </summary>
         /// <remarks>
-        /// `roadmapManagerIds` are employee UUIDs and must include the caller's own employee: only roadmap managers can change a roadmap. `visibilityId` is 1 Public (everyone can see it) or 2 Private (only its managers can); Roadmaps_GetVisibilityOptions lists them. `start` must be on or before `end`. The new roadmap is Active and has no items. Returns its `id` and `key`.
+        /// `ownerIds` are employee UUIDs and must include the caller's own employee: only a roadmap's owners, and Roadmaps administrators, can change it. `visibilityId` is 1 Public (everyone can see it) or 2 Private (only its owners and Roadmaps administrators can); Roadmaps_GetVisibilityOptions lists them. `start` must be on or before `end`. The new roadmap is Active and has no items. Returns its `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67565,7 +67565,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Copy an existing roadmap.
         /// </summary>
         /// <remarks>
-        /// Creates a new Active roadmap with the source's description, dates and every item (activities, timeboxes and milestones, with their nesting, colors and order), under the given `name`, `roadmapManagerIds` and `visibilityId` (1 Public, 2 Private). The source's color legend is not copied. `sourceRoadmapId` is the source's UUID; it must be public or managed by the caller. `roadmapManagerIds` are employee UUIDs and must include the caller's own employee. The source is unchanged. Returns the copy's `id` and `key`.
+        /// Creates a new Active roadmap with the source's description, dates and every item (activities, timeboxes and milestones, with their nesting, colors and order), under the given `name`, `ownerIds` and `visibilityId` (1 Public, 2 Private). The source's color legend is not copied. `sourceRoadmapId` is the source's UUID; it must be public or owned by the caller, unless the caller is a Roadmaps administrator. `ownerIds` are employee UUIDs and must include the caller's own employee. The source is unchanged. Returns the copy's `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67659,7 +67659,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a roadmap.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite of the name, description, dates, managers and visibility: an omitted `description` is cleared and `roadmapManagerIds` replaces the managers, so leaving a manager out removes them. Read the roadmap with Roadmaps_GetRoadmap first and pass back what should stay. The managers must include the caller's own employee, and only a manager can update. `visibilityId` is 1 Public or 2 Private. An archived roadmap cannot be changed; reactivate it first. Takes the roadmap's UUID, in the path and again as `id` in the body.
+        /// A whole-record overwrite of the name, description, dates, owners and visibility: an omitted `description` is cleared and `ownerIds` replaces the owners, so leaving an owner out removes them. Read the roadmap with Roadmaps_GetRoadmap first and pass back what should stay. Only an owner or a Roadmaps administrator can update, and an owner must keep their own employee among the owners. `visibilityId` is 1 Public or 2 Private. An archived roadmap cannot be changed; reactivate it first. Takes the roadmap's UUID, in the path and again as `id` in the body.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67761,7 +67761,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a roadmap.
         /// </summary>
         /// <remarks>
-        /// Permanently deletes the roadmap and all its items. Only a manager can delete it, and an archived roadmap must be reactivated first; to retire a roadmap but keep it, use Roadmaps_ArchiveRoadmap instead. Takes the roadmap's UUID.
+        /// Permanently deletes the roadmap and all its items. Only an owner or a Roadmaps administrator can delete it, and an archived roadmap must be reactivated first; to retire a roadmap but keep it, use Roadmaps_ArchiveRoadmap instead. Takes the roadmap's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67846,7 +67846,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the configured colors for a roadmap.
         /// </summary>
         /// <remarks>
-        /// Replaces the roadmap's color legend: `colors` is the complete set, each a hex `color` (e.g. #4096FF) with a caption `name` (at most 32 characters), an `order` and `isDefault`; a color left out is removed and an empty list clears the legend. At most 30 colors, at most one default, no color value twice. Items keep their own colors. Read the current legend with Roadmaps_GetRoadmap first. Only a manager of an active roadmap can change it. Takes the roadmap's UUID, in the path and again as `roadmapId` in the body.
+        /// Replaces the roadmap's color legend: `colors` is the complete set, each a hex `color` (e.g. #4096FF) with a caption `name` (at most 32 characters), an `order` and `isDefault`; a color left out is removed and an empty list clears the legend. At most 30 colors, at most one default, no color value twice. Items keep their own colors. Read the current legend with Roadmaps_GetRoadmap first. Only an owner of an active roadmap, or a Roadmaps administrator, can change it. Takes the roadmap's UUID, in the path and again as `roadmapId` in the body.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67949,7 +67949,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Archive a roadmap.
         /// </summary>
         /// <remarks>
-        /// Moves an Active roadmap to Archived, keeping it and its items; an archived roadmap is read-only until reactivated with Roadmaps_ActivateRoadmap. Only a manager can archive it. Takes the roadmap's UUID.
+        /// Moves an Active roadmap to Archived, keeping it and its items; an archived roadmap is read-only until reactivated with Roadmaps_ActivateRoadmap. Only an owner or a Roadmaps administrator can archive it. Takes the roadmap's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -68036,7 +68036,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Activate a roadmap.
         /// </summary>
         /// <remarks>
-        /// Moves an Archived roadmap back to Active so it can be changed again. Only a manager can activate it. Takes the roadmap's UUID.
+        /// Moves an Archived roadmap back to Active so it can be changed again. Only an owner or a Roadmaps administrator can activate it. Takes the roadmap's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -68404,7 +68404,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a roadmap item of type: Activity, Timebox, Milestone.
         /// </summary>
         /// <remarks>
-        /// The body's `$type` picks the item type and must be its first property: "activity" or "timebox" with `start` and `end`, or "milestone" with `date`. Every type takes `roadmapId` (the roadmap's UUID, also in the path), `name`, and optional `description`, hex `color` and `parentId` — the UUID of an activity on the roadmap to nest the item under; only activities can be parents, and with no parent the item is top-level. Only a manager of an active roadmap can add items. Returns the new item's id.
+        /// The body's `$type` picks the item type and must be its first property: "activity" or "timebox" with `start` and `end`, or "milestone" with `date`. Every type takes `roadmapId` (the roadmap's UUID, also in the path), `name`, and optional `description`, hex `color` and `parentId` — the UUID of an activity on the roadmap to nest the item under; only activities can be parents, and with no parent the item is top-level. Only an owner of an active roadmap, or a Roadmaps administrator, can add items. Returns the new item's id.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -68503,7 +68503,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a roadmap item of type: Activity, Timebox, Milestone.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite: name, description, parent, color and dates are all set from the body, so an omitted `description` or `color` is cleared and an omitted `parentId` moves the item to the top level. Read the item with Roadmaps_GetItem first and pass back what should stay, or use Roadmaps_PatchItem to change only some fields. The body's `$type` must be its first property and match the item's type: "activity" or "timebox" with `start` and `end`, "milestone" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only a manager of an active roadmap can change it.
+        /// A whole-record overwrite: name, description, parent, color and dates are all set from the body, so an omitted `description` or `color` is cleared and an omitted `parentId` moves the item to the top level. Read the item with Roadmaps_GetItem first and pass back what should stay, or use Roadmaps_PatchItem to change only some fields. The body's `$type` must be its first property and match the item's type: "activity" or "timebox" with `start` and `end`, "milestone" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only an owner of an active roadmap, or a Roadmaps administrator, can change it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -68727,7 +68727,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a roadmap item.
         /// </summary>
         /// <remarks>
-        /// Deleting an activity also deletes everything nested under it, at every level; read the roadmap with Roadmaps_GetItems first to see what goes with it. Both ids are UUIDs. Only a manager of an active roadmap can delete items.
+        /// Deleting an activity also deletes everything nested under it, at every level; read the roadmap with Roadmaps_GetItems first to see what goes with it. Both ids are UUIDs. Only an owner of an active roadmap, or a Roadmaps administrator, can delete items.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -68817,7 +68817,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the date(s) on a roadmap item of type: Activity, Timebox, Milestone.
         /// </summary>
         /// <remarks>
-        /// Changes only the item's dates, leaving its other fields as they are. The body's `$type` must be its first property and match the item's type: "activity" or "timebox" with `start` and `end`, "milestone" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only a manager of an active roadmap can change it.
+        /// Changes only the item's dates, leaving its other fields as they are. The body's `$type` must be its first property and match the item's type: "activity" or "timebox" with `start` and `end`, "milestone" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only an owner of an active roadmap, or a Roadmaps administrator, can change it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -68925,7 +68925,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a roadmap activity's placement.
         /// </summary>
         /// <remarks>
-        /// Places an activity at `order` (1-based) among its siblings under `parentId`, the UUID of another activity, or at the top level when `parentId` is null. With the activity's current parent this reorders it; with a different one it moves it there, renumbering both sets of siblings. Activities only — a milestone or timebox moves to another parent through Roadmaps_UpdateItem or Roadmaps_PatchItem. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only a manager of an active roadmap can change it.
+        /// Places an activity at `order` (1-based) among its siblings under `parentId`, the UUID of another activity, or at the top level when `parentId` is null. With the activity's current parent this reorders it; with a different one it moves it there, renumbering both sets of siblings. Activities only — a milestone or timebox moves to another parent through Roadmaps_UpdateItem or Roadmaps_PatchItem. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only an owner of an active roadmap, or a Roadmaps administrator, can change it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -114156,15 +114156,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Name { get; set; } = default!;
 
         /// <summary>
-        /// The managers of the new Roadmap.
+        /// The owners of the new Roadmap: employee ids, which must include the caller's own.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("roadmapManagerIds")]
+        [System.Text.Json.Serialization.JsonPropertyName("ownerIds")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.MinLength(1)]
-        public System.Collections.Generic.ICollection<System.Guid> RoadmapManagerIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+        public System.Collections.Generic.ICollection<System.Guid> OwnerIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
         /// <summary>
-        /// The visibility id for the new Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap.
+        /// The visibility id for the new Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("visibilityId")]
         public int VisibilityId { get; set; } = default!;
@@ -115785,15 +115785,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset End { get; set; } = default!;
 
         /// <summary>
-        /// The managers of the Roadmap.
+        /// The owners of the Roadmap: employee ids, which must include the caller's own.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("roadmapManagerIds")]
+        [System.Text.Json.Serialization.JsonPropertyName("ownerIds")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.MinLength(1)]
-        public System.Collections.Generic.ICollection<System.Guid> RoadmapManagerIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+        public System.Collections.Generic.ICollection<System.Guid> OwnerIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
         /// <summary>
-        /// The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap.
+        /// The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("visibilityId")]
         public int VisibilityId { get; set; } = default!;
@@ -131849,7 +131849,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset End { get; set; } = default!;
 
         /// <summary>
-        /// The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap.
+        /// The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("visibility")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -131863,11 +131863,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public SimpleNavigationDto State { get; set; } = new SimpleNavigationDto();
 
         /// <summary>
-        /// The managers of the Roadmap.
+        /// The owners of the Roadmap.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("roadmapManagers")]
+        [System.Text.Json.Serialization.JsonPropertyName("owners")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<EmployeeNavigationDto> RoadmapManagers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Owners { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// Whether the caller can manage the Roadmap and its items: they own it or hold the Roadmaps Administer
+        /// <br/>permission. False when the request's token is read-only. An archived Roadmap can only be activated.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
+        public bool CanManage { get; set; } = default!;
 
         /// <summary>
         /// The colors configured on the Roadmap, ordered by their configured order.
@@ -132025,7 +132032,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset End { get; set; } = default!;
 
         /// <summary>
-        /// The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap.
+        /// The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("visibility")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -132045,11 +132052,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string? Color { get; set; } = default!;
 
         /// <summary>
-        /// The managers of the Roadmap.
+        /// The owners of the Roadmap.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("roadmapManagers")]
+        [System.Text.Json.Serialization.JsonPropertyName("owners")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<EmployeeNavigationDto> RoadmapManagers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Owners { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// Whether the caller can manage the Roadmap and its items: they own it or hold the Roadmaps Administer
+        /// <br/>permission. False when the request's token is read-only. An archived Roadmap can only be activated.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
+        public bool CanManage { get; set; } = default!;
 
     }
 
@@ -141195,15 +141209,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset End { get; set; } = default!;
 
         /// <summary>
-        /// The managers of the Roadmap.
+        /// The owners of the Roadmap: employee ids, which must include the caller's own unless they are a Roadmaps administrator.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("roadmapManagerIds")]
+        [System.Text.Json.Serialization.JsonPropertyName("ownerIds")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.MinLength(1)]
-        public System.Collections.Generic.ICollection<System.Guid> RoadmapManagerIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+        public System.Collections.Generic.ICollection<System.Guid> OwnerIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
         /// <summary>
-        /// The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap.
+        /// The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("visibilityId")]
         public int VisibilityId { get; set; } = default!;

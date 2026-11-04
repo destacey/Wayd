@@ -18,6 +18,10 @@ The root [AGENTS.md](../AGENTS.md) applies here too. This file holds the rules f
 
 - **A story map is gated by the map, as poker is.** Endpoints need `Permissions.StoryMaps.View` (`Create` to create). Owners manage the map (`StoryMap.CanManage`, waived by `Administer`); content changes need `CanEdit` (owners, editors and editor teams, or anyone who can see a Public `AnyoneWhoCanView` map); a Private map admits only owners and editors. **Every public mutator takes a `StoryMapActor`.** Commands are `IRequireLinkedEmployee`, resolve it through `IStoryMapAccess.ResolveActor`, and **their query must call `.IncludeAccess()`** — in-memory fakes cannot tell when it is missing (`StoryMapPersistenceTests` can). Reorders, moves, owners and editors go through `StoryMapMutation.Apply` so a concurrent change conflicts and retries. Reads filter with `StoryMapReader.Filter`; keep `AccessibleTo` and `EditableBy` in step with the methods they mirror. Access changes call `NotifyAccessChanged`, which evicts through `RealtimeAccessRevoker.RecheckStoryMap`, with the poker limits. [Details](../docs/contributing/architecture.mdx#permission-based-vs-membership-based-authorization)
 
+## Roadmaps Authorization
+
+- **A roadmap is gated by its owners.** Every mutator takes a `RoadmapActor` (`ResolveRoadmapActor`); commands are `IRequireLinkedEmployee` and **must `.Include(x => x.Owners)`**, which fakes cannot check. [Details](../docs/contributing/architecture.mdx#permission-based-vs-membership-based-authorization)
+
 ## Domain Events
 
 - **Every event is audited for free.** `SaveChanges` captures every drained event into `ActivityLogs`, and an event nobody subscribes to is a no-op, so a new event needs no handler. Add it to `DurableEventRoutes` only when a consumer needs asynchronous delivery.

@@ -1,6 +1,6 @@
 ---
 name: wayd-roadmaps
-description: Read before calling the Wayd MCP tools named Roadmaps_*. Guides agents working with Wayd Roadmaps — listing roadmaps and exploring their activities, timeboxes, milestones and item details, and creating, copying, updating, archiving and deleting roadmaps and their items. Use when finding or listing a roadmap, exploring its activities, timeboxes and milestones, summarizing what it plans for a period, looking up the details of a roadmap item, creating or copying a roadmap, changing its details, managers, visibility or color legend, archiving, reactivating or deleting it, or adding, changing, moving, re-dating or deleting its items.
+description: Read before calling the Wayd MCP tools named Roadmaps_*. Guides agents working with Wayd Roadmaps — listing roadmaps and exploring their activities, timeboxes, milestones and item details, and creating, copying, updating, archiving and deleting roadmaps and their items. Use when finding or listing a roadmap, exploring its activities, timeboxes and milestones, summarizing what it plans for a period, looking up the details of a roadmap item, creating or copying a roadmap, changing its details, owners, visibility or color legend, archiving, reactivating or deleting it, or adding, changing, moving, re-dating or deleting its items.
 ---
 
 # Wayd Roadmaps
@@ -33,11 +33,11 @@ Roadmaps contain three distinct item types:
 - `Roadmaps_GetItem` takes `roadmapIdOrKey` (UUID or key) plus `itemId`, which is UUID-only. If you only have the item's name, find its `id` in `Roadmaps_GetItems` first.
 - **Every tool that changes something takes UUIDs only** — the roadmap's `id` and the item's `id`. Most bodies repeat the path's ids (`id`, `roadmapId`, `itemId`); they must match.
 
-### Visibility, managers and state
+### Visibility, owners and state
 
-- `visibilityId` is `1` Public (everyone sees it) or `2` Private (only its managers do); `Roadmaps_GetVisibilityOptions` lists them.
-- A private roadmap is visible only to its roadmap managers. To anyone else it is absent from `Roadmaps_GetRoadmaps` and its items come back empty, so an empty or missing roadmap may be private rather than nonexistent — say so.
-- **Only a roadmap manager can change a roadmap or its items.** `roadmapManagerIds` are employee UUIDs, and on create, copy and update they must include the user's own employee — so a user cannot remove themselves as a manager.
+- `visibilityId` is `1` Public (everyone sees it) or `2` Private (only its owners and Roadmaps administrators do); `Roadmaps_GetVisibilityOptions` lists them.
+- A private roadmap is visible only to its owners and to Roadmaps administrators. To anyone else it is absent from `Roadmaps_GetRoadmaps` and its items come back empty, so an empty or missing roadmap may be private rather than nonexistent — say so.
+- **Only an owner — or a Roadmaps administrator — can change a roadmap or its items.** A roadmap's `canManage` says whether the user can; when it is false, say so rather than attempting the change. `ownerIds` are employee UUIDs. On create and copy they must include the user's own employee. On update an owner must keep their own employee among them, so an owner cannot remove themselves; an administrator need not be an owner.
 - A roadmap is `Active` or `Archived` (`Roadmaps_GetStateOptions`). An archived roadmap is read-only: reactivate it before any change, deleting included.
 
 ---
@@ -64,14 +64,14 @@ For a question like "what's planned next quarter on the Platform roadmap?":
 
 | Goal | Tool | Notes |
 |---|---|---|
-| Create | `Roadmaps_CreateRoadmap` | `name`, `start`, `end`, `roadmapManagerIds`, `visibilityId`, optional `description`. Starts Active and empty. Returns `id` and `key`. |
-| Copy | `Roadmaps_CopyRoadmap` | `sourceRoadmapId`, new `name`, `roadmapManagerIds`, `visibilityId`. Copies the description, dates and every item with its nesting and color; not the color legend. |
-| Change details, managers or visibility | `Roadmaps_UpdateRoadmap` | **Whole-record overwrite** — see below. |
+| Create | `Roadmaps_CreateRoadmap` | `name`, `start`, `end`, `ownerIds`, `visibilityId`, optional `description`. Starts Active and empty. Returns `id` and `key`. |
+| Copy | `Roadmaps_CopyRoadmap` | `sourceRoadmapId`, new `name`, `ownerIds`, `visibilityId`. Copies the description, dates and every item with its nesting and color; not the color legend. |
+| Change details, owners or visibility | `Roadmaps_UpdateRoadmap` | **Whole-record overwrite** — see below. |
 | Set the color legend | `Roadmaps_UpdateColors` | `colors` is the **complete** legend: hex `color`, caption `name` (≤ 32 chars), `order`, `isDefault`. At most 30, one default, no repeats. Leaving a color out removes it; items keep their own colors. |
 | Archive / reactivate | `Roadmaps_ArchiveRoadmap` / `Roadmaps_ActivateRoadmap` | Archive keeps everything, read-only. Prefer it to deleting. |
 | Delete | `Roadmaps_DeleteRoadmap` | Permanent, with all items. |
 
-`Roadmaps_UpdateRoadmap` sets `name`, `description`, `start`, `end`, `roadmapManagerIds` and `visibilityId` from the body. Read the roadmap with `Roadmaps_GetRoadmap` first and send every field back: an omitted `description` is cleared, and a manager missing from `roadmapManagerIds` loses access to change it — and, on a private roadmap, to see it.
+`Roadmaps_UpdateRoadmap` sets `name`, `description`, `start`, `end`, `ownerIds` and `visibilityId` from the body. Read the roadmap with `Roadmaps_GetRoadmap` first and send every field back: an omitted `description` is cleared, and an owner missing from `ownerIds` loses access to change it — and, on a private roadmap, to see it.
 
 ### Managing items
 

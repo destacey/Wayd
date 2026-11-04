@@ -28,7 +28,7 @@ Permissions are named `Permissions.{Resource}.{Action}` and follow a consistent 
 | `Run` | Trigger an operation — for example running or requeuing a [background job](./index.mdx#background-jobs) |
 | `Manage` | Create, update and delete in one permission — used for planning interval objectives |
 | `Search` / `Export` | Search or export users |
-| `Administer` | Domain-wide administrative standing (see [PPM Administrator](#ppm-administrator), [Planning Poker](#planning-poker-facilitators-and-invites) and [Story Maps](#story-maps-owners-and-editors)) |
+| `Administer` | Domain-wide administrative standing (see [PPM Administrator](#ppm-administrator), [Planning Poker](#planning-poker-facilitators-and-invites), [Story Maps](#story-maps-owners-and-editors) and [Roadmaps](#roadmaps-owners)) |
 
 Some resources add specific actions — `Permissions.Projects.ManageProjectWorkItems`, `Permissions.Teams.ManageTeamMemberships` and `Permissions.RateLimits.Elevated`.
 
@@ -68,7 +68,7 @@ Every permission Wayd defines, as **Settings → Access → Roles** groups them.
 | Planning | `PlanningIntervals` | `View`, `Create`, `Update`, `Delete`, `Import` |
 | Planning | `PlanningIntervalObjectives` | `View`, `Manage`, `Import` |
 | Planning | `Risks` | `View`, `Create`, `Update`, `Delete`, `Import` |
-| Planning | `Roadmaps` | `View`, `Create`, `Update`, `Delete` |
+| Planning | `Roadmaps` | `View`, `Create`, `Administer` (see [Roadmaps](#roadmaps-owners)) |
 | Planning | `PokerSessions` | `View`, `Create`, `Administer` (see [Planning Poker](#planning-poker-facilitators-and-invites)) |
 | Planning | `StoryMaps` | `View`, `Create`, `Administer` (see [Story Maps](#story-maps-owners-and-editors)) |
 | Planning | `EstimationScales` | `View`, `Create`, `Update`, `Delete` |
@@ -201,6 +201,21 @@ Live updates follow the same rule: changing a map's visibility, owners or editor
 
 The seeded **Admin** role includes `Administer`.
 
+## Roadmaps: owners
+
+A [roadmap](../planning/roadmaps.mdx) is changed only by its owners, so Roadmaps has three permissions.
+
+| Who | What they can do | How they get it |
+|---|---|---|
+| `Permissions.Roadmaps.View` | See public roadmaps and the private ones they own | A role |
+| `Permissions.Roadmaps.Create` | Create or copy a roadmap, becoming one of its owners | A role |
+| An **owner** of a roadmap | Edit its details, owners and visibility, configure its colors, archive, activate and delete it, and add, change and delete its items | Named on the roadmap, with `View` |
+| `Permissions.Roadmaps.Administer` | What an owner can do, on every roadmap, private ones included | A role |
+
+An owner must keep themselves among the owners when editing a roadmap; an administrator need not be an owner at all. Being named on a roadmap never replaces the `View` permission. Every roadmap change needs an account linked to an employee, because owners are employees.
+
+The seeded **Admin** role includes `Administer`.
+
 ## Demand Management: desk roles
 
 [Demand Management](../demand-management/index.mdx) works differently from the rest of Wayd: a permission says what you can do anywhere, a role on a desk says what you can do on that desk, and no action needs both. Most of what happens to a request is decided by desk roles, so Demand Management has only two permissions.
@@ -272,3 +287,5 @@ To restore access for someone who needs it, either:
 Members of the seeded **Admin** role are unaffected — it includes the administrator permission.
 
 **Story maps are managed by their owners after upgrading.** `Permissions.StoryMaps.Update` and `Permissions.StoryMaps.Delete` are removed, and the upgrade deletes them from every role; roles that held them are given nothing in their place. Every existing map becomes public and editable by anyone who can view it, so anyone with `View` can still change its content. Each map's owner becomes its only owner when their account is linked to an employee; a map whose owner had no linked employee has no owner, and only a holder of `Permissions.StoryMaps.Administer` can archive, delete or share it, or name a new owner.
+
+**Roadmap managers are now called owners.** `Permissions.Roadmaps.Update` and `Permissions.Roadmaps.Delete` are removed, and the upgrade deletes them from every role; roles that held them are given nothing in their place. Every roadmap keeps its managers as its owners, and owners can change their roadmaps with `View` alone. To let someone manage roadmaps they do not own, grant `Permissions.Roadmaps.Administer`.

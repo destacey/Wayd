@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Planning.Application.Roadmaps;
 using Wayd.Planning.Application.Roadmaps.Commands;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Models.Roadmaps;
@@ -36,15 +37,15 @@ public class ArchiveRoadmapCommandHandlerTests : IDisposable
     private ArchiveRoadmapCommandHandler CreateHandler() =>
         new(_dbContext, _mockCurrentPrincipal.Object, Mock.Of<ICurrentUser>(u => u.GetUserId() == "user-1"), new TestingDateTimeProvider(new FakeClock(Now)), _mockLogger.Object);
 
-    private Roadmap CreateActiveRoadmap(Guid? managerId = null)
+    private Roadmap CreateActiveRoadmap(Guid? ownerId = null)
     {
-        var mgrId = managerId ?? _currentEmployeeId;
+        var ownerIdOrCurrent = ownerId ?? _currentEmployeeId;
         var fakeRoadmap = _faker.Generate();
-        return Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [mgrId], Actor, Now).Value;
+        return Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerIdOrCurrent], Actor, Now).Value;
     }
 
     [Fact]
-    public async Task Handle_ShouldArchiveRoadmap_WhenActiveAndUserIsManager()
+    public async Task Handle_ShouldArchiveRoadmap_WhenActiveAndUserIsOwner()
     {
         // Arrange
         var roadmap = CreateActiveRoadmap();
@@ -79,11 +80,11 @@ public class ArchiveRoadmapCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_ShouldFail_WhenUserIsNotManager()
+    public async Task Handle_ShouldFail_WhenUserIsNotOwner()
     {
         // Arrange
-        var otherManagerId = Guid.NewGuid();
-        var roadmap = CreateActiveRoadmap(managerId: otherManagerId);
+        var otherOwnerId = Guid.NewGuid();
+        var roadmap = CreateActiveRoadmap(ownerId: otherOwnerId);
         _dbContext.AddRoadmap(roadmap);
         var handler = CreateHandler();
 
@@ -103,7 +104,7 @@ public class ArchiveRoadmapCommandHandlerTests : IDisposable
     {
         // Arrange
         var roadmap = CreateActiveRoadmap();
-        roadmap.Archive(_currentEmployeeId, Actor, Now);
+        roadmap.Archive(new RoadmapActor(_currentEmployeeId, false), Actor, Now);
         _dbContext.AddRoadmap(roadmap);
         var handler = CreateHandler();
 
@@ -116,6 +117,28 @@ public class ArchiveRoadmapCommandHandlerTests : IDisposable
         result.IsFailure.Should().BeTrue();
         roadmap.State.Should().Be(RoadmapState.Archived);
         _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldArchiveRoadmap_WhenUserIsAnAdministratorButNotAnOwner()
+    {
+        // Arrange
+        var roadmap = CreateActiveRoadmap(ownerId: Guid.NewGuid());
+        _dbContext.AddRoadmap(roadmap);
+        _mockCurrentPrincipal
+            .Setup(p => p.HasPermission(RoadmapAccess.AdministratorPermission, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var handler = CreateHandler();
+
+        var command = new ArchiveRoadmapCommand(roadmap.Id);
+
+        // Act
+        var result = await handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        roadmap.State.Should().Be(RoadmapState.Archived);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     public void Dispose()

@@ -49,14 +49,12 @@ public sealed class UpdateRoadmapColorsCommandHandler(IPlanningDbContext plannin
     {
         // Outside the try: this is a refusal, and the catch-all below would turn it into a
         // generic failure, losing both the 403 and its explanation.
-        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        if (currentUserEmployeeId is null)
-            LinkedEmployeeRequired.Throw();
+        var caller = await _currentPrincipal.ResolveRoadmapActor(cancellationToken);
 
         try
         {
             var roadmap = await _planningDbContext.Roadmaps
-                .Include(x => x.RoadmapManagers)
+                .Include(x => x.Owners)
                 .FirstOrDefaultAsync(r => r.Id == request.RoadmapId, cancellationToken);
 
             if (roadmap is null)
@@ -65,7 +63,7 @@ public sealed class UpdateRoadmapColorsCommandHandler(IPlanningDbContext plannin
                 return Result.Failure($"Roadmap with id {request.RoadmapId} not found");
             }
 
-            var updateResult = roadmap.UpdateColors(request.Colors, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now);
+            var updateResult = roadmap.UpdateColors(request.Colors, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
 
             if (updateResult.IsFailure)
             {

@@ -1117,6 +1117,55 @@ public sealed class DomainEventSerializationTests
     }
 
     [Fact]
+    public void RoadmapOwnersChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var kept = Guid.NewGuid();
+        var added = Guid.NewGuid();
+        var original = new RoadmapOwnersChangedEvent(Guid.NewGuid(), 12,
+            added: [added], removed: [Guid.NewGuid()], ownerIds: [kept, added],
+            EventActor.System, Instant.FromUtc(2026, 11, 3, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Added.Should().Equal(original.Added);
+        roundTripped.Removed.Should().Equal(original.Removed);
+        roundTripped.OwnerIds.Should().Equal(original.OwnerIds);
+    }
+
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+    [Fact]
+    public void RoadmapManagersChangedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
+    {
+        // Arrange — the frozen 1.0 contract, from when roadmap owners were called managers.
+        const string payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000021",
+              "Key": 12,
+              "Added": ["019f2a10-0000-7000-8000-000000000022"],
+              "Removed": [],
+              "ManagerIds": ["019f2a10-0000-7000-8000-000000000022", "019f2a10-0000-7000-8000-000000000023"],
+              "Timestamp": "2026-10-01T08:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000024",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+        var read = JsonSerializer.Deserialize<RoadmapManagersChangedEvent>(payload, Options)!;
+
+        // Assert
+        read.Added.Should().Equal(Guid.Parse("019f2a10-0000-7000-8000-000000000022"));
+        read.Removed.Should().BeEmpty();
+        read.ManagerIds.Should().HaveCount(2);
+        read.EventVersion.Should().Be("1.0");
+    }
+#pragma warning restore CS0618
+
+    [Fact]
     public void EstimationScaleCreatedEvent_RoundTripsThroughDurableSerializer()
     {
         // Arrange - a version record holding an ordered array of value records, a card among them.

@@ -6,6 +6,12 @@ namespace Wayd.Common.Domain.Events.Planning.Roadmaps;
 /// <summary>
 /// Managers were added to or removed from a roadmap.
 /// </summary>
+/// <remarks>
+/// Frozen at its published shape and never raised; <see cref="RoadmapOwnersChangedEvent"/> replaced it when roadmap
+/// managers were renamed owners. Kept so every payload written as this type still deserializes into it — its name and
+/// members are the contract those payloads were written against, so neither may change.
+/// </remarks>
+[Obsolete("Superseded by RoadmapOwnersChangedEvent. Kept only to deserialize payloads already written as this type.")]
 public sealed record RoadmapManagersChangedEvent : DomainEvent<RoadmapManagersChangedEvent>, IDomainEventDescriptor, IAggregateEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;

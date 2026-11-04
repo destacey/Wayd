@@ -143,7 +143,7 @@ Potential circumstances that could impact delivery. Properties:
 ### Roadmaps
 
 Visual timelines with hierarchical items. Properties:
-- Name, Description, Date Range, Visibility (Public/Private), Managers (employees, min 1; the user creating or editing must be among them), State (Active/Archived — an archived roadmap rejects every change until activated again)
+- Name, Description, Date Range, Visibility (Public/Private), Owners (employees, min 1; the user creating must be among them, and an owner editing must stay among them; `Permissions.Roadmaps.Administer` manages any roadmap without being an owner), State (Active/Archived — an archived roadmap rejects every change until activated again)
 - Date ranges are inclusive; start and end may be the same day.
 - Optional Color palette: named colors, one optional default, each value used once.
 
@@ -152,7 +152,7 @@ Item types:
 - Milestone: Single date point. Created through the API only; the UI shows, opens and drags existing ones
 - Timebox: Date range period
 
-All items have optional Color. Roadmaps can be copied: a new Active roadmap with its own name, managers and visibility, keeping the description, dates and the full item hierarchy with item colors, but not the color palette.
+All items have optional Color. Roadmaps can be copied: a new Active roadmap with its own name, owners and visibility, keeping the description, dates and the full item hierarchy with item colors, but not the color palette.
 
 ### Planning Poker
 

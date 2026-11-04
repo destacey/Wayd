@@ -58,14 +58,16 @@ const DeleteRoadmapItemForm = ({
     onCancel: onFormCancel,
     errorMessage:
       'An unexpected error occurred while deleting the roadmap item.',
-    permission: 'Permissions.Roadmaps.Update',
+    permission: 'Permissions.Roadmaps.View',
   })
 
   // Query error display
   useEffect(() => {
     if (itemDataError) {
       messageApi.error(
-        (isApiError(itemDataError) ? itemDataError.supportMessage : undefined) ??
+        (isApiError(itemDataError)
+          ? itemDataError.supportMessage
+          : undefined) ??
           'An error occurred while loading roadmap item. Please try again.',
       )
     }

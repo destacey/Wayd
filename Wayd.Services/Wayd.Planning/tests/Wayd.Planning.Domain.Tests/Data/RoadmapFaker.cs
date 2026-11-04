@@ -20,7 +20,7 @@ public class RoadmapFaker : PrivateConstructorFaker<Roadmap>
         RuleFor(x => x.DateRange, f => new LocalDateRange(BaseDate, BaseDate.PlusDays(10)));
         RuleFor(x => x.Visibility, f => f.PickRandom<Visibility>());
         RuleFor(x => x.State, f => RoadmapState.Active);
-        //RuleFor(x => x.Managers, f => managerFaker.Generate(1)); // TODO not working
+        //RuleFor(x => x.Owners, f => ownerFaker.Generate(1)); // TODO not working
     }
 
     public LocalDate BaseDate { get; }
@@ -122,10 +122,10 @@ public static class RoadmapFakerExtensions
     //        children.Add(child);
     //    }
 
-    //    var managers = new RoadmapManagerFaker(roadmapId).Generate(1);
+    //    var owners = new RoadmapOwnerFaker(roadmapId).Generate(1);
 
     //    faker.RuleFor("_children", f => children.ToList());
-    //    faker.RuleFor("_roadmapManagers", f => managers.ToList());
+    //    faker.RuleFor("_owners", f => owners.ToList());
 
     //    return faker.WithId(roadmapId).Generate();
     //}

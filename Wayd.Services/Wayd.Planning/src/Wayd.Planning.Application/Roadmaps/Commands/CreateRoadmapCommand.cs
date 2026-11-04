@@ -5,7 +5,7 @@ using Wayd.Planning.Domain.Models.Roadmaps;
 
 namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-public sealed record CreateRoadmapCommand(string Name, string? Description, LocalDateRange DateRange, List<Guid> RoadmapManagerIds, Visibility Visibility) : ICommand<ObjectIdAndKey>, IRequireLinkedEmployee;
+public sealed record CreateRoadmapCommand(string Name, string? Description, LocalDateRange DateRange, List<Guid> OwnerIds, Visibility Visibility) : ICommand<ObjectIdAndKey>, IRequireLinkedEmployee;
 
 public sealed class CreateRoadmapCommandValidator : AbstractValidator<CreateRoadmapCommand>
 {
@@ -25,11 +25,11 @@ public sealed class CreateRoadmapCommandValidator : AbstractValidator<CreateRoad
         RuleFor(x => x.DateRange)
             .NotNull();
 
-        RuleFor(x => x.RoadmapManagerIds)
+        RuleFor(x => x.OwnerIds)
             .NotEmpty()
-            .MustAsync(IncludeCurrentUser).WithMessage("The current user must be a manager of the Roadmap.");
+            .MustAsync(IncludeCurrentUser).WithMessage("You must be one of the roadmap's owners.");
 
-        RuleForEach(x => x.RoadmapManagerIds)
+        RuleForEach(x => x.OwnerIds)
             .NotEmpty();
 
         RuleFor(x => x.Visibility)
@@ -47,11 +47,11 @@ public sealed class CreateRoadmapCommandValidator : AbstractValidator<CreateRoad
     // Resolved rather than read from the token claim, which is a snapshot taken at sign-in: an admin
     // who links a user mid-session would otherwise see this throw. LinkedEmployeeMiddleware has already
     // rejected callers with no link, so a null here means the resolve raced a concurrent unlink — treat
-    // it as "not a manager" and let validation report it, rather than throwing.
-    public async Task<bool> IncludeCurrentUser(IEnumerable<Guid> roadmapManagerIds, CancellationToken cancellationToken)
+    // it as "not an owner" and let validation report it, rather than throwing.
+    public async Task<bool> IncludeCurrentUser(IEnumerable<Guid> ownerIds, CancellationToken cancellationToken)
     {
         var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        return employeeId.HasValue && roadmapManagerIds.Contains(employeeId.Value);
+        return employeeId.HasValue && ownerIds.Contains(employeeId.Value);
     }
 }
 
@@ -73,10 +73,10 @@ public sealed class CreateRoadmapCommandHandler(IPlanningDbContext planningDbCon
         if (currentUserEmployeeId is null)
             LinkedEmployeeRequired.Throw();
 
-        // Likewise the creator-is-a-manager rule: the domain accepts whatever manager ids it is
+        // Likewise the creator-is-an-owner rule: the domain accepts whatever owner ids it is
         // given, so a direct call could otherwise create a roadmap the caller cannot administer.
-        if (!request.RoadmapManagerIds.Contains(currentUserEmployeeId.Value))
-            return Result.Failure<ObjectIdAndKey>("The current user must be a manager of the Roadmap.");
+        if (!request.OwnerIds.Contains(currentUserEmployeeId.Value))
+            return Result.Failure<ObjectIdAndKey>("You must be one of the roadmap's owners.");
 
         try
         {
@@ -85,7 +85,7 @@ public sealed class CreateRoadmapCommandHandler(IPlanningDbContext planningDbCon
                 request.Description,
                 request.DateRange,
                 request.Visibility,
-                request.RoadmapManagerIds,
+                request.OwnerIds,
                 EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value),
                 _dateTimeProvider.Now);
 

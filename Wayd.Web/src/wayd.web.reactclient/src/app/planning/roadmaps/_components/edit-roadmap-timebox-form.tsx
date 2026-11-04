@@ -92,35 +92,35 @@ const EditRoadmapTimeboxForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditRoadmapTimeboxFormValues>({
       onSubmit: async (values: EditRoadmapTimeboxFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values, timeboxId, roadmapId)
-            const response = await updateRoadmapTimebox(request)
-            if (response.error) throw response.error
+        try {
+          const request = mapToRequestValues(values, timeboxId, roadmapId)
+          const response = await updateRoadmapTimebox(request)
+          if (response.error) throw response.error
 
-            messageApi.success('Roadmap Timebox updated successfully.')
-            return true
-          } catch (error) {
-            const apiError = toApiError(error)
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors, {
-                fieldFor: rangeErrorsOn('range'),
-              })
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                (isApiError(apiError) ? apiError.detail : undefined) ??
-                  'An error occurred while updating the roadmap timebox. Please try again.',
-              )
-            }
-            return false
+          messageApi.success('Roadmap Timebox updated successfully.')
+          return true
+        } catch (error) {
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors, {
+              fieldFor: rangeErrorsOn('range'),
+            })
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              (isApiError(apiError) ? apiError.detail : undefined) ??
+                'An error occurred while updating the roadmap timebox. Please try again.',
+            )
           }
-        },
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:
         'An error occurred while updating the roadmap timebox. Please try again.',
-      permission: 'Permissions.Roadmaps.Update',
+      permission: 'Permissions.Roadmaps.View',
     })
 
   const activitiesTree =
@@ -155,13 +155,17 @@ const EditRoadmapTimeboxForm = ({
   useEffect(() => {
     if (timeboxDataError) {
       messageApi.error(
-        (isApiError(timeboxDataError) ? timeboxDataError.supportMessage : undefined) ??
+        (isApiError(timeboxDataError)
+          ? timeboxDataError.supportMessage
+          : undefined) ??
           'An error occurred while loading roadmap timebox. Please try again.',
       )
     }
     if (activitiesError) {
       messageApi.error(
-        (isApiError(activitiesError) ? activitiesError.supportMessage : undefined) ??
+        (isApiError(activitiesError)
+          ? activitiesError.supportMessage
+          : undefined) ??
           'An error occurred while loading roadmap activities. Please try again.',
       )
     }
@@ -208,9 +212,7 @@ const EditRoadmapTimeboxForm = ({
         <Item name="description" label="Description" rules={[{ max: 2048 }]}>
           <MarkdownEditor
             value={form.getFieldValue('description')}
-            onChange={(value) =>
-              form.setFieldValue('description', value || '')
-            }
+            onChange={(value) => form.setFieldValue('description', value || '')}
             maxLength={2048}
           />
         </Item>

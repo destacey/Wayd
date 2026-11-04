@@ -11,7 +11,8 @@ const roadmap = {
   end: '2026-12-18',
   visibility: { id: '1', name: 'Public' },
   state: { id: '1', name: 'Active' },
-  roadmapManagers: [],
+  owners: [],
+  canManage: false,
   colors: [],
 } as any
 
@@ -26,14 +27,14 @@ describe('RoadmapFacts', () => {
     expect(screen.getByText('Dec 18, 2026')).toBeInTheDocument()
   })
 
-  it('lists the managers, which the tooltip previously hid', () => {
+  it('lists the owners, which the tooltip previously hid', () => {
     // Arrange — the legacy page carried these names only inside a title
     // attribute, so they were unreachable without hovering and unlinkable.
     render(
       <RoadmapFacts
         roadmap={{
           ...roadmap,
-          roadmapManagers: [
+          owners: [
             { id: 'm2', key: 77, name: 'Wei Chen' },
             { id: 'm1', key: 42, name: 'Ada Lovelace' },
           ],
@@ -53,8 +54,8 @@ describe('RoadmapFacts', () => {
     )
   })
 
-  it('says so when a roadmap has no managers', () => {
-    // Arrange / Act — an unmanaged roadmap is worth noticing, not hiding.
+  it('says so when a roadmap has no owners', () => {
+    // Arrange / Act — an unowned roadmap is worth noticing, not hiding.
     render(<RoadmapFacts roadmap={roadmap} />)
 
     // Assert

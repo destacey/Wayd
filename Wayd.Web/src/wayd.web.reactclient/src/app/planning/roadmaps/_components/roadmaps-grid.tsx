@@ -47,9 +47,9 @@ const RoadmapsGrid: FC<RoadmapsGridProps> = (props: RoadmapsGridProps) => {
         meta: { columnType: 'dateOnly' },
       },
       {
-        id: 'roadmapManagers',
-        accessorFn: (row) => getSortedNames(row.roadmapManagers ?? []),
-        header: 'Roadmap Managers',
+        id: 'owners',
+        accessorFn: (row) => getSortedNames(row.owners ?? []),
+        header: 'Owners',
       },
       {
         id: 'visibility',

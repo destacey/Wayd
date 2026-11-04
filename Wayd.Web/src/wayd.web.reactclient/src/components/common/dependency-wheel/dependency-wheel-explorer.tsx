@@ -75,7 +75,7 @@ const DependencyWheelExplorer = ({
     ? null
     : activeSelection.kind === 'group'
       ? groupName(activeSelection.key)
-      : `${groupName(activeSelection.sourceKey)} → ${groupName(activeSelection.targetKey)}`
+      : `${groupName(activeSelection.sourceKey)} delivers to ${groupName(activeSelection.targetKey)}`
 
   const undrawnNote =
     wheelData.undrawn === 0
@@ -91,7 +91,7 @@ const DependencyWheelExplorer = ({
         title={
           <Flex align="center" gap={6}>
             Dependencies Between Teams
-            <WaydTooltip title="Each arc is a team. Each ribbon runs from the team that owns the predecessors to the team waiting on them, in the predecessors' team's colour. Hover over a team or ribbon for a summary; pick one to filter the list.">
+            <WaydTooltip title="Each arc is a team. Each ribbon runs from the team doing the work to the team waiting on it, pointing at the team waiting and in the colour of the team doing the work. Hover over a team or ribbon for a summary; pick one to filter the list.">
               <InfoCircleOutlined aria-label="How to read the wheel" />
             </WaydTooltip>
           </Flex>

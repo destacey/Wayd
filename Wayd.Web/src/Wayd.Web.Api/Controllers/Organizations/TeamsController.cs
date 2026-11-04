@@ -439,6 +439,33 @@ public class TeamsController(
                 : NotFound();
     }
 
+    [HttpGet("{idOrCode}/dependency-analysis")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
+    [EndpointSummary("Report where a team's cross-team dependencies ran over a date range.")]
+    [EndpointDescription(
+        "Covers the work item dependencies, not removed, between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 731 days) where the team owns the predecessor (`source`) or the successor (`target`) and the other end belongs to another team or to none. One counts when it was created before the range ended and did not close before the range began; it closes when the predecessor is done, or when the predecessor is removed and the successor is done or removed too; a removed predecessor with an open successor stays open, since the successor needs work nobody will do. Closed dependencies report their health as `Closed`. Returns a `summary` (dependencies, created, closed, open at the end, teams involved, teams outside), `pairs` (predecessor team → successor team, most dependencies first), `periods` (7 days counted from `from` for ranges up to 31 days, 14 days up to 184, otherwise calendar months cut to the range; each with created, closed and open at its end) and the `dependencies` with their current state and health. Teams are the items' current teams. Returns 404 for an unknown team.")]
+    [McpTool("Teams_GetDependencyAnalysis", "Report team dependency analysis")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<TeamDependencyAnalysisDto>> GetDependencyAnalysis(
+        string idOrCode,
+        [FromQuery] GetTeamDependencyAnalysisRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!request.TryToQuery(idOrCode, out var query, out var error))
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(error!, HttpContext));
+
+        var result = await _dispatcher.Send(query!, cancellationToken);
+
+        return result.IsFailure
+            ? BadRequest(result.ToBadRequestObject(HttpContext))
+            : result.Value is not null
+                ? Ok(result.Value)
+                : NotFound();
+    }
+
     [HttpGet("{id:guid}/capacity")]
     [FeatureGate(FeatureFlags.Names.TeamCapacityManagement)]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]

@@ -32,6 +32,7 @@ const noHealth = (): PartnerHealthCounts => ({
   [DependencyHealth.AtRisk]: 0,
   [DependencyHealth.Unhealthy]: 0,
   [DependencyHealth.Unknown]: 0,
+  [DependencyHealth.Closed]: 0,
 })
 
 /** The sum of a set of health counts. */

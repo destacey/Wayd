@@ -44002,6 +44002,88 @@ export class TeamsClient {
     }
 
     /**
+     * Report where a team's cross-team dependencies ran over a date range.
+     * @param from (optional) The first day of the range (yyyy-MM-dd, UTC).
+     * @param to (optional) The last day of the range (yyyy-MM-dd, UTC).
+     * @return OK
+     */
+    getDependencyAnalysis(idOrCode: string, from?: string | null | undefined, to?: string | null | undefined, cancelToken?: CancelToken): Promise<TeamDependencyAnalysisDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{idOrCode}/dependency-analysis?";
+        if (idOrCode === undefined || idOrCode === null)
+            throw new globalThis.Error("The parameter 'idOrCode' must be defined.");
+        url_ = url_.replace("{idOrCode}", encodeURIComponent("" + idOrCode));
+        if (from !== undefined && from !== null)
+            url_ += "From=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "To=" + encodeURIComponent("" + to) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDependencyAnalysis(_response);
+        });
+    }
+
+    protected processGetDependencyAnalysis(response: AxiosResponse): Promise<TeamDependencyAnalysisDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamDependencyAnalysisDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamDependencyAnalysisDto>(null as any);
+    }
+
+    /**
      * Get the capacity of a team over a date range, from the time people are allocated to it.
      * @param from (optional) 
      * @param to (optional) 
@@ -46460,6 +46542,88 @@ export class TeamsOfTeamsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<TeamWorkDistributionDto>(null as any);
+    }
+
+    /**
+     * Report where the cross-team dependencies of a team of teams, and every team beneath it, ran over a date range.
+     * @param from (optional) The first day of the range (yyyy-MM-dd, UTC).
+     * @param to (optional) The last day of the range (yyyy-MM-dd, UTC).
+     * @return OK
+     */
+    getDependencyAnalysis(idOrCode: string, from?: string | null | undefined, to?: string | null | undefined, cancelToken?: CancelToken): Promise<TeamDependencyAnalysisDto> {
+        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{idOrCode}/dependency-analysis?";
+        if (idOrCode === undefined || idOrCode === null)
+            throw new globalThis.Error("The parameter 'idOrCode' must be defined.");
+        url_ = url_.replace("{idOrCode}", encodeURIComponent("" + idOrCode));
+        if (from !== undefined && from !== null)
+            url_ += "From=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "To=" + encodeURIComponent("" + to) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDependencyAnalysis(_response);
+        });
+    }
+
+    protected processGetDependencyAnalysis(response: AxiosResponse): Promise<TeamDependencyAnalysisDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamDependencyAnalysisDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamDependencyAnalysisDto>(null as any);
     }
 
     /**
@@ -62856,6 +63020,56 @@ export interface DemandProjectNavigationDto {
     name: string;
 }
 
+/** The dependencies running from one team's predecessors to another team's successors. */
+export interface DependencyAnalysisPairDto {
+    /** The team owning the predecessors; null when they have no team. */
+    predecessorTeam?: WorkTeamNavigationDto | undefined;
+    /** The team owning the successors, waiting on the predecessors; null when they have no team. */
+    successorTeam?: WorkTeamNavigationDto | undefined;
+    /** Whether the predecessor team is in the report's scope. */
+    predecessorTeamInScope: boolean;
+    /** Whether the successor team is in the report's scope. */
+    successorTeamInScope: boolean;
+    /** The pair's dependencies counted in the range: open at some point within it. */
+    dependencies: number;
+    /** Of those, the ones created in the range. */
+    created: number;
+    /** Of those, the ones that closed in the range. */
+    closed: number;
+    /** Of those, the ones still open when the range ended. */
+    openAtEnd: number;
+}
+
+/** One calendar period of the range. */
+export interface DependencyAnalysisPeriodDto {
+    /** The period's first day. */
+    start: string;
+    /** The period's last day, included. */
+    end: string;
+    /** Dependencies created in the period. */
+    created: number;
+    /** Dependencies that closed in the period. */
+    closed: number;
+    /** Dependencies open at the end of the period. */
+    open: number;
+}
+
+/** Totals for the range. */
+export interface DependencyAnalysisSummaryDto {
+    /** Dependencies counted in the range: open at some point within it. */
+    dependencies: number;
+    /** Of those, the ones created in the range. */
+    created: number;
+    /** Of those, the ones that closed in the range. */
+    closed: number;
+    /** Of those, the ones still open when the range ended. */
+    openAtEnd: number;
+    /** Teams owning either end of a counted dependency, in scope or not. Items with no team add none. */
+    teamsInvolved: number;
+    /** Of int DependencyAnalysisSummaryDto.TeamsInvolved, the teams outside the scope: for a team, every other team. */
+    teamsOutside: number;
+}
+
 export interface DependencyDto {
     id: string;
     source: WorkItemDetailsNavigationDto;
@@ -70005,6 +70219,25 @@ export interface TeamDayOffDto {
     date: string;
     /** The share of the working day the team is off, from 1 to 100: 100 is a full day off. */
     percentOff: number;
+}
+
+/** Where a team's dependencies, or those of every team beneath a team of teams, ran from `from` to `to` (inclusive, UTC dates): which teams they ran between, how many, and how that changed over the range. */
+export interface TeamDependencyAnalysisDto {
+    /** The team or team of teams the report is for. */
+    team: WorkTeamNavigationDto;
+    /** The first day of the range (UTC). */
+    from: string;
+    /** The last day of the range (UTC), included. */
+    to: string;
+    /** Totals for the range. */
+    summary: DependencyAnalysisSummaryDto;
+    /** Each predecessor team → successor team pair, most dependencies first. */
+    pairs: DependencyAnalysisPairDto[];
+    /** The range split into calendar periods, oldest first. */
+    periods: DependencyAnalysisPeriodDto[];
+    /** Every dependency counted in the range, oldest first, with its current state and health. A closed one's
+health is Closed: planning health applies only while a dependency is open. */
+    dependencies: DependencyDto[];
 }
 
 export interface TeamDetailsDto {

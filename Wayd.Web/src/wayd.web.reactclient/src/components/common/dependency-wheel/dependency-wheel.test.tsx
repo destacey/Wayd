@@ -13,6 +13,7 @@ const health = (
   [DependencyHealth.AtRisk]: atRisk,
   [DependencyHealth.Unhealthy]: unhealthy,
   [DependencyHealth.Unknown]: 0,
+  [DependencyHealth.Closed]: 0,
 })
 
 const data: DependencyWheelData = {
@@ -47,8 +48,10 @@ const data: DependencyWheelData = {
       count: 2,
       health: DependencyHealth.Unhealthy,
       healthCounts: health(1, 0, 1),
-      open: 1,
-      done: 1,
+      states: [
+        { id: 2, name: 'In Progress', count: 1 },
+        { id: 4, name: 'Removed', count: 1 },
+      ],
     },
     {
       sourceKey: 'b',
@@ -56,8 +59,7 @@ const data: DependencyWheelData = {
       count: 1,
       health: DependencyHealth.Healthy,
       healthCounts: health(1, 0, 0),
-      open: 1,
-      done: 0,
+      states: [{ id: 1, name: 'To Do', count: 1 }],
     },
   ],
   undrawn: 0,
@@ -91,12 +93,12 @@ describe('DependencyWheel', () => {
     ).toBeInTheDocument()
     expect(
       screen.getByRole('button', {
-        name: 'Atlas → Beacon: 2 dependencies, worst health Unhealthy',
+        name: 'Atlas delivers to Beacon: 2 dependencies, worst health Unhealthy',
       }),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('button', {
-        name: 'Beacon → Atlas: 1 dependency, worst health Healthy',
+        name: 'Beacon delivers to Atlas: 1 dependency, worst health Healthy',
       }),
     ).toBeInTheDocument()
     expect(screen.getByText('ATL')).toBeInTheDocument()
@@ -112,7 +114,9 @@ describe('DependencyWheel', () => {
       screen.getByRole('button', { name: /^Atlas:/ }).getAttribute('d'),
     ).toMatch(/^M/)
     expect(
-      screen.getByRole('button', { name: /^Atlas → Beacon/ }).getAttribute('d'),
+      screen
+        .getByRole('button', { name: /^Atlas delivers to Beacon/ })
+        .getAttribute('d'),
     ).toMatch(/^M/)
   })
 
@@ -126,7 +130,7 @@ describe('DependencyWheel', () => {
       '0',
     )
     expect(
-      screen.getByRole('button', { name: /^Atlas → Beacon/ }),
+      screen.getByRole('button', { name: /^Atlas delivers to Beacon/ }),
     ).toHaveAttribute('tabindex', '0')
   })
 
@@ -136,10 +140,10 @@ describe('DependencyWheel', () => {
 
     // Assert
     expect(
-      screen.getByRole('button', { name: /^Atlas → Beacon/ }),
+      screen.getByRole('button', { name: /^Atlas delivers to Beacon/ }),
     ).toHaveAttribute('tabindex', '-1')
     expect(
-      screen.getByRole('button', { name: /^Beacon → Atlas/ }),
+      screen.getByRole('button', { name: /^Beacon delivers to Atlas/ }),
     ).toHaveAttribute('tabindex', '-1')
   })
 
@@ -165,19 +169,26 @@ describe('DependencyWheel', () => {
   it('shows a ribbon summary while it is focused, and hides it on blur', async () => {
     // Arrange
     renderWheel()
-    const ribbon = screen.getByRole('button', { name: /^Atlas → Beacon/ })
+    const ribbon = screen.getByRole('button', {
+      name: /^Atlas delivers to Beacon/,
+    })
 
     // Act
     await act(async () => ribbon.focus())
     const shown = [
-      screen.queryByText('2 dependencies BCN waits on')?.textContent,
-      screen.queryByText('Open 1 · Done 1')?.textContent,
+      screen.queryByText('BCN waits on ATL: 2 dependencies')?.textContent,
+      screen.queryByText('1 In Progress · 1 Removed')?.textContent,
     ]
     await act(async () => ribbon.blur())
 
     // Assert
-    expect(shown).toEqual(['2 dependencies BCN waits on', 'Open 1 · Done 1'])
-    expect(screen.queryByText('Open 1 · Done 1')).not.toBeInTheDocument()
+    expect(shown).toEqual([
+      'BCN waits on ATL: 2 dependencies',
+      '1 In Progress · 1 Removed',
+    ])
+    expect(
+      screen.queryByText('1 In Progress · 1 Removed'),
+    ).not.toBeInTheDocument()
   })
 
   it('picks a team when its arc is clicked', async () => {
@@ -194,7 +205,7 @@ describe('DependencyWheel', () => {
   it('picks a directed pair when its ribbon is activated from the keyboard', async () => {
     // Arrange
     const { onSelectionChange } = renderWheel()
-    screen.getByRole('button', { name: /^Atlas → Beacon/ }).focus()
+    screen.getByRole('button', { name: /^Atlas delivers to Beacon/ }).focus()
 
     // Act
     await userEvent.keyboard('{Enter}')

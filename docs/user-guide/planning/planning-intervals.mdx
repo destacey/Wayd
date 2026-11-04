@@ -298,9 +298,9 @@ A Kanban team's work is in no sprint, so a dependency between two Kanban items n
 **Dependencies Between Teams** is a dependency wheel:
 
 - Each **arc** is a team, labelled with its team code, sized by the dependencies it takes part in, and in a colour of its own. Items with no team share a grey **No team** arc
-- Each **ribbon** runs from the team that owns the predecessors to the team waiting on them, so a team's arc shows how much it holds others up against how much it waits. Two teams that depend on each other have a ribbon each way
+- Each **ribbon** runs from the team doing the work (the predecessors' team) to the team waiting on it, and points at the team waiting. This is the direction the work is delivered in, as in a Gantt chart, not the direction of "depends on". Its summary reads, for example, **Payments delivers to Data**, then **Data waits on Payments**. A team's arc shows how much it holds others up against how much it waits. Two teams that depend on each other have a ribbon each way
 - A ribbon takes the colour of the team that owns the predecessors, so a team's outgoing dependencies match its arc
-- Hover over a team, or Tab to it, for a summary: how many dependencies it waits on and how many wait on it, their [health](../work-management/work-items.mdx#work-item-dependencies) as a bar with a count of each, and the teams it is most linked with. A ribbon's summary shows how many dependencies the successor's team waits on, their health, and how many are open and done
+- Hover over a team, or Tab to it, for a summary: how many dependencies it waits on and how many wait on it, their [health](../work-management/work-items.mdx#work-item-dependencies) as a bar with a count of each, and the teams it is most linked with. A ribbon's summary shows how many dependencies the successor's team waits on, their health, and how many are in each state (To Do, In Progress, Done, Removed)
 - **Click** a team or ribbon — or press Enter on it — to filter the list below to that team, or to that one direction between two teams; click it again, or clear the tag above the list, to show everything. Once a team is picked, Tab also reaches its ribbons. The download button below the wheel saves it as a PNG or SVG
 
 A dependency between two items that both have no team cannot be drawn; the section says how many are in the list but not on the wheel.

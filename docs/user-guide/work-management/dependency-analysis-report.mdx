@@ -1,0 +1,56 @@
+---
+title: Dependency Analysis Report
+description: Where a team's or a team of teams' cross-team dependencies ran over a date range, and how that changed.
+sidebar_position: 8
+audience: [user, agent]
+---
+
+# Dependency Analysis Report
+
+The **Dependency Analysis Report** shows where dependencies ran across the organization over a date range: which teams waited on which, how many dependencies they shared, and how that changed over the range. It is about where dependencies are, not how healthy they were. It is available from the **Reports** menu on a team's detail page and on a team of teams' detail page.
+
+On a **team of teams** the report covers every team beneath it at any point in the range: its child teams, their children, and so on down the hierarchy.
+
+## What Counts
+
+The report counts [work item dependencies](./work-items.mdx#work-item-dependencies) where a team in the report owns the predecessor or the successor, and the other item belongs to another team or to none.
+
+- **Dependencies within one team are left out.** The other item may belong to a team outside the team of teams.
+- **Removed links are left out**, whenever they were removed.
+- A dependency **counts in the range** when it was created before the range ended and was not closed before the range began.
+- A dependency **closes** when its predecessor is done, or when its predecessor is removed and its successor is done or removed too. A removed predecessor with an open successor keeps the dependency open: the successor still needs work nobody will do, which is a problem to resolve, not a finished dependency. A link made after its predecessor was already done closes the moment it is made, so it counts once, in the period it was made. An item that is done or removed but has no done date from its source system is taken to have finished when the link was made.
+- **Teams are the items' current teams.** An item that moved to another team counts for the team it is on now.
+
+Dates are whole days in UTC, and both ends of the range are included. Choose the range with **Date range**. The report opens on the last 90 days, ending today, and offers **Last 30 days**, **Last 90 days**, **Last 6 months**, **Last 12 months** and **Last 2 years**. A range can be at most two years, with room for a leap day, and cannot end after today. Nothing is saved: the report opens on its defaults each time.
+
+## Summary
+
+| Tile | What it counts |
+|------|----------------|
+| **Dependencies** | Dependencies open at some point in the range |
+| **Created** | Of those, the ones created in the range |
+| **Closed** | Of those, the ones that closed in the range |
+| **Open at End** | Of those, the ones still open on the last day |
+| **Teams Involved** | Teams owning either item of a dependency, in the report or not; items with no team add none |
+| **Teams Outside** / **Partner Teams** | Of those, the teams outside the team of teams; on a team, every other team |
+
+## Views
+
+### Where
+
+On a team of teams, a [dependency wheel](../planning/planning-intervals.mdx#dependencies) shows where the dependencies ran: each arc is a team, and each ribbon runs from the team doing the work (the predecessors' team) to the team waiting on it, pointing at the team waiting. On a team, a chart lists each other team the team shares dependencies with, split into those the team waits on and those waiting on it, as in the team's [Dependencies](../organizations/index.mdx#dependencies) section.
+
+Below the chart is the list of every dependency counted in the range. Click a team or ribbon to filter the list. Each dependency shows its **state and health as they are today**, not as they were during the range. A closed dependency's health is **Closed**: planning health compares when the two items are planned, which no longer matters once the dependency has closed. The charts show closed dependencies in grey, so the health colours describe only the open ones.
+
+### Team Pairs
+
+A row for each predecessor team → successor team pair, most dependencies first, with how many of its dependencies counted in the range, were created, were closed, and were open at the end. A dependency between Payments and Data is a different pair from one between Data and Payments: the direction says who waits on whom. On a team of teams, a team outside it is marked **Outside**. Items with no team are grouped as **No team**.
+
+### Over Time
+
+Two charts across the range, oldest on the left:
+
+- **Open at the end of each period** — how many dependencies were open on the last day of each period. This is the line to watch for whether dependencies are building up or clearing.
+- **Created and closed in each period** — the dependencies created and closed in each period, side by side.
+
+Periods are seven days long, counted from the start of the range, for ranges up to 31 days; fourteen days long for ranges up to 184 days; and calendar months beyond that, with the first and last months cut to the range. The last period is often shorter than the rest, so its bars can look like a drop; the chart marks it **(partial)**. They are the same periods the [Work Distribution Report](./work-distribution-report.mdx) uses.

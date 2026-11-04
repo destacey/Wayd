@@ -204,7 +204,8 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
             $"UPDATE [Work].[Workspaces] SET [WorkItemHistoryBackfilledOn] = SYSUTCDATETIME() WHERE [Id] = {_workspaceId};", cancellationToken);
     }
 
-    public async Task AddDependency(Guid predecessorId, Guid successorId, CancellationToken cancellationToken, bool removed = false)
+    /// <param name="createdOn">When the link was made; <see cref="Now"/> when not given.</param>
+    public async Task AddDependency(Guid predecessorId, Guid successorId, CancellationToken cancellationToken, bool removed = false, Instant? createdOn = null)
     {
         await using var context = _fixture.CreateContext();
         var infos = await context.WorkItems
@@ -215,7 +216,7 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
         context.WorkItemDependencies.Add(WorkItemDependency.Create(
             infos.Single(i => i.WorkItemId == predecessorId),
             infos.Single(i => i.WorkItemId == successorId),
-            Now, null, removed ? Now : null, null, null, Now));
+            createdOn ?? Now, null, removed ? Now : null, null, null, Now));
         await context.SaveChangesAsync(cancellationToken);
     }
 

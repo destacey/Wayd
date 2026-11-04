@@ -127,12 +127,12 @@ describe('PlanningIntervalDependenciesSection', () => {
 
     // Act
     await userEvent.click(
-      screen.getByRole('button', { name: /^Atlas → Beacon/ }),
+      screen.getByRole('button', { name: /^Atlas delivers to Beacon/ }),
     )
 
     // Assert
     expect(rows()).toEqual(['open-ab'])
-    expect(screen.getByText('Atlas → Beacon')).toBeInTheDocument()
+    expect(screen.getByText('Atlas delivers to Beacon')).toBeInTheDocument()
   })
 
   it('clears the pick when the state filter changes', async () => {
@@ -140,7 +140,7 @@ describe('PlanningIntervalDependenciesSection', () => {
     render(<PlanningIntervalDependenciesSection planningIntervalKey={7} />)
     await userEvent.click(screen.getByText('All'))
     await userEvent.click(
-      screen.getByRole('button', { name: /^Atlas → Beacon/ }),
+      screen.getByRole('button', { name: /^Atlas delivers to Beacon/ }),
     )
     const pickedRows = rows()
 

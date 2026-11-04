@@ -15,5 +15,8 @@ public enum DependencyPlanningHealth
     Unhealthy = 3,
 
     [Display(Name = "Unknown", Description = "The planning health cannot be determined.", Order = 4)]
-    Unknown = 4
+    Unknown = 4,
+
+    [Display(Name = "Closed", Description = "The predecessor is done, or it was removed and the successor is done or removed too. Planning no longer applies.", Order = 5)]
+    Closed = 5
 }

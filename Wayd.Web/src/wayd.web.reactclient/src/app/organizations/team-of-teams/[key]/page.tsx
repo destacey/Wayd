@@ -38,6 +38,7 @@ import {
 } from 'next/navigation'
 import TeamOfTeamDetailsLoading from './loading'
 import TeamOfTeamsOverview from './_components/team-of-teams-overview'
+import TeamOfTeamsDependenciesSection from './_components/team-of-teams-dependencies-section'
 import TeamFacts from '@/src/app/organizations/teams/[key]/_components/team-facts'
 import { CreateTeamMembershipForm } from '@/src/app/organizations/_components'
 import { InactiveTag, PageActions } from '@/src/components/common'
@@ -66,6 +67,7 @@ const CapacityReport = dynamic(
 enum TeamOfTeamsTabs {
   Overview = 'overview',
   RiskManagement = 'risk-management',
+  Dependencies = 'dependencies',
   Products = 'products',
   TeamMemberships = 'team-memberships',
   Members = 'members',
@@ -255,6 +257,13 @@ const TeamOfTeamsDetailsPage = (props: {
           refetch: teamMembershipsQuery.refetch,
           teamType: 'Team of Teams',
         })
+      case TeamOfTeamsTabs.Dependencies:
+        return team ? (
+          <TeamOfTeamsDependenciesSection
+            teamOfTeamsId={team.id}
+            teamOfTeamsKey={team.key}
+          />
+        ) : null
       case TeamOfTeamsTabs.Members:
         return (
           <TeamMembersGrid teamId={team?.id ?? ''} teamType="TeamOfTeams" />
@@ -305,6 +314,7 @@ const TeamOfTeamsDetailsPage = (props: {
       ? [{ id: TeamOfTeamsTabs.Products, label: 'Products' }]
       : []),
     { id: TeamOfTeamsTabs.RiskManagement, label: 'Risks' },
+    { id: TeamOfTeamsTabs.Dependencies, label: 'Dependencies' },
     { id: TeamOfTeamsTabs.Members, label: 'Members' },
     ...(capacityEnabled
       ? [{ id: TeamOfTeamsTabs.Capacity, label: 'Capacity' }]

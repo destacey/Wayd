@@ -50,7 +50,7 @@ export const useGridPaging = (
 
 export interface WaydGridPagerProps {
   paging: GridPaging
-  /** The response's `totalCount`; nothing is shown until there is one. */
+  /** The response's `totalCount`; nothing is shown until there is one, or while it is 0. */
   totalCount: number | undefined
   /** What the list holds, plural, for the range label ("1–50 of 312 jobs"). */
   noun: string
@@ -63,10 +63,14 @@ export interface WaydGridPagerProps {
  * filters as request parameters wherever the API takes them.
  */
 const WaydGridPager = ({ paging, totalCount, noun }: WaydGridPagerProps) => {
-  if (totalCount === undefined) return null
+  // An empty list has nothing to page, and the simple pager would read "1 / 0".
+  if (!totalCount) return null
 
   return (
+    // `simple`: the toolbar is one row that clips what does not fit, and numbered page links need
+    // twice the width.
     <Pagination
+      simple
       size="small"
       current={paging.page}
       pageSize={paging.pageSize}
@@ -75,7 +79,7 @@ const WaydGridPager = ({ paging, totalCount, noun }: WaydGridPagerProps) => {
       showSizeChanger
       pageSizeOptions={GRID_PAGE_SIZE_OPTIONS}
       showTotal={(total, [from, to]) =>
-        total === 0 ? `0 ${noun}` : `${from}–${to} of ${total} ${noun}`
+        `${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()} ${noun}`
       }
     />
   )

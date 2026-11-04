@@ -36,6 +36,12 @@ const run = (overrides: Partial<ImportProcessDto> = {}): ImportProcessDto => ({
   ...overrides,
 })
 
+/** Steps the pager forward from the first page to the third. */
+const toPage3 = () => {
+  act(() => screen.getByTitle('Next Page').click())
+  act(() => screen.getByTitle('Next Page').click())
+}
+
 /** The arguments of the most recent rows request. */
 const lastRequest = () =>
   mockUseGetImportProcessRowsQuery.mock.calls.at(-1)![0] as {
@@ -65,7 +71,7 @@ describe('ImportDetails', () => {
   it('goes back to the first page when the run rejects its first row and the view moves to the rejected rows', () => {
     // Arrange — reading page 3 of every row while the run is still going
     const { rerender } = render(<ImportDetails importProcess={run()} />)
-    act(() => screen.getByTitle('3').click())
+    toPage3()
     expect(lastRequest()).toMatchObject({ status: undefined, page: 3 })
 
     // Act
@@ -81,12 +87,10 @@ describe('ImportDetails', () => {
   it('keeps the page while the filter in effect stays the same', () => {
     // Arrange
     const { rerender } = render(<ImportDetails importProcess={run()} />)
-    act(() => screen.getByTitle('3').click())
+    toPage3()
 
     // Act — progress moves on, but nothing was rejected
-    rerender(
-      <ImportDetails importProcess={run({ succeededRowCount: 180 })} />,
-    )
+    rerender(<ImportDetails importProcess={run({ succeededRowCount: 180 })} />)
 
     // Assert
     expect(lastRequest()).toMatchObject({ status: undefined, page: 3 })
@@ -95,7 +99,7 @@ describe('ImportDetails', () => {
   it('goes back to the first page when the reader picks another filter', () => {
     // Arrange
     render(<ImportDetails importProcess={run({ failedRowCount: 4 })} />)
-    act(() => screen.getByTitle('3').click())
+    toPage3()
 
     // Act
     act(() => screen.getByText('All').click())

@@ -115,12 +115,28 @@ describe('WaydGridPager', () => {
     expect(screen.getByText('51–100 of 312 jobs')).toBeInTheDocument()
   })
 
-  it('says the list is empty rather than showing a range', () => {
+  it('groups the digits of large counts', () => {
     // Act
-    render(<WaydGridPager paging={paging()} totalCount={0} noun="rows" />)
+    render(
+      <WaydGridPager
+        paging={paging({ page: 200 })}
+        totalCount={9971}
+        noun="rows"
+      />,
+    )
 
     // Assert
-    expect(screen.getByText('0 rows')).toBeInTheDocument()
+    expect(screen.getByText('9,951–9,971 of 9,971 rows')).toBeInTheDocument()
+  })
+
+  it('shows nothing for an empty list', () => {
+    // Act
+    const { container } = render(
+      <WaydGridPager paging={paging()} totalCount={0} noun="rows" />,
+    )
+
+    // Assert
+    expect(container).toBeEmptyDOMElement()
   })
 
   it('shows nothing until there is a total', () => {
@@ -133,7 +149,7 @@ describe('WaydGridPager', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('asks for the page chosen', () => {
+  it('asks for the next page', () => {
     // Arrange
     const setPaging = jest.fn()
     render(
@@ -145,9 +161,9 @@ describe('WaydGridPager', () => {
     )
 
     // Act
-    act(() => screen.getByTitle('3').click())
+    act(() => screen.getByTitle('Next Page').click())
 
     // Assert
-    expect(setPaging).toHaveBeenCalledWith(3, 50)
+    expect(setPaging).toHaveBeenCalledWith(2, 50)
   })
 })

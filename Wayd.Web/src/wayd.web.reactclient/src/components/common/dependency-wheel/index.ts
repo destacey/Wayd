@@ -11,3 +11,5 @@ export type {
   DependencyWheelGroup,
   DependencyWheelSelection,
 } from './dependency-wheel-data'
+export { default as DependencyWheelExplorer } from './dependency-wheel-explorer'
+export type { DependencyWheelExplorerProps } from './dependency-wheel-explorer'

@@ -48483,16 +48483,16 @@ export class ImportsClient {
     }
 
     /**
-     * List import runs, newest first, as `processes` with a `totalCount`.
+     * List import runs, newest first.
      * @param status (optional) 
      * @param importType (optional) 
      * @param submittedByUserId (optional) 
      * @param submissionGroupId (optional) 
-     * @param pageNumber (optional) 
+     * @param page (optional) 
      * @param pageSize (optional) 
      * @return OK
      */
-    getList(status?: ImportProcessStatus | null | undefined, importType?: string | null | undefined, submittedByUserId?: string | null | undefined, submissionGroupId?: string | null | undefined, pageNumber?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<ImportProcessPageDto> {
+    getList(status?: ImportProcessStatus | null | undefined, importType?: string | null | undefined, submittedByUserId?: string | null | undefined, submissionGroupId?: string | null | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfImportProcessDto> {
         let url_ = this.baseUrl + "/api/imports?";
         if (status !== undefined && status !== null)
             url_ += "status=" + encodeURIComponent("" + status) + "&";
@@ -48502,10 +48502,10 @@ export class ImportsClient {
             url_ += "submittedByUserId=" + encodeURIComponent("" + submittedByUserId) + "&";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
-        if (pageNumber === null)
-            throw new globalThis.Error("The parameter 'pageNumber' cannot be null.");
-        else if (pageNumber !== undefined)
-            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
         if (pageSize === null)
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
@@ -48532,7 +48532,7 @@ export class ImportsClient {
         });
     }
 
-    protected processGetList(response: AxiosResponse): Promise<ImportProcessPageDto> {
+    protected processGetList(response: AxiosResponse): Promise<PagedResponseOfImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -48547,7 +48547,7 @@ export class ImportsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<ImportProcessPageDto>(result200);
+            return Promise.resolve<PagedResponseOfImportProcessDto>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -48556,11 +48556,18 @@ export class ImportsClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<ImportProcessPageDto>(null as any);
+        return Promise.resolve<PagedResponseOfImportProcessDto>(null as any);
     }
 
     /**
@@ -48678,23 +48685,23 @@ export class ImportsClient {
     }
 
     /**
-     * Get a page of an import run's row outcomes, as `rows` with a `totalCount`.
+     * Get a page of an import run's row outcomes, in line order.
      * @param status (optional) 
-     * @param pageNumber (optional) 
+     * @param page (optional) 
      * @param pageSize (optional) 
      * @return OK
      */
-    getRows(id: string, status?: ImportRowStatus | null | undefined, pageNumber?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<ImportProcessRowPageDto> {
+    getRows(id: string, status?: ImportRowStatus | null | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfImportProcessRowDto> {
         let url_ = this.baseUrl + "/api/imports/{id}/rows?";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
         if (status !== undefined && status !== null)
             url_ += "status=" + encodeURIComponent("" + status) + "&";
-        if (pageNumber === null)
-            throw new globalThis.Error("The parameter 'pageNumber' cannot be null.");
-        else if (pageNumber !== undefined)
-            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
         if (pageSize === null)
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
@@ -48721,7 +48728,7 @@ export class ImportsClient {
         });
     }
 
-    protected processGetRows(response: AxiosResponse): Promise<ImportProcessRowPageDto> {
+    protected processGetRows(response: AxiosResponse): Promise<PagedResponseOfImportProcessRowDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -48736,7 +48743,7 @@ export class ImportsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<ImportProcessRowPageDto>(result200);
+            return Promise.resolve<PagedResponseOfImportProcessRowDto>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -48745,11 +48752,18 @@ export class ImportsClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<ImportProcessRowPageDto>(null as any);
+        return Promise.resolve<PagedResponseOfImportProcessRowDto>(null as any);
     }
 
     /**
@@ -55449,20 +55463,20 @@ export class BackgroundJobsClient {
     /**
      * Get a page of jobs in the given lifecycle state.
      * @param state (optional) 
-     * @param pageNumber (optional) 
+     * @param page (optional) 
      * @param pageSize (optional) 
      * @return OK
      */
-    getJobs(state?: JobStateFilter | undefined, pageNumber?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<JobsResponse> {
+    getJobs(state?: JobStateFilter | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfJobSummaryResponse> {
         let url_ = this.baseUrl + "/api/admin/background-jobs/jobs?";
         if (state === null)
             throw new globalThis.Error("The parameter 'state' cannot be null.");
         else if (state !== undefined)
             url_ += "state=" + encodeURIComponent("" + state) + "&";
-        if (pageNumber === null)
-            throw new globalThis.Error("The parameter 'pageNumber' cannot be null.");
-        else if (pageNumber !== undefined)
-            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
         if (pageSize === null)
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
@@ -55489,7 +55503,7 @@ export class BackgroundJobsClient {
         });
     }
 
-    protected processGetJobs(response: AxiosResponse): Promise<JobsResponse> {
+    protected processGetJobs(response: AxiosResponse): Promise<PagedResponseOfJobSummaryResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -55504,13 +55518,20 @@ export class BackgroundJobsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<JobsResponse>(result200);
+            return Promise.resolve<PagedResponseOfJobSummaryResponse>(result200);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<JobsResponse>(null as any);
+        return Promise.resolve<PagedResponseOfJobSummaryResponse>(null as any);
     }
 
     /**
@@ -55977,11 +55998,11 @@ export class MessagingClient {
      * @param exceptionType (optional) 
      * @param from (optional) 
      * @param to (optional) 
-     * @param pageNumber (optional) 
+     * @param page (optional) 
      * @param pageSize (optional) 
      * @return OK
      */
-    getDeadLetters(messageType?: string | null | undefined, exceptionType?: string | null | undefined, from?: Date | null | undefined, to?: Date | null | undefined, pageNumber?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<DeadLetterMessagesResponse> {
+    getDeadLetters(messageType?: string | null | undefined, exceptionType?: string | null | undefined, from?: Date | null | undefined, to?: Date | null | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfDeadLetterMessageResponse> {
         let url_ = this.baseUrl + "/api/admin/messaging/dead-letters?";
         if (messageType !== undefined && messageType !== null)
             url_ += "messageType=" + encodeURIComponent("" + messageType) + "&";
@@ -55991,10 +56012,10 @@ export class MessagingClient {
             url_ += "from=" + encodeURIComponent(from ? "" + from.toISOString() : "") + "&";
         if (to !== undefined && to !== null)
             url_ += "to=" + encodeURIComponent(to ? "" + to.toISOString() : "") + "&";
-        if (pageNumber === null)
-            throw new globalThis.Error("The parameter 'pageNumber' cannot be null.");
-        else if (pageNumber !== undefined)
-            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
         if (pageSize === null)
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
@@ -56021,7 +56042,7 @@ export class MessagingClient {
         });
     }
 
-    protected processGetDeadLetters(response: AxiosResponse): Promise<DeadLetterMessagesResponse> {
+    protected processGetDeadLetters(response: AxiosResponse): Promise<PagedResponseOfDeadLetterMessageResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -56036,13 +56057,20 @@ export class MessagingClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<DeadLetterMessagesResponse>(result200);
+            return Promise.resolve<PagedResponseOfDeadLetterMessageResponse>(result200);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<DeadLetterMessagesResponse>(null as any);
+        return Promise.resolve<PagedResponseOfDeadLetterMessageResponse>(null as any);
     }
 
     /**
@@ -62625,14 +62653,6 @@ export interface DeadLetterMessagesRequest {
     ids: string[];
 }
 
-/** A page of dead-lettered messages. `PageNumber` is 0-based, mirroring Wolverine's DeadLetterEnvelopeQuery paging. */
-export interface DeadLetterMessagesResponse {
-    totalCount: number;
-    pageNumber: number;
-    pageSize: number;
-    items: DeadLetterMessageResponse[];
-}
-
 /** Outcome of deleting an OIDC provider: either it was deleted, or deletion was refused because users still sign in through it, with how many active identities remain bound. */
 export interface DeleteOidcProviderResult {
     deleted: boolean;
@@ -63889,14 +63909,6 @@ export interface ImportProcessDto {
     isTerminal: boolean;
 }
 
-/** A page of runs, with the total so a UI can page without a second call. */
-export interface ImportProcessPageDto {
-    processes: ImportProcessDto[];
-    totalCount: number;
-    pageNumber: number;
-    pageSize: number;
-}
-
 /** One row's outcome. */
 export interface ImportProcessRowDto {
     id: string;
@@ -63912,14 +63924,6 @@ export interface ImportProcessRowDto {
 row created nothing, when that record or the one the link opens has since been deleted, and for a
 preflight, whose records were rolled back. */
     createdRecord?: ImportRecordLink | undefined;
-}
-
-/** A page of row outcomes, with the total so a UI can page without a second call. */
-export interface ImportProcessRowPageDto {
-    rows: ImportProcessRowDto[];
-    totalCount: number;
-    pageNumber: number;
-    pageSize: number;
 }
 
 export enum ImportProcessStatus {
@@ -65093,14 +65097,6 @@ export interface JobServerResponse {
     heartbeat?: Date | undefined;
 }
 
-/** A page of jobs in one lifecycle state. `PageNumber` is 0-based. */
-export interface JobsResponse {
-    totalCount: number;
-    pageNumber: number;
-    pageSize: number;
-    items: JobSummaryResponse[];
-}
-
 /** The job lifecycle states background jobs can be listed by. */
 export enum JobStateFilter {
     Processing = "Processing",
@@ -65786,8 +65782,52 @@ export interface PagedResponseOfActivityLogDto {
 }
 
 /** One page of results, with the paging position and the total across all pages. */
+export interface PagedResponseOfDeadLetterMessageResponse {
+    items: DeadLetterMessageResponse[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
+/** One page of results, with the paging position and the total across all pages. */
 export interface PagedResponseOfFollowedRecordDto {
     items: FollowedRecordDto[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
+/** One page of results, with the paging position and the total across all pages. */
+export interface PagedResponseOfImportProcessDto {
+    items: ImportProcessDto[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
+/** One page of results, with the paging position and the total across all pages. */
+export interface PagedResponseOfImportProcessRowDto {
+    items: ImportProcessRowDto[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
+/** One page of results, with the paging position and the total across all pages. */
+export interface PagedResponseOfJobSummaryResponse {
+    items: JobSummaryResponse[];
     pageNumber: number;
     pageSize: number;
     totalCount: number;

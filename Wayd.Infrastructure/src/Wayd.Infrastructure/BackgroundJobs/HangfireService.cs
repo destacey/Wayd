@@ -6,6 +6,7 @@ using Hangfire.Storage.Monitoring;
 using NodaTime;
 using Wayd.Common.Application.BackgroundJobs;
 using Wayd.Common.Application.Identity;
+using Wayd.Common.Application.Models;
 
 // Hangfire.Storage has its own RecurringJobDto; alias Wayd's so the mapping below names both sides.
 using WaydRecurringJobDto = Wayd.Common.Application.BackgroundJobs.RecurringJobDto;
@@ -36,14 +37,12 @@ public class HangfireService : IJobService
         return backgroundJobs;
     }
 
-    public JobPageDto GetJobs(JobStateFilter state, int pageNumber, int pageSize)
+    public PagedResponse<JobSummaryDto> GetJobs(JobStateFilter state, PageRequest paging)
     {
         var monitoring = JobStorage.Current.GetMonitoringApi();
 
-        // Clamped here as well as in the caller so the service is safe called directly.
-        pageNumber = Math.Max(pageNumber, 0);
-        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
-        var from = PageOffset(pageNumber, pageSize);
+        var pageSize = paging.PageSize;
+        var from = PageOffset(paging);
 
         return state switch
         {
@@ -79,23 +78,19 @@ public class HangfireService : IJobService
             // Enqueued is per-queue in Hangfire, with no all-queues overload. Walking the queues and
             // concatenating keeps one API shape for the UI; the page window is applied across the
             // flattened result rather than per queue.
-            JobStateFilter.Enqueued => EnqueuedPage(monitoring, from, pageSize),
+            JobStateFilter.Enqueued => EnqueuedPage(monitoring, paging),
 
-            _ => new JobPageDto { PageNumber = pageNumber, PageSize = pageSize },
+            _ => new PagedResponse<JobSummaryDto>([], 0, paging.Page, pageSize),
         };
 
-        JobPageDto Page<T>(long total, JobList<T> jobs, Func<string, T, JobSummaryDto> map) => new()
-        {
-            TotalCount = total,
-            PageNumber = pageNumber,
-            PageSize = pageSize,
-            Items = [.. jobs.Select(j => map(j.Key, j.Value))],
-        };
+        PagedResponse<JobSummaryDto> Page<T>(long total, JobList<T> jobs, Func<string, T, JobSummaryDto> map) =>
+            new([.. jobs.Select(j => map(j.Key, j.Value))], TotalCount(total), paging.Page, pageSize);
     }
 
-    private static JobPageDto EnqueuedPage(IMonitoringApi monitoring, int from, int pageSize)
+    private static PagedResponse<JobSummaryDto> EnqueuedPage(IMonitoringApi monitoring, PageRequest paging)
     {
         var queues = monitoring.Queues();
+        var from = PageOffset(paging);
 
         // EnqueuedCount, not QueueWithTopEnqueuedJobsDto.Length: Length counts fetched (in-flight)
         // rows too, so it reports jobs that EnqueuedJobs below will not return — the total and the
@@ -104,19 +99,13 @@ public class HangfireService : IJobService
 
         var items = queues
             .SelectMany(queue => monitoring
-                .EnqueuedJobs(queue.Name, 0, from + pageSize)
+                .EnqueuedJobs(queue.Name, 0, from + paging.PageSize)
                 .Select(j => Summary(j.Key, j.Value.Job, "Enqueued", ToInstant(j.Value.EnqueuedAt), "Enqueued")))
             .Skip(from)
-            .Take(pageSize)
+            .Take(paging.PageSize)
             .ToList();
 
-        return new JobPageDto
-        {
-            TotalCount = total,
-            PageNumber = from / Math.Max(pageSize, 1),
-            PageSize = pageSize,
-            Items = items,
-        };
+        return new PagedResponse<JobSummaryDto>(items, TotalCount(total), paging.Page, paging.PageSize);
     }
 
     public JobDetailDto? GetJobDetail(string jobId)
@@ -265,14 +254,16 @@ public class HangfireService : IJobService
 
     private const string FailedStateName = "Failed";
     private const string UnknownValue = "Unknown";
-    internal const int MaxPageSize = 500;
-
     /// <summary>
     /// The zero-based row offset for a page, saturating rather than overflowing. The monitoring API
-    /// takes int offsets, so a large page number would otherwise wrap to a negative offset.
+    /// takes int offsets and adds the page size to them, so an offset near the limit would otherwise
+    /// wrap to a negative one.
     /// </summary>
-    internal static int PageOffset(int pageNumber, int pageSize) =>
-        (int)Math.Min((long)Math.Max(pageNumber, 0) * pageSize, int.MaxValue - pageSize);
+    internal static int PageOffset(PageRequest paging) =>
+        (int)Math.Min(Math.Max((long)(paging.Page - 1) * paging.PageSize, 0), int.MaxValue - paging.PageSize);
+
+    /// <summary>Hangfire counts in longs and a page's total is an int, so a larger count is capped at <see cref="int.MaxValue"/>.</summary>
+    private static int TotalCount(long total) => (int)Math.Min(total, int.MaxValue);
 
     /// <summary>
     /// The failure that left the job in its current state. History is oldest-first and a retried job

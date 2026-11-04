@@ -1,4 +1,5 @@
 using JasperFx.Core;
+using Wayd.Common.Application.Models;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Admin.Messaging;
 using Wolverine.Persistence.Durability;
@@ -41,32 +42,35 @@ public class MessagingController(IMessageStore messageStore) : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Messaging)]
     [EndpointSummary("Get a page of dead-lettered messages, optionally filtered by message type, exception type, and time range.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<DeadLetterMessagesResponse>> GetDeadLetters(
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<PagedResponse<DeadLetterMessageResponse>>> GetDeadLetters(
         CancellationToken cancellationToken,
         [FromQuery] string? messageType = null,
         [FromQuery] string? exceptionType = null,
         [FromQuery] DateTimeOffset? from = null,
         [FromQuery] DateTimeOffset? to = null,
-        [FromQuery] int pageNumber = 0,
-        [FromQuery] int pageSize = 100)
+        [FromQuery] int page = PageRequest.FirstPage,
+        [FromQuery] int pageSize = PageSizes.Default)
     {
+        var paging = new PageRequest(page, pageSize);
+        if (!paging.IsValid(ModelState))
+        {
+            return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
+        }
+
+        // Wolverine counts pages from 1 and orders by execution time, oldest first.
         var query = new DeadLetterEnvelopeQuery(new TimeRange(from, to))
         {
             MessageType = messageType,
             ExceptionType = exceptionType,
-            PageNumber = Math.Max(pageNumber, 0),
-            PageSize = Math.Clamp(pageSize, 1, 500),
+            PageNumber = paging.Page,
+            PageSize = paging.PageSize,
         };
 
         var results = await _messageStore.DeadLetters.QueryAsync(query, cancellationToken);
 
-        return Ok(new DeadLetterMessagesResponse
-        {
-            TotalCount = results.TotalCount,
-            PageNumber = results.PageNumber,
-            PageSize = query.PageSize,
-            Items = [.. results.Envelopes.Select(DeadLetterMessageResponse.From)],
-        });
+        return Ok(new PagedResponse<DeadLetterMessageResponse>(
+            [.. results.Envelopes.Select(DeadLetterMessageResponse.From)], results.TotalCount, paging.Page, paging.PageSize));
     }
 
     [HttpGet("dead-letters/{id:guid}")]

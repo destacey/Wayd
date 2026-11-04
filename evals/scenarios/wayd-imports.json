@@ -1244,10 +1244,13 @@
           "status": "Failed"
         },
         "result": {
-          "rows": [],
-          "totalCount": 0,
+          "items": [],
           "pageNumber": 1,
-          "pageSize": 50
+          "pageSize": 50,
+          "totalCount": 0,
+          "totalPages": 0,
+          "hasPreviousPage": false,
+          "hasNextPage": false
         }
       },
       {
@@ -1256,7 +1259,7 @@
           "id": "3d5f7a9c-1e2b-4c4d-8f6a-0b2c4e6a8d93"
         },
         "result": {
-          "rows": [
+          "items": [
             {
               "id": "3d5f7a9c-1e2b-4c4d-8f6a-000000000001",
               "importId": "3.0.0",
@@ -1398,9 +1401,12 @@
               "attemptedOn": "2026-10-17T09:12:04Z"
             }
           ],
-          "totalCount": 14,
           "pageNumber": 1,
-          "pageSize": 50
+          "pageSize": 50,
+          "totalCount": 14,
+          "totalPages": 1,
+          "hasPreviousPage": false,
+          "hasNextPage": false
         }
       },
       {
@@ -1410,10 +1416,13 @@
           "status": "Failed"
         },
         "result": {
-          "rows": [],
-          "totalCount": 0,
+          "items": [],
           "pageNumber": 1,
-          "pageSize": 50
+          "pageSize": 50,
+          "totalCount": 0,
+          "totalPages": 0,
+          "hasPreviousPage": false,
+          "hasNextPage": false
         }
       },
       {
@@ -1422,7 +1431,7 @@
           "id": "4e6a8c0d-2f3b-4d5e-9a7b-1c3d5f7b9ea4"
         },
         "result": {
-          "rows": [
+          "items": [
             {
               "id": "4e6a8c0d-2f3b-4d5e-9a7b-000000000001",
               "importId": "3.0.0",
@@ -1564,9 +1573,12 @@
               "attemptedOn": "2026-10-17T09:14:42Z"
             }
           ],
-          "totalCount": 14,
           "pageNumber": 1,
-          "pageSize": 50
+          "pageSize": 50,
+          "totalCount": 14,
+          "totalPages": 1,
+          "hasPreviousPage": false,
+          "hasNextPage": false
         }
       },
       {
@@ -2543,7 +2555,7 @@
           "status": "Succeeded"
         },
         "result": {
-          "processes": [
+          "items": [
             {
               "id": "ae2a4c6d-8f9b-4d1e-b03c-7b9d1f3b5a49",
               "importType": "product-management.versions",
@@ -2569,15 +2581,18 @@
               "isTerminal": true
             }
           ],
-          "totalCount": 1,
           "pageNumber": 1,
-          "pageSize": 100
+          "pageSize": 50,
+          "totalCount": 1,
+          "totalPages": 1,
+          "hasPreviousPage": false,
+          "hasNextPage": false
         }
       },
       {
         "tool": "Imports_GetList",
         "result": {
-          "processes": [
+          "items": [
             {
               "id": "9d1f3b5c-7e8a-4c0d-af2b-6a8c0e2a4f38",
               "importType": "product-management.deployments",
@@ -2627,9 +2642,12 @@
               "isTerminal": true
             }
           ],
-          "totalCount": 2,
           "pageNumber": 1,
-          "pageSize": 100
+          "pageSize": 50,
+          "totalCount": 2,
+          "totalPages": 1,
+          "hasPreviousPage": false,
+          "hasNextPage": false
         }
       },
       {
@@ -2758,7 +2776,7 @@
           "status": "Failed"
         },
         "result": {
-          "rows": [
+          "items": [
             {
               "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000031",
               "importId": "dep-031",
@@ -2790,9 +2808,12 @@
               "attemptedOn": "2026-10-16T14:22:31Z"
             }
           ],
-          "totalCount": 3,
           "pageNumber": 1,
-          "pageSize": 50
+          "pageSize": 50,
+          "totalCount": 3,
+          "totalPages": 1,
+          "hasPreviousPage": false,
+          "hasNextPage": false
         }
       },
       {
@@ -2801,7 +2822,7 @@
           "id": "9d1f3b5c-7e8a-4c0d-af2b-6a8c0e2a4f38"
         },
         "result": {
-          "rows": [
+          "items": [
             {
               "id": "c5e7a9b1-3d4f-4a6b-8c0d-000000000001",
               "importId": "dep-001",
@@ -3283,9 +3304,12 @@
               "attemptedOn": "2026-10-16T14:22:31Z"
             }
           ],
-          "totalCount": 48,
           "pageNumber": 1,
-          "pageSize": 50
+          "pageSize": 50,
+          "totalCount": 48,
+          "totalPages": 1,
+          "hasPreviousPage": false,
+          "hasNextPage": false
         }
       },
       {

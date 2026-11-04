@@ -38,24 +38,14 @@ public sealed class ControllerPagingTests
     /// </summary>
     private static readonly Dictionary<string, string> ActionStrays = new()
     {
-        ["BackgroundJobsController.GetJobs"] = "#1144",
         ["DeliveryOverviewController.GetRecentDeliveryEvents"] = "#1145",
-        ["ImportsController.GetList"] = "#1144",
-        ["ImportsController.GetRows"] = "#1144",
-        ["MessagingController.GetDeadLetters"] = "#1144",
     };
 
     /// <summary>
     /// Response types that carry paging of their own, each named with the issue that removes it. An entry is
     /// removed with the type; the list never grows.
     /// </summary>
-    private static readonly Dictionary<string, string> ResponseTypeStrays = new()
-    {
-        ["ImportProcessPageDto"] = "#1144",
-        ["ImportProcessRowPageDto"] = "#1144",
-        ["JobsResponse"] = "#1144",
-        ["DeadLetterMessagesResponse"] = "#1144",
-    };
+    private static readonly Dictionary<string, string> ResponseTypeStrays = new();
 
     private sealed record Action(
         string Name,

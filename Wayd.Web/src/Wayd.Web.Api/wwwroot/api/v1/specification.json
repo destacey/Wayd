@@ -42182,8 +42182,8 @@
         "tags": [
           "Imports"
         ],
-        "summary": "List import runs, newest first, as `processes` with a `totalCount`.",
-        "description": "Only runs of the kinds you may submit are included, or every kind if you hold View Imports. A run carries `status` (Queued, Processing, Cancelling, Succeeded, PartiallySucceeded, Failed, Cancelled), `isTerminal`, `isPreflight`, `atomicity` (PerRow; Atomic, where one rejected row means nothing is written; or PerGroup, where the rows sharing a group — named by `groupNoun`, such as every dependency of one product — apply together or not at all and the other groups are kept), and the counts `totalRowCount`, `succeededRowCount`, `failedRowCount` and `unappliedRowCount`. `canManage` says whether you may cancel, resume, retry or apply it.",
+        "summary": "List import runs, newest first.",
+        "description": "Only runs of the kinds you may submit are included, or every kind if you hold View Imports. A run carries `status` (Queued, Processing, Cancelling, Succeeded, PartiallySucceeded, Failed, Cancelled), `isTerminal`, `isPreflight`, `atomicity` (PerRow; Atomic, where one rejected row means nothing is written; or PerGroup, where the rows sharing a group — named by `groupNoun`, such as every dependency of one product — apply together or not at all and the other groups are kept), and the counts `totalRowCount`, `succeededRowCount`, `failedRowCount` and `unappliedRowCount`. `canManage` says whether you may cancel, resume, retry or apply it. Paged: the response carries `totalCount` and `hasNextPage`.",
         "operationId": "Imports_GetList",
         "parameters": [
           {
@@ -42228,7 +42228,7 @@
             "x-position": 4
           },
           {
-            "name": "pageNumber",
+            "name": "page",
             "in": "query",
             "schema": {
               "type": "integer",
@@ -42243,7 +42243,7 @@
             "schema": {
               "type": "integer",
               "format": "int32",
-              "default": 100
+              "default": 50
             },
             "x-position": 6
           }
@@ -42254,7 +42254,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ImportProcessPageDto"
+                  "$ref": "#/components/schemas/PagedResponseOfImportProcessDto"
                 }
               }
             }
@@ -42265,6 +42265,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -42361,8 +42371,8 @@
         "tags": [
           "Imports"
         ],
-        "summary": "Get a page of an import run's row outcomes, as `rows` with a `totalCount`.",
-        "description": "Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing.",
+        "summary": "Get a page of an import run's row outcomes, in line order.",
+        "description": "Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing. Paged: the response carries `totalCount` and `hasNextPage`.",
         "operationId": "Imports_GetRows",
         "parameters": [
           {
@@ -42389,7 +42399,7 @@
             "x-position": 2
           },
           {
-            "name": "pageNumber",
+            "name": "page",
             "in": "query",
             "schema": {
               "type": "integer",
@@ -42415,7 +42425,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ImportProcessRowPageDto"
+                  "$ref": "#/components/schemas/PagedResponseOfImportProcessRowDto"
                 }
               }
             }
@@ -42426,6 +42436,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -48039,12 +48059,12 @@
             "x-position": 1
           },
           {
-            "name": "pageNumber",
+            "name": "page",
             "in": "query",
             "schema": {
               "type": "integer",
               "format": "int32",
-              "default": 0
+              "default": 1
             },
             "x-position": 2
           },
@@ -48065,7 +48085,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JobsResponse"
+                  "$ref": "#/components/schemas/PagedResponseOfJobSummaryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -48653,12 +48683,12 @@
             "x-position": 4
           },
           {
-            "name": "pageNumber",
+            "name": "page",
             "in": "query",
             "schema": {
               "type": "integer",
               "format": "int32",
-              "default": 0
+              "default": 1
             },
             "x-position": 5
           },
@@ -48668,7 +48698,7 @@
             "schema": {
               "type": "integer",
               "format": "int32",
-              "default": 100
+              "default": 50
             },
             "x-position": 6
           }
@@ -48679,7 +48709,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DeadLetterMessagesResponse"
+                  "$ref": "#/components/schemas/PagedResponseOfDeadLetterMessageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -58264,37 +58304,6 @@
         "additionalProperties": false,
         "description": "Identifies the dead-lettered messages a replay or discard operation targets."
       },
-      "DeadLetterMessagesResponse": {
-        "required": [
-          "totalCount",
-          "pageNumber",
-          "pageSize",
-          "items"
-        ],
-        "type": "object",
-        "properties": {
-          "totalCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DeadLetterMessageResponse"
-            }
-          }
-        },
-        "additionalProperties": false,
-        "description": "A page of dead-lettered messages. `PageNumber` is 0-based, mirroring Wolverine's\nDeadLetterEnvelopeQuery paging."
-      },
       "DeleteOidcProviderResult": {
         "required": [
           "deleted",
@@ -61891,37 +61900,6 @@
         "additionalProperties": false,
         "description": "One import run, as the person who submitted it sees it."
       },
-      "ImportProcessPageDto": {
-        "required": [
-          "processes",
-          "totalCount",
-          "pageNumber",
-          "pageSize"
-        ],
-        "type": "object",
-        "properties": {
-          "processes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ImportProcessDto"
-            }
-          },
-          "totalCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false,
-        "description": "A page of runs, with the total so a UI can page without a second call."
-      },
       "ImportProcessRowDto": {
         "required": [
           "id",
@@ -61976,37 +61954,6 @@
         },
         "additionalProperties": false,
         "description": "One row's outcome."
-      },
-      "ImportProcessRowPageDto": {
-        "required": [
-          "rows",
-          "totalCount",
-          "pageNumber",
-          "pageSize"
-        ],
-        "type": "object",
-        "properties": {
-          "rows": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ImportProcessRowDto"
-            }
-          },
-          "totalCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false,
-        "description": "A page of row outcomes, with the total so a UI can page without a second call."
       },
       "ImportProcessStatus": {
         "enum": [
@@ -65300,37 +65247,6 @@
         "additionalProperties": false,
         "description": "A worker process polling for jobs. A stale heartbeat indicates a wedged or stopped worker."
       },
-      "JobsResponse": {
-        "required": [
-          "totalCount",
-          "pageNumber",
-          "pageSize",
-          "items"
-        ],
-        "type": "object",
-        "properties": {
-          "totalCount": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/JobSummaryResponse"
-            }
-          }
-        },
-        "additionalProperties": false,
-        "description": "A page of jobs in one lifecycle state. `PageNumber` is 0-based."
-      },
       "JobStateFilter": {
         "enum": [
           "Processing",
@@ -67313,6 +67229,50 @@
         "additionalProperties": false,
         "description": "One page of results, with the paging position and the total across all pages."
       },
+      "PagedResponseOfDeadLetterMessageResponse": {
+        "required": [
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages",
+          "hasPreviousPage",
+          "hasNextPage"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeadLetterMessageResponse"
+            }
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPreviousPage": {
+            "type": "boolean"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One page of results, with the paging position and the total across all pages."
+      },
       "PagedResponseOfFollowedRecordDto": {
         "required": [
           "items",
@@ -67329,6 +67289,138 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/FollowedRecordDto"
+            }
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPreviousPage": {
+            "type": "boolean"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One page of results, with the paging position and the total across all pages."
+      },
+      "PagedResponseOfImportProcessDto": {
+        "required": [
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages",
+          "hasPreviousPage",
+          "hasNextPage"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportProcessDto"
+            }
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPreviousPage": {
+            "type": "boolean"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One page of results, with the paging position and the total across all pages."
+      },
+      "PagedResponseOfImportProcessRowDto": {
+        "required": [
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages",
+          "hasPreviousPage",
+          "hasNextPage"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportProcessRowDto"
+            }
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPreviousPage": {
+            "type": "boolean"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One page of results, with the paging position and the total across all pages."
+      },
+      "PagedResponseOfJobSummaryResponse": {
+        "required": [
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages",
+          "hasPreviousPage",
+          "hasNextPage"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobSummaryResponse"
             }
           },
           "pageNumber": {

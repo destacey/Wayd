@@ -31,14 +31,6 @@ internal partial class UserService(
     private readonly IUserIdentityStore _userIdentityStore = userIdentityStore;
     private readonly IOidcProviderRegistry _oidcProviderRegistry = oidcProviderRegistry;
 
-    public async Task<IReadOnlyList<UserDetailsDto>> SearchAsync(UserListFilter filter, CancellationToken cancellationToken)
-    {
-        return await _db.Users
-            .Where(u => u.IsActive == filter.IsActive)
-            .ProjectToType<UserDetailsDto>()
-            .ToListAsync(cancellationToken);
-    }
-
     public async Task<bool> ExistsWithNameAsync(string name)
     {
         return await _userManager.FindByNameAsync(name) is not null;

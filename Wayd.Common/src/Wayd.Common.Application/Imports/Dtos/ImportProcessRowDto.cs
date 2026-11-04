@@ -27,10 +27,3 @@ public sealed record ImportProcessRowDto(
     string? Warning,
     Instant? AttemptedOn,
     ImportRecordLink? CreatedRecord = null);
-
-/// <summary>A page of row outcomes, with the total so a UI can page without a second call.</summary>
-public sealed record ImportProcessRowPageDto(
-    IReadOnlyList<ImportProcessRowDto> Rows,
-    int TotalCount,
-    int PageNumber,
-    int PageSize);

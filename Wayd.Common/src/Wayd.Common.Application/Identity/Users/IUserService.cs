@@ -4,8 +4,6 @@ namespace Wayd.Common.Application.Identity.Users;
 
 public interface IUserService : ITransientService
 {
-    Task<IReadOnlyList<UserDetailsDto>> SearchAsync(UserListFilter filter, CancellationToken cancellationToken);
-
     Task<bool> ExistsWithNameAsync(string name);
 
     Task<bool> ExistsWithEmailAsync(string email, string? exceptId = null);

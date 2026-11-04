@@ -1,7 +1,7 @@
 import {
   DeadLetterMessageDetailsResponse,
-  DeadLetterMessagesResponse,
   MessagingCountsResponse,
+  PagedResponseOfDeadLetterMessageResponse,
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
@@ -12,8 +12,8 @@ export interface GetDeadLettersRequest {
   exceptionType?: string
   from?: Date
   to?: Date
-  /** 0-based, mirroring Wolverine's dead letter query paging. */
-  pageNumber?: number
+  /** 1-based. */
+  page?: number
   pageSize?: number
 }
 
@@ -31,7 +31,10 @@ export const messagingApi = apiSlice.injectEndpoints({
       },
       providesTags: [QueryTags.MessagingCounts],
     }),
-    getDeadLetters: builder.query<DeadLetterMessagesResponse, GetDeadLettersRequest>(
+    getDeadLetters: builder.query<
+      PagedResponseOfDeadLetterMessageResponse,
+      GetDeadLettersRequest
+    >(
       {
         queryFn: async (request) => {
           try {
@@ -40,7 +43,7 @@ export const messagingApi = apiSlice.injectEndpoints({
               request.exceptionType,
               request.from,
               request.to,
-              request.pageNumber,
+              request.page,
               request.pageSize,
             )
             return { data }

@@ -29,8 +29,6 @@ public sealed class PagingTests
     /// </summary>
     private static readonly Dictionary<string, string> LoosePagingStrays = new()
     {
-        ["Wayd.Common.Application.Imports.Queries.GetImportProcessesQuery"] = "#1144",
-        ["Wayd.Common.Application.Imports.Queries.GetImportProcessRowsQuery"] = "#1144",
         ["Wayd.ProductManagement.Application.DeliveryOverview.Queries.GetRecentDeliveryEventsQuery"] = "#1145",
     };
 

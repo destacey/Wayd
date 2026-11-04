@@ -3,6 +3,7 @@ using CsvHelper;
 using Mapster;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.FeatureManagement;
@@ -24,6 +25,7 @@ using Wayd.Common.Application.Imports.Commands;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Planning.HealthChecks;
 using Wayd.Web.Api.Models.Planning.PlanningIntervals;
+using Wayd.Work.Application.WorkItemDependencies.Dtos;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkItems.Forecasting;
 using Wayd.Work.Application.WorkItems.Queries;
@@ -692,6 +694,40 @@ public class PlanningIntervalsController : ControllerBase
     }
 
     #endregion Backlog
+
+    #region Dependencies
+
+    [HttpGet("{idOrKey}/dependencies")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.PlanningIntervals)]
+    [EndpointSummary("Get the dependencies that cross team lines in a PI.")]
+    [EndpointDescription(
+        "The work item dependencies, not removed, where the predecessor (`source`) or the successor (`target`) is planned in a sprint mapped to any of the PI's iterations; the other end may be outside the PI. Intra-Team dependencies are left out, so each `scope` is Cross-Team, or Unknown when an end has no team. To Do, In Progress and Done are returned, matched on the predecessor's status; the open ones are To Do and In Progress. A dependency whose predecessor was removed is left out. Kanban work is in no sprint, so a dependency between two Kanban items is never included.")]
+    [McpTool("PlanningIntervals_GetDependencies", "Get PI dependencies")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<List<DependencyDto>>> GetDependencies(string idOrKey, CancellationToken cancellationToken)
+    {
+        var iterationSprints = await _dispatcher.Send(
+            new GetPlanningIntervalIterationSprintsQuery(idOrKey, null),
+            cancellationToken);
+
+        if (iterationSprints is null)
+            return NotFound();
+
+        var sprintIds = iterationSprints
+            .SelectMany(i => i.Sprints.Select(s => s.Id))
+            .Distinct()
+            .ToList();
+
+        var dependencies = await _dispatcher.Send(
+            new GetSprintsDependenciesQuery(sprintIds, [DependencyState.ToDo, DependencyState.InProgress, DependencyState.Done]),
+            cancellationToken);
+
+        return Ok(dependencies);
+    }
+
+    #endregion Dependencies
 
     #region Objectives
 

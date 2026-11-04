@@ -1,0 +1,77 @@
+.grid {
+  display: grid;
+  grid-template-columns: minmax(80px, max-content) minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: var(--ant-margin);
+  row-gap: 2px;
+  align-items: center;
+}
+
+/* Each row is one button spanning the three columns, laid out on the parent grid's tracks. */
+.row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  padding: var(--ant-padding-xxs) var(--ant-padding-xs);
+  margin: 0 calc(-1 * var(--ant-padding-xs));
+  border: 1px solid transparent;
+  border-radius: var(--ant-border-radius);
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--ant-color-fill-tertiary);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: 1px;
+}
+
+.picked {
+  border-color: var(--ant-color-primary-border);
+  background: var(--ant-color-primary-bg);
+}
+
+.partner {
+  white-space: nowrap;
+}
+
+.cell {
+  min-width: 0;
+}
+
+.track {
+  flex: 1;
+  min-width: 0;
+}
+
+.bar {
+  display: flex;
+  height: 12px;
+  overflow: hidden;
+  border-radius: var(--ant-border-radius-sm);
+}
+
+.count {
+  min-width: 2ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}

@@ -27333,6 +27333,67 @@
         ]
       }
     },
+    "/api/planning/planning-intervals/{idOrKey}/dependencies": {
+      "get": {
+        "tags": [
+          "PlanningIntervals"
+        ],
+        "summary": "Get the dependencies that cross team lines in a PI.",
+        "description": "The work item dependencies, not removed, where the predecessor (`source`) or the successor (`target`) is planned in a sprint mapped to any of the PI's iterations; the other end may be outside the PI. Intra-Team dependencies are left out, so each `scope` is Cross-Team, or Unknown when an end has no team. To Do, In Progress and Done are returned, matched on the predecessor's status; the open ones are To Do and In Progress. A dependency whose predecessor was removed is left out. Kanban work is in no sprint, so a dependency between two Kanban items is never included.",
+        "operationId": "PlanningIntervals_GetDependencies",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DependencyDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/planning/planning-intervals/{idOrKey}/objectives": {
       "get": {
         "tags": [
@@ -40289,6 +40350,68 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/organization/teams-of-teams/{id}/dependencies": {
+      "get": {
+        "tags": [
+          "TeamsOfTeams"
+        ],
+        "summary": "Get the open dependencies that cross team lines for a team of teams.",
+        "description": "Takes the team of teams' UUID `id`. Lists the work item dependencies, not removed, where a team beneath it today, at any depth, owns the predecessor (`source`) or the successor (`target`), and the predecessor is not yet done (state To Do or In Progress). The other end may belong to a team outside the team of teams. Intra-Team dependencies are left out, so each `scope` is Cross-Team, or Unknown when an end has no team. Returns 404 for an unknown team of teams. For one team's dependencies, including Intra-Team ones, use Teams_GetDependencies.",
+        "operationId": "TeamsOfTeams_GetDependencies",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DependencyDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }

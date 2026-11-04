@@ -51,7 +51,7 @@ Planning Interval tools take the same UUID `id` as their `teamId`; a team has no
 | Every sprint | `Teams_GetSprints` | Each with its `state` (Future, Active, Completed) |
 | The sprint in progress | `Teams_GetActiveSprint` | No sprint in progress answers 404: report "no active sprint", not a failure |
 
-These list Requirement-tier work only (user stories, bugs and the like), never epics or features. An unknown team returns an empty list from the backlog, work item and sprint tools, so confirm the team with `Teams_GetTeams` before reporting it has no work. A team of teams has no backlog, work items or sprints of its own; read them per team.
+These list Requirement-tier work only (user stories, bugs and the like), never epics or features. An unknown team returns an empty list from the backlog, work item and sprint tools, so confirm the team with `Teams_GetTeams` before reporting it has no work. A team of teams has no backlog, work items or sprints of its own; read them per team. For the open dependencies across a team of teams, use `TeamsOfTeams_GetDependencies` with its UUID: it covers every team beneath it today, leaves out dependencies within one team, and includes those with teams outside it.
 
 ## Backlog health
 

@@ -33,6 +33,7 @@ The rail provides:
 - **[Objectives](#objectives)**
 - **[Risks](./risks.mdx)**
 - **Backlog** — Every work item across the PI's sprints
+- **[Dependencies](#dependencies)** — The dependencies that cross team lines, with a wheel of where they run between teams
 - **[Capacity](#capacity)** — Each team's capacity for the PI and each of its iterations, with Team Capacity Management turned on
 - **Activity** — The PI's recorded history: edits, date and iteration changes, teams joining and leaving, sprint mappings, and objectives being locked or unlocked. See [Activity Log](../activity-log.mdx).
 - **Objectives Health** — under **Reports**, below the divider
@@ -46,7 +47,7 @@ Team setup lives in the **Actions** menu rather than a section, since both are c
 
 ### Overview
 
-The Overview section composes four blocks that adapt based on PI state.
+The Overview section composes five blocks that adapt based on PI state.
 
 #### At a Glance
 
@@ -74,6 +75,10 @@ A row of clickable cards — one per iteration — sorted chronologically. Each 
 - Cards are highlighted: active iterations use the primary colour, Innovation and Planning iterations use a warning/amber tint
 
 Click an iteration card to navigate to its detail page, where you can see the aggregated sprint backlog and metrics across all participating teams.
+
+#### Cross-Team Dependencies
+
+Three counts of the PI's open [dependencies](#dependencies) — those whose predecessor is To Do or In Progress: how many there are, how many are **Unhealthy**, and how many are **At Risk**. Click any of them to open the Dependencies section.
 
 #### Teams
 
@@ -276,6 +281,31 @@ Each team tab, labelled with the team's code, shows:
   - **Timeline View** — Objectives displayed on a timeline
 
 Click an objective to open its details drawer. The plan review only shows delivery teams (not Teams of Teams). The selected team is held in the URL as `?team=` (the team code, lowercased), alongside `?section=plan-review` — so a link can point directly at one team's plan.
+
+## Dependencies
+
+The **Dependencies** section shows the [work item dependencies](../work-management/work-items.mdx#work-item-dependencies) that need coordination between teams during the PI.
+
+A dependency is included when:
+
+- its predecessor or its successor is in a [sprint mapped](#sprint-mapping) to one of the PI's iterations — the other item may be outside the PI, in a later sprint or on a team not in the PI, and
+- it is not **Intra-Team**: the two items belong to different teams, or one of them has no team (its scope is **Unknown**, a planning gap worth closing).
+
+A Kanban team's work is in no sprint, so a dependency between two Kanban items never appears here; see the team's [Dependencies](../organizations/index.mdx#dependencies) section instead.
+
+**Open** (the default) shows dependencies whose predecessor is To Do or In Progress; **All** adds the done ones, for looking back at a finished PI. A dependency whose predecessor was removed is not shown. The choice applies to the wheel and the list together.
+
+**Dependencies Between Teams** is a dependency wheel:
+
+- Each **arc** is a team, labelled with its team code, sized by the dependencies it takes part in, and in a colour of its own. Items with no team share a grey **No team** arc
+- Each **ribbon** runs from the team that owns the predecessors to the team waiting on them, so a team's arc shows how much it holds others up against how much it waits. Two teams that depend on each other have a ribbon each way
+- A ribbon takes the colour of the team that owns the predecessors, so a team's outgoing dependencies match its arc
+- Hover over a team, or Tab to it, for a summary: how many dependencies it waits on and how many wait on it, their [health](../work-management/work-items.mdx#work-item-dependencies) as a bar with a count of each, and the teams it is most linked with. A ribbon's summary shows how many dependencies the successor's team waits on, their health, and how many are open and done
+- **Click** a team or ribbon — or press Enter on it — to filter the list below to that team, or to that one direction between two teams; click it again, or clear the tag above the list, to show everything. Once a team is picked, Tab also reaches its ribbons. The download button below the wheel saves it as a PNG or SVG
+
+A dependency between two items that both have no team cannot be drawn; the section says how many are in the list but not on the wheel.
+
+The list below has a row per dependency with its state, health and scope, and the key, title, type, status, team and sprint of the predecessor and the successor. It can be filtered, sorted and exported to CSV like other grids.
 
 ## Capacity
 

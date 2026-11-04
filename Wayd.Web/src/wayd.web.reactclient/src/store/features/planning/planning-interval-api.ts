@@ -22,6 +22,7 @@ import {
   PlanningIntervalTeamResponse,
   RiskListDto,
   SprintBacklogItemDto,
+  DependencyDto,
   UpdatePlanningIntervalObjectiveRequest,
   UpdatePlanningIntervalObjectivesOrderRequest,
   UpdatePlanningIntervalRequest,
@@ -327,6 +328,23 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
       },
       providesTags: (result, error, arg) => [
         { type: QueryTags.PlanningIntervalBacklog, id: arg },
+      ],
+    }),
+    getPlanningIntervalDependencies: builder.query<DependencyDto[], number>({
+      queryFn: async (planningIntervalKey) => {
+        try {
+          const data = await getPlanningIntervalsClient().getDependencies(
+            planningIntervalKey.toString(),
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        QueryTags.PlanningIntervalDependencies,
+        { type: QueryTags.PlanningIntervalDependencies, id: arg },
       ],
     }),
     getPlanningIntervalIterationBacklog: builder.query<
@@ -885,6 +903,7 @@ export const {
   useGetPlanningIntervalIterationQuery,
   useGetPlanningIntervalIterationMetricsQuery,
   useGetPlanningIntervalBacklogQuery,
+  useGetPlanningIntervalDependenciesQuery,
   useGetPlanningIntervalIterationBacklogQuery,
   useGetIterationSprintsQuery,
   useGetPlanningIntervalIterationCategoryOptionsQuery,

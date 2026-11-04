@@ -718,6 +718,22 @@ export const teamApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    getTeamOfTeamsDependencies: builder.query<DependencyDto[], string>({
+      queryFn: async (id) => {
+        try {
+          const data = await getTeamsOfTeamsClient().getDependencies(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        QueryTags.TeamDependency,
+        { type: QueryTags.TeamDependency, id: arg },
+      ],
+    }),
+
     // TEAM OPERATING MODELS
     getOperatingModelDefaults: builder.query<
       OperatingModelDefaultsDto,
@@ -1213,6 +1229,7 @@ export const {
   useDeleteTeamMembershipMutation,
   useGetTeamRisksQuery,
   useGetTeamOfTeamsRisksQuery,
+  useGetTeamOfTeamsDependenciesQuery,
   // Operating Models
   useGetOperatingModelDefaultsQuery,
   useGetTeamOperatingModelQuery,

@@ -54,8 +54,10 @@ const config: Config = {
   //
   // marked (Tiptap's markdown parser) is ESM-only from v17. mermaid holds marked 16 at the top
   // level, so @tiptap/markdown gets its own nested copy, which needs its own entry.
+  //
+  // d3-chord and d3-shape (the dependency wheel) and their d3-path dependency are ESM-only.
   transformIgnorePatterns: [
-    'node_modules/(?!(@tanstack/[a-z0-9-]+|@ungap/structured-clone|bail|ccount|character-entities[a-z0-9-]*|character-reference-invalid|comma-separated-tokens|decode-named-character-reference|devlop|escape-string-regexp|estree-util-[a-z0-9-]+|hast[a-z0-9-]*|html-url-attributes|html-void-elements|is-(alphabetical|alphanumerical|decimal|hexadecimal|plain-obj)|longest-streak|markdown-table|marked|@tiptap/markdown/node_modules/marked|mdast[a-z0-9-]*|micromark[a-z0-9-]*|parse-entities|property-information|react-markdown|rehype[a-z0-9-]*|remark[a-z0-9-]*|space-separated-tokens|stringify-entities|trim-lines|trough|unified|unist[a-z0-9-]*|vfile[a-z0-9-]*|web-namespaces|zwitch)/)',
+    'node_modules/(?!(@tanstack/[a-z0-9-]+|@ungap/structured-clone|bail|d3-(chord|path|shape)|ccount|character-entities[a-z0-9-]*|character-reference-invalid|comma-separated-tokens|decode-named-character-reference|devlop|escape-string-regexp|estree-util-[a-z0-9-]+|hast[a-z0-9-]*|html-url-attributes|html-void-elements|is-(alphabetical|alphanumerical|decimal|hexadecimal|plain-obj)|longest-streak|markdown-table|marked|@tiptap/markdown/node_modules/marked|mdast[a-z0-9-]*|micromark[a-z0-9-]*|parse-entities|property-information|react-markdown|rehype[a-z0-9-]*|remark[a-z0-9-]*|space-separated-tokens|stringify-entities|trim-lines|trough|unified|unist[a-z0-9-]*|vfile[a-z0-9-]*|web-namespaces|zwitch)/)',
   ],
   testPathIgnorePatterns: ['./.next/', './node_modules/'],
   moduleNameMapper: {

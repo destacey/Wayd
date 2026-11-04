@@ -1,5 +1,7 @@
 ﻿using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Organization.Application.EmployeeCapacities;
 using Wayd.Organization.Application.EmployeeCapacities.Queries;
@@ -21,6 +23,8 @@ using Wayd.Web.Api.Models.Organizations.TeamOfTeams;
 using Wayd.Web.Api.Models.Organizations.Teams;
 using Wayd.Web.Api.Models.Organizations.TeamsOfTeams;
 using Wayd.Web.Api.Models.Planning.Risks;
+using Wayd.Work.Application.WorkItemDependencies.Dtos;
+using Wayd.Work.Application.WorkItems.Queries;
 using Wayd.Work.Application.WorkTeams.Dtos;
 
 namespace Wayd.Web.Api.Controllers.Organizations;
@@ -33,11 +37,13 @@ public class TeamsOfTeamsController : ControllerBase
 {
     private readonly ILogger<TeamsOfTeamsController> _logger;
     private readonly IDispatcher _dispatcher;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
-    public TeamsOfTeamsController(ILogger<TeamsOfTeamsController> logger, IDispatcher dispatcher)
+    public TeamsOfTeamsController(ILogger<TeamsOfTeamsController> logger, IDispatcher dispatcher, IDateTimeProvider dateTimeProvider)
     {
         _logger = logger;
         _dispatcher = dispatcher;
+        _dateTimeProvider = dateTimeProvider;
     }
 
     [HttpGet]
@@ -112,6 +118,35 @@ public class TeamsOfTeamsController : ControllerBase
             : result.Value is not null
                 ? Ok(result.Value)
                 : NotFound();
+    }
+
+    [HttpGet("{id:guid}/dependencies")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
+    [EndpointSummary("Get the open dependencies that cross team lines for a team of teams.")]
+    [EndpointDescription(
+        "Takes the team of teams' UUID `id`. Lists the work item dependencies, not removed, where a team beneath it today, at any depth, owns the predecessor (`source`) or the successor (`target`), and the predecessor is not yet done (state To Do or In Progress). The other end may belong to a team outside the team of teams. Intra-Team dependencies are left out, so each `scope` is Cross-Team, or Unknown when an end has no team. Returns 404 for an unknown team of teams. For one team's dependencies, including Intra-Team ones, use Teams_GetDependencies.")]
+    [McpTool("TeamsOfTeams_GetDependencies", "List team of teams dependencies")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<List<DependencyDto>>> GetDependencies(Guid id, CancellationToken cancellationToken)
+    {
+        var today = _dateTimeProvider.Today;
+        var structure = await _dispatcher.Send(new GetTeamStructureQuery(id, today, today), cancellationToken);
+        if (structure is null || structure.Teams.All(t => t.Id != id || t.Type != TeamType.TeamOfTeams))
+            return NotFound();
+
+        // Only a team owns work items, so the teams of teams in the structure add nothing to match on.
+        var teamIds = structure.Teams
+            .Where(t => t.Type == TeamType.Team)
+            .Select(t => t.Id)
+            .ToList();
+
+        var dependencies = await _dispatcher.Send(
+            new GetTeamsDependenciesQuery(teamIds, [DependencyState.ToDo, DependencyState.InProgress]),
+            cancellationToken);
+
+        return Ok(dependencies);
     }
 
     [HttpGet("{id:guid}/capacity")]

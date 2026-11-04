@@ -1,9 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Enums.Planning;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Interfaces.Organization;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Models;
 using Wayd.Common.Domain.Models.Organizations;
+using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Domain.Models;
@@ -96,6 +100,19 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
         return (team.Id, code);
     }
 
+    /// <summary>A two-week Wayd-owned sprint for the team, starting on <paramref name="start"/>.</summary>
+    public async Task<Guid> AddSprint(Guid teamId, LocalDate start, CancellationToken cancellationToken)
+    {
+        var sprint = Iteration.Create($"Sprint {UniqueKeys.Next()}", IterationType.Sprint, new IterationDateRange(start, start.PlusDays(13)),
+            teamId, OwnershipInfo.CreateWaydOwned(), [], EventActor.System, Now);
+
+        await using var context = _fixture.CreateContext();
+        context.Iterations.Add(sprint);
+        await context.SaveChangesAsync(cancellationToken);
+
+        return sprint.Id;
+    }
+
     public async Task<Guid> AddProject(CancellationToken cancellationToken)
     {
         var project = new WorkProject(new SourceProject(Guid.NewGuid(), new ProjectKey($"FP{UniqueKeys.Next()}"), "Forecast Project", "A project to forecast."), Now);
@@ -125,7 +142,8 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
         Guid? projectId = null,
         Guid? parentProjectId = null,
         double? storyPoints = null,
-        Instant? activated = null)
+        Instant? activated = null,
+        Guid? iterationId = null)
     {
         var id = Guid.CreateVersion7();
         var number = _nextNumber++;
@@ -146,11 +164,11 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
             INSERT INTO [Work].[WorkItems]
                 ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId], [StatusId],
                  [StatusCategory], [Created], [LastModified], [StackRank], [ActivatedTimestamp], [DoneTimestamp],
-                 [TeamId], [ParentId], [ProjectId], [ParentProjectId], [StoryPoints],
+                 [TeamId], [ParentId], [ProjectId], [ParentProjectId], [StoryPoints], [IterationId],
                  [SystemCreated], [SystemLastModified])
             VALUES ({id}, {key}, {"Item " + key}, {_workspaceId}, {number}, @TypeId, @StatusId,
                     {category}, {created}, {created}, {stackRank}, {activatedAt}, {doneAt},
-                    {teamId}, {parentId}, {projectId}, {parentProjectId}, {storyPoints},
+                    {teamId}, {parentId}, {projectId}, {parentProjectId}, {storyPoints}, {iterationId},
                     SYSUTCDATETIME(), SYSUTCDATETIME());
             """,
             cancellationToken);
@@ -186,7 +204,7 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
             $"UPDATE [Work].[Workspaces] SET [WorkItemHistoryBackfilledOn] = SYSUTCDATETIME() WHERE [Id] = {_workspaceId};", cancellationToken);
     }
 
-    public async Task AddDependency(Guid predecessorId, Guid successorId, CancellationToken cancellationToken)
+    public async Task AddDependency(Guid predecessorId, Guid successorId, CancellationToken cancellationToken, bool removed = false)
     {
         await using var context = _fixture.CreateContext();
         var infos = await context.WorkItems
@@ -197,7 +215,7 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
         context.WorkItemDependencies.Add(WorkItemDependency.Create(
             infos.Single(i => i.WorkItemId == predecessorId),
             infos.Single(i => i.WorkItemId == successorId),
-            Now, null, null, null, null, Now));
+            Now, null, removed ? Now : null, null, null, Now));
         await context.SaveChangesAsync(cancellationToken);
     }
 

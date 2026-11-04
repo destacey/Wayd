@@ -1,8 +1,8 @@
 'use client'
 
-import { DependencyDto, TeamDetailsDto } from '@/src/services/wayd-api'
+import { DependencyDto } from '@/src/services/wayd-api'
 import type { ColumnDef } from '../wayd-grid-core'
-import { FC, useMemo } from 'react'
+import { FC, ReactNode, useMemo } from 'react'
 import {
   WaydGrid,
   renderDependencyHealthTag,
@@ -11,16 +11,23 @@ import {
   renderWorkItemLink,
   workItemKeySort,
 } from '../wayd-grid'
-import { DEPENDENCY_SCOPE_TOOLTIP } from '../work/dependency-constants'
+import { DEPENDENCY_SCOPE_TOOLTIP } from './dependency-constants'
 
-export interface TeamDependenciesGridProps {
-  team: TeamDetailsDto
+export interface DependenciesGridProps {
   dependencies: DependencyDto[]
   isLoading: boolean
   refetch: () => void
+  /** Names both the saved column layout and the CSV export. */
+  gridKey: string
+  /** Controls shown at the left of the toolbar, such as a filter the caller owns. */
+  leftSlot?: ReactNode
+  emptyMessage?: string
+  /** Fixed height in pixels; by default the grid fills the rest of the window below it. */
+  height?: number
 }
 
-const TeamDependenciesGrid: FC<TeamDependenciesGridProps> = (props) => {
+/** Work item dependencies, one row each, with the predecessor and successor side by side. */
+const DependenciesGrid: FC<DependenciesGridProps> = (props) => {
   const { refetch } = props
 
   const columns = useMemo<ColumnDef<DependencyDto, any>[]>(
@@ -170,10 +177,13 @@ const TeamDependenciesGrid: FC<TeamDependenciesGridProps> = (props) => {
       data={props.dependencies}
       onRefresh={refresh}
       isLoading={props.isLoading}
-      persistStateKey="team-dependencies"
-      csvFileName="team-dependencies"
+      persistStateKey={props.gridKey}
+      csvFileName={props.gridKey}
+      leftSlot={props.leftSlot}
+      emptyMessage={props.emptyMessage}
+      height={props.height}
     />
   )
 }
 
-export default TeamDependenciesGrid
+export default DependenciesGrid

@@ -42,7 +42,7 @@ Each tool takes a specific identifier; its parameter description says which. The
 | --- | --- |
 | List workspaces (active only unless `includeInactive: true`) | `Workspaces_GetWorkspaces` |
 | One workspace, its work process and URL template | `Workspaces_GetWorkspace` |
-| Find a work item by part of its key, its parent's key or its title, across every workspace | `Workspaces_SearchWorkItems` (`query`; at most `top`, default 50) |
+| Find a work item by part of its key, its parent's key or its title, across every workspace | `Workspaces_SearchWorkItems` (`query`; at most `top`, default 50; `tier` keeps one tier, such as `Portfolio`) |
 | One work item's details | `Workspaces_GetWorkItem` |
 | A Portfolio-tier item's direct children, in rank order | `Workspaces_GetChildWorkItems` |
 | A work item's dependency links | `Workspaces_GetWorkItemDependencies` |
@@ -62,6 +62,7 @@ Each tool takes a specific identifier; its parameter description says which. The
 - A null `projectId` removes the item's own assignment, so it inherits its parent's project again. Choosing the parent's project is the same as inheriting it.
 - Work items beneath it that have no project of their own inherit the change — say so when confirming.
 - It takes the workspace's UUID `id` and the work item's UUID twice, as `workItemId` in the path and in the body, which must match. A work item that is not in that workspace is not found. It needs the `Permissions.Projects.ManageProjectWorkItems` permission.
+- To link or unlink several work items to one project at once, use the `wayd-ppm` skill's `Projects_AddWorkItems` and `Projects_RemoveWorkItems`.
 
 ## Sprints
 

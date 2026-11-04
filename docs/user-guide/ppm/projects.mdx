@@ -153,7 +153,7 @@ Common keyboard shortcuts in Plan:
 - **Tab / Shift+Tab**: Move between editable fields
 - **Esc**: Cancel current edit or drag operation
 
-**Work Items** — Grid of [work items](../work-management/work-items.mdx#work-items) from Work Management that are associated with this project.
+**Work Items** — Grid of [work items](../work-management/work-items.mdx#work-items) from Work Management that are associated with this project. See [Adding and Removing Work Items](#adding-and-removing-work-items).
 
 **Requests** — Shown when the `demand-management` feature flag is on: the [intake requests](../demand-management/index.mdx#outcomes) this project was started for or absorbed, each with its status and what the project took on. Each request is listed only to people its desk lets see it, so a request on a private desk you are not part of is not shown and not counted.
 
@@ -162,6 +162,15 @@ Common keyboard shortcuts in Plan:
 **Health Report** — A report rather than a section, so it sits below the divider at the bottom of the rail. See [View the Health Report](#view-the-health-report).
 
 **Forecast** — A second report, shown when the `delivery-forecasting` feature flag is on: when the project's work items will be done, and the chance of finishing by the project's planned end. See [Delivery Forecasting](../work-management/delivery-forecasting.mdx#where-to-find-it).
+
+## Adding and Removing Work Items
+
+A project's work items come from its links to [Portfolio tier](../work-management/work-configuration.mdx#work-type-tiers) work items, such as epics and features. Each work item beneath a linked one belongs to the project too, unless it has a project of its own. Links can be made from the **Work Items** section of the project, or from a work item's own page (see [Setting a Work Item's Project](../work-management/work-items.mdx#setting-a-work-items-project)).
+
+- **Add Work Items**, beside the section's heading, opens a dialog that searches portfolio work items across every workspace by key or title. Choose one or more and select **Add**. Work items already on the project are not offered. A work item that is on another project moves to this one, and the dialog lists those before you add them. A work item beneath one you add that was already linked to this project on its own now belongs to it through its parent instead, so removing the parent later removes it too.
+- **Remove from Project** in a row's actions menu removes a work item that is linked directly to the project. It then takes its parent's project, if it has one, and the work items beneath it follow. A work item that is on the project only through its parent has no **Remove from Project** action: remove the parent, or give the work item a project of its own.
+
+Both require the `Permissions.Projects.ManageProjectWorkItems` permission. Unlike other changes to a project, they do not require being an Owner or Manager of it.
 
 ## Discussion
 

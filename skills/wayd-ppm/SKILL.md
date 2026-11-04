@@ -97,9 +97,12 @@ The metrics tools return counts only; follow up with `Projects_GetProjects` when
 | Stages                                   | `Projects_GetProjectStages`, `Projects_GetProjectStage`                                          |
 | Team: roles, stages, active task counts  | `Projects_GetProjectTeam`                                                                        |
 | Linked work items                        | `Projects_GetWorkItems`                                                                          |
+| Link or unlink work items                | `Projects_AddWorkItems`, `Projects_RemoveWorkItems` (see below)                                  |
 | When the work items will be done         | `Projects_GetForecast` (read it as the `wayd-teams` skill describes)                             |
 | Tasks, one task, critical path           | `Tasks_GetProjectTasks`, `Tasks_GetProjectTask`, `Tasks_GetCriticalPath`                         |
 | Evidence for a health check              | `Projects_GetHealthCheckEvidence` (see [reference/health-checks.md](reference/health-checks.md)) |
+
+`Projects_AddWorkItems` links Portfolio-tier work items (epics, features) to a project by UUID; find them with `Workspaces_SearchWorkItems` and `tier: Portfolio`. A work item already on another project moves, so tell the user which ones before calling. `Projects_RemoveWorkItems` unlinks only work items linked directly to the project; one that inherits it from its parent is refused, and leaves with its parent. In both, work items beneath the changed ones that have no project of their own follow, and the listed work items all change or none do. Linking a parent absorbs a child's own link to the same project, so unlinking the parent later takes the child too. Neither needs delivery leadership — only `Permissions.Projects.ManageProjectWorkItems`. For one work item's project, the `wayd-work` skill's `Workspaces_UpdateWorkItemProject` does the same from the work item's side.
 
 When surveying a portfolio or program, call `Projects_GetProjectsPlanSummaries` once with every project UUID and `allTasks: true` — not `Projects_GetProjectPlanSummary` per project. Without `allTasks` it counts only the tasks the caller can see.
 

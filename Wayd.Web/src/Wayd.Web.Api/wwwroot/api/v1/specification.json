@@ -27333,6 +27333,67 @@
         ]
       }
     },
+    "/api/planning/planning-intervals/{idOrKey}/dependencies": {
+      "get": {
+        "tags": [
+          "PlanningIntervals"
+        ],
+        "summary": "Get the dependencies that cross team lines in a PI.",
+        "description": "The work item dependencies, not removed, where the predecessor (`source`) or the successor (`target`) is planned in a sprint mapped to any of the PI's iterations; the other end may be outside the PI. Intra-Team dependencies are left out, so each `scope` is Cross-Team, or Unknown when an end has no team. To Do, In Progress and Done are returned, matched on the predecessor's status; the open ones are To Do and In Progress. A dependency whose predecessor was removed is left out. Kanban work is in no sprint, so a dependency between two Kanban items is never included.",
+        "operationId": "PlanningIntervals_GetDependencies",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DependencyDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/planning/planning-intervals/{idOrKey}/objectives": {
       "get": {
         "tags": [

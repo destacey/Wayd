@@ -352,6 +352,8 @@ The **Dependencies** section shows all cross-work-item dependencies involving th
 
 Dependencies within the team have no other team, so they are in the list but not on the chart; a note says how many.
 
+A Team of Teams has a **Dependencies** section too. It lists the open dependencies — the predecessor is To Do or In Progress — where a team beneath it today, at any depth, owns either item, leaving out those within one team. The other item may belong to a team outside the team of teams. Above the list, a **dependency wheel** shows where they run: each arc is a team in its own colour, each ribbon runs from the team that owns the predecessors to the team waiting on them, and hovering a team or ribbon shows a summary of its counts and health. Click a team or ribbon to filter the list. It works as the [wheel on a planning interval](../planning/planning-intervals.mdx#dependencies) does.
+
 The dependency grid is organized into three column groups:
 
 | Group | Columns |

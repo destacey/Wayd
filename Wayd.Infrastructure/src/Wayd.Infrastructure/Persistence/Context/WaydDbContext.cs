@@ -8,6 +8,7 @@ using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.Following;
 using Wayd.Common.Domain.Notifications;
@@ -260,11 +261,14 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     async Task<IUnitOfWork> IWorkDbContext.BeginUnitOfWork(CancellationToken cancellationToken) =>
         await BeginUnitOfWork(cancellationToken);
 
-    public IQueryable<WorkItem> SearchWorkItems(string searchTerm, int top)
+    public IQueryable<WorkItem> SearchWorkItems(string searchTerm, WorkTypeTier? tier, int top)
     {
         var query = IsFtsAvailable()
             ? SearchWorkItemsFts(searchTerm)
             : SearchWorkItemsLike(searchTerm);
+
+        if (tier.HasValue)
+            query = query.Where(e => e.Type.Level!.Tier == tier.Value);
 
         return query
             .OrderBy(e => EF.Property<string>(e, "KeyPrefix"))

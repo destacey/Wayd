@@ -11,3 +11,5 @@ export type {
   DependencyPartnersData,
   PartnerHealthCounts,
 } from './dependency-partners-data'
+export { default as DependencyPartnersExplorer } from './dependency-partners-explorer'
+export type { DependencyPartnersExplorerProps } from './dependency-partners-explorer'

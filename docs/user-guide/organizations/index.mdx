@@ -343,6 +343,15 @@ Sprints are the time-boxed delivery cadence for Scrum teams. They are synced fro
 
 The **Dependencies** section shows all cross-work-item dependencies involving the team. Dependencies are predecessor/successor relationships between work items that help teams identify blockers and delivery risks.
 
+**Dependencies With Other Teams** sits above the list when the team shares dependencies with another team. It has a row per other team, busiest first, with items that have no team grouped as **No team**:
+
+- **We wait on them** — dependencies where the other team owns the predecessor, so this team's work waits on theirs
+- **They wait on us** — dependencies where this team owns the predecessor
+- Each bar is split by health and scaled to the busiest row, so the longest bar is the heaviest link
+- **Click** a row — or Tab to it and press Enter — to filter the list to the dependencies with that team; click it again, or clear the tag above the list, to show everything
+
+Dependencies within the team have no other team, so they are in the list but not on the chart; a note says how many.
+
 The dependency grid is organized into three column groups:
 
 | Group | Columns |

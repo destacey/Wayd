@@ -50,6 +50,8 @@ jest.mock('@/src/hooks', () => {
         handleCancel: jest.fn(),
       }
     },
+    // WaydGrid in the Teams setup guide reads this tuple. The mock replaces the whole module.
+    useRemainingHeight: () => [jest.fn(), 600],
   }
 })
 

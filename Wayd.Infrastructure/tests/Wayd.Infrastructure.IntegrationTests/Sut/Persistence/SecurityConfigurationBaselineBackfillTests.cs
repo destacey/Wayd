@@ -5,7 +5,6 @@ using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
 using Wayd.AppIntegration.Domain.Models.Workday;
-using Wayd.AppIntegration.Domain.Models.Teams;
 using Wayd.Common.Application.Identity;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Data;
@@ -128,7 +127,10 @@ public sealed class SecurityConfigurationBaselineBackfillTests(SqlServerDbContex
             createdEvent.RegistrationPolicy, createdEvent.IsEnabled, recordCreatedOn, null, timestamp), ct);
     }
 
-    public static TheoryData<string> Connectors() => new(nameof(Connector.AzureDevOps), nameof(Connector.AzureOpenAI), nameof(Connector.Entra), nameof(Connector.Workday), nameof(Connector.Teams));
+    // This backfill shipped before Teams. A Teams connection is always saved with its creation
+    // entry, so the frozen SQL never baselines one. Seeding one here makes the script throw, and
+    // that row then fails every later case that shares the database.
+    public static TheoryData<string> Connectors() => new(nameof(Connector.AzureDevOps), nameof(Connector.AzureOpenAI), nameof(Connector.Entra), nameof(Connector.Workday));
 
     [Theory]
     [MemberData(nameof(Connectors))]
@@ -181,8 +183,6 @@ public sealed class SecurityConfigurationBaselineBackfillTests(SqlServerDbContex
                     new WorkdayOrgExclusion("COST_CENTER", "org-a", "Org A"),
                 ]),
             false, EventActor.System, Now),
-        Connector.Teams => TeamsConnection.Create("Teams", null,
-            new TeamsConnectionConfiguration("tenant-1", "client-1", "client-secret"), true, EventActor.System, Now),
         _ => throw new ArgumentOutOfRangeException(nameof(connector)),
     };
 

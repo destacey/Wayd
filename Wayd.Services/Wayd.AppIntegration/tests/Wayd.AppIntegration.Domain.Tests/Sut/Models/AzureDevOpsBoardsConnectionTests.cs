@@ -61,18 +61,34 @@ public class AzureDevOpsBoardsConnectionTests
     }
 
     [Fact]
-    public void CanSync_ShouldBeFalse_WhenDeactivated()
+    public void CanSync_ShouldBeFalse_WhenOnlyAProcessIsSetUp()
     {
-        // Arrange
-        var externalId = Guid.CreateVersion7();
-        var workProcess = AzureDevOpsBoardsWorkProcess.Create(externalId, "Agile", null);
+        // Arrange — a process with no syncing project gives a sync nothing to read
+        var workProcess = AzureDevOpsBoardsWorkProcess.Create(Guid.CreateVersion7(), "Agile", null);
         workProcess.AddIntegrationState(IntegrationState<Guid>.Create(Guid.CreateVersion7(), true));
 
         var config = new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT", processes: [workProcess]);
+
+        // Act
         var connection = AzureDevOpsBoardsConnection.Create(
             "Test Connection", null, "test-system-id", config, true, null, Actor, _dateTimeProvider.Now);
 
-        // Sanity: with active integration object + active connection, CanSync should be true.
+        // Assert
+        ((ISyncableConnection)connection).CanSync.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CanSync_ShouldBeFalse_WhenDeactivated()
+    {
+        // Arrange
+        var workspace = AzureDevOpsBoardsWorkspace.Create(Guid.CreateVersion7(), "Project", null, Guid.CreateVersion7());
+        workspace.AddIntegrationState(IntegrationState<Guid>.Create(Guid.CreateVersion7(), true));
+
+        var config = new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT", workspaces: [workspace]);
+        var connection = AzureDevOpsBoardsConnection.Create(
+            "Test Connection", null, "test-system-id", config, true, null, Actor, _dateTimeProvider.Now);
+
+        // Sanity: with a syncing project + active connection, CanSync should be true.
         ((ISyncableConnection)connection).CanSync.Should().BeTrue();
 
         // Act
@@ -86,11 +102,10 @@ public class AzureDevOpsBoardsConnectionTests
     public void CanSync_ShouldBeFalse_WhenConfigurationInvalid()
     {
         // Arrange
-        var externalId = Guid.CreateVersion7();
-        var workProcess = AzureDevOpsBoardsWorkProcess.Create(externalId, "Agile", null);
-        workProcess.AddIntegrationState(IntegrationState<Guid>.Create(Guid.CreateVersion7(), true));
+        var workspace = AzureDevOpsBoardsWorkspace.Create(Guid.CreateVersion7(), "Project", null, Guid.CreateVersion7());
+        workspace.AddIntegrationState(IntegrationState<Guid>.Create(Guid.CreateVersion7(), true));
 
-        var config = new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT", processes: [workProcess]);
+        var config = new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT", workspaces: [workspace]);
         var connection = AzureDevOpsBoardsConnection.Create(
             "Test Connection", null, "test-system-id", config, configurationIsValid: false, null, Actor, _dateTimeProvider.Now);
 
@@ -121,6 +136,65 @@ public class AzureDevOpsBoardsConnectionTests
 
         result.IsSuccess.Should().BeTrue();
         connection.Configuration.WorkProcesses.Single().IntegrationState!.InternalId.Should().Be(liveInternalId);
+    }
+
+    [Fact]
+    public void SetWorkspaceSync_WhenSetUp_TurnsSyncOffAndOn()
+    {
+        // Arrange
+        var externalId = Guid.CreateVersion7();
+        var workspace = AzureDevOpsBoardsWorkspace.Create(externalId, "Project", null, Guid.CreateVersion7());
+        workspace.AddIntegrationState(IntegrationState<Guid>.Create(Guid.CreateVersion7(), true));
+
+        var config = new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT", workspaces: [workspace]);
+        var connection = AzureDevOpsBoardsConnection.Create(
+            "Test Connection", null, "test-system-id", config, true, null, Actor, _dateTimeProvider.Now);
+
+        // Act
+        var offResult = connection.SetWorkspaceSync(externalId, false);
+        var isActiveAfterOff = workspace.IntegrationIsActive;
+        var onResult = connection.SetWorkspaceSync(externalId, true);
+
+        // Assert
+        offResult.IsSuccess.Should().BeTrue();
+        isActiveAfterOff.Should().BeFalse();
+        onResult.IsSuccess.Should().BeTrue();
+        workspace.IntegrationIsActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public void SetWorkspaceSync_WhenNotSetUp_ShouldFail()
+    {
+        // Arrange
+        var externalId = Guid.CreateVersion7();
+        var workspace = AzureDevOpsBoardsWorkspace.Create(externalId, "Project", null, Guid.CreateVersion7());
+
+        var config = new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT", workspaces: [workspace]);
+        var connection = AzureDevOpsBoardsConnection.Create(
+            "Test Connection", null, "test-system-id", config, true, null, Actor, _dateTimeProvider.Now);
+
+        // Act
+        var result = connection.SetWorkspaceSync(externalId, true);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("has not been set up");
+        workspace.HasIntegration.Should().BeFalse();
+    }
+
+    [Fact]
+    public void SetWorkspaceSync_WhenWorkspaceNotFound_ShouldFail()
+    {
+        // Arrange
+        var config = new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT");
+        var connection = AzureDevOpsBoardsConnection.Create(
+            "Test Connection", null, "test-system-id", config, true, null, Actor, _dateTimeProvider.Now);
+
+        // Act
+        var result = connection.SetWorkspaceSync(Guid.CreateVersion7(), true);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
     }
 
     [Fact]

@@ -1,19 +1,27 @@
 using Microsoft.AspNetCore.Authorization;
+using CsvHelper;
 using CSharpFunctionalExtensions;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.Discussions;
+using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Scoring.ScoringModels.Dtos;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
+using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.DemandManagement.Application.IntakeDesks;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.IntakeRequests.Commands;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
+using Wayd.DemandManagement.Application.IntakeRequests.Imports;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
 using Wayd.DemandManagement.Application.IntakeRequestTagCategories;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.DemandManagement.IntakeRequests;
+using Wayd.Work.Application.WorkItems.Dtos;
+using Wayd.Work.Application.WorkItems.Queries;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Web.Api.Controllers.DemandManagement;
 
@@ -29,9 +37,10 @@ namespace Wayd.Web.Api.Controllers.DemandManagement;
 [ApiController]
 [FeatureGate(FeatureFlags.Names.DemandManagement)]
 [McpTools(McpToolset.Intake, "wayd-intake")]
-public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
+public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvService) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly ICsvService _csvService = csvService;
 
     [HttpGet]
     [Authorize]
@@ -57,6 +66,18 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
         return Ok(scores);
     }
 
+    [HttpGet("estimates")]
+    [Authorize]
+    [McpTool("IntakeRequests_GetEstimates", "List intake request estimates")]
+    [EndpointSummary("Get the estimates of the intake requests you can see.")]
+    [EndpointDescription("Takes the same filters as the list and answers beside it, for the requests whose estimate you may read: an estimate is substance, so a request whose substance is withheld from you is absent, as is one never estimated. Sort on `position`, the value's place on its scale version, rather than on the text; positions compare only between estimates on the same version (`scale.versionId`).")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<IntakeRequestCurrentEstimateDto>>> GetIntakeRequestEstimates([FromQuery] Guid? deskId, [FromQuery] bool mine = false, [FromQuery] bool openOnly = false, CancellationToken cancellationToken = default)
+    {
+        var estimates = await _dispatcher.Send(new GetIntakeRequestEstimatesQuery(deskId, mine, openOnly), cancellationToken);
+        return Ok(estimates);
+    }
+
     [HttpGet("{idOrKey}")]
     [Authorize]
     [McpTool("IntakeRequests_GetIntakeRequest", "Get intake request")]
@@ -68,9 +89,47 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     {
         var request = await _dispatcher.Send(new GetIntakeRequestQuery(new IdOrKey(idOrKey)), cancellationToken);
         return request is not null
-            ? Ok(request)
+            ? Ok(await WithWorkItems(request, cancellationToken))
             : NotFound();
     }
+
+    /// <summary>
+    /// Fills in each work item outcome's current key, title and status from Work, in one call. Demand Management
+    /// keeps no copy of work items; a work item Work no longer has keeps its outcome, with no work item.
+    /// </summary>
+    private async Task<IntakeRequestDetailsDto> WithWorkItems(IntakeRequestDetailsDto request, CancellationToken cancellationToken)
+    {
+        var workItemIds = request.Outcomes
+            .Where(o => o.Kind == IntakeRequestOutcomeKind.WorkItem)
+            .Select(o => o.TargetId)
+            .ToList();
+        if (workItemIds.Count == 0)
+            return request;
+
+        var workItems = (await _dispatcher.Send(new GetWorkItemsByIdsQuery(workItemIds), cancellationToken))
+            .ToDictionary(w => w.Id, ToOutcomeWorkItem);
+
+        return request with
+        {
+            Outcomes =
+            [
+                .. request.Outcomes.Select(o => o.Kind == IntakeRequestOutcomeKind.WorkItem && workItems.TryGetValue(o.TargetId, out var workItem)
+                    ? o with { WorkItem = workItem }
+                    : o),
+            ],
+        };
+    }
+
+    /// <summary>A work item as Work reports it, in the shape Demand Management takes it.</summary>
+    private static IntakeRequestOutcomeWorkItemDto ToOutcomeWorkItem(WorkItemDetailsNavigationDto workItem) => new()
+    {
+        Id = workItem.Id,
+        Key = workItem.Key,
+        Title = workItem.Title,
+        WorkspaceKey = workItem.WorkspaceKey,
+        Status = workItem.Status,
+        StatusCategory = (StatusCategory)workItem.StatusCategory.Id,
+    };
 
     [HttpGet("{idOrKey}/activities")]
     [McpTool("IntakeRequests_GetActivities", "Get intake request activity history")]
@@ -101,6 +160,55 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPost("import")]
+    [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
+    [EndpointSummary(
+        "Submit a csv file of intake requests to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]
+    [EndpointDescription(
+        "Each row names its desk, channel, tags and people by id. A request is created on its desk in the status meaning Submitted, at `SubmittedAt`, then assigned, tagged, estimated and moved to `Status` — a status of the desk's workflow by name or by meaning — at `StatusChangedAt`. Withdrawn is recorded as the requester's own move; every other status as the assignee's. Needs the Demand Management Admin.")]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    [CsvImport(IntakeRequestImportDefinition.ImportKey)]
+    public async Task<ActionResult> Import([FromForm, CsvRows(typeof(ImportIntakeRequestRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var imported = _csvService.ReadCsv<ImportIntakeRequestRequest>(file.OpenReadStream()).ToList();
+
+            List<SubmittedImportRow<ImportIntakeRequestDto>> rows = [];
+            var validator = new ImportIntakeRequestRequestValidator();
+            for (var i = 0; i < imported.Count; i++)
+            {
+                var request = imported[i];
+
+                var validationResults = await validator.ValidateAsync(request, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage = $"{error.ErrorMessage} (Row: {SubmittedImportRow.KeyFor(request.ImportId, i + 1)})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
+                }
+
+                rows.Add(new SubmittedImportRow<ImportIntakeRequestDto>(request.ImportId, request.ToImportIntakeRequestDto()));
+            }
+
+            var result = await _dispatcher.Send(new ImportIntakeRequestsCommand(rows, submissionGroupId, validateOnly), cancellationToken);
+
+            return result.IsSuccess
+                ? await responder.Respond(this, result.Value, cancellationToken)
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
+        }
+    }
+
     [HttpPut("{id}")]
     [McpTool("IntakeRequests_Update", "Update intake request")]
     [Authorize]
@@ -129,6 +237,18 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ChangeAssignee(Guid id, [FromBody] ChangeIntakeRequestAssigneeRequest request, CancellationToken cancellationToken) =>
         NoContentOrError(await _dispatcher.Send(new ChangeIntakeRequestAssigneeCommand(id, request.AssigneeId), cancellationToken));
+
+    [HttpPut("{id}/estimate")]
+    [McpTool("IntakeRequests_ChangeEstimate", "Change intake request estimate")]
+    [Authorize]
+    [EndpointSummary("Estimate an intake request on its desk's estimation scale, or clear its estimate.")]
+    [EndpointDescription("Needs an agent on the request's desk, never the requester, and an open request. The value must be an estimate value of the scale version the desk pins, not a card; the request's `estimateValues` lists them. A null `value` clears the estimate. An estimate is a rough order of magnitude for the desk, not a delivery commitment.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> ChangeEstimate(Guid id, [FromBody] ChangeIntakeRequestEstimateRequest request, CancellationToken cancellationToken) =>
+        NoContentOrError(await _dispatcher.Send(new ChangeIntakeRequestEstimateCommand(id, request.Value), cancellationToken));
 
     [HttpPost("{id}/reroute")]
     [McpTool("IntakeRequests_Reroute", "Move intake request to another desk")]
@@ -161,13 +281,22 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     [McpTool("IntakeRequests_ChangeStatus", "Change intake request status")]
     [Authorize]
     [EndpointSummary("Move an intake request to another status of its desk's workflow.")]
-    [EndpointDescription("Needs an agent on the request's desk. Declining, deferring, marking a duplicate and finishing need a `reason` the requester can read; marking a duplicate needs `duplicateOfId`, a request you can see that is not itself a duplicate. Withdrawn is the requester's, through withdraw.")]
+    [EndpointDescription("Needs an agent on the request's desk. Declining, deferring, marking a duplicate and finishing need a `reason` the requester can read; marking a duplicate needs `duplicateOfId`, a request you can see that is not itself a duplicate. Withdrawn is the requester's, through withdraw. A `reply` is posted in the request's conversation with the move and saved with it: ask the requester a question and move to Waiting on Requester in one call.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ChangeStatus(Guid id, [FromBody] ChangeIntakeRequestStatusRequest request, CancellationToken cancellationToken) =>
-        NoContentOrError(await _dispatcher.Send(new ChangeIntakeRequestStatusCommand(id, request.StatusId, request.Reason, request.DuplicateOfId), cancellationToken));
+    public async Task<ActionResult> ChangeStatus(Guid id, [FromBody] ChangeIntakeRequestStatusRequest request, CancellationToken cancellationToken)
+    {
+        var reply = request.Reply is { } r ? new IntakeRequestReply(r.Subject, r.Body) : null;
+        var result = await _dispatcher.Send(
+            new ChangeIntakeRequestStatusCommand(id, request.StatusId, request.Reason, request.DuplicateOfId, reply), cancellationToken);
+
+        return result.IsFailure && DiscussionAccessErrors.IsConflict(result.Error)
+            ? Conflict(ProblemDetailsExtensions.ForConflict(result.Error, HttpContext))
+            : NoContentOrError(result);
+    }
 
     [HttpPost("{id}/withdraw")]
     [McpTool("IntakeRequests_Withdraw", "Withdraw intake request")]
@@ -257,20 +386,35 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     [HttpPost("{id}/outcomes")]
     [McpTool("IntakeRequests_AddOutcome", "Add intake request outcome", Destructive = false)]
     [Authorize]
-    [EndpointSummary("Record that an accepted intake request became a project.")]
-    [EndpointDescription("Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on. The project itself is not changed. A request points at a project at most once. Once a request has an outcome, finishing it needs no reason.")]
+    [EndpointSummary("Record that an accepted intake request became a project or work item.")]
+    [EndpointDescription("Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> AddOutcome(Guid id, [FromBody] AddIntakeRequestOutcomeRequest request, CancellationToken cancellationToken) =>
-        NoContentOrError(await _dispatcher.Send(new AddIntakeRequestOutcomeCommand(id, request.Kind, request.ProjectId, request.Note), cancellationToken));
+    public async Task<ActionResult> AddOutcome(Guid id, [FromBody] AddIntakeRequestOutcomeRequest request, CancellationToken cancellationToken)
+    {
+        if (request.Kind != IntakeRequestOutcomeKind.WorkItem)
+            return NoContentOrError(await _dispatcher.Send(
+                new AddIntakeRequestOutcomeCommand(id, request.Kind, request.ProjectId ?? Guid.Empty, request.Note), cancellationToken));
+
+        // Demand Management never reads Work's tables, so the work item is looked up here and handed in.
+        var workItemId = request.WorkItemId ?? Guid.Empty;
+        var found = await _dispatcher.Send(new GetWorkItemsByIdsQuery([workItemId]), cancellationToken);
+
+        return NoContentOrError(await _dispatcher.Send(
+            new AddIntakeRequestOutcomeCommand(id, request.Kind, workItemId, request.Note)
+            {
+                WorkItem = found.Select(ToOutcomeWorkItem).SingleOrDefault(),
+            },
+            cancellationToken));
+    }
 
     [HttpDelete("{id}/outcomes/{targetId}")]
     [McpTool("IntakeRequests_RemoveOutcome", "Remove intake request outcome")]
     [Authorize]
     [EndpointSummary("Take an outcome off an accepted intake request.")]
-    [EndpointDescription("Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. The project itself is not changed.")]
+    [EndpointDescription("Needs an agent on the request's desk, while the request is accepted. `targetId` is the project or work item the outcome points at. The project or work item itself is not changed.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -286,6 +430,18 @@ public class IntakeRequestsController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult<IEnumerable<ProjectIntakeRequestDto>>> GetProjectIntakeRequests(Guid projectId, CancellationToken cancellationToken)
     {
         var requests = await _dispatcher.Send(new GetProjectIntakeRequestsQuery(projectId), cancellationToken);
+        return Ok(requests);
+    }
+
+    [HttpGet("work-items/{workItemId}")]
+    [Authorize]
+    [McpTool("IntakeRequests_GetWorkItemIntakeRequests", "List a work item's intake requests")]
+    [EndpointSummary("Get the intake requests a work item delivers, that you can see.")]
+    [EndpointDescription("Ordered by request number. Each request is read under its desk's visibility, so a request on a private desk you are not part of is absent rather than listed as redacted.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<WorkItemIntakeRequestDto>>> GetWorkItemIntakeRequests(Guid workItemId, CancellationToken cancellationToken)
+    {
+        var requests = await _dispatcher.Send(new GetWorkItemIntakeRequestsQuery(workItemId), cancellationToken);
         return Ok(requests);
     }
 

@@ -20,6 +20,15 @@ public sealed class StatusHistoryReaderTests : StatusWorkflowHandlerTestBase
 {
     private static readonly Guid WorkflowId = Guid.CreateVersion7();
 
+    // An owner type that calls two of the categories by its own words.
+    private static readonly WorkflowOwnerDescriptor Labelled = new(
+        "test.history-labelled", "Labelled", new Dictionary<int, WorkflowAlias>(), [],
+        categoryLabels: new Dictionary<StatusCategory, string>
+        {
+            [StatusCategory.Active] = "Underway",
+            [StatusCategory.Done] = "Shipped",
+        });
+
     private StatusHistoryReader CreateSut() => new(DbContext, DbContext);
 
     private static StatusRef Ref(string name, StatusCategory category, int alias = StatusWorkflow.NoAlias) =>
@@ -93,6 +102,25 @@ public sealed class StatusHistoryReaderTests : StatusWorkflowHandlerTestBase
         result.Value.Select(t => t.Sequence).Should().ContainInOrder(2, 1, 0);
         result.Value[0].ToStatus.Name.Should().Be("Terminal");
         result.Value[0].FromStatus!.Name.Should().Be("Notable");
+    }
+
+    [Fact]
+    public async Task Read_LabelsBothStatusesCategoriesInTheOwnerTypesWords()
+    {
+        // Arrange
+        WorkflowOwners.Register(Labelled);
+        var recordId = Guid.CreateVersion7();
+        Transition(recordId, 1, Ref("Out", StatusCategory.Done), Ref("Building", StatusCategory.Active), ownerType: Labelled.Key);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Read(Labelled.Key, recordId, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value[0].ToStatus.Category.Should().Be(StatusCategory.Done);
+        result.Value[0].ToStatus.CategoryLabel.Should().Be("Shipped");
+        result.Value[0].FromStatus!.CategoryLabel.Should().Be("Underway");
     }
 
     [Fact]

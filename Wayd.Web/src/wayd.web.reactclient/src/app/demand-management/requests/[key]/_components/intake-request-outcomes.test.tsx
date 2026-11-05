@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import {
   IntakeRequestDetailsDto,
   IntakeRequestOutcomeKind,
+  StatusCategory,
 } from '@/src/services/wayd-api'
 import IntakeRequestOutcomes from './intake-request-outcomes'
 
@@ -73,6 +74,51 @@ describe('IntakeRequestOutcomes', () => {
       screen.getByText('A project that has been deleted'),
     ).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull()
+  })
+
+  it('links each work item with its status and says when one has been deleted', () => {
+    // Arrange / Act
+    render(
+      <IntakeRequestOutcomes
+        request={request(false, [
+          {
+            kind: IntakeRequestOutcomeKind.WorkItem,
+            targetId: 'w-1',
+            workItem: {
+              id: 'w-1',
+              key: 'APP-42',
+              title: 'Export screen',
+              workspaceKey: 'APP',
+              status: 'In Progress',
+              statusCategory: StatusCategory.Active,
+            },
+            addedBy: agent,
+            addedOn: new Date('2026-10-01T09:00:00Z'),
+          },
+          {
+            kind: IntakeRequestOutcomeKind.WorkItem,
+            targetId: 'w-gone',
+            workItem: undefined,
+            addedBy: agent,
+            addedOn: new Date('2026-10-02T09:00:00Z'),
+          },
+        ])}
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.getByRole('link', { name: 'APP-42 · Export screen' }),
+    ).toHaveAttribute('href', '/work/workspaces/APP/work-items/APP-42')
+    // Active is drawn as in progress; a wrong category mapping would draw it as done or proposed.
+    expect(screen.getByText('In Progress').closest('.ant-tag')).toHaveClass(
+      'ant-tag-processing',
+    )
+    expect(screen.getAllByText('Work item')).toHaveLength(2)
+    expect(
+      screen.getByText('A work item that has been deleted'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('A project that has been deleted')).toBeNull()
   })
 
   it('says there is no outcome yet', () => {

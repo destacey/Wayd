@@ -55,6 +55,7 @@ const sidebars: SidebarsConfig = {
             'user-guide/work-management/cycle-time-report',
             'user-guide/work-management/backlog-health-report',
             'user-guide/work-management/work-distribution-report',
+            'user-guide/work-management/dependency-analysis-report',
             'user-guide/work-management/delivery-forecasting',
           ],
         },
@@ -71,9 +72,12 @@ const sidebars: SidebarsConfig = {
           ],
         },
         {
-          type: 'doc',
-          id: 'user-guide/demand-management/index',
+          type: 'category',
           label: 'Demand Management',
+          link: {type: 'doc', id: 'user-guide/demand-management/index'},
+          items: [
+            'user-guide/demand-management/bulk-import',
+          ],
         },
         {
           type: 'doc',
@@ -140,6 +144,7 @@ const sidebars: SidebarsConfig = {
             'contributing/testing',
             'contributing/adding-a-feature',
             'contributing/database',
+            'contributing/design-system',
             'contributing/frontend',
             'contributing/record-pages',
             'contributing/wayd-grid',

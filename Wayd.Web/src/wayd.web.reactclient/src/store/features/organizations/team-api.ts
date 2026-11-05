@@ -12,7 +12,7 @@ import {
   TeamCadenceMetricsDto,
   TeamDetailsDto,
   TeamOfTeamsDetailsDto,
-  WorkStatusCategory,
+  StatusCategory,
   WorkItemListDto,
   SetTeamOperatingModelRequest,
   UpdateTeamOperatingModelRequest,
@@ -40,6 +40,7 @@ import {
   WorkDistributionMeasure,
   TeamWorkDistributionDto,
   TeamBacklogHealthDto,
+  TeamDependencyAnalysisDto,
   ThemeCounting,
   UnestimatedHandling,
   WorkItemBacklogItemDto,
@@ -66,6 +67,16 @@ export interface GetTeamWorkDistributionRequest {
   measure: WorkDistributionMeasure
   unestimated: UnestimatedHandling
   themeCounting: ThemeCounting
+}
+
+export interface GetTeamDependencyAnalysisRequest {
+  /** Teams of teams are served by their own endpoint, which covers every team beneath them. */
+  teamType: 'team' | 'team-of-teams'
+  teamIdOrCode: string
+  /** yyyy-MM-dd, inclusive. */
+  from: string
+  /** yyyy-MM-dd, inclusive. */
+  to: string
 }
 
 /**
@@ -306,7 +317,7 @@ export const teamApi = apiSlice.injectEndpoints({
       WorkItemListDto[],
       {
         idOrCode: string
-        statusCategories?: WorkStatusCategory[] | null
+        statusCategories?: StatusCategory[] | null
         /** ISO 8601 date string (e.g., "2025-08-25T00:00:00.000Z") */
         doneFrom?: string | null
         /** ISO 8601 date string (e.g., "2025-08-25T00:00:00.000Z") */
@@ -716,6 +727,51 @@ export const teamApi = apiSlice.injectEndpoints({
         { type: QueryTags.TeamRisk, id: `${id}-${includeClosed}` },
         { type: QueryTags.TeamRisk, id: 'LIST' },
       ],
+    }),
+
+    getTeamOfTeamsDependencies: builder.query<DependencyDto[], string>({
+      queryFn: async (id) => {
+        try {
+          const data = await getTeamsOfTeamsClient().getDependencies(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, error, arg) => [
+        QueryTags.TeamDependency,
+        { type: QueryTags.TeamDependency, id: arg },
+      ],
+    }),
+
+    getTeamDependencyAnalysis: builder.query<
+      TeamDependencyAnalysisDto,
+      GetTeamDependencyAnalysisRequest
+    >({
+      queryFn: async ({ teamType, teamIdOrCode, from, to }) => {
+        try {
+          const data =
+            teamType === 'team-of-teams'
+              ? await getTeamsOfTeamsClient().getDependencyAnalysis(
+                  teamIdOrCode,
+                  from,
+                  to,
+                )
+              : await getTeamsClient().getDependencyAnalysis(
+                  teamIdOrCode,
+                  from,
+                  to,
+                )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // Built from synced dependencies and work items, so it goes stale with either. Tagged by type only:
+      // the request names the team by code, and an id-scoped invalidation would name it by its id.
+      providesTags: [QueryTags.TeamDependency, QueryTags.TeamBacklog],
     }),
 
     // TEAM OPERATING MODELS
@@ -1213,6 +1269,8 @@ export const {
   useDeleteTeamMembershipMutation,
   useGetTeamRisksQuery,
   useGetTeamOfTeamsRisksQuery,
+  useGetTeamOfTeamsDependenciesQuery,
+  useGetTeamDependencyAnalysisQuery,
   // Operating Models
   useGetOperatingModelDefaultsQuery,
   useGetTeamOperatingModelQuery,

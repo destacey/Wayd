@@ -4,6 +4,7 @@ using Wayd.Planning.Application.StoryMaps.Commands;
 using Wayd.Planning.Application.StoryMaps.Dtos;
 using Wayd.Planning.Application.StoryMaps.Interfaces;
 using Wayd.Planning.Application.Tests.Infrastructure;
+using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models.StoryMaps;
 using Moq;
 
@@ -11,6 +12,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class AddGoalCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly AddGoalCommandHandler _handler;
     private readonly Mock<ILogger<AddGoalCommandHandler>> _mockLogger;
@@ -22,11 +24,11 @@ public class AddGoalCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<AddGoalCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new AddGoalCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new AddGoalCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static StoryMap CreateMap() =>
-        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
 
     [Fact]
     public async Task Handle_ShouldAddGoalWithSeededStep_WhenMapExists()
@@ -47,6 +49,41 @@ public class AddGoalCommandHandlerTests : IDisposable
         result.Value.Steps.Should().BeEmpty();
         _dbContext.SaveChangesCallCount.Should().Be(1);
         _mockNotifier.Verify(n => n.NotifyGoalAdded(map.Id, It.IsAny<StoryMapGoalDto>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ViewerOnOwnersAndEditorsMap_ShouldFailWithoutSaving()
+    {
+        // Arrange
+        var map = CreateMap();
+        map.SetEditAccess(StoryMapEditAccess.OwnersAndEditors, StoryMapActors.Owner);
+        _dbContext.AddStoryMap(map);
+        _access.Actor = StoryMapActors.Viewer;
+
+        // Act
+        var result = await _handler.Handle(new AddGoalCommand(map.Id, "New goal"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Error.Should().Be(StoryMap.NotAnEditorError);
+        map.Goals.Should().ContainSingle();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+        _mockNotifier.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task Handle_ViewerOnMapOpenToViewers_ShouldAddTheGoal()
+    {
+        // Arrange
+        var map = CreateMap();
+        _dbContext.AddStoryMap(map);
+        _access.Actor = StoryMapActors.Viewer;
+
+        // Act
+        var result = await _handler.Handle(new AddGoalCommand(map.Id, "New goal"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        map.Goals.Should().HaveCount(2);
     }
 
     [Fact]

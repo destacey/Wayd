@@ -18,6 +18,16 @@ import { FC } from 'react'
 const { Item } = Form
 const { TextArea } = Input
 
+/**
+ * The status alias meaning Waiting on Requester. A value of the server's `IntakeRequestStatusAlias`, which the
+ * generated client carries only as a number; matched by meaning so a desk that renames the status still has it.
+ */
+export const WAITING_ON_REQUESTER = 2
+
+/** Whether a move to the status is asking the requester something, so the form asks for the question. */
+export const asksTheRequester = (status: { alias: number } | undefined) =>
+  status?.alias === WAITING_ON_REQUESTER
+
 export interface ChangeIntakeRequestStatusFormProps {
   request: IntakeRequestDetailsDto
   /** The status to start on, when the move was picked before the form opened. */
@@ -30,6 +40,7 @@ interface ChangeStatusFormValues {
   statusId: string
   reason?: string
   duplicateOfId?: string
+  question?: string
 }
 
 /**
@@ -37,6 +48,10 @@ interface ChangeStatusFormValues {
  * says so. The statuses come from the desk's workflow, in its order, and each says what the move needs: a
  * reason the requester reads, and for a duplicate the request it gives way to. The reason and the surviving
  * request appear only once a status that needs them is chosen.
+ *
+ * Moving to Waiting on Requester asks for the question instead of a reason. It is posted as a reply in the
+ * request's discussion, saved with the move, so the requester can answer it there and the discussion shows the
+ * move on the question.
  */
 const ChangeIntakeRequestStatusForm: FC<ChangeIntakeRequestStatusFormProps> = ({
   request,
@@ -60,6 +75,7 @@ const ChangeIntakeRequestStatusForm: FC<ChangeIntakeRequestStatusFormProps> = ({
     useModalForm<ChangeStatusFormValues>({
       onSubmit: async (values, form) => {
         const chosen = option(values.statusId)
+        const question = values.question?.trim()
         try {
           await changeStatus({
             requestId: request.summary.id,
@@ -68,6 +84,10 @@ const ChangeIntakeRequestStatusForm: FC<ChangeIntakeRequestStatusFormProps> = ({
             duplicateOfId: chosen?.needsSurvivingRequest
               ? values.duplicateOfId
               : undefined,
+            reply:
+              asksTheRequester(chosen) && question
+                ? { body: question }
+                : undefined,
           }).unwrap()
           messageApi.success('Status changed.')
           return true
@@ -112,27 +132,43 @@ const ChangeIntakeRequestStatusForm: FC<ChangeIntakeRequestStatusFormProps> = ({
           />
         </Item>
       )}
-      {/* Revalidated when the status changes, so an error for a status that needed a reason clears with it. */}
-      <Item
-        name="reason"
-        label="Reason"
-        dependencies={['statusId']}
-        extra={
-          chosen?.needsReason
-            ? 'Required for this status. The requester can read it.'
-            : 'The requester can read it.'
-        }
-        rules={[
-          {
-            required: !!chosen?.needsReason,
-            whitespace: true,
-            message: 'A reason is required for this status.',
-          },
-          { max: 1024, message: 'Keep the reason under 1024 characters.' },
-        ]}
-      >
-        <TextArea autoSize={{ minRows: 2 }} showCount maxLength={1024} />
-      </Item>
+      {asksTheRequester(chosen) && !chosen?.needsReason ? (
+        <Item
+          name="question"
+          label="Question for the Requester"
+          extra="Posted in the request's discussion with the move, where the requester can answer it. Leave it empty to move the request without asking anything."
+          rules={[
+            {
+              max: 10000,
+              message: 'Keep the question under 10,000 characters.',
+            },
+          ]}
+        >
+          <TextArea autoSize={{ minRows: 3 }} />
+        </Item>
+      ) : (
+        /* Revalidated when the status changes, so an error for a status that needed a reason clears with it. */
+        <Item
+          name="reason"
+          label="Reason"
+          dependencies={['statusId']}
+          extra={
+            chosen?.needsReason
+              ? 'Required for this status. The requester can read it.'
+              : 'The requester can read it.'
+          }
+          rules={[
+            {
+              required: !!chosen?.needsReason,
+              whitespace: true,
+              message: 'A reason is required for this status.',
+            },
+            { max: 1024, message: 'Keep the reason under 1024 characters.' },
+          ]}
+        >
+          <TextArea autoSize={{ minRows: 2 }} showCount maxLength={1024} />
+        </Item>
+      )}
     </>
   )
 

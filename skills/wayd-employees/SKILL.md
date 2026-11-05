@@ -5,7 +5,7 @@ description: Read before calling the Wayd MCP tools named Employees_*. Guides ag
 
 # Wayd Employees
 
-The `Employees_*` tools are offered by the hosted MCP endpoint (`/mcp`) only, in its `organization` toolset.
+The `Employees_*` tools are in the `organization` toolset.
 
 For the person asking ("my teams", "my tickets", "my allocations"), use the `Me_*` tools in the `wayd-users` skill instead: they take no id, and reading your own teams and allocations needs no View Employees permission, which the matching `Employees_*` reads do.
 

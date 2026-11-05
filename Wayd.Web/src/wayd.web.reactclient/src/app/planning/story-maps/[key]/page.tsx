@@ -6,7 +6,6 @@ import {
   PresenceParticipant,
 } from '@/src/hooks/use-story-map-connection'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
-import useAuth from '@/src/components/contexts/auth'
 import useTheme from '@/src/components/contexts/theme'
 import {
   useGetStoryMapQuery,
@@ -37,9 +36,12 @@ import { Button, Dropdown, Flex, Grid, Tag, Tour } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { PresenceAvatars, WaydTooltip } from '@/src/components/common'
 import {
+  EyeOutlined,
+  LockOutlined,
   MoreOutlined,
   PlusOutlined,
   QuestionCircleOutlined,
+  TeamOutlined,
 } from '@ant-design/icons'
 import { notFound, useParams, useRouter } from 'next/navigation'
 import {
@@ -51,7 +53,11 @@ import {
   useState,
 } from 'react'
 import { RecordShell } from '@/src/components/common/record'
-import { StoryMapTaskDto } from '@/src/services/wayd-api'
+import {
+  StoryMapEditAccess,
+  StoryMapTaskDto,
+  Visibility,
+} from '@/src/services/wayd-api'
 import { togglePersonaId } from '@/src/store/features/planning/story-map-patches'
 import { generateCsv, downloadCsvWithTimestamp } from '@/src/utils/csv-utils'
 import type { CalendarDate } from '@/src/utils/calendar-date'
@@ -62,10 +68,13 @@ import {
   EditStoryMapForm,
   ManagePersonasForm,
   PersonaFilterBar,
+  StoryMapAccessForm,
   StoryMapBoard,
+  StoryMapPeopleDrawer,
   TaskDrawer,
   TaskPanel,
 } from './_components'
+import { accessSummary } from './_components/story-map-people-drawer'
 import { useStoryMapTour } from './_components/use-story-map-tour'
 import {
   ArchiveStoryMapForm,
@@ -108,11 +117,10 @@ const StoryMapDetailPage: FC = () => {
   // as a drawer instead.
   const screens = useBreakpoint()
   const [boardRowRef, boardRowHeight] = useRemainingHeight()
-  const { hasPermissionClaim } = useAuth()
-  const canUpdate = hasPermissionClaim('Permissions.StoryMaps.Update')
-  const canDelete = hasPermissionClaim('Permissions.StoryMaps.Delete')
 
   const { data: map, isLoading } = useGetStoryMapQuery(key)
+  // The page needs the View claim; the map says what this person may do on it.
+  const canEditContent = (map?.canEdit ?? false) && map?.status === 'Active'
 
   useDocumentTitle(`${map?.name ?? key} - Story Map Details`)
 
@@ -141,6 +149,8 @@ const StoryMapDetailPage: FC = () => {
   const [setTaskPersonas] = useSetTaskPersonasMutation()
 
   const [openEditForm, setOpenEditForm] = useState(false)
+  const [openAccessForm, setOpenAccessForm] = useState(false)
+  const [openPeople, setOpenPeople] = useState(false)
   const [openArchiveMap, setOpenArchiveMap] = useState(false)
   const [openDeleteMap, setOpenDeleteMap] = useState(false)
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(
@@ -189,7 +199,7 @@ const StoryMapDetailPage: FC = () => {
     onTourChange,
     onTourClose,
     onTourStart,
-  } = useStoryMapTour(map, canUpdate && map?.status === 'Active')
+  } = useStoryMapTour(map, canEditContent)
 
   const messageApi = useMessage()
 
@@ -205,7 +215,20 @@ const StoryMapDetailPage: FC = () => {
     router.push('/planning/story-maps')
   }, [messageApi, router])
 
-  useStoryMapConnection(map?.id, setPresence, handleMapDeleted)
+  // The user lost access while looking at the map. The cached map would stay on screen, so show what a
+  // fresh load now shows.
+  const [accessRevoked, setAccessRevoked] = useState(false)
+  const handleAccessRevoked = useCallback(() => {
+    messageApi.warning('You no longer have access to this story map.')
+    setAccessRevoked(true)
+  }, [messageApi])
+
+  useStoryMapConnection(
+    map?.id,
+    setPresence,
+    handleMapDeleted,
+    handleAccessRevoked,
+  )
 
   // Step and task footers show one toggle dot per persona, in the same order as the filter bar.
   const orderedPersonas = useMemo(
@@ -559,12 +582,21 @@ const StoryMapDetailPage: FC = () => {
     return <StoryMapDetailsLoading />
   }
 
-  if (!map) {
+  if (!map || accessRevoked) {
     return notFound()
   }
 
   const isActive = map.status === 'Active'
-  const canEdit = canUpdate && isActive
+  const canEdit = canEditContent
+  const canManage = map.canManage
+  const isPrivate = map.visibility === Visibility.Private
+  // A map open to anyone who can view it still refuses an account with no linked employee, since
+  // every change is made as an employee; the map's own setting would then read as a contradiction.
+  const openToViewers =
+    !isPrivate && map.editAccess === StoryMapEditAccess.AnyoneWhoCanView
+  const viewOnlyReason = openToViewers
+    ? 'You can view this map but not change it: your account is not linked to an employee.'
+    : accessSummary(map)
 
   const cssVars: StoryMapCssVars = {
     '--sm-bg': token.colorBgContainer,
@@ -585,6 +617,12 @@ const StoryMapDetailPage: FC = () => {
   const pageTitleTags = (
     <Flex align="center" gap={8} wrap>
       <Tag color={statusColor[map.status] ?? 'default'}>{map.status}</Tag>
+      {isPrivate && <Tag icon={<LockOutlined />}>Private</Tag>}
+      {isActive && !map.canEdit && (
+        <WaydTooltip title={viewOnlyReason}>
+          <Tag icon={<EyeOutlined />}>View only</Tag>
+        </WaydTooltip>
+      )}
     </Flex>
   )
 
@@ -593,14 +631,28 @@ const StoryMapDetailPage: FC = () => {
     downloadCsvWithTimestamp(csv, `story-map-${map.key}`)
   }
 
+  // Owners, and Story Maps administrators, manage the map; the API refuses everyone else.
   const menuItems: ItemType[] = [
-    ...(canEdit
+    ...(canManage && isActive
       ? [
           {
             key: 'edit',
             label: 'Edit',
             onClick: () => setOpenEditForm(true),
           },
+        ]
+      : []),
+    ...(canManage
+      ? [
+          {
+            key: 'access',
+            label: 'Access',
+            onClick: () => setOpenAccessForm(true),
+          },
+        ]
+      : []),
+    ...(canManage && isActive
+      ? [
           {
             key: 'archive',
             label: 'Archive',
@@ -608,7 +660,7 @@ const StoryMapDetailPage: FC = () => {
           },
         ]
       : []),
-    ...(canDelete
+    ...(canManage
       ? [
           {
             key: 'delete',
@@ -616,10 +668,8 @@ const StoryMapDetailPage: FC = () => {
             danger: true,
             onClick: () => setOpenDeleteMap(true),
           },
+          { key: 'export-divider', type: 'divider' as const },
         ]
-      : []),
-    ...(canEdit || canDelete
-      ? [{ key: 'export-divider', type: 'divider' as const }]
       : []),
     {
       key: 'export',
@@ -651,6 +701,9 @@ const StoryMapDetailPage: FC = () => {
           Goal
         </Button>
       )}
+      <Button icon={<TeamOutlined />} onClick={() => setOpenPeople(true)}>
+        People
+      </Button>
       <Dropdown menu={{ items: menuItems }} trigger={['click']}>
         <Button icon={<MoreOutlined />} aria-label="More actions" />
       </Dropdown>
@@ -802,6 +855,18 @@ const StoryMapDetailPage: FC = () => {
             onFormCancel={() => setOpenEditForm(false)}
           />
         )}
+        {openAccessForm && (
+          <StoryMapAccessForm
+            map={map}
+            onFormUpdate={() => setOpenAccessForm(false)}
+            onFormCancel={() => setOpenAccessForm(false)}
+          />
+        )}
+        <StoryMapPeopleDrawer
+          map={map}
+          open={openPeople}
+          onClose={() => setOpenPeople(false)}
+        />
         {openManagePersonas && (
           <ManagePersonasForm
             map={map}

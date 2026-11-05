@@ -60,6 +60,18 @@ public interface IWorkItemSource
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Removes the connection's work items that have moved to a part of the external system the
+    /// connection does not sync, such as an Azure DevOps project that is not set up. Called once per
+    /// run, after <see cref="GetSyncPlan"/>.
+    /// </summary>
+    /// <param name="changedSince">
+    /// Checks only items changed since then, which a move always is. Null checks every item Wayd
+    /// holds: a full sync, or a connection whose earlier runs never completed this check.
+    /// </param>
+    /// <returns>How many work items were removed.</returns>
+    Task<Result<int>> RemoveWorkItemsMovedOut(Instant? changedSince, Guid syncId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Returns the next batch of work item revisions for a workspace, after
     /// <paramref name="watermark"/>; a null watermark starts from the workspace's first revision.
     /// The runner calls it again with the returned watermark until a batch reports it is the last.

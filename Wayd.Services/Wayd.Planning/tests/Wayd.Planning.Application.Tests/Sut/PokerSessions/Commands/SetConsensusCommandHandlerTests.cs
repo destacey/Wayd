@@ -5,12 +5,15 @@ using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Tests.Data;
 using Moq;
+using Wayd.Common.Domain.Events;
+using Wayd.Planning.Domain.Models.PlanningPoker;
 using NodaTime;
 
 namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
 
 public class SetConsensusCommandHandlerTests : IDisposable
 {
+    private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly SetConsensusCommandHandler _handler;
     private readonly Mock<ILogger<SetConsensusCommandHandler>> _mockLogger;
@@ -24,7 +27,7 @@ public class SetConsensusCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<SetConsensusCommandHandler>>();
         _mockNotifier = new Mock<IPokerSessionNotifier>();
 
-        _handler = new SetConsensusCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new SetConsensusCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
         _sessionFaker = new PokerSessionFaker();
     }
 
@@ -32,13 +35,15 @@ public class SetConsensusCommandHandlerTests : IDisposable
     public async Task Handle_ShouldSetConsensus_WhenRoundIsRevealed()
     {
         // Arrange
-        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
+        var scale = new EstimationScaleFaker().Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Story");
+        session.AddRound("Story", null, PokerSessionActors.Facilitator);
         var round = session.Rounds.First();
-        session.SubmitVote(round.Id, Guid.NewGuid().ToString(), "5", new EstimationScaleFaker().WithId(session.EstimationScaleId).Generate(), Instant.FromUtc(2026, 1, 15, 10, 0));
-        session.RevealRound(round.Id);
+        session.SubmitVote(round.Id, "5", scale.CurrentVersion, PokerSessionActors.Voter(Guid.NewGuid().ToString()), Instant.FromUtc(2026, 1, 15, 10, 0));
+        session.RevealRound(round.Id, PokerSessionActors.Facilitator);
 
         var command = new SetConsensusCommand(session.Id, round.Id, "5");
 
@@ -72,10 +77,12 @@ public class SetConsensusCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenRoundIsNotRevealed()
     {
         // Arrange
-        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
+        var scale = new EstimationScaleFaker().Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Story");
+        session.AddRound("Story", null, PokerSessionActors.Facilitator);
         var round = session.Rounds.First();
         // Round is Voting, not Revealed
 
@@ -94,7 +101,9 @@ public class SetConsensusCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenRoundDoesNotExist()
     {
         // Arrange
-        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
+        var scale = new EstimationScaleFaker().Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
 
         var command = new SetConsensusCommand(session.Id, Guid.NewGuid(), "5");
@@ -105,6 +114,59 @@ public class SetConsensusCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_WhenEstimateIsNotOnThePinnedVersion()
+    {
+        // Arrange
+        var scale = new EstimationScaleFaker().WithValues("S", "M", "L", "?").Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
+        _dbContext.AddPokerSession(session);
+        session.AddRound("Story", null, PokerSessionActors.Facilitator);
+        var round = session.Rounds.First();
+        session.SubmitVote(round.Id, "M", scale.CurrentVersion, PokerSessionActors.Voter(Guid.NewGuid().ToString()), Instant.FromUtc(2026, 1, 15, 10, 0));
+        session.RevealRound(round.Id, PokerSessionActors.Facilitator);
+        scale.PublishVersion([new EstimationScaleValue("Small", true), new EstimationScaleValue("Medium", true)], EventActor.System, Instant.FromUtc(2026, 1, 15, 10, 5));
+
+        var command = new SetConsensusCommand(session.Id, round.Id, "Medium");
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("'Medium' is not a value on the session's estimation scale.");
+        round.Status.Should().Be(PokerRoundStatus.Revealed);
+        round.ConsensusEstimate.Should().BeNull();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+        _mockNotifier.Verify(n => n.NotifyConsensusSet(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldAcceptACardAsConsensus()
+    {
+        // Arrange
+        var scale = new EstimationScaleFaker().WithValues("S", "M", "L", "?").Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
+        _dbContext.AddPokerSession(session);
+        session.AddRound("Story", null, PokerSessionActors.Facilitator);
+        var round = session.Rounds.First();
+        session.SubmitVote(round.Id, "?", scale.CurrentVersion, PokerSessionActors.Voter(Guid.NewGuid().ToString()), Instant.FromUtc(2026, 1, 15, 10, 0));
+        session.RevealRound(round.Id, PokerSessionActors.Facilitator);
+
+        var command = new SetConsensusCommand(session.Id, round.Id, " ? ");
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        round.ConsensusEstimate.Should().Be("?");
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+        _mockNotifier.Verify(n => n.NotifyConsensusSet(session.Id, round.Id, "?"), Times.Once);
     }
 
     public void Dispose()

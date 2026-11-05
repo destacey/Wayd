@@ -137,6 +137,16 @@ public class SeedRunnerTests
     }
 
     [Fact]
+    public void Areas_DeclareEveryRequestDeskIdTheyReference()
+    {
+        // Arrange & Act & Assert — a desk names its members, and a request its desk, channel, tags and people;
+        // every endpoint answers 404 until the module's flag is on
+        ShouldDependOn(DemandManagementArea.Settings, DemandManagementArea.FeatureFlag);
+        ShouldDependOn(DemandManagementArea.Desks, DemandManagementArea.FeatureFlag, OrganizationArea.Employees);
+        ShouldDependOn(DemandManagementArea.IntakeRequests, DemandManagementArea.Settings, DemandManagementArea.Desks, OrganizationArea.Employees);
+    }
+
+    [Fact]
     public void Areas_DeclarePlanningAfterStaffing()
     {
         // Arrange & Act & Assert — Planning resolves teams against its own copy, which fills asynchronously
@@ -165,6 +175,7 @@ public class SeedRunnerTests
             PlanningArea.PlanningIntervals,
             PlanningArea.Objectives,
             PlanningArea.Risks,
+            DemandManagementArea.IntakeRequests,
         ]);
     }
 

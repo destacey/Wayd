@@ -1,4 +1,9 @@
+using CSharpFunctionalExtensions;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Moq;
+using Wayd.Common.Application.Discussions;
+using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.DemandManagement.Application.IntakeRequests;
@@ -11,9 +16,113 @@ namespace Wayd.DemandManagement.Application.Tests.Sut.IntakeRequests.Commands;
 public sealed class ChangeIntakeRequestStatusCommandHandlerTests
 {
     private readonly IntakeScenario _scenario = new();
+    private readonly Mock<IDiscussionWriter> _discussionWriter = new();
+    private readonly List<PostDiscussionMessage> _posted = [];
+
+    public ChangeIntakeRequestStatusCommandHandlerTests()
+    {
+        _discussionWriter
+            .Setup(w => w.Post(It.IsAny<PostDiscussionMessage>(), It.IsAny<CancellationToken>()))
+            .Callback((PostDiscussionMessage message, CancellationToken _) => _posted.Add(message))
+            .ReturnsAsync(Guid.NewGuid());
+    }
 
     private ChangeIntakeRequestStatusCommandHandler CreateHandler() =>
-        new(_scenario.DbContext, _scenario.Principal.Object, _scenario.User.Object, _scenario.Clock, _scenario.Statuses.Object);
+        new(_scenario.DbContext, _scenario.Principal.Object, _scenario.User.Object, _scenario.Clock, _scenario.Statuses.Object,
+            _discussionWriter.Object);
+
+    [Fact]
+    public async Task Handle_WithAReply_PostsItWithTheMoveInOneSave()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(agentIds: agent.Id), _scenario.Employee());
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new ChangeIntakeRequestStatusCommand(request.Id, StatusId("Waiting on Requester"), null, null,
+            new IntakeRequestReply("Budget", "Could you add the budget?")), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        request.StatusAlias.Should().Be(IntakeRequestStatusAlias.WaitingOnRequester);
+        var posted = _posted.Should().ContainSingle().Subject;
+        posted.ChannelType.Should().Be("demand.intake-request");
+        posted.OwnerId.Should().Be(request.Id);
+        posted.Kind.Should().Be(DiscussionMessageKind.Public);
+        posted.Subject.Should().Be("Budget");
+        posted.Body.Should().Be("Could you add the budget?");
+        posted.RecordChange.Should().BeSameAs(request.DomainEvents.OfType<IntakeRequestStatusChangedEvent>().Single());
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_WithoutAReply_PostsNothing()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(agentIds: agent.Id), _scenario.Employee());
+        _scenario.SignedInAs(agent);
+
+        // Act
+        await CreateHandler().Handle(new ChangeIntakeRequestStatusCommand(request.Id, StatusId("In Review"), null, null),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        _posted.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheReplyIsRefused_SavesNeitherTheMoveNorTheReply()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(agentIds: agent.Id), _scenario.Employee());
+        _scenario.SignedInAs(agent);
+        _discussionWriter
+            .Setup(w => w.Post(It.IsAny<PostDiscussionMessage>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Failure<Guid>(DiscussionErrors.ChannelLocked));
+
+        // Act
+        var result = await CreateHandler().Handle(new ChangeIntakeRequestStatusCommand(request.Id, StatusId("Waiting on Requester"), null, null,
+            new IntakeRequestReply(null, "Could you add the budget?")), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(DiscussionErrors.ChannelLocked);
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheReplysSaveCollides_FailsAsAConflict()
+    {
+        // Arrange — another first post opened the request's conversation in the same moment
+        var agent = _scenario.Employee();
+        var request = _scenario.Request(_scenario.Desk(agentIds: agent.Id), _scenario.Employee());
+        _scenario.SignedInAs(agent);
+        _scenario.DbContext.FailNextSaveWith = new DbUpdateException("Duplicate conversation");
+
+        // Act
+        var result = await CreateHandler().Handle(new ChangeIntakeRequestStatusCommand(request.Id, StatusId("Waiting on Requester"), null, null,
+            new IntakeRequestReply(null, "Could you add the budget?")), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(DiscussionAccessErrors.Conflict);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Validator_WithAnEmptyReply_Fails(string body)
+    {
+        // Act
+        var result = new ChangeIntakeRequestStatusCommandValidator().Validate(
+            new ChangeIntakeRequestStatusCommand(Guid.NewGuid(), Guid.NewGuid(), null, null, new IntakeRequestReply(null, body)));
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+    }
 
     private Guid StatusId(string name) => _scenario.Workflow.Status(name).Id;
 

@@ -1,5 +1,5 @@
 using NodaTime;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Domain.Models;
 
@@ -71,7 +71,7 @@ public sealed class WorkItemStateHistory : BaseEntity<long>
     public string StatusName { get; private init; } = null!;
 
     /// <summary>The status's category when the period was written; null when the status had no match.</summary>
-    public WorkStatusCategory? StatusCategory { get; private init; }
+    public StatusCategory? StatusCategory { get; private init; }
 
     /// <summary>The Wayd work type; null when the source's type has no match in the workspace's process.</summary>
     public int? WorkTypeId { get; private init; }

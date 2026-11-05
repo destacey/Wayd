@@ -8,9 +8,7 @@ import type { RowData } from '@tanstack/react-table'
 /**
  * Splits a comma-separated string into its trimmed, non-empty values. The
  * default {@link CsvColumnOptions.getValues} for columns whose underlying data
- * is a single CSV string (e.g. `"Alice, Bob"`), and the inverse of the ", "
- * join the factory's accessor uses — so the grid can recover a row's individual
- * tokens from its faceted joined value.
+ * is a single CSV string (e.g. `"Alice, Bob"`).
  */
 export const splitCsv = (value: string | null | undefined): string[] =>
   (value ?? '')
@@ -44,10 +42,11 @@ export interface CsvColumnOptions<T extends RowData> {
  * - a **multi-value set filter** ({@link createMultiValueSetFilter}) — the
  *   column's filter UI is the set (checkbox) panel, matching on *individual*
  *   values (a row matches if it shares ANY selected value);
- * - `meta.multiValueSplit`, which tells the grid to build the set panel's
- *   checkbox list from the individual tokens faceted out of the live data
- *   rather than the whole joined string — so no data or option list is passed
- *   in, and the options always reflect the rows actually shown.
+ * - `meta.multiValues`, which tells the grid to build the set panel's
+ *   checkbox list from each shown row's individual values rather than the
+ *   whole joined string — so no data or option list is passed in, the options
+ *   always reflect the rows actually shown, and a value containing a comma
+ *   stays one option.
  *
  * The accessor joins values with ", " for global search, sorting, and CSV
  * export — matching how these columns read today.
@@ -73,7 +72,7 @@ export const createCsvColumn = <T extends RowData,>(
     size,
     accessorFn: (row) => getValues(row).join(', '),
     filterFn: createMultiValueSetFilter<T>(getValues),
-    meta: { filterType: 'set', multiValueSplit: splitCsv },
+    meta: { filterType: 'set', multiValues: getValues },
     cell: ({ row }) => <TagListCell values={getValues(row.original)} />,
   }
 }

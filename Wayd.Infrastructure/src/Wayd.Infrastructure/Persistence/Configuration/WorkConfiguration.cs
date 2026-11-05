@@ -12,6 +12,7 @@ using Wayd.Common.Domain.Models;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Models;
 using Wayd.Infrastructure.Persistence.Converters;
 using Wayd.Work.Domain.Models;
@@ -173,7 +174,7 @@ public class WorkItemConfig : IEntityTypeConfiguration<WorkItem>
         builder.Property(w => w.Id).ValueGeneratedNever();
         builder.Property(w => w.Title).IsRequired().HasMaxLength(256);
         builder.Property(w => w.StatusCategory).IsRequired()
-            .HasConversion<EnumConverter<WorkStatusCategory>>()
+            .HasConversion<EnumConverter<StatusCategory>>()
             .HasColumnType("varchar")
             .HasMaxLength(32);
         builder.Property(w => w.ExternalId);
@@ -399,7 +400,7 @@ public class WorkItemStateHistoryConfig : IEntityTypeConfiguration<WorkItemState
         builder.Property(h => h.ValidTo);
         builder.Property(h => h.StatusName).IsRequired().HasMaxLength(128);
         builder.Property(h => h.StatusCategory)
-            .HasConversion<EnumConverter<WorkStatusCategory>>()
+            .HasConversion<EnumConverter<StatusCategory>>()
             .HasColumnType("varchar")
             .HasMaxLength(32);
         builder.Property(h => h.WorkTypeName).IsRequired().HasMaxLength(128);
@@ -691,6 +692,13 @@ public class WorkProcessConfig : IEntityTypeConfiguration<WorkProcess>
         builder.HasIndex(i => new { i.Key, i.IsDeleted })
             .IncludeProperties(i => new { i.Id, i.Name, i.ExternalId, i.Ownership, i.IsActive })
             .WhereNotDeleted();
+
+        // An external process (Azure DevOps processes share one id across organizations) has one
+        // Wayd work process, however many connections use it. Two setups racing for the same
+        // process make the second insert fail instead of creating a duplicate.
+        builder.HasIndex(i => i.ExternalId)
+            .IsUnique()
+            .WhereNotNullAndNotDeleted(nameof(WorkProcess.ExternalId));
 
         builder.Property(w => w.Key).ValueGeneratedOnAdd();
 
@@ -1041,7 +1049,7 @@ public class WorkflowSchemeConfig : IEntityTypeConfiguration<WorkflowScheme>
         // Properties
         builder.Property(w => w.Id).ValueGeneratedNever();
         builder.Property(w => w.WorkStatusCategory).IsRequired()
-            .HasConversion<EnumConverter<WorkStatusCategory>>()
+            .HasConversion<EnumConverter<StatusCategory>>()
             .HasColumnType("varchar")
             .HasMaxLength(32);
         builder.Property(w => w.IsActive);

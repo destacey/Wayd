@@ -13,6 +13,7 @@ using Wayd.Common.Domain.Tests.Data;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.DemandManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
+using Wayd.DemandManagement.Domain.Models.Estimation;
 
 namespace Wayd.DemandManagement.Domain.Tests.Sut.Models;
 
@@ -1604,6 +1605,26 @@ public sealed class IntakeRequestTests
     }
 
     [Fact]
+    public void AddOutcome_WorkItemWithoutANote_RecordsItAndRaises()
+    {
+        // Arrange
+        var sut = AnAcceptedRequest();
+        var workItemId = Guid.NewGuid();
+
+        // Act
+        var result = sut.AddOutcome(IntakeRequestOutcomeKind.WorkItem, workItemId, null, Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var outcome = sut.Outcomes.Should().ContainSingle().Subject;
+        outcome.Kind.Should().Be(IntakeRequestOutcomeKind.WorkItem);
+        outcome.TargetId.Should().Be(workItemId);
+        outcome.Note.Should().BeNull();
+        sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestOutcomeAddedEvent>()
+            .Which.Kind.Should().Be(IntakeRequestOutcomeKind.WorkItem);
+    }
+
+    [Fact]
     public void AddOutcome_ForATargetItAlreadyPointsAt_FailsWhateverTheKind()
     {
         // Arrange
@@ -1706,6 +1727,24 @@ public sealed class IntakeRequestTests
         result.IsSuccess.Should().BeTrue();
         sut.StatusCategory.Should().Be(StatusCategory.Done);
         sut.StatusReason.Should().BeNull();
+    }
+
+    [Fact]
+    public void ChangeStatus_ToFinishedWithOnlyAWorkItemOutcome_NeedsNoReason()
+    {
+        // Arrange
+        var sut = new IntakeRequestFaker()
+            .InStatus(StatusCategory.Active, IntakeRequestStatusAlias.Accepted)
+            .WithOutcomes(IntakeRequestOutcomeKind.WorkItem, Guid.NewGuid())
+            .Generate();
+
+        // Act
+        var result = sut.ChangeStatus(InItsWorkflow(sut, StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled), null, null,
+            EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.StatusCategory.Should().Be(StatusCategory.Done);
     }
 
     [Fact]
@@ -2258,4 +2297,395 @@ public sealed class IntakeRequestTests
     }
 
     #endregion Scoring
+
+
+    #region Estimate
+
+    private static (IntakeRequest Request, IntakeDesk Desk, DemandEstimationScale Scale) AnEstimatingDeskRequest(
+        StatusCategory category = StatusCategory.Proposed)
+    {
+        var scale = DemandEstimationScaleFactory.Create(name: "T-Shirt Sizes");
+        var desk = new IntakeDeskFaker().WithEstimationScaleVersion(scale.CurrentVersion).Generate();
+        var request = new IntakeRequestFaker().WithDeskId(desk.Id).InStatus(category).Generate();
+        return (request, desk, scale);
+    }
+
+    private static (IntakeRequest Request, IntakeDesk Desk, DemandEstimationScale Scale) AnEstimatedRequest(string value)
+    {
+        var scale = DemandEstimationScaleFactory.Create(name: "T-Shirt Sizes");
+        var desk = new IntakeDeskFaker().WithEstimationScaleVersion(scale.CurrentVersion).Generate();
+        var request = new IntakeRequestFaker().WithDeskId(desk.Id).WithEstimate(scale, value).Generate();
+        return (request, desk, scale);
+    }
+
+    private static IntakeRequestEstimateDetails Details(DemandEstimationScale scale, string value) =>
+        new(value, scale.CurrentVersion.Id, scale.Name, scale.CurrentVersion.Number);
+
+    [Fact]
+    public void ChangeEstimate_ByADeskAgent_SetsTheValueOnThePinnedVersionAndRaisesASubstanceChange()
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatingDeskRequest();
+        var agent = ADeskAgent();
+
+        // Act
+        var result = sut.ChangeEstimate(" L ", desk, scale, IntakeRequestEstimateSource.Manual, agent, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Estimate.Should().NotBeNull();
+        sut.Estimate!.Value.Should().Be("L");
+        sut.Estimate.ScaleVersionId.Should().Be(scale.CurrentVersion.Id);
+        sut.Estimate.Position.Should().Be(2);
+        sut.Estimate.ScaleName.Should().Be("T-Shirt Sizes");
+        sut.Estimate.ScaleVersionNumber.Should().Be(1);
+        var raised = sut.DomainEvents.OfType<IntakeRequestEstimateChangedEvent>().Should().ContainSingle().Subject;
+        raised.Id.Should().Be(sut.Id);
+        raised.Key.Should().Be(sut.Key);
+        raised.From.Should().BeNull();
+        raised.To.Should().Be(Details(scale, "L"));
+        raised.Source.Should().Be(IntakeRequestEstimateSource.Manual);
+        raised.Actor.Should().Be(agent.Actor);
+        IntakeRequestEstimateChangedEvent.ReadTier.Should().Be(IntakeRequestReadTier.Substance);
+    }
+
+    [Fact]
+    public void ChangeEstimate_ToAnotherValue_CarriesBothEnds()
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatedRequest("S");
+
+        // Act
+        var result = sut.ChangeEstimate("XL", desk, scale, IntakeRequestEstimateSource.Manual, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Estimate!.Value.Should().Be("XL");
+        sut.Estimate.Position.Should().Be(3);
+        var raised = sut.DomainEvents.OfType<IntakeRequestEstimateChangedEvent>().Should().ContainSingle().Subject;
+        raised.From.Should().Be(Details(scale, "S"));
+        raised.To.Should().Be(Details(scale, "XL"));
+    }
+
+    [Fact]
+    public void ChangeEstimate_ToNull_ClearsIt()
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatedRequest("M");
+
+        // Act
+        var result = sut.ChangeEstimate(null, desk, scale, IntakeRequestEstimateSource.Manual, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Estimate.Should().BeNull();
+        var raised = sut.DomainEvents.OfType<IntakeRequestEstimateChangedEvent>().Should().ContainSingle().Subject;
+        raised.From.Should().Be(Details(scale, "M"));
+        raised.To.Should().BeNull();
+    }
+
+    [Fact]
+    public void ChangeEstimate_ToABlankValue_FailsAndKeepsTheEstimate()
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatedRequest("M");
+
+        // Act
+        var result = sut.ChangeEstimate(" ", desk, scale, IntakeRequestEstimateSource.Manual, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.NotAnEstimateValueError);
+        sut.Estimate!.Value.Should().Be("M");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeEstimate_OnADeskThatNoLongerEstimates_StillClearsIt()
+    {
+        // Arrange
+        var scale = DemandEstimationScaleFactory.Create();
+        var desk = new IntakeDeskFaker().Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(desk.Id).WithEstimate(scale, "M").Generate();
+
+        // Act
+        var result = sut.ChangeEstimate(null, desk, null, IntakeRequestEstimateSource.Manual, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Estimate.Should().BeNull();
+        sut.DomainEvents.OfType<IntakeRequestEstimateChangedEvent>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public void ChangeEstimate_ToTheValueItHas_ChangesNothing()
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatedRequest("M");
+
+        // Act
+        var result = sut.ChangeEstimate("M", desk, scale, IntakeRequestEstimateSource.Manual, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Estimate!.Value.Should().Be("M");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeEstimate_ToTheValueItHasAfterTheScaleWasRenamed_ChangesNothing()
+    {
+        // Arrange — the frozen name differs from the copy's now, but the estimate is the same
+        var (sut, desk, scale) = AnEstimatedRequest("M");
+        scale.ApplyName("Sizes", Instant.FromUtc(2027, 1, 1, 0, 0));
+
+        // Act
+        var result = sut.ChangeEstimate("M", desk, scale, IntakeRequestEstimateSource.Manual, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Estimate!.ScaleName.Should().Be("T-Shirt Sizes");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeEstimate_ClearingARequestWithNone_ChangesNothing()
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatingDeskRequest();
+
+        // Act
+        var result = sut.ChangeEstimate(null, desk, scale, IntakeRequestEstimateSource.Manual, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Estimate.Should().BeNull();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("?")]
+    [InlineData("XXL")]
+    [InlineData("m")]
+    public void ChangeEstimate_WithACardOrAValueNotOnTheVersion_FailsAndChangesNothing(string value)
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatingDeskRequest();
+
+        // Act
+        var result = sut.ChangeEstimate(value, desk, scale, IntakeRequestEstimateSource.Manual, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.NotAnEstimateValueError);
+        sut.Estimate.Should().BeNull();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeEstimate_WithAValueOnlyOnAnOlderVersion_Fails()
+    {
+        // Arrange — the desk pins v2, which dropped XL
+        var scale = DemandEstimationScaleFactory.Create();
+        scale.PublishNext([new("S", true), new("M", true), new("L", true)]);
+        var desk = new IntakeDeskFaker().WithEstimationScaleVersion(scale.CurrentVersion).Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(desk.Id).Generate();
+
+        // Act
+        var result = sut.ChangeEstimate("XL", desk, scale, IntakeRequestEstimateSource.Manual, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.NotAnEstimateValueError);
+    }
+
+    [Fact]
+    public void ChangeEstimate_OnADeskWithNoScale_Fails()
+    {
+        // Arrange
+        var desk = new IntakeDeskFaker().Generate();
+        var sut = new IntakeRequestFaker().WithDeskId(desk.Id).Generate();
+
+        // Act
+        var result = sut.ChangeEstimate("M", desk, null, IntakeRequestEstimateSource.Manual, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.DeskDoesNotEstimateError);
+        sut.Estimate.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(StatusCategory.Proposed)]
+    [InlineData(StatusCategory.Active)]
+    public void ChangeEstimate_WhileOpen_Succeeds(StatusCategory category)
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatingDeskRequest(category);
+
+        // Act
+        var result = sut.ChangeEstimate("M", desk, scale, IntakeRequestEstimateSource.Manual, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Estimate!.Value.Should().Be("M");
+    }
+
+    [Theory]
+    [InlineData(StatusCategory.Done)]
+    [InlineData(StatusCategory.Removed)]
+    public void ChangeEstimate_WhenClosed_FailsAndChangesNothing(StatusCategory category)
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatingDeskRequest(category);
+
+        // Act
+        var result = sut.ChangeEstimate("M", desk, scale, IntakeRequestEstimateSource.Manual, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.ClosedEstimateError);
+        sut.Estimate.Should().BeNull();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeEstimate_ByTheRequesterWhileProposed_Fails()
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatingDeskRequest(StatusCategory.Proposed);
+        var requester = new IntakeRequestEditor(sut.RequesterId, IsDeskAgent: false, EventActor.System);
+        sut.CanEdit(requester).Should().BeTrue();
+
+        // Act
+        var result = sut.ChangeEstimate("M", desk, scale, IntakeRequestEstimateSource.Manual, requester, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.NotAnEstimatorError);
+        sut.Estimate.Should().BeNull();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeEstimate_BySomeoneOffTheDesk_Fails()
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatingDeskRequest();
+
+        // Act
+        var result = sut.ChangeEstimate("M", desk, scale, IntakeRequestEstimateSource.Manual, SomeoneOffTheDesk(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.NotAnEstimatorError);
+    }
+
+    [Fact]
+    public void ChangeEstimate_ByThePlatform_Succeeds()
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatingDeskRequest();
+
+        // Act
+        var result = sut.ChangeEstimate("S", desk, scale, IntakeRequestEstimateSource.Manual, IntakeRequestEditor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Estimate!.Value.Should().Be("S");
+    }
+
+    [Fact]
+    public void ChangeEstimate_WithAScaleTheDeskDoesNotPin_Throws()
+    {
+        // Arrange
+        var (sut, desk, _) = AnEstimatingDeskRequest();
+        var other = DemandEstimationScaleFactory.Create();
+
+        // Act
+        var act = () => sut.ChangeEstimate("M", desk, other, IntakeRequestEstimateSource.Manual, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void ChangeEstimate_WithNoScaleOnADeskThatPinsOne_Throws()
+    {
+        // Arrange
+        var (sut, desk, _) = AnEstimatingDeskRequest();
+
+        // Act
+        var act = () => sut.ChangeEstimate(null, desk, null, IntakeRequestEstimateSource.Manual, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void ChangeEstimate_WithAnotherDesk_Throws()
+    {
+        // Arrange
+        var (sut, _, scale) = AnEstimatingDeskRequest();
+        var otherDesk = new IntakeDeskFaker().WithEstimationScaleVersion(scale.CurrentVersion).Generate();
+
+        // Act
+        var act = () => sut.ChangeEstimate("M", otherDesk, scale, IntakeRequestEstimateSource.Manual, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Reroute_ToADeskOnAnotherScale_ClearsTheEstimateAfterTheMove()
+    {
+        // Arrange
+        var (sut, from, scale) = AnEstimatedRequest("L");
+        var to = new IntakeDeskFaker().WithEstimationScaleVersion(DemandEstimationScaleFactory.Create().CurrentVersion).Generate();
+
+        // Act
+        var result = sut.Reroute(from, to, StayingPut(sut), widerVisibilityConfirmed: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Estimate.Should().BeNull();
+        sut.DomainEvents.Select(e => e.GetType()).Should().Equal(typeof(IntakeRequestReroutedEvent), typeof(IntakeRequestEstimateChangedEvent));
+        var cleared = sut.DomainEvents.OfType<IntakeRequestEstimateChangedEvent>().Single();
+        cleared.From.Should().Be(Details(scale, "L"));
+        cleared.To.Should().BeNull();
+        cleared.Source.Should().Be(IntakeRequestEstimateSource.Rerouted);
+    }
+
+    [Fact]
+    public void Reroute_ToADeskThatDoesNotEstimate_ClearsTheEstimate()
+    {
+        // Arrange
+        var (sut, from, _) = AnEstimatedRequest("L");
+        var to = new IntakeDeskFaker().Generate();
+
+        // Act
+        var result = sut.Reroute(from, to, StayingPut(sut), widerVisibilityConfirmed: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Estimate.Should().BeNull();
+    }
+
+    [Fact]
+    public void Reroute_ToADeskOnTheSameVersion_KeepsTheEstimate()
+    {
+        // Arrange
+        var (sut, from, scale) = AnEstimatedRequest("L");
+        var to = new IntakeDeskFaker().WithEstimationScaleVersion(scale.CurrentVersion).Generate();
+
+        // Act
+        var result = sut.Reroute(from, to, StayingPut(sut), widerVisibilityConfirmed: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Estimate!.Value.Should().Be("L");
+        sut.DomainEvents.OfType<IntakeRequestEstimateChangedEvent>().Should().BeEmpty();
+    }
+
+    #endregion Estimate
 }

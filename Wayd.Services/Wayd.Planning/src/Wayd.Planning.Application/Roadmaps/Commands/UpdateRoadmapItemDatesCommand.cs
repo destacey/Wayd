@@ -67,14 +67,12 @@ public sealed class UpdateRoadmapItemDatesCommandHandler(IPlanningDbContext plan
     {
         // Outside the try: this is a refusal, and the catch-all below would turn it into a
         // generic failure, losing both the 403 and its explanation.
-        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        if (currentUserEmployeeId is null)
-            LinkedEmployeeRequired.Throw();
+        var caller = await _currentPrincipal.ResolveRoadmapActor(cancellationToken);
 
         try
         {
             var roadmap = await _planningDbContext.Roadmaps
-                .Include(x => x.RoadmapManagers)
+                .Include(x => x.Owners)
                 .Include(x => x.Items)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(r => r.Id == request.RoadmapId, cancellationToken);
@@ -82,7 +80,7 @@ public sealed class UpdateRoadmapItemDatesCommandHandler(IPlanningDbContext plan
             if (roadmap is null)
                 return Result.Failure<Guid>($"Roadmap with id {request.RoadmapId} not found");
 
-            var updateResult = roadmap.UpdateRoadmapItemDates(request.ItemId, request.Dates, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now);
+            var updateResult = roadmap.UpdateRoadmapItemDates(request.ItemId, request.Dates, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
             if (updateResult.IsFailure)
             {
                 // Reset the entity

@@ -2,7 +2,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record SetGoalPersonasCommand(Guid StoryMapId, Guid GoalId, IReadOnlyList<Guid> PersonaIds) : ICommand;
+public sealed record SetGoalPersonasCommand(Guid StoryMapId, Guid GoalId, IReadOnlyList<Guid> PersonaIds) : ICommand, IRequireLinkedEmployee;
 
 public sealed class SetGoalPersonasCommandValidator : CustomValidator<SetGoalPersonasCommand>
 {
@@ -15,9 +15,10 @@ public sealed class SetGoalPersonasCommandValidator : CustomValidator<SetGoalPer
     }
 }
 
-public sealed class SetGoalPersonasCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<SetGoalPersonasCommandHandler> logger) : ICommandHandler<SetGoalPersonasCommand>
+public sealed class SetGoalPersonasCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<SetGoalPersonasCommandHandler> logger) : ICommandHandler<SetGoalPersonasCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<SetGoalPersonasCommandHandler> _logger = logger;
 
@@ -26,6 +27,7 @@ public sealed class SetGoalPersonasCommandHandler(IPlanningDbContext planningDbC
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.Goals)
                 .Include(m => m.Personas)
                 .AsSplitQuery()
@@ -34,7 +36,9 @@ public sealed class SetGoalPersonasCommandHandler(IPlanningDbContext planningDbC
             if (map is null)
                 return Result.Failure("Story map not found.");
 
-            var result = map.SetGoalPersonas(request.GoalId, request.PersonaIds);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.SetGoalPersonas(request.GoalId, request.PersonaIds, actor);
             if (result.IsFailure)
                 return result;
 
@@ -44,7 +48,7 @@ public sealed class SetGoalPersonasCommandHandler(IPlanningDbContext planningDbC
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

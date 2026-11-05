@@ -3,7 +3,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record AddStepCommand(Guid StoryMapId, Guid GoalId, string Name) : ICommand<StoryMapStepDto>;
+public sealed record AddStepCommand(Guid StoryMapId, Guid GoalId, string Name) : ICommand<StoryMapStepDto>, IRequireLinkedEmployee;
 
 public sealed class AddStepCommandValidator : CustomValidator<AddStepCommand>
 {
@@ -21,9 +21,10 @@ public sealed class AddStepCommandValidator : CustomValidator<AddStepCommand>
     }
 }
 
-public sealed class AddStepCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<AddStepCommandHandler> logger) : ICommandHandler<AddStepCommand, StoryMapStepDto>
+public sealed class AddStepCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<AddStepCommandHandler> logger) : ICommandHandler<AddStepCommand, StoryMapStepDto>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<AddStepCommandHandler> _logger = logger;
 
@@ -32,13 +33,16 @@ public sealed class AddStepCommandHandler(IPlanningDbContext planningDbContext, 
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.Goals).ThenInclude(g => g.Steps)
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
             if (map is null)
                 return Result.Failure<StoryMapStepDto>("Story map not found.");
 
-            var result = map.AddStep(request.GoalId, request.Name);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.AddStep(request.GoalId, request.Name, actor);
             if (result.IsFailure)
                 return Result.Failure<StoryMapStepDto>(result.Error);
 
@@ -49,7 +53,7 @@ public sealed class AddStepCommandHandler(IPlanningDbContext planningDbContext, 
 
             return Result.Success(dto);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

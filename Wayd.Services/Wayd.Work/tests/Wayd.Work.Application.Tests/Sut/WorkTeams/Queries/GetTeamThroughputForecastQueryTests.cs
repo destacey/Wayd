@@ -1,6 +1,6 @@
 ﻿using FluentAssertions;
 using NodaTime;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.Tests.Infrastructure;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkItems.Forecasting;
@@ -28,7 +28,7 @@ public sealed class GetTeamThroughputForecastQueryTests : IDisposable
         var team = _scenario.NewTeam();
         _scenario.AddHistory(team);
         var proposed = _scenario.AddItem(team, stackRank: 1);
-        var active = _scenario.AddItem(team, WorkStatusCategory.Active, stackRank: 2);
+        var active = _scenario.AddItem(team, StatusCategory.Active, stackRank: 2);
 
         // Act
         var result = await Handler().Handle(
@@ -142,8 +142,8 @@ public sealed class GetTeamThroughputForecastQueryTests : IDisposable
         var team = _scenario.NewTeam();
         _scenario.AddHistory(team);
         _scenario.AddItem(team, stackRank: 1);
-        _scenario.AddItem(team, WorkStatusCategory.Active, stackRank: 2);
-        _scenario.AddItem(team, WorkStatusCategory.Removed, stackRank: 3);
+        _scenario.AddItem(team, StatusCategory.Active, stackRank: 2);
+        _scenario.AddItem(team, StatusCategory.Removed, stackRank: 3);
         _scenario.AddItem(team, type: _scenario.Epic);
 
         // Act

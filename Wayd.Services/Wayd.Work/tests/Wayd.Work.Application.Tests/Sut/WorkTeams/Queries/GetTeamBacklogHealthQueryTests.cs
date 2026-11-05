@@ -8,7 +8,6 @@ using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Settings;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Models;
 using Wayd.Tests.Shared;
 using Wayd.Work.Application.Tests.Infrastructure;
@@ -17,6 +16,7 @@ using Wayd.Work.Domain.Models;
 using Wayd.Work.Domain.Models.BacklogHealth;
 using Wayd.Work.Domain.Tests.Data;
 using Xunit;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Application.Tests.Sut.WorkTeams.Queries;
 
@@ -75,7 +75,7 @@ public sealed class GetTeamBacklogHealthQueryTests : IDisposable
 
     private WorkItem AddItem(
         Guid? teamId,
-        WorkStatusCategory statusCategory = WorkStatusCategory.Proposed,
+        StatusCategory statusCategory = StatusCategory.Proposed,
         double stackRank = 1,
         WorkType? type = null,
         Instant? created = null,
@@ -111,7 +111,7 @@ public sealed class GetTeamBacklogHealthQueryTests : IDisposable
         for (var day = 1; day <= count; day++)
         {
             var done = _now - Duration.FromDays(day);
-            AddItem(teamId, WorkStatusCategory.Done, activated: done - Duration.FromDays(3), done: done, projectId: projectId);
+            AddItem(teamId, StatusCategory.Done, activated: done - Duration.FromDays(3), done: done, projectId: projectId);
         }
     }
 
@@ -132,8 +132,8 @@ public sealed class GetTeamBacklogHealthQueryTests : IDisposable
         // Arrange
         var third = AddItem(_team, stackRank: 5);
         var first = AddItem(_team, stackRank: 1, created: Instant.FromUtc(2026, 2, 1, 0, 0));
-        var second = AddItem(_team, WorkStatusCategory.Active, stackRank: 1, created: Instant.FromUtc(2026, 3, 1, 0, 0));
-        AddItem(_team, WorkStatusCategory.Done, done: _now - Duration.FromDays(400));
+        var second = AddItem(_team, StatusCategory.Active, stackRank: 1, created: Instant.FromUtc(2026, 3, 1, 0, 0));
+        AddItem(_team, StatusCategory.Done, done: _now - Duration.FromDays(400));
         AddItem(_team, type: _feature);
         AddItem(NewTeam());
 
@@ -230,11 +230,11 @@ public sealed class GetTeamBacklogHealthQueryTests : IDisposable
     {
         // Arrange
         AddCompletions(_team, 12);
-        AddItem(_team, WorkStatusCategory.Done, done: _now - Duration.FromDays(100));
-        AddItem(_team, WorkStatusCategory.Removed, done: _now - Duration.FromDays(2));
+        AddItem(_team, StatusCategory.Done, done: _now - Duration.FromDays(100));
+        AddItem(_team, StatusCategory.Removed, done: _now - Duration.FromDays(2));
         AddItem(_team, created: _now - Duration.FromDays(5));
         AddItem(_team, created: _now - Duration.FromDays(95));
-        AddItem(_team, WorkStatusCategory.Removed, created: _now - Duration.FromDays(4), done: _now - Duration.FromDays(1));
+        AddItem(_team, StatusCategory.Removed, created: _now - Duration.FromDays(4), done: _now - Duration.FromDays(1));
 
         // Act
         var result = await Handler().Handle(Query(_team), TestContext.Current.CancellationToken);
@@ -256,7 +256,7 @@ public sealed class GetTeamBacklogHealthQueryTests : IDisposable
         // Arrange
         MembersAre(2);
         for (var rank = 1; rank <= 5; rank++)
-            AddItem(_team, WorkStatusCategory.Active, stackRank: rank, activated: _now - Duration.FromDays(1));
+            AddItem(_team, StatusCategory.Active, stackRank: rank, activated: _now - Duration.FromDays(1));
 
         // Act
         var result = await Handler().Handle(Query(_team), TestContext.Current.CancellationToken);
@@ -275,7 +275,7 @@ public sealed class GetTeamBacklogHealthQueryTests : IDisposable
     {
         // Arrange
         MembersAre(null);
-        AddItem(_team, WorkStatusCategory.Active);
+        AddItem(_team, StatusCategory.Active);
 
         // Act
         var result = await Handler().Handle(Query(_team), TestContext.Current.CancellationToken);

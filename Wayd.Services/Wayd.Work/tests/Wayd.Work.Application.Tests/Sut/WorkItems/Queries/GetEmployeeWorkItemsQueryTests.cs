@@ -1,5 +1,5 @@
 ﻿using NodaTime;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Models;
 using Wayd.Work.Application.Tests.Infrastructure;
 using Wayd.Work.Application.WorkItems.Queries;
@@ -20,9 +20,9 @@ public sealed class GetEmployeeWorkItemsQueryTests
         var requirementType = new WorkTypeFaker().AsStory().Generate();
         var otherType = new WorkTypeFaker().AsOther().Generate();
 
-        var expected = CreateWorkItem(employeeId, requirementType, WorkStatusCategory.Done, 1);
-        var assignedToSomeoneElse = CreateWorkItem(otherEmployeeId, requirementType, WorkStatusCategory.Done, 2);
-        var nonRequirementType = CreateWorkItem(employeeId, otherType, WorkStatusCategory.Done, 3);
+        var expected = CreateWorkItem(employeeId, requirementType, StatusCategory.Done, 1);
+        var assignedToSomeoneElse = CreateWorkItem(otherEmployeeId, requirementType, StatusCategory.Done, 2);
+        var nonRequirementType = CreateWorkItem(employeeId, otherType, StatusCategory.Done, 3);
 
         context.AddWorkItems([expected, assignedToSomeoneElse, nonRequirementType]);
         var handler = new GetEmployeeWorkItemsQueryHandler(context);
@@ -41,10 +41,10 @@ public sealed class GetEmployeeWorkItemsQueryTests
         var requirementType = new WorkTypeFaker().AsStory().Generate();
         var inRangeDone = Instant.FromUtc(2026, 1, 15, 0, 0);
 
-        var expected = CreateWorkItem(employeeId, requirementType, WorkStatusCategory.Done, 1, inRangeDone);
-        var activeItem = CreateWorkItem(employeeId, requirementType, WorkStatusCategory.Active, 2, null);
-        var beforeRange = CreateWorkItem(employeeId, requirementType, WorkStatusCategory.Done, 3, Instant.FromUtc(2025, 12, 31, 0, 0));
-        var afterRange = CreateWorkItem(employeeId, requirementType, WorkStatusCategory.Done, 4, Instant.FromUtc(2026, 2, 1, 0, 0));
+        var expected = CreateWorkItem(employeeId, requirementType, StatusCategory.Done, 1, inRangeDone);
+        var activeItem = CreateWorkItem(employeeId, requirementType, StatusCategory.Active, 2, null);
+        var beforeRange = CreateWorkItem(employeeId, requirementType, StatusCategory.Done, 3, Instant.FromUtc(2025, 12, 31, 0, 0));
+        var afterRange = CreateWorkItem(employeeId, requirementType, StatusCategory.Done, 4, Instant.FromUtc(2026, 2, 1, 0, 0));
 
         context.AddWorkItems([expected, activeItem, beforeRange, afterRange]);
         var handler = new GetEmployeeWorkItemsQueryHandler(context);
@@ -52,7 +52,7 @@ public sealed class GetEmployeeWorkItemsQueryTests
         var result = await handler.Handle(
             new GetEmployeeWorkItemsQuery(
                 employeeId,
-                [WorkStatusCategory.Done],
+                [StatusCategory.Done],
                 Instant.FromUtc(2026, 1, 1, 0, 0),
                 Instant.FromUtc(2026, 1, 31, 0, 0)),
             CancellationToken.None);
@@ -69,10 +69,10 @@ public sealed class GetEmployeeWorkItemsQueryTests
         var employeeId = Guid.NewGuid();
         var requirementType = new WorkTypeFaker().AsStory().Generate();
 
-        var lowest = CreateWorkItem(employeeId, requirementType, WorkStatusCategory.Active, 1, stackRank: 1);
-        var tiedA = CreateWorkItem(employeeId, requirementType, WorkStatusCategory.Active, 2, stackRank: 5);
-        var highest = CreateWorkItem(employeeId, requirementType, WorkStatusCategory.Active, 3, stackRank: 9);
-        var tiedB = CreateWorkItem(employeeId, requirementType, WorkStatusCategory.Active, 4, stackRank: 5);
+        var lowest = CreateWorkItem(employeeId, requirementType, StatusCategory.Active, 1, stackRank: 1);
+        var tiedA = CreateWorkItem(employeeId, requirementType, StatusCategory.Active, 2, stackRank: 5);
+        var highest = CreateWorkItem(employeeId, requirementType, StatusCategory.Active, 3, stackRank: 9);
+        var tiedB = CreateWorkItem(employeeId, requirementType, StatusCategory.Active, 4, stackRank: 5);
         var tied = new[] { tiedA, tiedB }.OrderBy(w => w.Id).ToArray();
 
         context.AddWorkItems([highest, tied[1], lowest, tied[0]]);
@@ -88,7 +88,7 @@ public sealed class GetEmployeeWorkItemsQueryTests
     private static WorkItem CreateWorkItem(
         Guid employeeId,
         WorkType workType,
-        WorkStatusCategory statusCategory,
+        StatusCategory statusCategory,
         int externalId,
         Instant? doneTimestamp = null,
         double? stackRank = null)
@@ -101,10 +101,10 @@ public sealed class GetEmployeeWorkItemsQueryTests
             .WithName(statusCategory.ToString())
             .Generate();
         var created = Instant.FromUtc(2025, 12, 1, 0, 0);
-        Instant? activated = statusCategory is WorkStatusCategory.Proposed
+        Instant? activated = statusCategory is StatusCategory.Proposed
             ? null
             : created.Plus(Duration.FromDays(1));
-        var done = doneTimestamp ?? (statusCategory is WorkStatusCategory.Done or WorkStatusCategory.Removed
+        var done = doneTimestamp ?? (statusCategory is StatusCategory.Done or StatusCategory.Removed
             ? created.Plus(Duration.FromDays(5))
             : null);
         var faker = new WorkItemFaker(workspace.Id)

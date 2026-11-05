@@ -134,6 +134,7 @@ type ImportModule = (typeof importTemplates)[ImportKey]['module']
  * alongside the portfolios and initiatives that use them.
  */
 const IMPORT_GROUPS: Record<ImportModule, string> = {
+  'demand-management': 'Demand Management',
   organization: 'Organization',
   planning: 'Planning',
   ppm: 'Project Portfolio Management',
@@ -186,7 +187,7 @@ const CsvImportForm = ({
   const [finishedRun, setFinishedRun] = useState<ImportProcessDto | null>(null)
 
   const offered = definitions
-    .filter((d) => d.canSubmit && isKnownImport(d.key))
+    .filter((d) => d.canSubmit && d.isEnabled && isKnownImport(d.key))
     .sort((a, b) => caseInsensitiveCompare(a.displayName, b.displayName))
 
   // Groups by name, and only the ones holding an import this viewer may submit.

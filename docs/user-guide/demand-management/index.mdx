@@ -35,7 +35,7 @@ graph TD
     Req -.->|may become| WI
 ```
 
-Recording what a request became, as a new project, scope added to an existing project or work items that deliver it, comes later.
+Once a request is accepted, its desk records what it became — a new project, scope added to an existing project, or a work item that delivers it — as the request's [outcomes](#outcomes).
 
 ## Key Concepts
 
@@ -160,7 +160,7 @@ Submitting needs your account to be linked to an employee record, because every 
 
 #### Through an AI assistant
 
-An assistant connected to Wayd's [hosted MCP endpoint](../../getting-started/mcp-server.mdx), with the `intake` toolset, can raise a request for you: it picks the desk from the descriptions of the desks taking requests, asks where the request came from when the desk records a channel, and shows you the request before submitting it. It can also list your requests and tell you where one stands — its status, the desk's reason for declining or finishing it, and its status history. It can edit or withdraw your request too. If you work a desk, it can review requests with you — change their status, assign, tag and move them, record the projects they became, and manage participants — and a Desk Admin or the Demand Management Admin can have it set up desks, channels and tag axes. It sees only what you can see in Wayd and can do only what you can do here, so it never reads a desk's internal notes unless you work that desk.
+An assistant connected to Wayd's [MCP server](../../getting-started/mcp-server.mdx), with the `intake` toolset, can raise a request for you: it picks the desk from the descriptions of the desks taking requests, asks where the request came from when the desk records a channel, and shows you the request before submitting it. It can also list your requests and tell you where one stands — its status, the desk's reason for declining or finishing it, and its status history. It can edit or withdraw your request too. If you work a desk, it can review requests with you — change their status, assign, tag and move them, record the projects and work items they became, and manage participants — and a Desk Admin or the Demand Management Admin can have it set up desks, channels and tag axes. It sees only what you can see in Wayd and can do only what you can do here, so it never reads a desk's internal notes unless you work that desk.
 
 ### Finding requests
 
@@ -173,22 +173,24 @@ The same filters apply to both layouts, so switching between them never changes 
 - **Assignee** — Anyone, **Assigned to me**, or **Not assigned**. **Assigned to me**, as a filter and as a view, is offered only when your account is linked to an employee record
 - **Need by** — Any date, **Fixed for us**, **We chose it**, or **No date given**
 - **Tags** — Pick one or more, grouped by axis, to keep requests carrying any of them. Inactive tags are listed too, since requests keep them. Shown once the company has added tags
-- **Order** — **Usual order**, or **Highest score first**, which ranks both layouts by each request's current score. Scores from different models are on different scales, so desks that score with different models rank in separate runs, one per model; desks sharing a model rank together. A score from a model its desk no longer uses ranks after the comparable ones, and requests with no score, or whose score you cannot read, come last
+- **Estimate** — Estimated or not, **Estimated**, or **Not estimated**, to find what is still to be sized. A request whose [estimate](#estimating-a-request) you cannot read counts as not estimated. Shown once a desk estimates its requests
+- **Order** — **Usual order**, **Highest score first** or **Largest estimate first**. **Highest score first** ranks both layouts by each request's current score. Scores from different models are on different scales, so desks that score with different models rank in separate runs, one per model; desks sharing a model rank together. A score from a model its desk no longer uses ranks after the comparable ones, and requests with no score, or whose score you cannot read, come last. **Largest estimate first** orders by each request's estimate, largest first, in a separate run for each version of each scale, since sizes on different scales do not compare; requests with no estimate, or whose estimate you cannot read, come last. It is offered once a desk estimates its requests
 
 The filters and the layout are kept in the page's address, so a view can be bookmarked or sent to someone. If you work a desk, the page opens on **My desks**; otherwise it opens on every open request. Switch between **List** and **Board** with the icons at the right of the toolbar. **Reset filters**, the clear icon at the end of the filters, puts them all back to every open request. On a phone the filters fold behind a **Filters** button.
 
-**List** shows each request's number, title, [score](#scoring-a-request) where you can read it, status, how long it has been in that status, its need-by date with what makes it that date, its age, assignee, desk, requester and channel, or **Not recorded** for a request with none, and its [tags](#tags), each named with its axis. Need-by dates are coloured by their basis — red for a date fixed for us, amber for a promise — and time in status and age turn amber after a week and red after three. Sorting **Need By** ascending puts the earliest date first, a fixed date before a chosen one on the same day, and requests with no date last; descending reverses that. Hovering a status shows its category. The desk links to its page, and the requester and assignee link to theirs if you can view employees; otherwise they are plain names.
+**List** shows each request's number, title, [score](#scoring-a-request) and [estimate](#estimating-a-request) where you can read them, status, how long it has been in that status, its need-by date with what makes it that date, its age, assignee, desk, requester and channel, or **Not recorded** for a request with none, and its [tags](#tags), each named with its axis. **Submitted**, the date and time the request arrived, is hidden at first; turn it on from the grid's column chooser. Need-by dates are coloured by their basis — red for a date fixed for us, amber for a promise — and time in status and age turn amber after a week and red after three. Sorting **Need By** ascending puts the earliest date first, a fixed date before a chosen one on the same day, and requests with no date last; descending reverses that. Sorting **Estimate** orders by size on the scale rather than alphabetically, so *XL* follows *S*; hovering an estimate names the scale and version it was given on. Hovering a status shows its category. The desk links to its page, and the requester and assignee link to theirs if you can view employees; otherwise they are plain names.
 
-**Board** shows the same requests as cards in columns, one per stage of the desk's review workflow, in the workflow's order, so a stage with nothing in it still shows. A heading names the desk the board is for. Desks that follow different workflows have no single board, so with more than one such desk in scope the page asks you to pick one. Each card shows the number, its score where you can read it, the title, need-by date, requester and time in its stage, with a red edge when the date is fixed for us; opening it opens the request. Moving a request between stages is done from the request, since some moves ask for a reason. On a phone the board shows one stage at a time, chosen from a list with each stage's count.
+**Board** shows the same requests as cards in columns, one per stage of the desk's review workflow, in the workflow's order, so a stage with nothing in it still shows. A heading names the desk the board is for. Desks that follow different workflows have no single board, so with more than one such desk in scope the page asks you to pick one. Each card shows the number, its estimate and score where you can read them, the title, need-by date, requester and time in its stage, with a red edge when the date is fixed for us; opening it opens the request. Moving a request between stages is done from the request, since some moves ask for a reason. On a phone the board shows one stage at a time, chosen from a list with each stage's count.
 
 **My Requests** shows the list's columns, limited to requests you asked for or submitted.
 
 ### The request page
 
-Opening a request shows its number and title, with its status and [tags](#tags) beside the title; clicking the status opens its history. An agent on the request's desk changes the tags with the edit icon beside them or **Manage Tags** in the actions menu, choosing from the axes the desk uses. A tag the request carries along an axis the desk does not use — one it brought from another desk — can be removed there but not added to. The trail beneath the title leads back to **Requests** through the desk the request is on, and beneath that a line says who raised it, when, and where it came from when that was recorded. The panel opened from the header lists its desk, channel, requester and assignee and, where you can read them, who submitted it and where it came from.
+Opening a request shows its number and title, with its status and [tags](#tags) beside the title; clicking the status opens its history. An agent on the request's desk changes the tags with the edit icon beside them or **Manage Tags** in the actions menu, choosing from the axes the desk uses. A tag the request carries along an axis the desk does not use — one it brought from another desk — can be removed there but not added to. The trail beneath the title leads back to **Requests** through the desk the request is on, and beneath that a line says who raised it, when, and where it came from when that was recorded. The panel opened from the header lists its desk, channel, requester and assignee and, where you can read them, who submitted it, where it came from and its [estimate](#estimating-a-request).
 
 - **Details** — The reason for its current status, when it has one, then the description, the expected benefits and the need-by date, which says what makes it that date and whether it can move. On a desk that keeps its detail to itself, people outside it see a message saying the detail is limited to that desk, rather than empty fields
-- **Outcomes** — What the request became: the projects that deliver it. Shown to everyone who can see the request, as its status is. See [Outcomes](#outcomes)
+- **Discussion** — The request's conversation with its requester, and the desk's internal notes. Shown only to people who can read the request's detail; see [Discussing a request](#discussing-a-request)
+- **Outcomes** — What the request became: the projects and work items that deliver it. Shown to everyone who can see the request, as its status is. See [Outcomes](#outcomes)
 - **People** — The requester, the submitter when it is someone else, and the request's participants. Participants can read the request and reply to it, but cannot change it, and being one does not assign them any work. Shown only to people who can read the request's detail
 - **Score** — The request's current score, where it ranks among the open requests on its desk, the ratings behind it, and every earlier score. Shown only to people who can read the request's detail; see [Scoring a request](#scoring-a-request)
 - **Status History** — Every status the request has been in, as a timeline or drawn on its desk's workflow. Without the request's detail you see each change without its reason or who made it
@@ -196,11 +198,31 @@ Opening a request shows its number and title, with its status and [tags](#tags) 
 
 Anyone who can see a request can **follow** it with the eye at the top of the page, to keep it in their [Following](../following.mdx) list; the Following feature flag must be on. Following grants nothing: a follower reads exactly what the tiers below allow, and loses the request from their list the moment they can no longer see it — when it moves to a private desk they are not on, they are removed from a private desk's request, or it is deleted. Its history in their Following list shows only what the request's own Activity section shows them.
 
-The bell tells a request's people when it changes, without their having to follow it: its requester, its assignee, its participants and anyone who entered it on the requester's behalf, as well as its followers. Each is told for their own reason and can mute that reason, and nobody is told about their own change. The requester hears when its status changes, when it is reassigned or moved to another desk, and when its title, details, need-by date or channel change; an agent hears when a request is assigned to them or taken off them. A follower who sees only a request's summary is not told about changes to its details or participants. [Notifications](../notifications.mdx#who-is-told) lists who is told about each change.
+The bell tells a request's people when it changes, without their having to follow it: its requester, its assignee, its participants and anyone who entered it on the requester's behalf, as well as its followers. Each is told for their own reason and can mute that reason, and nobody is told about their own change. The requester hears when its status changes, when it is reassigned or moved to another desk, when someone replies in its conversation, and when its title, details, need-by date or channel change; an agent hears when a request is assigned to them or taken off them. A follower who sees only a request's summary is not told about changes to its details or participants. [Notifications](../notifications.mdx#who-is-told) lists who is told about each change.
 
 **Edit** appears in the actions menu when you can change the request: the requester while it is proposed, or an agent on its desk while it is open. The desk cannot be changed here.
 
 **Change Assignee** appears for an agent on the request's desk. The assignee owns the next move on the request; assigning someone does not make them its approver. Anyone who works the desk can be assigned, **Assign to me** fills in yourself when you work it, and clearing the field unassigns the request.
+
+### Discussing a request
+
+A request's **Discussion** section holds its conversation, so the questions and answers that get a request ready to decide stay with the request instead of in email. It mixes two kinds of message:
+
+- **Messages** — Read by everyone who can read the request's detail: its requester, whoever submitted it, its participants, the desk's agents and, on an open desk, everyone who can view requests. Anyone who can read them can post one
+- **Internal notes** — Read only by the desk's agents and Desk Admins and the Demand Management Admin. Only they can write one, and nobody else is offered the choice at all. A desk can [turn new notes off](#setting-how-a-desks-conversations-work)
+
+The composer at the bottom starts as a **Message**. An agent switches it to **Internal note** with the control above it, and the whole box changes colour while it is one, so a note is never sent to a requester by mistake. A note shows a lock and **Internal note** wherever it appears. Enter starts a new line; **Ctrl+Enter** (**⌘+Enter** on a Mac) posts, in the composer, a thread's reply box and the edit box alike.
+
+- **Threads** — A message can have a subject, and starts a thread. Replies to it collapse under it ("2 replies · last reply 3 hours ago") and open in place with their own reply box. Replies go one level deep, and a thread takes its first message's kind: everything under an internal note is internal.
+- **Mentions** — Type **@** to mention someone, which tells them. On a desk that is not private, mentioning someone you could add as a participant yourself makes them one, so they can read the request, unless the desk has [turned that off](#setting-how-a-desks-conversations-work). A participant cannot add anyone by mentioning them. A mention in an internal note can name only the desk's members and adds nobody.
+- **Joining in** — On a desk that is not private, posting on a request you can read makes you a participant, so you hear about it from then on. On a private desk, people are added only by an agent or, where the desk allows it, the requester.
+- **Asking the requester a question** — An agent does this from **Move to**, choosing Waiting on Requester (the desk's own name for that status): the question they write there is posted here as a message, saved with the move, and the conversation shows the move on it. See [Changing a request's status](#changing-a-requests-status).
+- **Changes in between** — By default the conversation shows the request's changes between the messages, as its Activity section shows them to you. **Messages only** hides them.
+- **Order** — The conversation reads oldest first, with the composer at the bottom. The order button beside the heading switches to newest first, which puts the latest message at the top and the composer above it; Wayd remembers your choice in this browser. The heading also says how many threads and messages you can read.
+- **Editing and deleting** — The **⋯** menu on a message, shown when you point at it, offers what you may do. You can edit your own messages; every earlier version is kept, and **edited** beside a message shows them. You can delete your own messages, and the desk's admins can delete anyone's. A deleted message leaves a line saying who deleted it and when; its text and earlier versions are removed.
+- **Locking** — The desk's admins can lock a conversation, after which nothing new can be posted, replied or edited until they unlock it. A request's status never locks it: a closed request can still be asked about.
+
+Each message notifies the request's people. [Notifications](../notifications.mdx#who-is-told) lists who is told about messages and internal notes.
 
 ### Scoring a request
 
@@ -213,6 +235,18 @@ A desk can rank its requests with one of the company's [scoring models](../setti
 
 The requester and participants read the score and its ratings on their own request, since a decision is easier to accept with the reasoning attached, but only the desk's agents set it. A score is not needed to accept a request.
 
+### Estimating a request
+
+A desk can size its requests on one of the company's [estimation scales](../planning/planning-poker.mdx#estimation-scales), such as T-shirt sizes. An agent on the desk chooses **Change Estimate** in the request's actions menu and picks a value of the desk's scale, from smallest to largest, or **None** to clear it. The estimate shows in the panel opened from the header, and on the Requests list and board.
+
+- **Only while the request is open.** Estimating follows the same rule as scoring: allowed while the request is proposed or active, and frozen once it is done or removed.
+- **A size, never a card.** Only the scale's estimate values can be chosen; cards such as *?* or *☕* belong to planning poker, not to a request.
+- **An estimate keeps its scale.** Each estimate records the version of the scale it was given on, so a later change to the scale never changes what an estimate means. A request moved to a desk that estimates on another scale or another version of it, or not at all, loses its estimate, since a size on one desk's scale says nothing beside another's.
+- **A desk without a scale does not estimate.** That is a normal setting; the request's actions menu offers no **Change Estimate**, unless the request still carries an estimate from before, which an agent can clear.
+- **An earlier version's estimate can be kept.** A request estimated before the desk moved to a newer version keeps its estimate, shown with that version in **Change Estimate**; choosing a value there gives it on the desk's version instead.
+
+The requester and participants see the estimate on their own request but cannot change it, and changing it does not notify them; it is recorded in the request's activity. This is a request's size as the desk sees it, separate from the estimates teams give work items.
+
 ### Changing a request's status
 
 **Move to**, beside the actions menu, is offered to an agent on its desk. It lists the statuses of the desk's workflow, in the order the desk laid them out, apart from the one the request holds and Withdrawn. A status that needs nothing more moves the request at once; one that does opens a form asking for it:
@@ -222,6 +256,8 @@ The requester and participants read the score and its ratings on their own reque
 
 A closed request can be moved back to an open status the same way, which also lets it be edited again.
 
+Choosing Waiting on Requester always opens the form, which asks for a **Question for the Requester** in place of a reason. The question is posted in the request's [Discussion](#discussing-a-request), saved with the move, so the requester can answer it there. Leave it empty to move the request without asking anything.
+
 #### Duplicates
 
 Once a request is marked a duplicate, anyone who opens it and can see the surviving request is taken there, and that request says which duplicate brought them. The desk's agents stay on the duplicate, with a link to the surviving request, so they can see why and reopen it.
@@ -230,20 +266,23 @@ Someone who cannot see the surviving request stays on the duplicate. They see it
 
 ### Outcomes
 
-Once a request is accepted, its desk records what it became, so the requester can follow their ask from the decision into delivery. Each outcome points at a project:
+Once a request is accepted, its desk records what it became, so the requester can follow their ask from the decision into delivery. Each outcome points at a project or a work item:
 
 - **New project** — A project started to deliver the request
 - **Existing project scope** — A project that already existed and took the request on. Its note, which is required, says what the project absorbed; recording it does not change the project's own definition
+- **Work item** — A work item in [Work Management](../work-management/work-items.mdx) that delivers the request, such as a feature or a story a team has taken on. A note saying what it covers is optional
 
-**Add Outcome**, in the request's **Outcomes** section, is offered to an agent on the request's desk while the request is in an active status, such as Accepted. It lists the projects you can see in PPM, apart from those the request already points at, so a request points at a project once. Outcomes can be added and removed only while the request is accepted; once it is finished or closed they are part of its record, and moving it back to an active status opens them again. Removing an outcome never changes the project.
+**Add Outcome**, in the request's **Outcomes** section, is offered to an agent on the request's desk while the request is in an active status, such as Accepted. For a project it lists the projects you can see in PPM; for a work item you search by key or title. Either way the records the request already points at are left out, so a request points at each one once. Outcomes can be added and removed only while the request is accepted; once it is finished or closed they are part of its record, and moving it back to an active status opens them again. Removing an outcome never changes the project or work item.
 
-A request with an outcome can be finished without a reason, since the outcome says what delivered it. Finishing one with no outcome still needs a reason. If a project is later deleted, its outcome stays on the request, marked as a project that has been deleted.
+Each work item outcome shows the work item's current key, title and status, read from Work Management whenever the request is opened, and links to the work item's page.
+
+A request with an outcome can be finished without a reason, since the outcome says what delivered it. Finishing one with no outcome still needs a reason. If a project or work item is later deleted — for a synced work item, when it is deleted in its source system — its outcome stays on the request, marked as one that has been deleted.
 
 A project created moments ago is offered straight away, but adding it may be refused as not found for a short while; if so, try again shortly.
 
-#### From the project
+#### From the project or work item
 
-With Demand Management on, a project's page has a **Requests** section listing the requests it came from or absorbed, with each request's status and what the project took on. Each request is listed only to people who can see it, by its desk's rules: a request on a private desk you are not part of does not appear, and nothing says it is there.
+With Demand Management on, a project's page has a **Requests** section listing the requests it came from or absorbed, with each request's status and what the project took on. A work item's page has the same section, listing the requests the work item delivers. Each request is listed only to people who can see it, by its desk's rules: a request on a private desk you are not part of does not appear, and nothing says it is there.
 
 ### Withdrawing a request
 
@@ -266,6 +305,7 @@ The form also says what the move changes:
   - Reaching **Open** from Summary Only exposes the description, expected benefits and participants, who submitted it and where it came from, earlier versions of the description, and who made each change in its history.
   - Reaching **Open** from Private exposes both.
 - **A desk the assignee does not work.** The request's assignee is always a member of its desk, so moving it to a desk they are not on unassigns it.
+- **A desk on another estimation scale.** An [estimate](#estimating-a-request) is cleared unless the new desk estimates on the very version it was given on — another scale, another version of the same scale, or no scale all clear it — and the new desk's agents estimate it again.
 
 A move to an equally or more private desk needs no confirmation. Every move is recorded in the request's activity with both desks, and the requester always sees which desk has their request. If you move a request to a private desk you do not work, you will no longer be able to open it.
 
@@ -294,7 +334,7 @@ A desk is run from its own page, opened from **Desks** or from the desk named on
 
 - **Requests** — The requests on the desk that you can see
 - **Members** — Who works the desk, and in which role
-- **Settings** — Its name, what to bring here, its review workflow, who can see its requests (with what that exposes, in plain words), the channels and tag axes it offers, whether it is open, and what requesters may do on it
+- **Settings** — Its name, what to bring here, its review workflow, who can see its requests (with what that exposes, in plain words), the channels and tag axes it offers, how its conversations work, whether it is open, and what requesters may do on it
 
 What you can change depends on your role:
 
@@ -304,6 +344,7 @@ What you can change depends on your role:
 | Open to new requests, requesters can choose it, requesters may add participants | Yes | Yes |
 | **Channels offered** | Yes | Yes |
 | **Tag axes offered** | Yes | Yes |
+| **Conversations**: internal notes, mentions | Yes | Yes |
 | Name or remove **Agents** | Yes | Yes |
 | **Review workflow** | Yes, while no request is on it | Yes, while no request is on it |
 | Name or remove **Desk Admins** | No | Yes |
@@ -328,11 +369,26 @@ Changing what a desk uses changes only what its agents can apply. Requests keep 
 
 **Allow free tags** in the desk's Settings lets the desk's agents add [free tags](#tags) — tags on no axis, typed in while tagging. It is off for a new desk, so a desk's filing stays on the company axes unless its Desk Admin chooses otherwise. Turning it off stops new free tags being added on the desk; requests keep the ones they carry, and they can still be removed.
 
+#### Setting how a desk's conversations work
+
+**Conversations** in the desk's Settings says how [discussions](#discussing-a-request) on its requests behave, and **Change Conversation Settings** lets a Desk Admin or the Demand Management Admin change it:
+
+- **Internal notes** — On for a new desk. Turning them off stops anyone posting a new note or replying in a note's thread. Notes already written stay, readable only by the people who could read them before, and their authors can still edit or delete them.
+- **Mentions give access** — On for a new desk. While on, mentioning someone you could add as a participant yourself makes them one. Turned off, only the request's own people and the desk's members can be mentioned, and nobody else is offered — useful on a desk that takes requests from customers, where access should be granted on purpose.
+
+A desk that has not changed these follows the default for every desk, and the panel says so. Setting them back to the default's values makes the desk follow the default again, including any later change to it. Each change is recorded in the Activity log with what it was before. Turning a setting off never shows anyone something they could not already read.
+
 #### Choosing a desk's scoring model
 
 **Scoring Model** in the desk's Settings names the model the desk's agents [score its requests](#scoring-a-request) with, or **None**. **Change Scoring Model** lets a Desk Admin or the Demand Management Admin choose any active model, or clear it to stop scoring. Models are built in [Settings → Scoring Models](../settings/scoring-models.mdx), which needs the scoring model permissions; choosing one for a desk does not.
 
 Changing the model changes only what the next score uses. Scores already recorded keep the model they were scored with, and only scores from the desk's current model rank together. A model archived after it was chosen stays on the desk, with a warning on the request's Score section, until a Desk Admin chooses another.
+
+#### Choosing a desk's estimation scale
+
+**Estimation Scale** in the desk's Settings names the scale the desk's agents [estimate its requests](#estimating-a-request) on, with the version the desk uses, or **None**. **Change Estimation Scale** lets a Desk Admin or the Demand Management Admin choose any active scale, each listed with its values, or clear it to stop estimating. Scales are built in [Settings → Estimation Scales](../settings/index.mdx#estimation-scales).
+
+The desk uses the scale's version current when it was chosen. When the scale's values change later, the desk stays on its version until a Desk Admin chooses the scale again. The scale can be changed only while no open request on the desk has an estimate on the version the desk uses now; clear those estimates first. Estimates on closed requests, and on an earlier version, keep the version they were given on. A scale deactivated after it was chosen stays on the desk until a Desk Admin chooses another, and a scale a desk or an estimate uses cannot be deleted.
 
 #### Choosing a desk's review workflow
 
@@ -378,7 +434,7 @@ Every change is recorded in the activity log.
 A request is read in three tiers:
 
 - **Summary** — Number, title, desk, status, requester, channel, assignee, tags, and the need-by date with its basis and reference
-- **Substance** — Description, expected benefits, who submitted it, its participants, where it came from, the reason for its status, evidence, replies, score and ratings
+- **Substance** — Description, expected benefits, who submitted it, its participants, where it came from, the reason for its status, evidence, replies, score and ratings, and estimate
 - **Internal** — Internal notes and triage reasoning, for the desk's members only
 
 Each desk sets how much of that reaches the rest of the company:
@@ -389,7 +445,7 @@ Each desk sets how much of that reaches the rest of the company:
 | **Summary only** | Summary | Everything their role allows |
 | **Private** | Nothing. The request appears in no list, search or count | Everything their role allows |
 
-A request's own people are its **requester**, whoever **submitted** it on the requester's behalf, and any **participants** given access to it. Participants read the request and can join the discussion, but they cannot change it and never see internal notes.
+A request's own people are its **requester**, whoever **submitted** it on the requester's behalf, and any **participants** given access to it. Participants read the request and can join the discussion, but they cannot change it and never see internal notes. On a desk that is not private, someone becomes a participant by replying, or by being mentioned by someone who could have added them.
 
 Working one desk gives you nothing on another: an agent reads other desks' requests only as far as those desks let everyone. Someone who cannot view requests sees only their own requests and those on the desks they work.
 
@@ -409,3 +465,7 @@ Most of what happens to a request is decided by [desk roles](#intake-desks), not
 | Administer | The Demand Management Admin: create and delete desks, change a desk's visibility, name Desk Admins, manage channels and tag axes, and act as Desk Admin on every desk |
 
 Submitting a request, and reading, editing (while it is proposed), withdrawing and replying to your own, need no permission. See [Demand Management: desk roles](../settings/permissions.mdx#demand-management-desk-roles).
+
+## Related Pages
+
+- **[Bulk Import](./bulk-import.mdx)** — Loading a backlog of intake requests from CSV

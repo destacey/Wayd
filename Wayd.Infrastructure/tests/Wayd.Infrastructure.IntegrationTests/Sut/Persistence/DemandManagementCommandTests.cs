@@ -1,9 +1,12 @@
 using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Moq;
+using Wayd.Common.Application.Discussions;
+using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.StatusWorkflows;
+using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
@@ -20,6 +23,7 @@ using Wayd.DemandManagement.Application.IntakeDesks.Queries;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
 using Wayd.DemandManagement.Application.IntakeRequests.Commands;
+using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
@@ -113,7 +117,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
     }
 
     [Fact]
-    public async Task DeleteIntakeRequest_RemovesTheRequestAndItsParticipants()
+    public async Task DeleteIntakeRequest_RemovesTheRequestItsParticipantsAndItsConversation()
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
@@ -135,17 +139,26 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
             seeding.IntakeRequests.Add(request);
             await seeding.SaveChangesAsync(ct);
             requestId = request.Id;
+
+            DemandManagementDiscussionChannels.Register();
+            var conversation = DiscussionChannel.OpenForRecord(DemandManagementDiscussionChannels.IntakeRequest.Key, request.Id, EventActor.System, Now).Value;
+            seeding.DiscussionChannels.Add(conversation);
+            seeding.DiscussionMessages.Add(DiscussionMessage.Post(conversation, DiscussionMessageKind.InternalNote, deskAdmin.Id, null,
+                "Worth a look", [], EventActor.System, Now).Value);
+            await seeding.SaveChangesAsync(ct);
         }
 
         // Act
         await using var context = _fixture.CreateContext();
-        var result = await new DeleteIntakeRequestCommandHandler(context, Principal(deskAdmin.Id), User(), _clock)
+        var result = await new DeleteIntakeRequestCommandHandler(context, Principal(deskAdmin.Id), User(), _clock, Discussions(context, deskAdmin.Id))
             .Handle(new DeleteIntakeRequestCommand(requestId), ct);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         await using var reader = _fixture.CreateContext();
         (await reader.IntakeRequests.AnyAsync(r => r.Id == requestId, ct)).Should().BeFalse();
+        (await reader.DiscussionChannels.AnyAsync(c => c.OwnerId == requestId, ct)).Should().BeFalse();
+        (await reader.DiscussionMessages.AnyAsync(m => m.Body == "Worth a look", ct)).Should().BeFalse();
         (await reader.ActivityLogs.AnyAsync(a => a.AggregateId == requestId && a.EventType == nameof(IntakeRequestDeletedEvent), ct)).Should().BeTrue();
     }
 
@@ -261,7 +274,8 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         }
 
         // Act — the deleting context still tracks the desk as it read it
-        var result = await new DeleteIntakeDeskCommandHandler(deleting, Principal(administrator.Id), User(), _clock, new ScopedWorkflowAssignments(deleting))
+        var result = await new DeleteIntakeDeskCommandHandler(deleting, Principal(administrator.Id), User(), _clock, new ScopedWorkflowAssignments(deleting),
+            Discussions(deleting, administrator.Id))
             .Handle(new DeleteIntakeDeskCommand(desk.Id), ct);
 
         // Assert
@@ -335,7 +349,8 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
 
         // Act
         await using var context = _fixture.CreateContext();
-        var result = await new DeleteIntakeDeskCommandHandler(context, Principal(administrator.Id), User(), _clock, new ScopedWorkflowAssignments(context))
+        var result = await new DeleteIntakeDeskCommandHandler(context, Principal(administrator.Id), User(), _clock, new ScopedWorkflowAssignments(context),
+            Discussions(context, administrator.Id))
             .Handle(new DeleteIntakeDeskCommand(desk.Id), ct);
 
         // Assert
@@ -429,7 +444,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         // Act
         await using var context = _fixture.CreateContext();
         var resolver = new StatusResolver(context);
-        var result = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver)
+        var result = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver, Discussions(context, agent.Id))
             .Handle(new ChangeIntakeRequestStatusCommand(requestId, await StatusId(resolver, desk.Id, "Declined", ct), "Budget went elsewhere", null), ct);
 
         // Assert
@@ -460,6 +475,34 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
     }
 
     [Fact]
+    public async Task ChangeIntakeRequestStatus_WithAReply_SavesTheMoveAndTheMessageTogether_AndTheMessageNamesTheMove()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (desk, requestId, _, agent) = await SeedOnTheDefaultWorkflow(ct, IntakeDeskRole.Agent);
+
+        // Act
+        await using var context = _fixture.CreateContext();
+        var resolver = new StatusResolver(context);
+        var result = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver, Discussions(context, agent.Id))
+            .Handle(new ChangeIntakeRequestStatusCommand(requestId, await StatusId(resolver, desk.Id, "Waiting on Requester", ct), null, null,
+                new IntakeRequestReply(null, "Could you add the budget?")), ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        await using var reader = _fixture.CreateContext();
+        (await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == requestId, ct))
+            .StatusAlias.Should().Be(IntakeRequestStatusAlias.WaitingOnRequester);
+        var message = await reader.DiscussionMessages.AsNoTracking()
+            .SingleAsync(m => reader.DiscussionChannels.Any(c => c.Id == m.ChannelId && c.OwnerId == requestId), ct);
+        message.Body.Should().Be("Could you add the budget?");
+        var move = await reader.ActivityLogs.AsNoTracking()
+            .SingleAsync(a => a.AggregateId == requestId && a.EventType == nameof(IntakeRequestStatusChangedEvent), ct);
+        message.RecordChangeEventId.Should().Be(move.EventId);
+        message.PostedOn.Should().Be(move.Timestamp);
+    }
+
+    [Fact]
     public async Task ChangeIntakeRequestStatus_ToDuplicate_PointsAtTheSurvivor_WhichThenCannotBeDeleted()
     {
         // Arrange
@@ -482,10 +525,10 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         // Act
         await using var context = _fixture.CreateContext();
         var resolver = new StatusResolver(context);
-        var marked = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver)
+        var marked = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver, Discussions(context, agent.Id))
             .Handle(new ChangeIntakeRequestStatusCommand(duplicateId, await StatusId(resolver, desk.Id, "Duplicate", ct), "Asked for already", survivorId), ct);
         await using var deleting = _fixture.CreateContext();
-        var deleted = await new DeleteIntakeRequestCommandHandler(deleting, Principal(agent.Id), User(), _clock)
+        var deleted = await new DeleteIntakeRequestCommandHandler(deleting, Principal(agent.Id), User(), _clock, Discussions(deleting, agent.Id))
             .Handle(new DeleteIntakeRequestCommand(survivorId), ct);
 
         // Assert
@@ -681,7 +724,8 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         }
         await using (var deleting = _fixture.CreateContext())
         {
-            (await new DeleteIntakeDeskCommandHandler(deleting, admin, User(), _clock, new ScopedWorkflowAssignments(deleting))
+            (await new DeleteIntakeDeskCommandHandler(deleting, admin, User(), _clock, new ScopedWorkflowAssignments(deleting),
+                    Discussions(deleting, administrator.Id))
                 .Handle(new DeleteIntakeDeskCommand(desk.Id), ct)).IsSuccess.Should().BeTrue();
         }
 
@@ -691,7 +735,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         (await reader.ActivityLogs.CountAsync(a => a.EventType == nameof(WorkflowAssignmentRemovedEvent)
             && (a.AggregateId == copy.Id), ct)).Should().Be(2, "once going back to the default, once with the desk");
         var archivable = await reader.StatusWorkflows.Include(w => w.Statuses).SingleAsync(w => w.Id == copy.Id, ct);
-        archivable.Archive(isAssigned: await reader.WorkflowAssignments.AnyAsync(a => a.WorkflowId == copy.Id, ct), EventActor.System, Now)
+        archivable.Archive(isAssigned: await reader.AssignedWorkflowIds().AnyAsync(id => id == copy.Id, ct), EventActor.System, Now)
             .IsSuccess.Should().BeTrue();
     }
 
@@ -739,7 +783,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         await using var context = _fixture.CreateContext();
         var resolver = new StatusResolver(context);
         var deskId = await context.IntakeRequests.Where(r => r.Id == requestId).Select(r => r.DeskId).SingleAsync(ct);
-        var result = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver)
+        var result = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver, Discussions(context, agent.Id))
             .Handle(new ChangeIntakeRequestStatusCommand(requestId, await StatusId(resolver, deskId, "Fulfilled", ct), null, null), ct);
 
         // Assert
@@ -748,6 +792,39 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         var saved = await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == requestId, ct);
         saved.StatusCategory.Should().Be(StatusCategory.Done);
         saved.StatusReason.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task AddIntakeRequestOutcome_ForAWorkItem_SavesTheKindAndNeedsNoProjectCopy()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (requestId, agent, _) = await SeedAcceptedWithAProject(ct);
+        var workItem = new IntakeRequestOutcomeWorkItemDto
+        {
+            Id = Guid.NewGuid(),
+            Key = "APP-42",
+            Title = "Export screen",
+            WorkspaceKey = "APP",
+            Status = "Active",
+            StatusCategory = StatusCategory.Active,
+        };
+
+        // Act
+        Result added;
+        await using (var context = _fixture.CreateContext())
+        {
+            added = await new AddIntakeRequestOutcomeCommandHandler(context, Principal(agent.Id), User(), _clock)
+                .Handle(new AddIntakeRequestOutcomeCommand(requestId, IntakeRequestOutcomeKind.WorkItem, workItem.Id, null) { WorkItem = workItem }, ct);
+        }
+
+        // Assert
+        added.IsSuccess.Should().BeTrue();
+        await using var reader = _fixture.CreateContext();
+        var saved = await reader.IntakeRequests.Where(r => r.Id == requestId).SelectMany(r => r.Outcomes).SingleAsync(ct);
+        saved.Kind.Should().Be(IntakeRequestOutcomeKind.WorkItem);
+        saved.TargetId.Should().Be(workItem.Id);
+        saved.Note.Should().BeNull();
     }
 
     /// <summary>A request accepted by its desk's admin, and a project Demand Management holds a copy of.</summary>
@@ -762,7 +839,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         await context.SaveChangesAsync(ct);
 
         var resolver = new StatusResolver(context);
-        var accepted = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver)
+        var accepted = await new ChangeIntakeRequestStatusCommandHandler(context, Principal(agent.Id), User(), _clock, resolver, Discussions(context, agent.Id))
             .Handle(new ChangeIntakeRequestStatusCommand(requestId, await StatusId(resolver, desk.Id, "Accepted", ct), null, null), ct);
         accepted.IsSuccess.Should().BeTrue();
 
@@ -795,6 +872,16 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         var clock = new Mock<IDateTimeProvider>();
         clock.Setup(c => c.Now).Returns(Now);
         return clock.Object;
+    }
+
+    /// <summary>The discussion writer a request's commands post and remove its conversation through.</summary>
+    private DiscussionWriter Discussions(WaydDbContext context, Guid employeeId)
+    {
+        DemandManagementDiscussionChannels.Register();
+        var featureFlags = new Mock<IFeatureFlags>();
+        featureFlags.Setup(f => f.IsEnabled(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        var requests = new IntakeRequestDiscussionChannelType(context, Principal(employeeId), User(), featureFlags.Object, context);
+        return new(context, [requests], Principal(employeeId), User(), _clock);
     }
 
     private static ICurrentUser User()

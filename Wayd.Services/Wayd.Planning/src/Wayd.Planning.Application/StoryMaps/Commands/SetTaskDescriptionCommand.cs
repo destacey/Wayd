@@ -10,7 +10,7 @@ namespace Wayd.Planning.Application.StoryMaps.Commands;
 /// Separate from <see cref="UpdateTaskCommand"/> so an editor changing only the description does not
 /// send the title back and revert a concurrent rename.
 /// </remarks>
-public sealed record SetTaskDescriptionCommand(Guid StoryMapId, Guid TaskId, string? Description) : ICommand;
+public sealed record SetTaskDescriptionCommand(Guid StoryMapId, Guid TaskId, string? Description) : ICommand, IRequireLinkedEmployee;
 
 public sealed class SetTaskDescriptionCommandValidator : CustomValidator<SetTaskDescriptionCommand>
 {
@@ -26,9 +26,10 @@ public sealed class SetTaskDescriptionCommandValidator : CustomValidator<SetTask
     }
 }
 
-public sealed class SetTaskDescriptionCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<SetTaskDescriptionCommandHandler> logger) : ICommandHandler<SetTaskDescriptionCommand>
+public sealed class SetTaskDescriptionCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<SetTaskDescriptionCommandHandler> logger) : ICommandHandler<SetTaskDescriptionCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<SetTaskDescriptionCommandHandler> _logger = logger;
 
@@ -37,13 +38,16 @@ public sealed class SetTaskDescriptionCommandHandler(IPlanningDbContext planning
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
             if (map is null)
                 return Result.Failure("Story map not found.");
 
-            var result = map.SetTaskDescription(request.TaskId, request.Description);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.SetTaskDescription(request.TaskId, request.Description, actor);
             if (result.IsFailure)
                 return result;
 
@@ -55,7 +59,7 @@ public sealed class SetTaskDescriptionCommandHandler(IPlanningDbContext planning
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

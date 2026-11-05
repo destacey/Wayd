@@ -2,7 +2,7 @@
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Domain.Models.BacklogHealth;
 
 namespace Wayd.Work.Domain.Tests.Sut.Models.BacklogHealth;
@@ -15,7 +15,7 @@ public class BacklogHealthAssessorTests
     // size and the default four-week readiness window holds four items.
     private const int LookbackDays = 70;
 
-    private static BacklogHealthItem Item(int rank, WorkStatusCategory status = WorkStatusCategory.Proposed) => new()
+    private static BacklogHealthItem Item(int rank, StatusCategory status = StatusCategory.Proposed) => new()
     {
         Id = Guid.NewGuid(),
         Rank = rank,
@@ -23,13 +23,13 @@ public class BacklogHealthAssessorTests
         Estimate = 3,
         Created = _now - Duration.FromDays(10),
         LastModified = _now - Duration.FromDays(1),
-        Activated = status == WorkStatusCategory.Active ? _now - Duration.FromDays(1) : null,
+        Activated = status == StatusCategory.Active ? _now - Duration.FromDays(1) : null,
         IsAssigned = true,
         HasParent = true,
         HasProject = true,
     };
 
-    private static List<BacklogHealthItem> Items(int count, WorkStatusCategory status = WorkStatusCategory.Proposed) =>
+    private static List<BacklogHealthItem> Items(int count, StatusCategory status = StatusCategory.Proposed) =>
         [.. Enumerable.Range(1, count).Select(rank => Item(rank, status))];
 
     private static BacklogHealthCompletion Completion(double cycleTimeDays = 5, double? estimate = 3) =>
@@ -158,7 +158,7 @@ public class BacklogHealthAssessorTests
     public void Assess_WipLoad_GradesActiveItemsPerMember(int activeItems, HealthStatus expected)
     {
         // Arrange
-        var backlog = Items(activeItems, WorkStatusCategory.Active);
+        var backlog = Items(activeItems, StatusCategory.Active);
 
         // Act
         var result = Assess(backlog, memberCount: 5);
@@ -175,7 +175,7 @@ public class BacklogHealthAssessorTests
     public void Assess_WipLoad_NoMembers_IsNotApplicable(int? memberCount)
     {
         // Arrange
-        var backlog = Items(3, WorkStatusCategory.Active);
+        var backlog = Items(3, StatusCategory.Active);
 
         // Act
         var result = Assess(backlog, memberCount: memberCount);
@@ -228,7 +228,7 @@ public class BacklogHealthAssessorTests
         // Arrange
         var created = _now - Duration.FromDays(365);
         var proposed = Item(1) with { Created = created };
-        var active = Item(2, WorkStatusCategory.Active) with { Created = created };
+        var active = Item(2, StatusCategory.Active) with { Created = created };
 
         // Act
         var result = Assess([proposed, active]);
@@ -244,9 +244,9 @@ public class BacklogHealthAssessorTests
     {
         // Arrange
         var history = History([.. Enumerable.Range(1, 20).Select(days => Completion(cycleTimeDays: days))]);
-        var aging = Item(1, WorkStatusCategory.Active) with { Activated = _now - Duration.FromDays(18) };
-        var onTrack = Item(2, WorkStatusCategory.Active) with { Activated = _now - Duration.FromDays(17) };
-        var neverActivated = Item(3, WorkStatusCategory.Active) with { Activated = null };
+        var aging = Item(1, StatusCategory.Active) with { Activated = _now - Duration.FromDays(18) };
+        var onTrack = Item(2, StatusCategory.Active) with { Activated = _now - Duration.FromDays(17) };
+        var neverActivated = Item(3, StatusCategory.Active) with { Activated = null };
 
         // Act
         var result = Assess([aging, onTrack, neverActivated], history);
@@ -267,7 +267,7 @@ public class BacklogHealthAssessorTests
             .ToList();
 
         // Act
-        var result = Assess(Items(3, WorkStatusCategory.Active), History(completions));
+        var result = Assess(Items(3, StatusCategory.Active), History(completions));
 
         // Assert
         result[BacklogHealthCheck.AgingWip].Outcome.Should().Be(BacklogHealthOutcome.NotEnoughHistory);
@@ -394,7 +394,7 @@ public class BacklogHealthAssessorTests
     public void Assess_UnassignedActive_LooksOnlyAtActiveItems()
     {
         // Arrange
-        var active = Item(1, WorkStatusCategory.Active) with { IsAssigned = false };
+        var active = Item(1, StatusCategory.Active) with { IsAssigned = false };
         var proposed = Item(2) with { IsAssigned = false };
 
         // Act

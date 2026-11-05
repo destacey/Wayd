@@ -1,7 +1,11 @@
 'use client'
 
 import { FC, ReactNode } from 'react'
-import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
+import {
+  createActionsColumn,
+  type ColumnDef,
+} from '@/src/components/common/wayd-grid-core'
+import type { ItemType } from 'antd/es/menu/interface'
 import { CaretDownOutlined, CaretRightOutlined } from '@ant-design/icons'
 import { Button, Flex } from 'antd'
 import treeGridStyles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
@@ -32,11 +36,19 @@ export interface ProjectWorkItemsTreeGridProps {
   hideProjectColumn?: boolean
   viewSelector?: ReactNode | undefined
   gridHeight?: number
+  /** Builds a row's action menu; omit for a grid without an actions column. */
+  getRowActions?: (workItem: WorkItemListDto) => ItemType[]
 }
 
 const getColumns = (
   hideProjectColumn: boolean,
+  getRowActions?: (workItem: WorkItemListDto) => ItemType[],
 ): ColumnDef<WorkItemTreeNode>[] => [
+  createActionsColumn<WorkItemTreeNode>({
+    unavailable: !getRowActions,
+    ariaLabel: 'Work item actions',
+    getItems: (workItem) => getRowActions?.(workItem) ?? [],
+  }),
   {
     accessorKey: 'key',
     header: 'Key',
@@ -194,10 +206,11 @@ const ProjectWorkItemsTreeGrid: FC<ProjectWorkItemsTreeGridProps> = ({
   hideProjectColumn = false,
   viewSelector,
   gridHeight,
+  getRowActions,
 }) => {
   const treeData = buildWorkItemTree(workItems ?? [])
 
-  const columns = getColumns(hideProjectColumn)
+  const columns = getColumns(hideProjectColumn, getRowActions)
 
   return (
     <WaydGrid<WorkItemTreeNode>

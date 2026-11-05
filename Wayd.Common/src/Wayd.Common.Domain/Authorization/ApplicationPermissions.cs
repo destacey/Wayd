@@ -307,20 +307,23 @@ public static class ApplicationPermissions
         new("Delete Risks", ApplicationAction.Delete, ApplicationResource.Risks, PlanningCategory),
         new("Import Risks", ApplicationAction.Import, ApplicationResource.Risks, PlanningCategory),
 
+        // No Update or Delete: a roadmap's owners manage it and its items. Administer lets someone see and manage any
+        // roadmap, private ones included.
         new("View Roadmaps", ApplicationAction.View, ApplicationResource.Roadmaps, PlanningCategory),
         new("Create Roadmaps", ApplicationAction.Create, ApplicationResource.Roadmaps, PlanningCategory),
-        new("Update Roadmaps", ApplicationAction.Update, ApplicationResource.Roadmaps, PlanningCategory),
-        new("Delete Roadmaps", ApplicationAction.Delete, ApplicationResource.Roadmaps, PlanningCategory),
+        new("Administer Roadmaps", ApplicationAction.Administer, ApplicationResource.Roadmaps, PlanningCategory),
 
+        // No Update or Delete: a session's facilitators run it. Administer lets someone see and run any session,
+        // private ones included.
         new("View Poker Sessions", ApplicationAction.View, ApplicationResource.PokerSessions, PlanningCategory),
         new("Create Poker Sessions", ApplicationAction.Create, ApplicationResource.PokerSessions, PlanningCategory),
-        new("Update Poker Sessions", ApplicationAction.Update, ApplicationResource.PokerSessions, PlanningCategory),
-        new("Delete Poker Sessions", ApplicationAction.Delete, ApplicationResource.PokerSessions, PlanningCategory),
+        new("Administer Poker Sessions", ApplicationAction.Administer, ApplicationResource.PokerSessions, PlanningCategory),
 
+        // No Update or Delete: a map's owners manage it, and its visibility and edit access decide who changes its
+        // content. Administer lets someone see, edit and manage any map, private ones included.
         new("View Story Maps", ApplicationAction.View, ApplicationResource.StoryMaps, PlanningCategory),
         new("Create Story Maps", ApplicationAction.Create, ApplicationResource.StoryMaps, PlanningCategory),
-        new("Update Story Maps", ApplicationAction.Update, ApplicationResource.StoryMaps, PlanningCategory),
-        new("Delete Story Maps", ApplicationAction.Delete, ApplicationResource.StoryMaps, PlanningCategory),
+        new("Administer Story Maps", ApplicationAction.Administer, ApplicationResource.StoryMaps, PlanningCategory),
 
         new("View Estimation Scales", ApplicationAction.View, ApplicationResource.EstimationScales, PlanningCategory),
         new("Create Estimation Scales", ApplicationAction.Create, ApplicationResource.EstimationScales, PlanningCategory),

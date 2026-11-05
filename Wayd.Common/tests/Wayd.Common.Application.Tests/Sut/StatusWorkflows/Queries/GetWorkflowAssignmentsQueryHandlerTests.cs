@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Wayd.Tests.Shared.Data;
 using Wayd.Common.Application.StatusWorkflows.Queries;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
@@ -13,7 +14,7 @@ public sealed class GetWorkflowAssignmentsQueryHandlerTests : StatusWorkflowHand
     private WorkflowAssignment SeedAssignment(WorkflowOwnerDescriptor owner)
     {
         var workflow = SeedWorkflow($"{owner.DisplayName} Workflow", publish: true, owner: owner);
-        var assignment = WorkflowAssignment.Create(owner.Key, null, workflow, EventActor.System, Now).Value;
+        var assignment = TestWorkflowAssignments.ForWorkflow(owner.Key, null, workflow, EventActor.System, Now).Value;
         assignment.ClearDomainEvents();
         DbContext.AddWorkflowAssignment(assignment);
 

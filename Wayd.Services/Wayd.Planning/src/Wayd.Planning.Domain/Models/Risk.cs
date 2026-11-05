@@ -150,6 +150,14 @@ public sealed class Risk : BaseSoftDeletableEntity, IHasIdAndKey
         }
     }
 
+    /// <summary>
+    /// Raises the deletion event. The caller removes the risk in the same save, which is what drains it.
+    /// </summary>
+    public void Delete(EventActor actor, Instant timestamp)
+    {
+        AddDomainEvent(new RiskDeletedEvent(Id, Key, TeamId, Summary, actor, timestamp));
+    }
+
     private void UpdateStatus(RiskStatus status, EventActor actor, Instant timestamp)
     {
         if (Status == status) return;

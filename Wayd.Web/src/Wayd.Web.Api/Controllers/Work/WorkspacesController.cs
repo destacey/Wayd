@@ -1,4 +1,5 @@
 ﻿using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Extensions;
 using Wayd.Web.Api.Extensions;
@@ -356,13 +357,13 @@ public class WorkspacesController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("work-items/search")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkItems)]
     [EndpointSummary("Search for a work item using its key or title.")]
-    [EndpointDescription("Searches every workspace: `query` matches part of a work item's key, its parent's key, or its title (a word prefix when full-text search is available). Returns at most `top` work items (default 50) in key order. Each result's `workspace` key and `key` are what the other work item tools take.")]
+    [EndpointDescription("Searches every workspace: `query` matches part of a work item's key, its parent's key, or its title (a word prefix when full-text search is available). Returns at most `top` work items (default 50) in key order. `tier` keeps only work items whose type is in that tier (`Portfolio` finds the epics and features a project can be linked to), and is applied before `top`. Each result's `workspace` key and `key` are what the other work item tools take.")]
     [McpTool("Workspaces_SearchWorkItems", "Search work items")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IEnumerable<WorkItemListDto>>> SearchWorkItems(string query, CancellationToken cancellationToken, int top = 50)
+    public async Task<ActionResult<IEnumerable<WorkItemListDto>>> SearchWorkItems(string query, CancellationToken cancellationToken, int top = 50, WorkTypeTier? tier = null)
     {
-        var result = await _dispatcher.Send(new SearchWorkItemsQuery(query, top), cancellationToken);
+        var result = await _dispatcher.Send(new SearchWorkItemsQuery(query, top, tier), cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value.OrderByKey(true))

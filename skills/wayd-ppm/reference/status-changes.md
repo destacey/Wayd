@@ -34,7 +34,7 @@ Check these first so a transition fails in conversation rather than at the API:
 3. Agree a `reason` with the user. It is required and stored in the status history as the record of why a decision was reversed, so write something a later reader will understand — never "revert" or "fix".
 4. Confirm, then call with `toStatus` and `reason`.
 
-## Deleting a record (hosted)
+## Deleting a record
 
 Deleting is permanent and only for a record that never got going. Anything past Proposed is retired with a transition instead — cancel a project or program, close and archive a portfolio — which keeps its history.
 

@@ -1,45 +1,53 @@
-import { render } from '@testing-library/react'
-import rehypeSanitize from 'rehype-sanitize'
+import { render, screen } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import MarkdownEditor from './markdown-editor'
-import { sanitizeSchema } from './sanitize-schema'
 
-let editorProps: Record<string, any> = {}
+interface DynamicOptions {
+  ssr?: boolean
+  loading?: () => ReactNode
+}
 
-// The real editor loads through next/dynamic with SSR off and pulls in an ESM Prism chain jsdom
-// cannot run, so the stub records the props the editor would receive.
-jest.mock('next/dynamic', () => ({
-  __esModule: true,
-  default: () => {
-    const Component = (props: Record<string, any>) => {
-      editorProps = props
-      return null
-    }
-    Component.displayName = 'MockMDEditor'
-    return Component
-  },
-}))
+// The stub shows the props the document editor received and keeps the options it was loaded with,
+// which are read through jest.requireMock because the module loads before this file's own bindings.
+jest.mock('next/dynamic', () => {
+  const captured: { options?: DynamicOptions } = {}
+  return {
+    __esModule: true,
+    captured,
+    default: (_loader: unknown, options: DynamicOptions) => {
+      captured.options = options
+      const Wysiwyg = (props: { value?: string; maxLength: number }) => (
+        <div>
+          wysiwyg {props.value} {props.maxLength}
+        </div>
+      )
+      return Wysiwyg
+    },
+  }
+})
+
+const dynamicOptions = () =>
+  jest.requireMock<{ captured: { options?: DynamicOptions } }>('next/dynamic')
+    .captured.options
 
 describe('MarkdownEditor', () => {
-  beforeEach(() => {
-    editorProps = {}
-  })
-
-  it('sanitizes the preview with the same schema as MarkdownRenderer', () => {
+  it('shows the document editor with the props it was given', () => {
     // Arrange / Act
     render(<MarkdownEditor value="text" maxLength={100} />)
 
     // Assert
-    expect(editorProps.previewOptions.rehypePlugins).toContainEqual([
-      rehypeSanitize,
-      sanitizeSchema,
-    ])
+    expect(screen.getByText('wysiwyg text 100')).toBeInTheDocument()
   })
 
-  it('turns off the preview copy button so code blocks keep a single child', () => {
-    // Arrange / Act
-    render(<MarkdownEditor value="text" maxLength={100} />)
+  it('loads the document editor on the client only, holding its space meanwhile', () => {
+    // Arrange
+    const options = dynamicOptions()
+
+    // Act
+    const { container } = render(<>{options?.loading?.()}</>)
 
     // Assert
-    expect(editorProps.previewOptions.disableCopy).toBe(true)
+    expect(options?.ssr).toBe(false)
+    expect(container.firstElementChild).toHaveAttribute('aria-busy', 'true')
   })
 })

@@ -66,6 +66,27 @@ public sealed record IntakeRequestDetailsDto
     /// </summary>
     public bool CanChangeOutcomes { get; init; }
 
+    /// <summary>
+    /// Whether the reader may set, change or clear the request's estimate: an agent on its desk, while the request
+    /// is open, and only when the desk has an estimation scale or the request has an estimate to clear. Never the
+    /// requester.
+    /// </summary>
+    public bool CanChangeEstimate { get; init; }
+
+    /// <summary>
+    /// The estimate values of the scale version the request's desk pins, in order, for a reader who may change the
+    /// estimate; empty otherwise, and when the desk does not estimate its requests.
+    /// </summary>
+    public IReadOnlyList<string> EstimateValues { get; init; } = [];
+
+    /// <summary>
+    /// The scale version the request's desk pins, which the estimate values come from, for a reader who
+    /// may change the estimate; null otherwise, and when the desk does not estimate its requests. An estimate on
+    /// any other version can be kept or cleared, but a value sent is always given on this one, even when the
+    /// older version wrote the same value.
+    /// </summary>
+    public Guid? EstimationScaleVersionId { get; init; }
+
     /// <summary>Whether the reader may withdraw the request: its requester, while it is open.</summary>
     public bool CanWithdraw { get; init; }
 

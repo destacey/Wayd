@@ -2,7 +2,7 @@
 
 namespace Wayd.Planning.Application.PokerSessions.Commands;
 
-public sealed record CompletePokerSessionCommand(Guid Id) : ICommand;
+public sealed record CompletePokerSessionCommand(Guid Id) : ICommand, IRequireLinkedEmployee;
 
 public sealed class CompletePokerSessionCommandValidator : CustomValidator<CompletePokerSessionCommand>
 {
@@ -12,9 +12,10 @@ public sealed class CompletePokerSessionCommandValidator : CustomValidator<Compl
     }
 }
 
-public sealed class CompletePokerSessionCommandHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, IPokerSessionNotifier notifier, ILogger<CompletePokerSessionCommandHandler> logger) : ICommandHandler<CompletePokerSessionCommand>
+public sealed class CompletePokerSessionCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionAccess access, IDateTimeProvider dateTimeProvider, IPokerSessionNotifier notifier, ILogger<CompletePokerSessionCommandHandler> logger) : ICommandHandler<CompletePokerSessionCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IPokerSessionAccess _access = access;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IPokerSessionNotifier _notifier = notifier;
     private readonly ILogger<CompletePokerSessionCommandHandler> _logger = logger;
@@ -23,13 +24,19 @@ public sealed class CompletePokerSessionCommandHandler(IPlanningDbContext planni
     {
         try
         {
+            // Completing deletes empty rounds, and a round reads as empty unless its votes are loaded.
             var session = await _planningDbContext.PokerSessions
+                .IncludeAccess()
+                .Include(s => s.Rounds)
+                    .ThenInclude(r => r.Votes)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
 
             if (session is null)
                 return Result.Failure("Poker session not found.");
 
-            var result = session.Complete(_dateTimeProvider.Now);
+            var actor = await _access.ResolveActor(session, cancellationToken);
+
+            var result = session.Complete(actor, _dateTimeProvider.Now);
             if (result.IsFailure)
                 return result;
 
@@ -38,7 +45,7 @@ public sealed class CompletePokerSessionCommandHandler(IPlanningDbContext planni
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

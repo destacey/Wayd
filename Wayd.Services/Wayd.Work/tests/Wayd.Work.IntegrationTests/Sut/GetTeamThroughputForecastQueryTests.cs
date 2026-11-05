@@ -1,6 +1,6 @@
 ﻿using Moq;
 using Wayd.Common.Application.Interfaces;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkTeams.Queries;
 using Wayd.Work.IntegrationTests.Infrastructure;
@@ -31,7 +31,7 @@ public sealed class GetTeamThroughputForecastQueryTests(SqlServerDbContextFixtur
         await _seed.AddHistory(team.Id, Ct);
         var firstRanked = await _seed.AddItem(team.Id, Ct, stackRank: 1);
         await _seed.AddItem(team.Id, Ct, stackRank: 2);
-        var active = await _seed.AddItem(team.Id, Ct, WorkStatusCategory.Active, stackRank: 3);
+        var active = await _seed.AddItem(team.Id, Ct, StatusCategory.Active, stackRank: 3);
 
         await using var accessor = new WaydDbContextAccessor(_fixture);
         var handler = new GetTeamThroughputForecastQueryHandler(

@@ -65,14 +65,12 @@ public sealed class UpdateRoadmapItemCommandHandler(IPlanningDbContext planningD
     {
         // Outside the try: this is a refusal, and the catch-all below would turn it into a
         // generic failure, losing both the 403 and its explanation.
-        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        if (currentUserEmployeeId is null)
-            LinkedEmployeeRequired.Throw();
+        var caller = await _currentPrincipal.ResolveRoadmapActor(cancellationToken);
 
         try
         {
             var roadmap = await _planningDbContext.Roadmaps
-                .Include(x => x.RoadmapManagers)
+                .Include(x => x.Owners)
                 .Include(x => x.Items)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(r => r.Id == request.RoadmapId, cancellationToken);
@@ -81,9 +79,9 @@ public sealed class UpdateRoadmapItemCommandHandler(IPlanningDbContext planningD
                 return Result.Failure<Guid>($"Roadmap with id {request.RoadmapId} not found");
 
             Result result = request.Item.Match(
-               activity => roadmap.UpdateActivity(request.ItemId, activity, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now),
-               milestone => roadmap.UpdateMilestone(request.ItemId, milestone, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now),
-               timebox => roadmap.UpdateTimebox(request.ItemId, timebox, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now)
+               activity => roadmap.UpdateActivity(request.ItemId, activity, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now),
+               milestone => roadmap.UpdateMilestone(request.ItemId, milestone, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now),
+               timebox => roadmap.UpdateTimebox(request.ItemId, timebox, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now)
             );
 
             if (result.IsFailure)

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Activities;
 using Wayd.Common.Domain.AppIntegrations;
+using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Following;
 using Wayd.Common.Domain.Identity;
@@ -18,7 +19,7 @@ namespace Wayd.Common.Application.Tests.Infrastructure;
 /// A test double for IWaydDbContext that provides in-memory collections for all DbSets.
 /// This eliminates the need for complex Moq setups in tests and is reusable across all Common domain tests.
 /// </summary>
-public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INotificationsDbContext, IActivityLogDbContext, IDisposable
+public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INotificationsDbContext, IDiscussionsDbContext, IActivityLogDbContext, IDisposable
 {
     // Common domain entities
     private readonly List<Employee> _employees = [];
@@ -33,6 +34,8 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     // The workflow engine's tables, for handlers that reach IStatusWorkflowDbContext.
     private readonly List<StatusWorkflow> _statusWorkflows = [];
     private readonly List<WorkflowAssignment> _workflowAssignments = [];
+    private readonly List<StatusWorkflowScheme> _statusWorkflowSchemes = [];
+    private readonly List<RecordType> _recordTypes = [];
     private readonly List<WorkflowAliasName> _workflowAliasNames = [];
     private readonly List<StatusTransition> _statusTransitions = [];
 
@@ -41,6 +44,12 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     private readonly List<Notification> _notifications = [];
     private readonly List<RecordMute> _recordMutes = [];
     private readonly List<ReasonMute> _reasonMutes = [];
+
+    // Discussions, for handlers that reach IDiscussionsDbContext. Messages carry their mentions and revisions in
+    // memory, so `.Include` is a no-op here; only an integration test catches a missing one.
+    private readonly List<DiscussionChannel> _discussionChannels = [];
+    private readonly List<DiscussionMessage> _discussionMessages = [];
+    private readonly List<DiscussionSettings> _discussionSettings = [];
 
     // DbSet properties
     public DbSet<Employee> Employees => _employees.AsDbSet();
@@ -54,6 +63,8 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
 
     public DbSet<StatusWorkflow> StatusWorkflows => _statusWorkflows.AsDbSet();
     public DbSet<WorkflowAssignment> WorkflowAssignments => _workflowAssignments.AsDbSet();
+    public DbSet<StatusWorkflowScheme> StatusWorkflowSchemes => _statusWorkflowSchemes.AsDbSet();
+    public DbSet<RecordType> RecordTypes => _recordTypes.AsDbSet();
     public DbSet<WorkflowAliasName> WorkflowAliasNames => _workflowAliasNames.AsDbSet();
     public DbSet<StatusTransition> StatusTransitions => _statusTransitions.AsDbSet();
 
@@ -61,6 +72,10 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     public DbSet<Notification> Notifications => _notifications.AsDbSet();
     public DbSet<RecordMute> RecordMutes => _recordMutes.AsDbSet();
     public DbSet<ReasonMute> ReasonMutes => _reasonMutes.AsDbSet();
+
+    public DbSet<DiscussionChannel> DiscussionChannels => _discussionChannels.AsDbSet();
+    public DbSet<DiscussionMessage> DiscussionMessages => _discussionMessages.AsDbSet();
+    public DbSet<DiscussionSettings> DiscussionSettings => _discussionSettings.AsDbSet();
 
     // ChangeTracker - we can't create a real one, so we return null and the handler uses defensive coding (_dbContext.ChangeTracker?.Clear())
     public ChangeTracker ChangeTracker => null!;
@@ -73,9 +88,21 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     /// </summary>
     public int SaveChangesCallCount { get; private set; }
 
+    /// <summary>
+    /// An exception the next save throws instead of saving, as a real context does on a unique-index or row-version
+    /// collision. Cleared once thrown.
+    /// </summary>
+    public Exception? FailNextSaveWith { get; set; }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         SaveChangesCallCount++;
+
+        if (FailNextSaveWith is { } failure)
+        {
+            FailNextSaveWith = null;
+            throw failure;
+        }
 
         // Return the total number of entities as a simple success indicator
         var count = _employees.Count + _externalEmployeeBlacklistItems.Count + _externalIdentityMappings.Count + _personalAccessTokens.Count;
@@ -101,7 +128,16 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     // integration test against a real context can catch that.
     public void AddStatusWorkflow(StatusWorkflow workflow) => _statusWorkflows.Add(workflow);
     public void AddStatusWorkflows(IEnumerable<StatusWorkflow> workflows) => _statusWorkflows.AddRange(workflows);
-    public void AddWorkflowAssignment(WorkflowAssignment assignment) => _workflowAssignments.Add(assignment);
+    public void AddRecordType(RecordType recordType) => _recordTypes.Add(recordType);
+    public void AddStatusWorkflowScheme(StatusWorkflowScheme scheme) => _statusWorkflowSchemes.Add(scheme);
+
+    /// <summary>Adds the assignment, and its scheme when the context does not hold it yet, as the database would.</summary>
+    public void AddWorkflowAssignment(WorkflowAssignment assignment)
+    {
+        _workflowAssignments.Add(assignment);
+        if (assignment.Scheme is { } scheme && !_statusWorkflowSchemes.Contains(scheme))
+            _statusWorkflowSchemes.Add(scheme);
+    }
 
     // Added directly, because a transition appended by ApplyStatus only reaches the set through
     // BaseDbContext's drain on save, which this fake does not run.
@@ -115,6 +151,9 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     public void AddNotification(Notification notification) => _notifications.Add(notification);
     public void AddRecordMute(RecordMute mute) => _recordMutes.Add(mute);
     public void AddReasonMute(ReasonMute mute) => _reasonMutes.Add(mute);
+    public void AddDiscussionChannel(DiscussionChannel channel) => _discussionChannels.Add(channel);
+    public void AddDiscussionMessage(DiscussionMessage message) => _discussionMessages.Add(message);
+    public void AddDiscussionSettings(DiscussionSettings settings) => _discussionSettings.Add(settings);
 
     /// <summary>Removes a notification, as the store's set-based writes would replace or delete it.</summary>
     public void RemoveNotification(Notification notification) => _notifications.Remove(notification);

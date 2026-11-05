@@ -14,9 +14,10 @@ namespace Wayd.AppIntegration.Application.Connections.Queries;
 
 public sealed record GetConnectionQuery(Guid Id) : IQuery<ConnectionDetailsDto?>;
 
-public sealed class GetConnectionQueryHandler(IAppIntegrationDbContext appIntegrationDbContext) : IQueryHandler<GetConnectionQuery, ConnectionDetailsDto?>
+public sealed class GetConnectionQueryHandler(IAppIntegrationDbContext appIntegrationDbContext, IAzureDevOpsUrlResolver azureDevOpsUrlResolver) : IQueryHandler<GetConnectionQuery, ConnectionDetailsDto?>
 {
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
+    private readonly IAzureDevOpsUrlResolver _azureDevOpsUrlResolver = azureDevOpsUrlResolver;
 
     public async Task<ConnectionDetailsDto?> Handle(GetConnectionQuery request, CancellationToken cancellationToken)
     {
@@ -41,6 +42,7 @@ public sealed class GetConnectionQueryHandler(IAppIntegrationDbContext appIntegr
             case AzureDevOpsBoardsConnection:
                 var azdo = connection.Adapt<AzureDevOpsConnectionDetailsDto>();
                 azdo.Configuration.MaskPersonalAccessToken();
+                azdo.Configuration.ResolveOrganizationUrl(_azureDevOpsUrlResolver);
                 return azdo;
 
             case AzureOpenAIConnection:

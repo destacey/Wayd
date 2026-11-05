@@ -424,6 +424,24 @@ public class ProductManagementGeneratorTests
         // Assert
         second.Deployments.Select(d => d.ImportId).Should().Equal(first.Deployments.Select(d => d.ImportId));
         second.Versions.Select(v => v.Handle).Should().Equal(first.Versions.Select(v => v.Handle));
+        second.Products.Select(p => p.Teams).Should().Equal(first.Products.Select(p => p.Teams));
+    }
+
+    [Fact]
+    public void Generate_NamesTheTeamsOnEachProductByCode_ForTheImportsTeamsColumn()
+    {
+        // Arrange
+        var context = Context();
+        var org = new OrgGenerator(new OrgOptions { ValueStreams = 3, Teams = 18 }, context).Generate();
+        var codes = org.Teams.Select(t => t.Code).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Act
+        var products = new ProductManagementGenerator(org.Structure, new ProductManagementOptions(), context).Generate().Products;
+
+        // Assert — some products carry teams and some carry none; every entry is a code the teams import creates
+        products.Should().Contain(p => p.Teams != null).And.Contain(p => p.Teams == null);
+        products.SelectMany(p => (p.Teams ?? string.Empty).Split(';', StringSplitOptions.RemoveEmptyEntries))
+            .Should().OnlyContain(code => codes.Contains(code));
     }
 
     [Fact]

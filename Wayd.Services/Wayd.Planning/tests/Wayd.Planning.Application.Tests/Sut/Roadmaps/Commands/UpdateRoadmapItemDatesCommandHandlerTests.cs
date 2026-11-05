@@ -51,11 +51,11 @@ public class UpdateRoadmapItemDatesCommandHandlerTests : IDisposable
         var roadmap = CreateActiveRoadmap();
 
         var parentActivity = new UpsertActivity(new LocalDateRange(_today, _today.PlusDays(10)));
-        var parentResult = roadmap.CreateActivity(parentActivity, _currentEmployeeId, Actor, Now);
+        var parentResult = roadmap.CreateActivity(parentActivity, new RoadmapActor(_currentEmployeeId, false), Actor, Now);
         parentResult.IsSuccess.Should().BeTrue();
 
         var childActivity = new UpsertActivity(new LocalDateRange(_today, _today.PlusDays(10)), parentResult.Value.Id);
-        var childResult = roadmap.CreateActivity(childActivity, _currentEmployeeId, Actor, Now);
+        var childResult = roadmap.CreateActivity(childActivity, new RoadmapActor(_currentEmployeeId, false), Actor, Now);
         childResult.IsSuccess.Should().BeTrue();
 
         _dbContext.AddRoadmap(roadmap);
@@ -83,13 +83,13 @@ public class UpdateRoadmapItemDatesCommandHandlerTests : IDisposable
         var roadmap = CreateActiveRoadmap();
 
         var parentActivity = new UpsertActivity(new LocalDateRange(_today, _today.PlusDays(10)));
-        var parentResult = roadmap.CreateActivity(parentActivity, _currentEmployeeId, Actor, Now);
+        var parentResult = roadmap.CreateActivity(parentActivity, new RoadmapActor(_currentEmployeeId, false), Actor, Now);
         parentResult.IsSuccess.Should().BeTrue();
 
         var childActivity = new UpsertActivity(
             new LocalDateRange(_today, _today.PlusDays(30)),
             parentResult.Value.Id);
-        var childResult = roadmap.CreateActivity(childActivity, _currentEmployeeId, Actor, Now);
+        var childResult = roadmap.CreateActivity(childActivity, new RoadmapActor(_currentEmployeeId, false), Actor, Now);
         childResult.IsSuccess.Should().BeTrue();
 
         _dbContext.AddRoadmap(roadmap);

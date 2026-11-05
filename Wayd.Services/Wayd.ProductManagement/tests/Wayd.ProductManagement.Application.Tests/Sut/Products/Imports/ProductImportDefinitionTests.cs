@@ -5,11 +5,16 @@ using Moq;
 using NodaTime;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Enums.Imports;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.Common.Domain.Imports;
+using Wayd.Common.Domain.Interfaces.Organization;
+using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Application.Products.Dtos;
@@ -34,6 +39,7 @@ public sealed class ProductImportDefinitionTests
     private readonly Mock<IStatusResolver> _statusResolver = new();
     private readonly Mock<ICurrentUser> _currentUser = new();
     private readonly Mock<IDateTimeProvider> _dateTimeProvider = new();
+    private readonly Mock<IDispatcher> _dispatcher = new();
 
     private readonly string _userId = Guid.CreateVersion7().ToString();
     private readonly StatusWorkflow _workflow;
@@ -67,7 +73,54 @@ public sealed class ProductImportDefinitionTests
             _currentUser.Object,
             _dateTimeProvider.Object,
             Mock.Of<ILogger<ProductImportDefinition>>(),
-            new ImportPayloadSerializer());
+            new ImportPayloadSerializer(),
+            _dispatcher.Object);
+
+        _dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamsByIdOrCodeQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GetTeamsByIdOrCodeQuery q, CancellationToken _) => (IReadOnlyList<ISimpleTeam>)[.. _organizationTeams
+                .Where(t => q.Ids.Contains(t.Id) || q.Codes.Contains(t.Code.Value, StringComparer.OrdinalIgnoreCase))]);
+
+        _dispatcher
+            .Setup(d => d.Send(It.IsAny<GetSimpleTeamQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GetSimpleTeamQuery q, CancellationToken _) => _organizationTeams.FirstOrDefault(t => t.Id == q.Id));
+    }
+
+    /// <summary>The teams Organization holds, which codes resolve against and missing copies are built from.</summary>
+    private readonly List<TeamSource> _organizationTeams = [];
+
+    /// <summary>A team as Organization holds it, for building the module's copy.</summary>
+    private sealed record TeamSource(Guid Id, int Key, string Name, TeamCode Code, TeamType Type, bool IsActive) : ISimpleTeam;
+
+    /// <summary>
+    /// A team Organization holds, and — unless <paramref name="copied"/> is false — the module's copy of it, as the
+    /// sync leaves it.
+    /// </summary>
+    private TeamSource SeedTeam(string name = "Payments", string code = "PAY", bool isActive = true, bool copied = true)
+    {
+        var source = new TeamSource(Guid.CreateVersion7(), _organizationTeams.Count + 1, name, new TeamCode(code), TeamType.Team, isActive);
+        _organizationTeams.Add(source);
+
+        if (copied)
+            _dbContext.AddProductTeam(new ProductTeam(source, Now));
+
+        return source;
+    }
+
+    /// <summary>
+    /// Changes a team in Organization without touching the module's copy, as a change not yet synced leaves it.
+    /// </summary>
+    private TeamSource ChangeInOrganization(TeamSource team, string? name = null, string? code = null, bool? isActive = null)
+    {
+        var changed = team with
+        {
+            Name = name ?? team.Name,
+            Code = code is null ? team.Code : new TeamCode(code),
+            IsActive = isActive ?? team.IsActive,
+        };
+        _organizationTeams[_organizationTeams.IndexOf(team)] = changed;
+
+        return changed;
     }
 
     private ProductType SeedType(string name = "Application", bool isReleasable = true, bool isActive = true)
@@ -127,10 +180,12 @@ public sealed class ProductImportDefinitionTests
         string? status = null,
         string? description = null,
         string? externalId = null,
-        params (string Category, string Tag)[] tags) =>
+        (string Category, string Tag)[]? tags = null,
+        string[]? teams = null) =>
         (importId,
             new ImportProductDto(name, description, productTypeName, parentImportId, externalId, status,
-                [.. tags.Select(t => new ProductTagReference(t.Category, t.Tag))]));
+                [.. (tags ?? []).Select(t => new ProductTagReference(t.Category, t.Tag))],
+                teams));
 
     private IReadOnlyList<string?> GroupKeys(params (string ImportId, ImportProductDto Data)[] rows) =>
         _definition.GroupKeysOf([.. rows.Select(r => (r.ImportId, _definition.SerializeRow(r.Data)))]);
@@ -540,5 +595,188 @@ public sealed class ProductImportDefinitionTests
         // Assert
         result.Value.Rows.Single().Failed.Should().BeFalse();
         _dbContext.Products.Single().Tags.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CreateProducts_LinksTheTeamsARowNames_ByCodeOrId()
+    {
+        // Arrange
+        SeedType();
+        var payments = SeedTeam("Payments", "PAY");
+        var mobile = SeedTeam("Mobile", "MOB");
+
+        // Act
+        var result = await Run(Row("1", "Wayd", teams: ["pay", mobile.Id.ToString()]));
+
+        // Assert
+        result.Value.Rows.Single().Failed.Should().BeFalse();
+        _dbContext.Products.Single().TeamLinks.Select(l => l.TeamId).Should().BeEquivalentTo([payments.Id, mobile.Id]);
+    }
+
+    [Fact]
+    public async Task CreateProducts_LinksTheTeamsToTheRowsOwnProductOnly()
+    {
+        // Arrange — nothing rolls up or is inherited: a parent's teams are the parent's alone
+        SeedType();
+        var payments = SeedTeam("Payments", "PAY");
+        var mobile = SeedTeam("Mobile", "MOB");
+
+        // Act
+        var result = await Run(
+            Row("line", "Wayd", teams: ["PAY"]),
+            Row("app", "Wayd Mobile", parentImportId: "line", teams: ["MOB"]));
+
+        // Assert
+        result.Value.Rows.Should().OnlyContain(r => !r.Failed);
+        _dbContext.Products.Single(p => p.Name == "Wayd").TeamLinks.Should().ContainSingle().Which.TeamId.Should().Be(payments.Id);
+        _dbContext.Products.Single(p => p.Name == "Wayd Mobile").TeamLinks.Should().ContainSingle().Which.TeamId.Should().Be(mobile.Id);
+    }
+
+    [Fact]
+    public async Task CreateProducts_LinksATeamWithNoCopyYet_ByCopyingItFromOrganization()
+    {
+        // Arrange — a team created moments ago has no copy in the module until the sync runs
+        SeedType();
+        var payments = SeedTeam("Payments", "PAY", copied: false);
+
+        // Act
+        var result = await Run(Row("1", "Wayd", teams: ["PAY"]));
+
+        // Assert — the copy is saved on its own, before any product is staged
+        result.Value.Rows.Single().Failed.Should().BeFalse();
+        _dbContext.ProductTeams.Should().ContainSingle().Which.Id.Should().Be(payments.Id);
+        _dbContext.Products.Single().TeamLinks.Should().ContainSingle().Which.TeamId.Should().Be(payments.Id);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CreateProducts_RaisesTheLinkedEventOnlyOnceTheProductIsSaved()
+    {
+        // Arrange — a new product has no key until it is saved, and the event carries it
+        SeedType();
+        SeedTeam("Payments", "PAY");
+
+        // Act
+        await Run(Row("1", "Wayd", teams: ["PAY"]));
+
+        // Assert
+        _dbContext.Products.Single().DomainEvents.OfType<ProductTeamLinkedEvent>().Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("NOPE")]
+    [InlineData("0196b5c4-1f1e-7a52-9d2e-3c4b5a697887")]
+    public async Task CreateProducts_RejectsARowNamingATeamThatDoesNotExist(string entry)
+    {
+        // Arrange
+        SeedType();
+        SeedTeam("Payments", "PAY");
+
+        // Act
+        var result = await Run(Row("1", "Wayd", teams: ["PAY", entry]));
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().Be($"No team was found with the code or ID '{entry}'.");
+        _dbContext.Products.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task CreateProducts_RejectsARowNamingAnInactiveTeam(bool copied)
+    {
+        // Arrange
+        SeedType();
+        SeedTeam("Legacy", "OLD", isActive: false, copied: copied);
+
+        // Act
+        var result = await Run(Row("1", "Wayd", teams: ["OLD"]));
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().Be("The team 'Legacy' (OLD) is inactive, and only an active team can be linked to a product.");
+        _dbContext.Products.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CreateProducts_RejectsATeamDeactivatedInOrganization_BeforeItsCopyHasCaughtUp()
+    {
+        // Arrange — Organization owns whether a team is active; the module's copy may not have heard yet
+        SeedType();
+        ChangeInOrganization(SeedTeam("Legacy", "OLD"), isActive: false);
+
+        // Act
+        var result = await Run(Row("1", "Wayd", teams: ["OLD"]));
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().Be("The team 'Legacy' (OLD) is inactive, and only an active team can be linked to a product.");
+        _dbContext.Products.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CreateProducts_ResolvesATeamByTheCodeOrganizationHoldsNow_BeforeItsCopyHasCaughtUp()
+    {
+        // Arrange — a team renamed a moment ago: the file names it the way Organization does today
+        SeedType();
+        var team = ChangeInOrganization(SeedTeam("Payments", "PAY"), name: "Payments Core", code: "PAYC");
+
+        // Act
+        var result = await Run(Row("1", "Wayd", teams: ["PAYC"]), Row("2", "Wayd Legacy", teams: ["PAY"]));
+
+        // Assert
+        var outcomes = result.Value.Rows.ToDictionary(r => r.ImportId);
+        outcomes["1"].Failed.Should().BeFalse();
+        _dbContext.Products.Single().TeamLinks.Should().ContainSingle().Which.TeamId.Should().Be(team.Id);
+        outcomes["2"].Error.Should().Be("No team was found with the code or ID 'PAY'.");
+    }
+
+    [Fact]
+    public async Task CreateProducts_ReadsOrganizationAndTheCopiesOnceForTheWholeChunk()
+    {
+        // Arrange
+        SeedType();
+        SeedTeam("Payments", "PAY");
+        SeedTeam("Mobile", "MOB");
+
+        // Act
+        await Run(Row("1", "Alpha", teams: ["PAY", "MOB"]), Row("2", "Beta", teams: ["MOB"]));
+
+        // Assert
+        _dispatcher.Verify(d => d.Send(It.IsAny<GetTeamsByIdOrCodeQuery>(), It.IsAny<CancellationToken>()), Times.Once);
+        _dispatcher.Verify(d => d.Send(It.IsAny<GetSimpleTeamQuery>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateProducts_LeavesAProductUnlinkedWhenTheRowNamesNoTeams()
+    {
+        // Arrange
+        SeedType();
+        SeedTeam();
+
+        // Act
+        var result = await Run(Row("1", "Wayd"));
+
+        // Assert
+        result.Value.Rows.Single().Failed.Should().BeFalse();
+        _dbContext.Products.Single().TeamLinks.Should().BeEmpty();
+        _dispatcher.Verify(d => d.Send(It.IsAny<GetTeamsByIdOrCodeQuery>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public void SerializedRow_StoredBeforeTheTeamsColumnExisted_ReadsAsNamingNoTeams()
+    {
+        // Arrange — a run paused before this column shipped resumes with payloads that have no Teams
+        const string stored = """{"name":"Wayd","description":null,"productTypeName":"Application","parentImportId":null,"externalId":null,"status":null,"tags":[]}""";
+
+        // Act
+        var row = new ImportPayloadSerializer().Deserialize<ImportProductDto>(stored);
+
+        // Assert
+        row.Teams.Should().BeNull();
     }
 }

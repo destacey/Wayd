@@ -280,6 +280,2077 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial interface IDiscussionsClient
+    {
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get what you may do in a record's conversation.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns `canPost`, `canPostInternal` (false means you are offered no internal notes at all), `canModerate` (lock the conversation and delete anyone's message), whether the conversation `isLocked`, and how many threads (`threadCount`) and messages (`messageCount`, threads and replies together) you can read, leaving out deleted ones and any internal notes you may not read. Read its messages from the entries endpoint. A record nobody has posted on is an empty, unlocked conversation. Returns 404 when the record does not exist or you cannot read it.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<DiscussionDto> GetDiscussionAsync(string channelType, System.Guid ownerId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get one page of a record's conversation.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns one page of entries: top-level messages and, unless `messagesOnly` is true, the record's activity between them, as its Activity section shows it to you (activity older than the record's latest 2,000 entries is left out). Each entry has a `type` (`Message` or `Activity`), a `timestamp`, and its `message` or `activity`. A thread's replies are not in the page; each message carries `replyCount`, `lastReplyOn` and `recentRepliers`, and the replies come from the replies endpoint. Internal notes appear only if you may read them. `order` is `OldestFirst` (default) or `NewestFirst`; pass the previous page's `nextCursor` as `before` for the next page; `pageSize` counts top-level messages and is at most 500. Returns 404 when the record does not exist or you cannot read it.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<CursorPageOfDiscussionEntryDto> GetEntriesAsync(string channelType, System.Guid ownerId, string? before = null, int? pageSize = null, DiscussionOrder? order = null, bool? messagesOnly = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Post a message that starts a thread in a record's conversation.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Posts a top-level message, opening the conversation if nobody has posted on the record yet, and returns its id. `kind` is `Public` (everyone who can read the conversation) or `InternalNote` (its internal audience only); `subject` is optional, at most 200 characters; `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Mentions you may not make are dropped. Returns 403 when you may not post that kind of message, 404 when the record does not exist or you cannot read it, 400 when the conversation is locked or internal notes are turned off for the record's scope, and 409 when someone else opened the conversation at the same moment (post again). Requires your account to be linked to an employee.
+        /// </remarks>
+        /// <returns>Created</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Guid> PostMessageAsync(string channelType, System.Guid ownerId, PostDiscussionMessageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the replies in a thread.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns every reply in the thread the top-level message `messageId` starts, oldest first, each with its author, mentions, and whether you may edit or delete it. Returns 404 when the record, the message or its thread does not exist or you cannot read it.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DiscussionMessageDto>> GetRepliesAsync(string channelType, System.Guid ownerId, System.Guid messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Reply in a thread.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replies in the thread the top-level message `messageId` starts and returns the reply's id. The reply takes the thread's kind — a reply under an internal note is an internal note — and has no subject; replies go one level deep, so `messageId` must start a thread. `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Returns 403 when you may not write in that thread, 404 when the record or message does not exist or you cannot read it, and 400 when the conversation is locked, `messageId` is itself a reply, or it starts a thread of internal notes and they are turned off for the record's scope. Requires your account to be linked to an employee.
+        /// </remarks>
+        /// <returns>Created</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Guid> ReplyAsync(string channelType, System.Guid ownerId, System.Guid messageId, ReplyToDiscussionMessageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Edit your own message.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replaces the subject and text of a message you wrote, keeping the version it replaces as a revision; nothing is recorded when nothing changed. `subject` must be blank on a reply in a thread. Returns 403 when you are not the author or may no longer write that kind of message, 404 when the record or message does not exist or you cannot read it, 400 when the message was deleted or the conversation is locked, and 409 when the message was edited or deleted at the same moment. Requires your account to be linked to an employee.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task EditMessageAsync(string channelType, System.Guid ownerId, System.Guid messageId, EditDiscussionMessageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Delete a message, leaving a tombstone.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Deletes a message: its subject, text, earlier versions and mentions are removed, and a tombstone naming who deleted it and when stays in the conversation, so a thread is never quietly rewritten. You may delete your own message; a moderator may delete anyone's. Returns 403 when you may not delete it, 404 when the record or message does not exist or you cannot read it, 400 when it was already deleted, and 409 when it was edited at the same moment. Requires your account to be linked to an employee.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task DeleteMessageAsync(string channelType, System.Guid ownerId, System.Guid messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the earlier versions of a message.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns every version of the message its edits replaced, newest first, each with its `subject`, `body` and when it was `replacedOn`. Empty for a message never edited, or deleted. Returns 404 when the record or message does not exist or you cannot read it.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DiscussionMessageRevisionDto>> GetRevisionsAsync(string channelType, System.Guid ownerId, System.Guid messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Lock a record's conversation.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Locks the conversation: nothing can be posted, replied or edited until it is unlocked. Locking a record nobody has posted on opens its conversation locked. Moderators only: returns 403 otherwise, 404 when the record does not exist or you cannot read it, 400 when it is already locked, and 409 when the conversation changed at the same moment. Requires your account to be linked to an employee.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task LockAsync(string channelType, System.Guid ownerId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Unlock a record's conversation.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Unlocks the conversation so people can post again. Moderators only: returns 403 otherwise, 404 when the record does not exist or you cannot read it, 400 when it is not locked, and 409 when the conversation changed at the same moment. Requires your account to be linked to an employee.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task UnlockAsync(string channelType, System.Guid ownerId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DiscussionsClient : IDiscussionsClient
+    {
+        #pragma warning disable 8618
+        private string _baseUrl;
+        #pragma warning restore 8618
+
+        private System.Net.Http.HttpClient _httpClient;
+        private static System.Lazy<System.Text.Json.JsonSerializerOptions> _settings = new System.Lazy<System.Text.Json.JsonSerializerOptions>(CreateSerializerSettings, true);
+        private System.Text.Json.JsonSerializerOptions _instanceSettings;
+
+    #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public DiscussionsClient(string baseUrl, System.Net.Http.HttpClient httpClient)
+    #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            BaseUrl = baseUrl;
+            _httpClient = httpClient;
+            Initialize();
+        }
+
+        private static System.Text.Json.JsonSerializerOptions CreateSerializerSettings()
+        {
+            var settings = new System.Text.Json.JsonSerializerOptions();
+            UpdateJsonSerializerSettings(settings);
+            return settings;
+        }
+
+        public string BaseUrl
+        {
+            get { return _baseUrl; }
+            set
+            {
+                _baseUrl = value;
+                if (!string.IsNullOrEmpty(_baseUrl) && !_baseUrl.EndsWith("/"))
+                    _baseUrl += '/';
+            }
+        }
+
+        protected System.Text.Json.JsonSerializerOptions JsonSerializerSettings { get { return _instanceSettings ?? _settings.Value; } }
+
+        static partial void UpdateJsonSerializerSettings(System.Text.Json.JsonSerializerOptions settings);
+
+        partial void Initialize();
+
+        partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, string url);
+        partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, System.Text.StringBuilder urlBuilder);
+        partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get what you may do in a record's conversation.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns `canPost`, `canPostInternal` (false means you are offered no internal notes at all), `canModerate` (lock the conversation and delete anyone's message), whether the conversation `isLocked`, and how many threads (`threadCount`) and messages (`messageCount`, threads and replies together) you can read, leaving out deleted ones and any internal notes you may not read. Read its messages from the entries endpoint. A record nobody has posted on is an empty, unlocked conversation. Returns 404 when the record does not exist or you cannot read it.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<DiscussionDto> GetDiscussionAsync(string channelType, System.Guid ownerId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (channelType == null)
+                throw new System.ArgumentNullException("channelType");
+
+            if (ownerId == null)
+                throw new System.ArgumentNullException("ownerId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/discussions/{channelType}/{ownerId}"
+                    urlBuilder_.Append("api/discussions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(channelType, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append('/');
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(ownerId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<DiscussionDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get one page of a record's conversation.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns one page of entries: top-level messages and, unless `messagesOnly` is true, the record's activity between them, as its Activity section shows it to you (activity older than the record's latest 2,000 entries is left out). Each entry has a `type` (`Message` or `Activity`), a `timestamp`, and its `message` or `activity`. A thread's replies are not in the page; each message carries `replyCount`, `lastReplyOn` and `recentRepliers`, and the replies come from the replies endpoint. Internal notes appear only if you may read them. `order` is `OldestFirst` (default) or `NewestFirst`; pass the previous page's `nextCursor` as `before` for the next page; `pageSize` counts top-level messages and is at most 500. Returns 404 when the record does not exist or you cannot read it.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<CursorPageOfDiscussionEntryDto> GetEntriesAsync(string channelType, System.Guid ownerId, string? before = null, int? pageSize = null, DiscussionOrder? order = null, bool? messagesOnly = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (channelType == null)
+                throw new System.ArgumentNullException("channelType");
+
+            if (ownerId == null)
+                throw new System.ArgumentNullException("ownerId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/discussions/{channelType}/{ownerId}/entries"
+                    urlBuilder_.Append("api/discussions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(channelType, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append('/');
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(ownerId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/entries");
+                    urlBuilder_.Append('?');
+                    if (before != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("before")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(before, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (pageSize != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("pageSize")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageSize, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (order != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("order")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(order, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (messagesOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("messagesOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(messagesOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<CursorPageOfDiscussionEntryDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Post a message that starts a thread in a record's conversation.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Posts a top-level message, opening the conversation if nobody has posted on the record yet, and returns its id. `kind` is `Public` (everyone who can read the conversation) or `InternalNote` (its internal audience only); `subject` is optional, at most 200 characters; `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Mentions you may not make are dropped. Returns 403 when you may not post that kind of message, 404 when the record does not exist or you cannot read it, 400 when the conversation is locked or internal notes are turned off for the record's scope, and 409 when someone else opened the conversation at the same moment (post again). Requires your account to be linked to an employee.
+        /// </remarks>
+        /// <returns>Created</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Guid> PostMessageAsync(string channelType, System.Guid ownerId, PostDiscussionMessageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (channelType == null)
+                throw new System.ArgumentNullException("channelType");
+
+            if (ownerId == null)
+                throw new System.ArgumentNullException("ownerId");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/discussions/{channelType}/{ownerId}/messages"
+                    urlBuilder_.Append("api/discussions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(channelType, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append('/');
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(ownerId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/messages");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 201)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 403)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Forbidden", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the replies in a thread.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns every reply in the thread the top-level message `messageId` starts, oldest first, each with its author, mentions, and whether you may edit or delete it. Returns 404 when the record, the message or its thread does not exist or you cannot read it.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DiscussionMessageDto>> GetRepliesAsync(string channelType, System.Guid ownerId, System.Guid messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (channelType == null)
+                throw new System.ArgumentNullException("channelType");
+
+            if (ownerId == null)
+                throw new System.ArgumentNullException("ownerId");
+
+            if (messageId == null)
+                throw new System.ArgumentNullException("messageId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/discussions/{channelType}/{ownerId}/messages/{messageId}/replies"
+                    urlBuilder_.Append("api/discussions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(channelType, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append('/');
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(ownerId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/messages/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(messageId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/replies");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<DiscussionMessageDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Reply in a thread.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replies in the thread the top-level message `messageId` starts and returns the reply's id. The reply takes the thread's kind — a reply under an internal note is an internal note — and has no subject; replies go one level deep, so `messageId` must start a thread. `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Returns 403 when you may not write in that thread, 404 when the record or message does not exist or you cannot read it, and 400 when the conversation is locked, `messageId` is itself a reply, or it starts a thread of internal notes and they are turned off for the record's scope. Requires your account to be linked to an employee.
+        /// </remarks>
+        /// <returns>Created</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Guid> ReplyAsync(string channelType, System.Guid ownerId, System.Guid messageId, ReplyToDiscussionMessageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (channelType == null)
+                throw new System.ArgumentNullException("channelType");
+
+            if (ownerId == null)
+                throw new System.ArgumentNullException("ownerId");
+
+            if (messageId == null)
+                throw new System.ArgumentNullException("messageId");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/discussions/{channelType}/{ownerId}/messages/{messageId}/replies"
+                    urlBuilder_.Append("api/discussions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(channelType, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append('/');
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(ownerId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/messages/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(messageId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/replies");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 201)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 403)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Forbidden", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Edit your own message.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replaces the subject and text of a message you wrote, keeping the version it replaces as a revision; nothing is recorded when nothing changed. `subject` must be blank on a reply in a thread. Returns 403 when you are not the author or may no longer write that kind of message, 404 when the record or message does not exist or you cannot read it, 400 when the message was deleted or the conversation is locked, and 409 when the message was edited or deleted at the same moment. Requires your account to be linked to an employee.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task EditMessageAsync(string channelType, System.Guid ownerId, System.Guid messageId, EditDiscussionMessageRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (channelType == null)
+                throw new System.ArgumentNullException("channelType");
+
+            if (ownerId == null)
+                throw new System.ArgumentNullException("ownerId");
+
+            if (messageId == null)
+                throw new System.ArgumentNullException("messageId");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/discussions/{channelType}/{ownerId}/messages/{messageId}"
+                    urlBuilder_.Append("api/discussions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(channelType, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append('/');
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(ownerId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/messages/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(messageId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 403)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Forbidden", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Delete a message, leaving a tombstone.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Deletes a message: its subject, text, earlier versions and mentions are removed, and a tombstone naming who deleted it and when stays in the conversation, so a thread is never quietly rewritten. You may delete your own message; a moderator may delete anyone's. Returns 403 when you may not delete it, 404 when the record or message does not exist or you cannot read it, 400 when it was already deleted, and 409 when it was edited at the same moment. Requires your account to be linked to an employee.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task DeleteMessageAsync(string channelType, System.Guid ownerId, System.Guid messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (channelType == null)
+                throw new System.ArgumentNullException("channelType");
+
+            if (ownerId == null)
+                throw new System.ArgumentNullException("ownerId");
+
+            if (messageId == null)
+                throw new System.ArgumentNullException("messageId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("DELETE");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/discussions/{channelType}/{ownerId}/messages/{messageId}"
+                    urlBuilder_.Append("api/discussions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(channelType, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append('/');
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(ownerId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/messages/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(messageId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 403)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Forbidden", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the earlier versions of a message.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns every version of the message its edits replaced, newest first, each with its `subject`, `body` and when it was `replacedOn`. Empty for a message never edited, or deleted. Returns 404 when the record or message does not exist or you cannot read it.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DiscussionMessageRevisionDto>> GetRevisionsAsync(string channelType, System.Guid ownerId, System.Guid messageId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (channelType == null)
+                throw new System.ArgumentNullException("channelType");
+
+            if (ownerId == null)
+                throw new System.ArgumentNullException("ownerId");
+
+            if (messageId == null)
+                throw new System.ArgumentNullException("messageId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/discussions/{channelType}/{ownerId}/messages/{messageId}/revisions"
+                    urlBuilder_.Append("api/discussions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(channelType, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append('/');
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(ownerId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/messages/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(messageId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/revisions");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<DiscussionMessageRevisionDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Lock a record's conversation.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Locks the conversation: nothing can be posted, replied or edited until it is unlocked. Locking a record nobody has posted on opens its conversation locked. Moderators only: returns 403 otherwise, 404 when the record does not exist or you cannot read it, 400 when it is already locked, and 409 when the conversation changed at the same moment. Requires your account to be linked to an employee.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task LockAsync(string channelType, System.Guid ownerId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (channelType == null)
+                throw new System.ArgumentNullException("channelType");
+
+            if (ownerId == null)
+                throw new System.ArgumentNullException("ownerId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/discussions/{channelType}/{ownerId}/lock"
+                    urlBuilder_.Append("api/discussions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(channelType, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append('/');
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(ownerId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/lock");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 403)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Forbidden", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Unlock a record's conversation.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Unlocks the conversation so people can post again. Moderators only: returns 403 otherwise, 404 when the record does not exist or you cannot read it, 400 when it is not locked, and 409 when the conversation changed at the same moment. Requires your account to be linked to an employee.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task UnlockAsync(string channelType, System.Guid ownerId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (channelType == null)
+                throw new System.ArgumentNullException("channelType");
+
+            if (ownerId == null)
+                throw new System.ArgumentNullException("ownerId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("DELETE");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/discussions/{channelType}/{ownerId}/lock"
+                    urlBuilder_.Append("api/discussions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(channelType, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append('/');
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(ownerId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/lock");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 403)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Forbidden", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        protected struct ObjectResponseResult<T>
+        {
+            public ObjectResponseResult(T responseObject, string responseText)
+            {
+                this.Object = responseObject;
+                this.Text = responseText;
+            }
+
+            public T Object { get; }
+
+            public string Text { get; }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static System.Threading.Tasks.Task<string> ReadAsStringAsync(System.Net.Http.HttpContent content, System.Threading.CancellationToken cancellationToken)
+        {
+    #if NET5_0_OR_GREATER
+            return content.ReadAsStringAsync(cancellationToken);
+    #else
+            return content.ReadAsStringAsync();
+    #endif
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static System.Threading.Tasks.Task<System.IO.Stream> ReadAsStreamAsync(System.Net.Http.HttpContent content, System.Threading.CancellationToken cancellationToken)
+        {
+    #if NET5_0_OR_GREATER
+            return content.ReadAsStreamAsync(cancellationToken);
+    #else
+            return content.ReadAsStreamAsync();
+    #endif
+        }
+
+        public bool ReadResponseAsString { get; set; }
+
+        protected virtual async System.Threading.Tasks.Task<ObjectResponseResult<T>> ReadObjectResponseAsync<T>(System.Net.Http.HttpResponseMessage response, System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IEnumerable<string>> headers, System.Threading.CancellationToken cancellationToken)
+        {
+            if (response == null || response.Content == null)
+            {
+                return new ObjectResponseResult<T>(default(T)!, string.Empty);
+            }
+
+            if (ReadResponseAsString)
+            {
+                var responseText = await ReadAsStringAsync(response.Content, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    var typedBody = System.Text.Json.JsonSerializer.Deserialize<T>(responseText, JsonSerializerSettings);
+                    return new ObjectResponseResult<T>(typedBody!, responseText);
+                }
+                catch (System.Text.Json.JsonException exception)
+                {
+                    var message = "Could not deserialize the response body string as " + typeof(T).FullName + ".";
+                    throw new WaydApiException(message, (int)response.StatusCode, responseText, headers, exception);
+                }
+            }
+            else
+            {
+                try
+                {
+                    using (var responseStream = await ReadAsStreamAsync(response.Content, cancellationToken).ConfigureAwait(false))
+                    {
+                        var typedBody = await System.Text.Json.JsonSerializer.DeserializeAsync<T>(responseStream, JsonSerializerSettings, cancellationToken).ConfigureAwait(false);
+                        return new ObjectResponseResult<T>(typedBody!, string.Empty);
+                    }
+                }
+                catch (System.Text.Json.JsonException exception)
+                {
+                    var message = "Could not deserialize the response body stream as " + typeof(T).FullName + ".";
+                    throw new WaydApiException(message, (int)response.StatusCode, string.Empty, headers, exception);
+                }
+            }
+        }
+
+        private string ConvertToString(object? value, System.Globalization.CultureInfo cultureInfo)
+        {
+            if (value == null)
+            {
+                return "";
+            }
+
+            if (value is System.Enum)
+            {
+                var name = System.Enum.GetName(value.GetType(), value);
+                if (name != null)
+                {
+                    var field_ = System.Reflection.IntrospectionExtensions.GetTypeInfo(value.GetType()).GetDeclaredField(name);
+                    if (field_ != null)
+                    {
+                        var attribute = System.Reflection.CustomAttributeExtensions.GetCustomAttribute(field_, typeof(System.Runtime.Serialization.EnumMemberAttribute)) 
+                            as System.Runtime.Serialization.EnumMemberAttribute;
+                        if (attribute != null)
+                        {
+                            return attribute.Value != null ? attribute.Value : name;
+                        }
+                    }
+
+                    var converted = System.Convert.ToString(System.Convert.ChangeType(value, System.Enum.GetUnderlyingType(value.GetType()), cultureInfo));
+                    return converted == null ? string.Empty : converted;
+                }
+            }
+            else if (value is bool) 
+            {
+                return System.Convert.ToString((bool)value, cultureInfo).ToLowerInvariant();
+            }
+            else if (value is byte[])
+            {
+                return System.Convert.ToBase64String((byte[]) value);
+            }
+            else if (value is string[])
+            {
+                return string.Join(",", (string[])value);
+            }
+            else if (value.GetType().IsArray)
+            {
+                var valueArray = (System.Array)value;
+                var valueTextArray = new string[valueArray.Length];
+                for (var i = 0; i < valueArray.Length; i++)
+                {
+                    valueTextArray[i] = ConvertToString(valueArray.GetValue(i), cultureInfo);
+                }
+                return string.Join(",", valueTextArray);
+            }
+
+            var result = System.Convert.ToString(value, cultureInfo);
+            return result == null ? "" : result;
+        }
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial interface IDiscussionSettingsClient
+    {
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get how conversations behave in a scope.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for intake requests, whose scope is a desk. `scopeId` is the scope's id, such as the desk's; leave it out for the default every scope without settings of its own follows. A `channelType` whose conversations have no settings returns 404. Returns the settings in effect — the scope's own, else the default — whether they are inherited, which settings the kind of record supports, and whether you may change them (`canManage`). `mentionsGrantAccess` false means only the people who already have a record can be mentioned in its conversation. Returns 404 when the scope does not exist or you cannot see it.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<DiscussionSettingsDto> GetSettingsAsync(string channelType, System.Guid? scopeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Save how conversations behave in a scope.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for intake requests, whose scope is a desk. `scopeId` is the scope's id, such as the desk's; leave it out for the default every scope without settings of its own follows. A `channelType` whose conversations have no settings returns 404. Saves the settings and records each change, with its previous value, in the Activity log; nothing is recorded when nothing changed. Saving the values a scope would inherit leaves it following the default, removing settings of its own if it had them, so later changes to the default reach it. Turning internal notes off stops new notes only: existing notes stay readable to their audience. Returns 403 when you may not change them — a desk's are changed by its Desk Admins and the Demand Management Admin, the default by the Demand Management Admin — 404 when the scope does not exist or you cannot see it, 400 when a setting is one the kind of record does not support, and 409 when someone saved at the same moment.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SaveSettingsAsync(string channelType, SaveDiscussionSettingsRequest request, System.Guid? scopeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DiscussionSettingsClient : IDiscussionSettingsClient
+    {
+        #pragma warning disable 8618
+        private string _baseUrl;
+        #pragma warning restore 8618
+
+        private System.Net.Http.HttpClient _httpClient;
+        private static System.Lazy<System.Text.Json.JsonSerializerOptions> _settings = new System.Lazy<System.Text.Json.JsonSerializerOptions>(CreateSerializerSettings, true);
+        private System.Text.Json.JsonSerializerOptions _instanceSettings;
+
+    #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public DiscussionSettingsClient(string baseUrl, System.Net.Http.HttpClient httpClient)
+    #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            BaseUrl = baseUrl;
+            _httpClient = httpClient;
+            Initialize();
+        }
+
+        private static System.Text.Json.JsonSerializerOptions CreateSerializerSettings()
+        {
+            var settings = new System.Text.Json.JsonSerializerOptions();
+            UpdateJsonSerializerSettings(settings);
+            return settings;
+        }
+
+        public string BaseUrl
+        {
+            get { return _baseUrl; }
+            set
+            {
+                _baseUrl = value;
+                if (!string.IsNullOrEmpty(_baseUrl) && !_baseUrl.EndsWith("/"))
+                    _baseUrl += '/';
+            }
+        }
+
+        protected System.Text.Json.JsonSerializerOptions JsonSerializerSettings { get { return _instanceSettings ?? _settings.Value; } }
+
+        static partial void UpdateJsonSerializerSettings(System.Text.Json.JsonSerializerOptions settings);
+
+        partial void Initialize();
+
+        partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, string url);
+        partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, System.Text.StringBuilder urlBuilder);
+        partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get how conversations behave in a scope.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for intake requests, whose scope is a desk. `scopeId` is the scope's id, such as the desk's; leave it out for the default every scope without settings of its own follows. A `channelType` whose conversations have no settings returns 404. Returns the settings in effect — the scope's own, else the default — whether they are inherited, which settings the kind of record supports, and whether you may change them (`canManage`). `mentionsGrantAccess` false means only the people who already have a record can be mentioned in its conversation. Returns 404 when the scope does not exist or you cannot see it.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<DiscussionSettingsDto> GetSettingsAsync(string channelType, System.Guid? scopeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (channelType == null)
+                throw new System.ArgumentNullException("channelType");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/discussion-settings/{channelType}"
+                    urlBuilder_.Append("api/discussion-settings/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(channelType, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append('?');
+                    if (scopeId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("scopeId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(scopeId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<DiscussionSettingsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Save how conversations behave in a scope.
+        /// </summary>
+        /// <remarks>
+        /// `channelType` names the kind of record — `demand.intake-request` for intake requests, whose scope is a desk. `scopeId` is the scope's id, such as the desk's; leave it out for the default every scope without settings of its own follows. A `channelType` whose conversations have no settings returns 404. Saves the settings and records each change, with its previous value, in the Activity log; nothing is recorded when nothing changed. Saving the values a scope would inherit leaves it following the default, removing settings of its own if it had them, so later changes to the default reach it. Turning internal notes off stops new notes only: existing notes stay readable to their audience. Returns 403 when you may not change them — a desk's are changed by its Desk Admins and the Demand Management Admin, the default by the Demand Management Admin — 404 when the scope does not exist or you cannot see it, 400 when a setting is one the kind of record does not support, and 409 when someone saved at the same moment.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SaveSettingsAsync(string channelType, SaveDiscussionSettingsRequest request, System.Guid? scopeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (channelType == null)
+                throw new System.ArgumentNullException("channelType");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/discussion-settings/{channelType}"
+                    urlBuilder_.Append("api/discussion-settings/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(channelType, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append('?');
+                    if (scopeId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("scopeId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(scopeId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 403)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Forbidden", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        protected struct ObjectResponseResult<T>
+        {
+            public ObjectResponseResult(T responseObject, string responseText)
+            {
+                this.Object = responseObject;
+                this.Text = responseText;
+            }
+
+            public T Object { get; }
+
+            public string Text { get; }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static System.Threading.Tasks.Task<string> ReadAsStringAsync(System.Net.Http.HttpContent content, System.Threading.CancellationToken cancellationToken)
+        {
+    #if NET5_0_OR_GREATER
+            return content.ReadAsStringAsync(cancellationToken);
+    #else
+            return content.ReadAsStringAsync();
+    #endif
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static System.Threading.Tasks.Task<System.IO.Stream> ReadAsStreamAsync(System.Net.Http.HttpContent content, System.Threading.CancellationToken cancellationToken)
+        {
+    #if NET5_0_OR_GREATER
+            return content.ReadAsStreamAsync(cancellationToken);
+    #else
+            return content.ReadAsStreamAsync();
+    #endif
+        }
+
+        public bool ReadResponseAsString { get; set; }
+
+        protected virtual async System.Threading.Tasks.Task<ObjectResponseResult<T>> ReadObjectResponseAsync<T>(System.Net.Http.HttpResponseMessage response, System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IEnumerable<string>> headers, System.Threading.CancellationToken cancellationToken)
+        {
+            if (response == null || response.Content == null)
+            {
+                return new ObjectResponseResult<T>(default(T)!, string.Empty);
+            }
+
+            if (ReadResponseAsString)
+            {
+                var responseText = await ReadAsStringAsync(response.Content, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    var typedBody = System.Text.Json.JsonSerializer.Deserialize<T>(responseText, JsonSerializerSettings);
+                    return new ObjectResponseResult<T>(typedBody!, responseText);
+                }
+                catch (System.Text.Json.JsonException exception)
+                {
+                    var message = "Could not deserialize the response body string as " + typeof(T).FullName + ".";
+                    throw new WaydApiException(message, (int)response.StatusCode, responseText, headers, exception);
+                }
+            }
+            else
+            {
+                try
+                {
+                    using (var responseStream = await ReadAsStreamAsync(response.Content, cancellationToken).ConfigureAwait(false))
+                    {
+                        var typedBody = await System.Text.Json.JsonSerializer.DeserializeAsync<T>(responseStream, JsonSerializerSettings, cancellationToken).ConfigureAwait(false);
+                        return new ObjectResponseResult<T>(typedBody!, string.Empty);
+                    }
+                }
+                catch (System.Text.Json.JsonException exception)
+                {
+                    var message = "Could not deserialize the response body stream as " + typeof(T).FullName + ".";
+                    throw new WaydApiException(message, (int)response.StatusCode, string.Empty, headers, exception);
+                }
+            }
+        }
+
+        private string ConvertToString(object? value, System.Globalization.CultureInfo cultureInfo)
+        {
+            if (value == null)
+            {
+                return "";
+            }
+
+            if (value is System.Enum)
+            {
+                var name = System.Enum.GetName(value.GetType(), value);
+                if (name != null)
+                {
+                    var field_ = System.Reflection.IntrospectionExtensions.GetTypeInfo(value.GetType()).GetDeclaredField(name);
+                    if (field_ != null)
+                    {
+                        var attribute = System.Reflection.CustomAttributeExtensions.GetCustomAttribute(field_, typeof(System.Runtime.Serialization.EnumMemberAttribute)) 
+                            as System.Runtime.Serialization.EnumMemberAttribute;
+                        if (attribute != null)
+                        {
+                            return attribute.Value != null ? attribute.Value : name;
+                        }
+                    }
+
+                    var converted = System.Convert.ToString(System.Convert.ChangeType(value, System.Enum.GetUnderlyingType(value.GetType()), cultureInfo));
+                    return converted == null ? string.Empty : converted;
+                }
+            }
+            else if (value is bool) 
+            {
+                return System.Convert.ToString((bool)value, cultureInfo).ToLowerInvariant();
+            }
+            else if (value is byte[])
+            {
+                return System.Convert.ToBase64String((byte[]) value);
+            }
+            else if (value is string[])
+            {
+                return string.Join(",", (string[])value);
+            }
+            else if (value.GetType().IsArray)
+            {
+                var valueArray = (System.Array)value;
+                var valueTextArray = new string[valueArray.Length];
+                for (var i = 0; i < valueArray.Length; i++)
+                {
+                    valueTextArray[i] = ConvertToString(valueArray.GetValue(i), cultureInfo);
+                }
+                return string.Join(",", valueTextArray);
+            }
+
+            var result = System.Convert.ToString(value, cultureInfo);
+            return result == null ? "" : result;
+        }
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial interface IFeatureFlagsClient
     {
 
@@ -1081,7 +3152,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetWorkItemsAsync(System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetWorkItemsAsync(System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -1403,7 +3474,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetWorkItemsAsync(System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetWorkItemsAsync(System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -7608,11 +9679,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Search for a work item using its key or title.
         /// </summary>
         /// <remarks>
-        /// Searches every workspace: `query` matches part of a work item's key, its parent's key, or its title (a word prefix when full-text search is available). Returns at most `top` work items (default 50) in key order. Each result's `workspace` key and `key` are what the other work item tools take.
+        /// Searches every workspace: `query` matches part of a work item's key, its parent's key, or its title (a word prefix when full-text search is available). Returns at most `top` work items (default 50) in key order. `tier` keeps only work items whose type is in that tier (`Portfolio` finds the epics and features a project can be linked to), and is applied before `top`. Each result's `workspace` key and `key` are what the other work item tools take.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> SearchWorkItemsAsync(string? query = null, int? top = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> SearchWorkItemsAsync(string? query = null, int? top = null, WorkTypeTier? tier = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -8795,11 +10866,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Search for a work item using its key or title.
         /// </summary>
         /// <remarks>
-        /// Searches every workspace: `query` matches part of a work item's key, its parent's key, or its title (a word prefix when full-text search is available). Returns at most `top` work items (default 50) in key order. Each result's `workspace` key and `key` are what the other work item tools take.
+        /// Searches every workspace: `query` matches part of a work item's key, its parent's key, or its title (a word prefix when full-text search is available). Returns at most `top` work items (default 50) in key order. `tier` keeps only work items whose type is in that tier (`Portfolio` finds the epics and features a project can be linked to), and is applied before `top`. Each result's `workspace` key and `key` are what the other work item tools take.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> SearchWorkItemsAsync(string? query = null, int? top = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> SearchWorkItemsAsync(string? query = null, int? top = null, WorkTypeTier? tier = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -8822,6 +10893,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (top != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("top")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(top, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (tier != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("tier")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(tier, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -25772,6 +27847,886 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial interface IIncidentSeveritySetsClient
+    {
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// List incident severity sets and their ordered levels.
+        /// </summary>
+        /// <remarks>
+        /// Returns every scale and which one is selected for the organization. Pass `includeInactive=true` to include deactivated custom scales. System scales cannot be edited or deleted.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IncidentSeveritySetDto>> GetSetsAsync(bool? includeInactive = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Create a custom incident severity set.
+        /// </summary>
+        /// <remarks>
+        /// Requires at least two level names, ordered most severe first.
+        /// </remarks>
+        /// <returns>Created</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Guid> CreateAsync(CreateIncidentSeveritySetRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get one incident severity set.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<IncidentSeveritySetDto> GetSetAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Update a custom severity set.
+        /// </summary>
+        /// <remarks>
+        /// Replaces name, description, and the full ordered level list. Omitting an existing level id removes that level unless an incident still uses it. Refused on system sets.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateIncidentSeveritySetRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Delete a custom severity set.
+        /// </summary>
+        /// <remarks>
+        /// Refused for system sets, the selected set, or when an incident still uses a level in the set.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Activate or deactivate a custom severity set.
+        /// </summary>
+        /// <remarks>
+        /// Only custom sets that are not the organization default may be deactivated. The selected set cannot be deactivated.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetActiveStatusAsync(System.Guid id, SetIncidentSeveritySetActiveStatusRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Select which severity set new incidents use.
+        /// </summary>
+        /// <remarks>
+        /// Changes the levels offered when opening an incident. Incidents already open keep the level they were given.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SelectSetAsync(SelectIncidentSeveritySetRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IncidentSeveritySetsClient : IIncidentSeveritySetsClient
+    {
+        #pragma warning disable 8618
+        private string _baseUrl;
+        #pragma warning restore 8618
+
+        private System.Net.Http.HttpClient _httpClient;
+        private static System.Lazy<System.Text.Json.JsonSerializerOptions> _settings = new System.Lazy<System.Text.Json.JsonSerializerOptions>(CreateSerializerSettings, true);
+        private System.Text.Json.JsonSerializerOptions _instanceSettings;
+
+    #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public IncidentSeveritySetsClient(string baseUrl, System.Net.Http.HttpClient httpClient)
+    #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            BaseUrl = baseUrl;
+            _httpClient = httpClient;
+            Initialize();
+        }
+
+        private static System.Text.Json.JsonSerializerOptions CreateSerializerSettings()
+        {
+            var settings = new System.Text.Json.JsonSerializerOptions();
+            UpdateJsonSerializerSettings(settings);
+            return settings;
+        }
+
+        public string BaseUrl
+        {
+            get { return _baseUrl; }
+            set
+            {
+                _baseUrl = value;
+                if (!string.IsNullOrEmpty(_baseUrl) && !_baseUrl.EndsWith("/"))
+                    _baseUrl += '/';
+            }
+        }
+
+        protected System.Text.Json.JsonSerializerOptions JsonSerializerSettings { get { return _instanceSettings ?? _settings.Value; } }
+
+        static partial void UpdateJsonSerializerSettings(System.Text.Json.JsonSerializerOptions settings);
+
+        partial void Initialize();
+
+        partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, string url);
+        partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, System.Text.StringBuilder urlBuilder);
+        partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// List incident severity sets and their ordered levels.
+        /// </summary>
+        /// <remarks>
+        /// Returns every scale and which one is selected for the organization. Pass `includeInactive=true` to include deactivated custom scales. System scales cannot be edited or deleted.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IncidentSeveritySetDto>> GetSetsAsync(bool? includeInactive = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/incident-severity-sets"
+                    urlBuilder_.Append("api/product-management/incident-severity-sets");
+                    urlBuilder_.Append('?');
+                    if (includeInactive != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("includeInactive")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(includeInactive, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<IncidentSeveritySetDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Create a custom incident severity set.
+        /// </summary>
+        /// <remarks>
+        /// Requires at least two level names, ordered most severe first.
+        /// </remarks>
+        /// <returns>Created</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Guid> CreateAsync(CreateIncidentSeveritySetRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/incident-severity-sets"
+                    urlBuilder_.Append("api/product-management/incident-severity-sets");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 201)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get one incident severity set.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<IncidentSeveritySetDto> GetSetAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/incident-severity-sets/{id}"
+                    urlBuilder_.Append("api/product-management/incident-severity-sets/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<IncidentSeveritySetDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Update a custom severity set.
+        /// </summary>
+        /// <remarks>
+        /// Replaces name, description, and the full ordered level list. Omitting an existing level id removes that level unless an incident still uses it. Refused on system sets.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateIncidentSeveritySetRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/incident-severity-sets/{id}"
+                    urlBuilder_.Append("api/product-management/incident-severity-sets/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Delete a custom severity set.
+        /// </summary>
+        /// <remarks>
+        /// Refused for system sets, the selected set, or when an incident still uses a level in the set.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("DELETE");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/incident-severity-sets/{id}"
+                    urlBuilder_.Append("api/product-management/incident-severity-sets/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Activate or deactivate a custom severity set.
+        /// </summary>
+        /// <remarks>
+        /// Only custom sets that are not the organization default may be deactivated. The selected set cannot be deactivated.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetActiveStatusAsync(System.Guid id, SetIncidentSeveritySetActiveStatusRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/incident-severity-sets/{id}/active"
+                    urlBuilder_.Append("api/product-management/incident-severity-sets/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/active");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Select which severity set new incidents use.
+        /// </summary>
+        /// <remarks>
+        /// Changes the levels offered when opening an incident. Incidents already open keep the level they were given.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SelectSetAsync(SelectIncidentSeveritySetRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/incident-severity-sets/selection"
+                    urlBuilder_.Append("api/product-management/incident-severity-sets/selection");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        protected struct ObjectResponseResult<T>
+        {
+            public ObjectResponseResult(T responseObject, string responseText)
+            {
+                this.Object = responseObject;
+                this.Text = responseText;
+            }
+
+            public T Object { get; }
+
+            public string Text { get; }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static System.Threading.Tasks.Task<string> ReadAsStringAsync(System.Net.Http.HttpContent content, System.Threading.CancellationToken cancellationToken)
+        {
+    #if NET5_0_OR_GREATER
+            return content.ReadAsStringAsync(cancellationToken);
+    #else
+            return content.ReadAsStringAsync();
+    #endif
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static System.Threading.Tasks.Task<System.IO.Stream> ReadAsStreamAsync(System.Net.Http.HttpContent content, System.Threading.CancellationToken cancellationToken)
+        {
+    #if NET5_0_OR_GREATER
+            return content.ReadAsStreamAsync(cancellationToken);
+    #else
+            return content.ReadAsStreamAsync();
+    #endif
+        }
+
+        public bool ReadResponseAsString { get; set; }
+
+        protected virtual async System.Threading.Tasks.Task<ObjectResponseResult<T>> ReadObjectResponseAsync<T>(System.Net.Http.HttpResponseMessage response, System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IEnumerable<string>> headers, System.Threading.CancellationToken cancellationToken)
+        {
+            if (response == null || response.Content == null)
+            {
+                return new ObjectResponseResult<T>(default(T)!, string.Empty);
+            }
+
+            if (ReadResponseAsString)
+            {
+                var responseText = await ReadAsStringAsync(response.Content, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    var typedBody = System.Text.Json.JsonSerializer.Deserialize<T>(responseText, JsonSerializerSettings);
+                    return new ObjectResponseResult<T>(typedBody!, responseText);
+                }
+                catch (System.Text.Json.JsonException exception)
+                {
+                    var message = "Could not deserialize the response body string as " + typeof(T).FullName + ".";
+                    throw new WaydApiException(message, (int)response.StatusCode, responseText, headers, exception);
+                }
+            }
+            else
+            {
+                try
+                {
+                    using (var responseStream = await ReadAsStreamAsync(response.Content, cancellationToken).ConfigureAwait(false))
+                    {
+                        var typedBody = await System.Text.Json.JsonSerializer.DeserializeAsync<T>(responseStream, JsonSerializerSettings, cancellationToken).ConfigureAwait(false);
+                        return new ObjectResponseResult<T>(typedBody!, string.Empty);
+                    }
+                }
+                catch (System.Text.Json.JsonException exception)
+                {
+                    var message = "Could not deserialize the response body stream as " + typeof(T).FullName + ".";
+                    throw new WaydApiException(message, (int)response.StatusCode, string.Empty, headers, exception);
+                }
+            }
+        }
+
+        private string ConvertToString(object? value, System.Globalization.CultureInfo cultureInfo)
+        {
+            if (value == null)
+            {
+                return "";
+            }
+
+            if (value is System.Enum)
+            {
+                var name = System.Enum.GetName(value.GetType(), value);
+                if (name != null)
+                {
+                    var field_ = System.Reflection.IntrospectionExtensions.GetTypeInfo(value.GetType()).GetDeclaredField(name);
+                    if (field_ != null)
+                    {
+                        var attribute = System.Reflection.CustomAttributeExtensions.GetCustomAttribute(field_, typeof(System.Runtime.Serialization.EnumMemberAttribute)) 
+                            as System.Runtime.Serialization.EnumMemberAttribute;
+                        if (attribute != null)
+                        {
+                            return attribute.Value != null ? attribute.Value : name;
+                        }
+                    }
+
+                    var converted = System.Convert.ToString(System.Convert.ChangeType(value, System.Enum.GetUnderlyingType(value.GetType()), cultureInfo));
+                    return converted == null ? string.Empty : converted;
+                }
+            }
+            else if (value is bool) 
+            {
+                return System.Convert.ToString((bool)value, cultureInfo).ToLowerInvariant();
+            }
+            else if (value is byte[])
+            {
+                return System.Convert.ToBase64String((byte[]) value);
+            }
+            else if (value is string[])
+            {
+                return string.Join(",", (string[])value);
+            }
+            else if (value.GetType().IsArray)
+            {
+                var valueArray = (System.Array)value;
+                var valueTextArray = new string[valueArray.Length];
+                for (var i = 0; i < valueArray.Length; i++)
+                {
+                    valueTextArray[i] = ConvertToString(valueArray.GetValue(i), cultureInfo);
+                }
+                return string.Join(",", valueTextArray);
+            }
+
+            var result = System.Convert.ToString(value, cultureInfo);
+            return result == null ? "" : result;
+        }
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial interface IProductsClient
     {
 
@@ -26096,6 +29051,82 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task RemoveDependencyAsync(System.Guid id, System.Guid dependencyId, RemoveProductDependencyRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the teams linked to a product.
+        /// </summary>
+        /// <remarks>
+        /// Accepts the product's UUID or its short key.
+        /// <br/>
+        /// <br/>**Rolled up across everything beneath the product**: a team linked to one of its children is listed too, and `product` says which product the link is on — a row whose `product` is not the one you asked for is inherited from below it. `productPath` gives that product's ancestry, root first, down to its parent. A team linked at more than one level appears once per link.
+        /// <br/>
+        /// <br/>A link says only that the team works on the product, not that it owns or supports it. `team.type` says whether it is a `Team` or a `TeamOfTeams`. An empty answer means no team has been linked, not that no team works on it — links are entered by hand.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProductTeamLinkDto>> GetTeamsAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the products a team or team of teams is linked to.
+        /// </summary>
+        /// <remarks>
+        /// Only the team's own links: a team of teams does not inherit the products its teams are linked to. Each row carries the `product` and its `productPath` (root first, down to its parent). An unknown team id returns an empty list.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProductTeamLinkDto>> GetTeamProductsAsync(System.Guid teamId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set the products a team or team of teams is linked to.
+        /// </summary>
+        /// <remarks>
+        /// **Replaces the team's links as a whole**: the team is linked to every product in `productIds` and **unlinked from every product not in it** — read the current set with `Products_GetTeamProducts` first, and send it back with your change. An empty list unlinks the team from everything.
+        /// <br/>
+        /// <br/>All or nothing across every product it touches, and each product records its own linking or unlinking in its Activity. The team must be active to be linked to a new product; an inactive team can still be unlinked. At most 500 products. Link the **most specific products** the team works on, since each product's teams roll up to its ancestors.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetTeamProductsAsync(System.Guid teamId, SetTeamProductsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Link a team or team of teams to a product.
+        /// </summary>
+        /// <remarks>
+        /// Any number of teams may be linked to a product, and a team to any number of products. A link says only that the team works on the product — there is no owner and no role. Link the **most specific product** the team works on, since the product's teams roll up to every ancestor.
+        /// <br/>
+        /// <br/>The team must be active. Linking a team that is already linked succeeds and changes nothing.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task LinkTeamAsync(System.Guid id, System.Guid teamId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Unlink a team or team of teams from a product.
+        /// </summary>
+        /// <remarks>
+        /// Succeeds whether or not the team was linked, and an inactive team can still be unlinked. `id` is the product the link is on — on a rolled-up row from `Products_GetTeams`, the row's `product`, not the product you read. The product's Activity keeps the unlinking.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task UnlinkTeamAsync(System.Guid id, System.Guid teamId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set the teams and teams of teams linked to a product.
+        /// </summary>
+        /// <remarks>
+        /// **Replaces the product's own team links as a whole**: every team in `teamIds` is linked and **every team not in it is unlinked** — read the current set first (`Products_GetProduct` carries the product's own `teams`) and send it back with your change. An empty list unlinks them all. Teams linked to the products beneath it are not affected.
+        /// <br/>
+        /// <br/>All or nothing: when a team cannot be linked — it is inactive, or does not exist — nothing changes, and the refusal names it. An inactive team already linked can stay. At most 100 teams. To add or remove one team, `Products_LinkTeam` and `Products_UnlinkTeam` touch only that team; to set the products of one team, use `Products_SetTeamProducts`.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetTeamsAsync(System.Guid id, SetProductTeamsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -28681,6 +31712,575 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
             }
         }
 
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the teams linked to a product.
+        /// </summary>
+        /// <remarks>
+        /// Accepts the product's UUID or its short key.
+        /// <br/>
+        /// <br/>**Rolled up across everything beneath the product**: a team linked to one of its children is listed too, and `product` says which product the link is on — a row whose `product` is not the one you asked for is inherited from below it. `productPath` gives that product's ancestry, root first, down to its parent. A team linked at more than one level appears once per link.
+        /// <br/>
+        /// <br/>A link says only that the team works on the product, not that it owns or supports it. `team.type` says whether it is a `Team` or a `TeamOfTeams`. An empty answer means no team has been linked, not that no team works on it — links are entered by hand.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProductTeamLinkDto>> GetTeamsAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/products/{idOrKey}/teams"
+                    urlBuilder_.Append("api/product-management/products/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/teams");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<ProductTeamLinkDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the products a team or team of teams is linked to.
+        /// </summary>
+        /// <remarks>
+        /// Only the team's own links: a team of teams does not inherit the products its teams are linked to. Each row carries the `product` and its `productPath` (root first, down to its parent). An unknown team id returns an empty list.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProductTeamLinkDto>> GetTeamProductsAsync(System.Guid teamId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (teamId == null)
+                throw new System.ArgumentNullException("teamId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/products/by-team/{teamId}"
+                    urlBuilder_.Append("api/product-management/products/by-team/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(teamId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<ProductTeamLinkDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set the products a team or team of teams is linked to.
+        /// </summary>
+        /// <remarks>
+        /// **Replaces the team's links as a whole**: the team is linked to every product in `productIds` and **unlinked from every product not in it** — read the current set with `Products_GetTeamProducts` first, and send it back with your change. An empty list unlinks the team from everything.
+        /// <br/>
+        /// <br/>All or nothing across every product it touches, and each product records its own linking or unlinking in its Activity. The team must be active to be linked to a new product; an inactive team can still be unlinked. At most 500 products. Link the **most specific products** the team works on, since each product's teams roll up to its ancestors.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetTeamProductsAsync(System.Guid teamId, SetTeamProductsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (teamId == null)
+                throw new System.ArgumentNullException("teamId");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/products/by-team/{teamId}"
+                    urlBuilder_.Append("api/product-management/products/by-team/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(teamId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Link a team or team of teams to a product.
+        /// </summary>
+        /// <remarks>
+        /// Any number of teams may be linked to a product, and a team to any number of products. A link says only that the team works on the product — there is no owner and no role. Link the **most specific product** the team works on, since the product's teams roll up to every ancestor.
+        /// <br/>
+        /// <br/>The team must be active. Linking a team that is already linked succeeds and changes nothing.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task LinkTeamAsync(System.Guid id, System.Guid teamId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (teamId == null)
+                throw new System.ArgumentNullException("teamId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/products/{id}/teams/{teamId}"
+                    urlBuilder_.Append("api/product-management/products/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(teamId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Unlink a team or team of teams from a product.
+        /// </summary>
+        /// <remarks>
+        /// Succeeds whether or not the team was linked, and an inactive team can still be unlinked. `id` is the product the link is on — on a rolled-up row from `Products_GetTeams`, the row's `product`, not the product you read. The product's Activity keeps the unlinking.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task UnlinkTeamAsync(System.Guid id, System.Guid teamId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (teamId == null)
+                throw new System.ArgumentNullException("teamId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("DELETE");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/products/{id}/teams/{teamId}"
+                    urlBuilder_.Append("api/product-management/products/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(teamId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set the teams and teams of teams linked to a product.
+        /// </summary>
+        /// <remarks>
+        /// **Replaces the product's own team links as a whole**: every team in `teamIds` is linked and **every team not in it is unlinked** — read the current set first (`Products_GetProduct` carries the product's own `teams`) and send it back with your change. An empty list unlinks them all. Teams linked to the products beneath it are not affected.
+        /// <br/>
+        /// <br/>All or nothing: when a team cannot be linked — it is inactive, or does not exist — nothing changes, and the refusal names it. An inactive team already linked can stay. At most 100 teams. To add or remove one team, `Products_LinkTeam` and `Products_UnlinkTeam` touch only that team; to set the products of one team, use `Products_SetTeamProducts`.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetTeamsAsync(System.Guid id, SetProductTeamsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/products/{id}/teams"
+                    urlBuilder_.Append("api/product-management/products/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/teams");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
         protected struct ObjectResponseResult<T>
         {
             public ObjectResponseResult(T responseObject, string responseText)
@@ -30121,6 +33721,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get whether free tags are turned on for products.
+        /// </summary>
+        /// <remarks>
+        /// Read-only, for whoever tags products: the same `allowsFreeTags` the product tag system settings hold, readable without the system settings permission. Changed through the system settings.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ProductTagSettingsDto> GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Rename a free tag or change its description.
         /// </summary>
         /// <remarks>
@@ -30273,6 +33884,83 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<ProductTagListItemDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get whether free tags are turned on for products.
+        /// </summary>
+        /// <remarks>
+        /// Read-only, for whoever tags products: the same `allowsFreeTags` the product tag system settings hold, readable without the system settings permission. Changed through the system settings.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ProductTagSettingsDto> GetSettingsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/product-tags/settings"
+                    urlBuilder_.Append("api/product-management/product-tags/settings");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProductTagSettingsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -44782,6 +48470,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Link work items to a project.
+        /// </summary>
+        /// <remarks>
+        /// `id` is the project's UUID; `workItemIds` are work item UUIDs from any workspace, at most 100, and keys are not accepted. Only Portfolio-tier work items (epics, features) can be linked: find them with `Workspaces_SearchWorkItems` and `tier=Portfolio`. A work item already on another project moves to this one, so confirm with the user first. Work items beneath a linked item that have no project of their own inherit it, and one beneath it already linked to this project directly now inherits that link instead, so it leaves when its parent does. The listed work items all change or none do. Requires the Manage Project Work Items permission only, not delivery leadership.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task AddWorkItemsAsync(System.Guid id, ProjectWorkItemsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Unlink work items from a project.
+        /// </summary>
+        /// <remarks>
+        /// `id` is the project's UUID; `workItemIds` are work item UUIDs, at most 100. Each must be linked directly to the project: a work item that inherits the project from its parent is refused, and leaves the project only when its parent does. An unlinked work item inherits its parent's project, if any, and the work items beneath it follow. The listed work items all change or none do. Requires the Manage Project Work Items permission only, not delivery leadership.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task RemoveWorkItemsAsync(System.Guid id, ProjectWorkItemsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Forecast when a project's work items will be done, by Monte Carlo simulation of each team's recent throughput and each work item's backlog position and open predecessors.
         /// </summary>
         /// <remarks>
@@ -47442,6 +51152,212 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Link work items to a project.
+        /// </summary>
+        /// <remarks>
+        /// `id` is the project's UUID; `workItemIds` are work item UUIDs from any workspace, at most 100, and keys are not accepted. Only Portfolio-tier work items (epics, features) can be linked: find them with `Workspaces_SearchWorkItems` and `tier=Portfolio`. A work item already on another project moves to this one, so confirm with the user first. Work items beneath a linked item that have no project of their own inherit it, and one beneath it already linked to this project directly now inherits that link instead, so it leaves when its parent does. The listed work items all change or none do. Requires the Manage Project Work Items permission only, not delivery leadership.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task AddWorkItemsAsync(System.Guid id, ProjectWorkItemsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/ppm/projects/{id}/work-items"
+                    urlBuilder_.Append("api/ppm/projects/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/work-items");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Unlink work items from a project.
+        /// </summary>
+        /// <remarks>
+        /// `id` is the project's UUID; `workItemIds` are work item UUIDs, at most 100. Each must be linked directly to the project: a work item that inherits the project from its parent is refused, and leaves the project only when its parent does. An unlinked work item inherits its parent's project, if any, and the work items beneath it follow. The listed work items all change or none do. Requires the Manage Project Work Items permission only, not delivery leadership.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task RemoveWorkItemsAsync(System.Guid id, ProjectWorkItemsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/ppm/projects/{id}/work-items/remove"
+                    urlBuilder_.Append("api/ppm/projects/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/work-items/remove");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -53828,7 +57744,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of estimation scales.
         /// </summary>
         /// <remarks>
-        /// Sorted by name. Each scale has an integer `id`, `name`, `description`, `isActive` and its ordered `values`. Only active scales are listed unless `includeInactive` is true. Requires the planning-poker feature flag; returns 404 when it is off.
+        /// Sorted by name. Each scale has its `id` (a UUID), `key`, `name`, `description`, `isActive` and `currentVersion`: the `number` and ordered `values` new sessions vote on, each with `isEstimate`, false for a card such as `?` that can be voted but never becomes an estimate. Only active scales are listed unless `includeInactive` is true. Requires the planning-poker feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -53839,55 +57755,55 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a custom estimation scale.
         /// </summary>
         /// <remarks>
-        /// `values` are the cards in the order they are shown: at least 2, each at most 32 characters. The new scale is active. Returns its integer id.
+        /// `values` are the cards in the order they are shown, each a `value` of at most 32 characters, unique on the scale, and `isEstimate`: false for a card such as `?` that can be voted but never becomes an estimate. At least 2 must be estimates. The new scale is active, with these values as version 1. Returns its `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<int> CreateAsync(CreateEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Get estimation scale details.
         /// </summary>
         /// <remarks>
-        /// Takes the scale's integer id. Returns the scale, active or not, with its ordered `values`.
+        /// Takes the scale's UUID or key. Returns the scale, active or not, with its `currentVersion` and every published version in `versions`, newest first. A version never changes once published.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<EstimationScaleDto> GetScaleAsync(int id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<EstimationScaleDetailsDto> GetScaleAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Update a custom estimation scale.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite: `name`, `description` and `values` are all set from the body, so an omitted `description` is cleared and `values` replaces the whole list. Read the scale with EstimationScales_GetScale first and pass back what should stay. Applies to any scale, including the ones Wayd seeds, and every session on the scale shows the new values, completed ones included. Takes the scale's integer id, in the path and again as `estimationScaleId` in the body.
+        /// A whole-record overwrite: `name`, `description` and `values` are all set from the body, so an omitted `description` is cleared. Read the scale with EstimationScales_GetScale first and pass back what should stay. Values that differ from the current version's, in text, `isEstimate` or order, publish the next version; the same values publish nothing. A published version never changes, so sessions already on the scale keep voting on the version they were created on, and only sessions created afterwards use the new one. Renaming or editing the description publishes no version. Applies to any scale, including the ones Wayd seeds. Takes the scale's UUID, in the path and again as `id` in the body.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task UpdateAsync(int id, UpdateEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Delete a custom estimation scale.
         /// </summary>
         /// <remarks>
-        /// Permanently deletes the scale. Refused while any poker session uses it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's integer id.
+        /// Permanently deletes the scale with all its versions. Refused while any poker session uses it, while an intake desk estimates on it or an intake request was estimated on it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task DeleteAsync(int id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Set the active status of an estimation scale.
         /// </summary>
         /// <remarks>
-        /// `isActive` false takes the scale out of the default list, which is what new sessions are chosen from, without changing sessions that use it; true brings it back. Fails when the scale already has that status, and the last active scale cannot be deactivated. Takes the scale's integer id, in the path and again as `id` in the body.
+        /// `isActive` false takes the scale out of the default list, which is what new sessions are chosen from, without changing sessions that use it; true brings it back. Publishes no version. Fails when the scale already has that status, and the last active scale cannot be deactivated. Takes the scale's UUID, in the path and again as `id` in the body.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task SetActiveStatusAsync(int id, SetEstimationScaleActiveStatusRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task SetActiveStatusAsync(System.Guid id, SetEstimationScaleActiveStatusRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -53944,7 +57860,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of estimation scales.
         /// </summary>
         /// <remarks>
-        /// Sorted by name. Each scale has an integer `id`, `name`, `description`, `isActive` and its ordered `values`. Only active scales are listed unless `includeInactive` is true. Requires the planning-poker feature flag; returns 404 when it is off.
+        /// Sorted by name. Each scale has its `id` (a UUID), `key`, `name`, `description`, `isActive` and `currentVersion`: the `number` and ordered `values` new sessions vote on, each with `isEstimate`, false for a card such as `?` that can be voted but never becomes an estimate. Only active scales are listed unless `includeInactive` is true. Requires the planning-poker feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -54037,11 +57953,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a custom estimation scale.
         /// </summary>
         /// <remarks>
-        /// `values` are the cards in the order they are shown: at least 2, each at most 32 characters. The new scale is active. Returns its integer id.
+        /// `values` are the cards in the order they are shown, each a `value` of at most 32 characters, unique on the scale, and `isEstimate`: false for a card such as `?` that can be voted but never becomes an estimate. At least 2 must be estimates. The new scale is active, with these values as version 1. Returns its `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<int> CreateAsync(CreateEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (request == null)
                 throw new System.ArgumentNullException("request");
@@ -54089,7 +58005,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 201)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<int>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<ObjectIdAndKey>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -54131,14 +58047,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get estimation scale details.
         /// </summary>
         /// <remarks>
-        /// Takes the scale's integer id. Returns the scale, active or not, with its ordered `values`.
+        /// Takes the scale's UUID or key. Returns the scale, active or not, with its `currentVersion` and every published version in `versions`, newest first. A version never changes once published.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<EstimationScaleDto> GetScaleAsync(int id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<EstimationScaleDetailsDto> GetScaleAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
-            if (id == null)
-                throw new System.ArgumentNullException("id");
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
 
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -54151,9 +58067,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/planning/estimation-scales/{id}"
+                    // Operation Path: "api/planning/estimation-scales/{idOrKey}"
                     urlBuilder_.Append("api/planning/estimation-scales/");
-                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -54180,7 +58096,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<EstimationScaleDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<EstimationScaleDetailsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -54222,11 +58138,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a custom estimation scale.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite: `name`, `description` and `values` are all set from the body, so an omitted `description` is cleared and `values` replaces the whole list. Read the scale with EstimationScales_GetScale first and pass back what should stay. Applies to any scale, including the ones Wayd seeds, and every session on the scale shows the new values, completed ones included. Takes the scale's integer id, in the path and again as `estimationScaleId` in the body.
+        /// A whole-record overwrite: `name`, `description` and `values` are all set from the body, so an omitted `description` is cleared. Read the scale with EstimationScales_GetScale first and pass back what should stay. Values that differ from the current version's, in text, `isEstimate` or order, publish the next version; the same values publish nothing. A published version never changes, so sessions already on the scale keep voting on the version they were created on, and only sessions created afterwards use the new one. Renaming or editing the description publishes no version. Applies to any scale, including the ones Wayd seeds. Takes the scale's UUID, in the path and again as `id` in the body.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task UpdateAsync(int id, UpdateEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -54324,11 +58240,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a custom estimation scale.
         /// </summary>
         /// <remarks>
-        /// Permanently deletes the scale. Refused while any poker session uses it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's integer id.
+        /// Permanently deletes the scale with all its versions. Refused while any poker session uses it, while an intake desk estimates on it or an intake request was estimated on it, or when it is the last active scale; deactivate it with EstimationScales_SetActiveStatus instead. Takes the scale's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task DeleteAsync(int id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -54409,11 +58325,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the active status of an estimation scale.
         /// </summary>
         /// <remarks>
-        /// `isActive` false takes the scale out of the default list, which is what new sessions are chosen from, without changing sessions that use it; true brings it back. Fails when the scale already has that status, and the last active scale cannot be deactivated. Takes the scale's integer id, in the path and again as `id` in the body.
+        /// `isActive` false takes the scale out of the default list, which is what new sessions are chosen from, without changing sessions that use it; true brings it back. Publishes no version. Fails when the scale already has that status, and the last active scale cannot be deactivated. Takes the scale's UUID, in the path and again as `id` in the body.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task SetActiveStatusAsync(int id, SetEstimationScaleActiveStatusRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task SetActiveStatusAsync(System.Guid id, SetEstimationScaleActiveStatusRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -54841,6 +58757,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<SprintBacklogItemDto>> GetBacklogAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the dependencies that cross team lines in a PI.
+        /// </summary>
+        /// <remarks>
+        /// The work item dependencies, not removed, where the predecessor (`source`) or the successor (`target`) is planned in a sprint mapped to any of the PI's iterations; the other end may be outside the PI. Intra-Team dependencies are left out, so each `scope` is Cross-Team, or Unknown when an end has no team. To Do, In Progress and Done are returned, matched on the predecessor's status; the open ones are To Do and In Progress. A dependency whose predecessor was removed is left out. Kanban work is in no sprint, so a dependency between two Kanban items is never included.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DependencyDto>> GetDependenciesAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -57243,6 +61170,108 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<SprintBacklogItemDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the dependencies that cross team lines in a PI.
+        /// </summary>
+        /// <remarks>
+        /// The work item dependencies, not removed, where the predecessor (`source`) or the successor (`target`) is planned in a sprint mapped to any of the PI's iterations; the other end may be outside the PI. Intra-Team dependencies are left out, so each `scope` is Cross-Team, or Unknown when an end has no team. To Do, In Progress and Done are returned, matched on the predecessor's status; the open ones are To Do and In Progress. A dependency whose predecessor was removed is left out. Kanban work is in no sprint, so a dependency between two Kanban items is never included.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DependencyDto>> GetDependenciesAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/planning-intervals/{idOrKey}/dependencies"
+                    urlBuilder_.Append("api/planning/planning-intervals/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/dependencies");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<DependencyDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -59715,7 +63744,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of poker sessions.
         /// </summary>
         /// <remarks>
-        /// Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `facilitator` and `roundCount`. Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.
+        /// Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (everyone who has joined, voting or not), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -59726,7 +63755,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a poker session.
         /// </summary>
         /// <remarks>
-        /// Starts an Active session, facilitated by the caller, that estimates on the scale `estimationScaleId` (an integer; EstimationScales_GetScales lists the active scales). The scale must be active; a session already on a scale that is later deactivated keeps working. It has no rounds yet; add them with PokerSessions_AddRound. Returns the new session's `id` and `key`.
+        /// Starts an Active session, with the caller as its first facilitator, that estimates on the scale `estimationScaleId` (a UUID; EstimationScales_GetScales lists the active scales). The scale must be active. The session is pinned to the scale's current version and stays on it when the scale later publishes a new version or is deactivated. `visibility` is `Public` (the default) or `Private`; `facilitatorIds` adds facilitators beside the caller, and `invitedEmployeeIds` and `invitedTeamIds` invite people to a private session (all employee or team UUIDs, all optional). It has no rounds yet; add them with PokerSessions_AddRound. The caller's account must be linked to an employee. Returns the new session's `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -59737,7 +63766,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get poker session details using the Id or key.
         /// </summary>
         /// <remarks>
-        /// Takes the session's UUID or key. Returns the session with its estimation scale and values, and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
+        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -59745,10 +63774,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the members of a team invited to a poker session.
+        /// </summary>
+        /// <remarks>
+        /// Lists the active direct members of `teamId`, a team the session invites, by employee `id`, `key` and `name`. An invited team admits its current members, and the members of its current team of teams, while the session is Private. Returns 404 when the caller cannot see the session, the session is Public (its invites admit no one), or the team is not invited. Both ids are UUIDs.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<EmployeeNavigationDto>> GetInvitedTeamMembersAsync(System.Guid id, System.Guid teamId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update a poker session.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale. A completed session cannot be updated. Takes the session's UUID.
+        /// A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it and the version the session is on, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale; changing it pins the session to that scale's current version. A completed session cannot be updated; visibility, facilitators and invites have their own tools. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -59759,7 +63799,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a poker session.
         /// </summary>
         /// <remarks>
-        /// Permanently deletes the session with all its rounds, votes and consensus estimates, whatever its status. To close a finished session but keep its results, use PokerSessions_CompleteSession. Takes the session's UUID.
+        /// Permanently deletes the session with all its rounds, votes and consensus estimates, whatever its status. To close a finished session but keep its results, use PokerSessions_CompleteSession. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -59770,7 +63810,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Complete a poker session.
         /// </summary>
         /// <remarks>
-        /// Moves an Active session to Completed. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.
+        /// Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -59781,7 +63821,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Add a round to a poker session.
         /// </summary>
         /// <remarks>
-        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.
+        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID. Returns the new round.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -59792,7 +63832,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Remove a round from a poker session.
         /// </summary>
         /// <remarks>
-        /// Deletes the round with its votes and consensus estimate. The session must be Active. Both ids are UUIDs.
+        /// Deletes the round with its votes and consensus estimate. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -59803,7 +63843,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Reveal votes for a round.
         /// </summary>
         /// <remarks>
-        /// Moves a round from Voting to Revealed, showing every vote; voting stays closed until the round is reset. The session must be Active. Both ids are UUIDs.
+        /// Moves a round from Voting to Revealed, showing every vote; voting stays closed until the round is reset. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -59814,7 +63854,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Reset a round to allow re-voting.
         /// </summary>
         /// <remarks>
-        /// Clears every vote and any consensus estimate and moves the round back to Voting, from Voting, Revealed or Accepted. The session must be Active. Both ids are UUIDs.
+        /// Clears every vote and any consensus estimate and moves the round back to Voting, from Voting, Revealed or Accepted. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -59825,7 +63865,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the consensus estimate for a round.
         /// </summary>
         /// <remarks>
-        /// Records the agreed `estimate` (at most 32 characters, normally one of the scale's values) and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Both ids are UUIDs.
+        /// Records the agreed `estimate`, which must be one of the values on the session's scale version, a card such as `?` included, and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -59836,7 +63876,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the label for a round.
         /// </summary>
         /// <remarks>
-        /// Replaces the round's `label`; an omitted or null label clears it. The session must be Active. Both ids are UUIDs.
+        /// Replaces the round's `label`; an omitted or null label clears it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -59844,10 +63884,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Update the description for a round.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task UpdateRoundDescriptionAsync(System.Guid id, System.Guid roundId, UpdatePokerRoundDescriptionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Submit a vote for a round.
         /// </summary>
         /// <remarks>
-        /// Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the session's scale values exactly as the scale lists them, special cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. Both ids are UUIDs.
+        /// Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. A caller who has not joined the session joins it, voting; a member who is not voting cannot vote until they turn voting on with PokerSessions_SetVoting. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -59863,6 +63914,61 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task WithdrawVoteAsync(System.Guid id, System.Guid roundId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who can see a poker session.
+        /// </summary>
+        /// <remarks>
+        /// `visibility` is `Public`, which anyone with the poker View permission can see and join, or `Private`, which only the session's facilitators, invited employees and the members of invited teams can. Making a session private disconnects anyone it no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetVisibilityAsync(System.Guid id, SetPokerSessionVisibilityRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set a poker session's facilitators.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the facilitators with `employeeIds` (employee UUIDs, at least one). Facilitators run the session: rounds, reveals, resets, consensus, details, visibility, invites, completion and deletion. A facilitator can remove themselves. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetFacilitatorsAsync(System.Guid id, SetPokerSessionFacilitatorsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who is invited to a poker session.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the invites with `employeeIds` and `teamIds` (UUIDs; empty lists remove every invite). Invites admit people only while the session is Private, and a team admits its current members and the members of its current team of teams. An invite grants access only: the person still needs the poker View permission, and chooses whether to vote. Removing an invite disconnects anyone the session no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetInviteesAsync(System.Guid id, SetPokerSessionInviteesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Join a poker session.
+        /// </summary>
+        /// <remarks>
+        /// Adds the caller to the session's members, voting unless `isVoting` is false. A member who is not voting takes part in the discussion but is left out of the voted and waiting totals. Joining again changes nothing; use PokerSessions_SetVoting to change whether the caller votes. Anyone the session admits can join: on a Public session anyone with the poker View permission, on a Private one its facilitators and invitees. Facilitators join like anyone else. The session must be Active, and the caller's account must be linked to an employee. Takes the session's UUID. Returns the caller's membership.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<PokerSessionMemberDto> JoinAsync(System.Guid id, JoinPokerSessionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Turn the caller's voting on or off in a poker session.
+        /// </summary>
+        /// <remarks>
+        /// Sets whether the caller votes (`isVoting`). Turning voting off withdraws the caller's votes in rounds not yet revealed and leaves them out of the voted and waiting totals; revealed rounds keep their votes. Turning it on lets them vote at once. The caller must have joined the session, which must be Active. Takes the session's UUID. Returns the caller's membership.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<PokerSessionMemberDto> SetVotingAsync(System.Guid id, SetPokerSessionVotingRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -59919,7 +64025,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of poker sessions.
         /// </summary>
         /// <remarks>
-        /// Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `facilitator` and `roundCount`. Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.
+        /// Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (everyone who has joined, voting or not), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -60012,7 +64118,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a poker session.
         /// </summary>
         /// <remarks>
-        /// Starts an Active session, facilitated by the caller, that estimates on the scale `estimationScaleId` (an integer; EstimationScales_GetScales lists the active scales). The scale must be active; a session already on a scale that is later deactivated keeps working. It has no rounds yet; add them with PokerSessions_AddRound. Returns the new session's `id` and `key`.
+        /// Starts an Active session, with the caller as its first facilitator, that estimates on the scale `estimationScaleId` (a UUID; EstimationScales_GetScales lists the active scales). The scale must be active. The session is pinned to the scale's current version and stays on it when the scale later publishes a new version or is deactivated. `visibility` is `Public` (the default) or `Private`; `facilitatorIds` adds facilitators beside the caller, and `invitedEmployeeIds` and `invitedTeamIds` invite people to a private session (all employee or team UUIDs, all optional). It has no rounds yet; add them with PokerSessions_AddRound. The caller's account must be linked to an employee. Returns the new session's `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -60106,7 +64212,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get poker session details using the Id or key.
         /// </summary>
         /// <remarks>
-        /// Takes the session's UUID or key. Returns the session with its estimation scale and values, and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
+        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -60194,10 +64300,107 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the members of a team invited to a poker session.
+        /// </summary>
+        /// <remarks>
+        /// Lists the active direct members of `teamId`, a team the session invites, by employee `id`, `key` and `name`. An invited team admits its current members, and the members of its current team of teams, while the session is Private. Returns 404 when the caller cannot see the session, the session is Public (its invites admit no one), or the team is not invited. Both ids are UUIDs.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<EmployeeNavigationDto>> GetInvitedTeamMembersAsync(System.Guid id, System.Guid teamId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (teamId == null)
+                throw new System.ArgumentNullException("teamId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/invited-teams/{teamId}/members"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/invited-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(teamId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/members");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<EmployeeNavigationDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update a poker session.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale. A completed session cannot be updated. Takes the session's UUID.
+        /// A whole-record overwrite of `name` and `estimationScaleId`: pass the current scale id to keep it and the version the session is on, even if that scale has since been deactivated. The scale can change only while the session has no rounds, and only to an active scale; changing it pins the session to that scale's current version. A completed session cannot be updated; visibility, facilitators and invites have their own tools. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -60289,7 +64492,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a poker session.
         /// </summary>
         /// <remarks>
-        /// Permanently deletes the session with all its rounds, votes and consensus estimates, whatever its status. To close a finished session but keep its results, use PokerSessions_CompleteSession. Takes the session's UUID.
+        /// Permanently deletes the session with all its rounds, votes and consensus estimates, whatever its status. To close a finished session but keep its results, use PokerSessions_CompleteSession. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -60374,7 +64577,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Complete a poker session.
         /// </summary>
         /// <remarks>
-        /// Moves an Active session to Completed. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Takes the session's UUID.
+        /// Moves an Active session to Completed, deleting its empty rounds: those with no label, no description and no votes, such as the round opened automatically after an estimate is accepted. A completed session is read-only (no rounds, votes, reveals, resets, consensus or label changes) and cannot be reopened. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -60461,7 +64664,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Add a round to a poker session.
         /// </summary>
         /// <remarks>
-        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key. The round opens in Voting, after the session's other rounds. The session must be Active. Takes the session's UUID. Returns the new round.
+        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID. Returns the new round.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -60560,7 +64763,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Remove a round from a poker session.
         /// </summary>
         /// <remarks>
-        /// Deletes the round with its votes and consensus estimate. The session must be Active. Both ids are UUIDs.
+        /// Deletes the round with its votes and consensus estimate. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -60650,7 +64853,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Reveal votes for a round.
         /// </summary>
         /// <remarks>
-        /// Moves a round from Voting to Revealed, showing every vote; voting stays closed until the round is reset. The session must be Active. Both ids are UUIDs.
+        /// Moves a round from Voting to Revealed, showing every vote; voting stays closed until the round is reset. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -60742,7 +64945,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Reset a round to allow re-voting.
         /// </summary>
         /// <remarks>
-        /// Clears every vote and any consensus estimate and moves the round back to Voting, from Voting, Revealed or Accepted. The session must be Active. Both ids are UUIDs.
+        /// Clears every vote and any consensus estimate and moves the round back to Voting, from Voting, Revealed or Accepted. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -60834,7 +65037,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the consensus estimate for a round.
         /// </summary>
         /// <remarks>
-        /// Records the agreed `estimate` (at most 32 characters, normally one of the scale's values) and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Both ids are UUIDs.
+        /// Records the agreed `estimate`, which must be one of the values on the session's scale version, a card such as `?` included, and moves the round from Revealed to Accepted; the round must have been revealed. To change an accepted estimate, reset the round and vote again. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -60932,7 +65135,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the label for a round.
         /// </summary>
         /// <remarks>
-        /// Replaces the round's `label`; an omitted or null label clears it. The session must be Active. Both ids are UUIDs.
+        /// Replaces the round's `label`; an omitted or null label clears it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -61027,10 +65230,108 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Update the description for a round.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task UpdateRoundDescriptionAsync(System.Guid id, System.Guid roundId, UpdatePokerRoundDescriptionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (roundId == null)
+                throw new System.ArgumentNullException("roundId");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/rounds/{roundId}/description"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/rounds/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(roundId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/description");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Submit a vote for a round.
         /// </summary>
         /// <remarks>
-        /// Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the session's scale values exactly as the scale lists them, special cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. Both ids are UUIDs.
+        /// Casts or replaces the caller's own vote; a vote is always the signed-in user's, never someone else's. `value` must be one of the values on the session's scale version exactly as it lists them, cards such as `?` included (read them with PokerSessions_GetSession); any other value is refused. The round must be Voting and the session Active. A caller who has not joined the session joins it, voting; a member who is not voting cannot vote until they turn voting on with PokerSessions_SetVoting. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -61183,6 +65484,483 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 204)
                         {
                             return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who can see a poker session.
+        /// </summary>
+        /// <remarks>
+        /// `visibility` is `Public`, which anyone with the poker View permission can see and join, or `Private`, which only the session's facilitators, invited employees and the members of invited teams can. Making a session private disconnects anyone it no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetVisibilityAsync(System.Guid id, SetPokerSessionVisibilityRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/visibility"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/visibility");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set a poker session's facilitators.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the facilitators with `employeeIds` (employee UUIDs, at least one). Facilitators run the session: rounds, reveals, resets, consensus, details, visibility, invites, completion and deletion. A facilitator can remove themselves. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetFacilitatorsAsync(System.Guid id, SetPokerSessionFacilitatorsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/facilitators"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/facilitators");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who is invited to a poker session.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the invites with `employeeIds` and `teamIds` (UUIDs; empty lists remove every invite). Invites admit people only while the session is Private, and a team admits its current members and the members of its current team of teams. An invite grants access only: the person still needs the poker View permission, and chooses whether to vote. Removing an invite disconnects anyone the session no longer admits from its live updates. Allowed on an active or a completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetInviteesAsync(System.Guid id, SetPokerSessionInviteesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/invitees"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/invitees");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Join a poker session.
+        /// </summary>
+        /// <remarks>
+        /// Adds the caller to the session's members, voting unless `isVoting` is false. A member who is not voting takes part in the discussion but is left out of the voted and waiting totals. Joining again changes nothing; use PokerSessions_SetVoting to change whether the caller votes. Anyone the session admits can join: on a Public session anyone with the poker View permission, on a Private one its facilitators and invitees. Facilitators join like anyone else. The session must be Active, and the caller's account must be linked to an employee. Takes the session's UUID. Returns the caller's membership.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<PokerSessionMemberDto> JoinAsync(System.Guid id, JoinPokerSessionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/join"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/join");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<PokerSessionMemberDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Turn the caller's voting on or off in a poker session.
+        /// </summary>
+        /// <remarks>
+        /// Sets whether the caller votes (`isVoting`). Turning voting off withdraws the caller's votes in rounds not yet revealed and leaves them out of the voted and waiting totals; revealed rounds keep their votes. Turning it on lets them vote at once. The caller must have joined the session, which must be Active. Takes the session's UUID. Returns the caller's membership.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<PokerSessionMemberDto> SetVotingAsync(System.Guid id, SetPokerSessionVotingRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/voting"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/voting");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<PokerSessionMemberDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         if (status_ == 400)
@@ -61412,6 +66190,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateRiskRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Delete a risk.
+        /// </summary>
+        /// <remarks>
+        /// Takes the risk's UUID `id`. The risk disappears from every list and can no longer be read or updated; it cannot be restored through the API. To record that a risk is no longer being managed, close it with Risks_Update instead — deleting is for a risk that should not exist, such as a duplicate or one raised in error.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -62085,6 +66874,91 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Delete a risk.
+        /// </summary>
+        /// <remarks>
+        /// Takes the risk's UUID `id`. The risk disappears from every list and can no longer be read or updated; it cannot be restored through the API. To record that a risk is no longer being managed, close it with Risks_Update instead — deleting is for a risk that should not exist, such as a duplicate or one raised in error.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("DELETE");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/risks/{id}"
+                    urlBuilder_.Append("api/planning/risks/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Submit a csv file of risks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <returns>OK</returns>
@@ -62619,7 +67493,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a roadmap.
         /// </summary>
         /// <remarks>
-        /// `roadmapManagerIds` are employee UUIDs and must include the caller's own employee: only roadmap managers can change a roadmap. `visibilityId` is 1 Public (everyone can see it) or 2 Private (only its managers can); Roadmaps_GetVisibilityOptions lists them. `start` must be on or before `end`. The new roadmap is Active and has no items. Returns its `id` and `key`.
+        /// `ownerIds` are employee UUIDs and must include the caller's own employee: only a roadmap's owners, and Roadmaps administrators, can change it. `visibilityId` is 1 Public (everyone can see it) or 2 Private (only its owners and Roadmaps administrators can); Roadmaps_GetVisibilityOptions lists them. `start` must be on or before `end`. The new roadmap is Active and has no items. Returns its `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -62638,7 +67512,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Copy an existing roadmap.
         /// </summary>
         /// <remarks>
-        /// Creates a new Active roadmap with the source's description, dates and every item (activities, timeboxes and milestones, with their nesting, colors and order), under the given `name`, `roadmapManagerIds` and `visibilityId` (1 Public, 2 Private). The source's color legend is not copied. `sourceRoadmapId` is the source's UUID; it must be public or managed by the caller. `roadmapManagerIds` are employee UUIDs and must include the caller's own employee. The source is unchanged. Returns the copy's `id` and `key`.
+        /// Creates a new Active roadmap with the source's description, dates and every item (activities, timeboxes and milestones, with their nesting, colors and order), under the given `name`, `ownerIds` and `visibilityId` (1 Public, 2 Private). The source's color legend is not copied. `sourceRoadmapId` is the source's UUID; it must be public or owned by the caller, unless the caller is a Roadmaps administrator. `ownerIds` are employee UUIDs and must include the caller's own employee. The source is unchanged. Returns the copy's `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -62649,7 +67523,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a roadmap.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite of the name, description, dates, managers and visibility: an omitted `description` is cleared and `roadmapManagerIds` replaces the managers, so leaving a manager out removes them. Read the roadmap with Roadmaps_GetRoadmap first and pass back what should stay. The managers must include the caller's own employee, and only a manager can update. `visibilityId` is 1 Public or 2 Private. An archived roadmap cannot be changed; reactivate it first. Takes the roadmap's UUID, in the path and again as `id` in the body.
+        /// A whole-record overwrite of the name, description, dates, owners and visibility: an omitted `description` is cleared and `ownerIds` replaces the owners, so leaving an owner out removes them. Read the roadmap with Roadmaps_GetRoadmap first and pass back what should stay. Only an owner or a Roadmaps administrator can update, and an owner must keep their own employee among the owners. `visibilityId` is 1 Public or 2 Private. An archived roadmap cannot be changed; reactivate it first. Takes the roadmap's UUID, in the path and again as `id` in the body.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -62660,7 +67534,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a roadmap.
         /// </summary>
         /// <remarks>
-        /// Permanently deletes the roadmap and all its items. Only a manager can delete it, and an archived roadmap must be reactivated first; to retire a roadmap but keep it, use Roadmaps_ArchiveRoadmap instead. Takes the roadmap's UUID.
+        /// Permanently deletes the roadmap and all its items. Only an owner or a Roadmaps administrator can delete it, and an archived roadmap must be reactivated first; to retire a roadmap but keep it, use Roadmaps_ArchiveRoadmap instead. Takes the roadmap's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -62671,7 +67545,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the configured colors for a roadmap.
         /// </summary>
         /// <remarks>
-        /// Replaces the roadmap's color legend: `colors` is the complete set, each a hex `color` (e.g. #4096FF) with a caption `name` (at most 32 characters), an `order` and `isDefault`; a color left out is removed and an empty list clears the legend. At most 30 colors, at most one default, no color value twice. Items keep their own colors. Read the current legend with Roadmaps_GetRoadmap first. Only a manager of an active roadmap can change it. Takes the roadmap's UUID, in the path and again as `roadmapId` in the body.
+        /// Replaces the roadmap's color legend: `colors` is the complete set, each a hex `color` (e.g. #4096FF) with a caption `name` (at most 32 characters), an `order` and `isDefault`; a color left out is removed and an empty list clears the legend. At most 30 colors, at most one default, no color value twice. Items keep their own colors. Read the current legend with Roadmaps_GetRoadmap first. Only an owner of an active roadmap, or a Roadmaps administrator, can change it. Takes the roadmap's UUID, in the path and again as `roadmapId` in the body.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -62682,7 +67556,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Archive a roadmap.
         /// </summary>
         /// <remarks>
-        /// Moves an Active roadmap to Archived, keeping it and its items; an archived roadmap is read-only until reactivated with Roadmaps_ActivateRoadmap. Only a manager can archive it. Takes the roadmap's UUID.
+        /// Moves an Active roadmap to Archived, keeping it and its items; an archived roadmap is read-only until reactivated with Roadmaps_ActivateRoadmap. Only an owner or a Roadmaps administrator can archive it. Takes the roadmap's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -62693,7 +67567,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Activate a roadmap.
         /// </summary>
         /// <remarks>
-        /// Moves an Archived roadmap back to Active so it can be changed again. Only a manager can activate it. Takes the roadmap's UUID.
+        /// Moves an Archived roadmap back to Active so it can be changed again. Only an owner or a Roadmaps administrator can activate it. Takes the roadmap's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -62728,7 +67602,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a roadmap item of type: Activity, Timebox, Milestone.
         /// </summary>
         /// <remarks>
-        /// The body's `$type` picks the item type and must be its first property: "activity" or "timebox" with `start` and `end`, or "milestone" with `date`. Every type takes `roadmapId` (the roadmap's UUID, also in the path), `name`, and optional `description`, hex `color` and `parentId` — the UUID of an activity on the roadmap to nest the item under; only activities can be parents, and with no parent the item is top-level. Only a manager of an active roadmap can add items. Returns the new item's id.
+        /// The body's `$type` picks the item type and must be its first property: "activity" or "timebox" with `start` and `end`, or "milestone" with `date`. Every type takes `roadmapId` (the roadmap's UUID, also in the path), `name`, and optional `description`, hex `color` and `parentId` — the UUID of an activity on the roadmap to nest the item under; only activities can be parents, and with no parent the item is top-level. Only an owner of an active roadmap, or a Roadmaps administrator, can add items. Returns the new item's id.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -62739,7 +67613,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a roadmap item of type: Activity, Timebox, Milestone.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite: name, description, parent, color and dates are all set from the body, so an omitted `description` or `color` is cleared and an omitted `parentId` moves the item to the top level. Read the item with Roadmaps_GetItem first and pass back what should stay, or use Roadmaps_PatchItem to change only some fields. The body's `$type` must be its first property and match the item's type: "activity" or "timebox" with `start` and `end`, "milestone" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only a manager of an active roadmap can change it.
+        /// A whole-record overwrite: name, description, parent, color and dates are all set from the body, so an omitted `description` or `color` is cleared and an omitted `parentId` moves the item to the top level. Read the item with Roadmaps_GetItem first and pass back what should stay, or use Roadmaps_PatchItem to change only some fields. The body's `$type` must be its first property and match the item's type: "activity" or "timebox" with `start` and `end`, "milestone" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only an owner of an active roadmap, or a Roadmaps administrator, can change it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -62761,7 +67635,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a roadmap item.
         /// </summary>
         /// <remarks>
-        /// Deleting an activity also deletes everything nested under it, at every level; read the roadmap with Roadmaps_GetItems first to see what goes with it. Both ids are UUIDs. Only a manager of an active roadmap can delete items.
+        /// Deleting an activity also deletes everything nested under it, at every level; read the roadmap with Roadmaps_GetItems first to see what goes with it. Both ids are UUIDs. Only an owner of an active roadmap, or a Roadmaps administrator, can delete items.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -62772,7 +67646,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the date(s) on a roadmap item of type: Activity, Timebox, Milestone.
         /// </summary>
         /// <remarks>
-        /// Changes only the item's dates, leaving its other fields as they are. The body's `$type` must be its first property and match the item's type: "activity" or "timebox" with `start` and `end`, "milestone" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only a manager of an active roadmap can change it.
+        /// Changes only the item's dates, leaving its other fields as they are. The body's `$type` must be its first property and match the item's type: "activity" or "timebox" with `start` and `end`, "milestone" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only an owner of an active roadmap, or a Roadmaps administrator, can change it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -62783,7 +67657,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a roadmap activity's placement.
         /// </summary>
         /// <remarks>
-        /// Places an activity at `order` (1-based) among its siblings under `parentId`, the UUID of another activity, or at the top level when `parentId` is null. With the activity's current parent this reorders it; with a different one it moves it there, renumbering both sets of siblings. Activities only — a milestone or timebox moves to another parent through Roadmaps_UpdateItem or Roadmaps_PatchItem. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only a manager of an active roadmap can change it.
+        /// Places an activity at `order` (1-based) among its siblings under `parentId`, the UUID of another activity, or at the top level when `parentId` is null. With the activity's current parent this reorders it; with a different one it moves it there, renumbering both sets of siblings. Activities only — a milestone or timebox moves to another parent through Roadmaps_UpdateItem or Roadmaps_PatchItem. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only an owner of an active roadmap, or a Roadmaps administrator, can change it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -62950,7 +67824,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a roadmap.
         /// </summary>
         /// <remarks>
-        /// `roadmapManagerIds` are employee UUIDs and must include the caller's own employee: only roadmap managers can change a roadmap. `visibilityId` is 1 Public (everyone can see it) or 2 Private (only its managers can); Roadmaps_GetVisibilityOptions lists them. `start` must be on or before `end`. The new roadmap is Active and has no items. Returns its `id` and `key`.
+        /// `ownerIds` are employee UUIDs and must include the caller's own employee: only a roadmap's owners, and Roadmaps administrators, can change it. `visibilityId` is 1 Public (everyone can see it) or 2 Private (only its owners and Roadmaps administrators can); Roadmaps_GetVisibilityOptions lists them. `start` must be on or before `end`. The new roadmap is Active and has no items. Returns its `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63132,7 +68006,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Copy an existing roadmap.
         /// </summary>
         /// <remarks>
-        /// Creates a new Active roadmap with the source's description, dates and every item (activities, timeboxes and milestones, with their nesting, colors and order), under the given `name`, `roadmapManagerIds` and `visibilityId` (1 Public, 2 Private). The source's color legend is not copied. `sourceRoadmapId` is the source's UUID; it must be public or managed by the caller. `roadmapManagerIds` are employee UUIDs and must include the caller's own employee. The source is unchanged. Returns the copy's `id` and `key`.
+        /// Creates a new Active roadmap with the source's description, dates and every item (activities, timeboxes and milestones, with their nesting, colors and order), under the given `name`, `ownerIds` and `visibilityId` (1 Public, 2 Private). The source's color legend is not copied. `sourceRoadmapId` is the source's UUID; it must be public or owned by the caller, unless the caller is a Roadmaps administrator. `ownerIds` are employee UUIDs and must include the caller's own employee. The source is unchanged. Returns the copy's `id` and `key`.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63226,7 +68100,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a roadmap.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite of the name, description, dates, managers and visibility: an omitted `description` is cleared and `roadmapManagerIds` replaces the managers, so leaving a manager out removes them. Read the roadmap with Roadmaps_GetRoadmap first and pass back what should stay. The managers must include the caller's own employee, and only a manager can update. `visibilityId` is 1 Public or 2 Private. An archived roadmap cannot be changed; reactivate it first. Takes the roadmap's UUID, in the path and again as `id` in the body.
+        /// A whole-record overwrite of the name, description, dates, owners and visibility: an omitted `description` is cleared and `ownerIds` replaces the owners, so leaving an owner out removes them. Read the roadmap with Roadmaps_GetRoadmap first and pass back what should stay. Only an owner or a Roadmaps administrator can update, and an owner must keep their own employee among the owners. `visibilityId` is 1 Public or 2 Private. An archived roadmap cannot be changed; reactivate it first. Takes the roadmap's UUID, in the path and again as `id` in the body.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63328,7 +68202,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a roadmap.
         /// </summary>
         /// <remarks>
-        /// Permanently deletes the roadmap and all its items. Only a manager can delete it, and an archived roadmap must be reactivated first; to retire a roadmap but keep it, use Roadmaps_ArchiveRoadmap instead. Takes the roadmap's UUID.
+        /// Permanently deletes the roadmap and all its items. Only an owner or a Roadmaps administrator can delete it, and an archived roadmap must be reactivated first; to retire a roadmap but keep it, use Roadmaps_ArchiveRoadmap instead. Takes the roadmap's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63413,7 +68287,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the configured colors for a roadmap.
         /// </summary>
         /// <remarks>
-        /// Replaces the roadmap's color legend: `colors` is the complete set, each a hex `color` (e.g. #4096FF) with a caption `name` (at most 32 characters), an `order` and `isDefault`; a color left out is removed and an empty list clears the legend. At most 30 colors, at most one default, no color value twice. Items keep their own colors. Read the current legend with Roadmaps_GetRoadmap first. Only a manager of an active roadmap can change it. Takes the roadmap's UUID, in the path and again as `roadmapId` in the body.
+        /// Replaces the roadmap's color legend: `colors` is the complete set, each a hex `color` (e.g. #4096FF) with a caption `name` (at most 32 characters), an `order` and `isDefault`; a color left out is removed and an empty list clears the legend. At most 30 colors, at most one default, no color value twice. Items keep their own colors. Read the current legend with Roadmaps_GetRoadmap first. Only an owner of an active roadmap, or a Roadmaps administrator, can change it. Takes the roadmap's UUID, in the path and again as `roadmapId` in the body.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63516,7 +68390,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Archive a roadmap.
         /// </summary>
         /// <remarks>
-        /// Moves an Active roadmap to Archived, keeping it and its items; an archived roadmap is read-only until reactivated with Roadmaps_ActivateRoadmap. Only a manager can archive it. Takes the roadmap's UUID.
+        /// Moves an Active roadmap to Archived, keeping it and its items; an archived roadmap is read-only until reactivated with Roadmaps_ActivateRoadmap. Only an owner or a Roadmaps administrator can archive it. Takes the roadmap's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63603,7 +68477,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Activate a roadmap.
         /// </summary>
         /// <remarks>
-        /// Moves an Archived roadmap back to Active so it can be changed again. Only a manager can activate it. Takes the roadmap's UUID.
+        /// Moves an Archived roadmap back to Active so it can be changed again. Only an owner or a Roadmaps administrator can activate it. Takes the roadmap's UUID.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -63971,7 +68845,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a roadmap item of type: Activity, Timebox, Milestone.
         /// </summary>
         /// <remarks>
-        /// The body's `$type` picks the item type and must be its first property: "activity" or "timebox" with `start` and `end`, or "milestone" with `date`. Every type takes `roadmapId` (the roadmap's UUID, also in the path), `name`, and optional `description`, hex `color` and `parentId` — the UUID of an activity on the roadmap to nest the item under; only activities can be parents, and with no parent the item is top-level. Only a manager of an active roadmap can add items. Returns the new item's id.
+        /// The body's `$type` picks the item type and must be its first property: "activity" or "timebox" with `start` and `end`, or "milestone" with `date`. Every type takes `roadmapId` (the roadmap's UUID, also in the path), `name`, and optional `description`, hex `color` and `parentId` — the UUID of an activity on the roadmap to nest the item under; only activities can be parents, and with no parent the item is top-level. Only an owner of an active roadmap, or a Roadmaps administrator, can add items. Returns the new item's id.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64070,7 +68944,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a roadmap item of type: Activity, Timebox, Milestone.
         /// </summary>
         /// <remarks>
-        /// A whole-record overwrite: name, description, parent, color and dates are all set from the body, so an omitted `description` or `color` is cleared and an omitted `parentId` moves the item to the top level. Read the item with Roadmaps_GetItem first and pass back what should stay, or use Roadmaps_PatchItem to change only some fields. The body's `$type` must be its first property and match the item's type: "activity" or "timebox" with `start` and `end`, "milestone" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only a manager of an active roadmap can change it.
+        /// A whole-record overwrite: name, description, parent, color and dates are all set from the body, so an omitted `description` or `color` is cleared and an omitted `parentId` moves the item to the top level. Read the item with Roadmaps_GetItem first and pass back what should stay, or use Roadmaps_PatchItem to change only some fields. The body's `$type` must be its first property and match the item's type: "activity" or "timebox" with `start` and `end`, "milestone" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only an owner of an active roadmap, or a Roadmaps administrator, can change it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64294,7 +69168,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a roadmap item.
         /// </summary>
         /// <remarks>
-        /// Deleting an activity also deletes everything nested under it, at every level; read the roadmap with Roadmaps_GetItems first to see what goes with it. Both ids are UUIDs. Only a manager of an active roadmap can delete items.
+        /// Deleting an activity also deletes everything nested under it, at every level; read the roadmap with Roadmaps_GetItems first to see what goes with it. Both ids are UUIDs. Only an owner of an active roadmap, or a Roadmaps administrator, can delete items.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64384,7 +69258,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the date(s) on a roadmap item of type: Activity, Timebox, Milestone.
         /// </summary>
         /// <remarks>
-        /// Changes only the item's dates, leaving its other fields as they are. The body's `$type` must be its first property and match the item's type: "activity" or "timebox" with `start` and `end`, "milestone" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only a manager of an active roadmap can change it.
+        /// Changes only the item's dates, leaving its other fields as they are. The body's `$type` must be its first property and match the item's type: "activity" or "timebox" with `start` and `end`, "milestone" with `date`. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only an owner of an active roadmap, or a Roadmaps administrator, can change it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64492,7 +69366,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update a roadmap activity's placement.
         /// </summary>
         /// <remarks>
-        /// Places an activity at `order` (1-based) among its siblings under `parentId`, the UUID of another activity, or at the top level when `parentId` is null. With the activity's current parent this reorders it; with a different one it moves it there, renumbering both sets of siblings. Activities only — a milestone or timebox moves to another parent through Roadmaps_UpdateItem or Roadmaps_PatchItem. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only a manager of an active roadmap can change it.
+        /// Places an activity at `order` (1-based) among its siblings under `parentId`, the UUID of another activity, or at the top level when `parentId` is null. With the activity's current parent this reorders it; with a different one it moves it there, renumbering both sets of siblings. Activities only — a milestone or timebox moves to another parent through Roadmaps_UpdateItem or Roadmaps_PatchItem. Both ids are UUIDs, given in the path and again as `roadmapId` and `itemId` in the body. Only an owner of an active roadmap, or a Roadmaps administrator, can change it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64888,8 +69762,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of story maps (id, key, name, description, status, owner).
+        /// Get a list of story maps (id, key, name, description, status, owners, access).
         /// </summary>
+        /// <remarks>
+        /// Lists the maps the caller can see: every Public map, and the Private maps they own or edit, directly or through a team (all of them for a Story Maps administrator). Each entry has its `id`, `key`, `name`, `description`, `status`, `visibility` (Public or Private), `editAccess` (AnyoneWhoCanView or OwnersAndEditors), `owners`, `canManage` (whether the caller owns or administers it) and `canEdit` (whether the caller can change its content). Archived maps are left out unless `includeArchived` is true.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StoryMapListDto>> GetListAsync(bool? includeArchived = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -64899,7 +69776,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a story map.
         /// </summary>
         /// <remarks>
-        /// Returns the new map's ID and key.
+        /// Creates an empty map, with the caller as its first owner. `visibility` is `Public` (the default) or `Private`; `editAccess` is `AnyoneWhoCanView` (the default) or `OwnersAndEditors`; `ownerIds` adds owners beside the caller, and `editorIds` and `editorTeamIds` invite people and teams to edit (all employee or team UUIDs, all optional). The caller's account must be linked to an employee. Returns the new map's ID and key.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64909,14 +69786,31 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a story map in full: goals, each with ordered steps and tasks (including checklists, persona tags, and linked work item IDs), plus the map's swim lanes and personas.
         /// </summary>
+        /// <remarks>
+        /// Takes the map's UUID or key; returns 404 for a Private map the caller cannot see. Also returns its access: `visibility`, `editAccess`, `owners`, `editors`, `editorTeams`, `canManage` (whether the caller owns or administers it) and `canEdit` (whether the caller can change its goals, steps, tasks, swim lanes, personas, checklists and work item links). Check `canEdit` before changing content: the change tools refuse a caller who cannot edit.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<StoryMapDetailsDto> GetAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the members of a team invited to edit a story map.
+        /// </summary>
+        /// <remarks>
+        /// Lists the active direct members of `teamId`, one of the map's editor teams, by employee `id`, `key` and `name`. An editor team admits its current members, and the members of its current team of teams. Returns 404 when the caller cannot see the map or the team is not one of its editor teams. Both ids are UUIDs.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<EmployeeNavigationDto>> GetEditorTeamMembersAsync(System.Guid id, System.Guid teamId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update a story map's name and description.
         /// </summary>
+        /// <remarks>
+        /// An archived map cannot be updated. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateStoryMapRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -64926,7 +69820,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a story map and everything on it.
         /// </summary>
         /// <remarks>
-        /// This is permanent — prefer StoryMaps_ArchiveStoryMap unless deletion is explicitly intended.
+        /// This is permanent — prefer StoryMaps_ArchiveStoryMap unless deletion is explicitly intended. Only the map's owners, and holders of the Story Maps Administer permission, can do this.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -64934,16 +69828,55 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Change the owner of a story map.
+        /// Set a story map's owners.
         /// </summary>
+        /// <remarks>
+        /// Replaces the owners with `employeeIds` (employee UUIDs, at least one). Owners manage the map: its name and description, archiving, deletion, owners, editors, visibility and edit access. An owner can remove themselves. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ChangeOwnerAsync(System.Guid id, ChangeStoryMapOwnerRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task SetOwnersAsync(System.Guid id, SetStoryMapOwnersRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who is invited to edit a story map.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the editors with `employeeIds` and `teamIds` (UUIDs; empty lists remove every editor). Editors can see a Private map and change its content whatever its edit access; a team admits its current members and the members of its current team of teams. An editor still needs the Story Maps View permission. Removing an editor disconnects anyone the map no longer admits from its live updates. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetEditorsAsync(System.Guid id, SetStoryMapEditorsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who can see a story map.
+        /// </summary>
+        /// <remarks>
+        /// `visibility` is `Public`, which anyone with the Story Maps View permission can see, or `Private`, which only the map's owners, editors and the members of its editor teams can. Making a map private disconnects anyone it no longer admits from its live updates. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetVisibilityAsync(System.Guid id, SetStoryMapVisibilityRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who can edit a public story map.
+        /// </summary>
+        /// <remarks>
+        /// `editAccess` is `AnyoneWhoCanView`, which lets everyone who can see a Public map change its content, or `OwnersAndEditors`, which lets only its owners, editors and the members of its editor teams. A Private map admits only its owners and editors, so there it has no effect. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetEditAccessAsync(System.Guid id, SetStoryMapEditAccessRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Archive a story map.
         /// </summary>
+        /// <remarks>
+        /// An archived map is read-only and cannot be restored. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ArchiveAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -65341,8 +70274,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a list of story maps (id, key, name, description, status, owner).
+        /// Get a list of story maps (id, key, name, description, status, owners, access).
         /// </summary>
+        /// <remarks>
+        /// Lists the maps the caller can see: every Public map, and the Private maps they own or edit, directly or through a team (all of them for a Story Maps administrator). Each entry has its `id`, `key`, `name`, `description`, `status`, `visibility` (Public or Private), `editAccess` (AnyoneWhoCanView or OwnersAndEditors), `owners`, `canManage` (whether the caller owns or administers it) and `canEdit` (whether the caller can change its content). Archived maps are left out unless `includeArchived` is true.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<StoryMapListDto>> GetListAsync(bool? includeArchived = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -65434,7 +70370,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a story map.
         /// </summary>
         /// <remarks>
-        /// Returns the new map's ID and key.
+        /// Creates an empty map, with the caller as its first owner. `visibility` is `Public` (the default) or `Private`; `editAccess` is `AnyoneWhoCanView` (the default) or `OwnersAndEditors`; `ownerIds` adds owners beside the caller, and `editorIds` and `editorTeamIds` invite people and teams to edit (all employee or team UUIDs, all optional). The caller's account must be linked to an employee. Returns the new map's ID and key.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -65527,6 +70463,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a story map in full: goals, each with ordered steps and tasks (including checklists, persona tags, and linked work item IDs), plus the map's swim lanes and personas.
         /// </summary>
+        /// <remarks>
+        /// Takes the map's UUID or key; returns 404 for a Private map the caller cannot see. Also returns its access: `visibility`, `editAccess`, `owners`, `editors`, `editorTeams`, `canManage` (whether the caller owns or administers it) and `canEdit` (whether the caller can change its goals, steps, tasks, swim lanes, personas, checklists and work item links). Check `canEdit` before changing content: the change tools refuse a caller who cannot edit.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<StoryMapDetailsDto> GetAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -65613,8 +70552,108 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the members of a team invited to edit a story map.
+        /// </summary>
+        /// <remarks>
+        /// Lists the active direct members of `teamId`, one of the map's editor teams, by employee `id`, `key` and `name`. An editor team admits its current members, and the members of its current team of teams. Returns 404 when the caller cannot see the map or the team is not one of its editor teams. Both ids are UUIDs.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<EmployeeNavigationDto>> GetEditorTeamMembersAsync(System.Guid id, System.Guid teamId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (teamId == null)
+                throw new System.ArgumentNullException("teamId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/story-maps/{id}/editor-teams/{teamId}/members"
+                    urlBuilder_.Append("api/planning/story-maps/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/editor-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(teamId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/members");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<EmployeeNavigationDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update a story map's name and description.
         /// </summary>
+        /// <remarks>
+        /// An archived map cannot be updated. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateStoryMapRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -65705,7 +70744,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a story map and everything on it.
         /// </summary>
         /// <remarks>
-        /// This is permanent — prefer StoryMaps_ArchiveStoryMap unless deletion is explicitly intended.
+        /// This is permanent — prefer StoryMaps_ArchiveStoryMap unless deletion is explicitly intended. Only the map's owners, and holders of the Story Maps Administer permission, can do this.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -65787,11 +70826,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Change the owner of a story map.
+        /// Set a story map's owners.
         /// </summary>
+        /// <remarks>
+        /// Replaces the owners with `employeeIds` (employee UUIDs, at least one). Owners manage the map: its name and description, archiving, deletion, owners, editors, visibility and edit access. An owner can remove themselves. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ChangeOwnerAsync(System.Guid id, ChangeStoryMapOwnerRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task SetOwnersAsync(System.Guid id, SetStoryMapOwnersRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -65813,10 +70855,289 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/planning/story-maps/{id}/owner"
+                    // Operation Path: "api/planning/story-maps/{id}/owners"
                     urlBuilder_.Append("api/planning/story-maps/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/owner");
+                    urlBuilder_.Append("/owners");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who is invited to edit a story map.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the editors with `employeeIds` and `teamIds` (UUIDs; empty lists remove every editor). Editors can see a Private map and change its content whatever its edit access; a team admits its current members and the members of its current team of teams. An editor still needs the Story Maps View permission. Removing an editor disconnects anyone the map no longer admits from its live updates. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetEditorsAsync(System.Guid id, SetStoryMapEditorsRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/story-maps/{id}/editors"
+                    urlBuilder_.Append("api/planning/story-maps/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/editors");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who can see a story map.
+        /// </summary>
+        /// <remarks>
+        /// `visibility` is `Public`, which anyone with the Story Maps View permission can see, or `Private`, which only the map's owners, editors and the members of its editor teams can. Making a map private disconnects anyone it no longer admits from its live updates. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetVisibilityAsync(System.Guid id, SetStoryMapVisibilityRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/story-maps/{id}/visibility"
+                    urlBuilder_.Append("api/planning/story-maps/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/visibility");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set who can edit a public story map.
+        /// </summary>
+        /// <remarks>
+        /// `editAccess` is `AnyoneWhoCanView`, which lets everyone who can see a Public map change its content, or `OwnersAndEditors`, which lets only its owners, editors and the members of its editor teams. A Private map admits only its owners and editors, so there it has no effect. Allowed on an active or an archived map. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetEditAccessAsync(System.Guid id, SetStoryMapEditAccessRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/story-maps/{id}/edit-access"
+                    urlBuilder_.Append("api/planning/story-maps/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/edit-access");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -65879,6 +71200,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Archive a story map.
         /// </summary>
+        /// <remarks>
+        /// An archived map is read-only and cannot be restored. Only the map's owners, and holders of the Story Maps Administer permission, can do this. Takes the map's UUID.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ArchiveAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -69909,7 +75233,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetEmployeeWorkItemsAsync(System.Guid id, System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetEmployeeWorkItemsAsync(System.Guid id, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -71834,7 +77158,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetEmployeeWorkItemsAsync(System.Guid id, System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetEmployeeWorkItemsAsync(System.Guid id, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -74247,6 +79571,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Report where a team's cross-team dependencies ran over a date range.
+        /// </summary>
+        /// <remarks>
+        /// Covers the work item dependencies, not removed, between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 731 days) where the team owns the predecessor (`source`) or the successor (`target`) and the other end belongs to another team or to none. One counts when it was created before the range ended and did not close before the range began; it closes when the predecessor is done, or when the predecessor is removed and the successor is done or removed too; a removed predecessor with an open successor stays open, since the successor needs work nobody will do. Closed dependencies report their health as `Closed`. Returns a `summary` (dependencies, created, closed, open at the end, teams involved, teams outside), `pairs` (predecessor team → successor team, most dependencies first), `periods` (7 days counted from `from` for ranges up to 31 days, 14 days up to 184, otherwise calendar months cut to the range; each with created, closed and open at its end) and the `dependencies` with their current state and health. Teams are the items' current teams. Returns 404 for an unknown team.
+        /// </remarks>
+        /// <param name="from">The first day of the range (yyyy-MM-dd, UTC).</param>
+        /// <param name="to">The last day of the range (yyyy-MM-dd, UTC).</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TeamDependencyAnalysisDto> GetDependencyAnalysisAsync(string idOrCode, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the capacity of a team over a date range, from the time people are allocated to it.
         /// </summary>
         /// <remarks>
@@ -74309,7 +79646,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetTeamWorkItemsAsync(string idOrCode, System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetTeamWorkItemsAsync(string idOrCode, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -76424,6 +81761,130 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Report where a team's cross-team dependencies ran over a date range.
+        /// </summary>
+        /// <remarks>
+        /// Covers the work item dependencies, not removed, between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 731 days) where the team owns the predecessor (`source`) or the successor (`target`) and the other end belongs to another team or to none. One counts when it was created before the range ended and did not close before the range began; it closes when the predecessor is done, or when the predecessor is removed and the successor is done or removed too; a removed predecessor with an open successor stays open, since the successor needs work nobody will do. Closed dependencies report their health as `Closed`. Returns a `summary` (dependencies, created, closed, open at the end, teams involved, teams outside), `pairs` (predecessor team → successor team, most dependencies first), `periods` (7 days counted from `from` for ranges up to 31 days, 14 days up to 184, otherwise calendar months cut to the range; each with created, closed and open at its end) and the `dependencies` with their current state and health. Teams are the items' current teams. Returns 404 for an unknown team.
+        /// </remarks>
+        /// <param name="from">The first day of the range (yyyy-MM-dd, UTC).</param>
+        /// <param name="to">The last day of the range (yyyy-MM-dd, UTC).</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TeamDependencyAnalysisDto> GetDependencyAnalysisAsync(string idOrCode, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrCode == null)
+                throw new System.ArgumentNullException("idOrCode");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams/{idOrCode}/dependency-analysis"
+                    urlBuilder_.Append("api/organization/teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrCode, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/dependency-analysis");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("From")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(from, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("To")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(to, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamDependencyAnalysisDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the capacity of a team over a date range, from the time people are allocated to it.
         /// </summary>
         /// <remarks>
@@ -76999,7 +82460,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetTeamWorkItemsAsync(string idOrCode, System.Collections.Generic.IEnumerable<WorkStatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetTeamWorkItemsAsync(string idOrCode, System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (idOrCode == null)
                 throw new System.ArgumentNullException("idOrCode");
@@ -79616,6 +85077,30 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Report where the cross-team dependencies of a team of teams, and every team beneath it, ran over a date range.
+        /// </summary>
+        /// <remarks>
+        /// Covers the work item dependencies, not removed, between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 731 days) where a team beneath the team of teams at any point in the range, at any depth, owns the predecessor (`source`) or the successor (`target`), leaving out those within one team. The other end may belong to a team outside the team of teams. One counts when it was created before the range ended and did not close before the range began; it closes when the predecessor is done, or when the predecessor is removed and the successor is done or removed too; a removed predecessor with an open successor stays open, since the successor needs work nobody will do. Closed dependencies report their health as `Closed`. Returns a `summary` (dependencies, created, closed, open at the end, teams involved, teams outside the team of teams), `pairs` (predecessor team → successor team, most dependencies first, each end flagged in or out of scope), `periods` (7 days counted from `from` for ranges up to 31 days, 14 days up to 184, otherwise calendar months cut to the range; each with created, closed and open at its end) and the `dependencies` with their current state and health. Teams are the items' current teams. Returns 404 for an unknown team of teams.
+        /// </remarks>
+        /// <param name="from">The first day of the range (yyyy-MM-dd, UTC).</param>
+        /// <param name="to">The last day of the range (yyyy-MM-dd, UTC).</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<TeamDependencyAnalysisDto> GetDependencyAnalysisAsync(string idOrCode, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the open dependencies that cross team lines for a team of teams.
+        /// </summary>
+        /// <remarks>
+        /// Takes the team of teams' UUID `id`. Lists the work item dependencies, not removed, where a team beneath it today, at any depth, owns the predecessor (`source`) or the successor (`target`), and the predecessor is not yet done (state To Do or In Progress). The other end may belong to a team outside the team of teams. Intra-Team dependencies are left out, so each `scope` is Cross-Team, or Unknown when an end has no team. Returns 404 for an unknown team of teams. For one team's dependencies, including Intra-Team ones, use Teams_GetDependencies.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DependencyDto>> GetDependenciesAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the capacity of a team of teams over a date range, from the time people are allocated to it.
         /// </summary>
         /// <remarks>
@@ -80540,6 +86025,232 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Report where the cross-team dependencies of a team of teams, and every team beneath it, ran over a date range.
+        /// </summary>
+        /// <remarks>
+        /// Covers the work item dependencies, not removed, between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 731 days) where a team beneath the team of teams at any point in the range, at any depth, owns the predecessor (`source`) or the successor (`target`), leaving out those within one team. The other end may belong to a team outside the team of teams. One counts when it was created before the range ended and did not close before the range began; it closes when the predecessor is done, or when the predecessor is removed and the successor is done or removed too; a removed predecessor with an open successor stays open, since the successor needs work nobody will do. Closed dependencies report their health as `Closed`. Returns a `summary` (dependencies, created, closed, open at the end, teams involved, teams outside the team of teams), `pairs` (predecessor team → successor team, most dependencies first, each end flagged in or out of scope), `periods` (7 days counted from `from` for ranges up to 31 days, 14 days up to 184, otherwise calendar months cut to the range; each with created, closed and open at its end) and the `dependencies` with their current state and health. Teams are the items' current teams. Returns 404 for an unknown team of teams.
+        /// </remarks>
+        /// <param name="from">The first day of the range (yyyy-MM-dd, UTC).</param>
+        /// <param name="to">The last day of the range (yyyy-MM-dd, UTC).</param>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<TeamDependencyAnalysisDto> GetDependencyAnalysisAsync(string idOrCode, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrCode == null)
+                throw new System.ArgumentNullException("idOrCode");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams-of-teams/{idOrCode}/dependency-analysis"
+                    urlBuilder_.Append("api/organization/teams-of-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrCode, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/dependency-analysis");
+                    urlBuilder_.Append('?');
+                    if (from != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("From")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(from, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (to != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("To")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(to, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<TeamDependencyAnalysisDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the open dependencies that cross team lines for a team of teams.
+        /// </summary>
+        /// <remarks>
+        /// Takes the team of teams' UUID `id`. Lists the work item dependencies, not removed, where a team beneath it today, at any depth, owns the predecessor (`source`) or the successor (`target`), and the predecessor is not yet done (state To Do or In Progress). The other end may belong to a team outside the team of teams. Intra-Team dependencies are left out, so each `scope` is Cross-Team, or Unknown when an end has no team. Returns 404 for an unknown team of teams. For one team's dependencies, including Intra-Team ones, use Teams_GetDependencies.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<DependencyDto>> GetDependenciesAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/organization/teams-of-teams/{id}/dependencies"
+                    urlBuilder_.Append("api/organization/teams-of-teams/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/dependencies");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<DependencyDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -84134,14 +89845,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// List import runs, newest first, as `processes` with a `totalCount`.
+        /// List import runs, newest first.
         /// </summary>
         /// <remarks>
-        /// Only runs of the kinds you may submit are included, or every kind if you hold View Imports. A run carries `status` (Queued, Processing, Cancelling, Succeeded, PartiallySucceeded, Failed, Cancelled), `isTerminal`, `isPreflight`, `atomicity` (PerRow; Atomic, where one rejected row means nothing is written; or PerGroup, where the rows sharing a group — named by `groupNoun`, such as every dependency of one product — apply together or not at all and the other groups are kept), and the counts `totalRowCount`, `succeededRowCount`, `failedRowCount` and `unappliedRowCount`. `canManage` says whether you may cancel, resume, retry or apply it.
+        /// Only runs of the kinds you may submit are included, or every kind if you hold View Imports. A run carries `status` (Queued, Processing, Cancelling, Succeeded, PartiallySucceeded, Failed, Cancelled), `isTerminal`, `isPreflight`, `atomicity` (PerRow; Atomic, where one rejected row means nothing is written; or PerGroup, where the rows sharing a group — named by `groupNoun`, such as every dependency of one product — apply together or not at all and the other groups are kept), and the counts `totalRowCount`, `succeededRowCount`, `failedRowCount` and `unappliedRowCount`. `canManage` says whether you may cancel, resume, retry or apply it. Paged: the response carries `totalCount` and `hasNextPage`.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessPageDto> GetListAsync(ImportProcessStatus? status = null, string? importType = null, string? submittedByUserId = null, System.Guid? submissionGroupId = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<PagedResponseOfImportProcessDto> GetListAsync(ImportProcessStatus? status = null, string? importType = null, string? submittedByUserId = null, System.Guid? submissionGroupId = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -84167,14 +89878,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a page of an import run's row outcomes, as `rows` with a `totalCount`.
+        /// Get a page of an import run's row outcomes, in line order.
         /// </summary>
         /// <remarks>
-        /// Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing.
+        /// Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing. Paged: the response carries `totalCount` and `hasNextPage`.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ImportProcessRowPageDto> GetRowsAsync(System.Guid id, ImportRowStatus? status = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<PagedResponseOfImportProcessRowDto> GetRowsAsync(System.Guid id, ImportRowStatus? status = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -84272,14 +89983,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// List import runs, newest first, as `processes` with a `totalCount`.
+        /// List import runs, newest first.
         /// </summary>
         /// <remarks>
-        /// Only runs of the kinds you may submit are included, or every kind if you hold View Imports. A run carries `status` (Queued, Processing, Cancelling, Succeeded, PartiallySucceeded, Failed, Cancelled), `isTerminal`, `isPreflight`, `atomicity` (PerRow; Atomic, where one rejected row means nothing is written; or PerGroup, where the rows sharing a group — named by `groupNoun`, such as every dependency of one product — apply together or not at all and the other groups are kept), and the counts `totalRowCount`, `succeededRowCount`, `failedRowCount` and `unappliedRowCount`. `canManage` says whether you may cancel, resume, retry or apply it.
+        /// Only runs of the kinds you may submit are included, or every kind if you hold View Imports. A run carries `status` (Queued, Processing, Cancelling, Succeeded, PartiallySucceeded, Failed, Cancelled), `isTerminal`, `isPreflight`, `atomicity` (PerRow; Atomic, where one rejected row means nothing is written; or PerGroup, where the rows sharing a group — named by `groupNoun`, such as every dependency of one product — apply together or not at all and the other groups are kept), and the counts `totalRowCount`, `succeededRowCount`, `failedRowCount` and `unappliedRowCount`. `canManage` says whether you may cancel, resume, retry or apply it. Paged: the response carries `totalCount` and `hasNextPage`.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessPageDto> GetListAsync(ImportProcessStatus? status = null, string? importType = null, string? submittedByUserId = null, System.Guid? submissionGroupId = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<PagedResponseOfImportProcessDto> GetListAsync(ImportProcessStatus? status = null, string? importType = null, string? submittedByUserId = null, System.Guid? submissionGroupId = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -84311,9 +90022,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
-                    if (pageNumber != null)
+                    if (page != null)
                     {
-                        urlBuilder_.Append(System.Uri.EscapeDataString("pageNumber")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageNumber, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                        urlBuilder_.Append(System.Uri.EscapeDataString("page")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(page, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     if (pageSize != null)
                     {
@@ -84346,7 +90057,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessPageDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<PagedResponseOfImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -84362,6 +90073,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -84553,14 +90274,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a page of an import run's row outcomes, as `rows` with a `totalCount`.
+        /// Get a page of an import run's row outcomes, in line order.
         /// </summary>
         /// <remarks>
-        /// Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing.
+        /// Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing. Paged: the response carries `totalCount` and `hasNextPage`.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ImportProcessRowPageDto> GetRowsAsync(System.Guid id, ImportRowStatus? status = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<PagedResponseOfImportProcessRowDto> GetRowsAsync(System.Guid id, ImportRowStatus? status = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -84585,9 +90306,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("status")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(status, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
-                    if (pageNumber != null)
+                    if (page != null)
                     {
-                        urlBuilder_.Append(System.Uri.EscapeDataString("pageNumber")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageNumber, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                        urlBuilder_.Append(System.Uri.EscapeDataString("page")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(page, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     if (pageSize != null)
                     {
@@ -84620,7 +90341,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessRowPageDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<PagedResponseOfImportProcessRowDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -84636,6 +90357,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -86371,6 +92102,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Set the estimation scale a desk's requests are estimated on.
+        /// </summary>
+        /// <remarks>
+        /// Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version. A null `estimationScaleId` stops estimating the desk's requests. Refused while an open request on the desk has an estimate on the version the desk pins now; estimates on an earlier version, and on closed requests, keep their version and do not block it. A desk changed meanwhile answers 409.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task ChangeEstimationScaleAsync(System.Guid id, ChangeIntakeDeskEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the active estimation scales a desk can estimate its requests on.
+        /// </summary>
+        /// <remarks>
+        /// Each with the estimate values of its current version, which a desk choosing it is pinned to; cards are left out. Building and editing scales is in Settings, under estimation scales.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeEstimationScaleChoiceDto>> GetEstimationScaleChoicesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the published intake request workflows a desk can follow.
         /// </summary>
         /// <remarks>
@@ -87405,6 +93158,206 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Set the estimation scale a desk's requests are estimated on.
+        /// </summary>
+        /// <remarks>
+        /// Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version. A null `estimationScaleId` stops estimating the desk's requests. Refused while an open request on the desk has an estimate on the version the desk pins now; estimates on an earlier version, and on closed requests, keep their version and do not block it. A desk changed meanwhile answers 409.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task ChangeEstimationScaleAsync(System.Guid id, ChangeIntakeDeskEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-desks/{id}/estimation-scale"
+                    urlBuilder_.Append("api/demand-management/intake-desks/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/estimation-scale");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the active estimation scales a desk can estimate its requests on.
+        /// </summary>
+        /// <remarks>
+        /// Each with the estimate values of its current version, which a desk choosing it is pinned to; cards are left out. Building and editing scales is in Settings, under estimation scales.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeEstimationScaleChoiceDto>> GetEstimationScaleChoicesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-desks/estimation-scale-choices"
+                    urlBuilder_.Append("api/demand-management/intake-desks/estimation-scale-choices");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<IntakeEstimationScaleChoiceDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the published intake request workflows a desk can follow.
         /// </summary>
         /// <remarks>
@@ -87993,6 +93946,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the estimates of the intake requests you can see.
+        /// </summary>
+        /// <remarks>
+        /// Takes the same filters as the list and answers beside it, for the requests whose estimate you may read: an estimate is substance, so a request whose substance is withheld from you is absent, as is one never estimated. Sort on `position`, the value's place on its scale version, rather than on the text; positions compare only between estimates on the same version (`scale.versionId`).
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestCurrentEstimateDto>> GetIntakeRequestEstimatesAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get an intake request in the tiers you can read.
         /// </summary>
         /// <remarks>
@@ -88009,6 +93973,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PagedResponseOfActivityLogDto> GetActivitiesAsync(string idOrKey, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Submit a csv file of intake requests to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <remarks>
+        /// Each row names its desk, channel, tags and people by id. A request is created on its desk in the status meaning Submitted, at `SubmittedAt`, then assigned, tagged, estimated and moved to `Status` — a status of the desk's workflow by name or by meaning — at `StatusChangedAt`. Withdrawn is recorded as the requester's own move; every other status as the assignee's. Needs the Demand Management Admin.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -88045,6 +94020,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Estimate an intake request on its desk's estimation scale, or clear its estimate.
+        /// </summary>
+        /// <remarks>
+        /// Needs an agent on the request's desk, never the requester, and an open request. The value must be an estimate value of the scale version the desk pins, not a card; the request's `estimateValues` lists them. A null `value` clears the estimate. An estimate is a rough order of magnitude for the desk, not a delivery commitment.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task ChangeEstimateAsync(System.Guid id, ChangeIntakeRequestEstimateRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Move an open intake request to another desk.
         /// </summary>
         /// <remarks>
@@ -88070,7 +94056,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Move an intake request to another status of its desk's workflow.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk. Declining, deferring, marking a duplicate and finishing need a `reason` the requester can read; marking a duplicate needs `duplicateOfId`, a request you can see that is not itself a duplicate. Withdrawn is the requester's, through withdraw.
+        /// Needs an agent on the request's desk. Declining, deferring, marking a duplicate and finishing need a `reason` the requester can read; marking a duplicate needs `duplicateOfId`, a request you can see that is not itself a duplicate. Withdrawn is the requester's, through withdraw. A `reply` is posted in the request's conversation with the move and saved with it: ask the requester a question and move to Waiting on Requester in one call.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -88144,10 +94130,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Record that an accepted intake request became a project.
+        /// Record that an accepted intake request became a project or work item.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on. The project itself is not changed. A request points at a project at most once. Once a request has an outcome, finishing it needs no reason.
+        /// Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -88158,7 +94144,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Take an outcome off an accepted intake request.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. The project itself is not changed.
+        /// Needs an agent on the request's desk, while the request is accepted. `targetId` is the project or work item the outcome points at. The project or work item itself is not changed.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -88174,6 +94160,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ProjectIntakeRequestDto>> GetProjectIntakeRequestsAsync(System.Guid projectId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the intake requests a work item delivers, that you can see.
+        /// </summary>
+        /// <remarks>
+        /// Ordered by request number. Each request is read under its desk's visibility, so a request on a private desk you are not part of is absent rather than listed as redacted.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemIntakeRequestDto>> GetWorkItemIntakeRequestsAsync(System.Guid workItemId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -88589,6 +94586,97 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the estimates of the intake requests you can see.
+        /// </summary>
+        /// <remarks>
+        /// Takes the same filters as the list and answers beside it, for the requests whose estimate you may read: an estimate is substance, so a request whose substance is withheld from you is absent, as is one never estimated. Sort on `position`, the value's place on its scale version, rather than on the text; positions compare only between estimates on the same version (`scale.versionId`).
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestCurrentEstimateDto>> GetIntakeRequestEstimatesAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-requests/estimates"
+                    urlBuilder_.Append("api/demand-management/intake-requests/estimates");
+                    urlBuilder_.Append('?');
+                    if (deskId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("deskId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(deskId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (mine != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("mine")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(mine, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (openOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("openOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(openOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<IntakeRequestCurrentEstimateDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get an intake request in the tiers you can read.
         /// </summary>
         /// <remarks>
@@ -88756,6 +94844,138 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Submit a csv file of intake requests to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <remarks>
+        /// Each row names its desk, channel, tags and people by id. A request is created on its desk in the status meaning Submitted, at `SubmittedAt`, then assigned, tagged, estimated and moved to `Status` — a status of the desk's workflow by name or by meaning — at `StatusChangedAt`. Withdrawn is recorded as the requester's own move; every other status as the assignee's. Needs the Demand Management Admin.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var boundary_ = System.Guid.NewGuid().ToString();
+                    var content_ = new System.Net.Http.MultipartFormDataContent(boundary_);
+                    content_.Headers.Remove("Content-Type");
+                    content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
+
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
+                    else
+                    {
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
+                    }
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-requests/import"
+                    urlBuilder_.Append("api/demand-management/intake-requests/import");
+                    urlBuilder_.Append('?');
+                    if (submissionGroupId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 202)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 422)
@@ -89109,6 +95329,119 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Estimate an intake request on its desk's estimation scale, or clear its estimate.
+        /// </summary>
+        /// <remarks>
+        /// Needs an agent on the request's desk, never the requester, and an open request. The value must be an estimate value of the scale version the desk pins, not a card; the request's `estimateValues` lists them. A null `value` clears the estimate. An estimate is a rough order of magnitude for the desk, not a delivery commitment.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task ChangeEstimateAsync(System.Guid id, ChangeIntakeRequestEstimateRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-requests/{id}/estimate"
+                    urlBuilder_.Append("api/demand-management/intake-requests/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/estimate");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Move an open intake request to another desk.
         /// </summary>
         /// <remarks>
@@ -89323,7 +95656,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Move an intake request to another status of its desk's workflow.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk. Declining, deferring, marking a duplicate and finishing need a `reason` the requester can read; marking a duplicate needs `duplicateOfId`, a request you can see that is not itself a duplicate. Withdrawn is the requester's, through withdraw.
+        /// Needs an agent on the request's desk. Declining, deferring, marking a duplicate and finishing need a `reason` the requester can read; marking a duplicate needs `duplicateOfId`, a request you can see that is not itself a duplicate. Withdrawn is the requester's, through withdraw. A `reply` is posted in the request's conversation with the move and saved with it: ask the requester a question and move to Waiting on Requester in one call.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -89400,6 +95733,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 422)
@@ -90045,10 +96388,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Record that an accepted intake request became a project.
+        /// Record that an accepted intake request became a project or work item.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on. The project itself is not changed. A request points at a project at most once. Once a request has an outcome, finishing it needs no reason.
+        /// Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -90161,7 +96504,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Take an outcome off an accepted intake request.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. The project itself is not changed.
+        /// Needs an agent on the request's desk, while the request is accepted. `targetId` is the project or work item the outcome points at. The project or work item itself is not changed.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -90311,6 +96654,87 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<ProjectIntakeRequestDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the intake requests a work item delivers, that you can see.
+        /// </summary>
+        /// <remarks>
+        /// Ordered by request number. Each request is read under its desk's visibility, so a request on a private desk you are not part of is absent rather than listed as redacted.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemIntakeRequestDto>> GetWorkItemIntakeRequestsAsync(System.Guid workItemId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (workItemId == null)
+                throw new System.ArgumentNullException("workItemId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-requests/work-items/{workItemId}"
+                    urlBuilder_.Append("api/demand-management/intake-requests/work-items/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(workItemId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<WorkItemIntakeRequestDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -93254,19 +99678,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Initialize Azure DevOps work process integration.
+        /// Set up an Azure DevOps project for syncing.
         /// </summary>
-        /// <returns>No Content</returns>
-        /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task InitWorkProcessIntegrationAsync(System.Guid id, InitWorkProcessIntegrationRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
-
-        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Initialize Azure DevOps workspace integration.
-        /// </summary>
+        /// <remarks>
+        /// Creates the project's Wayd workspace. The project's work process is set up first when Wayd does not have it yet.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task InitWorkspaceIntegrationAsync(System.Guid id, InitWorkspaceIntegrationRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Turn syncing on or off for an Azure DevOps project.
+        /// </summary>
+        /// <remarks>
+        /// The project must already be set up. Its Wayd workspace and work items are kept either way.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetWorkspaceSyncAsync(System.Guid id, System.Guid workspaceExternalId, SetAzureDevOpsWorkspaceSyncRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -93428,11 +99858,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Initialize Azure DevOps work process integration.
+        /// Set up an Azure DevOps project for syncing.
         /// </summary>
+        /// <remarks>
+        /// Creates the project's Wayd workspace. The project's work process is set up first when Wayd does not have it yet.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task InitWorkProcessIntegrationAsync(System.Guid id, InitWorkProcessIntegrationRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task InitWorkspaceIntegrationAsync(System.Guid id, InitWorkspaceIntegrationRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -93454,10 +99887,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/app-integrations/connections/azure-devops/{id}/init-work-process"
+                    // Operation Path: "api/app-integrations/connections/azure-devops/{id}/init-workspace"
                     urlBuilder_.Append("api/app-integrations/connections/azure-devops/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/init-work-process");
+                    urlBuilder_.Append("/init-workspace");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -93518,14 +99951,20 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Initialize Azure DevOps workspace integration.
+        /// Turn syncing on or off for an Azure DevOps project.
         /// </summary>
+        /// <remarks>
+        /// The project must already be set up. Its Wayd workspace and work items are kept either way.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task InitWorkspaceIntegrationAsync(System.Guid id, InitWorkspaceIntegrationRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task SetWorkspaceSyncAsync(System.Guid id, System.Guid workspaceExternalId, SetAzureDevOpsWorkspaceSyncRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
+
+            if (workspaceExternalId == null)
+                throw new System.ArgumentNullException("workspaceExternalId");
 
             if (request == null)
                 throw new System.ArgumentNullException("request");
@@ -93540,14 +99979,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     var content_ = new System.Net.Http.ByteArrayContent(json_);
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
-                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/app-integrations/connections/azure-devops/{id}/init-workspace"
+                    // Operation Path: "api/app-integrations/connections/azure-devops/{id}/workspaces/{workspaceExternalId}/sync"
                     urlBuilder_.Append("api/app-integrations/connections/azure-devops/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
-                    urlBuilder_.Append("/init-workspace");
+                    urlBuilder_.Append("/workspaces/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(workspaceExternalId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/sync");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -96176,7 +102617,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<JobsResponse> GetJobsAsync(JobStateFilter? state = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<PagedResponseOfJobSummaryResponse> GetJobsAsync(JobStateFilter? state = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -96628,7 +103069,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<JobsResponse> GetJobsAsync(JobStateFilter? state = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<PagedResponseOfJobSummaryResponse> GetJobsAsync(JobStateFilter? state = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -96648,9 +103089,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("state")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(state, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
-                    if (pageNumber != null)
+                    if (page != null)
                     {
-                        urlBuilder_.Append(System.Uri.EscapeDataString("pageNumber")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageNumber, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                        urlBuilder_.Append(System.Uri.EscapeDataString("page")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(page, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     if (pageSize != null)
                     {
@@ -96683,12 +103124,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<JobsResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<PagedResponseOfJobSummaryResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -97415,7 +103866,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<DeadLetterMessagesResponse> GetDeadLettersAsync(string? messageType = null, string? exceptionType = null, System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<PagedResponseOfDeadLetterMessageResponse> GetDeadLettersAsync(string? messageType = null, string? exceptionType = null, System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -97571,7 +104022,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<DeadLetterMessagesResponse> GetDeadLettersAsync(string? messageType = null, string? exceptionType = null, System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, int? pageNumber = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<PagedResponseOfDeadLetterMessageResponse> GetDeadLettersAsync(string? messageType = null, string? exceptionType = null, System.DateTimeOffset? from = null, System.DateTimeOffset? to = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -97603,9 +104054,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("to")).Append('=').Append(System.Uri.EscapeDataString(to.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
-                    if (pageNumber != null)
+                    if (page != null)
                     {
-                        urlBuilder_.Append(System.Uri.EscapeDataString("pageNumber")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageNumber, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                        urlBuilder_.Append(System.Uri.EscapeDataString("page")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(page, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     if (pageSize != null)
                     {
@@ -97638,12 +104089,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<DeadLetterMessagesResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<PagedResponseOfDeadLetterMessageResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -97865,6 +104326,677 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
                     // Operation Path: "api/admin/messaging/dead-letters/discard"
                     urlBuilder_.Append("api/admin/messaging/dead-letters/discard");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        protected struct ObjectResponseResult<T>
+        {
+            public ObjectResponseResult(T responseObject, string responseText)
+            {
+                this.Object = responseObject;
+                this.Text = responseText;
+            }
+
+            public T Object { get; }
+
+            public string Text { get; }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static System.Threading.Tasks.Task<string> ReadAsStringAsync(System.Net.Http.HttpContent content, System.Threading.CancellationToken cancellationToken)
+        {
+    #if NET5_0_OR_GREATER
+            return content.ReadAsStringAsync(cancellationToken);
+    #else
+            return content.ReadAsStringAsync();
+    #endif
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static System.Threading.Tasks.Task<System.IO.Stream> ReadAsStreamAsync(System.Net.Http.HttpContent content, System.Threading.CancellationToken cancellationToken)
+        {
+    #if NET5_0_OR_GREATER
+            return content.ReadAsStreamAsync(cancellationToken);
+    #else
+            return content.ReadAsStreamAsync();
+    #endif
+        }
+
+        public bool ReadResponseAsString { get; set; }
+
+        protected virtual async System.Threading.Tasks.Task<ObjectResponseResult<T>> ReadObjectResponseAsync<T>(System.Net.Http.HttpResponseMessage response, System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IEnumerable<string>> headers, System.Threading.CancellationToken cancellationToken)
+        {
+            if (response == null || response.Content == null)
+            {
+                return new ObjectResponseResult<T>(default(T)!, string.Empty);
+            }
+
+            if (ReadResponseAsString)
+            {
+                var responseText = await ReadAsStringAsync(response.Content, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    var typedBody = System.Text.Json.JsonSerializer.Deserialize<T>(responseText, JsonSerializerSettings);
+                    return new ObjectResponseResult<T>(typedBody!, responseText);
+                }
+                catch (System.Text.Json.JsonException exception)
+                {
+                    var message = "Could not deserialize the response body string as " + typeof(T).FullName + ".";
+                    throw new WaydApiException(message, (int)response.StatusCode, responseText, headers, exception);
+                }
+            }
+            else
+            {
+                try
+                {
+                    using (var responseStream = await ReadAsStreamAsync(response.Content, cancellationToken).ConfigureAwait(false))
+                    {
+                        var typedBody = await System.Text.Json.JsonSerializer.DeserializeAsync<T>(responseStream, JsonSerializerSettings, cancellationToken).ConfigureAwait(false);
+                        return new ObjectResponseResult<T>(typedBody!, string.Empty);
+                    }
+                }
+                catch (System.Text.Json.JsonException exception)
+                {
+                    var message = "Could not deserialize the response body stream as " + typeof(T).FullName + ".";
+                    throw new WaydApiException(message, (int)response.StatusCode, string.Empty, headers, exception);
+                }
+            }
+        }
+
+        private string ConvertToString(object? value, System.Globalization.CultureInfo cultureInfo)
+        {
+            if (value == null)
+            {
+                return "";
+            }
+
+            if (value is System.Enum)
+            {
+                var name = System.Enum.GetName(value.GetType(), value);
+                if (name != null)
+                {
+                    var field_ = System.Reflection.IntrospectionExtensions.GetTypeInfo(value.GetType()).GetDeclaredField(name);
+                    if (field_ != null)
+                    {
+                        var attribute = System.Reflection.CustomAttributeExtensions.GetCustomAttribute(field_, typeof(System.Runtime.Serialization.EnumMemberAttribute)) 
+                            as System.Runtime.Serialization.EnumMemberAttribute;
+                        if (attribute != null)
+                        {
+                            return attribute.Value != null ? attribute.Value : name;
+                        }
+                    }
+
+                    var converted = System.Convert.ToString(System.Convert.ChangeType(value, System.Enum.GetUnderlyingType(value.GetType()), cultureInfo));
+                    return converted == null ? string.Empty : converted;
+                }
+            }
+            else if (value is bool) 
+            {
+                return System.Convert.ToString((bool)value, cultureInfo).ToLowerInvariant();
+            }
+            else if (value is byte[])
+            {
+                return System.Convert.ToBase64String((byte[]) value);
+            }
+            else if (value is string[])
+            {
+                return string.Join(",", (string[])value);
+            }
+            else if (value.GetType().IsArray)
+            {
+                var valueArray = (System.Array)value;
+                var valueTextArray = new string[valueArray.Length];
+                for (var i = 0; i < valueArray.Length; i++)
+                {
+                    valueTextArray[i] = ConvertToString(valueArray.GetValue(i), cultureInfo);
+                }
+                return string.Join(",", valueTextArray);
+            }
+
+            var result = System.Convert.ToString(value, cultureInfo);
+            return result == null ? "" : result;
+        }
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial interface IRecordTypesClient
+    {
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the record types of workflow owner types that have them.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RecordTypeDto>> GetRecordTypesAsync(string? ownerType = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Define a record type for an owner type that has them.
+        /// </summary>
+        /// <returns>Created</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Guid> CreateAsync(CreateRecordTypeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Rename an owned record type.
+        /// </summary>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task RenameAsync(System.Guid id, RenameRecordTypeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Let records be given a record type again.
+        /// </summary>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task ActivateAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Stop records being given a record type. Records that have it keep it.
+        /// </summary>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task DeactivateAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RecordTypesClient : IRecordTypesClient
+    {
+        #pragma warning disable 8618
+        private string _baseUrl;
+        #pragma warning restore 8618
+
+        private System.Net.Http.HttpClient _httpClient;
+        private static System.Lazy<System.Text.Json.JsonSerializerOptions> _settings = new System.Lazy<System.Text.Json.JsonSerializerOptions>(CreateSerializerSettings, true);
+        private System.Text.Json.JsonSerializerOptions _instanceSettings;
+
+    #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public RecordTypesClient(string baseUrl, System.Net.Http.HttpClient httpClient)
+    #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            BaseUrl = baseUrl;
+            _httpClient = httpClient;
+            Initialize();
+        }
+
+        private static System.Text.Json.JsonSerializerOptions CreateSerializerSettings()
+        {
+            var settings = new System.Text.Json.JsonSerializerOptions();
+            UpdateJsonSerializerSettings(settings);
+            return settings;
+        }
+
+        public string BaseUrl
+        {
+            get { return _baseUrl; }
+            set
+            {
+                _baseUrl = value;
+                if (!string.IsNullOrEmpty(_baseUrl) && !_baseUrl.EndsWith("/"))
+                    _baseUrl += '/';
+            }
+        }
+
+        protected System.Text.Json.JsonSerializerOptions JsonSerializerSettings { get { return _instanceSettings ?? _settings.Value; } }
+
+        static partial void UpdateJsonSerializerSettings(System.Text.Json.JsonSerializerOptions settings);
+
+        partial void Initialize();
+
+        partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, string url);
+        partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, System.Text.StringBuilder urlBuilder);
+        partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the record types of workflow owner types that have them.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RecordTypeDto>> GetRecordTypesAsync(string? ownerType = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/record-types"
+                    urlBuilder_.Append("api/record-types");
+                    urlBuilder_.Append('?');
+                    if (ownerType != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("ownerType")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(ownerType, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<RecordTypeDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Define a record type for an owner type that has them.
+        /// </summary>
+        /// <returns>Created</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Guid> CreateAsync(CreateRecordTypeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/record-types"
+                    urlBuilder_.Append("api/record-types");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 201)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Rename an owned record type.
+        /// </summary>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task RenameAsync(System.Guid id, RenameRecordTypeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/record-types/{id}"
+                    urlBuilder_.Append("api/record-types/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Let records be given a record type again.
+        /// </summary>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task ActivateAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/record-types/{id}/activate"
+                    urlBuilder_.Append("api/record-types/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/activate");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Stop records being given a record type. Records that have it keep it.
+        /// </summary>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task DeactivateAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/record-types/{id}/deactivate"
+                    urlBuilder_.Append("api/record-types/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/deactivate");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -103792,6 +110924,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<int> ReassignAsync(System.Guid id, ReassignWorkflowRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Point a scope at another workflow scheme and move the records whose workflow changes.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<int> AssignSchemeAsync(System.Guid id, AssignWorkflowSchemeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Preview what pointing a scope at another workflow scheme would move, before anything is committed.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<WorkflowSchemeChangePreviewDto> PreviewAssignSchemeAsync(System.Guid id, System.Guid? schemeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -104133,6 +111281,1433 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
             }
         }
 
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Point a scope at another workflow scheme and move the records whose workflow changes.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<int> AssignSchemeAsync(System.Guid id, AssignWorkflowSchemeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/workflow-assignments/{id}/assign-scheme"
+                    urlBuilder_.Append("api/workflow-assignments/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/assign-scheme");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<int>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Preview what pointing a scope at another workflow scheme would move, before anything is committed.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<WorkflowSchemeChangePreviewDto> PreviewAssignSchemeAsync(System.Guid id, System.Guid? schemeId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/workflow-assignments/{id}/assign-scheme/preview"
+                    urlBuilder_.Append("api/workflow-assignments/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/assign-scheme/preview");
+                    urlBuilder_.Append('?');
+                    if (schemeId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("schemeId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(schemeId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<WorkflowSchemeChangePreviewDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        protected struct ObjectResponseResult<T>
+        {
+            public ObjectResponseResult(T responseObject, string responseText)
+            {
+                this.Object = responseObject;
+                this.Text = responseText;
+            }
+
+            public T Object { get; }
+
+            public string Text { get; }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static System.Threading.Tasks.Task<string> ReadAsStringAsync(System.Net.Http.HttpContent content, System.Threading.CancellationToken cancellationToken)
+        {
+    #if NET5_0_OR_GREATER
+            return content.ReadAsStringAsync(cancellationToken);
+    #else
+            return content.ReadAsStringAsync();
+    #endif
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static System.Threading.Tasks.Task<System.IO.Stream> ReadAsStreamAsync(System.Net.Http.HttpContent content, System.Threading.CancellationToken cancellationToken)
+        {
+    #if NET5_0_OR_GREATER
+            return content.ReadAsStreamAsync(cancellationToken);
+    #else
+            return content.ReadAsStreamAsync();
+    #endif
+        }
+
+        public bool ReadResponseAsString { get; set; }
+
+        protected virtual async System.Threading.Tasks.Task<ObjectResponseResult<T>> ReadObjectResponseAsync<T>(System.Net.Http.HttpResponseMessage response, System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IEnumerable<string>> headers, System.Threading.CancellationToken cancellationToken)
+        {
+            if (response == null || response.Content == null)
+            {
+                return new ObjectResponseResult<T>(default(T)!, string.Empty);
+            }
+
+            if (ReadResponseAsString)
+            {
+                var responseText = await ReadAsStringAsync(response.Content, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    var typedBody = System.Text.Json.JsonSerializer.Deserialize<T>(responseText, JsonSerializerSettings);
+                    return new ObjectResponseResult<T>(typedBody!, responseText);
+                }
+                catch (System.Text.Json.JsonException exception)
+                {
+                    var message = "Could not deserialize the response body string as " + typeof(T).FullName + ".";
+                    throw new WaydApiException(message, (int)response.StatusCode, responseText, headers, exception);
+                }
+            }
+            else
+            {
+                try
+                {
+                    using (var responseStream = await ReadAsStreamAsync(response.Content, cancellationToken).ConfigureAwait(false))
+                    {
+                        var typedBody = await System.Text.Json.JsonSerializer.DeserializeAsync<T>(responseStream, JsonSerializerSettings, cancellationToken).ConfigureAwait(false);
+                        return new ObjectResponseResult<T>(typedBody!, string.Empty);
+                    }
+                }
+                catch (System.Text.Json.JsonException exception)
+                {
+                    var message = "Could not deserialize the response body stream as " + typeof(T).FullName + ".";
+                    throw new WaydApiException(message, (int)response.StatusCode, string.Empty, headers, exception);
+                }
+            }
+        }
+
+        private string ConvertToString(object? value, System.Globalization.CultureInfo cultureInfo)
+        {
+            if (value == null)
+            {
+                return "";
+            }
+
+            if (value is System.Enum)
+            {
+                var name = System.Enum.GetName(value.GetType(), value);
+                if (name != null)
+                {
+                    var field_ = System.Reflection.IntrospectionExtensions.GetTypeInfo(value.GetType()).GetDeclaredField(name);
+                    if (field_ != null)
+                    {
+                        var attribute = System.Reflection.CustomAttributeExtensions.GetCustomAttribute(field_, typeof(System.Runtime.Serialization.EnumMemberAttribute)) 
+                            as System.Runtime.Serialization.EnumMemberAttribute;
+                        if (attribute != null)
+                        {
+                            return attribute.Value != null ? attribute.Value : name;
+                        }
+                    }
+
+                    var converted = System.Convert.ToString(System.Convert.ChangeType(value, System.Enum.GetUnderlyingType(value.GetType()), cultureInfo));
+                    return converted == null ? string.Empty : converted;
+                }
+            }
+            else if (value is bool) 
+            {
+                return System.Convert.ToString((bool)value, cultureInfo).ToLowerInvariant();
+            }
+            else if (value is byte[])
+            {
+                return System.Convert.ToBase64String((byte[]) value);
+            }
+            else if (value is string[])
+            {
+                return string.Join(",", (string[])value);
+            }
+            else if (value.GetType().IsArray)
+            {
+                var valueArray = (System.Array)value;
+                var valueTextArray = new string[valueArray.Length];
+                for (var i = 0; i < valueArray.Length; i++)
+                {
+                    valueTextArray[i] = ConvertToString(valueArray.GetValue(i), cultureInfo);
+                }
+                return string.Join(",", valueTextArray);
+            }
+
+            var result = System.Convert.ToString(value, cultureInfo);
+            return result == null ? "" : result;
+        }
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial interface IWorkflowSchemesClient
+    {
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the workflow schemes of owner types with record types.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkflowSchemeListDto>> GetWorkflowSchemesAsync(string? ownerType = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Create a workflow scheme.
+        /// </summary>
+        /// <returns>Created</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Guid> CreateAsync(CreateWorkflowSchemeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get a workflow scheme with its entries and the scopes that follow it.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<WorkflowSchemeDetailsDto> GetWorkflowSchemeAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Edit a workflow scheme's name and description.
+        /// </summary>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateWorkflowSchemeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Delete a workflow scheme no scope follows.
+        /// </summary>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Copy a workflow scheme into a new owned one, for a scope that needs to differ.
+        /// </summary>
+        /// <returns>Created</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Guid> CloneAsync(System.Guid id, CloneWorkflowSchemeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Change which workflow one record type follows under a scheme, moving that type's records in every scope on it.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<int> SetEntryAsync(System.Guid id, System.Guid recordTypeId, SetWorkflowSchemeEntryRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Change the workflow records follow when their type has no entry, moving them in every scope on the scheme.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<int> ChangeDefaultAsync(System.Guid id, ChangeWorkflowSchemeDefaultRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Preview what changing a record type's workflow under a scheme would move, before anything is committed.
+        /// </summary>
+        /// <remarks>
+        /// Leave workflowId out to preview removing the entry, so the type follows the scheme's default.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<WorkflowSchemeChangePreviewDto> PreviewEntryAsync(System.Guid id, System.Guid recordTypeId, System.Guid? workflowId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Preview what changing a scheme's default workflow would move, before anything is committed.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<WorkflowSchemeChangePreviewDto> PreviewDefaultAsync(System.Guid id, System.Guid? workflowId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class WorkflowSchemesClient : IWorkflowSchemesClient
+    {
+        #pragma warning disable 8618
+        private string _baseUrl;
+        #pragma warning restore 8618
+
+        private System.Net.Http.HttpClient _httpClient;
+        private static System.Lazy<System.Text.Json.JsonSerializerOptions> _settings = new System.Lazy<System.Text.Json.JsonSerializerOptions>(CreateSerializerSettings, true);
+        private System.Text.Json.JsonSerializerOptions _instanceSettings;
+
+    #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public WorkflowSchemesClient(string baseUrl, System.Net.Http.HttpClient httpClient)
+    #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            BaseUrl = baseUrl;
+            _httpClient = httpClient;
+            Initialize();
+        }
+
+        private static System.Text.Json.JsonSerializerOptions CreateSerializerSettings()
+        {
+            var settings = new System.Text.Json.JsonSerializerOptions();
+            UpdateJsonSerializerSettings(settings);
+            return settings;
+        }
+
+        public string BaseUrl
+        {
+            get { return _baseUrl; }
+            set
+            {
+                _baseUrl = value;
+                if (!string.IsNullOrEmpty(_baseUrl) && !_baseUrl.EndsWith("/"))
+                    _baseUrl += '/';
+            }
+        }
+
+        protected System.Text.Json.JsonSerializerOptions JsonSerializerSettings { get { return _instanceSettings ?? _settings.Value; } }
+
+        static partial void UpdateJsonSerializerSettings(System.Text.Json.JsonSerializerOptions settings);
+
+        partial void Initialize();
+
+        partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, string url);
+        partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, System.Text.StringBuilder urlBuilder);
+        partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the workflow schemes of owner types with record types.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkflowSchemeListDto>> GetWorkflowSchemesAsync(string? ownerType = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/workflow-schemes"
+                    urlBuilder_.Append("api/workflow-schemes");
+                    urlBuilder_.Append('?');
+                    if (ownerType != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("ownerType")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(ownerType, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<WorkflowSchemeListDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Create a workflow scheme.
+        /// </summary>
+        /// <returns>Created</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Guid> CreateAsync(CreateWorkflowSchemeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/workflow-schemes"
+                    urlBuilder_.Append("api/workflow-schemes");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 201)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get a workflow scheme with its entries and the scopes that follow it.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<WorkflowSchemeDetailsDto> GetWorkflowSchemeAsync(string idOrKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (idOrKey == null)
+                throw new System.ArgumentNullException("idOrKey");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/workflow-schemes/{idOrKey}"
+                    urlBuilder_.Append("api/workflow-schemes/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(idOrKey, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<WorkflowSchemeDetailsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Edit a workflow scheme's name and description.
+        /// </summary>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdateWorkflowSchemeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/workflow-schemes/{id}"
+                    urlBuilder_.Append("api/workflow-schemes/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Delete a workflow scheme no scope follows.
+        /// </summary>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("DELETE");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/workflow-schemes/{id}"
+                    urlBuilder_.Append("api/workflow-schemes/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Copy a workflow scheme into a new owned one, for a scope that needs to differ.
+        /// </summary>
+        /// <returns>Created</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Guid> CloneAsync(System.Guid id, CloneWorkflowSchemeRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/workflow-schemes/{id}/clone"
+                    urlBuilder_.Append("api/workflow-schemes/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/clone");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 201)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Guid>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Change which workflow one record type follows under a scheme, moving that type's records in every scope on it.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<int> SetEntryAsync(System.Guid id, System.Guid recordTypeId, SetWorkflowSchemeEntryRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (recordTypeId == null)
+                throw new System.ArgumentNullException("recordTypeId");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/workflow-schemes/{id}/entries/{recordTypeId}"
+                    urlBuilder_.Append("api/workflow-schemes/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/entries/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(recordTypeId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<int>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Change the workflow records follow when their type has no entry, moving them in every scope on the scheme.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<int> ChangeDefaultAsync(System.Guid id, ChangeWorkflowSchemeDefaultRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/workflow-schemes/{id}/default"
+                    urlBuilder_.Append("api/workflow-schemes/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/default");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<int>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Preview what changing a record type's workflow under a scheme would move, before anything is committed.
+        /// </summary>
+        /// <remarks>
+        /// Leave workflowId out to preview removing the entry, so the type follows the scheme's default.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<WorkflowSchemeChangePreviewDto> PreviewEntryAsync(System.Guid id, System.Guid recordTypeId, System.Guid? workflowId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (recordTypeId == null)
+                throw new System.ArgumentNullException("recordTypeId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/workflow-schemes/{id}/entries/{recordTypeId}/preview"
+                    urlBuilder_.Append("api/workflow-schemes/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/entries/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(recordTypeId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/preview");
+                    urlBuilder_.Append('?');
+                    if (workflowId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("workflowId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(workflowId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<WorkflowSchemeChangePreviewDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Preview what changing a scheme's default workflow would move, before anything is committed.
+        /// </summary>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<WorkflowSchemeChangePreviewDto> PreviewDefaultAsync(System.Guid id, System.Guid? workflowId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/workflow-schemes/{id}/default/preview"
+                    urlBuilder_.Append("api/workflow-schemes/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/default/preview");
+                    urlBuilder_.Append('?');
+                    if (workflowId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("workflowId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(workflowId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<WorkflowSchemeChangePreviewDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
         protected struct ObjectResponseResult<T>
         {
             public ObjectResponseResult(T responseObject, string responseText)
@@ -104395,14 +112970,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A project an accepted intake request became.
+    /// A project or work item an accepted intake request became.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class AddIntakeRequestOutcomeRequest
     {
 
         /// <summary>
-        /// What the request became: a new project started for it, or scope added to a project that already existed.
+        /// What the request became: a new project started for it, scope added to a project that already existed, or
+        /// <br/>a work item that delivers it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -104410,11 +112986,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public IntakeRequestOutcomeKind Kind { get; set; } = default!;
 
         /// <summary>
-        /// The project. Recording the outcome does not change it.
+        /// The project, for `NewProject` and `ExistingProjectScope`; leave it out for `WorkItem`. Recording the outcome
+        /// <br/>does not change it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("projectId")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Guid ProjectId { get; set; } = default!;
+        public System.Guid? ProjectId { get; set; } = default!;
+
+        /// <summary>
+        /// The work item, for `WorkItem`; leave it out for the project kinds. Recording the outcome does not change it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workItemId")]
+        public System.Guid? WorkItemId { get; set; } = default!;
 
         /// <summary>
         /// What the outcome covers. Required for existing project scope, where it says what the project absorbed.
@@ -104492,6 +113074,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("label")]
         [System.ComponentModel.DataAnnotations.StringLength(512)]
         public string? Label { get; set; } = default!;
+
+        /// <summary>
+        /// Optional detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(2048)]
+        public string? Description { get; set; } = default!;
 
     }
 
@@ -104878,6 +113467,29 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A request to point a scope at another workflow scheme and move the records whose workflow changes.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AssignWorkflowSchemeRequest
+    {
+
+        /// <summary>
+        /// The scheme the scope should follow.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("schemeId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid SchemeId { get; set; } = default!;
+
+        /// <summary>
+        /// Operator choices layered over the automatic mapping, for the statuses whose records move. Needed only when records move.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("decisions")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<StatusRemapDecisionRequest> Decisions { get; set; } = new System.Collections.ObjectModel.Collection<StatusRemapDecisionRequest>();
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class AuditDto
     {
@@ -104997,7 +113609,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string PersonalAccessToken { get; set; } = default!;
 
         /// <summary>
-        /// The Azure DevOps organization URL, derived from the organization name.
+        /// The Azure DevOps organization URL, built from the organization name and the configured
+        /// <br/>Azure DevOps base address.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("organizationUrl")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -105650,6 +114263,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// The estimation scale a desk's requests should be estimated on.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ChangeIntakeDeskEstimationScaleRequest
+    {
+
+        /// <summary>
+        /// An active estimation scale, from the estimation scale choices, or null to stop estimating the desk's requests.
+        /// <br/>The desk is pinned to the scale's current version.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimationScaleId")]
+        public System.Guid? EstimationScaleId { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// The scoring model a desk's requests should be scored with.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -105696,6 +114325,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// How big an intake request is, on its desk's estimation scale.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ChangeIntakeRequestEstimateRequest
+    {
+
+        /// <summary>
+        /// An estimate value of the scale version the request's desk pins, exactly as the scale writes it (`M`,
+        /// <br/>`8`), never a card such as `?`; or null to clear the estimate. Blank is refused. At most 32 characters
+        /// <br/>once trimmed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public string? Value { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// The status to move an intake request to, with what that move needs.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -105722,6 +114368,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("duplicateOfId")]
         public System.Guid? DuplicateOfId { get; set; } = default!;
+
+        /// <summary>
+        /// A reply to post in the request's conversation with the move, such as a question for the requester when moving to
+        /// <br/>Waiting on Requester. Saved with the move, and shown with it on the message. Null for none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reply")]
+        public IntakeRequestReplyRequest? Reply { get; set; } = default!;
 
     }
 
@@ -105844,13 +114497,26 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A request to change the workflow followed by every record whose type has no entry in a scheme.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class ChangeStoryMapOwnerRequest
+    public partial class ChangeWorkflowSchemeDefaultRequest
     {
 
-        [System.Text.Json.Serialization.JsonPropertyName("ownerId")]
+        /// <summary>
+        /// The published workflow those records follow from now on.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workflowId")]
         [System.ComponentModel.DataAnnotations.Required]
-        public string OwnerId { get; set; } = default!;
+        public System.Guid WorkflowId { get; set; } = default!;
+
+        /// <summary>
+        /// Operator choices layered over the automatic mapping, for the statuses whose records move. Needed only when records move.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("decisions")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<StatusRemapDecisionRequest> Decisions { get; set; } = new System.Collections.ObjectModel.Collection<StatusRemapDecisionRequest>();
 
     }
 
@@ -105884,6 +114550,30 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// An optional description of the new draft workflow.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(1024)]
+        public string? Description { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A request to copy a workflow scheme into a new owned one.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CloneWorkflowSchemeRequest
+    {
+
+        /// <summary>
+        /// What the copy is called.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// An optional description; the source's when left out.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.StringLength(1024)]
@@ -106334,15 +115024,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Name { get; set; } = default!;
 
         /// <summary>
-        /// The managers of the new Roadmap.
+        /// The owners of the new Roadmap: employee ids, which must include the caller's own.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("roadmapManagerIds")]
+        [System.Text.Json.Serialization.JsonPropertyName("ownerIds")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.MinLength(1)]
-        public System.Collections.Generic.ICollection<System.Guid> RoadmapManagerIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+        public System.Collections.Generic.ICollection<System.Guid> OwnerIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
         /// <summary>
-        /// The visibility id for the new Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap.
+        /// The visibility id for the new Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("visibilityId")]
         public int VisibilityId { get; set; } = default!;
@@ -106716,23 +115406,35 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A new estimation scale, created active with its values as version 1.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CreateEstimationScaleRequest
     {
 
+        /// <summary>
+        /// The scale's name, at most 128 characters.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// What the scale is for, at most 1024 characters.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.StringLength(1024)]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The cards in the order they are shown, at least 2 of them estimates.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("values")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.MinLength(1)]
-        public System.Collections.Generic.ICollection<string> Values { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<EstimationScaleValueRequest> Values { get; set; } = new System.Collections.ObjectModel.Collection<EstimationScaleValueRequest>();
 
     }
 
@@ -106795,6 +115497,26 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.StringLength(1024)]
         public string? Description { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CreateIncidentSeveritySetRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(512)]
+        public string? Description { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("levelNames")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MinLength(1)]
+        public System.Collections.Generic.ICollection<string> LevelNames { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
     }
 
@@ -107240,8 +115962,35 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Name { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("estimationScaleId")]
-        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
-        public int EstimationScaleId { get; set; } = default!;
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid EstimationScaleId { get; set; } = default!;
+
+        /// <summary>
+        /// `Public` (the default): anyone with the poker View permission can see and join the session. `Private`:
+        /// <br/>only its facilitators, invited employees and the members of invited teams.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visibility")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Visibility>))]
+        public Visibility Visibility { get; set; } = default!;
+
+        /// <summary>
+        /// Employees who facilitate alongside the caller, who is always the first facilitator.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("facilitatorIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? FacilitatorIds { get; set; } = default!;
+
+        /// <summary>
+        /// Employees invited to the session, who can join it while it is private.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("invitedEmployeeIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? InvitedEmployeeIds { get; set; } = default!;
+
+        /// <summary>
+        /// Teams invited to the session, whose current members can join it while it is private.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("invitedTeamIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? InvitedTeamIds { get; set; } = default!;
 
     }
 
@@ -107707,6 +116456,31 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A request to define a record type for an owner type that has them.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CreateRecordTypeRequest
+    {
+
+        /// <summary>
+        /// The owner type the record type is a variant of, such as `work.item`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ownerType")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string OwnerType { get; set; } = default!;
+
+        /// <summary>
+        /// What the record type is called, such as Bug.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CreateRecurringJobRequest
     {
@@ -107879,15 +116653,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset End { get; set; } = default!;
 
         /// <summary>
-        /// The managers of the Roadmap.
+        /// The owners of the Roadmap: employee ids, which must include the caller's own.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("roadmapManagerIds")]
+        [System.Text.Json.Serialization.JsonPropertyName("ownerIds")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.MinLength(1)]
-        public System.Collections.Generic.ICollection<System.Guid> RoadmapManagerIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+        public System.Collections.Generic.ICollection<System.Guid> OwnerIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
         /// <summary>
-        /// The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap.
+        /// The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("visibilityId")]
         public int VisibilityId { get; set; } = default!;
@@ -107984,6 +116758,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A new story map, with who owns it, who can edit it and who can see it.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CreateStoryMapRequest
     {
@@ -107996,6 +116773,41 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.StringLength(2048)]
         public string? Description { get; set; } = default!;
+
+        /// <summary>
+        /// `Public` (the default): anyone with the Story Maps View permission can see the map. `Private`: only its
+        /// <br/>owners, editors and the members of its editor teams.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visibility")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Visibility>))]
+        public Visibility Visibility { get; set; } = default!;
+
+        /// <summary>
+        /// Who can change a public map's content: `AnyoneWhoCanView` (the default), or `OwnersAndEditors`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editAccess")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StoryMapEditAccess>))]
+        public StoryMapEditAccess EditAccess { get; set; } = default!;
+
+        /// <summary>
+        /// Employees who own the map alongside the caller, who is always an owner.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ownerIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? OwnerIds { get; set; } = default!;
+
+        /// <summary>
+        /// Employees invited to edit the map.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editorIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? EditorIds { get; set; } = default!;
+
+        /// <summary>
+        /// Teams whose current members are invited to edit the map.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editorTeamIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? EditorTeamIds { get; set; } = default!;
 
     }
 
@@ -108431,6 +117243,45 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A request to create a workflow scheme for an owner type with record types.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CreateWorkflowSchemeRequest
+    {
+
+        /// <summary>
+        /// The owner type whose records the scheme sends to workflows.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ownerType")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string OwnerType { get; set; } = default!;
+
+        /// <summary>
+        /// What the scheme is called.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// An optional explanation shown to administrators choosing between schemes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(1024)]
+        public string? Description { get; set; } = default!;
+
+        /// <summary>
+        /// The published workflow records follow when their type has no entry.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("defaultWorkflowId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid DefaultWorkflowId { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CreateWorkStatusRequest
     {
@@ -108610,6 +117461,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("servers")]
         public long Servers { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One page of a list read by cursor: the items, and where the next page starts.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CursorPageOfDiscussionEntryDto
+    {
+
+        /// <summary>
+        /// The items on this page, in the list's order.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<DiscussionEntryDto> Items { get; set; } = new System.Collections.ObjectModel.Collection<DiscussionEntryDto>();
+
+        /// <summary>
+        /// Pass this back as the next request's cursor, or null when this page is the last. Opaque: its format is not part of the contract.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("nextCursor")]
+        public string? NextCursor { get; set; } = default!;
 
     }
 
@@ -108959,29 +117832,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A page of dead-lettered messages. `PageNumber` is 0-based, mirroring Wolverine's
-    /// <br/>DeadLetterEnvelopeQuery paging.
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class DeadLetterMessagesResponse
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("totalCount")]
-        public int TotalCount { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("pageNumber")]
-        public int PageNumber { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("pageSize")]
-        public int PageSize { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("items")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<DeadLetterMessageResponse> Items { get; set; } = new System.Collections.ObjectModel.Collection<DeadLetterMessageResponse>();
-
-    }
-
-    /// <summary>
     /// Outcome of deleting an OIDC provider: either it was deleted, or deletion was refused
     /// <br/>because users still sign in through it, with how many active identities remain bound.
     /// </summary>
@@ -109164,6 +118014,151 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The dependencies running from one team's predecessors to another team's successors.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DependencyAnalysisPairDto
+    {
+
+        /// <summary>
+        /// The team owning the predecessors; null when they have no team.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("predecessorTeam")]
+        public WorkTeamNavigationDto? PredecessorTeam { get; set; } = default!;
+
+        /// <summary>
+        /// The team owning the successors, waiting on the predecessors; null when they have no team.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("successorTeam")]
+        public WorkTeamNavigationDto? SuccessorTeam { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the predecessor team is in the report's scope.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("predecessorTeamInScope")]
+        public bool PredecessorTeamInScope { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the successor team is in the report's scope.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("successorTeamInScope")]
+        public bool SuccessorTeamInScope { get; set; } = default!;
+
+        /// <summary>
+        /// The pair's dependencies counted in the range: open at some point within it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("dependencies")]
+        public int Dependencies { get; set; } = default!;
+
+        /// <summary>
+        /// Of those, the ones created in the range.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("created")]
+        public int Created { get; set; } = default!;
+
+        /// <summary>
+        /// Of those, the ones that closed in the range.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("closed")]
+        public int Closed { get; set; } = default!;
+
+        /// <summary>
+        /// Of those, the ones still open when the range ended.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("openAtEnd")]
+        public int OpenAtEnd { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One calendar period of the range.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DependencyAnalysisPeriodDto
+    {
+
+        /// <summary>
+        /// The period's first day.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        /// <summary>
+        /// The period's last day, included.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset End { get; set; } = default!;
+
+        /// <summary>
+        /// Dependencies created in the period.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("created")]
+        public int Created { get; set; } = default!;
+
+        /// <summary>
+        /// Dependencies that closed in the period.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("closed")]
+        public int Closed { get; set; } = default!;
+
+        /// <summary>
+        /// Dependencies open at the end of the period.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("open")]
+        public int Open { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Totals for the range.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DependencyAnalysisSummaryDto
+    {
+
+        /// <summary>
+        /// Dependencies counted in the range: open at some point within it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("dependencies")]
+        public int Dependencies { get; set; } = default!;
+
+        /// <summary>
+        /// Of those, the ones created in the range.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("created")]
+        public int Created { get; set; } = default!;
+
+        /// <summary>
+        /// Of those, the ones that closed in the range.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("closed")]
+        public int Closed { get; set; } = default!;
+
+        /// <summary>
+        /// Of those, the ones still open when the range ended.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("openAtEnd")]
+        public int OpenAtEnd { get; set; } = default!;
+
+        /// <summary>
+        /// Teams owning either end of a counted dependency, in scope or not. Items with no team add none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamsInvolved")]
+        public int TeamsInvolved { get; set; } = default!;
+
+        /// <summary>
+        /// Of int DependencyAnalysisSummaryDto.TeamsInvolved, the teams outside the scope: for a team, every other team.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamsOutside")]
+        public int TeamsOutside { get; set; } = default!;
 
     }
 
@@ -109460,6 +118455,367 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("count")]
         public int Count { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A record's conversation as the caller may use it: what they may do in it, and whether it is locked.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DiscussionDto
+    {
+
+        /// <summary>
+        /// Whether the caller may post and reply.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canPost")]
+        public bool CanPost { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the caller may post internal notes. When false, a composer offers no internal-note control at all.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canPostInternal")]
+        public bool CanPostInternal { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the caller may lock the conversation and delete anyone's message.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canModerate")]
+        public bool CanModerate { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the conversation is locked: nothing new can be posted, replied or edited.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isLocked")]
+        public bool IsLocked { get; set; } = default!;
+
+        /// <summary>
+        /// How many threads the caller can read: top-level messages not deleted, of the kinds they may read.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("threadCount")]
+        public int ThreadCount { get; set; } = default!;
+
+        /// <summary>
+        /// How many messages the caller can read, top-level and replies, not deleted, of the kinds they may read.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("messageCount")]
+        public int MessageCount { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One entry in a conversation: a top-level message, or a change to the record between messages.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DiscussionEntryDto
+    {
+
+        /// <summary>
+        /// Which of DiscussionMessageDto? DiscussionEntryDto.Message and ActivityLogDto? DiscussionEntryDto.Activity is set.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DiscussionEntryType>))]
+        public DiscussionEntryType Type { get; set; } = default!;
+
+        /// <summary>
+        /// When the message was posted or the change happened; the conversation's order.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("timestamp")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Timestamp { get; set; } = default!;
+
+        /// <summary>
+        /// The message, when DiscussionEntryType DiscussionEntryDto.Type is DiscussionEntryType.Message.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("message")]
+        public DiscussionMessageDto? Message { get; set; } = default!;
+
+        /// <summary>
+        /// The change, when DiscussionEntryType DiscussionEntryDto.Type is DiscussionEntryType.Activity, exactly as the record's own
+        /// <br/>Activity section shows it to the caller.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activity")]
+        public ActivityLogDto? Activity { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// What one entry in a conversation is.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum DiscussionEntryType
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Message")]
+        Message = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Activity")]
+        Activity = 1,
+
+    }
+
+    /// <summary>
+    /// A message in a conversation, top-level or a reply, as the caller may see it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DiscussionMessageDto
+    {
+
+        /// <summary>
+        /// The message's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The top-level message whose thread this is a reply in, or null for a top-level message.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("parentMessageId")]
+        public System.Guid? ParentMessageId { get; set; } = default!;
+
+        /// <summary>
+        /// Who the message is for.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DiscussionMessageKind>))]
+        public DiscussionMessageKind Kind { get; set; } = default!;
+
+        /// <summary>
+        /// The optional subject of a top-level message. Null on a reply, and once deleted.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("subject")]
+        public string? Subject { get; set; } = default!;
+
+        /// <summary>
+        /// The message as markdown, mentions written `@[Name](employee:{id})`; show each mention by the current name
+        /// <br/>in List&amp;lt;EmployeeNavigationDto&amp;gt; DiscussionMessageDto.Mentions. Null once deleted.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("body")]
+        public string? Body { get; set; } = default!;
+
+        /// <summary>
+        /// Who wrote the message.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("author")]
+        public EmployeeNavigationDto Author { get; set; } = default!;
+
+        /// <summary>
+        /// When the message was posted.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("postedOn")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset PostedOn { get; set; } = default!;
+
+        /// <summary>
+        /// When the message was last edited, or null if it never was.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editedOn")]
+        public System.DateTimeOffset? EditedOn { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the message was deleted, leaving only who wrote it, who deleted it and when.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isDeleted")]
+        public bool IsDeleted { get; set; } = default!;
+
+        /// <summary>
+        /// When the message was deleted, or null while it stands.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deletedOn")]
+        public System.DateTimeOffset? DeletedOn { get; set; } = default!;
+
+        /// <summary>
+        /// Who deleted the message, or null while it stands.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deletedBy")]
+        public EmployeeNavigationDto? DeletedBy { get; set; } = default!;
+
+        /// <summary>
+        /// The people the message mentions, by their current names.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mentions")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Mentions { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// How many replies the thread this message starts holds. Zero on a reply.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("replyCount")]
+        public int ReplyCount { get; set; } = default!;
+
+        /// <summary>
+        /// When the latest reply in the thread was posted, or null when there are none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("lastReplyOn")]
+        public System.DateTimeOffset? LastReplyOn { get; set; } = default!;
+
+        /// <summary>
+        /// Up to three people who replied most recently in the thread, newest first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("recentRepliers")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> RecentRepliers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// The change to the record the message was posted with, such as moving a request to Waiting on Requester, exactly as
+        /// <br/>the record's Activity section shows it to the caller. Null when there is none, the caller may not see it, or the
+        /// <br/>message was read on its own rather than in a page of the conversation.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("recordChange")]
+        public ActivityLogDto? RecordChange { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the caller may edit the message: their own, standing, in an unlocked conversation.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canEdit")]
+        public bool CanEdit { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the caller may delete the message: their own, or anyone's as a moderator.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canDelete")]
+        public bool CanDelete { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum DiscussionMessageKind
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Public")]
+        Public = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"InternalNote")]
+        InternalNote = 1,
+
+    }
+
+    /// <summary>
+    /// A version of a message that an edit replaced.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DiscussionMessageRevisionDto
+    {
+
+        /// <summary>
+        /// The subject before the edit, or null when there was none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("subject")]
+        public string? Subject { get; set; } = default!;
+
+        /// <summary>
+        /// The text before the edit, as markdown.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("body")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Body { get; set; } = default!;
+
+        /// <summary>
+        /// When the edit replaced this version.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("replacedOn")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset ReplacedOn { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Which end of a conversation a page starts from.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum DiscussionOrder
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"OldestFirst")]
+        OldestFirst = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"NewestFirst")]
+        NewestFirst = 1,
+
+    }
+
+    /// <summary>
+    /// How conversations behave in one scope, such as an intake desk, or by default for a kind of record: the settings in
+    /// <br/>effect, where they come from, and which of them the kind of record supports.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DiscussionSettingsDto
+    {
+
+        /// <summary>
+        /// The registered channel type, such as `demand.intake-request`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("channelType")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string ChannelType { get; set; } = default!;
+
+        /// <summary>
+        /// The scope's record, or null for the default every scope inherits.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scopeId")]
+        public System.Guid? ScopeId { get; set; } = default!;
+
+        /// <summary>
+        /// Whether new internal notes can be posted. Existing notes stay readable to their audience either way.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("internalNotesEnabled")]
+        public bool InternalNotesEnabled { get; set; } = default!;
+
+        /// <summary>
+        /// Whether mentioning someone can give them access to the record. When off, only the people who already have the record can be mentioned.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mentionsGrantAccess")]
+        public bool MentionsGrantAccess { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the scope has saved no settings of its own and follows its default. Saving values equal to the
+        /// <br/>default keeps it following.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isInherited")]
+        public bool IsInherited { get; set; } = default!;
+
+        /// <summary>
+        /// Whether this kind of record can hold internal notes at all. When false, they cannot be turned on.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("supportsInternalNotes")]
+        public bool SupportsInternalNotes { get; set; } = default!;
+
+        /// <summary>
+        /// Whether a mention can give access on this kind of record at all. When false, it cannot be turned on.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("supportsMentionAccess")]
+        public bool SupportsMentionAccess { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the caller may change these settings.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
+        public bool CanManage { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The new subject and text of the caller's own message. The version it replaces is kept.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class EditDiscussionMessageRequest
+    {
+
+        /// <summary>
+        /// The new subject, up to 200 characters; null or blank for none. Must be blank on a reply in a thread.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("subject")]
+        public string? Subject { get; set; } = default!;
+
+        /// <summary>
+        /// The new text as markdown, up to 10,000 characters. Mention someone as `@[Name](employee:{employeeId})`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("body")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Body { get; set; } = default!;
 
     }
 
@@ -110132,12 +119488,35 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// An estimation scale with its current version and every version it has published.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class EstimationScaleDetailsDto : EstimationScaleDto
+    {
+
+        /// <summary>
+        /// Every published version, newest first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("versions")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EstimationScaleVersionDto> Versions { get; set; } = new System.Collections.ObjectModel.Collection<EstimationScaleVersionDto>();
+
+    }
+
+    /// <summary>
+    /// An estimation scale with its current version, the values anything newly choosing the scale votes on.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class EstimationScaleDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("id")]
-        public int Id { get; set; } = default!;
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -110149,9 +119528,156 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
+        /// <summary>
+        /// The latest published version.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("currentVersion")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public EstimationScaleVersionDto CurrentVersion { get; set; } = new EstimationScaleVersionDto();
+
+    }
+
+    /// <summary>
+    /// Identifies an estimation scale from a record that uses it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class EstimationScaleNavigationDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One value on an estimation scale version.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class EstimationScaleValueDto
+    {
+
+        /// <summary>
+        /// The text shown on the card and recorded as the vote.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Value { get; set; } = default!;
+
+        /// <summary>
+        /// False for a card such as `?`, which can be voted but never becomes an estimate.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isEstimate")]
+        public bool IsEstimate { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One value on an estimation scale: a card participants can vote.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class EstimationScaleValueRequest
+    {
+
+        /// <summary>
+        /// The text shown on the card and recorded as the vote, such as `5`, `M` or `?`. At most 32 characters, and
+        /// <br/>unique on the scale.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Value { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the value is a size. False for a card such as `?`, `∞` or `☕`, which can be voted but never
+        /// <br/>becomes an estimate. A scale needs at least 2 estimate values.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isEstimate")]
+        public bool IsEstimate { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One published version of an estimation scale. A version never changes once published.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class EstimationScaleVersionDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The version's number within its scale, starting at 1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("number")]
+        public int Number { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("publishedOn")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset PublishedOn { get; set; } = default!;
+
+        /// <summary>
+        /// The values a participant can vote, in display order.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("values")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<string> Values { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<EstimationScaleValueDto> Values { get; set; } = new System.Collections.ObjectModel.Collection<EstimationScaleValueDto>();
+
+    }
+
+    /// <summary>
+    /// One version of an estimation scale, named by its scale: what a desk pins and an estimate was given on.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class EstimationScaleVersionNavigationDto
+    {
+
+        /// <summary>
+        /// The scale's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The scale's key.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
+
+        /// <summary>
+        /// The scale's name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// The version's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("versionId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid VersionId { get; set; } = default!;
+
+        /// <summary>
+        /// The version's number within its scale, starting at 1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("versionNumber")]
+        public int VersionNumber { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the version is the scale's latest. False once the scale's values have changed since.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isCurrentVersion")]
+        public bool IsCurrentVersion { get; set; } = default!;
 
     }
 
@@ -110954,6 +120480,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
         public StatusCategory Category { get; set; } = default!;
 
+        /// <summary>
+        /// What the record's owner type calls the category — its own word for the bucket, or the category's
+        /// <br/>name when it declares none. For display only; group and compare on the category.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("categoryLabel")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string CategoryLabel { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -111268,6 +120802,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("canSubmit")]
         public bool CanSubmit { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("isEnabled")]
+        public bool IsEnabled { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -111494,6 +121031,178 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("additionalEmails")]
         public string? AdditionalEmails { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A single CSV row for the intake request import: one request, as it was submitted and where its review
+    /// <br/>has got to. Desks, channels, tags and people are named by id. A request starts in the status meaning
+    /// <br/>Submitted and is moved to `Status` when the row names another, recorded at `StatusChangedAt`.
+    /// <br/>Timestamps are instants, and each must carry its offset.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportIntakeRequestRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// What is being asked for, in a line. Max 256 chars.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
+        public string Title { get; set; } = default!;
+
+        /// <summary>
+        /// The ask in full.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Description { get; set; } = default!;
+
+        /// <summary>
+        /// What gets better, and for whom, if the ask is delivered.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("expectedBenefits")]
+        public string? ExpectedBenefits { get; set; } = default!;
+
+        /// <summary>
+        /// The desk the request is on, by id. It must be open; it need not be one requesters can pick.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deskId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid DeskId { get; set; } = default!;
+
+        /// <summary>
+        /// Where the request came from, by id: any active channel, whether or not the desk offers it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("channelId")]
+        public System.Guid? ChannelId { get; set; } = default!;
+
+        /// <summary>
+        /// The employee the request is for, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("requesterId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid RequesterId { get; set; } = default!;
+
+        /// <summary>
+        /// The employee who entered it, by id, when not the requester.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("submittedById")]
+        public System.Guid? SubmittedById { get; set; } = default!;
+
+        /// <summary>
+        /// When it was submitted, with its offset. Blank for the moment it is imported.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("submittedAt")]
+        public string? SubmittedAt { get; set; } = default!;
+
+        /// <summary>
+        /// The date it is needed by. Needs a basis and a reference.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("needByDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? NeedByDate { get; set; } = default!;
+
+        /// <summary>
+        /// What makes it that date, case-insensitively. Required with a need-by date.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("needByBasis")]
+        public string? NeedByBasis { get; set; } = default!;
+
+        /// <summary>
+        /// What the date rests on: the regulation and clause, the contract and clause, the event, or a note. Max 1024 chars.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("needByReference")]
+        [System.ComponentModel.DataAnnotations.StringLength(1024)]
+        public string? NeedByReference { get; set; } = default!;
+
+        /// <summary>
+        /// For a Commitment, the employee who made it, by id. Required for a Commitment, and empty otherwise.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("needByCommittedById")]
+        public System.Guid? NeedByCommittedById { get; set; } = default!;
+
+        /// <summary>
+        /// For a Commitment, the date it was made. Required for a Commitment, and empty otherwise.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("needByCommittedOn")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? NeedByCommittedOn { get; set; } = default!;
+
+        /// <summary>
+        /// The system the request was raised in. Required with an external id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("originSourceSystem")]
+        public string? OriginSourceSystem { get; set; } = default!;
+
+        /// <summary>
+        /// The request's id in that system. With the source system, identifies at most one request.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("originExternalId")]
+        public string? OriginExternalId { get; set; } = default!;
+
+        /// <summary>
+        /// A link to the request in that system.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("originUrl")]
+        public string? OriginUrl { get; set; } = default!;
+
+        /// <summary>
+        /// A status of the desk's workflow, by its name (`In Review`) or its meaning (`Submitted`,
+        /// <br/>`WaitingOnRequester`, `Accepted`, `Fulfilled`, `Duplicate`, `Withdrawn`),
+        /// <br/>case-insensitively. Blank leaves the request submitted.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public string? Status { get; set; } = default!;
+
+        /// <summary>
+        /// When it moved into the status, with its offset. Blank for SubmittedAt; needs SubmittedAt, and a Status the
+        /// <br/>request moves to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusChangedAt")]
+        public string? StatusChangedAt { get; set; } = default!;
+
+        /// <summary>
+        /// Why, as the requester reads it. Required for a closing status other than Withdrawn, and for finishing
+        /// <br/>one. Max 1024 chars.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusReason")]
+        public string? StatusReason { get; set; } = default!;
+
+        /// <summary>
+        /// For a status meaning Duplicate, the request already in Wayd this one gives way to, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("duplicateOfId")]
+        public System.Guid? DuplicateOfId { get; set; } = default!;
+
+        /// <summary>
+        /// The active member of the desk who owns the request, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("assigneeId")]
+        public System.Guid? AssigneeId { get; set; } = default!;
+
+        /// <summary>
+        /// Semicolon-separated tag ids: tags on axes the desk offers, or free tags where it allows them.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tagIds")]
+        public string? TagIds { get; set; } = default!;
+
+        /// <summary>
+        /// The request's estimate: an estimate value of the desk's estimation scale, exactly as the scale writes it
+        /// <br/>(`M`, `8`), never a card such as `?`. Needs a desk with an estimation scale. Blank leaves the
+        /// <br/>request unestimated, and the column may be left out of the file. Max 32 chars.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimate")]
+        public string? Estimate { get; set; } = default!;
 
     }
 
@@ -111856,28 +121565,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A page of runs, with the total so a UI can page without a second call.
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class ImportProcessPageDto
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("processes")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<ImportProcessDto> Processes { get; set; } = new System.Collections.ObjectModel.Collection<ImportProcessDto>();
-
-        [System.Text.Json.Serialization.JsonPropertyName("totalCount")]
-        public int TotalCount { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("pageNumber")]
-        public int PageNumber { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("pageSize")]
-        public int PageSize { get; set; } = default!;
-
-    }
-
-    /// <summary>
     /// One row's outcome.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -111900,6 +121587,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ImportRowStatus>))]
         public ImportRowStatus Status { get; set; } = default!;
 
+        /// <summary>
+        /// The record this row created or changed.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("createdEntityId")]
         public System.Guid? CreatedEntityId { get; set; } = default!;
 
@@ -111912,27 +121602,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("attemptedOn")]
         public System.DateTimeOffset? AttemptedOn { get; set; } = default!;
 
-    }
-
-    /// <summary>
-    /// A page of row outcomes, with the total so a UI can page without a second call.
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class ImportProcessRowPageDto
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("rows")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<ImportProcessRowDto> Rows { get; set; } = new System.Collections.ObjectModel.Collection<ImportProcessRowDto>();
-
-        [System.Text.Json.Serialization.JsonPropertyName("totalCount")]
-        public int TotalCount { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("pageNumber")]
-        public int PageNumber { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("pageSize")]
-        public int PageSize { get; set; } = default!;
+        /// <summary>
+        /// Where to see that record — or, for one with no page of its own, the record it belongs to. Null when the
+        /// <br/>row created nothing, when that record or the one the link opens has since been deleted, and for a
+        /// <br/>preflight, whose records were rolled back.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("createdRecord")]
+        public ImportRecordLink? CreatedRecord { get; set; } = default!;
 
     }
 
@@ -112099,6 +121775,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tags")]
         public string? Tags { get; set; } = default!;
+
+        /// <summary>
+        /// The teams and teams of teams that work on the product, semicolon-separated, each by team code or
+        /// <br/>team ID — `PAY;MOB;3f2a1c9e-…`. Every team named must exist and be active. Leave the cell
+        /// <br/>blank for a product no team works on. They are linked to this row's product only, never to its
+        /// <br/>parent or children.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teams")]
+        public string? Teams { get; set; } = default!;
 
     }
 
@@ -112500,6 +122185,103 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("assignees")]
         public string? Assignees { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Where a person goes to see what an import row did: the record it created, or — for a record with no page
+    /// <br/>of its own, such as a membership or a dependency — the record it belongs to.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportRecordLink
+    {
+
+        /// <summary>
+        /// The kind of record the link opens.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ImportRecordType>))]
+        public ImportRecordType Type { get; set; } = default!;
+
+        /// <summary>
+        /// The key its page is addressed by.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Key { get; set; } = default!;
+
+        /// <summary>
+        /// What to call it, so the link reads as more than a number.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string? Name { get; set; } = default!;
+
+        /// <summary>
+        /// The key of the record its page sits under — a planning interval objective's planning interval. Null for any other type.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("parentKey")]
+        public string? ParentKey { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ImportRecordType
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Employee")]
+        Employee = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Team")]
+        Team = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"TeamOfTeams")]
+        TeamOfTeams = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"PlanningInterval")]
+        PlanningInterval = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"PlanningIntervalObjective")]
+        PlanningIntervalObjective = 4,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Risk")]
+        Risk = 5,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Portfolio")]
+        Portfolio = 6,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Program")]
+        Program = 7,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Project")]
+        Project = 8,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"StrategicInitiative")]
+        StrategicInitiative = 9,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"StrategicTheme")]
+        StrategicTheme = 10,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Product")]
+        Product = 11,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Version")]
+        Version = 12,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Release")]
+        Release = 13,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"ReleasePackage")]
+        ReleasePackage = 14,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Deployment")]
+        Deployment = 15,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"DeploymentEnvironment")]
+        DeploymentEnvironment = 16,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"IntakeRequest")]
+        IntakeRequest = 17,
 
     }
 
@@ -113199,22 +122981,68 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class InitWorkProcessIntegrationRequest
+    public partial class IncidentSeverityLevelDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("sortOrder")]
+        public int SortOrder { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IncidentSeveritySetDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string? Description { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isSystem")]
+        public bool IsSystem { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isActive")]
+        public bool IsActive { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isSelected")]
+        public bool IsSelected { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("levels")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IncidentSeverityLevelDto> Levels { get; set; } = new System.Collections.ObjectModel.Collection<IncidentSeverityLevelDto>();
+
+    }
+
+    /// <summary>
+    /// One level in a severity set payload.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IncidentSeveritySetLevelRequest
     {
 
         /// <summary>
-        /// Connection Id.
+        /// Existing level id, or omitted when adding a level.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Guid Id { get; set; } = default!;
+        public System.Guid? Id { get; set; } = default!;
 
-        /// <summary>
-        /// External identifier for the work process.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("externalId")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Guid ExternalId { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
 
     }
 
@@ -113445,6 +123273,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public NavigationDto? ScoringModel { get; set; } = default!;
 
         /// <summary>
+        /// The estimation scale version the desk team estimates the desk's requests on, or null when the desk does not
+        /// <br/>estimate them.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimationScale")]
+        public EstimationScaleVersionNavigationDto? EstimationScale { get; set; } = default!;
+
+        /// <summary>
         /// How many changes the desk has recorded; sent back with a change so a stale one is refused.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("revision")]
@@ -113643,6 +123478,49 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// An active estimation scale a desk can estimate its requests on, with the values of its current version, which
+    /// <br/>a desk choosing it is pinned to.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeEstimationScaleChoiceDto
+    {
+
+        /// <summary>
+        /// The scale's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The scale's key.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
+
+        /// <summary>
+        /// The scale's name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// The number of the scale's current version.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("versionNumber")]
+        public int VersionNumber { get; set; } = default!;
+
+        /// <summary>
+        /// The estimate values of the current version, in order; cards are left out, since no request is estimated with one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimateValues")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> EstimateValues { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
+    /// <summary>
     /// The statuses an intake request can arrive in when moved to a desk, and the one it arrives in unless the
     /// <br/>mover chooses.
     /// </summary>
@@ -113692,6 +123570,30 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ratingLevelId")]
         public System.Guid? RatingLevelId { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A request's estimate, as the requests list and board sort and filter on it. Substance tier, which is why it is
+    /// <br/>returned beside the summaries rather than on them.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestCurrentEstimateDto
+    {
+
+        /// <summary>
+        /// The request estimated.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("requestId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid RequestId { get; set; } = default!;
+
+        /// <summary>
+        /// The estimate.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimate")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public IntakeRequestEstimateDto Estimate { get; set; } = new IntakeRequestEstimateDto();
 
     }
 
@@ -113852,6 +123754,31 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool CanChangeOutcomes { get; set; } = default!;
 
         /// <summary>
+        /// Whether the reader may set, change or clear the request's estimate: an agent on its desk, while the request
+        /// <br/>is open, and only when the desk has an estimation scale or the request has an estimate to clear. Never the
+        /// <br/>requester.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canChangeEstimate")]
+        public bool CanChangeEstimate { get; set; } = default!;
+
+        /// <summary>
+        /// The estimate values of the scale version the request's desk pins, in order, for a reader who may change the
+        /// <br/>estimate; empty otherwise, and when the desk does not estimate its requests.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimateValues")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> EstimateValues { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// The scale version the request's desk pins, which the estimate values come from, for a reader who
+        /// <br/>may change the estimate; null otherwise, and when the desk does not estimate its requests. An estimate on
+        /// <br/>any other version can be kept or cleared, but a value sent is always given on this one, even when the
+        /// <br/>older version wrote the same value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimationScaleVersionId")]
+        public System.Guid? EstimationScaleVersionId { get; set; } = default!;
+
+        /// <summary>
         /// Whether the reader may withdraw the request: its requester, while it is open.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canWithdraw")]
@@ -113864,6 +123791,37 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("duplicateOf")]
         public IntakeRequestNavigationDto? DuplicateOf { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// How big an intake request is, on the estimation scale version it was given on. Substance tier.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestEstimateDto
+    {
+
+        /// <summary>
+        /// The estimate value, such as `M` or `8`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Value { get; set; } = default!;
+
+        /// <summary>
+        /// Where the value sits among its version's values, from 0. Estimates sort by it rather than by the text, so
+        /// <br/>`XL` follows `S`; positions compare only between estimates on the same version, since a later version
+        /// <br/>can add values and shift them.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("position")]
+        public int Position { get; set; } = default!;
+
+        /// <summary>
+        /// The scale and version the estimate was given on.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scale")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public EstimationScaleVersionNavigationDto Scale { get; set; } = new EstimationScaleVersionNavigationDto();
 
     }
 
@@ -114040,17 +123998,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public IntakeRequestOutcomeKind Kind { get; set; } = default!;
 
         /// <summary>
-        /// The id of the project the outcome points at, which identifies the outcome on the request.
+        /// The id of the project or work item the outcome points at, which identifies the outcome on the request.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("targetId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid TargetId { get; set; } = default!;
 
         /// <summary>
-        /// The project, or null when it has since been deleted; the outcome stays as the record of what was decided.
+        /// The project, for a project outcome; null for a work item outcome, or when the project has since been
+        /// <br/>deleted, since the outcome stays as the record of what was decided.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("project")]
         public DemandProjectNavigationDto? Project { get; set; } = default!;
+
+        /// <summary>
+        /// The work item, for a work item outcome; null for a project outcome, or when the work item has since been
+        /// <br/>deleted.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workItem")]
+        public IntakeRequestOutcomeWorkItemDto? WorkItem { get; set; } = default!;
 
         /// <summary>
         /// What the outcome covers, in the agent's words. Always present for existing project scope.
@@ -114083,6 +124049,61 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Runtime.Serialization.EnumMember(Value = @"ExistingProjectScope")]
         ExistingProjectScope = 1,
 
+        [System.Runtime.Serialization.EnumMember(Value = @"WorkItem")]
+        WorkItem = 2,
+
+    }
+
+    /// <summary>
+    /// A work item an intake request's outcome points at, as Work reports it now.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestOutcomeWorkItemDto
+    {
+
+        /// <summary>
+        /// The work item's id, the same as in Work.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The work item's key, which its page is addressed by.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Key { get; set; } = default!;
+
+        /// <summary>
+        /// The work item's title.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Title { get; set; } = default!;
+
+        /// <summary>
+        /// The key of the workspace the work item is in, which its page is addressed by.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workspaceKey")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string WorkspaceKey { get; set; } = default!;
+
+        /// <summary>
+        /// The work item's status, by name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Status { get; set; } = default!;
+
+        /// <summary>
+        /// The category of the work item's status.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusCategory")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
+        public StatusCategory StatusCategory { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -114110,6 +124131,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("addedOn")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset AddedOn { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A top-level reply in an intake request's conversation, which the requester and participants read.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestReplyRequest
+    {
+
+        /// <summary>
+        /// An optional subject, up to 200 characters.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("subject")]
+        public string? Subject { get; set; } = default!;
+
+        /// <summary>
+        /// The reply as markdown, mentions written `@[Name](employee:{id})`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("body")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Body { get; set; } = default!;
 
     }
 
@@ -114381,6 +124424,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("statusReason")]
         public string? StatusReason { get; set; } = default!;
+
+        /// <summary>
+        /// How big the ask is, on the scale the desk team estimated it on, or null when it has not been estimated.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimate")]
+        public IntakeRequestEstimateDto? Estimate { get; set; } = default!;
 
     }
 
@@ -114772,6 +124821,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public StatusCategory Category { get; set; } = default!;
 
         /// <summary>
+        /// What intake requests call the category. For display only; group and compare on the category.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("categoryLabel")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string CategoryLabel { get; set; } = default!;
+
+        /// <summary>
         /// The well-known meaning the status carries, as an intake request status alias value, or 0 for none.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("alias")]
@@ -114924,28 +124980,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A page of jobs in one lifecycle state. `PageNumber` is 0-based.
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class JobsResponse
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("totalCount")]
-        public long TotalCount { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("pageNumber")]
-        public int PageNumber { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("pageSize")]
-        public int PageSize { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("items")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<JobSummaryResponse> Items { get; set; } = new System.Collections.ObjectModel.Collection<JobSummaryResponse>();
-
-    }
-
-    /// <summary>
     /// The job lifecycle states background jobs can be listed by.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -115047,6 +125081,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("exceptionMessage")]
         public string? ExceptionMessage { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Joins the caller to a poker session.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class JoinPokerSessionRequest
+    {
+
+        /// <summary>
+        /// True (the default) to vote, counting toward the voted and waiting totals; false to take part without voting.
+        /// <br/>Ignored when the caller has already joined.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isVoting")]
+        public bool IsVoting { get; set; } = default!;
 
     }
 
@@ -116317,6 +126367,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Runtime.Serialization.EnumMember(Value = @"ChannelChanged")]
         ChannelChanged = 13,
 
+        [System.Runtime.Serialization.EnumMember(Value = @"MessagePosted")]
+        MessagePosted = 14,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"InternalNotePosted")]
+        InternalNotePosted = 15,
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -116344,6 +126400,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Runtime.Serialization.EnumMember(Value = @"Role")]
         Role = 64,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Thread")]
+        Thread = 128,
 
     }
 
@@ -116975,12 +127034,136 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     /// One page of results, with the paging position and the total across all pages.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PagedResponseOfDeadLetterMessageResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<DeadLetterMessageResponse> Items { get; set; } = new System.Collections.ObjectModel.Collection<DeadLetterMessageResponse>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("pageNumber")]
+        public int PageNumber { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("pageSize")]
+        public int PageSize { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalCount")]
+        public int TotalCount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalPages")]
+        public int TotalPages { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("hasPreviousPage")]
+        public bool HasPreviousPage { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("hasNextPage")]
+        public bool HasNextPage { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One page of results, with the paging position and the total across all pages.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PagedResponseOfFollowedRecordDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("items")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<FollowedRecordDto> Items { get; set; } = new System.Collections.ObjectModel.Collection<FollowedRecordDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("pageNumber")]
+        public int PageNumber { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("pageSize")]
+        public int PageSize { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalCount")]
+        public int TotalCount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalPages")]
+        public int TotalPages { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("hasPreviousPage")]
+        public bool HasPreviousPage { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("hasNextPage")]
+        public bool HasNextPage { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One page of results, with the paging position and the total across all pages.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PagedResponseOfImportProcessDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<ImportProcessDto> Items { get; set; } = new System.Collections.ObjectModel.Collection<ImportProcessDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("pageNumber")]
+        public int PageNumber { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("pageSize")]
+        public int PageSize { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalCount")]
+        public int TotalCount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalPages")]
+        public int TotalPages { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("hasPreviousPage")]
+        public bool HasPreviousPage { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("hasNextPage")]
+        public bool HasNextPage { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One page of results, with the paging position and the total across all pages.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PagedResponseOfImportProcessRowDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<ImportProcessRowDto> Items { get; set; } = new System.Collections.ObjectModel.Collection<ImportProcessRowDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("pageNumber")]
+        public int PageNumber { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("pageSize")]
+        public int PageSize { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalCount")]
+        public int TotalCount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("totalPages")]
+        public int TotalPages { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("hasPreviousPage")]
+        public bool HasPreviousPage { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("hasNextPage")]
+        public bool HasNextPage { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One page of results, with the paging position and the total across all pages.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PagedResponseOfJobSummaryResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<JobSummaryResponse> Items { get; set; } = new System.Collections.ObjectModel.Collection<JobSummaryResponse>();
 
         [System.Text.Json.Serialization.JsonPropertyName("pageNumber")]
         public int PageNumber { get; set; } = default!;
@@ -118532,6 +128715,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("label")]
         public string? Label { get; set; } = default!;
 
+        /// <summary>
+        /// Optional detail about what is being estimated, such as acceptance criteria or notes for the team.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string? Description { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Status { get; set; } = default!;
@@ -118570,11 +128759,58 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Status { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("facilitator")]
-        public UserNavigationDto? Facilitator { get; set; } = default!;
+        /// <summary>
+        /// Public: anyone with the poker View permission can see and join the session. Private: only its
+        /// <br/>facilitators, invited employees and the members of invited teams.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visibility")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Visibility>))]
+        public Visibility Visibility { get; set; } = default!;
+
+        /// <summary>
+        /// The employees who run the session: its rounds, reveals, resets, consensus, details, access and completion.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("facilitators")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Facilitators { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// The employees invited to the session, who can join it while it is private.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("invitedEmployees")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> InvitedEmployees { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// The teams invited to the session, whose current members can join it while it is private.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("invitedTeams")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<PlanningTeamNavigationDto> InvitedTeams { get; set; } = new System.Collections.ObjectModel.Collection<PlanningTeamNavigationDto>();
+
+        /// <summary>
+        /// Everyone who has joined the session, in the order they joined, including those who have left.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("members")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<PokerSessionMemberDto> Members { get; set; } = new System.Collections.ObjectModel.Collection<PokerSessionMemberDto>();
+
+        /// <summary>
+        /// Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a
+        /// <br/>read-only token.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
+        public bool CanManage { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("estimationScale")]
-        public EstimationScaleDto? EstimationScale { get; set; } = default!;
+        public EstimationScaleNavigationDto? EstimationScale { get; set; } = default!;
+
+        /// <summary>
+        /// The scale version the session votes on, which stays put when the scale publishes a newer one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimationScaleVersion")]
+        public EstimationScaleVersionDto? EstimationScaleVersion { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("activatedOn")]
         public System.DateTimeOffset? ActivatedOn { get; set; } = default!;
@@ -118607,11 +128843,67 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Status { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("facilitator")]
-        public UserNavigationDto? Facilitator { get; set; } = default!;
+        /// <summary>
+        /// Public: anyone with the poker View permission can see and join the session. Private: only the people on it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visibility")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Visibility>))]
+        public Visibility Visibility { get; set; } = default!;
+
+        /// <summary>
+        /// The employees who run the session.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("facilitators")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Facilitators { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// Everyone who has joined the session, voting or not, in the order they joined.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("participants")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Participants { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
 
         [System.Text.Json.Serialization.JsonPropertyName("roundCount")]
         public int RoundCount { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a
+        /// <br/>read-only token.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
+        public bool CanManage { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Someone who joined a poker session, and how they take part.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PokerSessionMemberDto
+    {
+
+        /// <summary>
+        /// The member. Live presence carries the same employee id, which is how a connected person is matched to
+        /// <br/>their membership.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employee")]
+        public EmployeeNavigationDto Employee { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the member votes. A voting member counts toward a round's voted and waiting totals; one who is not
+        /// <br/>voting is left out of them but still takes part.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isVoting")]
+        public bool IsVoting { get; set; } = default!;
+
+        /// <summary>
+        /// When the member first joined.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("joinedOn")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset JoinedOn { get; set; } = default!;
 
     }
 
@@ -118670,6 +128962,37 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("projects")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ProjectRankingScoreDto> Projects { get; set; } = new System.Collections.ObjectModel.Collection<ProjectRankingScoreDto>();
+
+    }
+
+    /// <summary>
+    /// A message that starts a conversation thread on a record.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PostDiscussionMessageRequest
+    {
+
+        /// <summary>
+        /// Who the message is for: `Public` for everyone who can read the conversation, `InternalNote` for its internal
+        /// <br/>audience only, such as an intake desk's agents.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DiscussionMessageKind>))]
+        public DiscussionMessageKind Kind { get; set; } = default!;
+
+        /// <summary>
+        /// An optional subject of up to 200 characters, so parallel topics on a busy record stay apart.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("subject")]
+        public string? Subject { get; set; } = default!;
+
+        /// <summary>
+        /// The message as markdown, up to 10,000 characters. Mention someone as `@[Name](employee:{employeeId})`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("body")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Body { get; set; } = default!;
 
     }
 
@@ -118888,6 +129211,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ProductTagDto> Tags { get; set; } = new System.Collections.ObjectModel.Collection<ProductTagDto>();
 
+        /// <summary>
+        /// The teams and teams of teams linked to this product, by name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teams")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<ProductTeamNavigationDto> Teams { get; set; } = new System.Collections.ObjectModel.Collection<ProductTeamNavigationDto>();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -119091,6 +129421,64 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allowsFreeTags")]
         public bool AllowsFreeTags { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A team or team of teams linked to a product.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ProductTeamLinkDto
+    {
+
+        /// <summary>
+        /// The product the team is linked to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("product")]
+        public NavigationDto Product { get; set; } = default!;
+
+        /// <summary>
+        /// Everything `product` sits inside, from its root down to its parent.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("productPath")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<NavigationDto> ProductPath { get; set; } = new System.Collections.ObjectModel.Collection<NavigationDto>();
+
+        /// <summary>
+        /// The team or team of teams linked.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("team")]
+        public ProductTeamNavigationDto Team { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A team or team of teams as Product Management knows it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ProductTeamNavigationDto : NavigationDto
+    {
+
+        /// <summary>
+        /// The team's short code, unique across teams and teams of teams.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Code { get; set; } = default!;
+
+        /// <summary>
+        /// Whether this is a team or a team of teams, which decides where its page is.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TeamType>))]
+        public TeamType Type { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the team is active. An inactive team keeps its links but cannot take new ones.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isActive")]
+        public bool IsActive { get; set; } = default!;
 
     }
 
@@ -121135,6 +131523,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// The work items to link to, or unlink from, a project.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ProjectWorkItemsRequest
+    {
+
+        /// <summary>
+        /// The work items' UUIDs, at most 100; work item keys are not accepted.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workItemIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MinLength(1)]
+        public System.Collections.Generic.ICollection<System.Guid> WorkItemIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+    }
+
+    /// <summary>
     /// One reason the caller can be told for, and whether they have muted it.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -121339,6 +131744,73 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.MinLength(1)]
         public System.Collections.Generic.ICollection<CriterionRatingRequest> Ratings { get; set; } = new System.Collections.ObjectModel.Collection<CriterionRatingRequest>();
+
+    }
+
+    /// <summary>
+    /// A record type: a variant of an owner type's records that can follow its own workflow.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RecordTypeDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// The kind of record this is a type of.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("owner")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public WorkflowOwnerNavigationDto Owner { get; set; } = new WorkflowOwnerNavigationDto();
+
+        /// <summary>
+        /// Whether administrators keep it, or a sync keeps it from its source.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ownership")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkflowOwnership>))]
+        public WorkflowOwnership Ownership { get; set; } = default!;
+
+        /// <summary>
+        /// The source's identifier for a managed type; null for an owned one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("externalKey")]
+        public string? ExternalKey { get; set; } = default!;
+
+        /// <summary>
+        /// Whether records can still be given this type.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isActive")]
+        public bool IsActive { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A record type, named enough to show.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RecordTypeNavigationDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
 
     }
 
@@ -121686,6 +132158,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A request to rename an owned record type.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RenameRecordTypeRequest
+    {
+
+        /// <summary>
+        /// The record type's new name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class RenameStepRequest
     {
@@ -121943,6 +132432,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("parentId")]
         public System.Guid? ParentId { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A reply in the thread a top-level message starts. It takes that message's kind and has no subject.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ReplyToDiscussionMessageRequest
+    {
+
+        /// <summary>
+        /// The reply as markdown, up to 10,000 characters. Mention someone as `@[Name](employee:{employeeId})`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("body")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Body { get; set; } = default!;
 
     }
 
@@ -122409,7 +132914,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset End { get; set; } = default!;
 
         /// <summary>
-        /// The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap.
+        /// The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("visibility")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -122423,11 +132928,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public SimpleNavigationDto State { get; set; } = new SimpleNavigationDto();
 
         /// <summary>
-        /// The managers of the Roadmap.
+        /// The owners of the Roadmap.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("roadmapManagers")]
+        [System.Text.Json.Serialization.JsonPropertyName("owners")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<EmployeeNavigationDto> RoadmapManagers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Owners { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// Whether the caller can manage the Roadmap and its items: they own it or hold the Roadmaps Administer
+        /// <br/>permission. False when the request's token is read-only. An archived Roadmap can only be activated.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
+        public bool CanManage { get; set; } = default!;
 
         /// <summary>
         /// The colors configured on the Roadmap, ordered by their configured order.
@@ -122585,7 +133097,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset End { get; set; } = default!;
 
         /// <summary>
-        /// The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap.
+        /// The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("visibility")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -122605,11 +133117,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string? Color { get; set; } = default!;
 
         /// <summary>
-        /// The managers of the Roadmap.
+        /// The owners of the Roadmap.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("roadmapManagers")]
+        [System.Text.Json.Serialization.JsonPropertyName("owners")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<EmployeeNavigationDto> RoadmapManagers { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Owners { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// Whether the caller can manage the Roadmap and its items: they own it or hold the Roadmaps Administer
+        /// <br/>permission. False when the request's token is read-only. An archived Roadmap can only be activated.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
+        public bool CanManage { get; set; } = default!;
 
     }
 
@@ -122822,6 +133341,29 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hasFailedAttemptSince")]
         public bool HasFailedAttemptSince { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// How conversations should behave in one scope, such as an intake desk, or by default for a kind of record.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SaveDiscussionSettingsRequest
+    {
+
+        /// <summary>
+        /// Whether new internal notes can be posted. Turning it off leaves existing notes readable to their audience. Can
+        /// <br/>only be true where the kind of record holds internal notes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("internalNotesEnabled")]
+        public bool InternalNotesEnabled { get; set; } = default!;
+
+        /// <summary>
+        /// Whether mentioning someone can give them access to the record. When false, only the people who already have
+        /// <br/>the record can be mentioned. Can only be true where the kind of record allows it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mentionsGrantAccess")]
+        public bool MentionsGrantAccess { get; set; } = default!;
 
     }
 
@@ -123325,6 +133867,32 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SelectIncidentSeveritySetRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("severitySetId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid SeveritySetId { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Turns syncing on or off for an Azure DevOps project that has been set up on the connection.
+    /// <br/>The project's Wayd workspace and work items are kept either way.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetAzureDevOpsWorkspaceSyncRequest
+    {
+
+        /// <summary>
+        /// Whether the project's work items are synced.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isEnabled")]
+        public bool IsEnabled { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SetChecklistItemCheckedRequest
     {
 
@@ -123366,14 +133934,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Whether an estimation scale is available to new poker sessions.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SetEstimationScaleActiveStatusRequest
     {
 
+        /// <summary>
+        /// The scale's id, matching the one in the path.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
-        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
-        public int Id { get; set; } = default!;
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// True to make the scale available to new sessions, false to withdraw it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
@@ -123408,6 +133985,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetIncidentSeveritySetActiveStatusRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isActive")]
+        public bool IsActive { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Whether requests can be given a tag.
     /// </summary>
@@ -123437,6 +134027,70 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetPokerSessionFacilitatorsRequest
+    {
+
+        /// <summary>
+        /// The employees who facilitate the session from now on, replacing the current list. At least one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employeeIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MinLength(1)]
+        public System.Collections.Generic.ICollection<System.Guid> EmployeeIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetPokerSessionInviteesRequest
+    {
+
+        /// <summary>
+        /// The employees invited to the session, replacing the current list. Empty removes every employee invite.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employeeIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> EmployeeIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+        /// <summary>
+        /// The teams invited to the session, replacing the current list. Empty removes every team invite.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> TeamIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetPokerSessionVisibilityRequest
+    {
+
+        /// <summary>
+        /// `Public`: anyone with the poker View permission can see and join the session. `Private`: only its
+        /// <br/>facilitators, invited employees and the members of invited teams.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visibility")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Visibility>))]
+        public Visibility Visibility { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Turns the caller's voting on or off in a poker session.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetPokerSessionVotingRequest
+    {
+
+        /// <summary>
+        /// True to vote, counting toward the voted and waiting totals; false to take part without voting.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isVoting")]
+        public bool IsVoting { get; set; } = default!;
 
     }
 
@@ -123474,6 +134128,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The whole set of teams and teams of teams linked to a product.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetProductTeamsRequest
+    {
+
+        /// <summary>
+        /// Every team that works on the product, at most 100. Teams not listed are unlinked; an empty list unlinks
+        /// <br/>them all. Teams linked to the products beneath it are not affected.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> TeamIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
     }
 
@@ -123586,6 +134257,82 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("personaIds")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<System.Guid> PersonaIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+    }
+
+    /// <summary>
+    /// Who can edit a public story map from now on.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetStoryMapEditAccessRequest
+    {
+
+        /// <summary>
+        /// Who can change a public map's content: `AnyoneWhoCanView`, or `OwnersAndEditors`. A private map admits only
+        /// <br/>its owners and editors, so there it has no effect.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editAccess")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StoryMapEditAccess>))]
+        public StoryMapEditAccess EditAccess { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The people and teams invited to edit a story map from now on.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetStoryMapEditorsRequest
+    {
+
+        /// <summary>
+        /// The employees invited to edit the map, replacing the current list. Empty removes every employee editor.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employeeIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> EmployeeIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+        /// <summary>
+        /// The teams invited to edit the map, replacing the current list. Empty removes every team.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> TeamIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+    }
+
+    /// <summary>
+    /// The owners a story map has from now on.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetStoryMapOwnersRequest
+    {
+
+        /// <summary>
+        /// The employees who own the map from now on, replacing the current list. At least one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("employeeIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MinLength(1)]
+        public System.Collections.Generic.ICollection<System.Guid> EmployeeIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+    }
+
+    /// <summary>
+    /// Who can see a story map from now on.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetStoryMapVisibilityRequest
+    {
+
+        /// <summary>
+        /// `Public`: anyone with the Story Maps View permission can see the map. `Private`: only its owners, editors
+        /// <br/>and the members of its editor teams.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visibility")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Visibility>))]
+        public Visibility Visibility { get; set; } = default!;
 
     }
 
@@ -123719,6 +134466,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The whole set of products a team or team of teams is linked to.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetTeamProductsRequest
+    {
+
+        /// <summary>
+        /// Every product the team works on, at most 500. Products not listed are unlinked; an empty list unlinks the
+        /// <br/>team from every product.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("productIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> ProductIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SetupRequest
     {
@@ -123742,6 +134506,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("password")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Password { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A request to change which workflow one record type follows under a scheme.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetWorkflowSchemeEntryRequest
+    {
+
+        /// <summary>
+        /// The published workflow the record type follows from now on, or null to remove its entry so it follows the scheme's default.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workflowId")]
+        public System.Guid? WorkflowId { get; set; } = default!;
+
+        /// <summary>
+        /// Operator choices layered over the automatic mapping, for the statuses whose records move. Needed only when records move.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("decisions")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<StatusRemapDecisionRequest> Decisions { get; set; } = new System.Collections.ObjectModel.Collection<StatusRemapDecisionRequest>();
 
     }
 
@@ -125325,6 +136111,30 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// One category and what an owner type calls it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class StatusCategoryLabelDto
+    {
+
+        /// <summary>
+        /// The category being named.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("category")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
+        public StatusCategory Category { get; set; } = default!;
+
+        /// <summary>
+        /// What the owner type calls the category, or the category's own name when it declares none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Label { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// The status a record currently holds, as a reader needs it.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -125350,6 +136160,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
         public StatusCategory Category { get; set; } = default!;
+
+        /// <summary>
+        /// What the record's owner type calls the category — its own word for the bucket, or the category's
+        /// <br/>name when it declares none. For display only; group and compare on the category.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("categoryLabel")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string CategoryLabel { get; set; } = default!;
 
         /// <summary>
         /// The well-known meaning the status carries, as the consuming module's alias value, or
@@ -125583,9 +136401,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("isSystem")]
         public bool IsSystem { get; set; } = default!;
 
+        /// <summary>
+        /// Whether administrators author this workflow, or a sync keeps it from its source. A managed
+        /// <br/>workflow's statuses follow the source; only their categories and aliases are edited here.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ownership")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkflowOwnership>))]
+        public WorkflowOwnership Ownership { get; set; } = default!;
+
+        /// <summary>
+        /// The source's identifier for this workflow when it is managed; null when owned.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("externalKey")]
+        public string? ExternalKey { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("isAssigned")]
         public bool IsAssigned { get; set; } = default!;
 
+        /// <summary>
+        /// Every status in display order, retired ones last and flagged.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("statuses")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<WorkflowStatusDto> Statuses { get; set; } = new System.Collections.ObjectModel.Collection<WorkflowStatusDto>();
@@ -125668,6 +136504,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("canEdit")]
         public bool CanEdit { get; set; } = default!;
 
+        /// <summary>
+        /// Whether a status's category and alias may be changed: on a draft owned workflow, and on a managed one
+        /// <br/>until it is archived. Retired statuses never.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canReclassify")]
+        public bool CanReclassify { get; set; } = default!;
+
+        /// <summary>
+        /// What a check found wrong that does not stop this workflow being used, one sentence each. Only a
+        /// <br/>managed workflow has any: it syncs regardless, and administration flags it until they are fixed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("warnings")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> Warnings { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
         [System.Text.Json.Serialization.JsonPropertyName("canPublish")]
         public bool CanPublish { get; set; } = default!;
 
@@ -125711,6 +136562,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("isSystem")]
         public bool IsSystem { get; set; } = default!;
 
+        /// <summary>
+        /// Whether administrators author this workflow, or a sync keeps it from its source.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ownership")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkflowOwnership>))]
+        public WorkflowOwnership Ownership { get; set; } = default!;
+
+        /// <summary>
+        /// How many statuses a record can be given, leaving out those the source retired.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("statusCount")]
         public int StatusCount { get; set; } = default!;
 
@@ -125758,7 +136620,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// The full Story Map: its goals (each with steps and tasks), swim lanes, and personas.
+    /// The full Story Map: its access, goals (each with steps and tasks), swim lanes, and personas.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class StoryMapDetailsDto
@@ -125782,8 +136644,57 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Status { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("owner")]
-        public UserNavigationDto? Owner { get; set; } = default!;
+        /// <summary>
+        /// Public: anyone with the Story Maps View permission can see the map. Private: only its owners and editors.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visibility")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Visibility>))]
+        public Visibility Visibility { get; set; } = default!;
+
+        /// <summary>
+        /// Who can change a public map's content: anyone who can view it, or only its owners and editors. A private map
+        /// <br/>admits only its owners and editors, so there it has no effect.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editAccess")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StoryMapEditAccess>))]
+        public StoryMapEditAccess EditAccess { get; set; } = default!;
+
+        /// <summary>
+        /// The employees who own the map: its details, lifecycle and access.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("owners")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Owners { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// The employees invited to edit the map.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editors")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Editors { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// The teams whose current members, and the members of their current team of teams, are invited to edit the map.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editorTeams")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<PlanningTeamNavigationDto> EditorTeams { get; set; } = new System.Collections.ObjectModel.Collection<PlanningTeamNavigationDto>();
+
+        /// <summary>
+        /// Whether the caller manages the map, as an owner or a Story Maps administrator. Always false for a read-only
+        /// <br/>token or an account with no linked employee.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
+        public bool CanManage { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the caller can change the map's content. Says nothing about whether the map is archived. Always false
+        /// <br/>for a read-only token or an account with no linked employee.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canEdit")]
+        public bool CanEdit { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("goals")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -125796,6 +136707,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("personas")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<StoryMapPersonaDto> Personas { get; set; } = new System.Collections.ObjectModel.Collection<StoryMapPersonaDto>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum StoryMapEditAccess
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"AnyoneWhoCanView")]
+        AnyoneWhoCanView = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"OwnersAndEditors")]
+        OwnersAndEditors = 1,
 
     }
 
@@ -125825,7 +136748,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A Story Map summarised for lists: name, description, owner, and status, without its content.
+    /// A Story Map summarised for lists: name, description, owners, access and status, without its content.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class StoryMapListDto
@@ -125849,8 +136772,42 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Status { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("owner")]
-        public UserNavigationDto? Owner { get; set; } = default!;
+        /// <summary>
+        /// Public: anyone with the Story Maps View permission can see the map. Private: only its owners and editors.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visibility")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Visibility>))]
+        public Visibility Visibility { get; set; } = default!;
+
+        /// <summary>
+        /// Who can change a public map's content: anyone who can view it, or only its owners and editors.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editAccess")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StoryMapEditAccess>))]
+        public StoryMapEditAccess EditAccess { get; set; } = default!;
+
+        /// <summary>
+        /// The employees who own the map.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("owners")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<EmployeeNavigationDto> Owners { get; set; } = new System.Collections.ObjectModel.Collection<EmployeeNavigationDto>();
+
+        /// <summary>
+        /// Whether the caller manages the map, as an owner or a Story Maps administrator. Always false for a read-only
+        /// <br/>token or an account with no linked employee.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
+        public bool CanManage { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the caller can change the map's content. Says nothing about whether the map is archived. Always false
+        /// <br/>for a read-only token or an account with no linked employee.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canEdit")]
+        public bool CanEdit { get; set; } = default!;
 
     }
 
@@ -128168,6 +139125,67 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// Where a team's dependencies, or those of every team beneath a team of teams, ran from `from` to `to`
+    /// <br/>(inclusive, UTC dates): which teams they ran between, how many, and how that changed over the range.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamDependencyAnalysisDto
+    {
+
+        /// <summary>
+        /// The team or team of teams the report is for.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("team")]
+        public WorkTeamNavigationDto Team { get; set; } = default!;
+
+        /// <summary>
+        /// The first day of the range (UTC).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("from")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset From { get; set; } = default!;
+
+        /// <summary>
+        /// The last day of the range (UTC), included.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("to")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset To { get; set; } = default!;
+
+        /// <summary>
+        /// Totals for the range.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("summary")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public DependencyAnalysisSummaryDto Summary { get; set; } = new DependencyAnalysisSummaryDto();
+
+        /// <summary>
+        /// Each predecessor team → successor team pair, most dependencies first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pairs")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<DependencyAnalysisPairDto> Pairs { get; set; } = new System.Collections.ObjectModel.Collection<DependencyAnalysisPairDto>();
+
+        /// <summary>
+        /// The range split into calendar periods, oldest first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("periods")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<DependencyAnalysisPeriodDto> Periods { get; set; } = new System.Collections.ObjectModel.Collection<DependencyAnalysisPeriodDto>();
+
+        /// <summary>
+        /// Every dependency counted in the range, oldest first, with its current state and health. A closed one's
+        /// <br/>health is Closed: planning health applies only while a dependency is open.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("dependencies")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<DependencyDto> Dependencies { get; set; } = new System.Collections.ObjectModel.Collection<DependencyDto>();
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamDetailsDto
     {
@@ -128996,6 +140014,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TeamType
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Team")]
+        Team = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"TeamOfTeams")]
+        TeamOfTeams = 1,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamTypeDto
     {
 
@@ -129692,27 +140722,43 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// An estimation scale's name, description and values, all set from the body.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UpdateEstimationScaleRequest
     {
 
-        [System.Text.Json.Serialization.JsonPropertyName("estimationScaleId")]
-        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
-        public int EstimationScaleId { get; set; } = default!;
+        /// <summary>
+        /// The scale's id, matching the one in the path.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid Id { get; set; } = default!;
 
+        /// <summary>
+        /// The scale's name, at most 128 characters.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
         public string Name { get; set; } = default!;
 
+        /// <summary>
+        /// What the scale is for, at most 1024 characters. Omitting it clears it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.StringLength(1024)]
         public string? Description { get; set; } = default!;
 
+        /// <summary>
+        /// The cards in the order they are shown, at least 2 of them estimates. Values that differ from the current
+        /// <br/>version's, in text, flag or order, publish the next version; the same values publish nothing.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("values")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.MinLength(1)]
-        public System.Collections.Generic.ICollection<string> Values { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<EstimationScaleValueRequest> Values { get; set; } = new System.Collections.ObjectModel.Collection<EstimationScaleValueRequest>();
 
     }
 
@@ -129852,6 +140898,30 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.StringLength(1024)]
         public string? Description { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UpdateIncidentSeveritySetRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(512)]
+        public string? Description { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("levels")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MinLength(1)]
+        public System.Collections.Generic.ICollection<IncidentSeveritySetLevelRequest> Levels { get; set; } = new System.Collections.ObjectModel.Collection<IncidentSeveritySetLevelRequest>();
 
     }
 
@@ -130330,6 +141400,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The new description for a poker round.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UpdatePokerRoundDescriptionRequest
+    {
+
+        /// <summary>
+        /// Detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters. Null or blank clears it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(2048)]
+        public string? Description { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UpdatePokerRoundLabelRequest
     {
@@ -130350,8 +141436,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Name { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("estimationScaleId")]
-        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
-        public int EstimationScaleId { get; set; } = default!;
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid EstimationScaleId { get; set; } = default!;
 
     }
 
@@ -131249,15 +142335,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset End { get; set; } = default!;
 
         /// <summary>
-        /// The managers of the Roadmap.
+        /// The owners of the Roadmap: employee ids, which must include the caller's own unless they are a Roadmaps administrator.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("roadmapManagerIds")]
+        [System.Text.Json.Serialization.JsonPropertyName("ownerIds")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.MinLength(1)]
-        public System.Collections.Generic.ICollection<System.Guid> RoadmapManagerIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+        public System.Collections.Generic.ICollection<System.Guid> OwnerIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
         /// <summary>
-        /// The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap.
+        /// The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("visibilityId")]
         public int VisibilityId { get; set; } = default!;
@@ -132038,6 +143124,30 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A request to edit a workflow scheme's name and description.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UpdateWorkflowSchemeRequest
+    {
+
+        /// <summary>
+        /// What the scheme is called.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// An optional explanation shown to administrators choosing between schemes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.StringLength(1024)]
+        public string? Description { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UpdateWorkItemProjectRequest
     {
@@ -132444,6 +143554,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum Visibility
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Public")]
+        Public = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Private")]
+        Private = 1,
 
     }
 
@@ -133324,6 +144446,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum WorkflowOwnership
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Owned")]
+        Owned = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Managed")]
+        Managed = 1,
+
+    }
+
     /// <summary>
     /// An owner type and the vocabulary its workflows are built from.
     /// </summary>
@@ -133362,10 +144496,122 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Collections.Generic.ICollection<StatusCategory> RequiredCategories { get; set; } = new System.Collections.ObjectModel.Collection<StatusCategory>();
 
         /// <summary>
+        /// Whether this owner type's records come in record types that a workflow scheme can send to different
+        /// <br/>workflows. When false, its scopes pick a workflow and administration shows no schemes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hasRecordTypes")]
+        public bool HasRecordTypes { get; set; } = default!;
+
+        /// <summary>
         /// Whether a workflow for this owner type may restrict which moves its records make.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("supportsRestrictedTransitions")]
         public bool SupportsRestrictedTransitions { get; set; } = default!;
+
+        /// <summary>
+        /// What this owner type calls each category, one entry per category in category order. A category
+        /// <br/>it declares no label for carries the category's own name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("categoryLabels")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<StatusCategoryLabelDto> CategoryLabels { get; set; } = new System.Collections.ObjectModel.Collection<StatusCategoryLabelDto>();
+
+    }
+
+    /// <summary>
+    /// What a scheme change would do, before anything is committed.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class WorkflowSchemeChangePreviewDto
+    {
+
+        /// <summary>
+        /// How many scopes the change reaches: those pointing at the scheme, or the one being reassigned.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("assignedScopeCount")]
+        public int AssignedScopeCount { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the change can be applied: nothing moves, or the owner type can move its records by record type.
+        /// <br/>When false, applying it is refused.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canMoveRecords")]
+        public bool CanMoveRecords { get; set; } = default!;
+
+        /// <summary>
+        /// Each group of records that would change workflow. Empty when no workflow changes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("moves")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<WorkflowSchemeMovePreviewDto> Moves { get; set; } = new System.Collections.ObjectModel.Collection<WorkflowSchemeMovePreviewDto>();
+
+        /// <summary>
+        /// How many records would move, where the owner type can count them; otherwise 0.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("affectedRecordCount")]
+        public int AffectedRecordCount { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A workflow scheme with its entries.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class WorkflowSchemeDetailsDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string? Description { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("owner")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public WorkflowOwnerNavigationDto Owner { get; set; } = new WorkflowOwnerNavigationDto();
+
+        /// <summary>
+        /// Whether administrators keep it, or a sync keeps it from its source.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ownership")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkflowOwnership>))]
+        public WorkflowOwnership Ownership { get; set; } = default!;
+
+        /// <summary>
+        /// The source's identifier for a managed scheme; null for an owned one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("externalKey")]
+        public string? ExternalKey { get; set; } = default!;
+
+        /// <summary>
+        /// The workflow records follow when their type has no entry.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("defaultWorkflow")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public WorkflowSchemeWorkflowDto DefaultWorkflow { get; set; } = new WorkflowSchemeWorkflowDto();
+
+        /// <summary>
+        /// The record types sent somewhere other than the default, by record type name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("entries")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<WorkflowSchemeEntryDto> Entries { get; set; } = new System.Collections.ObjectModel.Collection<WorkflowSchemeEntryDto>();
+
+        /// <summary>
+        /// The scopes pointing at the scheme; `null` is the organization-level assignment.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("assignedScopeIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid?> AssignedScopeIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid?>();
 
     }
 
@@ -133394,6 +144640,119 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// One record type's workflow under a scheme.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class WorkflowSchemeEntryDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("recordType")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public RecordTypeNavigationDto RecordType { get; set; } = new RecordTypeNavigationDto();
+
+        [System.Text.Json.Serialization.JsonPropertyName("workflow")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public WorkflowSchemeWorkflowDto Workflow { get; set; } = new WorkflowSchemeWorkflowDto();
+
+    }
+
+    /// <summary>
+    /// A workflow scheme, as listed.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class WorkflowSchemeListDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string? Description { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("owner")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public WorkflowOwnerNavigationDto Owner { get; set; } = new WorkflowOwnerNavigationDto();
+
+        /// <summary>
+        /// Whether administrators keep it, or a sync keeps it from its source.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ownership")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkflowOwnership>))]
+        public WorkflowOwnership Ownership { get; set; } = default!;
+
+        /// <summary>
+        /// The workflow records follow when their type has no entry.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("defaultWorkflow")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public WorkflowSchemeWorkflowDto DefaultWorkflow { get; set; } = new WorkflowSchemeWorkflowDto();
+
+        /// <summary>
+        /// How many record types the scheme sends somewhere other than its default.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("entryCount")]
+        public int EntryCount { get; set; } = default!;
+
+        /// <summary>
+        /// How many scopes point at the scheme. A scheme with any cannot be deleted.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("assignedScopeCount")]
+        public int AssignedScopeCount { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One group of records a scheme change moves between two workflows.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class WorkflowSchemeMovePreviewDto
+    {
+
+        /// <summary>
+        /// The record type that moves, or null for the records that follow the defaults.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("recordType")]
+        public RecordTypeNavigationDto? RecordType { get; set; } = default!;
+
+        /// <summary>
+        /// How each status of its current workflow would land in the new one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("remap")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public StatusRemapPreviewDto Remap { get; set; } = new StatusRemapPreviewDto();
+
+    }
+
+    /// <summary>
+    /// A workflow a scheme names, named enough to show.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class WorkflowSchemeWorkflowDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// One status within a workflow.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -133412,7 +144771,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string? Description { get; set; } = default!;
 
         /// <summary>
-        /// The rollup this status belongs to, as id and display name.
+        /// The rollup this status belongs to: the category's id, and its name as the workflow's owner type
+        /// <br/>labels it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("category")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -133432,6 +144792,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
+
+        /// <summary>
+        /// The source's identifier for this status when its workflow is managed; null when owned.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("externalKey")]
+        public string? ExternalKey { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the source dropped this status. Records that hold it still show it, but no record can be
+        /// <br/>given it again.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isRetired")]
+        public bool IsRetired { get; set; } = default!;
 
     }
 
@@ -133855,6 +145228,35 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// An intake request a work item delivers, as listed on the work item's page. Summary tier only.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class WorkItemIntakeRequestDto
+    {
+
+        /// <summary>
+        /// The request.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("request")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public IntakeRequestNavigationDto Request { get; set; } = new IntakeRequestNavigationDto();
+
+        /// <summary>
+        /// Where the request stands in its desk's review workflow.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
+
+        /// <summary>
+        /// What the work item covers of the request, in the agent's words.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("note")]
+        public string? Note { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class WorkItemListDto
     {
@@ -134212,24 +145614,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum WorkStatusCategory
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Proposed")]
-        Proposed = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Active")]
-        Active = 1,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Done")]
-        Done = 2,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"Removed")]
-        Removed = 3,
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class WorkStatusCategoryListDto
     {
 
@@ -134387,6 +145771,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("tier")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Tier { get; set; } = new SimpleNavigationDto();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum WorkTypeTier
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Portfolio")]
+        Portfolio = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Requirement")]
+        Requirement = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Task")]
+        Task = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Other")]
+        Other = 3,
 
     }
 

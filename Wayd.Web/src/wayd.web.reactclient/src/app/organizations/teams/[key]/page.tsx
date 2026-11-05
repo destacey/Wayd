@@ -54,6 +54,9 @@ import {
   ActivityLogTimeline,
   useActivityLog,
 } from '@/src/components/common/activities'
+import TeamProducts from '@/src/app/product-management/products/_components/team-products'
+import ManageTeamProductsButton from '@/src/app/product-management/products/_components/manage-team-products-button'
+import useCanViewTeamProducts from '@/src/app/product-management/products/_components/use-can-view-team-products'
 
 const CycleTimeReport = dynamic(
   () =>
@@ -78,6 +81,16 @@ const WorkDistributionReport = dynamic(
     import('@/src/components/common/work/work-distribution').then((mod) => ({
       default: mod.WorkDistributionReport,
     })),
+  { ssr: false, loading: () => <Spin /> },
+)
+
+const DependencyAnalysisReport = dynamic(
+  () =>
+    import('@/src/components/common/work/dependency-analysis').then(
+      (mod) => ({
+        default: mod.DependencyAnalysisReport,
+      }),
+    ),
   { ssr: false, loading: () => <Spin /> },
 )
 
@@ -115,6 +128,7 @@ enum TeamTabs {
   Backlog = 'backlog',
   Sprints = 'sprints',
   DependencyManagement = 'dependency-management',
+  Products = 'products',
   RiskManagement = 'risk-management',
   TeamMemberships = 'team-memberships',
   Members = 'members',
@@ -123,6 +137,7 @@ enum TeamTabs {
   CycleTimeReport = 'cycle-time-report',
   BacklogHealth = 'backlog-health',
   WorkDistribution = 'work-distribution',
+  DependencyAnalysis = 'dependency-analysis',
   CapacityReport = 'capacity-report',
   ThroughputForecast = 'throughput-forecast',
   SprintMetrics = 'sprint-metrics',
@@ -168,6 +183,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateTeam = hasPermissionClaim('Permissions.Teams.Update')
+  const canViewProducts = useCanViewTeamProducts()
   const canManageTeamMemberships = hasPermissionClaim(
     'Permissions.Teams.ManageTeamMemberships',
   )
@@ -332,6 +348,8 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return <TeamSprints teamId={team!.id!} />
       case TeamTabs.DependencyManagement:
         return <TeamDependencyManagement team={team!} />
+      case TeamTabs.Products:
+        return canViewProducts ? <TeamProducts teamId={team!.id!} /> : null
       case TeamTabs.RiskManagement:
         return createElement(RisksGrid, {
           risks: risksQuery.data ?? [],
@@ -393,6 +411,10 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return <TeamCadenceMetricsReport teamId={team!.id!} />
       case TeamTabs.WorkDistribution:
         return <WorkDistributionReport teamType="team" teamCode={team!.code} />
+      case TeamTabs.DependencyAnalysis:
+        return (
+          <DependencyAnalysisReport teamType="team" teamCode={team!.code} />
+        )
       case TeamTabs.CapacityReport:
         return capacityEnabled ? (
           <CapacityReport
@@ -446,6 +468,9 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     }
     items.push(
       { id: TeamTabs.DependencyManagement, label: 'Dependencies' },
+      ...(canViewProducts
+        ? [{ id: TeamTabs.Products, label: 'Products' }]
+        : []),
       { id: TeamTabs.RiskManagement, label: 'Risks' },
       { id: TeamTabs.Members, label: 'Members' },
       ...(capacityEnabled
@@ -486,6 +511,11 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     {
       id: TeamTabs.WorkDistribution,
       label: 'Work Distribution',
+      hideHeading: true,
+    },
+    {
+      id: TeamTabs.DependencyAnalysis,
+      label: 'Dependency Analysis',
       hideHeading: true,
     },
     ...(capacityEnabled
@@ -562,6 +592,8 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         sectionActions={
           activeTab === TeamTabs.Activities ? (
             <ActivityLogExportButton activityLog={activityLog} />
+          ) : activeTab === TeamTabs.Products && canViewProducts ? (
+            <ManageTeamProductsButton teamId={team!.id!} teamName={team.name} />
           ) : undefined
         }
         facts={<TeamFacts team={team} operatingModel={team.operatingModel} />}

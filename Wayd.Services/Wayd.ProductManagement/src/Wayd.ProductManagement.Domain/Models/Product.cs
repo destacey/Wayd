@@ -21,6 +21,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
 {
     private readonly List<ProductTagAssignment> _tags = [];
     private readonly List<ProductDependency> _dependencies = [];
+    private readonly List<ProductTeamLink> _teamLinks = [];
 
     private Product() { }
 
@@ -129,7 +130,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
 
         if (TagSet.Apply(_tags, tag, category, (tagId, categoryId) => new ProductTagAssignment(Id, tagId, categoryId)) is { } change)
         {
-            AddDomainEvent(new ProductTagsChangedEventV2(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
+            RaiseWhenKeyed(() => new ProductTagsChangedEventV2(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
         }
 
         return Result.Success();
@@ -147,7 +148,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     {
         if (TagSet.Remove(_tags, tagId) is { } change)
         {
-            AddDomainEvent(new ProductTagsChangedEventV2(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
+            RaiseWhenKeyed(() => new ProductTagsChangedEventV2(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
         }
 
         return Result.Success();
@@ -169,7 +170,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
 
         if (TagSet.Replace(_tags, fromTagId, tag, category, (tagId, categoryId) => new ProductTagAssignment(Id, tagId, categoryId)) is { } change)
         {
-            AddDomainEvent(new ProductTagsChangedEventV2(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
+            RaiseWhenKeyed(() => new ProductTagsChangedEventV2(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
         }
 
         return Result.Success();
@@ -461,6 +462,77 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
         AddDomainEvent(new ProductDependencyEndedEvent(
             Id, Key, dependency.Id, dependency.DependsOnProductId, dependency.Strength,
             dependency.InteractionStyle.ToFlags(), dependency.Period, actor, timestamp));
+    }
+
+    /// <summary>
+    /// The teams linked to this product.
+    /// </summary>
+    /// <remarks>
+    /// Only this product's own links. A parent's view of the teams beneath it is rolled up when read.
+    /// </remarks>
+    public IReadOnlyCollection<ProductTeamLink> TeamLinks => _teamLinks.AsReadOnly();
+
+    /// <summary>
+    /// Links a team or team of teams to this product. Succeeds, changing nothing, when it is already linked.
+    /// </summary>
+    /// <param name="team">The team or team of teams, which must be active.</param>
+    public Result LinkTeam(ProductTeam team, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(team, nameof(team));
+
+        if (_teamLinks.Any(l => l.TeamId == team.Id))
+        {
+            return Result.Success();
+        }
+
+        if (!team.IsActive)
+        {
+            return Result.Failure("An inactive team cannot be linked to a product.");
+        }
+
+        _teamLinks.Add(new ProductTeamLink(Id, team.Id));
+
+        var teamId = team.Id;
+        RaiseWhenKeyed(() => new ProductTeamLinkedEvent(Id, Key, teamId, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Raises the event now, or once the save assigns <see cref="Key"/> when the product is not yet persisted —
+    /// the import tags a product it has just created and links its teams, and an event raised before the first
+    /// save would carry Key 0. <paramref name="createEvent"/> runs at that point, so every value it reads other
+    /// than <see cref="Key"/> and <see cref="Id"/> must be captured before the call.
+    /// </summary>
+    private void RaiseWhenKeyed(Func<DomainEvent> createEvent)
+    {
+        if (Key == 0)
+        {
+            AddPostPersistenceAction(() => AddDomainEvent(createEvent()));
+        }
+        else
+        {
+            AddDomainEvent(createEvent());
+        }
+    }
+
+    /// <summary>
+    /// Unlinks a team or team of teams. Succeeds, changing nothing, when it was not linked.
+    /// </summary>
+    /// <remarks>An inactive team can still be unlinked.</remarks>
+    public Result UnlinkTeam(Guid teamId, EventActor actor, Instant timestamp)
+    {
+        var link = _teamLinks.FirstOrDefault(l => l.TeamId == teamId);
+        if (link is null)
+        {
+            return Result.Success();
+        }
+
+        _teamLinks.Remove(link);
+
+        AddDomainEvent(new ProductTeamUnlinkedEvent(Id, Key, teamId, actor, timestamp));
+
+        return Result.Success();
     }
 
     /// <summary>

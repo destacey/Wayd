@@ -3,7 +3,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record UpdatePersonaCommand(Guid StoryMapId, Guid PersonaId, string Name, string? Description, string Color) : ICommand;
+public sealed record UpdatePersonaCommand(Guid StoryMapId, Guid PersonaId, string Name, string? Description, string Color) : ICommand, IRequireLinkedEmployee;
 
 public sealed class UpdatePersonaCommandValidator : CustomValidator<UpdatePersonaCommand>
 {
@@ -27,9 +27,10 @@ public sealed class UpdatePersonaCommandValidator : CustomValidator<UpdatePerson
     }
 }
 
-public sealed class UpdatePersonaCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<UpdatePersonaCommandHandler> logger) : ICommandHandler<UpdatePersonaCommand>
+public sealed class UpdatePersonaCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<UpdatePersonaCommandHandler> logger) : ICommandHandler<UpdatePersonaCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<UpdatePersonaCommandHandler> _logger = logger;
 
@@ -38,13 +39,16 @@ public sealed class UpdatePersonaCommandHandler(IPlanningDbContext planningDbCon
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.Personas)
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
             if (map is null)
                 return Result.Failure("Story map not found.");
 
-            var result = map.UpdatePersona(request.PersonaId, request.Name, request.Description, request.Color);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.UpdatePersona(request.PersonaId, request.Name, request.Description, request.Color, actor);
             if (result.IsFailure)
                 return result;
 
@@ -55,7 +59,7 @@ public sealed class UpdatePersonaCommandHandler(IPlanningDbContext planningDbCon
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

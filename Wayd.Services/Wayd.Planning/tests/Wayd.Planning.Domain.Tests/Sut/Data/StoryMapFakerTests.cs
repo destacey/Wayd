@@ -1,4 +1,6 @@
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Tests.Data;
 
 namespace Wayd.Planning.Domain.Tests.Sut.Data;
@@ -20,8 +22,10 @@ public class StoryMapFakerTests
         map.Id.Should().NotBe(Guid.Empty);
         map.Key.Should().BeGreaterThan(0);
         map.Name.Should().NotBeNullOrWhiteSpace();
-        map.OwnerId.Should().NotBeNullOrWhiteSpace();
-        map.Status.Should().Be(WorkStatusCategory.Active);
+        map.Owners.Should().ContainSingle().Which.EmployeeId.Should().Be(StoryMapActors.OwnerEmployeeId);
+        map.Visibility.Should().Be(Visibility.Public);
+        map.EditAccess.Should().Be(StoryMapEditAccess.AnyoneWhoCanView);
+        map.Status.Should().Be(StatusCategory.Active);
     }
 
     [Fact]
@@ -29,23 +33,33 @@ public class StoryMapFakerTests
     {
         // Arrange
         var id = Guid.NewGuid();
-        var ownerId = Guid.NewGuid().ToString();
+        var ownerId = Guid.NewGuid();
+        var editorId = Guid.NewGuid();
+        var teamId = Guid.NewGuid();
 
         // Act
         var map = new StoryMapFaker()
             .WithId(id)
             .WithKey(42)
             .WithName("Named map")
-            .WithOwnerId(ownerId)
-            .WithStatus(WorkStatusCategory.Removed)
+            .WithOwners(ownerId)
+            .WithEditors(editorId)
+            .WithEditorTeams(teamId)
+            .WithVisibility(Visibility.Private)
+            .WithEditAccess(StoryMapEditAccess.OwnersAndEditors)
+            .WithStatus(StatusCategory.Removed)
             .Generate();
 
         // Assert
         map.Id.Should().Be(id);
         map.Key.Should().Be(42);
         map.Name.Should().Be("Named map");
-        map.OwnerId.Should().Be(ownerId);
-        map.Status.Should().Be(WorkStatusCategory.Removed);
+        map.Owners.Should().ContainSingle().Which.EmployeeId.Should().Be(ownerId);
+        map.Editors.Should().ContainSingle().Which.EmployeeId.Should().Be(editorId);
+        map.EditorTeams.Should().ContainSingle().Which.TeamId.Should().Be(teamId);
+        map.Visibility.Should().Be(Visibility.Private);
+        map.EditAccess.Should().Be(StoryMapEditAccess.OwnersAndEditors);
+        map.Status.Should().Be(StatusCategory.Removed);
     }
 
     [Fact]
@@ -58,6 +72,6 @@ public class StoryMapFakerTests
         map.Goals.Should().ContainSingle();
         map.Goals.Single().Steps.Should().ContainSingle();
         map.SwimLanes.Should().ContainSingle(l => l.IsDefault);
-        map.Status.Should().Be(WorkStatusCategory.Active);
+        map.Status.Should().Be(StatusCategory.Active);
     }
 }

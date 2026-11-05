@@ -12,3 +12,8 @@
 # Under core.autocrlf=true git expects CRLF in the working tree, so an unchanged
 # regeneration would otherwise show the file as modified.
 Wayd.Web/src/Wayd.Web.Api/wwwroot/api/v1/specification.json text eol=lf
+
+# The NSwag clients generated from it are written with LF too (newLineBehavior in each nswag config),
+# so a regeneration on any platform produces the committed bytes.
+Wayd.Web/src/wayd.web.reactclient/src/services/wayd-api.ts text eol=lf
+Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli.Client/Generated/WaydApiClient.g.cs text eol=lf

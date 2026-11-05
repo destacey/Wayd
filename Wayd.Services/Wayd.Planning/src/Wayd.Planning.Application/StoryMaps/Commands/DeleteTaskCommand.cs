@@ -2,7 +2,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record DeleteTaskCommand(Guid StoryMapId, Guid TaskId) : ICommand;
+public sealed record DeleteTaskCommand(Guid StoryMapId, Guid TaskId) : ICommand, IRequireLinkedEmployee;
 
 public sealed class DeleteTaskCommandValidator : CustomValidator<DeleteTaskCommand>
 {
@@ -15,9 +15,10 @@ public sealed class DeleteTaskCommandValidator : CustomValidator<DeleteTaskComma
     }
 }
 
-public sealed class DeleteTaskCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<DeleteTaskCommandHandler> logger) : ICommandHandler<DeleteTaskCommand>
+public sealed class DeleteTaskCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<DeleteTaskCommandHandler> logger) : ICommandHandler<DeleteTaskCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<DeleteTaskCommandHandler> _logger = logger;
 
@@ -26,13 +27,16 @@ public sealed class DeleteTaskCommandHandler(IPlanningDbContext planningDbContex
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
             if (map is null)
                 return Result.Failure("Story map not found.");
 
-            var result = map.DeleteTask(request.TaskId);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.DeleteTask(request.TaskId, actor);
             if (result.IsFailure)
                 return result;
 
@@ -41,7 +45,7 @@ public sealed class DeleteTaskCommandHandler(IPlanningDbContext planningDbContex
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

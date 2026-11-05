@@ -1,6 +1,7 @@
 using System.Text;
 using CsvHelper;
 using FluentAssertions;
+using Wayd.Web.Api.Models.DemandManagement.IntakeRequests;
 using Wayd.Web.Api.Models.ProductManagement.Versions;
 using Wayd.Web.Api.Services;
 
@@ -111,5 +112,36 @@ public sealed class CsvServiceTests
 
         // Assert
         read.Should().Throw<CsvHelperException>();
+    }
+
+    private const string IntakeRequestHeader =
+        "ImportId,Title,Description,ExpectedBenefits,DeskId,ChannelId,RequesterId,SubmittedById,SubmittedAt,NeedByDate,NeedByBasis,"
+        + "NeedByReference,NeedByCommittedById,NeedByCommittedOn,OriginSourceSystem,OriginExternalId,OriginUrl,Status,StatusChangedAt,"
+        + "StatusReason,DuplicateOfId,AssigneeId,TagIds";
+
+    private const string IntakeRequestCells =
+        "r1,Export invoices,Finance needs a CSV export,,17f79eeb-d355-4118-9cb0-166b213dd916,,5a3c1e2b-8d47-4f1a-9c6e-2b7d8e9f0a1b,,,,,,,,,,,,,,,,";
+
+    private List<ImportIntakeRequestRequest> ReadIntakeRequests(string csv) =>
+        [.. _csvService.ReadCsv<ImportIntakeRequestRequest>(new MemoryStream(Encoding.UTF8.GetBytes(csv)))];
+
+    [Fact]
+    public void ReadCsv_ReadsAnIntakeRequestFileWithoutTheOptionalEstimateColumn()
+    {
+        // Arrange & Act — the one column a file may leave out, so files written before it existed still import
+        var rows = ReadIntakeRequests(IntakeRequestHeader + "\n" + IntakeRequestCells + "\n");
+
+        // Assert
+        rows.Single().Estimate.Should().BeNull();
+    }
+
+    [Fact]
+    public void ReadCsv_ReadsTheEstimateColumnWhenPresent()
+    {
+        // Arrange & Act
+        var rows = ReadIntakeRequests(IntakeRequestHeader + ",Estimate\n" + IntakeRequestCells + ",XL\n");
+
+        // Assert
+        rows.Single().Estimate.Should().Be("XL");
     }
 }

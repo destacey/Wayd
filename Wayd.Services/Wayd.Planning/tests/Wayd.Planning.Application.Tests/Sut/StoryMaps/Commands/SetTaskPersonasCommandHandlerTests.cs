@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class SetTaskPersonasCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly SetTaskPersonasCommandHandler _handler;
     private readonly Mock<ILogger<SetTaskPersonasCommandHandler>> _mockLogger;
@@ -21,15 +22,15 @@ public class SetTaskPersonasCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<SetTaskPersonasCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new SetTaskPersonasCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new SetTaskPersonasCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static (StoryMap Map, Guid TaskId, Guid PersonaId) CreateMapWithTaskAndPersona()
     {
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
         var stepId = map.Goals[0].Steps[0].Id;
-        var task = map.AddTask(stepId, "T").Value;
-        var personaId = map.AddPersona("P", null, "#FFFFFF").Value.Id;
+        var task = map.AddTask(stepId, "T", null, StoryMapActors.Owner).Value;
+        var personaId = map.AddPersona("P", null, "#FFFFFF", StoryMapActors.Owner).Value.Id;
         return (map, task.Id, personaId);
     }
 

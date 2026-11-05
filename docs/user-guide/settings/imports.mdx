@@ -12,13 +12,15 @@ can still do about it.
 
 It is also where files are submitted from the app. What each file must contain is described in the bulk
 import guides for [Organization](../organizations/bulk-import.mdx), [Planning](../planning/bulk-import.mdx),
-[PPM](../ppm/bulk-import.mdx) and [Product Management](../product-management/bulk-import.mdx), and the same
+[PPM](../ppm/bulk-import.mdx), [Product Management](../product-management/bulk-import.mdx) and
+[Demand Management](../demand-management/bulk-import.mdx), and the same
 files can be posted straight to each area's import endpoint instead.
 
 ## Importing a file
 
 Select **Import**, then choose what you are importing. The list is grouped by area — Organization,
-Planning, Project Portfolio Management (which includes strategic themes) and Product Management — and
+Planning, Project Portfolio Management (which includes strategic themes), Product Management and Demand
+Management — and
 searching it matches import names. It holds only the kinds of import you are allowed to submit, and the
 button is hidden when there are none.
 
@@ -109,11 +111,29 @@ form of the group id and filters like any other column; a file submitted on its 
 
 Open a run to go to its page, which shows each row's outcome and updates while the run is still going. It
 opens on the **rejected** rows when there are any, since that is usually why you came, and each carries
-the reason it was refused and the line it came from. The page lists up to 500 rows for each filter; a
-larger run says how many more there are. The page has its own address, so a run can be
+the reason it was refused and the line it came from. The rows come 50 to a page, in line order; the pager
+above the grid moves between pages and shows up to 500 at a time. The page has its own address, so a run can be
 bookmarked or shared with someone who may see that kind of import. A run that was submitted as part of
 a batch lists the batch's other files under **Submitted With**, each with its status, so a seed or a
 split export can be walked file by file from any of them.
+
+Next to each row's **Import Id** — the key your file gave it — the **Wayd Record** column shows the key
+and name of the record that row created or changed, and links to its page. A record with no page of its
+own links to the record it belongs to:
+
+| The row created | The link opens |
+|---|---|
+| A team member or a team hierarchy membership | The team |
+| A product dependency | The product that depends on the other |
+| A project stage or task | The project |
+| A planning interval objective | The objective, within its planning interval |
+| A deployment environment | The environments list |
+
+The link always uses the record's current key, so a project whose key was changed after the import
+still opens. When the record the row created, or the one its link opens, has been deleted since the
+import, the row shows **No longer exists**. An employee row rejected at a later
+step, such as linking a manager, can still link to the employee the first step created. A preflight has no
+**Wayd Record** column, because the records it made were rolled back.
 
 :::note["0 of 40 applied" is not always a bug]
 Some imports are **all-or-nothing** — a team hierarchy, for instance, because half an imported hierarchy
@@ -212,7 +232,7 @@ kind it is.
 | Automatic attempts | 3. An attempt that fails unexpectedly hands the run back to the queue, and the next carries on from the saved progress. After the third the run ends as **Failed**, and **Resume** takes it on from there. |
 | Stalled runs | A run queued for 15 minutes with no worker is republished; one with no progress for 30 minutes is failed so it can be resumed. Checked every five minutes by `import-stall-recovery`. A preflight records no progress until it finishes, so one that runs longer than 30 minutes is failed the same way — split the file. |
 | Retention | Submitted row data is discarded 30 days after a run finishes, nightly, by `import-retention-sweep`. The run and its per-row outcomes stay; the rows can no longer be retried. |
-| Listing | The imports list and a run's row list each return at most 500 entries per request; a larger run says how many more there are. |
+| Listing | The imports list and a run's row list are paged, 50 entries to a page by default and at most 500. The imports list in Settings shows the newest 500 runs and says how many more there are. |
 
 ## Who sees what
 
@@ -229,6 +249,10 @@ records that run created, so those still require the permission that gates submi
 | Import Employees | Employee imports | Yes, on those |
 | View Imports only | Every import type | No |
 | Both | Everything | Only the types you can submit |
+
+An import into an area that is switched off — Demand Management while its feature flag is off — is not offered
+in the upload form, and its runs cannot be resumed, retried or applied. Its past runs stay readable, and a run
+can still be stopped.
 
 ## Related
 

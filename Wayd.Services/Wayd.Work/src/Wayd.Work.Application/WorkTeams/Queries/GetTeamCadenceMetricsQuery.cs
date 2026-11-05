@@ -3,6 +3,7 @@ using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.Settings;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkTeams.Dtos;
 using Wayd.Work.Domain.Models.CadenceMetrics;
@@ -86,7 +87,7 @@ public sealed class GetTeamCadenceMetricsQueryHandler(
         return await _workDbContext.WorkItems
             .Where(w => w.TeamId == teamId)
             .Where(w => w.Type.Level!.Tier == WorkTypeTier.Requirement)
-            .Where(w => w.StatusCategory == WorkStatusCategory.Done)
+            .Where(w => w.StatusCategory == StatusCategory.Done)
             .Where(w => w.DoneTimestamp >= from && w.DoneTimestamp < until)
             .Select(w => new CompletedWorkItem(w.DoneTimestamp!.Value, w.StoryPoints, w.Effort, w.Size))
             .ToListAsync(cancellationToken);

@@ -1,6 +1,6 @@
-namespace Wayd.Common.Application.Dtos;
-
 using Wayd.Common.Domain.Enums.AppIntegrations;
+
+namespace Wayd.Common.Application.Dtos;
 
 /// <summary>
 /// An active connection whose connector declares the Communication capability.

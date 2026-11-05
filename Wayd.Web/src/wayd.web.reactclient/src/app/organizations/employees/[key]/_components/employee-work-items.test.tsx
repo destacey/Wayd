@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import EmployeeWorkItems from './employee-work-items'
 import { useGetEmployeeWorkItemsQuery } from '@/src/store/features/organizations/employee-api'
-import { WorkStatusCategory } from '@/src/services/wayd-api'
+import { StatusCategory } from '@/src/services/wayd-api'
 
 jest.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetEmployeeWorkItemsQuery: jest.fn(),
@@ -43,8 +43,8 @@ describe('EmployeeWorkItems', () => {
       {
         employeeId: 'e1',
         statusCategories: [
-          WorkStatusCategory.Proposed,
-          WorkStatusCategory.Active,
+          StatusCategory.Proposed,
+          StatusCategory.Active,
         ],
       },
       { skip: false },

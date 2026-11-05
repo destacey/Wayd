@@ -9,6 +9,7 @@ import {
   AddStepRequest,
   AddTaskRequest,
   CreateStoryMapRequest,
+  EmployeeNavigationDto,
   LinkWorkItemRequest,
   MoveStepRequest,
   MoveTaskRequest,
@@ -24,6 +25,7 @@ import {
   SetStepPersonasRequest,
   SetTaskPersonasRequest,
   StoryMapDetailsDto,
+  StoryMapEditAccess,
   StoryMapGoalDto,
   StoryMapSwimLaneDto,
   StoryMapListDto,
@@ -32,6 +34,7 @@ import {
   StoryMapTaskDto,
   UpdatePersonaRequest,
   UpdateStoryMapRequest,
+  Visibility,
 } from '@/src/services/wayd-api'
 import {
   applyMoveStep,
@@ -133,6 +136,109 @@ export const storyMapsApi = apiSlice.injectEndpoints({
       // Only the list. Invalidating the single-map tag would make the detail page — still mounted
       // and subscribed while it navigates away — refetch the map that was just deleted and 404.
       invalidatesTags: () => [{ type: QueryTags.StoryMapList, id: 'LIST' }],
+    }),
+
+    // ---- Access: owners, editors, visibility and who can edit. Each changes
+    // what the caller may do, so the map and the list refetch. ----
+
+    getStoryMapEditorTeamMembers: builder.query<
+      EmployeeNavigationDto[],
+      { storyMapId: string; teamId: string }
+    >({
+      queryFn: async ({ storyMapId, teamId }) => {
+        try {
+          const data = await getStoryMapsClient().getEditorTeamMembers(
+            storyMapId,
+            teamId,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // Not the map's own tag, which every board edit invalidates: only a change of editors, here
+      // or (through MapUpdated) by someone else, can change who a team brings in.
+      providesTags: (_r, _e, { storyMapId }) => [
+        { type: QueryTags.StoryMapEditorTeamMembers, id: storyMapId },
+      ],
+    }),
+
+    setStoryMapOwners: builder.mutation<
+      null,
+      { id: string; employeeIds: string[] }
+    >({
+      queryFn: async ({ id, employeeIds }) => {
+        try {
+          await getStoryMapsClient().setOwners(id, { employeeIds })
+          return { data: null }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: QueryTags.StoryMap, id },
+        { type: QueryTags.StoryMapList, id: 'LIST' },
+      ],
+    }),
+
+    setStoryMapEditors: builder.mutation<
+      null,
+      { id: string; employeeIds: string[]; teamIds: string[] }
+    >({
+      queryFn: async ({ id, employeeIds, teamIds }) => {
+        try {
+          await getStoryMapsClient().setEditors(id, { employeeIds, teamIds })
+          return { data: null }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: QueryTags.StoryMap, id },
+        { type: QueryTags.StoryMapList, id: 'LIST' },
+        { type: QueryTags.StoryMapEditorTeamMembers, id },
+      ],
+    }),
+
+    setStoryMapVisibility: builder.mutation<
+      null,
+      { id: string; visibility: Visibility }
+    >({
+      queryFn: async ({ id, visibility }) => {
+        try {
+          await getStoryMapsClient().setVisibility(id, { visibility })
+          return { data: null }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: QueryTags.StoryMap, id },
+        { type: QueryTags.StoryMapList, id: 'LIST' },
+      ],
+    }),
+
+    setStoryMapEditAccess: builder.mutation<
+      null,
+      { id: string; editAccess: StoryMapEditAccess }
+    >({
+      queryFn: async ({ id, editAccess }) => {
+        try {
+          await getStoryMapsClient().setEditAccess(id, { editAccess })
+          return { data: null }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: QueryTags.StoryMap, id },
+        { type: QueryTags.StoryMapList, id: 'LIST' },
+      ],
     }),
 
     // ---- Structural mutations (invalidate the single map; SignalR keeps other
@@ -1504,6 +1610,11 @@ export const {
   useUpdateStoryMapMutation,
   useArchiveStoryMapMutation,
   useDeleteStoryMapMutation,
+  useGetStoryMapEditorTeamMembersQuery,
+  useSetStoryMapOwnersMutation,
+  useSetStoryMapEditorsMutation,
+  useSetStoryMapVisibilityMutation,
+  useSetStoryMapEditAccessMutation,
   useAddGoalMutation,
   useReorderGoalMutation,
   useReorderStepMutation,

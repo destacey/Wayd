@@ -12,6 +12,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class SetSwimLaneDatesCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly SetSwimLaneDatesCommandHandler _handler;
     private readonly Mock<ILogger<SetSwimLaneDatesCommandHandler>> _mockLogger;
@@ -23,18 +24,18 @@ public class SetSwimLaneDatesCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<SetSwimLaneDatesCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new SetSwimLaneDatesCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new SetSwimLaneDatesCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static StoryMap CreateMap() =>
-        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
 
     [Fact]
     public async Task Handle_ShouldSetLaneDates_WhenLaneExists()
     {
         // Arrange
         var map = CreateMap();
-        var lane = map.AddSwimLane("Release 1").Value;
+        var lane = map.AddSwimLane("Release 1", StoryMapActors.Owner).Value;
         _dbContext.AddStoryMap(map);
 
         var startDate = new LocalDate(2026, 1, 1);

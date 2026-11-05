@@ -48,7 +48,51 @@ public sealed class StatusWorkflowDetailsReaderTests : StatusWorkflowHandlerTest
         [NotableAlias, TerminalAlias],
         [StatusCategory.Proposed, StatusCategory.Active, StatusCategory.Done, StatusCategory.Removed]);
 
-    public StatusWorkflowDetailsReaderTests() => WorkflowOwners.Register(Gadget, Staged);
+    // An owner type that calls two of the categories by its own words.
+    private static readonly WorkflowOwnerDescriptor Labelled = new(
+        "test.query-labelled",
+        "Labelled",
+        new Dictionary<int, WorkflowAlias>
+        {
+            [NotableAlias] = new("Notable", StatusCategory.Active),
+            [TerminalAlias] = new("Terminal", StatusCategory.Done),
+        },
+        [NotableAlias, TerminalAlias],
+        categoryLabels: new Dictionary<StatusCategory, string>
+        {
+            [StatusCategory.Proposed] = "Planned",
+            [StatusCategory.Done] = "Shipped",
+        });
+
+    // An owner type whose workflows a sync keeps, requiring Widget's aliases.
+    private static readonly WorkflowOwnerDescriptor Synced = new(
+        "test.query-synced",
+        "Synced",
+        new Dictionary<int, WorkflowAlias>
+        {
+            [NotableAlias] = new("Notable", StatusCategory.Active),
+            [TerminalAlias] = new("Terminal", StatusCategory.Done),
+        },
+        [NotableAlias, TerminalAlias],
+        hasManagedWorkflows: true);
+
+    public StatusWorkflowDetailsReaderTests() => WorkflowOwners.Register(Gadget, Staged, Labelled, Synced);
+
+    [Fact]
+    public async Task Handle_ShouldNameEachStatusCategory_AsTheOwnerTypeLabelsIt()
+    {
+        // Arrange
+        var workflow = SeedWorkflow(owner: Labelled);
+
+        // Act
+        var result = await Read(workflow);
+
+        // Assert
+        result!.Statuses.Select(s => (s.Name, s.Category.Id, s.Category.Name)).Should().Equal(
+            ("Proposed", (int)StatusCategory.Proposed, "Planned"),
+            ("Notable", (int)StatusCategory.Active, "Active"),
+            ("Terminal", (int)StatusCategory.Done, "Shipped"));
+    }
 
     [Fact]
     public async Task Handle_ShouldNotOfferPublish_WhenARequiredCategoryIsMissing()
@@ -193,5 +237,47 @@ public sealed class StatusWorkflowDetailsReaderTests : StatusWorkflowHandlerTest
             "'Terminal' cannot be reached from 'Proposed', the initial status.");
         result.MissingRequiredAliases.Should().BeEmpty();
         result.CanPublish.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Read_ShouldFlagAManagedWorkflowsWarnings_AndOfferOnlyReclassifying()
+    {
+        // Arrange — the source has no status for either required alias, and has dropped Blocked
+        var workflow = StatusWorkflow.CreateManaged(
+            "Agile: Bug", Synced.Key, "conn-1:agile:bug",
+            [new("new", "New", StatusCategory.Proposed), new("blocked", "Blocked", StatusCategory.Active), new("closed", "Closed", StatusCategory.Done)],
+            EventActor.Sync(null), Now).Value;
+        workflow.SyncFromSource("Agile: Bug", [new("new", "New", StatusCategory.Proposed), new("closed", "Closed", StatusCategory.Done)], EventActor.Sync(null), Now);
+        DbContext.AddStatusWorkflow(workflow);
+
+        // Act
+        var result = await Read(workflow);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Ownership.Should().Be(WorkflowOwnership.Managed);
+        result.ExternalKey.Should().Be("conn-1:agile:bug");
+        result.Warnings.Should().Equal("A Synced workflow needs a status for each of: Notable, Terminal.");
+        result.Statuses.Select(s => (s.Name, s.ExternalKey, s.IsRetired)).Should().Equal(
+            ("New", "new", false), ("Closed", "closed", false), ("Blocked", "blocked", true));
+        (result.CanEdit, result.CanReclassify, result.CanPublish, result.CanArchive).Should().Be((false, true, false, false));
+    }
+
+    [Fact]
+    public async Task Read_ShouldGiveAnOwnedWorkflowNoWarnings_SinceItsProblemsRefusePublishing()
+    {
+        // Arrange — a draft missing a required alias
+        var workflow = StatusWorkflow.Create("Synced", null, Synced.Key, EventActor.System, Now).Value;
+        workflow.AddStatus("New", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, Now);
+        DbContext.AddStatusWorkflow(workflow);
+
+        // Act
+        var result = await Read(workflow);
+
+        // Assert
+        result!.Ownership.Should().Be(WorkflowOwnership.Owned);
+        result.Warnings.Should().BeEmpty();
+        result.MissingRequiredAliases.Should().Equal("Notable", "Terminal");
+        (result.CanEdit, result.CanReclassify, result.CanPublish).Should().Be((true, true, false));
     }
 }

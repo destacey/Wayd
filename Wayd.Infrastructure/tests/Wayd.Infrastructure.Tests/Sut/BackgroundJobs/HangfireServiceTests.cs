@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Hangfire.Storage.Monitoring;
+using Wayd.Common.Application.Models;
 using Wayd.Infrastructure.BackgroundJobs;
 
 namespace Wayd.Infrastructure.Tests.Sut.BackgroundJobs;
@@ -72,13 +73,13 @@ public sealed class HangfireServiceTests
     }
 
     [Theory]
-    [InlineData(0, 50, 0)]
-    [InlineData(3, 50, 150)]
+    [InlineData(1, 50, 0)]
+    [InlineData(4, 50, 150)]
     [InlineData(-5, 50, 0)]
-    public void PageOffset_ForNormalPaging_IsPageTimesSize(int pageNumber, int pageSize, int expected)
+    public void PageOffset_ForNormalPaging_CountsTheItemsOnEarlierPages(int page, int pageSize, int expected)
     {
         // Arrange & Act
-        var offset = HangfireService.PageOffset(pageNumber, pageSize);
+        var offset = HangfireService.PageOffset(new PageRequest(page, pageSize));
 
         // Assert
         offset.Should().Be(expected);
@@ -88,10 +89,10 @@ public sealed class HangfireServiceTests
     public void PageOffset_ForAPageNumberThatWouldOverflow_Saturates()
     {
         // Arrange — the monitoring API takes int offsets; wrapping would produce a negative one.
-        const int pageSize = HangfireService.MaxPageSize;
+        const int pageSize = PageSizes.Max;
 
         // Act
-        var offset = HangfireService.PageOffset(int.MaxValue, pageSize);
+        var offset = HangfireService.PageOffset(new PageRequest(int.MaxValue, pageSize));
 
         // Assert
         offset.Should().BePositive();

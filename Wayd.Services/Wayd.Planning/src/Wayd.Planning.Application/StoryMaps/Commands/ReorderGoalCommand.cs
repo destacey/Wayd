@@ -2,7 +2,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record ReorderGoalCommand(Guid StoryMapId, Guid GoalId, int NewOrder) : ICommand;
+public sealed record ReorderGoalCommand(Guid StoryMapId, Guid GoalId, int NewOrder) : ICommand, IRequireLinkedEmployee;
 
 public sealed class ReorderGoalCommandValidator : CustomValidator<ReorderGoalCommand>
 {
@@ -16,9 +16,10 @@ public sealed class ReorderGoalCommandValidator : CustomValidator<ReorderGoalCom
     }
 }
 
-public sealed class ReorderGoalCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<ReorderGoalCommandHandler> logger) : ICommandHandler<ReorderGoalCommand>
+public sealed class ReorderGoalCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<ReorderGoalCommandHandler> logger) : ICommandHandler<ReorderGoalCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<ReorderGoalCommandHandler> _logger = logger;
 
@@ -28,10 +29,12 @@ public sealed class ReorderGoalCommandHandler(IPlanningDbContext planningDbConte
         {
             var result = await StoryMapMutation.Apply(
                 _planningDbContext,
+                _access,
                 ct => _planningDbContext.StoryMaps
+                    .IncludeAccess()
                     .Include(m => m.Goals)
                     .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, ct),
-                map => map.ReorderGoal(request.GoalId, request.NewOrder)
+                (map, actor) => map.ReorderGoal(request.GoalId, request.NewOrder, actor)
                     .Map(() => map.Goals.First(g => g.Id == request.GoalId).Order),
                 cancellationToken);
 
@@ -42,7 +45,7 @@ public sealed class ReorderGoalCommandHandler(IPlanningDbContext planningDbConte
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

@@ -91,7 +91,7 @@
       "serviceHost": null,
       "serviceSchemes": null,
       "output": "Generated/WaydApiClient.g.cs",
-      "newLineBehavior": "Auto"
+      "newLineBehavior": "LF"
     }
   }
 }

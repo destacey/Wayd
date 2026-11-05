@@ -21,9 +21,10 @@ public sealed record WorkflowStatusAddedEvent : DomainEvent<WorkflowStatusAddedE
         StatusCategory category,
         int alias,
         int order,
+        string? externalKey,
         EventActor actor,
         Instant timestamp)
-        : base(actor, "1.0")
+        : base(actor, "1.1")
     {
         Id = id;
         Key = key;
@@ -33,6 +34,7 @@ public sealed record WorkflowStatusAddedEvent : DomainEvent<WorkflowStatusAddedE
         Category = category;
         Alias = alias;
         Order = order;
+        ExternalKey = externalKey;
 
         Timestamp = timestamp;
     }
@@ -48,6 +50,12 @@ public sealed record WorkflowStatusAddedEvent : DomainEvent<WorkflowStatusAddedE
     public int Alias { get; }
 
     public int Order { get; }
+
+    /// <summary>
+    /// The source's identifier for the status when its workflow is managed; null when owned. Added in 1.1;
+    /// earlier payloads read as null, since every workflow was owned then.
+    /// </summary>
+    public string? ExternalKey { get; }
 
     [JsonIgnore]
     public string AggregateType => "Workflow";

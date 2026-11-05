@@ -124,10 +124,31 @@ describe('MutedNotifications', () => {
     ).toBeInTheDocument()
   })
 
+  it('words the reasons a conversation is told for', () => {
+    // Arrange
+    mockUseReasons.mockReturnValue({
+      data: [
+        { reason: NotificationReason.Mentioned, isMuted: false },
+        { reason: NotificationReason.Thread, isMuted: true },
+      ],
+      isLoading: false,
+      isError: false,
+    })
+
+    // Act
+    render(<MutedNotifications />)
+
+    // Assert
+    expect(screen.getByRole('switch', { name: 'Mentions' })).not.toBeChecked()
+    expect(
+      screen.getByRole('switch', { name: 'Threads you are in' }),
+    ).toBeChecked()
+  })
+
   it('leaves out a reason it has no words for', () => {
     // Arrange
     mockUseReasons.mockReturnValue({
-      data: [{ reason: NotificationReason.Mentioned, isMuted: false }],
+      data: [{ reason: NotificationReason.Desk, isMuted: false }],
       isLoading: false,
       isError: false,
     })

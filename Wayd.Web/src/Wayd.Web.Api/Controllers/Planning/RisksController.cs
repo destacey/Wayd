@@ -122,6 +122,22 @@ public class RisksController : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpDelete("{id}")]
+    [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Risks)]
+    [EndpointSummary("Delete a risk.")]
+    [EndpointDescription("Takes the risk's UUID `id`. The risk disappears from every list and can no longer be read or updated; it cannot be restored through the API. To record that a risk is no longer being managed, close it with Risks_Update instead — deleting is for a risk that should not exist, such as a duplicate or one raised in error.")]
+    [McpTool("Risks_Delete", "Delete risk")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new DeleteRiskCommand(id), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.Risks)]
     [EndpointSummary("Submit a csv file of risks to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]

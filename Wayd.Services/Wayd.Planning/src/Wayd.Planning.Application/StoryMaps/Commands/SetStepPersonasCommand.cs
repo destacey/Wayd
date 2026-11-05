@@ -2,7 +2,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record SetStepPersonasCommand(Guid StoryMapId, Guid StepId, IReadOnlyList<Guid> PersonaIds) : ICommand;
+public sealed record SetStepPersonasCommand(Guid StoryMapId, Guid StepId, IReadOnlyList<Guid> PersonaIds) : ICommand, IRequireLinkedEmployee;
 
 public sealed class SetStepPersonasCommandValidator : CustomValidator<SetStepPersonasCommand>
 {
@@ -15,9 +15,10 @@ public sealed class SetStepPersonasCommandValidator : CustomValidator<SetStepPer
     }
 }
 
-public sealed class SetStepPersonasCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<SetStepPersonasCommandHandler> logger) : ICommandHandler<SetStepPersonasCommand>
+public sealed class SetStepPersonasCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<SetStepPersonasCommandHandler> logger) : ICommandHandler<SetStepPersonasCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<SetStepPersonasCommandHandler> _logger = logger;
 
@@ -26,6 +27,7 @@ public sealed class SetStepPersonasCommandHandler(IPlanningDbContext planningDbC
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.Goals).ThenInclude(g => g.Steps)
                 .Include(m => m.Personas)
                 .AsSplitQuery()
@@ -34,7 +36,9 @@ public sealed class SetStepPersonasCommandHandler(IPlanningDbContext planningDbC
             if (map is null)
                 return Result.Failure("Story map not found.");
 
-            var result = map.SetStepPersonas(request.StepId, request.PersonaIds);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.SetStepPersonas(request.StepId, request.PersonaIds, actor);
             if (result.IsFailure)
                 return result;
 
@@ -47,7 +51,7 @@ public sealed class SetStepPersonasCommandHandler(IPlanningDbContext planningDbC
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

@@ -13,21 +13,18 @@ public sealed class UpdateIntegrationStateChangedEventHandler(IAppIntegrationDbC
     {
         if (@event.SystemContext == SystemContext.WorkWorkProcess)
         {
+            // Azure DevOps processes are shared across organizations, so several connections can
+            // hold the same Wayd work process; every one of them must see the change.
             var connections = await _appIntegrationDbContext.AzureDevOpsBoardsConnections.ToListAsync(cancellationToken);
             foreach (var connection in connections)
             {
                 var workProcess = connection.Configuration.WorkProcesses.FirstOrDefault(p => p.HasIntegration && p.IntegrationState!.InternalId == @event.IntegrationState.InternalId);
-                if (workProcess is not null)
-                {
-                    workProcess.UpdateIntegrationState(@event.IntegrationState.IsActive);
+                workProcess?.UpdateIntegrationState(@event.IntegrationState.IsActive);
+            }
 
-                    using (LogContext.PushProperty("EventPayload", @event))
-                    {
-                        _logger.LogInformation("Event processed for {EventHandler}", nameof(UpdateIntegrationStateChangedEventHandler));
-                    }
-
-                    break;
-                }
+            using (LogContext.PushProperty("EventPayload", @event))
+            {
+                _logger.LogInformation("Event processed for {EventHandler}", nameof(UpdateIntegrationStateChangedEventHandler));
             }
 
             await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);

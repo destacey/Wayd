@@ -66,7 +66,7 @@ public sealed class CreateExternalWorkspaceCommandHandler(IWorkDbContext workDbC
         if (workProcess is null || !workProcess.IsActive)
         {
             _logger.LogWarning("Unable to create an external workspace {WorkspaceExternalId} without an active work process {WorkProcessExternalId}.", request.ExternalWorkspace.Id, request.ExternalWorkspace.WorkProcessId);
-            return Result.Failure<IntegrationState<Guid>>($"Unable to create an external workspace {{request.ExternalWorkspace.Id}} without an active work process {{request.ExternalWorkspace.WorkProcessId}}.");
+            return Result.Failure<IntegrationState<Guid>>($"Unable to create an external workspace {request.ExternalWorkspace.Id} without an active work process {request.ExternalWorkspace.WorkProcessId}.");
         }
 
         var ownershipInfo = OwnershipInfo.CreateExternalOwned(request.Connector, request.SystemId, request.ExternalWorkspace.Id.ToString());

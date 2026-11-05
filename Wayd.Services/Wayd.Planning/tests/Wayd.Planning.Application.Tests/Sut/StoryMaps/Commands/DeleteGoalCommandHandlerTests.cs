@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class DeleteGoalCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly DeleteGoalCommandHandler _handler;
     private readonly Mock<ILogger<DeleteGoalCommandHandler>> _mockLogger;
@@ -21,18 +22,18 @@ public class DeleteGoalCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<DeleteGoalCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new DeleteGoalCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new DeleteGoalCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static StoryMap CreateMap() =>
-        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
 
     [Fact]
     public async Task Handle_ShouldDeleteGoal_WhenMapHasMoreThanOneGoal()
     {
         // Arrange
         var map = CreateMap();
-        var secondGoal = map.AddGoal("Second goal").Value;
+        var secondGoal = map.AddGoal("Second goal", StoryMapActors.Owner).Value;
         _dbContext.AddStoryMap(map);
 
         var command = new DeleteGoalCommand(map.Id, secondGoal.Id);

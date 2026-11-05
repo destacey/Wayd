@@ -28,6 +28,10 @@ internal static class ConfigureServices
                 .AddJsonFile($"{configurationsDirectory}/openapi.{env.EnvironmentName}.json", optional: true, reloadOnChange: true)
                 .AddJsonFile($"{configurationsDirectory}/securityheaders.json", optional: false, reloadOnChange: true)
                 .AddJsonFile($"{configurationsDirectory}/securityheaders.{env.EnvironmentName}.json", optional: true, reloadOnChange: true)
+                // Read once at startup: the Azure DevOps base URL is validated then, and a token must
+                // never follow a changed address that skipped that validation.
+                .AddJsonFile($"{configurationsDirectory}/integrations.json", optional: false, reloadOnChange: false)
+                .AddJsonFile($"{configurationsDirectory}/integrations.{env.EnvironmentName}.json", optional: true, reloadOnChange: false)
                 .AddUserSecrets(Assembly.GetExecutingAssembly())
                 .AddEnvironmentVariables();
         });

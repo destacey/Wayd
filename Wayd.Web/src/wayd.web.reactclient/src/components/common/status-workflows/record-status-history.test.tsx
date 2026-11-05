@@ -4,6 +4,7 @@ import {
   StatusTransitionDto,
   StatusWorkflowDetailsDto,
   TransitionMode,
+  WorkflowOwnership,
 } from '@/src/services/wayd-api'
 import RecordStatusHistory, {
   RecordStatusHistoryProps,
@@ -36,6 +37,7 @@ const workflow: StatusWorkflowDetailsDto = {
       category: { id: 0, name: 'Proposed' },
       alias: 0,
       order: 0,
+      isRetired: false,
     },
     {
       id: 'active',
@@ -43,6 +45,7 @@ const workflow: StatusWorkflowDetailsDto = {
       category: { id: 1, name: 'Active' },
       alias: 1,
       order: 1,
+      isRetired: false,
     },
   ],
   transitionMode: TransitionMode.Restricted,
@@ -59,6 +62,9 @@ const workflow: StatusWorkflowDetailsDto = {
   canEdit: false,
   canPublish: false,
   canArchive: false,
+  ownership: WorkflowOwnership.Owned,
+  canReclassify: false,
+  warnings: [],
 }
 
 const entry = (
@@ -70,12 +76,18 @@ const entry = (
   id: `h-${sequence}`,
   sequence,
   fromStatus: from
-    ? { id: from[0], name: from[1], category: StatusCategory.Proposed }
+    ? {
+        id: from[0],
+        name: from[1],
+        category: StatusCategory.Proposed,
+        categoryLabel: 'Proposed',
+      }
     : undefined,
   toStatus: {
     id: to[0],
     name: to[1],
     category: StatusCategory.Active,
+    categoryLabel: 'Active',
     alias: 0,
   },
   workflowId,

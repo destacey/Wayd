@@ -1,5 +1,5 @@
 using Bogus;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Domain.Models;
 
 namespace Wayd.Work.Domain.Tests.Data;
@@ -13,7 +13,7 @@ public sealed class WorkItemTrackedStateFaker : Faker<WorkItemTrackedState>
             ExternalIterationId: f.Random.Int(1, 10_000),
             StatusId: f.Random.Int(1, 100),
             StatusName: f.PickRandom("New", "Active", "Resolved", "Closed"),
-            StatusCategory: f.PickRandom<WorkStatusCategory>(),
+            StatusCategory: f.PickRandom<StatusCategory>(),
             WorkTypeId: f.Random.Int(1, 100),
             WorkTypeName: f.PickRandom("User Story", "Bug"),
             TeamKey: null,

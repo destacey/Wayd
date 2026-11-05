@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Domain.Enums.AppIntegrations;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Tests.Shared;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.Tests.Data;
@@ -15,6 +14,7 @@ using Moq;
 using NodaTime;
 using NodaTime.Testing;
 using Xunit;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Application.Tests.Sut.WorkItems.Commands;
 
@@ -407,7 +407,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
 
         // Create workflow with properly linked workflow scheme
         var workflow = new WorkflowFaker()
-            .WithWorkflowScheme(workStatus, WorkStatusCategory.Proposed)
+            .WithWorkflowScheme(workStatus, StatusCategory.Proposed)
             .Generate();
 
         var workProcessScheme = new WorkProcessSchemeFaker()

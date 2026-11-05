@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 
-import { DependencyHealth, WorkStatusCategory } from '@/src/components/types'
+import { DependencyHealth, StatusCategoryId } from '@/src/components/types'
 
 import {
   renderAssignedToLink,
@@ -263,7 +263,7 @@ describe('renderWorkStatusTag', () => {
       <>
         {renderWorkStatusTag({
           status: 'In Progress',
-          statusCategory: { id: WorkStatusCategory.Active },
+          statusCategory: { id: StatusCategoryId.Active },
         })}
       </>,
     )
@@ -278,7 +278,7 @@ describe('renderWorkStatusTag', () => {
       <>
         {renderWorkStatusTag({
           status: '',
-          statusCategory: { id: WorkStatusCategory.Proposed },
+          statusCategory: { id: StatusCategoryId.Proposed },
         })}
       </>,
     )

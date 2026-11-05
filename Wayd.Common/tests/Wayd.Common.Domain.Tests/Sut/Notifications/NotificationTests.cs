@@ -78,8 +78,8 @@ public sealed class NotificationTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(128)]
-    [InlineData(1 | 128)]
+    [InlineData(256)]
+    [InlineData(1 | 256)]
     public void Create_ShouldFail_WithoutAValidReason(int reasons)
     {
         // Act

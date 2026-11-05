@@ -73,15 +73,17 @@ export interface WaydGridColumnMeta {
   /** Options for the 'set' (aka legacy 'select') filter type. */
   filterOptions?: FilterOption[]
   /**
-   * Marks a "multi-value" set column — one whose accessor is several values
-   * joined into one string (e.g. a Tags column accessor `"a, b, c"`). The grid
-   * builds the set filter's checkbox list from the *individual* tokens rather
-   * than the whole joined string, by splitting each faceted value with this
-   * function. Pair with a multi-value `filterFn` (see `createMultiValueSetFilter`)
-   * so matching is per-token too; {@link createCsvColumn} wires both. Makes
-   * declared `filterOptions` unnecessary — options are faceted from live data.
+   * Marks a "multi-value" set column — one whose row holds several values
+   * (e.g. a Tags column). The grid builds the set filter's checkbox list from
+   * each shown row's *individual* values, read with this function, rather than
+   * from the joined accessor string. Read from the row, never by splitting the
+   * joined string: a value may itself contain the separator ("Payments, EU").
+   * Pass the same function to a multi-value `filterFn`
+   * (see `createMultiValueSetFilter`) so matching is per-value too;
+   * {@link createCsvColumn} wires both. Makes declared `filterOptions`
+   * unnecessary — options are faceted from live data.
    */
-  multiValueSplit?: (accessorValue: string) => string[]
+  multiValues?: (row: any) => string[]
   /**
    * For a text column, also offer the Excel-style set (checkbox list) filter
    * alongside the text filter — a combined panel (Text Filter expander + set

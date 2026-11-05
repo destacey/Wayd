@@ -2,7 +2,7 @@
 
 import PageTitle from '@/src/components/common/page-title'
 import { useState } from 'react'
-import { useDocumentTitle } from '@/src/hooks'
+import { useDocumentTitle, useLinkedEmployee } from '@/src/hooks'
 import {
   CreatePokerSessionForm,
   DeletePokerSessionForm,
@@ -46,9 +46,10 @@ const PokerSessionsPage = () => {
   const [completeSession] = useCompletePokerSessionMutation()
 
   const { hasPermissionClaim } = useAuth()
-  const canCreate = hasPermissionClaim('Permissions.PokerSessions.Create')
-  const canUpdate = hasPermissionClaim('Permissions.PokerSessions.Update')
-  const canDelete = hasPermissionClaim('Permissions.PokerSessions.Delete')
+  const { hasLinkedEmployee } = useLinkedEmployee()
+  // The creator becomes the first facilitator, so creating needs an employee.
+  const canCreate =
+    hasPermissionClaim('Permissions.PokerSessions.Create') && hasLinkedEmployee
 
   const controlItems: ItemType[] = [
     {
@@ -122,8 +123,6 @@ const PokerSessionsPage = () => {
         sessions={sessionsData ?? []}
         isLoading={isLoading}
         refetch={refresh}
-        canUpdate={canUpdate}
-        canDelete={canDelete}
         gridControlMenuItems={controlItems}
         onEditClicked={handleEdit}
         onCompleteClicked={handleComplete}

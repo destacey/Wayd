@@ -47,7 +47,7 @@ const RoadmapsPage: FC = () => {
   const { hasPermissionClaim } = useAuth()
   const { hasLinkedEmployee } = useLinkedEmployee()
 
-  // Creating a roadmap records the creator as its manager, so it needs an employee link as well as
+  // Creating a roadmap records the creator as an owner, so it needs an employee link as well as
   // the permission — the API rejects an unlinked account with 403. Offering the button anyway would
   // walk the user into a form they cannot submit.
   const hasCreateRoadmapPermission = hasPermissionClaim(

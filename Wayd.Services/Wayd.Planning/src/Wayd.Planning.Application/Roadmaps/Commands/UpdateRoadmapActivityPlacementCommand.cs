@@ -66,14 +66,12 @@ public sealed class UpdateRoadmapActivityPlacementCommandHandler(IPlanningDbCont
     {
         // Outside the try: this is a refusal, and the catch-all below would turn it into a
         // generic failure, losing both the 403 and its explanation.
-        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        if (currentUserEmployeeId is null)
-            LinkedEmployeeRequired.Throw();
+        var caller = await _currentPrincipal.ResolveRoadmapActor(cancellationToken);
 
         try
         {
             var roadmap = await _planningDbContext.Roadmaps
-                .Include(x => x.RoadmapManagers)
+                .Include(x => x.Owners)
                 .Include(x => x.Items)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(r => r.Id == request.RoadmapId, cancellationToken);
@@ -94,12 +92,12 @@ public sealed class UpdateRoadmapActivityPlacementCommandHandler(IPlanningDbCont
             Result placementResult = Result.Success();
             if (activity.ParentId == request.ParentId)
             {
-                placementResult = roadmap.SetActivityOrder(activity.Id, request.Order, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now);
+                placementResult = roadmap.SetActivityOrder(activity.Id, request.Order, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
                 _logger.LogInformation("Updated roadmap activity {RoadmapActivityId} order to {Order}.", request.ItemId, request.Order);
             }
             else
             {
-                placementResult = roadmap.MoveActivity(activity.Id, request.ParentId, request.Order, currentUserEmployeeId.Value, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now);
+                placementResult = roadmap.MoveActivity(activity.Id, request.ParentId, request.Order, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
                 _logger.LogInformation("Moved roadmap activity {RoadmapActivityId} to parent {ParentId} with order {Order}.", request.ItemId, request.ParentId, request.Order);
             }
 

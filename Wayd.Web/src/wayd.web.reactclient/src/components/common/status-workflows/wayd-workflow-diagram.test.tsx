@@ -4,6 +4,7 @@ import {
   StatusWorkflowDetailsDto,
   TransitionConditionKind,
   TransitionMode,
+  WorkflowOwnership,
 } from '@/src/services/wayd-api'
 import WaydWorkflowDiagram from './wayd-workflow-diagram'
 import { buildRecordPath } from './workflow-diagram-layout'
@@ -44,6 +45,7 @@ const workflow = (
       category: { id: 0, name: 'Proposed' },
       alias: 0,
       order: 0,
+      isRetired: false,
     },
     {
       id: 'active',
@@ -52,6 +54,7 @@ const workflow = (
       alias: 1,
       aliasName: 'Live',
       order: 1,
+      isRetired: false,
     },
     {
       id: 'retired',
@@ -60,6 +63,7 @@ const workflow = (
       alias: 2,
       aliasName: 'Retired',
       order: 2,
+      isRetired: false,
     },
   ],
   transitionMode: TransitionMode.Restricted,
@@ -77,6 +81,9 @@ const workflow = (
   canEdit: false,
   canPublish: false,
   canArchive: false,
+  ownership: WorkflowOwnership.Owned,
+  canReclassify: false,
+  warnings: [],
   ...overrides,
 })
 
@@ -131,6 +138,7 @@ describe('WaydWorkflowDiagram', () => {
           id: 'concept',
           name: 'Concept',
           category: StatusCategory.Proposed,
+          categoryLabel: 'Proposed',
           alias: 0,
         },
         workflowId: 'wf-1',
@@ -145,11 +153,13 @@ describe('WaydWorkflowDiagram', () => {
           id: 'concept',
           name: 'Concept',
           category: StatusCategory.Proposed,
+          categoryLabel: 'Proposed',
         },
         toStatus: {
           id: 'active',
           name: 'Active',
           category: StatusCategory.Active,
+          categoryLabel: 'Active',
           alias: 1,
         },
         workflowId: 'wf-1',

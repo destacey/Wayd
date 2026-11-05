@@ -1,5 +1,6 @@
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.DemandManagement.Application.DemandEstimationScales.Dtos;
 
 namespace Wayd.DemandManagement.Application.IntakeDesks.Dtos;
 
@@ -59,6 +60,12 @@ public sealed record IntakeDeskDto
     /// The scoring model the desk's agents score its requests with, or null when the desk does not score them.
     /// </summary>
     public NavigationDto? ScoringModel { get; init; }
+
+    /// <summary>
+    /// The estimation scale version the desk team estimates the desk's requests on, or null when the desk does not
+    /// estimate them.
+    /// </summary>
+    public EstimationScaleVersionNavigationDto? EstimationScale { get; init; }
 
     /// <summary>How many changes the desk has recorded; sent back with a change so a stale one is refused.</summary>
     public int Revision { get; init; }

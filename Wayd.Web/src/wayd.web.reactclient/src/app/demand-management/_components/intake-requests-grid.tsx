@@ -27,6 +27,8 @@ import EmployeeName from './employee-name'
 import { WaitTime, daysSince } from './request-age'
 import { ScoreValue } from './score-value'
 import type { RequestScores } from './request-scores'
+import { EstimateValue } from './estimate-value'
+import { compareEstimates, type RequestEstimates } from './request-estimates'
 
 export interface IntakeRequestsGridProps {
   requests: IntakeRequestSummaryDto[] | undefined
@@ -46,6 +48,11 @@ export interface IntakeRequestsGridProps {
    * column when given.
    */
   scores?: RequestScores
+  /**
+   * The requests' estimates, fetched beside the summaries since an estimate is substance. Adds an Estimate
+   * column when given, which sorts by size rather than by the text.
+   */
+  estimates?: RequestEstimates
   /** The sort the grid opens on; newest first unless given. Empty keeps the order the requests arrive in. */
   initialSorting?: SortingState
 }
@@ -85,6 +92,7 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
   leftSlot,
   rightSlot,
   scores,
+  estimates,
   initialSorting = [{ id: 'key', desc: true }],
 }) => {
   const basisName = (code: string | undefined) =>
@@ -125,6 +133,30 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
           } satisfies ColumnDef<IntakeRequestSummaryDto, any>,
         ]
       : []),
+    ...(estimates
+      ? [
+          {
+            id: 'estimate',
+            // The text, for the set filter and the CSV; the sort compares positions on the scale.
+            accessorFn: (request: IntakeRequestSummaryDto) =>
+              estimates.get(request.id)?.value ?? null,
+            sortFn: (
+              a: { original: IntakeRequestSummaryDto },
+              b: { original: IntakeRequestSummaryDto },
+            ) =>
+              compareEstimates(
+                estimates.get(a.original.id),
+                estimates.get(b.original.id),
+              ),
+            header: 'Estimate',
+            size: 100,
+            meta: { filterType: 'set' },
+            cell: ({ row }: { row: { original: IntakeRequestSummaryDto } }) => (
+              <EstimateValue estimate={estimates.get(row.original.id)} />
+            ),
+          } satisfies ColumnDef<IntakeRequestSummaryDto, any>,
+        ]
+      : []),
     {
       id: 'status',
       accessorFn: (request) => request.status.name,
@@ -134,9 +166,7 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       // A status name is the desk workflow's own word. The tooltip carries the category, which is the
       // fixed meaning that decides whether the request is still open.
       cell: ({ row }) => (
-        <Tooltip
-          title={statusCategoryDescription(row.original.status.category)}
-        >
+        <Tooltip title={statusCategoryDescription(row.original.status)}>
           <span>
             <WorkflowStatusTag
               name={row.original.status.name}
@@ -182,6 +212,13 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
         <WaitTime since={row.original.submittedOn} label="Submitted" />
       ),
       meta: { exportFormatter: (value: unknown) => `${value}` },
+    },
+    {
+      id: 'submittedOn',
+      accessorKey: 'submittedOn',
+      header: 'Submitted',
+      size: 180,
+      meta: { columnType: 'dateTime', hiddenByDefault: true },
     },
     {
       id: 'assignee',

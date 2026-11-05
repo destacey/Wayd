@@ -140,19 +140,4 @@
     <ItemGroup Condition=" '$(CI)' != 'true' And '$(WAYD_STATIC_HANDLERS)' != 'true' ">
         <Compile Remove="Internal\Generated\WolverineHandlers\**" />
     </ItemGroup>
-    <!-- <Target Name="OpenAPIMCPGenerator" AfterTargets="PostBuildEvent"
-        Condition=" '$(Configuration)' == 'Debug' ">
-        <Exec ConsoleToMSBuild="true" ContinueOnError="true" WorkingDirectory="$(ProjectDir)"
-            EnvironmentVariables="ASPNETCORE_ENVIRONMENT=Development"
-            Command="npx openapi-mcp-generator -i wwwroot\api\v1\specification.json -o $(RepoRoot)/Wayd.MCP -t stdio -n wayd-mcp">
-            <Output TaskParameter="ExitCode" PropertyName="OpenAPIMCPGeneratorExitCode" />
-            <Output TaskParameter="ConsoleOutput" PropertyName="OpenAPIMCPGeneratorOutput" />
-        </Exec>
-
-        <Message Text="$(OpenAPIMCPGeneratorOutput)"
-            Condition="'$(OpenAPIMCPGeneratorExitCode)' == '0'" Importance="low" />
-        <Error Text="$(OpenAPIMCPGeneratorOutput)"
-            Condition="'$(OpenAPIMCPGeneratorExitCode)' != '0'" />
-
-    </Target> -->
 </Project>

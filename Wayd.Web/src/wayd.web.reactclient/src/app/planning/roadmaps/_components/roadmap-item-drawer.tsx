@@ -15,7 +15,6 @@ import {
   RoadmapTimeboxDrawerItem,
 } from '.'
 import { FC, useEffect, useState } from 'react'
-import useAuth from '@/src/components/contexts/auth'
 import { getDrawerWidthPixels } from '@/src/utils/window-utils'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { isApiError } from '@/src/utils'
@@ -26,6 +25,7 @@ interface RoadmapItemDrawerProps {
   drawerOpen: boolean
   onDrawerClose: () => void
   openRoadmapItemDrawer: (itemId: string) => void
+  /** Hides editing: the roadmap is archived or the caller cannot manage it. */
   isReadOnly?: boolean
 }
 
@@ -45,9 +45,6 @@ const RoadmapItemDrawer: FC<RoadmapItemDrawerProps> = (
     roadmapId: props.roadmapId,
     itemId: props.roadmapItemId,
   })
-
-  const { hasPermissionClaim } = useAuth()
-  const canUpdateRoadmap = hasPermissionClaim('Permissions.Roadmaps.Update')
 
   useEffect(() => {
     if (error) {
@@ -72,7 +69,6 @@ const RoadmapItemDrawer: FC<RoadmapItemDrawerProps> = (
         }}
         destroyOnHidden={true}
         extra={
-          canUpdateRoadmap &&
           !props.isReadOnly && (
             <Button onClick={() => setOpenEditRoadmapItemForm(true)}>
               Edit

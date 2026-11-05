@@ -1,4 +1,7 @@
 using FluentAssertions;
+using Moq;
+using Wayd.Common.Application.Discussions;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -12,9 +15,10 @@ namespace Wayd.DemandManagement.Application.Tests.Sut.IntakeRequests.Commands;
 public sealed class DeleteIntakeRequestCommandHandlerTests
 {
     private readonly IntakeScenario _scenario = new();
+    private readonly Mock<IDiscussionWriter> _discussionWriter = new();
 
     private DeleteIntakeRequestCommandHandler CreateHandler() =>
-        new(_scenario.DbContext, _scenario.Principal.Object, _scenario.User.Object, _scenario.Clock);
+        new(_scenario.DbContext, _scenario.Principal.Object, _scenario.User.Object, _scenario.Clock, _discussionWriter.Object);
 
     [Fact]
     public async Task Handle_ByADeskAdmin_RecordsTheDeletionAndRemovesIt()
@@ -32,6 +36,22 @@ public sealed class DeleteIntakeRequestCommandHandlerTests
         request.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestDeletedEvent>();
         _scenario.DbContext.IntakeRequests.Should().BeEmpty();
         _scenario.DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ByADeskAdmin_RemovesItsConversation()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var request = _scenario.Request(_scenario.DeskAdministeredBy(deskAdmin.Id), _scenario.Employee());
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        await CreateHandler().Handle(new DeleteIntakeRequestCommand(request.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        _discussionWriter.Verify(w => w.DeleteChannel("demand.intake-request", request.Id,
+            It.Is<EventActor>(a => a.EmployeeId == deskAdmin.Id), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -65,6 +85,7 @@ public sealed class DeleteIntakeRequestCommandHandlerTests
         result.Error.Should().Be(IntakeRequestAuthorization.NotADeskAdminError);
         _scenario.DbContext.IntakeRequests.Should().ContainSingle();
         _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+        _discussionWriter.Verify(w => w.DeleteChannel(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

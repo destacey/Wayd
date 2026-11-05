@@ -2,7 +2,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record MoveTaskCommand(Guid StoryMapId, Guid TaskId, Guid TargetStepId, Guid TargetSwimLaneId, int NewOrder) : ICommand;
+public sealed record MoveTaskCommand(Guid StoryMapId, Guid TaskId, Guid TargetStepId, Guid TargetSwimLaneId, int NewOrder) : ICommand, IRequireLinkedEmployee;
 
 public sealed class MoveTaskCommandValidator : CustomValidator<MoveTaskCommand>
 {
@@ -18,9 +18,10 @@ public sealed class MoveTaskCommandValidator : CustomValidator<MoveTaskCommand>
     }
 }
 
-public sealed class MoveTaskCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<MoveTaskCommandHandler> logger) : ICommandHandler<MoveTaskCommand>
+public sealed class MoveTaskCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<MoveTaskCommandHandler> logger) : ICommandHandler<MoveTaskCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<MoveTaskCommandHandler> _logger = logger;
 
@@ -30,12 +31,14 @@ public sealed class MoveTaskCommandHandler(IPlanningDbContext planningDbContext,
         {
             var result = await StoryMapMutation.Apply(
                 _planningDbContext,
+                _access,
                 ct => _planningDbContext.StoryMaps
+                    .IncludeAccess()
                     .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
                     .Include(m => m.SwimLanes)
                     .AsSplitQuery()
                     .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, ct),
-                map => map.MoveTask(request.TaskId, request.TargetStepId, request.TargetSwimLaneId, request.NewOrder)
+                (map, actor) => map.MoveTask(request.TaskId, request.TargetStepId, request.TargetSwimLaneId, request.NewOrder, actor)
                     .Map(() => map.Goals
                         .SelectMany(g => g.Steps)
                         .SelectMany(s => s.Tasks)
@@ -50,7 +53,7 @@ public sealed class MoveTaskCommandHandler(IPlanningDbContext planningDbContext,
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

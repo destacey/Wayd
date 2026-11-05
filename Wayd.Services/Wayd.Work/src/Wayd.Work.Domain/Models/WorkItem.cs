@@ -4,6 +4,7 @@ using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Work.Domain.Interfaces;
 using NodaTime;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Domain.Models;
 
@@ -19,7 +20,7 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
 
     private WorkItem() { }
 
-    private WorkItem(WorkItemKey key, string title, Guid workspaceId, int? externalId, WorkType workType, int statusId, WorkStatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant created, Guid? createdById, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, double? effort, double? size, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags)
+    private WorkItem(WorkItemKey key, string title, Guid workspaceId, int? externalId, WorkType workType, int statusId, StatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant created, Guid? createdById, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, double? effort, double? size, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags)
     {
         Key = key;
         Title = title;
@@ -90,7 +91,7 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
 
     public WorkStatus Status { get; private set; } = null!;
 
-    public WorkStatusCategory StatusCategory { get; private set; }
+    public StatusCategory StatusCategory { get; private set; }
 
     public Guid? ParentId { get; private set; }
 
@@ -203,7 +204,7 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
     /// <param name="doneTimestamp"></param>
     /// <param name="extendedProps"></param>
     /// <exception cref="InvalidOperationException"></exception>
-    public void Update(string title, WorkType workType, int statusId, WorkStatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, double? effort, double? size, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags = null)
+    public void Update(string title, WorkType workType, int statusId, StatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, double? effort, double? size, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags = null)
     {
         if (extendedProps != null && Id != extendedProps.Id)
         {
@@ -364,7 +365,7 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
     /// <param name="workType"></param>
     /// <param name="statusId"></param>
     /// <param name="statusCategory"></param>
-    public Result ChangeExternalWorkspace(Workspace workspace, WorkType workType, int statusId, WorkStatusCategory statusCategory)
+    public Result ChangeExternalWorkspace(Workspace workspace, WorkType workType, int statusId, StatusCategory statusCategory)
     {
         Guard.Against.Null(workspace, nameof(workspace));
         Guard.Against.Null(workType, nameof(workType));
@@ -390,7 +391,7 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
         return Result.Success();
     }
 
-    public static WorkItem CreateExternal(Workspace workspace, int externalId, string title, WorkType workType, int statusId, WorkStatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant created, Guid? createdById, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, double? effort, double? size, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags = null)
+    public static WorkItem CreateExternal(Workspace workspace, int externalId, string title, WorkType workType, int statusId, StatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant created, Guid? createdById, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, double? effort, double? size, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags = null)
     {
         Guard.Against.Null(workspace, nameof(workspace));
         Guard.Against.Null(workType, nameof(workType));
@@ -440,13 +441,13 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
         ActivatedTimestamp = activatedTimestamp;
     }
 
-    private void SetDoneTimestamp(Instant? doneTimestamp, Instant created, WorkStatusCategory statusCategory)
+    private void SetDoneTimestamp(Instant? doneTimestamp, Instant created, StatusCategory statusCategory)
     {
         if (doneTimestamp.HasValue && doneTimestamp < created)
         {
             throw new InvalidOperationException("The completed timestamp cannot be before the created timestamp.");
         }
 
-        DoneTimestamp = doneTimestamp.HasValue && (statusCategory is WorkStatusCategory.Done or WorkStatusCategory.Removed) ? doneTimestamp : null;
+        DoneTimestamp = doneTimestamp.HasValue && (statusCategory is StatusCategory.Done or StatusCategory.Removed) ? doneTimestamp : null;
     }
 }

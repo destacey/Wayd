@@ -11,6 +11,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class AddTaskCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly AddTaskCommandHandler _handler;
     private readonly Mock<ILogger<AddTaskCommandHandler>> _mockLogger;
@@ -22,11 +23,11 @@ public class AddTaskCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<AddTaskCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new AddTaskCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new AddTaskCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static StoryMap CreateMap() =>
-        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
 
     [Fact]
     public async Task Handle_ShouldAddTask_WhenMapExists()

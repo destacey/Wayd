@@ -45,6 +45,10 @@ public sealed class ApplyImportPreflightCommandHandler(
         if (definition.IsFailure)
             return Result.Failure<Guid>(definition.Error);
 
+        var enabled = await ImportAuthorization.EnsureEnabled(definition.Value, cancellationToken);
+        if (enabled.IsFailure)
+            return Result.Failure<Guid>(enabled.Error);
+
         if (!preflight.IsPreflight)
             return Result.Failure<Guid>("Only a preflight can be applied. This import has already run for real.");
 

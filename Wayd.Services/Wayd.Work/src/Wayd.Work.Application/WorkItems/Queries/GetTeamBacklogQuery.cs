@@ -1,6 +1,7 @@
 ﻿using System.Linq.Expressions;
 using Wayd.Common.Application.Models.Organizations;
 using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.Extensions;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItems.Dtos;
@@ -25,8 +26,8 @@ public sealed class GetTeamBacklogQueryHandler(IWorkDbContext workDbContext) : I
     {
         var validStatusCategories = new[]
         {
-            WorkStatusCategory.Proposed,
-            WorkStatusCategory.Active
+            StatusCategory.Proposed,
+            StatusCategory.Active
         };
 
         var query = _workDbContext.WorkItems

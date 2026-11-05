@@ -1,6 +1,8 @@
 ﻿using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.Events.Discussions;
 using Wayd.Common.Domain.Events.Organization;
+using Wayd.Common.Domain.Events.Planning.EstimationScales;
 using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervalObjectives;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervals;
@@ -59,6 +61,15 @@ public static class DurableEventRoutes
         typeof(ProjectKeyChangedEvent),
 #pragma warning restore CS0618
 
+        // Planning EstimationScale → Demand Management DemandEstimationScale. Choosing a desk's scale and estimating a
+        // request check the copy exists, so a scale not yet copied fails cleanly.
+        typeof(EstimationScaleCreatedEvent),
+        typeof(EstimationScaleDetailsUpdatedEvent),
+        typeof(EstimationScaleActivatedEvent),
+        typeof(EstimationScaleDeactivatedEvent),
+        typeof(EstimationScaleVersionPublishedEvent),
+        typeof(EstimationScaleDeletedEvent),
+
         // Work Iteration → Planning PlanningSprint.
         typeof(IterationCreatedEventV3),
         typeof(IterationDetailsUpdatedEvent),
@@ -91,7 +102,7 @@ public static class DurableEventRoutes
         // no in-request reader — genuinely fire-and-forget). Closed generic; routed on the concrete type.
         typeof(IntegrationStateChangedEvent<Guid>),
 
-        // Organization Team → PlanningTeam / WorkTeam / PpmTeam. The one cross-domain edge with a downstream
+        // Organization Team → PlanningTeam / WorkTeam / PpmTeam / ProductTeam. The one cross-domain edge with a downstream
         // required FK (PlanningIntervalTeam.TeamId → PlanningTeam); ManagePlanningIntervalTeamsCommand now
         // validates team existence and fails cleanly rather than FK-faulting, so async replication is safe.
         // TeamDeactivatedEvent also ends every employee's allocations to the team, in the same handler chain
@@ -137,6 +148,9 @@ public static class DurableEventRoutes
         typeof(IntakeRequestParticipantAddedEvent),
         typeof(IntakeRequestParticipantRemovedEvent),
         typeof(IntakeRequestChannelChangedEventV2),
+
+        // Notifications only: nothing in the posting request reads what a message's handlers write.
+        typeof(DiscussionMessagePostedEvent),
 
         // Superseded by TeamDetailsUpdatedEvent; routed durably for envelopes written before the switch.
 #pragma warning disable CS0618

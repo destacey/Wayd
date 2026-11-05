@@ -1,8 +1,8 @@
 using NodaTime;
 using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Models.Planning.Iterations;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Domain.Models;
 using Wayd.Work.Domain.Models.SprintScope;
 using Wayd.Work.Domain.Tests.Data;
@@ -107,21 +107,21 @@ public class SprintBurnTests
         ScopeItemHistory[] items =
         [
             new ScopeItemHistory()
-                .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, WorkStatusCategory.Active, storyPoints: 5)
-                .Then(At(Sprint1Start.PlusDays(3)), sprint1.Id, WorkStatusCategory.Done, storyPoints: 5),
+                .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, StatusCategory.Active, storyPoints: 5)
+                .Then(At(Sprint1Start.PlusDays(3)), sprint1.Id, StatusCategory.Done, storyPoints: 5),
             new ScopeItemHistory()
-                .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, WorkStatusCategory.Active, storyPoints: 3)
-                .Then(At(Sprint1Start.PlusDays(4)), null, WorkStatusCategory.Active, storyPoints: 3),
+                .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, StatusCategory.Active, storyPoints: 3)
+                .Then(At(Sprint1Start.PlusDays(4)), null, StatusCategory.Active, storyPoints: 3),
             new ScopeItemHistory()
-                .Then(At(Sprint1Start.PlusDays(2)), sprint1.Id, WorkStatusCategory.Active, storyPoints: 2)
-                .Then(At(Sprint1LastDay, 16), sprint2.Id, WorkStatusCategory.Active, storyPoints: 2),
+                .Then(At(Sprint1Start.PlusDays(2)), sprint1.Id, StatusCategory.Active, storyPoints: 2)
+                .Then(At(Sprint1LastDay, 16), sprint2.Id, StatusCategory.Active, storyPoints: 2),
             new ScopeItemHistory()
-                .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, WorkStatusCategory.Active, storyPoints: 1)
-                .Then(At(Sprint1Start.PlusDays(5)), sprint1.Id, WorkStatusCategory.Active, storyPoints: 8),
+                .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, StatusCategory.Active, storyPoints: 1)
+                .Then(At(Sprint1Start.PlusDays(5)), sprint1.Id, StatusCategory.Active, storyPoints: 8),
             new ScopeItemHistory()
-                .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, WorkStatusCategory.Active, storyPoints: 2)
-                .Then(At(Sprint1Start.PlusDays(6)), sprint1.Id, WorkStatusCategory.Done, storyPoints: 2)
-                .Then(At(Sprint1Start.PlusDays(7)), null, WorkStatusCategory.Done, storyPoints: 2),
+                .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, StatusCategory.Active, storyPoints: 2)
+                .Then(At(Sprint1Start.PlusDays(6)), sprint1.Id, StatusCategory.Done, storyPoints: 2)
+                .Then(At(Sprint1Start.PlusDays(7)), null, StatusCategory.Done, storyPoints: 2),
         ];
         var totals = SprintScopeReport.Build(window, SizingMethod.StoryPoints, items.SelectMany(i => i.Periods), Later).Totals;
 
@@ -144,9 +144,9 @@ public class SprintBurnTests
         // Arrange
         var (sprint1, _, window) = TwoSprints();
         var committed = new ScopeItemHistory()
-            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, WorkStatusCategory.Active, storyPoints: 5);
+            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, StatusCategory.Active, storyPoints: 5);
         var added = new ScopeItemHistory()
-            .Then(At(Sprint1Start.PlusDays(3), 10), sprint1.Id, WorkStatusCategory.Proposed, storyPoints: 3);
+            .Then(At(Sprint1Start.PlusDays(3), 10), sprint1.Id, StatusCategory.Proposed, storyPoints: 3);
 
         // Act
         var burn = Build(window, Later, committed, added);
@@ -162,10 +162,10 @@ public class SprintBurnTests
         // Arrange
         var (sprint1, _, window) = TwoSprints();
         var kept = new ScopeItemHistory()
-            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, WorkStatusCategory.Active, storyPoints: 5);
+            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, StatusCategory.Active, storyPoints: 5);
         var descoped = new ScopeItemHistory()
-            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, WorkStatusCategory.Active, storyPoints: 3)
-            .Then(At(Sprint1Start.PlusDays(4), 11), null, WorkStatusCategory.Active, storyPoints: 3);
+            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, StatusCategory.Active, storyPoints: 3)
+            .Then(At(Sprint1Start.PlusDays(4), 11), null, StatusCategory.Active, storyPoints: 3);
 
         // Act
         var burn = Build(window, Later, kept, descoped);
@@ -181,9 +181,9 @@ public class SprintBurnTests
         // Arrange
         var (sprint1, _, window) = TwoSprints();
         var item = new ScopeItemHistory()
-            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, WorkStatusCategory.Active, storyPoints: 5)
-            .Then(At(Sprint1Start.PlusDays(2), 12), sprint1.Id, WorkStatusCategory.Done, storyPoints: 5)
-            .Then(At(Sprint1Start.PlusDays(4), 12), sprint1.Id, WorkStatusCategory.Active, storyPoints: 5);
+            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, StatusCategory.Active, storyPoints: 5)
+            .Then(At(Sprint1Start.PlusDays(2), 12), sprint1.Id, StatusCategory.Done, storyPoints: 5)
+            .Then(At(Sprint1Start.PlusDays(4), 12), sprint1.Id, StatusCategory.Active, storyPoints: 5);
 
         // Act
         var burn = Build(window, Later, item);
@@ -200,9 +200,9 @@ public class SprintBurnTests
         // Arrange
         var (sprint1, _, window) = TwoSprints();
         var item = new ScopeItemHistory()
-            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, WorkStatusCategory.Active, storyPoints: 5)
-            .Then(At(Sprint1Start.PlusDays(2), 12), sprint1.Id, WorkStatusCategory.Done, storyPoints: 5)
-            .Then(At(Sprint1Start.PlusDays(4), 12), null, WorkStatusCategory.Done, storyPoints: 5);
+            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, StatusCategory.Active, storyPoints: 5)
+            .Then(At(Sprint1Start.PlusDays(2), 12), sprint1.Id, StatusCategory.Done, storyPoints: 5)
+            .Then(At(Sprint1Start.PlusDays(4), 12), null, StatusCategory.Done, storyPoints: 5);
 
         // Act
         var burn = Build(window, Later, item);
@@ -218,8 +218,8 @@ public class SprintBurnTests
         // Arrange
         var (sprint1, _, window) = TwoSprints();
         var item = new ScopeItemHistory()
-            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, WorkStatusCategory.Active, storyPoints: 3)
-            .Then(At(Sprint1Start.PlusDays(5), 9), sprint1.Id, WorkStatusCategory.Active, storyPoints: 8);
+            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, StatusCategory.Active, storyPoints: 3)
+            .Then(At(Sprint1Start.PlusDays(5), 9), sprint1.Id, StatusCategory.Active, storyPoints: 8);
 
         // Act
         var burn = Build(window, Later, item);

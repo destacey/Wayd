@@ -8,6 +8,7 @@ using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Organization.Application.Persistence;
 using Wayd.Organization.Application.Teams.Commands;
 using Wayd.Planning.Application.Persistence;
+using Wayd.ProductManagement.Application;
 using Wayd.ProjectPortfolioManagement.Application;
 using Wayd.Web.Api.IntegrationTests.Infrastructure;
 using Wayd.Work.Application.Persistence;
@@ -45,7 +46,7 @@ public sealed class CrossDomainReplicationTests(WaydSqlServerApiFactory factory)
             var dispatcher = dispatchScope.ServiceProvider.GetRequiredService<IDispatcher>();
 
             // Act — TeamCreatedEvent is enlisted in the outbox during SaveChanges and delivered post-commit;
-            // its replication handlers create the same-Id WorkTeam / PlanningTeam / PpmTeam rows in the
+            // its replication handlers create the same-Id WorkTeam / PlanningTeam / PpmTeam / ProductTeam rows in the
             // background.
             var result = await dispatcher.Send(
                 new CreateTeamCommand("Replication Test Team", new TeamCode(code), null, new LocalDate(2026, 1, 15)),
@@ -75,13 +76,18 @@ public sealed class CrossDomainReplicationTests(WaydSqlServerApiFactory factory)
         var ppmTeamKey = await WaitForValue(
             sp => sp.GetRequiredService<IProjectPortfolioManagementDbContext>().PpmTeams.AsNoTracking().Where(t => t.Id == teamId).Select(t => (int?)t.Key).SingleOrDefaultAsync(ct),
             ct);
+        var productTeamKey = await WaitForValue(
+            sp => sp.GetRequiredService<IProductManagementDbContext>().ProductTeams.AsNoTracking().Where(t => t.Id == teamId).Select(t => (int?)t.Key).SingleOrDefaultAsync(ct),
+            ct);
 
         Assert.True(workTeamKey.HasValue, "WorkTeam projection should be delivered asynchronously after CreateTeam returns");
         Assert.True(planningTeamKey.HasValue, "PlanningTeam projection should be delivered asynchronously after CreateTeam returns");
         Assert.True(ppmTeamKey.HasValue, "PpmTeam projection should be delivered asynchronously after CreateTeam returns");
+        Assert.True(productTeamKey.HasValue, "ProductTeam projection should be delivered asynchronously after CreateTeam returns");
         Assert.Equal(sourceKey, workTeamKey!.Value);
         Assert.Equal(sourceKey, planningTeamKey!.Value);
         Assert.Equal(sourceKey, ppmTeamKey!.Value);
+        Assert.Equal(sourceKey, productTeamKey!.Value);
     }
 
     [Fact]
@@ -123,6 +129,13 @@ public sealed class CrossDomainReplicationTests(WaydSqlServerApiFactory factory)
                 return copy.Name == $"Renamed Team {newCode.Value}" && copy.Code == newCode;
             },
             ct), "PpmTeam copy should take the new name and code");
+        Assert.True(await WaitFor(
+            async sp =>
+            {
+                var copy = await sp.GetRequiredService<IProductManagementDbContext>().ProductTeams.Where(t => t.Id == teamId).Select(t => new { t.Name, t.Code }).SingleAsync(ct);
+                return copy.Name == $"Renamed Team {newCode.Value}" && copy.Code == newCode;
+            },
+            ct), "ProductTeam copy should take the new name and code");
     }
 
     [Fact]
@@ -155,6 +168,9 @@ public sealed class CrossDomainReplicationTests(WaydSqlServerApiFactory factory)
         Assert.True(await WaitFor(
             sp => sp.GetRequiredService<IProjectPortfolioManagementDbContext>().PpmTeams.AnyAsync(t => t.Id == teamId && t.Name == $"Legacy Rename {code.Value}", ct),
             ct), "PpmTeam copy should apply the superseded event");
+        Assert.True(await WaitFor(
+            sp => sp.GetRequiredService<IProductManagementDbContext>().ProductTeams.AnyAsync(t => t.Id == teamId && t.Name == $"Legacy Rename {code.Value}", ct),
+            ct), "ProductTeam copy should apply the superseded event");
     }
 
     private async Task<Guid> CreateReplicatedTeam(CancellationToken ct)
@@ -175,7 +191,8 @@ public sealed class CrossDomainReplicationTests(WaydSqlServerApiFactory factory)
         Assert.True(await WaitFor(
             async sp => await sp.GetRequiredService<IWorkDbContext>().WorkTeams.AnyAsync(t => t.Id == teamId, ct)
                 && await sp.GetRequiredService<IPlanningDbContext>().PlanningTeams.AnyAsync(t => t.Id == teamId, ct)
-                && await sp.GetRequiredService<IProjectPortfolioManagementDbContext>().PpmTeams.AnyAsync(t => t.Id == teamId, ct),
+                && await sp.GetRequiredService<IProjectPortfolioManagementDbContext>().PpmTeams.AnyAsync(t => t.Id == teamId, ct)
+                && await sp.GetRequiredService<IProductManagementDbContext>().ProductTeams.AnyAsync(t => t.Id == teamId, ct),
             ct), "every copy should exist before the change under test is made");
 
         return teamId;

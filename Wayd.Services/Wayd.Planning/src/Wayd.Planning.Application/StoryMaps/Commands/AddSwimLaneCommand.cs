@@ -3,7 +3,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record AddSwimLaneCommand(Guid StoryMapId, string Name) : ICommand<StoryMapSwimLaneDto>;
+public sealed record AddSwimLaneCommand(Guid StoryMapId, string Name) : ICommand<StoryMapSwimLaneDto>, IRequireLinkedEmployee;
 
 public sealed class AddSwimLaneCommandValidator : CustomValidator<AddSwimLaneCommand>
 {
@@ -19,9 +19,10 @@ public sealed class AddSwimLaneCommandValidator : CustomValidator<AddSwimLaneCom
     }
 }
 
-public sealed class AddSwimLaneCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<AddSwimLaneCommandHandler> logger) : ICommandHandler<AddSwimLaneCommand, StoryMapSwimLaneDto>
+public sealed class AddSwimLaneCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<AddSwimLaneCommandHandler> logger) : ICommandHandler<AddSwimLaneCommand, StoryMapSwimLaneDto>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<AddSwimLaneCommandHandler> _logger = logger;
 
@@ -30,13 +31,16 @@ public sealed class AddSwimLaneCommandHandler(IPlanningDbContext planningDbConte
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.SwimLanes)
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
             if (map is null)
                 return Result.Failure<StoryMapSwimLaneDto>("Story map not found.");
 
-            var result = map.AddSwimLane(request.Name);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.AddSwimLane(request.Name, actor);
             if (result.IsFailure)
                 return Result.Failure<StoryMapSwimLaneDto>(result.Error);
 
@@ -47,7 +51,7 @@ public sealed class AddSwimLaneCommandHandler(IPlanningDbContext planningDbConte
 
             return Result.Success(dto);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

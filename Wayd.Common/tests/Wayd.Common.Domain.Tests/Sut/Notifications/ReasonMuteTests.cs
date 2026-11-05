@@ -29,11 +29,11 @@ public sealed class ReasonMuteTests
     }
 
     [Theory]
-    [InlineData(NotificationReason.Mentioned)]
+    [InlineData(NotificationReason.Following | NotificationReason.Mentioned)]
     [InlineData(NotificationReason.Following | NotificationReason.Role)]
     [InlineData((NotificationReason)0)]
     [InlineData(NotificationReason.Desk)]
-    [InlineData((NotificationReason)128)]
+    [InlineData((NotificationReason)256)]
     public void Create_ShouldFail_ForAnythingButOneProducedReason(NotificationReason reason)
     {
         // Act

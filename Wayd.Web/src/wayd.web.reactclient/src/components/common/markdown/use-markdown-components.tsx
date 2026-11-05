@@ -13,11 +13,6 @@ import {
   MarkdownTable,
 } from '.'
 
-// Type for MDEditor's expected Components (compatible with older react-markdown)
-type MDEditorComponents = {
-  [key: string]: React.ComponentType<any>
-}
-
 const { Title, Paragraph, Text, Link: AntDLink } = Typography
 
 /** Matches links that leave the app (`https://…`, `//host/…`); anchors, relative paths and `mailto:` stay in the tab. */
@@ -90,10 +85,3 @@ export const useMarkdownComponents = (): Components => {
     table: ({ node: _node, ...props }) => <MarkdownTable {...props} />,
   } as Components
 }
-
-/**
- * The same components typed for `@uiw/react-md-editor`'s preview, whose `components` prop is
- * declared against an older react-markdown signature.
- */
-export const useMarkdownComponentsForMDEditor = (): MDEditorComponents =>
-  useMarkdownComponents() as MDEditorComponents

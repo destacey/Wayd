@@ -2,6 +2,7 @@ using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkTeams.Dtos;
@@ -117,7 +118,7 @@ public sealed class GetKanbanTeamsWindowMetricsQueryHandler(
         return await _workDbContext.WorkItems
             .Where(w => w.TeamId.HasValue && teamIds.Contains(w.TeamId.Value))
             .Where(w => w.Type.Level!.Tier == WorkTypeTier.Requirement)
-            .Where(w => w.StatusCategory == WorkStatusCategory.Done)
+            .Where(w => w.StatusCategory == StatusCategory.Done)
             .Where(w => w.DoneTimestamp >= from && w.DoneTimestamp < until)
             .Select(w => new Completion(w.TeamId!.Value, w.DoneTimestamp!.Value, w.ActivatedTimestamp, w.StoryPoints, w.Effort, w.Size))
             .ToListAsync(cancellationToken);
@@ -133,7 +134,7 @@ public sealed class GetKanbanTeamsWindowMetricsQueryHandler(
         return await _workDbContext.WorkItems
             .Where(w => w.TeamId.HasValue && teamIds.Contains(w.TeamId.Value))
             .Where(w => w.Type.Level!.Tier == WorkTypeTier.Requirement)
-            .Where(w => w.StatusCategory == WorkStatusCategory.Active)
+            .Where(w => w.StatusCategory == StatusCategory.Active)
             .Select(w => new ActiveItem(w.TeamId!.Value, w.StoryPoints, w.Effort, w.Size))
             .ToListAsync(cancellationToken);
     }
@@ -152,7 +153,7 @@ public sealed class GetKanbanTeamsWindowMetricsQueryHandler(
             join w in _workDbContext.WorkItems on h.WorkItemId equals w.Id
             where w.TeamId.HasValue && teamIds.Contains(w.TeamId.Value)
                 && h.ValidFrom < at && (h.ValidTo == null || h.ValidTo >= at)
-                && h.StatusCategory == WorkStatusCategory.Active
+                && h.StatusCategory == StatusCategory.Active
                 // The type's tier now, not when the period was written: history keeps the type, not its level.
                 && _workDbContext.WorkTypes.Any(t => t.Id == h.WorkTypeId && t.Level!.Tier == WorkTypeTier.Requirement)
             select new ActiveItem(w.TeamId!.Value, h.StoryPoints, h.Effort, h.Size))

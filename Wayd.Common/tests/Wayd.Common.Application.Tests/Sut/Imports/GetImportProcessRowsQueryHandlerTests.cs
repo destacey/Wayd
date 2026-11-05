@@ -4,6 +4,7 @@ using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Imports.Dtos;
 using Wayd.Common.Application.Imports.Queries;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Tests.Infrastructure;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Imports;
@@ -50,10 +51,10 @@ public sealed class GetImportProcessRowsQueryHandlerTests : IDisposable
         return process;
     }
 
-    private Task<CSharpFunctionalExtensions.Result<ImportProcessRowPageDto>> Get(
-        Guid id, ImportRowStatus? status = null, int pageNumber = 1, int pageSize = 50) =>
+    private Task<CSharpFunctionalExtensions.Result<PagedResponse<ImportProcessRowDto>>> Get(
+        Guid id, ImportRowStatus? status = null, int page = PageRequest.FirstPage, int pageSize = PageSizes.Default) =>
         CreateHandler().Handle(
-            new GetImportProcessRowsQuery(id, status, pageNumber, pageSize), TestContext.Current.CancellationToken);
+            new GetImportProcessRowsQuery(id, new PageRequest(page, pageSize), status), TestContext.Current.CancellationToken);
 
     [Fact]
     public async Task Handle_ReturnsEveryRowInFilePositionOrder()
@@ -66,7 +67,7 @@ public sealed class GetImportProcessRowsQueryHandlerTests : IDisposable
 
         // Assert
         result.Value.TotalCount.Should().Be(10);
-        result.Value.Rows.Select(r => r.RowNumber).Should().BeInAscendingOrder();
+        result.Value.Items.Select(r => r.RowNumber).Should().BeInAscendingOrder();
     }
 
     [Fact]
@@ -80,7 +81,7 @@ public sealed class GetImportProcessRowsQueryHandlerTests : IDisposable
 
         // Assert
         result.Value.TotalCount.Should().Be(3);
-        result.Value.Rows.Should().AllSatisfy(r => r.Error.Should().NotBeNull());
+        result.Value.Items.Should().AllSatisfy(r => r.Error.Should().NotBeNull());
     }
 
     [Fact]
@@ -90,25 +91,11 @@ public sealed class GetImportProcessRowsQueryHandlerTests : IDisposable
         var process = AddPartlyRejectedRun();
 
         // Act
-        var result = await Get(process.Id, pageNumber: 2, pageSize: 4);
+        var result = await Get(process.Id, page: 2, pageSize: 4);
 
         // Assert
         result.Value.TotalCount.Should().Be(10);
-        result.Value.Rows.Select(r => r.RowNumber).Should().Equal(5, 6, 7, 8);
-    }
-
-    [Fact]
-    public async Task Handle_ClampsAPageSizeNobodyShouldAskFor()
-    {
-        // Arrange
-        var process = AddPartlyRejectedRun();
-
-        // Act
-        var result = await Get(process.Id, pageNumber: 0, pageSize: 100_000);
-
-        // Assert
-        result.Value.PageNumber.Should().Be(1);
-        result.Value.PageSize.Should().Be(500);
+        result.Value.Items.Select(r => r.RowNumber).Should().Equal(5, 6, 7, 8);
     }
 
     [Fact]
@@ -124,6 +111,70 @@ public sealed class GetImportProcessRowsQueryHandlerTests : IDisposable
 
         // Assert
         result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_LinksEachRowToTheRecordItCreated()
+    {
+        // Arrange
+        var process = AddPartlyRejectedRun();
+        var applied = process.Rows.Single(r => r.RowNumber == 4);
+        var link = new ImportRecordLink(ImportRecordType.Project, "APOLLO", "Apollo");
+        _definition.Links[applied.CreatedEntityId!.Value] = link;
+
+        // Act
+        var result = await Get(process.Id);
+
+        // Assert
+        result.Value.Items.Single(r => r.RowNumber == 4).CreatedRecord.Should().Be(link);
+    }
+
+    [Fact]
+    public async Task Handle_LeavesTheLinkEmptyForARecordThatNoLongerExists()
+    {
+        // Arrange — the lookup leaves out a deleted record, and the row still reports the id it created
+        var process = AddPartlyRejectedRun();
+        var stillThere = process.Rows.Single(r => r.RowNumber == 4);
+        var gone = process.Rows.Single(r => r.RowNumber == 5);
+        _definition.Links[stillThere.CreatedEntityId!.Value] = new ImportRecordLink(ImportRecordType.Risk, "42", "Vendor delay");
+
+        // Act
+        var result = await Get(process.Id, ImportRowStatus.Succeeded);
+
+        // Assert
+        _definition.DescribeCalls.Should().ContainSingle().Which.Should().Contain(gone.CreatedEntityId!.Value);
+        result.Value.Items.Single(r => r.RowNumber == 4).CreatedRecord.Should().NotBeNull();
+        var goneRow = result.Value.Items.Single(r => r.RowNumber == 5);
+        goneRow.CreatedEntityId.Should().Be(gone.CreatedEntityId);
+        goneRow.CreatedRecord.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_AsksOnlyAboutThePageItReturns()
+    {
+        // Arrange
+        var process = AddPartlyRejectedRun();
+        var onPage = process.Rows.Where(r => r.RowNumber is 5 or 6).Select(r => r.CreatedEntityId!.Value);
+
+        // Act
+        await Get(process.Id, page: 3, pageSize: 2);
+
+        // Assert
+        _definition.DescribeCalls.Should().ContainSingle().Which.Should().BeEquivalentTo(onPage);
+    }
+
+    [Fact]
+    public async Task Handle_MakesNoLookupWhenNoRowOnThePageCreatedAnything()
+    {
+        // Arrange
+        var process = AddPartlyRejectedRun();
+
+        // Act
+        var result = await Get(process.Id, ImportRowStatus.Failed);
+
+        // Assert
+        result.Value.Items.Should().AllSatisfy(r => r.CreatedRecord.Should().BeNull());
+        _definition.DescribeCalls.Should().BeEmpty();
     }
 
     [Fact]

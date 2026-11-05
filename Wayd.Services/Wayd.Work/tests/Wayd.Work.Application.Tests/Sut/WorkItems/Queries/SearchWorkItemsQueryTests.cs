@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging.Abstractions;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Models;
 using Wayd.Work.Application.Tests.Infrastructure;
 using Wayd.Work.Application.WorkItems.Queries;
@@ -83,7 +84,26 @@ public sealed class SearchWorkItemsQueryTests
         Assert.Equal(["TEST-1", "TEST-2"], result.Value.Select(x => x.Key));
     }
 
-    private static WorkItem CreateWorkItem(int externalId, string title)
+    [Fact]
+    public async Task Handle_WithATier_ReturnsOnlyThatTier_BeforeApplyingTheLimit()
+    {
+        // Arrange
+        using var context = new FakeWorkDbContext();
+        // The story has the lowest key, so it would take the only slot if the tier were applied after the limit.
+        var story = CreateWorkItem(1, "match story", new WorkTypeFaker().AsStory().Generate());
+        var epic = CreateWorkItem(2, "match epic", new WorkTypeFaker().AsEpic().Generate());
+        context.AddWorkItems([story, epic]);
+        var handler = new SearchWorkItemsQueryHandler(context, NullLogger<SearchWorkItemsQueryHandler>.Instance);
+
+        // Act
+        var result = await handler.Handle(new SearchWorkItemsQuery("match", 1, WorkTypeTier.Portfolio), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal([epic.Id], result.Value.Select(x => x.Id));
+    }
+
+    private static WorkItem CreateWorkItem(int externalId, string title, WorkType? type = null)
     {
         var workspace = new WorkspaceFaker()
             .AsExternal()
@@ -92,6 +112,8 @@ public sealed class SearchWorkItemsQueryTests
         var faker = new WorkItemFaker(workspace.Id)
             .WithExternalId(externalId)
             .WithTitle(title);
+        if (type is not null)
+            faker.WithType(type);
 
         faker.RuleFor(x => x.Key, new WorkItemKey(workspace.Key, externalId));
         faker.RuleFor(x => x.Workspace, workspace);

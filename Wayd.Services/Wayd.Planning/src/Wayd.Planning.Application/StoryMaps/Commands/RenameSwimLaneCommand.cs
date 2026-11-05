@@ -2,7 +2,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record RenameSwimLaneCommand(Guid StoryMapId, Guid SwimLaneId, string Name) : ICommand;
+public sealed record RenameSwimLaneCommand(Guid StoryMapId, Guid SwimLaneId, string Name) : ICommand, IRequireLinkedEmployee;
 
 public sealed class RenameSwimLaneCommandValidator : CustomValidator<RenameSwimLaneCommand>
 {
@@ -19,9 +19,10 @@ public sealed class RenameSwimLaneCommandValidator : CustomValidator<RenameSwimL
     }
 }
 
-public sealed class RenameSwimLaneCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<RenameSwimLaneCommandHandler> logger) : ICommandHandler<RenameSwimLaneCommand>
+public sealed class RenameSwimLaneCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<RenameSwimLaneCommandHandler> logger) : ICommandHandler<RenameSwimLaneCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<RenameSwimLaneCommandHandler> _logger = logger;
 
@@ -30,13 +31,16 @@ public sealed class RenameSwimLaneCommandHandler(IPlanningDbContext planningDbCo
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.SwimLanes)
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
             if (map is null)
                 return Result.Failure("Story map not found.");
 
-            var result = map.RenameSwimLane(request.SwimLaneId, request.Name);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.RenameSwimLane(request.SwimLaneId, request.Name, actor);
             if (result.IsFailure)
                 return result;
 
@@ -45,7 +49,7 @@ public sealed class RenameSwimLaneCommandHandler(IPlanningDbContext planningDbCo
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

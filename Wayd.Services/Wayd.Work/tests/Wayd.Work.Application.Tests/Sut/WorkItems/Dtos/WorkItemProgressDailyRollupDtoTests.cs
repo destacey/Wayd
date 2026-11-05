@@ -2,6 +2,7 @@
 using Wayd.Work.Application.WorkItems.Dtos;
 using NodaTime;
 using Xunit;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Application.Tests.Sut.WorkItems.Dtos;
 
@@ -47,7 +48,7 @@ public sealed class WorkItemProgressDailyRollupDtoTests
                 Id = Guid.NewGuid(),
                 LevelOrder = 1,
                 Tier = WorkTypeTier.Requirement,
-                StatusCategory = WorkStatusCategory.Done,
+                StatusCategory = StatusCategory.Done,
                 ParentId = null,
                 Created = Instant.FromUtc(2023, 1, 2, 12, 15),
                 ActivatedTimestamp = Instant.FromUtc(2023, 1, 4, 12, 15),
@@ -101,7 +102,7 @@ public sealed class WorkItemProgressDailyRollupDtoTests
                 Id = Guid.NewGuid(),
                 LevelOrder = 1,
                 Tier = WorkTypeTier.Requirement,
-                StatusCategory = WorkStatusCategory.Done,
+                StatusCategory = StatusCategory.Done,
                 ParentId = null,
                 Created = Instant.FromUtc(2022, 11, 2, 12, 15),
                 ActivatedTimestamp = Instant.FromUtc(2022, 11, 28, 12, 15),
@@ -111,7 +112,7 @@ public sealed class WorkItemProgressDailyRollupDtoTests
                 Id = Guid.NewGuid(),
                 LevelOrder = 1,
                 Tier = WorkTypeTier.Requirement,
-                StatusCategory = WorkStatusCategory.Done,
+                StatusCategory = StatusCategory.Done,
                 ParentId = null,
                 Created = Instant.FromUtc(2023, 1, 2, 12, 15),
                 ActivatedTimestamp = Instant.FromUtc(2023, 1, 4, 12, 15),
@@ -122,7 +123,7 @@ public sealed class WorkItemProgressDailyRollupDtoTests
                 Id = Guid.NewGuid(),
                 LevelOrder = 1,
                 Tier = WorkTypeTier.Requirement,
-                StatusCategory = WorkStatusCategory.Done,
+                StatusCategory = StatusCategory.Done,
                 ParentId = null,
                 Created = Instant.FromUtc(2023, 1, 3, 12, 15),
                 ActivatedTimestamp = Instant.FromUtc(2023, 1, 6, 12, 15),
@@ -133,7 +134,7 @@ public sealed class WorkItemProgressDailyRollupDtoTests
                 Id = Guid.NewGuid(),
                 LevelOrder = 1,
                 Tier = WorkTypeTier.Requirement,
-                StatusCategory = WorkStatusCategory.Removed,
+                StatusCategory = StatusCategory.Removed,
                 ParentId = null,
                 Created = Instant.FromUtc(2023, 1, 3, 12, 15),
                 DoneTimestamp = Instant.FromUtc(2023, 1, 7, 12, 15)
@@ -143,7 +144,7 @@ public sealed class WorkItemProgressDailyRollupDtoTests
                 Id = Guid.NewGuid(),
                 LevelOrder = 1,
                 Tier = WorkTypeTier.Requirement,
-                StatusCategory = WorkStatusCategory.Proposed,
+                StatusCategory = StatusCategory.Proposed,
                 ParentId = null,
                 Created = Instant.FromUtc(2023, 1, 4, 12, 15),
                 DoneTimestamp = null
@@ -153,7 +154,7 @@ public sealed class WorkItemProgressDailyRollupDtoTests
                 Id = Guid.NewGuid(),
                 LevelOrder = 1,
                 Tier = WorkTypeTier.Requirement,
-                StatusCategory = WorkStatusCategory.Active,
+                StatusCategory = StatusCategory.Active,
                 ParentId = null,
                 Created = Instant.FromUtc(2023, 1, 9, 12, 15),
                 ActivatedTimestamp = Instant.FromUtc(2023, 1, 10, 12, 15),
@@ -164,7 +165,7 @@ public sealed class WorkItemProgressDailyRollupDtoTests
                 Id = Guid.NewGuid(),
                 LevelOrder = 1,
                 Tier = WorkTypeTier.Requirement,
-                StatusCategory = WorkStatusCategory.Done,
+                StatusCategory = StatusCategory.Done,
                 ParentId = null,
                 Created = Instant.FromUtc(2023, 1, 10, 12, 15),
                 ActivatedTimestamp = Instant.FromUtc(2023, 1, 14, 12, 15), // activated and completed on the same day
@@ -218,7 +219,7 @@ public sealed class WorkItemProgressDailyRollupDtoTests
                 Id = Guid.NewGuid(),
                 LevelOrder = 1,
                 Tier = WorkTypeTier.Portfolio,
-                StatusCategory = WorkStatusCategory.Done,
+                StatusCategory = StatusCategory.Done,
                 ParentId = null,
                 Created = Instant.FromUtc(2023, 1, 2, 12, 15),
                 DoneTimestamp = Instant.FromUtc(2023, 1, 7, 12, 15)

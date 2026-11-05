@@ -14,6 +14,7 @@ using Wayd.Common.Domain.Events.AppIntegration;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Events.Identity;
 using Wayd.Common.Domain.Events.Organization;
+using Wayd.Common.Domain.Events.Planning.EstimationScales;
 using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervalObjectives;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervals;
@@ -489,7 +490,7 @@ public sealed class DomainEventSerializationTests
     public void WorkflowAssignmentRemovedEvent_RoundTripsThroughDurableSerializer()
     {
         // Arrange — the scope gone, so it follows no workflow
-        var original = new WorkflowAssignmentRemovedEvent("demand.intake-request", Guid.NewGuid(), Guid.NewGuid(), null,
+        var original = new WorkflowAssignmentRemovedEvent("demand.intake-request", Guid.NewGuid(), Guid.NewGuid(), null, Guid.NewGuid(), null,
             EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
 
         // Act
@@ -885,6 +886,7 @@ public sealed class DomainEventSerializationTests
             TransitionMode.Restricted,
             [new WorkflowTransitionValues(
                 Guid.NewGuid(), proposedId, doneId, [new WorkflowTransitionConditionValues(Guid.NewGuid(), TransitionConditionKind.RequiresReason)])],
+            externalKey: null,
             EventActor.System,
             Instant.FromUtc(2026, 3, 1, 12, 0, 0));
 
@@ -1112,6 +1114,100 @@ public sealed class DomainEventSerializationTests
         roundTripped.ManagerIds.Should().Equal(original.ManagerIds);
         roundTripped.DateRange.Should().Be(original.DateRange);
         roundTripped.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void RoadmapOwnersChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var kept = Guid.NewGuid();
+        var added = Guid.NewGuid();
+        var original = new RoadmapOwnersChangedEvent(Guid.NewGuid(), 12,
+            added: [added], removed: [Guid.NewGuid()], ownerIds: [kept, added],
+            EventActor.System, Instant.FromUtc(2026, 11, 3, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Added.Should().Equal(original.Added);
+        roundTripped.Removed.Should().Equal(original.Removed);
+        roundTripped.OwnerIds.Should().Equal(original.OwnerIds);
+    }
+
+#pragma warning disable CS0618 // the retired type is exactly what is under test
+    [Fact]
+    public void RoadmapManagersChangedEvent_PayloadWrittenBeforeItWasSuperseded_StillDeserializes()
+    {
+        // Arrange — the frozen 1.0 contract, from when roadmap owners were called managers.
+        const string payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000021",
+              "Key": 12,
+              "Added": ["019f2a10-0000-7000-8000-000000000022"],
+              "Removed": [],
+              "ManagerIds": ["019f2a10-0000-7000-8000-000000000022", "019f2a10-0000-7000-8000-000000000023"],
+              "Timestamp": "2026-10-01T08:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000024",
+              "Actor": { "Kind": 0, "UserId": "user-42", "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+        var read = JsonSerializer.Deserialize<RoadmapManagersChangedEvent>(payload, Options)!;
+
+        // Assert
+        read.Added.Should().Equal(Guid.Parse("019f2a10-0000-7000-8000-000000000022"));
+        read.Removed.Should().BeEmpty();
+        read.ManagerIds.Should().HaveCount(2);
+        read.EventVersion.Should().Be("1.0");
+    }
+#pragma warning restore CS0618
+
+    [Fact]
+    public void EstimationScaleCreatedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - a version record holding an ordered array of value records, a card among them.
+        var original = new EstimationScaleCreatedEvent(
+            Guid.NewGuid(), 4, "T-Shirt Sizes", null, true,
+            new EstimationScaleVersionValues(Guid.NewGuid(), 1,
+                [new EstimationScaleValueValues("S", true), new EstimationScaleValueValues("M", true), new EstimationScaleValueValues("?", false)]),
+            EventActor.System,
+            Instant.FromUtc(2026, 1, 2, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Version.VersionId.Should().Be(original.Version.VersionId);
+        roundTripped.Version.Number.Should().Be(1);
+        roundTripped.Version.Values.Should().Equal(original.Version.Values);
+        roundTripped.IsActive.Should().BeTrue();
+        roundTripped.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void EstimationScaleVersionPublishedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - the new version and the previous one's id and number.
+        var original = new EstimationScaleVersionPublishedEvent(
+            Guid.NewGuid(), 4,
+            new EstimationScaleVersionValues(Guid.NewGuid(), 2,
+                [new EstimationScaleValueValues("Small", true), new EstimationScaleValueValues("Large", true), new EstimationScaleValueValues("☕", false)]),
+            Guid.NewGuid(), 1,
+            EventActor.System,
+            Instant.FromUtc(2026, 1, 3, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Version.VersionId.Should().Be(original.Version.VersionId);
+        roundTripped.Version.Number.Should().Be(2);
+        roundTripped.Version.Values.Should().Equal(original.Version.Values);
+        roundTripped.PreviousVersionId.Should().Be(original.PreviousVersionId);
+        roundTripped.PreviousVersionNumber.Should().Be(1);
     }
 
     [Fact]
@@ -2457,4 +2553,45 @@ public sealed class DomainEventSerializationTests
     /// <summary>Minimal <see cref="IStrategicThemeData"/> so the event can be constructed without the full aggregate.</summary>
     private sealed record StrategicThemeDataStub(Guid Id, int Key, string Name, string Description, StrategicThemeState State)
         : IStrategicThemeData;
+
+    [Fact]
+    public void IntakeRequestEstimateChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - a nested estimate record at one end and null at the other, and the closed-set source.
+        var original = new IntakeRequestEstimateChangedEvent(
+            Guid.NewGuid(), 12,
+            new IntakeRequestEstimateDetails("L", Guid.NewGuid(), "T-Shirt Sizes", 2),
+            null,
+            IntakeRequestEstimateSource.Rerouted,
+            EventActor.System,
+            Instant.FromUtc(2026, 1, 2, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.From.Should().Be(original.From);
+        roundTripped.To.Should().BeNull();
+        roundTripped.Source.Should().Be(IntakeRequestEstimateSource.Rerouted);
+    }
+
+    [Fact]
+    public void IntakeDeskEstimationScaleChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - a desk moving from no scale to a pinned version.
+        var original = new IntakeDeskEstimationScaleChangedEvent(
+            Guid.NewGuid(), 3, null, null, null, null, Guid.NewGuid(), "Fibonacci", Guid.NewGuid(), 4,
+            EventActor.System, Instant.FromUtc(2026, 1, 2, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.FromScaleId.Should().BeNull();
+        roundTripped.FromScaleVersionNumber.Should().BeNull();
+        roundTripped.ToScaleId.Should().Be(original.ToScaleId);
+        roundTripped.ToScaleName.Should().Be("Fibonacci");
+        roundTripped.ToScaleVersionId.Should().Be(original.ToScaleVersionId);
+        roundTripped.ToScaleVersionNumber.Should().Be(4);
+    }
 }

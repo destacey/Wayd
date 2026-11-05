@@ -95,7 +95,7 @@ silently clears or removes everything else.
 | `Releases_Update`, `Versions_Update` | Every descriptive field | Cleared |
 | `Versions_CorrectDates`, `Releases_CorrectDates`, `ReleasePackages_CorrectDates` | Every date on the record | An omitted target date (and a version's cut moment) is cleared |
 
-**On the hosted server, patch instead** when you are adding or removing a few entries: everything the
+**Patch instead** when you are adding or removing a few entries: everything the
 patch does not name stays.
 
 - `Releases_PatchContents` — add a package with `[{ "op": "add", "path": "/packageIds/-", "value": "<packageId>" }]`
@@ -134,7 +134,7 @@ Do not infer precedence from a version string, and do not sort results by it.
    on each manifest line, not just the version string, or the release will not know the version is
    already inside a package.
 4. `Releases_Plan` — the announcement. Usually under a product **line**, or no product at all.
-5. `Releases_PatchContents` (hosted) or `Releases_SetContents` with both lists complete — the packages and any directly-carried versions.
+5. `Releases_PatchContents` or `Releases_SetContents` with both lists complete — the packages and any directly-carried versions.
 6. `Releases_MarkReleased` — through the announcing checklist in [reference/release-contents.md](reference/release-contents.md).
 7. `Deployments_Start` then an outcome — for each unit that reached an environment.
 

@@ -3,7 +3,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record SetChecklistItemCheckedCommand(Guid StoryMapId, Guid TaskId, Guid ItemId, bool IsChecked) : ICommand;
+public sealed record SetChecklistItemCheckedCommand(Guid StoryMapId, Guid TaskId, Guid ItemId, bool IsChecked) : ICommand, IRequireLinkedEmployee;
 
 public sealed class SetChecklistItemCheckedCommandValidator : CustomValidator<SetChecklistItemCheckedCommand>
 {
@@ -17,9 +17,10 @@ public sealed class SetChecklistItemCheckedCommandValidator : CustomValidator<Se
     }
 }
 
-public sealed class SetChecklistItemCheckedCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<SetChecklistItemCheckedCommandHandler> logger) : ICommandHandler<SetChecklistItemCheckedCommand>
+public sealed class SetChecklistItemCheckedCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<SetChecklistItemCheckedCommandHandler> logger) : ICommandHandler<SetChecklistItemCheckedCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<SetChecklistItemCheckedCommandHandler> _logger = logger;
 
@@ -28,13 +29,16 @@ public sealed class SetChecklistItemCheckedCommandHandler(IPlanningDbContext pla
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
             if (map is null)
                 return Result.Failure("Story map not found.");
 
-            var result = map.SetChecklistItemChecked(request.TaskId, request.ItemId, request.IsChecked);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.SetChecklistItemChecked(request.TaskId, request.ItemId, request.IsChecked, actor);
             if (result.IsFailure)
                 return result;
 
@@ -48,7 +52,7 @@ public sealed class SetChecklistItemCheckedCommandHandler(IPlanningDbContext pla
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

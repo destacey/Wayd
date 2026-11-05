@@ -5,7 +5,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 
 /// <summary>
 /// One resolved recipe, generated: the organization and, unless the recipe switched them off, the PPM,
-/// Product Management and Planning datasets over it.
+/// Product Management, Planning and Request Desk datasets over it.
 /// </summary>
 /// <remarks>
 /// Exists so the two front ends produce the same thing rather than each assembling the generators for
@@ -16,7 +16,8 @@ public sealed record GeneratedDataset(
     GeneratedOrg Org,
     GeneratedPpm? Ppm,
     GeneratedProductManagement? ProductManagement,
-    GeneratedPlanning? Planning)
+    GeneratedPlanning? Planning,
+    GeneratedDemandManagement? DemandManagement)
 {
     /// <summary>Runs the generators for a resolved recipe.</summary>
     public static GeneratedDataset From(ResolvedRecipe resolved)
@@ -37,7 +38,11 @@ public sealed record GeneratedDataset(
             ? new PlanningGenerator(org.Structure, resolved.Planning, resolved.Context, catalog).Generate()
             : null;
 
-        return new GeneratedDataset(org, ppm, productManagement, planning);
+        var demandManagement = resolved.GenerateDemandManagement
+            ? new DemandManagementGenerator(org, resolved.DemandManagement, resolved.Context).Generate()
+            : null;
+
+        return new GeneratedDataset(org, ppm, productManagement, planning, demandManagement);
     }
 
     /// <summary>
@@ -90,6 +95,41 @@ public sealed record GeneratedDataset(
             CsvFile.Write(Path.Combine(directory, "planning-interval-objectives.csv"), planning.Objectives);
             CsvFile.Write(Path.Combine(directory, "risks.csv"), planning.Risks);
         }
+
+        if (DemandManagement is { } demandManagement)
+        {
+            CsvFile.Write(Path.Combine(directory, "intake-desks.csv"), demandManagement.Desks.Select(d => new
+            {
+                d.Name,
+                d.Description,
+                d.Visibility,
+                Members = string.Join(';', d.Members.Select(m => $"{m.EmployeeNumber}:{m.Role}")),
+            }));
+            CsvFile.Write(Path.Combine(directory, "intake-requests.csv"), demandManagement.Requests.Select(r => new
+            {
+                r.Handle,
+                r.Title,
+                r.Description,
+                r.ExpectedBenefits,
+                r.DeskName,
+                r.ChannelName,
+                r.RequesterEmployeeNumber,
+                r.SubmittedAt,
+                r.NeedByDate,
+                r.NeedByBasis,
+                r.NeedByReference,
+                r.NeedByCommittedByEmployeeNumber,
+                r.NeedByCommittedOn,
+                r.OriginSourceSystem,
+                r.OriginExternalId,
+                r.OriginUrl,
+                r.Status,
+                r.StatusChangedAt,
+                r.StatusReason,
+                r.AssigneeEmployeeNumber,
+                Tags = string.Join(';', r.Tags),
+            }));
+        }
     }
 
     /// <summary>One line per area that ran, saying what it generated.</summary>
@@ -118,6 +158,9 @@ public sealed record GeneratedDataset(
             yield return $"Generated {planning.PlanningIntervals.Count} planning intervals, {planning.Objectives.Count} objectives, "
                 + $"{planning.Risks.Count} risks.";
         }
+
+        if (DemandManagement is { } demandManagement)
+            yield return $"Generated {demandManagement.Desks.Count} intake desks and {demandManagement.Requests.Count} intake requests.";
     }
 
     /// <summary>What was generated, for a run summary or a preview.</summary>
@@ -139,7 +182,9 @@ public sealed record GeneratedDataset(
         ProductManagement?.Deployments.Count ?? 0,
         Planning?.PlanningIntervals.Count ?? 0,
         Planning?.Objectives.Count ?? 0,
-        Planning?.Risks.Count ?? 0);
+        Planning?.Risks.Count ?? 0,
+        DemandManagement?.Desks.Count ?? 0,
+        DemandManagement?.Requests.Count ?? 0);
 }
 
 /// <summary>How much of each thing a run produced.</summary>
@@ -161,4 +206,6 @@ public sealed record DatasetCounts(
     int Deployments,
     int PlanningIntervals,
     int Objectives,
-    int Risks);
+    int Risks,
+    int IntakeDesks,
+    int IntakeRequests);

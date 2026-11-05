@@ -106,7 +106,7 @@ Each step then needs the one above it:
 
 | Import | Needs | Why |
 |---|---|---|
-| Products | Types, tags | A product's type must exist and be active. |
+| Products | Types, tags, teams | A product's type must exist and be active, as must every team it names. |
 | Dependencies | Products | Both ends are named by id. |
 | Versions | Products | A version is cut against a product, named by id. |
 | Release packages | Products, versions | A manifest line names a product by id; where a version record matches its version string, the line is linked to it. |
@@ -202,6 +202,7 @@ It loads the tree, which is what a product is made of. The [dependencies between
 | `ExternalId` | No | The product's identifier in the system that owns it. Max 256 chars. |
 | `Status` | No | A [product status](./products.mdx#product-status) by name. Defaults to the workflow's initial status. |
 | `Tags` | No | Semicolon-separated `Category\|Tag` pairs — see [tags](#tags). |
+| `Teams` | No | Semicolon-separated team codes or team ids — the teams that work on the product. See [teams](#teams). |
 
 ### Names repeat, import ids do not
 
@@ -211,11 +212,11 @@ A product tree legitimately holds the same name in more than one place. A catalo
 Each row therefore carries its own `ImportId`, and children point at their parent's:
 
 ```csv
-ImportId,Name,Description,ProductTypeName,ParentImportId,ExternalId,Status,Tags
-1,Platform A,,Platform,,,,
-2,Platform B,,Platform,,,,
-3,API,,Service,1,,,
-4,API,,Service,2,,,
+ImportId,Name,Description,ProductTypeName,ParentImportId,ExternalId,Status,Tags,Teams
+1,Platform A,,Platform,,,,,
+2,Platform B,,Platform,,,,,
+3,API,,Service,1,,,,
+4,API,,Service,2,,,,
 ```
 
 Every column appears even where it carries nothing, because a missing header fails the file.
@@ -261,6 +262,32 @@ Where a [category allows only one tag](./products.mdx#tags), a row naming two fr
 **last** one. The domain treats a second tag on a single-value axis as a correction rather than an error —
 "this is a mobile app, not a web app" — and the import inherits that behaviour rather than refusing.
 :::
+
+### Teams
+
+The `Teams` column names the [teams and teams of teams that work on the product](./products.mdx#teams),
+separated by semicolons. Each entry is a team's **code** — what a spreadsheet usually holds — or its **id**,
+and the two can be mixed:
+
+```
+PAY;MOB;0196b5c4-1f1e-7a52-9d2e-3c4b5a697887
+```
+
+Codes are matched case-insensitively. Every team named must exist and be active: an entry that names no
+team, or names an inactive one, fails its row — and with it the row's product tree — with a message naming
+the entry. An entry that is neither a code nor an id is refused before the import runs. A team named twice
+on one row is linked once.
+
+The teams are linked to **that row's product only**. Nothing is copied to its parent or children: the
+product page already rolls a child's teams up to every product above it, so link each team to the most
+specific product it works on.
+
+The import only creates products, so the column only ever adds links to the products it creates. It never
+changes the teams of a product already in the catalog, and nothing is ever unlinked — use **Manage Teams**
+on the product, or **Manage Products** on the team, for that.
+
+Leave the cell blank for a product no team works on. A file written before this column existed needs the
+`Teams` header added, since every column must be present.
 
 ### Status
 

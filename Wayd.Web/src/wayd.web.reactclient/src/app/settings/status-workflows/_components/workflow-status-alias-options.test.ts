@@ -38,6 +38,7 @@ const status = (id: string, alias: number): WorkflowStatusDto => ({
   category: { id: 2, name: 'Active' },
   alias,
   order: 1,
+  isRetired: false,
 })
 
 describe('buildAliasOptions', () => {
@@ -115,6 +116,21 @@ describe('buildAliasOptions by category', () => {
     expect(options).toContainEqual({
       value: 4,
       label: 'Started (belongs under Active)',
+    })
+  })
+
+  it('says where a misfiled alias belongs by the owner type label', () => {
+    // Arrange
+    const statuses = [status('a', 4)]
+    const labels = [{ category: StatusCategory.Active, label: 'Underway' }]
+
+    // Act
+    const options = buildAliasOptions(ALIASES, statuses, DONE, 'a', labels)
+
+    // Assert
+    expect(options).toContainEqual({
+      value: 4,
+      label: 'Started (belongs under Underway)',
     })
   })
 

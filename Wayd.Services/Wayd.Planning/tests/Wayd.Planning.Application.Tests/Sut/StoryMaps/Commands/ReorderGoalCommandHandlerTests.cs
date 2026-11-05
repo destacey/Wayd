@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class ReorderGoalCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly ReorderGoalCommandHandler _handler;
     private readonly Mock<ILogger<ReorderGoalCommandHandler>> _mockLogger;
@@ -21,18 +22,18 @@ public class ReorderGoalCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<ReorderGoalCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new ReorderGoalCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new ReorderGoalCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     private static StoryMap CreateMap() =>
-        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
 
     [Fact]
     public async Task Handle_ShouldReorderGoal_WhenGoalExists()
     {
         // Arrange
         var map = CreateMap();
-        map.AddGoal("Second goal");
+        map.AddGoal("Second goal", StoryMapActors.Owner);
         var firstGoal = map.Goals[0];
         _dbContext.AddStoryMap(map);
 

@@ -19,6 +19,8 @@ import {
 } from '@/src/components/common/planning'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import PlanningIntervalCapacitySection from './_components/planning-interval-capacity-section'
+import PlanningIntervalDependenciesCard from './_components/planning-interval-dependencies-card'
+import PlanningIntervalDependenciesSection from './_components/planning-interval-dependencies-section'
 import {
   PlanningIntervalSections,
   planningIntervalSections,
@@ -44,7 +46,12 @@ import {
 } from '@/src/components/common/activities'
 import { Button, Flex } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
-import { notFound, useSearchParams } from 'next/navigation'
+import {
+  notFound,
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from 'next/navigation'
 import { Suspense, use, useState } from 'react'
 import PlanningIntervalLoading from './loading'
 import ObjectivesHealthReportSection from './_components/objectives-health-report-section'
@@ -85,6 +92,8 @@ const PlanningIntervalPage = (props: { params: Promise<{ key: string }> }) => {
   // The active section lives in the URL, owned by RecordLayout. Read here only
   // to hold back queries until a section actually needs them.
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
   const activeSection = (searchParams.get('section') ??
     PlanningIntervalSections.Overview) as PlanningIntervalSections
 
@@ -192,6 +201,10 @@ const PlanningIntervalPage = (props: { params: Promise<{ key: string }> }) => {
 
   const stateId = planningInterval.state.id as IterationState
 
+  // Overview's summaries link through to the section each one counts.
+  const goToSection = (section: PlanningIntervalSections) =>
+    router.replace(`${pathname}?section=${section}`, { scroll: false })
+
   // An objective needs a team to own it, and a locked PI takes no new ones.
   const canCreateObjectives =
     canManageObjectives &&
@@ -230,6 +243,10 @@ const PlanningIntervalPage = (props: { params: Promise<{ key: string }> }) => {
         )
       case PlanningIntervalSections.Risks:
         return <PlanningIntervalRisksSection planningIntervalKey={piKey} />
+      case PlanningIntervalSections.Dependencies:
+        return (
+          <PlanningIntervalDependenciesSection planningIntervalKey={piKey} />
+        )
       case PlanningIntervalSections.Backlog:
         return (
           <SprintBacklogGrid
@@ -250,6 +267,10 @@ const PlanningIntervalPage = (props: { params: Promise<{ key: string }> }) => {
           <Flex vertical gap="middle">
             <PlanningIntervalAtAGlance planningInterval={planningInterval} />
             <IterationCards piKey={piKey} />
+            <PlanningIntervalDependenciesCard
+              piKey={piKey}
+              onOpen={() => goToSection(PlanningIntervalSections.Dependencies)}
+            />
             {/* A future PI has no delivery to report on yet. */}
             {stateId !== IterationState.Future && (
               <PlanningIntervalTeamCards piKey={piKey} />

@@ -1,8 +1,11 @@
+using FluentAssertions;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Notifications;
+using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Discussions;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Notifications;
 using Wayd.ProjectPortfolioManagement.Application.Projects.EventHandlers;
@@ -11,6 +14,7 @@ using Wayd.ProjectPortfolioManagement.Domain;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
+using Wayd.Tests.Shared.Infrastructure;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Projects.EventHandlers;
 
@@ -20,14 +24,16 @@ public sealed class ProjectNotificationEventHandlerTests : IDisposable
     private static readonly EventActor Actor = EventActor.User("actor-user", Guid.NewGuid());
 
     private readonly FakeProjectPortfolioManagementDbContext _dbContext = new();
+    private readonly FakeDiscussionsDbContext _discussions = new();
     private readonly Mock<INotificationWriter> _writer = new();
 
     public ProjectNotificationEventHandlerTests()
     {
+        PpmDiscussionChannels.Register();
         _writer.Setup(w => w.ShouldNotify(It.IsAny<DomainEvent>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
     }
 
-    private ProjectNotificationEventHandler CreateHandler() => new(_dbContext, _writer.Object);
+    private ProjectNotificationEventHandler CreateHandler() => new(_dbContext, _discussions, _writer.Object);
 
     /// <summary>Every event the handler notifies on, built for a project, with what it should be called.</summary>
     public static TheoryData<string, NotificationEvent> NotifyingEvents() => new()
@@ -166,7 +172,112 @@ public sealed class ProjectNotificationEventHandlerTests : IDisposable
         _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<NotificationRecipient>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Fact]
+    public async Task Handle_ShouldTellTheRoleHoldersAndThoseMentioned_OfAMessage()
+    {
+        // Arrange
+        var owner = Guid.NewGuid();
+        var mentioned = Guid.NewGuid();
+        var project = AddProject(new() { [ProjectRole.Owner] = [owner] });
+        var @event = Posted(project.Id, mentioned: [mentioned]);
+
+        // Act
+        await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        _writer.Verify(w => w.Notify(
+            It.Is<RecordChange>(c => c.OwnerType == PpmFollowOwners.Project.Key
+                && c.OwnerId == project.Id
+                && c.Event == NotificationEvent.MessagePosted
+                && c.Source == @event),
+            It.Is<IReadOnlyCollection<NotificationRecipient>>(r => r.Count == 2
+                && r.Contains(new NotificationRecipient(owner, NotificationReason.Role))
+                && r.Contains(new NotificationRecipient(mentioned, NotificationReason.Mentioned))),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldTellTheThreadsPeople_OfAReplyInIt()
+    {
+        // Arrange
+        var project = AddProject(null);
+        var starter = Guid.NewGuid();
+        var earlierReplier = Guid.NewGuid();
+        var elsewhere = Guid.NewGuid();
+        var channel = DiscussionChannel.OpenForRecord(PpmDiscussionChannels.Project.Key, project.Id, Actor, Now).Value;
+        var parent = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, starter, "Vendor", "Signed?", [], Actor, Now).Value;
+        var earlier = DiscussionMessage.Reply(channel, parent, earlierReplier, "Not yet", [], Actor, Now).Value;
+        var otherThread = DiscussionMessage.Post(channel, DiscussionMessageKind.Public, elsewhere, "Scope", "Cut it", [], Actor, Now).Value;
+        _discussions.AddMessages(parent, earlier, otherThread);
+        IReadOnlyCollection<NotificationRecipient>? involved = null;
+        _writer
+            .Setup(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<NotificationRecipient>>(), It.IsAny<CancellationToken>()))
+            .Callback<RecordChange, IReadOnlyCollection<NotificationRecipient>, CancellationToken>((_, r, _) => involved = r);
+
+        // Act
+        await CreateHandler().Handle(Posted(project.Id, parentId: parent.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        involved.Should().BeEquivalentTo(new NotificationRecipient[]
+        {
+            new(starter, NotificationReason.Thread),
+            new(earlierReplier, NotificationReason.Thread),
+        });
+    }
+
+    [Fact]
+    public async Task Handle_ShouldIgnoreAMessageOnAnotherKindOfRecord()
+    {
+        // Arrange
+        var project = AddProject(new() { [ProjectRole.Owner] = [Guid.NewGuid()] });
+        var @event = Posted(project.Id, channelType: "demand.intake-request");
+
+        // Act
+        await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<NotificationRecipient>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNeverTellAnInternalNote()
+    {
+        // Arrange
+        var project = AddProject(new() { [ProjectRole.Owner] = [Guid.NewGuid()] });
+        var @event = Posted(project.Id, kind: DiscussionMessageKind.InternalNote);
+
+        // Act
+        await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<NotificationRecipient>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotNotifyAMessage_WhenTheChangeCannotNotifyAnyone()
+    {
+        // Arrange
+        var project = AddProject(new() { [ProjectRole.Owner] = [Guid.NewGuid()] });
+        var @event = Posted(project.Id);
+        _writer.Setup(w => w.ShouldNotify(@event, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+
+        // Act
+        await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        _writer.Verify(w => w.Notify(It.IsAny<RecordChange>(), It.IsAny<IReadOnlyCollection<NotificationRecipient>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     public void Dispose() => _dbContext.Dispose();
+
+    private static DiscussionMessagePostedEvent Posted(
+        Guid projectId,
+        DiscussionMessageKind kind = DiscussionMessageKind.Public,
+        Guid? parentId = null,
+        Guid[]? mentioned = null,
+        string channelType = "ppm.project") =>
+        new(Guid.NewGuid(), Guid.NewGuid(), channelType, projectId, parentId, kind, Actor.EmployeeId!.Value,
+            mentioned ?? [], Actor, Now);
 
     private Task HandleAny(DomainEvent @event) =>
         CreateHandler().Handle((dynamic)@event, TestContext.Current.CancellationToken);

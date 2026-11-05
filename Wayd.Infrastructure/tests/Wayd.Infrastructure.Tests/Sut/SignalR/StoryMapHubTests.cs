@@ -2,7 +2,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.FeatureManagement;
 using Wayd.Common.Domain.FeatureManagement;
+using Wayd.Infrastructure.Auth.Permissions;
 using Wayd.Infrastructure.SignalR;
+using Wayd.Planning.Application.StoryMaps;
 
 namespace Wayd.Infrastructure.Tests.Sut.SignalR;
 
@@ -26,7 +28,9 @@ public class StoryMapHubTests
     private static (StoryMapHub Hub, Mock<ISingleClientProxy> CallerProxy, Mock<IClientProxy> OthersProxy, Mock<IGroupManager> Groups) BuildHubWithGroups(
         ClaimsPrincipal user,
         string? connectionId = null,
-        bool featureEnabled = true)
+        bool featureEnabled = true,
+        bool mapAdmits = true,
+        bool mapAdmitsOnceJoined = true)
     {
         connectionId ??= Guid.NewGuid().ToString();
 
@@ -62,7 +66,19 @@ public class StoryMapHubTests
             .Setup(f => f.IsEnabledAsync(FeatureFlags.Names.StoryMaps))
             .ReturnsAsync(featureEnabled);
 
-        var hub = new StoryMapHub(featureManager.Object)
+        // Asked before and after the group add; a hub joined to several maps is asked again for each.
+        var access = new Mock<IStoryMapAccess>();
+        if (mapAdmits && mapAdmitsOnceJoined)
+            access
+                .Setup(a => a.CanUserAccess(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+        else
+            access
+                .SetupSequence(a => a.CanUserAccess(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mapAdmits)
+                .ReturnsAsync(mapAdmitsOnceJoined);
+
+        var hub = new StoryMapHub(featureManager.Object, access.Object)
         {
             Context = mockContext.Object,
             Groups = mockGroups.Object,
@@ -285,6 +301,75 @@ public class StoryMapHubTests
         groups.Verify(
             g => g.AddToGroupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task JoinMap_WhenTheMapDoesNotAdmitTheUser_IsRefusedAsNotFound()
+    {
+        // Arrange — a private map's broadcasts must reach only the people it admits.
+        var user = Principal(
+            (ClaimTypes.NameIdentifier, TestUserId),
+            (ClaimTypes.Name, WaydFirstName),
+            (ClaimTypes.Surname, WaydLastName));
+        var (hub, callerProxy, _, groups) = BuildHubWithGroups(user, mapAdmits: false);
+
+        // Act
+        var act = () => hub.JoinMap(Guid.NewGuid());
+
+        // Assert
+        await act.Should().ThrowAsync<HubException>().WithMessage("Story map not found.");
+        groups.Verify(
+            g => g.AddToGroupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        callerProxy.Verify(
+            p => p.SendCoreAsync("ParticipantList", It.IsAny<object?[]>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task JoinMap_WhenAccessIsLostWhileJoining_LeavesTheGroupAndIsRefused()
+    {
+        // Arrange — the map turns private between the check and the group add, so its eviction missed this connection.
+        var user = Principal(
+            (ClaimTypes.NameIdentifier, TestUserId),
+            (ClaimTypes.Name, WaydFirstName),
+            (ClaimTypes.Surname, WaydLastName));
+        var connectionId = Guid.NewGuid().ToString();
+        var mapId = Guid.NewGuid();
+        var (hub, _, _, groups) = BuildHubWithGroups(user, connectionId, mapAdmitsOnceJoined: false);
+
+        // Act
+        var act = () => hub.JoinMap(mapId);
+
+        // Assert
+        await act.Should().ThrowAsync<HubException>().WithMessage("Story map not found.");
+        groups.Verify(
+            g => g.RemoveFromGroupAsync(connectionId, It.Is<string>(k => k.Contains(mapId.ToString())), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public void AdministerPermission_IsTheStoryMapsAdministerPermission()
+    {
+        // Assert — the revoker rechecks a role that loses it, so it must be the permission the map reads.
+        StoryMapHub.AdministerPermission.Should().Be("Permissions.StoryMaps.Administer");
+        IRealtimeAccessRevoker.JoinPermissions.Should().Contain(StoryMapHub.AdministerPermission);
+    }
+
+    [Fact]
+    public void JoinPermission_IsThePermissionJoinMapRequires()
+    {
+        // Arrange — the revoker rechecks JoinPermission, so it must be what the attribute enforces.
+        var method = typeof(StoryMapHub).GetMethod(nameof(StoryMapHub.JoinMap))!;
+
+        // Act
+        var attribute = method.GetCustomAttributes(typeof(MustHavePermissionAttribute), false)
+            .Cast<MustHavePermissionAttribute>()
+            .Single();
+
+        // Assert
+        attribute.Policy.Should().Be("Permissions.StoryMaps.View");
+        StoryMapHub.JoinPermission.Should().Be(attribute.Policy);
     }
 
     [Fact]

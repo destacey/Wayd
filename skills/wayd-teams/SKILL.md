@@ -1,14 +1,12 @@
 ---
 name: wayd-teams
-description: Read before calling the Wayd MCP tools named Teams_*, TeamsOfTeams_*, HolidayCalendars_*, TeamMemberRoles_*, TeamTypes_* or Risks_*. Guides agents working with Wayd teams, teams of teams and the organization settings behind them via the Wayd MCP server. Use when looking up teams or teams of teams, resolving a team name to its id, key, or code, creating, updating or deactivating a team or team of teams, arranging the team hierarchy, adding or removing members and their roles, setting or correcting a team's operating model (Scrum or Kanban, sizing, time zone, working week, holiday calendar, cadence), reading a team's capacity, backlog, work items, dependencies or sprints, reviewing a team's change history, assessing the health of a team's backlog, reporting a team's velocity, predictability and say/do across its recent sprints, forecasting a team's throughput, generating work distribution reports showing where completed work went by portfolio, program, project, strategic theme, or work type, managing holiday calendars, team member roles or team types, or listing, creating, updating or closing team risks.
+description: Read before calling the Wayd MCP tools named Teams_*, TeamsOfTeams_*, HolidayCalendars_*, TeamMemberRoles_*, TeamTypes_* or Risks_*. Guides agents working with Wayd teams, teams of teams and the organization settings behind them via the Wayd MCP server. Use when looking up teams or teams of teams, resolving a team name to its id, key, or code, creating, updating or deactivating a team or team of teams, arranging the team hierarchy, adding or removing members and their roles, setting or correcting a team's operating model (Scrum or Kanban, sizing, time zone, working week, holiday calendar, cadence), reading a team's capacity, backlog, work items, dependencies or sprints, reviewing a team's change history, assessing the health of a team's backlog, reporting a team's velocity, predictability and say/do across its recent sprints, forecasting a team's throughput, generating work distribution reports showing where completed work went by portfolio, program, project, strategic theme, or work type, analysing where cross-team dependencies ran over a period, managing holiday calendars, team member roles or team types, or listing, creating, updating, closing or deleting team risks.
 ---
 
 # Wayd Teams
 
 Confirm every change with the user before you make it: say what you will create, change or remove, and wait for
-their go-ahead. Tools that change records, and the capacity, backlog, work item, dependency, sprint, operating
-model, member, holiday calendar, team member role, team type and risk tools, are offered by the hosted MCP
-endpoint (`/mcp`) only.
+their go-ahead.
 
 ## Reference
 
@@ -18,7 +16,7 @@ Read the matching file before working in these areas. The rules on this page sti
 | --- | --- |
 | [reference/changing-teams.md](reference/changing-teams.md) | Creating, updating or deactivating a team or team of teams, changing the team hierarchy, managing members and their roles, or reading, setting, correcting or deleting an operating model |
 | [reference/capacity.md](reference/capacity.md) | Reading a team's or team of teams' capacity, capacity report or plan, or proposing allocations |
-| [reference/risks.md](reference/risks.md) | Listing, reading, creating, updating, closing or reopening risks, or looking up risk statuses, categories and grades |
+| [reference/risks.md](reference/risks.md) | Listing, reading, creating, updating, closing, reopening or deleting risks, or looking up risk statuses, categories and grades |
 | [reference/organization-settings.md](reference/organization-settings.md) | Managing holiday calendars and their holidays, team member roles, or reading team types |
 
 ## Team identifiers
@@ -29,9 +27,9 @@ A team carries three identifiers, and each tool accepts a specific one:
 | ---------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`       | UUID         | Every `Teams_*` tool that takes a team except `Teams_GetTeam`; most take only the UUID |
 | `key`      | integer      | `Teams_GetTeam` (its parameter is named `id` but takes the integer `key`), `Teams_GetActivities` |
-| `code`     | short string | `Teams_GetBacklog`, `Teams_GetWorkItems`, `Teams_GetBacklogHealth`, `Teams_GetThroughputForecast`, `Teams_GetTeamWorkDistribution` (each also takes the UUID) |
+| `code`     | short string | `Teams_GetBacklog`, `Teams_GetWorkItems`, `Teams_GetBacklogHealth`, `Teams_GetThroughputForecast`, `Teams_GetTeamWorkDistribution`, `Teams_GetDependencyAnalysis` (each also takes the UUID) |
 
-Resolve a team name with `Teams_GetTeams`, which returns all three (active teams only unless `includeInactive: true`). A team of teams has the same three; resolve it with `TeamsOfTeams_GetList`. `TeamsOfTeams_GetTeamOfTeams` takes the integer `key`, `TeamsOfTeams_GetActivities` the key or UUID, `TeamsOfTeams_GetWorkDistribution` the UUID or code, and every other `TeamsOfTeams_*` tool the UUID. Most `Teams_*` tools given a team of teams' id answer 404 or an empty list rather than naming the mix-up, so check which kind a record is (`type` in the lists) and use the `TeamsOfTeams_*` tool.
+Resolve a team name with `Teams_GetTeams`, which returns all three (active teams only unless `includeInactive: true`). A team of teams has the same three; resolve it with `TeamsOfTeams_GetList`. `TeamsOfTeams_GetTeamOfTeams` takes the integer `key`, `TeamsOfTeams_GetActivities` the key or UUID, `TeamsOfTeams_GetWorkDistribution` and `TeamsOfTeams_GetDependencyAnalysis` the UUID or code, and every other `TeamsOfTeams_*` tool the UUID. Most `Teams_*` tools given a team of teams' id answer 404 or an empty list rather than naming the mix-up, so check which kind a record is (`type` in the lists) and use the `TeamsOfTeams_*` tool.
 
 Planning Interval tools take the same UUID `id` as their `teamId`; a team has no separate id within a PI. For which tools, see the `wayd-pi` skill.
 
@@ -53,7 +51,7 @@ Planning Interval tools take the same UUID `id` as their `teamId`; a team has no
 | Every sprint | `Teams_GetSprints` | Each with its `state` (Future, Active, Completed) |
 | The sprint in progress | `Teams_GetActiveSprint` | No sprint in progress answers 404: report "no active sprint", not a failure |
 
-These list Requirement-tier work only (user stories, bugs and the like), never epics or features. An unknown team returns an empty list from the backlog, work item and sprint tools, so confirm the team with `Teams_GetTeams` before reporting it has no work. A team of teams has no backlog, work items or sprints of its own; read them per team.
+These list Requirement-tier work only (user stories, bugs and the like), never epics or features. An unknown team returns an empty list from the backlog, work item and sprint tools, so confirm the team with `Teams_GetTeams` before reporting it has no work. A team of teams has no backlog, work items or sprints of its own; read them per team. For the open dependencies across a team of teams, use `TeamsOfTeams_GetDependencies` with its UUID: it covers every team beneath it today, leaves out dependencies within one team, and includes those with teams outside it.
 
 ## Backlog health
 
@@ -137,3 +135,17 @@ Requirement-tier work items (e.g. User Stories, Bugs) whose status category beca
 - **Gap groups are findings, not noise.** The `NoProject` group (`kind: "NoProject"`; every dimension except WorkType) is completed work where neither the item nor its parents link to a project; `summary.noProjectShare` is its percent of the total. A high share (above roughly 20–30%) means significant effort escaping portfolio visibility. `MissingLevel` groups (`No program`, `No theme`) are work on a project that lacks a program or theme, kept separate from `NoProject`.
 - **Top consumers.** Read `groups` by share. On a team of teams, `largestContributor` names the child team that delivered the most for each group.
 - **Team breakdown.** On a team of teams, `teams` shows each child team's contribution — look for teams heavy in `No project` or dedicated to a single initiative.
+
+## Dependency analysis reports
+
+A dependency analysis report shows where cross-team dependencies ran over a date range — which teams waited on which, and how that changed. Use it for "who do we depend on", "where are our dependencies across the organization" or "are dependencies building up"; for what is open right now, use `Teams_GetDependencies` or `TeamsOfTeams_GetDependencies`.
+
+| Scope                                     | Tool                                 | Identifies it by                        |
+| ----------------------------------------- | ------------------------------------ | --------------------------------------- |
+| One team                                  | `Teams_GetDependencyAnalysis`        | `idOrCode` (team UUID or code)          |
+| A team of teams and every team beneath it | `TeamsOfTeams_GetDependencyAnalysis` | `idOrCode` (team of teams UUID or code) |
+
+- **What counts.** Dependencies, not removed, where a team in scope owns the predecessor (`source`) or successor (`target`) and the other end is another team's or no team's; dependencies within one team are left out. One counts when it was created on or before `to` and was not closed before `from` (`YYYY-MM-DD`, inclusive, UTC, at most 731 days apart). It closes when its predecessor is done, or when its predecessor is removed and its successor is done or removed too; a removed predecessor with an open successor stays open, because the successor still needs work nobody will do. Closed dependencies carry the health `Closed` in this report, so read health only for open ones. Teams are the items' current teams. Default to the last 90 days ending today unless the user names a period.
+- **Start with `summary`**, then **`pairs`**: each predecessor team → successor team, most dependencies first. Direction matters — the successor team waits on the predecessor team. On a team of teams, `predecessorTeamInScope` / `successorTeamInScope` false marks a team outside it; call those out as dependencies leaving the team of teams.
+- **Trend from `periods`.** Periods are 7 days counted from `from` (ranges up to 31 days), 14 days (up to 184), else calendar months; the last is often partial, so do not read its lower `created`/`closed` as a drop. `open` is the count at each period's end: rising means dependencies are building up faster than they clear. Compare `created` with `closed` to say which side drives it.
+- **Health is today's, not history.** Each entry in `dependencies` carries its current `state` and `health`; never present them as how the dependency stood during the range.

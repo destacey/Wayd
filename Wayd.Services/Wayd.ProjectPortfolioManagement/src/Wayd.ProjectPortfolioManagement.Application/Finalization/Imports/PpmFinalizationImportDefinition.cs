@@ -1,4 +1,5 @@
-﻿using CSharpFunctionalExtensions;
+﻿using System.Globalization;
+using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Domain.Authorization;
@@ -42,6 +43,30 @@ public sealed class PpmFinalizationImportDefinition(
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public override string Key => ImportKey;
+
+    /// <inheritdoc />
+    public override async Task<IReadOnlyDictionary<Guid, ImportRecordLink>> DescribeCreatedRecords(
+        IReadOnlyCollection<Guid> createdEntityIds,
+        CancellationToken cancellationToken)
+    {
+        // A finalization row closes either a program or a portfolio, so both are looked for.
+        var programs = await _projectPortfolioManagementDbContext.Programs
+            .AsNoTracking()
+            .Where(x => createdEntityIds.Contains(x.Id))
+            .Select(x => new { x.Id, x.Key, x.Name })
+            .ToListAsync(cancellationToken);
+
+        var portfolios = await _projectPortfolioManagementDbContext.Portfolios
+            .AsNoTracking()
+            .Where(x => createdEntityIds.Contains(x.Id))
+            .Select(x => new { x.Id, x.Key, x.Name })
+            .ToListAsync(cancellationToken);
+
+        return programs
+            .Select(x => (x.Id, Link: new ImportRecordLink(ImportRecordType.Program, x.Key.ToString(CultureInfo.InvariantCulture), x.Name)))
+            .Concat(portfolios.Select(x => (x.Id, Link: new ImportRecordLink(ImportRecordType.Portfolio, x.Key.ToString(CultureInfo.InvariantCulture), x.Name))))
+            .ToDictionary(x => x.Id, x => x.Link);
+    }
     public override string DisplayName => "PPM Finalizations";
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.ProjectPortfolios;

@@ -31,6 +31,7 @@ public sealed class ProductManagementGenerator
     private const double PackagedChangeProbability = 0.75;
 
     private readonly ProductCatalog _catalog;
+    private readonly OrgStructure _org;
     private readonly ProductManagementOptions _options;
     private readonly GenerationContext _context;
     private readonly Faker _faker;
@@ -53,6 +54,7 @@ public sealed class ProductManagementGenerator
     public ProductManagementGenerator(OrgStructure org, ProductManagementOptions options, GenerationContext context, ProductCatalog? catalog = null)
     {
         _catalog = catalog ?? ProductCatalog.From(org, context, ProductCatalogShape.For(options));
+        _org = org;
         _options = options;
         _context = context;
 
@@ -79,6 +81,7 @@ public sealed class ProductManagementGenerator
     public GeneratedProductManagement Generate()
     {
         BuildCatalog();
+        LinkTeams();
 
         foreach (var line in _lines)
         {
@@ -265,6 +268,20 @@ public sealed class ProductManagementGenerator
                         AddComponent(group, component);
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Names the teams that work on each product. Under its own seed, so the catalog and history are unchanged.
+    /// </summary>
+    private void LinkTeams()
+    {
+        var teamsByProduct = new ProductTeamLinkGenerator(_catalog, _org, _context).Generate();
+
+        foreach (var product in _products)
+        {
+            if (teamsByProduct.TryGetValue(product.Name, out var teams))
+                product.Teams = string.Join(';', teams);
         }
     }
 

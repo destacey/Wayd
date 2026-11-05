@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class LinkWorkItemCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly LinkWorkItemCommandHandler _handler;
     private readonly Mock<ILogger<LinkWorkItemCommandHandler>> _mockLogger;
@@ -21,15 +22,15 @@ public class LinkWorkItemCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<LinkWorkItemCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new LinkWorkItemCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new LinkWorkItemCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     [Fact]
     public async Task Handle_ShouldLinkWorkItem_WhenTaskExists()
     {
         // Arrange
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
-        var task = map.AddTask(map.Goals[0].Steps[0].Id, "T").Value;
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
+        var task = map.AddTask(map.Goals[0].Steps[0].Id, "T", null, StoryMapActors.Owner).Value;
         _dbContext.AddStoryMap(map);
 
         var command = new LinkWorkItemCommand(map.Id, task.Id, 123);
@@ -47,11 +48,11 @@ public class LinkWorkItemCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenWorkItemAlreadyLinkedToAnotherTask()
     {
         // Arrange
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
         var stepId = map.Goals[0].Steps[0].Id;
-        var task1 = map.AddTask(stepId, "T1").Value;
-        var task2 = map.AddTask(stepId, "T2").Value;
-        map.LinkWorkItem(task1.Id, 123);
+        var task1 = map.AddTask(stepId, "T1", null, StoryMapActors.Owner).Value;
+        var task2 = map.AddTask(stepId, "T2", null, StoryMapActors.Owner).Value;
+        map.LinkWorkItem(task1.Id, 123, StoryMapActors.Owner);
         _dbContext.AddStoryMap(map);
 
         var command = new LinkWorkItemCommand(map.Id, task2.Id, 123);

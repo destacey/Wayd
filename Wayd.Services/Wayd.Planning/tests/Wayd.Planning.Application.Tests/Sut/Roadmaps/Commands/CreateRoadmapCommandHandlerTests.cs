@@ -34,11 +34,11 @@ public class CreateRoadmapCommandHandlerTests : IDisposable
     private CreateRoadmapCommandHandler CreateSut() =>
         new(_dbContext, _mockCurrentPrincipal.Object, Mock.Of<ICurrentUser>(u => u.GetUserId() == "user-1"), new TestingDateTimeProvider(new FakeClock(Now)), _mockLogger.Object);
 
-    private static CreateRoadmapCommand CommandFor(params Guid[] managerIds) =>
-        new("Roadmap", null, AnyDateRange, [.. managerIds], Visibility.Public);
+    private static CreateRoadmapCommand CommandFor(params Guid[] ownerIds) =>
+        new("Roadmap", null, AnyDateRange, [.. ownerIds], Visibility.Public);
 
     [Fact]
-    public async Task Handle_WhenCallerIsAManager_CreatesAndSaves()
+    public async Task Handle_WhenCallerIsAOwner_CreatesAndSaves()
     {
         // Arrange
         var command = CommandFor(_currentEmployeeId);
@@ -74,9 +74,9 @@ public class CreateRoadmapCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_WhenCallerIsNotAmongTheManagers_FailsWithoutSaving()
+    public async Task Handle_WhenCallerIsNotAmongTheOwners_FailsWithoutSaving()
     {
-        // Arrange — the domain accepts whatever manager ids it is given, so a direct call could
+        // Arrange — the domain accepts whatever owner ids it is given, so a direct call could
         // otherwise create a roadmap the caller has no ability to administer.
         var command = CommandFor(Guid.NewGuid());
         var sut = CreateSut();
@@ -86,7 +86,7 @@ public class CreateRoadmapCommandHandlerTests : IDisposable
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("must be a manager");
+        result.Error.Should().Contain("must be one of the roadmap's owners");
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 

@@ -54,6 +54,10 @@ public sealed class ResumeImportProcessCommandHandler(
         if (definition.IsFailure)
             return Result.Failure<ResumedImport>(definition.Error);
 
+        var enabled = await ImportAuthorization.EnsureEnabled(definition.Value, cancellationToken);
+        if (enabled.IsFailure)
+            return Result.Failure<ResumedImport>(enabled.Error);
+
         if (!process.IsTerminal)
             return Result.Failure<ResumedImport>($"This import is {process.Status}; wait for it to finish before resuming it.");
 

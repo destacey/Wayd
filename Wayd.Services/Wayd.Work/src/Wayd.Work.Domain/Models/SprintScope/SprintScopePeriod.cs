@@ -1,5 +1,5 @@
 using NodaTime;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Domain.Models.SprintScope;
 
@@ -17,7 +17,7 @@ public sealed record SprintScopePeriod(
     Instant? ValidTo,
     Guid? IterationId,
     bool IsRequirement,
-    WorkStatusCategory? StatusCategory,
+    StatusCategory? StatusCategory,
     double? StoryPoints,
     double? Effort,
     double? Size)

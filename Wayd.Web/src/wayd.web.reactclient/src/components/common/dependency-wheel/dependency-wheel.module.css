@@ -1,0 +1,59 @@
+.wheel {
+  display: block;
+  width: 100%;
+  max-width: 440px;
+  height: auto;
+  margin: 0 auto;
+}
+
+.arc,
+.ribbon {
+  cursor: pointer;
+  outline: none;
+  transition:
+    fill 150ms ease,
+    fill-opacity 150ms ease;
+}
+
+/* An outline on an SVG shape is drawn round its bounding box, or not at all in Safari. */
+.arc:focus-visible,
+.ribbon:focus-visible {
+  stroke: var(--ant-color-primary);
+  stroke-width: 3px;
+}
+
+.canvas {
+  position: relative;
+}
+
+.tooltip {
+  position: absolute;
+  z-index: 1;
+  min-width: 220px;
+  max-width: 300px;
+  padding: var(--ant-padding-sm) var(--ant-padding);
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-bg-elevated);
+  box-shadow: var(--ant-box-shadow-secondary);
+  pointer-events: none;
+}
+
+.healthBar {
+  display: flex;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--ant-border-radius-sm);
+}
+
+.swatch {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.label {
+  pointer-events: none;
+  user-select: none;
+}

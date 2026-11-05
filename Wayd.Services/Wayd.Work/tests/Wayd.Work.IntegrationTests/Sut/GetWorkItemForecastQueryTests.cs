@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Wayd.Common.Application.Interfaces;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkItems.Forecasting;
 using Wayd.Work.Application.WorkItems.Queries;
@@ -48,11 +48,11 @@ public sealed class GetWorkItemForecastQueryTests(SqlServerDbContextFixture fixt
         await _seed.Reset(Ct);
         var team = await _seed.AddTeam(Ct);
         await _seed.AddHistory(team.Id, Ct);
-        await _seed.AddItem(team.Id, Ct, WorkStatusCategory.Active, stackRank: 1);
-        await _seed.AddItem(team.Id, Ct, WorkStatusCategory.Active, stackRank: 2);
+        await _seed.AddItem(team.Id, Ct, StatusCategory.Active, stackRank: 1);
+        await _seed.AddItem(team.Id, Ct, StatusCategory.Active, stackRank: 2);
         await _seed.AddItem(team.Id, Ct, stackRank: 3);
         await _seed.AddItem(team.Id, Ct, stackRank: 4);
-        var target = await _seed.AddItem(team.Id, Ct, WorkStatusCategory.Active, stackRank: 5);
+        var target = await _seed.AddItem(team.Id, Ct, StatusCategory.Active, stackRank: 5);
 
         // Act
         var forecast = await Forecast(target.Key, new ForecastOptions { StartedWorkFirst = startedWorkFirst });
@@ -80,13 +80,13 @@ public sealed class GetWorkItemForecastQueryTests(SqlServerDbContextFixture fixt
         var nestedEpic = await _seed.AddItem(null, Ct, epic: true, parentId: epic.Id);
         await _seed.AddItem(teamA.Id, Ct, stackRank: 1, parentId: nestedEpic.Id);
         var waiting = await _seed.AddItem(teamA.Id, Ct, stackRank: 2, parentId: epic.Id);
-        await _seed.AddItem(teamA.Id, Ct, WorkStatusCategory.Done, done: ForecastSeeder.Now.Minus(Duration.FromDays(200)), parentId: epic.Id);
+        await _seed.AddItem(teamA.Id, Ct, StatusCategory.Done, done: ForecastSeeder.Now.Minus(Duration.FromDays(200)), parentId: epic.Id);
 
         for (var rank = 1; rank <= 3; rank++)
             await _seed.AddItem(teamB.Id, Ct, stackRank: rank);
         var predecessor = await _seed.AddItem(teamB.Id, Ct, stackRank: 4);
-        var removedPredecessor = await _seed.AddItem(teamB.Id, Ct, WorkStatusCategory.Removed, done: ForecastSeeder.Now.Minus(Duration.FromDays(3)));
-        var donePredecessor = await _seed.AddItem(teamB.Id, Ct, WorkStatusCategory.Done, done: ForecastSeeder.Now.Minus(Duration.FromDays(150)));
+        var removedPredecessor = await _seed.AddItem(teamB.Id, Ct, StatusCategory.Removed, done: ForecastSeeder.Now.Minus(Duration.FromDays(3)));
+        var donePredecessor = await _seed.AddItem(teamB.Id, Ct, StatusCategory.Done, done: ForecastSeeder.Now.Minus(Duration.FromDays(150)));
         await _seed.AddDependency(predecessor.Id, waiting.Id, Ct);
         await _seed.AddDependency(removedPredecessor.Id, waiting.Id, Ct);
         await _seed.AddDependency(donePredecessor.Id, waiting.Id, Ct);
@@ -117,7 +117,7 @@ public sealed class GetWorkItemForecastQueryTests(SqlServerDbContextFixture fixt
         await _seed.Reset(Ct);
         var team = await _seed.AddTeam(Ct);
         for (var day = 40; day < 60; day++)
-            await _seed.AddItem(team.Id, Ct, WorkStatusCategory.Done, done: ForecastSeeder.Now.Minus(Duration.FromDays(day)));
+            await _seed.AddItem(team.Id, Ct, StatusCategory.Done, done: ForecastSeeder.Now.Minus(Duration.FromDays(day)));
         var target = await _seed.AddItem(team.Id, Ct, stackRank: 1);
 
         // Act

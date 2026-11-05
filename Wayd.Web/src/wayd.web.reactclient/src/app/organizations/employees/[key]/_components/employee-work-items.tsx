@@ -1,7 +1,7 @@
 'use client'
 
 import { WorkItemsGrid } from '@/src/components/common/work'
-import { WorkStatusCategory } from '@/src/services/wayd-api'
+import { StatusCategory } from '@/src/services/wayd-api'
 import { useGetEmployeeWorkItemsQuery } from '@/src/store/features/organizations/employee-api'
 import { FC } from 'react'
 
@@ -20,7 +20,7 @@ const EmployeeWorkItems: FC<EmployeeWorkItemsProps> = ({ employeeId }) => {
   const workItemsQuery = useGetEmployeeWorkItemsQuery(
     {
       employeeId,
-      statusCategories: [WorkStatusCategory.Proposed, WorkStatusCategory.Active],
+      statusCategories: [StatusCategory.Proposed, StatusCategory.Active],
     },
     { skip: !employeeId },
   )

@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Wayd.Common.Domain.Authorization;
 using Moq;
 using NodaTime;
@@ -18,6 +19,7 @@ using Wayd.Common.Models;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
+using Wayd.DemandManagement.Domain.Models.Estimation;
 using Wayd.DemandManagement.Domain.Models.Scoring;
 using Wayd.DemandManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
@@ -155,6 +157,32 @@ public sealed class IntakeScenario
         return desk;
     }
 
+    /// <summary>Demand Management's copy of an estimation scale, of T-shirt sizes S to XL and a <c>?</c> card.</summary>
+    public DemandEstimationScale EstimationScale(string name = "T-Shirt Sizes", bool isActive = true)
+    {
+        var scale = DemandEstimationScaleFactory.Create(name, isActive, asOf: Clock.Now);
+        DbContext.AddEstimationScales(scale);
+        return scale;
+    }
+
+    /// <summary>Pins the desk to the scale's current version, as already saved, raising nothing.</summary>
+    public IntakeDesk EstimatesOn(IntakeDesk desk, DemandEstimationScale? scale)
+    {
+        var current = DbContext.DemandEstimationScales.SingleOrDefault(s => s.Versions.Any(v => v.Id == desk.EstimationScaleVersionId));
+        desk.ChangeEstimationScale(scale, current, hasEstimatedOpenRequests: false, EventActor.System, Instant.MinValue);
+        desk.ClearDomainEvents();
+        return desk;
+    }
+
+    /// <summary>Estimates an open request on its desk's pinned version, as already saved, raising nothing.</summary>
+    public void Estimated(IntakeRequest request, IntakeDesk desk, string value)
+    {
+        var scale = DbContext.DemandEstimationScales.Single(s => s.Versions.Any(v => v.Id == desk.EstimationScaleVersionId));
+        request.ChangeEstimate(value, desk, scale, IntakeRequestEstimateSource.Manual, IntakeRequestEditor.System, Instant.MinValue)
+            .IsSuccess.Should().BeTrue();
+        request.ClearDomainEvents();
+    }
+
     /// <summary>The criterion ratings for <see cref="ScoringModel"/>, as an agent enters them.</summary>
     public static IReadOnlyList<IntakeRequestCriterionRatingInput> Ratings(ScoringModel model, decimal businessValue, decimal jobSize) =>
         [.. model.Criteria.Select(c => new IntakeRequestCriterionRatingInput(c.Id, c.Token == "BV" ? businessValue : jobSize, null))];
@@ -195,10 +223,10 @@ public sealed class IntakeScenario
     }
 
     /// <summary>Records an outcome on an accepted request as already saved, raising nothing.</summary>
-    public void Outcome(IntakeRequest request, Guid projectId, Employee addedBy,
+    public void Outcome(IntakeRequest request, Guid targetId, Employee addedBy,
         IntakeRequestOutcomeKind kind = IntakeRequestOutcomeKind.NewProject, string? note = null)
     {
-        var added = request.AddOutcome(kind, projectId, note, addedBy.Id, EventActor.System, Clock.Now);
+        var added = request.AddOutcome(kind, targetId, note, addedBy.Id, EventActor.System, Clock.Now);
         if (added.IsFailure)
             throw new InvalidOperationException(added.Error);
         request.ClearDomainEvents();

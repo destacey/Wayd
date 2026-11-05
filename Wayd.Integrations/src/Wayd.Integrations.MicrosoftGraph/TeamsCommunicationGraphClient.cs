@@ -1,3 +1,4 @@
+using System.Globalization;
 using Azure.Identity;
 using CSharpFunctionalExtensions;
 using Microsoft.Extensions.Logging;
@@ -213,6 +214,10 @@ public sealed class TeamsCommunicationGraphClient : ITeamsCommunicationGraphClie
         await client.Users[userId].Calendar.Events.PostAsync(calendarEvent, cancellationToken: cancellationToken);
     }
 
+    // Graph reads this timestamp as text. Composite formatting follows the current culture,
+    // which can rewrite the digits Graph expects.
     private static string GraphMidnight(LocalDate date) =>
-        $"{date.Year:0000}-{date.Month:00}-{date.Day:00}T00:00:00";
+        string.Create(
+            CultureInfo.InvariantCulture,
+            $"{date.Year:0000}-{date.Month:00}-{date.Day:00}T00:00:00");
 }

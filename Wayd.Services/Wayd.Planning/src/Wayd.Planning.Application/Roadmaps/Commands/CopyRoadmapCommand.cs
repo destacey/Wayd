@@ -1,10 +1,11 @@
 ﻿using Ardalis.GuardClauses;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums;
+using Wayd.Planning.Domain.Models.Roadmaps;
 
 namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-public sealed record CopyRoadmapCommand(Guid SourceRoadmapId, string Name, List<Guid> RoadmapManagerIds, Visibility Visibility) : ICommand<ObjectIdAndKey>, IRequireLinkedEmployee;
+public sealed record CopyRoadmapCommand(Guid SourceRoadmapId, string Name, List<Guid> OwnerIds, Visibility Visibility) : ICommand<ObjectIdAndKey>, IRequireLinkedEmployee;
 
 public sealed class CopyRoadmapCommandValidator : AbstractValidator<CopyRoadmapCommand>
 {
@@ -21,11 +22,11 @@ public sealed class CopyRoadmapCommandValidator : AbstractValidator<CopyRoadmapC
             .NotEmpty()
             .MaximumLength(128);
 
-        RuleFor(x => x.RoadmapManagerIds)
+        RuleFor(x => x.OwnerIds)
             .NotEmpty()
-            .MustAsync(IncludeCurrentUser).WithMessage("The current user must be a manager of the Roadmap.");
+            .MustAsync(IncludeCurrentUser).WithMessage("You must be one of the roadmap's owners.");
 
-        RuleForEach(x => x.RoadmapManagerIds)
+        RuleForEach(x => x.OwnerIds)
             .NotEmpty();
 
         RuleFor(x => x.Visibility)
@@ -33,10 +34,10 @@ public sealed class CopyRoadmapCommandValidator : AbstractValidator<CopyRoadmapC
     }
 
     // Resolved rather than read from the token claim (a sign-in snapshot); see CreateRoadmapCommand.
-    public async Task<bool> IncludeCurrentUser(IEnumerable<Guid> roadmapManagerIds, CancellationToken cancellationToken)
+    public async Task<bool> IncludeCurrentUser(IEnumerable<Guid> ownerIds, CancellationToken cancellationToken)
     {
         var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        return employeeId.HasValue && roadmapManagerIds.Contains(employeeId.Value);
+        return employeeId.HasValue && ownerIds.Contains(employeeId.Value);
     }
 }
 
@@ -57,24 +58,19 @@ public sealed class CopyRoadmapCommandHandler(
     {
         // Outside the try: this is a refusal, and the catch-all below would turn it into a
         // generic failure, losing both the 403 and its explanation.
-        var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-        if (currentUserEmployeeId is null)
-            LinkedEmployeeRequired.Throw();
+        var caller = await _currentPrincipal.ResolveRoadmapActor(cancellationToken);
 
-        // Likewise the creator-is-a-manager rule: Copy accepts whatever manager ids it is given, so a
-        // direct call could otherwise produce a roadmap the caller cannot administer.
-        if (!request.RoadmapManagerIds.Contains(currentUserEmployeeId.Value))
-            return Result.Failure<ObjectIdAndKey>("The current user must be a manager of the Roadmap.");
+        // Likewise the creator-is-an-owner rule: Copy accepts whatever owner ids it is given, so a
+        // direct call could otherwise produce a roadmap the caller cannot manage.
+        if (!request.OwnerIds.Contains(caller.EmployeeId))
+            return Result.Failure<ObjectIdAndKey>("You must be one of the roadmap's owners.");
 
         try
         {
-            var publicVisibility = Visibility.Public;
-
-            // Get the source roadmap - user must have visibility to it (either public or a manager)
             var sourceRoadmap = await _planningDbContext.Roadmaps
                 .Include(r => r.Items)
                 .Where(r => r.Id == request.SourceRoadmapId)
-                .Where(r => r.Visibility == publicVisibility || r.RoadmapManagers.Any(m => m.ManagerId == currentUserEmployeeId.Value))
+                .Where(Roadmap.AccessibleTo(caller.EmployeeId, caller.IsAdministrator))
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (sourceRoadmap is null)
@@ -83,7 +79,7 @@ public sealed class CopyRoadmapCommandHandler(
             }
 
             // Copy the roadmap
-            var copyResult = sourceRoadmap.Copy(request.Name, request.RoadmapManagerIds, request.Visibility, EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value), _dateTimeProvider.Now);
+            var copyResult = sourceRoadmap.Copy(request.Name, request.OwnerIds, request.Visibility, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
 
             if (copyResult.IsFailure)
             {

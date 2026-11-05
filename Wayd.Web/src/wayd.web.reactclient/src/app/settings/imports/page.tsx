@@ -52,7 +52,7 @@ const ImportsPage = () => {
   // The listing is what the viewer may see; oversight of every import type does not grant submitting one.
   // The same filter the dialog offers from, so the button never opens onto an empty list.
   const canSubmitAny =
-    definitions?.some((d) => d.canSubmit && isKnownImport(d.key)) ?? false
+    definitions?.some((d) => d.canSubmit && d.isEnabled && isKnownImport(d.key)) ?? false
 
   const { data, isLoading, refetch } = useGetImportProcessesQuery(
     { pageSize: IMPORT_PAGE_SIZE },
@@ -66,7 +66,7 @@ const ImportsPage = () => {
   const { handleCancel, handleResume, handleRetryFailed, handleApply } =
     useImportActions()
 
-  const imports = data?.processes
+  const imports = data?.items
   const activeCount = imports?.filter((i) => isRunning(i.status)).length ?? 0
 
   // The tick that sees the last run finish is also the one that turns polling off.

@@ -14,9 +14,9 @@ A project needs an assigned lifecycle before it can hold tasks.
 
 ## Updating a task
 
-**When `Tasks_PatchProjectTask` is available (the hosted server), use it**: send only the change as a JSON Patch, and every field it does not name keeps its value — e.g. `[{ "op": "add", "path": "/assigneeIds/-", "value": "<employeeId>" }]` to add an assignee, `[{ "op": "replace", "path": "/statusId", "value": <id from Tasks_GetTaskStatuses> }]` to change status. To remove an assignee, `replace` `/assigneeIds` with everyone who stays (read the task first). `Projects_PatchStage` patches a stage the same way; for stages see [lifecycles.md](lifecycles.md).
+**Use `Tasks_PatchProjectTask`**: send only the change as a JSON Patch, and every field it does not name keeps its value — e.g. `[{ "op": "add", "path": "/assigneeIds/-", "value": "<employeeId>" }]` to add an assignee, `[{ "op": "replace", "path": "/statusId", "value": <id from Tasks_GetTaskStatuses> }]` to change status. To remove an assignee, `replace` `/assigneeIds` with everyone who stays (read the task first). `Projects_PatchStage` patches a stage the same way; for stages see [lifecycles.md](lifecycles.md).
 
-Otherwise, `Tasks_UpdateProjectTask` overwrites the whole task: an omitted description, effort, date, or assignee list is cleared. An omitted or empty `assigneeIds` removes every assignee.
+To replace the whole task, use `Tasks_UpdateProjectTask`, which overwrites every field: an omitted description, effort, date, or assignee list is cleared. An omitted or empty `assigneeIds` removes every assignee.
 
 1. Read the task with `Tasks_GetProjectTask`.
 2. Build the body from what you read, changing only what the user asked for:
@@ -27,7 +27,7 @@ Otherwise, `Tasks_UpdateProjectTask` overwrites the whole task: an omitted descr
    - `name`, `description`, `plannedStart`, `plannedEnd`, `plannedDate`, `estimatedEffortHours` as read
 3. Call `Tasks_UpdateProjectTask`. The task type cannot be changed.
 
-## Moving a task (hosted)
+## Moving a task
 
 `Tasks_UpdateProjectTaskPlacement` moves a task — with its subtasks — under another parent, or reorders it among its siblings, and changes nothing else. Use it rather than an update whenever the position matters.
 

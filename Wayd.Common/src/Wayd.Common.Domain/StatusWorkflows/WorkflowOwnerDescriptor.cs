@@ -26,6 +26,7 @@ public sealed class WorkflowOwnerDescriptor
 {
     private readonly Dictionary<int, string> _aliases;
     private readonly Dictionary<int, StatusCategory> _aliasCategories;
+    private readonly Dictionary<StatusCategory, string> _categoryLabels;
 
     /// <param name="key">
     /// Stable identifier, persisted on every workflow row. Namespaced by module — <c>product.release</c>
@@ -61,6 +62,18 @@ public sealed class WorkflowOwnerDescriptor
     /// The feature flag the owning module is released behind, or null when it is always available. See
     /// <see cref="FeatureFlag"/>.
     /// </param>
+    /// <param name="categoryLabels">
+    /// What this owner type calls some or all of the categories, in its own words. A category left out
+    /// keeps its enum name. See <see cref="CategoryLabels"/>.
+    /// </param>
+    /// <param name="hasRecordTypes">
+    /// Whether records of this owner type come in record types that can follow different workflows. See
+    /// <see cref="HasRecordTypes"/>.
+    /// </param>
+    /// <param name="hasManagedWorkflows">
+    /// Whether records of this owner type are synced from a source system whose workflows a sync keeps.
+    /// See <see cref="HasManagedWorkflows"/>.
+    /// </param>
     public WorkflowOwnerDescriptor(
         string key,
         string displayName,
@@ -69,7 +82,10 @@ public sealed class WorkflowOwnerDescriptor
         IReadOnlyCollection<StatusCategory>? requiredCategories = null,
         bool supportsRestrictedTransitions = false,
         IReadOnlyCollection<WorkflowMove>? moves = null,
-        string? featureFlag = null)
+        string? featureFlag = null,
+        IReadOnlyDictionary<StatusCategory, string>? categoryLabels = null,
+        bool hasRecordTypes = false,
+        bool hasManagedWorkflows = false)
     {
         Key = Guard.Against.NullOrWhiteSpace(key, nameof(key)).Trim();
         DisplayName = Guard.Against.NullOrWhiteSpace(displayName, nameof(displayName)).Trim();
@@ -77,6 +93,8 @@ public sealed class WorkflowOwnerDescriptor
         Guard.Against.Null(aliases, nameof(aliases));
         RequiredAliases = Guard.Against.Null(requiredAliases, nameof(requiredAliases));
         SupportsRestrictedTransitions = supportsRestrictedTransitions;
+        HasRecordTypes = hasRecordTypes;
+        HasManagedWorkflows = hasManagedWorkflows;
 
         if (aliases.ContainsKey(StatusWorkflow.NoAlias))
         {
@@ -121,6 +139,7 @@ public sealed class WorkflowOwnerDescriptor
         }
 
         RequiredCategories = ValidateRequiredCategories(key, requiredCategories ?? []);
+        _categoryLabels = BuildCategoryLabels(key, categoryLabels ?? new Dictionary<StatusCategory, string>());
 
         _aliases = aliases.ToDictionary(a => a.Key, a => a.Value.Name.Trim());
         _aliasCategories = aliases.ToDictionary(a => a.Key, a => a.Value.Category);
@@ -140,6 +159,37 @@ public sealed class WorkflowOwnerDescriptor
         }
 
         return [.. requiredCategories.Order()];
+    }
+
+    private static Dictionary<StatusCategory, string> BuildCategoryLabels(
+        string key, IReadOnlyDictionary<StatusCategory, string> categoryLabels)
+    {
+        if (categoryLabels.Keys.Any(c => !Enum.IsDefined(c)))
+        {
+            throw new ArgumentException($"'{key}' labels a category that does not exist.", nameof(categoryLabels));
+        }
+
+        if (categoryLabels.Values.Any(string.IsNullOrWhiteSpace))
+        {
+            throw new ArgumentException($"'{key}' declares a category label with no text.", nameof(categoryLabels));
+        }
+
+        var labels = Enum.GetValues<StatusCategory>().ToDictionary(
+            c => c,
+            c => categoryLabels.TryGetValue(c, out var label) ? label.Trim() : c.ToString());
+
+        var duplicate = labels.Values
+            .GroupBy(l => l, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(g => g.Count() > 1);
+
+        if (duplicate is not null)
+        {
+            throw new ArgumentException(
+                $"'{key}' uses the label '{duplicate.Key}' for more than one category, so a reader could not tell them apart.",
+                nameof(categoryLabels));
+        }
+
+        return labels;
     }
 
     private static List<WorkflowMove> ValidateMoves(
@@ -247,7 +297,7 @@ public sealed class WorkflowOwnerDescriptor
         }
 
         return _aliasCategories.TryGetValue(alias, out var expected)
-            ? $"'{DescribeAlias(alias)}' belongs under {expected}, not {category}."
+            ? $"'{DescribeAlias(alias)}' belongs under {CategoryLabel(expected)}, not {CategoryLabel(category)}."
             : $"{DisplayName} statuses have no meaning numbered {alias}.";
     }
 
@@ -278,6 +328,53 @@ public sealed class WorkflowOwnerDescriptor
 
     /// <summary>Whether this owner type declares its <see cref="Moves"/>.</summary>
     public bool DeclaresMoves => Moves.Count > 0;
+
+    /// <summary>
+    /// What this owner type calls each category, for every category: its declared label, or the enum's
+    /// name when it declares none.
+    /// </summary>
+    /// <remarks>
+    /// Words only. The category itself, and every rule and rollup keyed on it, stays the shared
+    /// <see cref="StatusCategory"/>; what a record must reach to be in Done is still each workflow's to
+    /// decide. No two categories share a label, case-insensitively.
+    /// </remarks>
+    public IReadOnlyDictionary<StatusCategory, string> CategoryLabels => _categoryLabels;
+
+    /// <summary>
+    /// Whether records of this owner type come in <see cref="RecordType"/>s — a Story and a Bug — that a
+    /// <see cref="StatusWorkflowScheme"/> can send to different workflows.
+    /// </summary>
+    /// <remarks>
+    /// Off for an owner type whose records all follow their container's one workflow. Such an owner type
+    /// never sees a scheme: each scope still picks a workflow, and the engine keeps an implicit
+    /// default-only scheme per workflow behind it.
+    /// </remarks>
+    public bool HasRecordTypes { get; }
+
+    /// <summary>
+    /// Whether a sync may keep workflows, record types and schemes of this owner type from a source system
+    /// (<see cref="WorkflowOwnership.Managed"/>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Off for an owner type whose workflows only administrators author. Its workflows never hold a retired
+    /// status, and a status's category and alias change only while the workflow is a draft that no record
+    /// follows.
+    /// </para>
+    /// <para>
+    /// Turning it on brings two duties. Offer records <see cref="StatusWorkflow.ActiveStatuses"/>, never
+    /// <see cref="StatusWorkflow.Statuses"/>, which keeps retired ones. And re-stamp the category and alias
+    /// each record copies from its status when <see cref="Events.StatusWorkflows.WorkflowStatusReclassifiedEvent"/>
+    /// or <see cref="Events.StatusWorkflows.WorkflowStatusAliasChangedEvent"/> arrives: a managed workflow
+    /// is published from the start, so both reach records that already hold the status, and retiring a
+    /// status clears its alias.
+    /// </para>
+    /// </remarks>
+    public bool HasManagedWorkflows { get; }
+
+    /// <summary>What this owner type calls <paramref name="category"/>.</summary>
+    public string CategoryLabel(StatusCategory category) =>
+        _categoryLabels.TryGetValue(category, out var label) ? label : category.ToString();
 
     /// <summary>
     /// Names an alias, falling back to the raw value when it is not one this owner type declares.

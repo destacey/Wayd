@@ -2,7 +2,7 @@
 
 namespace Wayd.Planning.Application.PokerSessions.Commands;
 
-public sealed record SetConsensusCommand(Guid SessionId, Guid RoundId, string Estimate) : ICommand;
+public sealed record SetConsensusCommand(Guid SessionId, Guid RoundId, string Estimate) : ICommand, IRequireLinkedEmployee;
 
 public sealed class SetConsensusCommandValidator : CustomValidator<SetConsensusCommand>
 {
@@ -16,9 +16,10 @@ public sealed class SetConsensusCommandValidator : CustomValidator<SetConsensusC
     }
 }
 
-public sealed class SetConsensusCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionNotifier notifier, ILogger<SetConsensusCommandHandler> logger) : ICommandHandler<SetConsensusCommand>
+public sealed class SetConsensusCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionAccess access, IPokerSessionNotifier notifier, ILogger<SetConsensusCommandHandler> logger) : ICommandHandler<SetConsensusCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IPokerSessionAccess _access = access;
     private readonly IPokerSessionNotifier _notifier = notifier;
     private readonly ILogger<SetConsensusCommandHandler> _logger = logger;
 
@@ -27,22 +28,29 @@ public sealed class SetConsensusCommandHandler(IPlanningDbContext planningDbCont
         try
         {
             var session = await _planningDbContext.PokerSessions
+                .IncludeAccess()
                 .Include(s => s.Rounds)
                 .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
 
             if (session is null)
                 return Result.Failure("Poker session not found.");
 
-            var result = session.SetConsensus(request.RoundId, request.Estimate);
+            var actor = await _access.ResolveActor(session, cancellationToken);
+
+            var version = await _planningDbContext.EstimationScaleVersions
+                .AsNoTracking()
+                .FirstAsync(v => v.Id == session.EstimationScaleVersionId, cancellationToken);
+
+            var result = session.SetConsensus(request.RoundId, request.Estimate, version, actor);
             if (result.IsFailure)
                 return Result.Failure(result.Error);
 
             await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifyConsensusSet(session.Id, request.RoundId, request.Estimate);
+            await _notifier.NotifyConsensusSet(session.Id, request.RoundId, result.Value.ConsensusEstimate!);
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

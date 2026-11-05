@@ -1,6 +1,6 @@
 'use client'
 
-import TeamDependenciesGrid from '@/src/components/common/organizations/team-dependencies-grid'
+import { DependencyPartnersExplorer } from '@/src/components/common/work/dependency-partners'
 import { TeamDetailsDto } from '@/src/services/wayd-api'
 import { useGetTeamDependenciesQuery } from '@/src/store/features/organizations/team-api'
 import { FC } from 'react'
@@ -9,19 +9,23 @@ export interface TeamDependencyManagementProps {
   team: TeamDetailsDto
 }
 
+/**
+ * A team's open dependencies: a chart of the other teams it shares them with, over the list of them.
+ */
 const TeamDependencyManagement: FC<TeamDependencyManagementProps> = (props) => {
-  const {
-    data: dependencyData,
-    isLoading,
-    refetch,
-  } = useGetTeamDependenciesQuery(props.team?.id, { skip: !props.team?.id })
+  const teamId = props.team?.id
+
+  const { data, isLoading, refetch } = useGetTeamDependenciesQuery(teamId, {
+    skip: !teamId,
+  })
 
   return (
-    <TeamDependenciesGrid
-      team={props.team}
-      dependencies={dependencyData ?? []}
+    <DependencyPartnersExplorer
+      teamId={teamId}
+      dependencies={data ?? []}
       isLoading={isLoading}
       refetch={refetch}
+      gridKey="team-dependencies"
     />
   )
 }

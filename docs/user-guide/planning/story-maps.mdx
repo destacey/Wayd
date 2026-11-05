@@ -192,6 +192,8 @@ To move a step into a goal that has no steps yet, drop it on the **+ Add step** 
 
 Story maps update live. When several people have the same map open, their avatars appear in the page header, and every change — a renamed step, a dragged task, a new persona — appears for everyone without a refresh. This makes the board usable as the shared artifact during a live story mapping session.
 
+When an owner changes who can see or edit the map, everyone viewing it picks up the change straight away. Someone who can no longer see it is disconnected and told they no longer have access, and someone who can still see it but no longer edit it sees the board turn view-only.
+
 ## Exporting
 
 **Actions → Export CSV** downloads the map as a spreadsheet. Anyone who can view the map can export it.
@@ -218,9 +220,9 @@ The export always covers the **whole map**. An active persona filter changes wha
 
 ## Story Map Lifecycle
 
-A story map is **Active** when created, and its creator is its **Owner**, shown in the story maps list alongside Key, Name and Status. **Actions → Archive**, or **Archive** in the list's row menu, retires it.
+A story map is **Active** when created, and its creator is its first **Owner**, shown in the story maps list alongside Key, Name, Status and Visibility. **Actions → Archive**, or **Archive** in the list's row menu, retires it. Only an owner, or a Story Maps administrator, can archive or delete a map.
 
-Archived maps become read-only — the add, edit, delete, and drag affordances all disappear — and are hidden from the story maps list unless you switch on **Include Archived**. Archiving cannot be undone, so it asks for confirmation first.
+Archived maps become read-only — the add, edit, delete, and drag affordances all disappear — and are hidden from the story maps list unless you switch on **Include Archived**. Owners can still change who can see and edit an archived map from **Actions → Access**. Archiving cannot be undone, so it asks for confirmation first.
 
 **Delete** removes a map entirely and is separate from archiving; a map does not need to be archived first.
 
@@ -228,16 +230,38 @@ Archived maps become read-only — the add, edit, delete, and drag affordances a
 
 The first time you open an active map you can edit, a tour starts. On an empty board it builds along with you — it waits while you add a goal, a step beneath it, and a task beneath that — and on a board that already has content it points out the goals, steps and tasks there. Either way it goes on to opening a task, dragging, personas and swim lanes. Once you finish or close it, it does not start again on its own; the **?** button (**Take a tour**) in the page header replays it.
 
+## Who Can See and Edit a Map
+
+Each map has **owners** and **editors**, and settings for who can see it and who can change it. Open **People** in the page header to see who they are. Owners change them from **Actions → Access**.
+
+| Role | Can do |
+|---|---|
+| **Owner** | Everything an editor can, and edit the map's name and description, archive or delete it, and change its owners, editors, visibility and who can edit. A map always has at least one owner. |
+| **Editor** | Change the map's content — goals, steps, tasks, swim lanes, personas, checklists and work item links — and see it when it is private. An editor is a person, or a team: a team's current members can edit, and so can the members of its team of teams. Open a team in **People** to see who it reaches. |
+
+**Visibility** decides who can see the map:
+
+- **Public** — anyone who can view Story Maps.
+- **Private** — only its owners and editors.
+
+On a public map, **Who Can Edit** decides who can change its content:
+
+- **Anyone who can view** (the default) — everyone who can see the map.
+- **Owners and editors only** — everyone else sees it read-only.
+
+A private map can be changed only by its owners and editors. When you cannot edit a map, the add, edit, delete and drag controls are hidden and the map shows a **View only** tag.
+
+Creating a map makes you its first owner, so **Create Story Map** appears only when your account is linked to an employee. You can add other owners, editors, the visibility and who can edit while creating it.
+
 ## Permissions
 
 | Permission | Grants |
 |---|---|
-| **View Story Maps** | Open the list and any map; export to CSV |
-| **Create Story Maps** | Create a story map |
-| **Update Story Maps** | Everything on the board — goals, steps, tasks, lanes, personas — plus editing and archiving the map |
-| **Delete Story Maps** | Delete a story map |
+| **View Story Maps** | Open the list and the maps you can see; export to CSV; change the content of a public map open to anyone who can view it |
+| **Create Story Maps** | Create a story map, becoming its first owner |
+| **Administer Story Maps** | Everything an owner can do, on every map, including private ones — for example to manage a map whose owners have left |
 
-Everything a map contains is governed by **Update** on the map itself; there are no separate permissions for goals, steps, tasks, lanes, or personas.
+Owners and editors still need **View Story Maps**. See [Story Maps: owners and editors](../settings/permissions.mdx#story-maps-owners-and-editors).
 
 ## Common Tasks
 
@@ -246,7 +270,8 @@ Everything a map contains is governed by **Update** on the map itself; there are
 1. Navigate to **Planning > Story Maps**
 2. Click **Create Story Map**
 3. Enter a **Name** and optional **Description**
-4. Open the new map and click **+ Goal** in the header, or **Add goal** on the empty board, to start the backbone
+4. Optionally add owners and editors, make the map **Private**, or limit **Who Can Edit** to owners and editors
+5. Open the new map and click **+ Goal** in the header, or **Add goal** on the empty board, to start the backbone
 
 ### Building the backbone
 

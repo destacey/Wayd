@@ -2,6 +2,8 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ConnectorType } from '@/src/types/connectors'
 import CreateConnectionForm, {
+  buildCreateRequest,
+  CreateConnectionFormValues,
   getDiscriminator,
 } from './create-connection-form'
 
@@ -122,6 +124,71 @@ describe('create-connection-form helpers', () => {
       expect(() => getDiscriminator(999 as ConnectorType)).toThrow(
         /No request discriminator is registered/,
       )
+    })
+  })
+
+  describe('buildCreateRequest', () => {
+    const azdoValues: CreateConnectionFormValues = {
+      name: 'Acme Boards',
+      organization: 'acme-org',
+      personalAccessToken: 'acme-token',
+    }
+
+    it('builds a request for Azure DevOps, whose connector type is 0', () => {
+      // Arrange
+      const connector = ConnectorType.AzureDevOps
+
+      // Act
+      const request = buildCreateRequest(connector, azdoValues)
+
+      // Assert
+      expect(request).not.toBeNull()
+      expect(request?.$type).toBe('azure-devops')
+      expect(request?.organization).toBe('acme-org')
+    })
+
+    it('returns null when no connector is chosen', () => {
+      // Arrange
+      const connector = null
+
+      // Act
+      const request = buildCreateRequest(connector, azdoValues)
+
+      // Assert
+      expect(request).toBeNull()
+    })
+
+    it('puts the discriminator first', () => {
+      // Arrange
+      const connector = ConnectorType.Entra
+
+      // Act
+      const request = buildCreateRequest(connector, {
+        name: 'Acme Entra',
+        tenantId: 'acme-tenant',
+      })
+
+      // Assert
+      expect(Object.keys(request!)[0]).toBe('$type')
+    })
+
+    it('drops partially filled org exclusions', () => {
+      // Arrange
+      const values: CreateConnectionFormValues = {
+        name: 'Acme Workday',
+        orgExclusions: [
+          { organizationTypeId: 'cost-center', organizationReference: 'CC-1' },
+          { organizationTypeId: 'cost-center', organizationReference: ' ' },
+        ],
+      }
+
+      // Act
+      const request = buildCreateRequest(ConnectorType.Workday, values)
+
+      // Assert
+      expect(request?.orgExclusions).toEqual([
+        { organizationTypeId: 'cost-center', organizationReference: 'CC-1' },
+      ])
     })
   })
 })

@@ -188,6 +188,14 @@ Managing roles, from **Settings → Access → Roles**:
 - **A role in use can't be deleted** — not while users hold it, and not while it is an identity provider's default role.
 - Viewing roles needs `Permissions.Roles.View`; creating, editing and deleting them need `Permissions.Roles.Create`, `.Update` and `.Delete`. Changing who holds a role needs `Permissions.UserRoles.Update`.
 
+#### A baseline role for everyone
+
+A new deployment has one role, **Admin**. Every permission is granted through roles you create, so until you do, every feature that needs one is admin-only. Most organizations want a baseline role that everyone holds — the features anyone may use, such as viewing work and joining a [planning poker](../planning/planning-poker.mdx) session or a [story map](../planning/story-maps.mdx) — and add narrower roles on top for the people who administer or change more.
+
+1. **Create the role** in **Settings → Access → Roles**, for example *Member*, and give it the permissions everyone should have. A user can hold several roles; what they may do is everything their roles grant together.
+2. **Make it the default for new accounts.** On each Microsoft Entra ID provider with automatic registration, set **Default role for new users** to it. Accounts created at first sign-in then start with it.
+3. **Give it to existing users.** The default role is given at sign-in only to someone who holds no role — in practice, a new account. People who already hold a role don't get it: add them from the role's **Users** section with **Manage Users**, and include the role when you create a user by hand.
+
 :::note[PPM requires more than a permission]
 In [Project Portfolio Management](../ppm/index.mdx), a permission claim alone is not enough to change a project, program, or portfolio — you must also lead the record as an Owner or Manager. See [Permissions](./permissions.mdx) for the full rule.
 :::
@@ -225,7 +233,7 @@ The flags Wayd defines:
 | Product Management | `product-management` | The Product Management module, including **Settings → Product Management** |
 | Incident Management | `incident-management` | Incident severity scales and, when enabled with product management, incident records under Product Management |
 | Delivery Forecasting | `delivery-forecasting` | Monte Carlo delivery forecasts |
-| MCP Server | `mcp-server` | The hosted MCP endpoint (`/mcp`) that exposes the API as agent tools |
+| MCP Server | `mcp-server` | The MCP server (`/mcp`) that exposes the API as agent tools |
 | Team Capacity Management | `team-capacity-management` | Employee allocation to teams and team capacity planning |
 | Demand Management | `demand-management` | The Demand Management module: intake requests and the desks that review them, including **Settings → Demand Management** |
 | Following | `following` | [Following](../following.mdx) projects, programs, PI objectives and intake requests, the Following list, and in-app notifications about changes to them |
@@ -455,7 +463,7 @@ A **Connector** is a configurable integration type that lets a specific external
 - **Activate / Deactivate** — Toggle whether the connection participates in sync runs. A new connection starts active. Inactive connections are excluded from every scheduled and manual sync — the API rejects sync attempts on an inactive connection.
 - **Delete** — Removes the connection. Past sync history rows are preserved by design.
 
-**Sections of a connection's page:** **Overview** (its settings, with secrets masked), then what its connector adds — **Organization Configuration** and **People** for Azure DevOps — then **Sync History** for a connector that syncs, and **Activity**.
+**Sections of a connection's page:** **Overview** (its settings, with secrets masked), then what its connector adds — **Projects** and **People** for Azure DevOps — then **Sync History** for a connector that syncs, and **Activity**.
 
 - **Sync History** — Past runs with their status, duration and per-run details (workspaces, work items and work item revisions for work sync; employees fetched, upserted and excluded, and any per-record errors, for people sync), over the last 24 hours, 7 days or 30 days. Its **Diff Sync** and **Full Sync** buttons run a sync of this connection alone; they are disabled while the connection is inactive.
 - **Activity** — Records the connection created, its name or description edited, its settings changed (each entry lists the settings before and after), its credentials replaced, activated, deactivated or deleted, and by whom. A credential change records *which* credential was replaced — the personal access token, API key, client secret or password — and never its value, not even hashed. Syncing workspaces, processes and teams from Azure DevOps and probing a Workday configuration are not recorded here; the Sync History section covers them.
@@ -487,12 +495,12 @@ The Azure DevOps Boards connector enables one-way synchronization of work data f
 - **Organization** — The Azure DevOps organization name
 - **Personal Access Token** — A PAT with **Work Items (Read)** and **Project and Team (Read)** scopes
 
-**Setting it up:** after creating the connection, **Sync Organization Configuration** reads the organization's processes, projects and teams into the **Organization Configuration** section. Initialize a work process first, then set up each workspace's integration, then map its teams. Every sync also refreshes the organization configuration before it runs.
+**Setting it up:** after creating the connection, open its **Projects** section and click **Refresh Projects** to load the organization's projects. Click **Set Up** on each project to sync — Wayd sets up the project's process with it when needed — then map its teams under **Team Mappings**. Every sync refreshes the project list and each synced project's process before it runs.
 
 **Business rules:**
 - Each Azure DevOps organization can only be linked by one connection
 - Synchronized items have **Managed** ownership and are read-only in Wayd
-- Sync is controlled by workspace-level integration state (active/inactive)
+- Each project syncs only once it is set up, and its switch pauses or resumes it; a paused project keeps its workspace and work items
 - The **People** section matches Azure DevOps identities to Wayd employees
 
 ### Entra (Microsoft Entra ID)
@@ -563,7 +571,7 @@ Three tabs sit below the tiles:
 
 | Tab | What it is for |
 |---|---|
-| **Jobs** | Browse jobs by state — Processing, Scheduled, Enqueued, Failed, Succeeded, Deleted. Select a job to open its detail panel. |
+| **Jobs** | Browse jobs by state — Processing, Scheduled, Enqueued, Failed, Succeeded, Deleted — 50 to a page; the pager above the grid moves between pages and shows up to 500 at a time. Select a job to open its detail panel. |
 | **Recurring** | Every registered schedule, with its cron expression, next and last run, and the outcome of the last run. Remove a schedule here. |
 | **Servers** | The worker processes polling for jobs, with their heartbeat. No servers means nothing will run. |
 
@@ -579,7 +587,7 @@ From there you can **Requeue** the job to try again, or **Delete** it.
 
 - **Work Full Sync** and **Work Differential Sync** — Synchronize work data from every active work-management connection (Azure DevOps). Differential fetches only items changed since the last sync. A failed run is retried up to three times.
 - **People Full Sync** and **People Differential Sync** — Synchronize people from the active people connection (Entra or Workday). A connector that cannot fetch only changes, such as Entra, runs a differential sync as a full one. A failed run is not retried: fix the cause and run it again. The run fails when more than one people connection is active.
-- **Projects Sync, Teams Sync, Iterations Sync, and Strategic Themes Sync** — Replicate their respective records across domains.
+- **Projects Sync, Teams Sync, Iterations Sync, Strategic Themes Sync, and Estimation Scales Sync** — Replicate their respective records across domains.
 - **Portfolio Rank Rebalance** — Maintenance job that re-spaces dense project ranks within portfolios after repeated drag-to-rank operations.
 - **Import Stall Recovery** — Ends an import whose worker stopped responding and republishes one whose run never started. Scheduled every five minutes by default as `import-stall-recovery`; the schedule can be changed, and a deleted one is restored the next time the server starts. See [Imports](./imports.mdx#when-a-run-fails-unexpectedly).
 - **Import Retention Sweep** — Discards the stored copy of each row once an import is past its 30-day retention window. Scheduled nightly by default as `import-retention-sweep`; like the stall sweep, the schedule can be changed and a deleted one is restored the next time the server starts. See [Imports](./imports.mdx#limits-and-rules).
@@ -612,7 +620,7 @@ Wayd hands much of its internal work — keeping one area's records in step with
 | **Dead Letters** | Messages that failed every retry. These stay until you replay or discard them — this is the tile to watch. |
 | **Handled** | Processed messages kept for five minutes to detect duplicates, then removed. Usually zero; it is not a history of past work. |
 
-Below the tiles, the dead letter grid lists each failed message with its **Message Type**, **Exception Type**, **Exception Message**, **Sent At**, **Attempts**, whether it is **Queued for Replay**, and its **Queue**. Select a message type to open its details, including where it came from, its correlation id and the message body. The grid shows up to 500 messages and says how many more there are.
+Below the tiles, the dead letter grid lists each failed message with its **Message Type**, **Exception Type**, **Exception Message**, **Sent At**, **Attempts**, whether it is **Queued for Replay**, and its **Queue**. Select a message type to open its details, including where it came from, its correlation id and the message body. Messages come 50 to a page; the pager above the grid moves between pages and shows up to 500 at a time.
 
 ### Replaying and discarding
 
@@ -631,4 +639,18 @@ From a message's row menu:
 
 > This feature is behind the `planning-poker` feature flag.
 
-**Estimation Scales** define the sets of values used for story point estimation in Planning Poker sessions. Scales are configured in **Settings > Planning > Estimation Scales**.
+**Estimation Scales** define the sets of values used for story point estimation in Planning Poker sessions, and that intake desks [size their requests](../demand-management/index.mdx#estimating-a-request) on. Scales are configured in **Settings > Planning > Estimation Scales**; an intake desk can choose one whether or not the flag is on.
+
+Each value on a scale is either an **Estimate** — a size, such as `5` or `M` — or a **Card**, such as `?`, `∞` or `☕`, which participants can vote but which never becomes a size. A scale needs at least 2 estimates, and no value can appear twice. The scales Wayd seeds end with those three cards.
+
+### Versions
+
+A scale's values are published as numbered **versions**. Saving a scale with changed values — a value added, removed, renamed, reordered, or switched between estimate and card — publishes the next version. A published version never changes, so a poker session keeps voting on the version it was created on: renaming `M` to `Medium` does not change a vote already cast on `M`. Only sessions created afterwards, or a session whose scale is changed before its first round, use the new version. An intake desk likewise stays on its version until a Desk Admin chooses the scale again, and each request estimate keeps the version it was given on.
+
+Renaming a scale, editing its description, and activating or deactivating it publish no version.
+
+The list shows each scale's current **Version** and how many **Values** it has. Selecting a scale shows its estimates and cards and, once it has more than one version, its **Earlier Versions** with the date each was published. The edit form says which version saving changed values will publish.
+
+### Active Scales and Deleting
+
+New sessions and intake desks choose from active scales. Deactivating a scale leaves the sessions and desks that use it untouched, and at least one scale must stay active. A scale any poker session, intake desk or request estimate uses cannot be deleted; deactivate it instead.

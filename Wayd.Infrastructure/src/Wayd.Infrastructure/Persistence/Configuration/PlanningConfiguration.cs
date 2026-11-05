@@ -6,13 +6,13 @@ using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Models;
 using Wayd.Common.Domain.Models.Organizations;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Infrastructure.Persistence.Converters;
 using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Planning.Domain.Models.Roadmaps;
 using Wayd.Planning.Domain.Models.StoryMaps;
-using Wayd.Common.Domain.Enums.Work;
 
 namespace Wayd.Infrastructure.Persistence.Configuration;
 
@@ -357,9 +357,9 @@ public class RoadmapConfig : IEntityTypeConfiguration<Roadmap>
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         // Relationships
-        builder.HasMany(r => r.RoadmapManagers)
+        builder.HasMany(r => r.Owners)
             .WithOne()
-            .HasForeignKey(rm => rm.RoadmapId)
+            .HasForeignKey(o => o.RoadmapId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(r => r.Items)
@@ -369,26 +369,26 @@ public class RoadmapConfig : IEntityTypeConfiguration<Roadmap>
     }
 }
 
-public class RoadmapManagerConfiguration : IEntityTypeConfiguration<RoadmapManager>
+public class RoadmapOwnerConfiguration : IEntityTypeConfiguration<RoadmapOwner>
 {
-    public void Configure(EntityTypeBuilder<RoadmapManager> builder)
+    public void Configure(EntityTypeBuilder<RoadmapOwner> builder)
     {
-        builder.ToTable("RoadmapManagers", SchemaNames.Planning);
+        builder.ToTable("RoadmapOwners", SchemaNames.Planning);
 
-        builder.HasKey(rm => new { rm.RoadmapId, rm.ManagerId });
+        builder.HasKey(o => new { o.RoadmapId, o.EmployeeId });
 
-        builder.HasIndex(rm => rm.RoadmapId)
-            .IncludeProperties(rm => new { rm.ManagerId });
+        builder.HasIndex(o => o.RoadmapId)
+            .IncludeProperties(o => new { o.EmployeeId });
 
-        builder.Property(rm => rm.RoadmapId)
+        builder.Property(o => o.RoadmapId)
             .IsRequired();
 
-        builder.Property(rm => rm.ManagerId)
+        builder.Property(o => o.EmployeeId)
             .IsRequired();
 
-        builder.HasOne(rm => rm.Manager)
+        builder.HasOne(o => o.Employee)
             .WithMany()
-            .HasForeignKey(rm => rm.ManagerId)
+            .HasForeignKey(o => o.EmployeeId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
@@ -608,13 +608,51 @@ public class EstimationScaleConfig : IEntityTypeConfiguration<EstimationScale>
         builder.ToTable("EstimationScales", SchemaNames.Planning);
 
         builder.HasKey(e => e.Id);
+        builder.HasAlternateKey(e => e.Key);
 
-        builder.Property(e => e.Id).ValueGeneratedOnAdd();
+        builder.Property(e => e.Id).ValueGeneratedNever();
+        builder.Property(e => e.Key).ValueGeneratedOnAdd();
         builder.Property(e => e.Name).IsRequired().HasMaxLength(128);
         builder.Property(e => e.Description).HasMaxLength(1024);
-        builder.Property(e => e.Values)
-            .HasColumnName("Values");
         builder.Property(e => e.IsActive).IsRequired();
+
+        builder.Ignore(e => e.CurrentVersion);
+
+        builder.HasMany(e => e.Versions)
+            .WithOne()
+            .HasForeignKey(v => v.EstimationScaleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(e => e.Versions)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class EstimationScaleVersionConfig : IEntityTypeConfiguration<EstimationScaleVersion>
+{
+    public void Configure(EntityTypeBuilder<EstimationScaleVersion> builder)
+    {
+        builder.ToTable("EstimationScaleVersions", SchemaNames.Planning);
+
+        builder.HasKey(v => v.Id);
+
+        builder.HasIndex(v => new { v.EstimationScaleId, v.Number })
+            .IsUnique();
+
+        builder.Property(v => v.Id).ValueGeneratedNever();
+        builder.Property(v => v.Number).IsRequired();
+        builder.Property(v => v.PublishedOn).IsRequired();
+
+        // A version's values are read and written as a whole and never queried independently, so they are
+        // stored as a JSON column on the version rather than a separate table.
+        builder.OwnsMany(v => v.Values, o =>
+        {
+            o.ToJson();
+            o.Property(x => x.Value).HasMaxLength(EstimationScaleValue.MaxLength);
+            o.UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+        builder.Navigation(v => v.Values)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }
 
@@ -633,9 +671,10 @@ public class PokerSessionConfig : IEntityTypeConfiguration<PokerSession>
         builder.Property(s => s.Key).ValueGeneratedOnAdd();
         builder.Property(s => s.Name).IsRequired().HasMaxLength(256);
         builder.Property(s => s.EstimationScaleId).IsRequired();
-        builder.Property(s => s.FacilitatorId)
-            .IsRequired()
-            .HasMaxLength(450);
+        builder.Property(s => s.Visibility).IsRequired()
+            .HasConversion<EnumConverter<Visibility>>()
+            .HasMaxLength(32)
+            .HasColumnType("varchar");
         builder.Property(s => s.Status).IsRequired()
             .HasConversion<EnumConverter<PokerSessionStatus>>()
             .HasColumnType("varchar")
@@ -649,9 +688,9 @@ public class PokerSessionConfig : IEntityTypeConfiguration<PokerSession>
             .HasForeignKey(s => s.EstimationScaleId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(s => s.Facilitator)
+        builder.HasOne(s => s.EstimationScaleVersion)
             .WithMany()
-            .HasForeignKey(s => s.FacilitatorId)
+            .HasForeignKey(s => s.EstimationScaleVersionId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(s => s.Rounds)
@@ -659,8 +698,107 @@ public class PokerSessionConfig : IEntityTypeConfiguration<PokerSession>
             .HasForeignKey(r => r.PokerSessionId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasMany(s => s.Facilitators)
+            .WithOne()
+            .HasForeignKey(f => f.PokerSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(s => s.InvitedEmployees)
+            .WithOne()
+            .HasForeignKey(e => e.PokerSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(s => s.InvitedTeams)
+            .WithOne()
+            .HasForeignKey(t => t.PokerSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(s => s.Members)
+            .WithOne()
+            .HasForeignKey(m => m.PokerSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.Navigation(s => s.Rounds)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(s => s.Facilitators)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(s => s.InvitedEmployees)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(s => s.InvitedTeams)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(s => s.Members)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class PokerSessionFacilitatorConfig : IEntityTypeConfiguration<PokerSessionFacilitator>
+{
+    public void Configure(EntityTypeBuilder<PokerSessionFacilitator> builder)
+    {
+        builder.ToTable("PokerSessionFacilitators", SchemaNames.Planning);
+
+        builder.HasKey(f => new { f.PokerSessionId, f.EmployeeId });
+
+        // Finds the sessions an employee facilitates, which the access filter asks of every list.
+        builder.HasIndex(f => f.EmployeeId);
+
+        builder.HasOne(f => f.Employee)
+            .WithMany()
+            .HasForeignKey(f => f.EmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class PokerSessionInvitedEmployeeConfig : IEntityTypeConfiguration<PokerSessionInvitedEmployee>
+{
+    public void Configure(EntityTypeBuilder<PokerSessionInvitedEmployee> builder)
+    {
+        builder.ToTable("PokerSessionInvitedEmployees", SchemaNames.Planning);
+
+        builder.HasKey(e => new { e.PokerSessionId, e.EmployeeId });
+
+        builder.HasIndex(e => e.EmployeeId);
+
+        builder.HasOne(e => e.Employee)
+            .WithMany()
+            .HasForeignKey(e => e.EmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class PokerSessionInvitedTeamConfig : IEntityTypeConfiguration<PokerSessionInvitedTeam>
+{
+    public void Configure(EntityTypeBuilder<PokerSessionInvitedTeam> builder)
+    {
+        builder.ToTable("PokerSessionInvitedTeams", SchemaNames.Planning);
+
+        builder.HasKey(t => new { t.PokerSessionId, t.TeamId });
+
+        builder.HasIndex(t => t.TeamId);
+
+        // An invite goes with its team, as the team's other planning records do.
+        builder.HasOne(t => t.Team)
+            .WithMany()
+            .HasForeignKey(t => t.TeamId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class PokerSessionMemberConfig : IEntityTypeConfiguration<PokerSessionMember>
+{
+    public void Configure(EntityTypeBuilder<PokerSessionMember> builder)
+    {
+        builder.ToTable("PokerSessionMembers", SchemaNames.Planning);
+
+        builder.HasKey(m => new { m.PokerSessionId, m.EmployeeId });
+
+        builder.Property(m => m.IsVoting).IsRequired();
+        builder.Property(m => m.JoinedOn).IsRequired();
+
+        builder.HasOne(m => m.Employee)
+            .WithMany()
+            .HasForeignKey(m => m.EmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
 
@@ -677,6 +815,7 @@ public class PokerRoundConfig : IEntityTypeConfiguration<PokerRound>
         builder.Property(r => r.Id).ValueGeneratedNever();
         builder.Property(r => r.PokerSessionId).IsRequired();
         builder.Property(r => r.Label).HasMaxLength(512);
+        builder.Property(r => r.Description).HasMaxLength(PokerRound.DescriptionMaxLength);
         builder.Property(r => r.Status).IsRequired()
             .HasConversion<EnumConverter<PokerRoundStatus>>()
             .HasColumnType("varchar")
@@ -738,8 +877,6 @@ public class StoryMapConfig : IEntityTypeConfiguration<StoryMap>
             .WhereNotDeleted();
         builder.HasIndex(m => new { m.Key, m.IsDeleted })
             .WhereNotDeleted();
-        builder.HasIndex(m => new { m.OwnerId, m.IsDeleted })
-            .WhereNotDeleted();
 
         builder.Property(m => m.Id).ValueGeneratedNever();
         builder.Property(m => m.Key).ValueGeneratedOnAdd();
@@ -747,12 +884,17 @@ public class StoryMapConfig : IEntityTypeConfiguration<StoryMap>
         builder.Property(m => m.Name).IsRequired().HasMaxLength(128);
         builder.Property(m => m.Description).HasMaxLength(2048);
 
-        builder.Property(m => m.OwnerId)
-            .IsRequired()
-            .HasMaxLength(450);
+        builder.Property(m => m.Visibility).IsRequired()
+            .HasConversion<EnumConverter<Visibility>>()
+            .HasMaxLength(32)
+            .HasColumnType("varchar");
+        builder.Property(m => m.EditAccess).IsRequired()
+            .HasConversion<EnumConverter<StoryMapEditAccess>>()
+            .HasMaxLength(32)
+            .HasColumnType("varchar");
 
         builder.Property(m => m.Status).IsRequired()
-            .HasConversion<EnumConverter<WorkStatusCategory>>()
+            .HasConversion<EnumConverter<StatusCategory>>()
             .HasColumnType("varchar")
             .HasMaxLength(32);
 
@@ -764,10 +906,26 @@ public class StoryMapConfig : IEntityTypeConfiguration<StoryMap>
         builder.Property(m => m.IsDeleted);
 
         // Relationships
-        builder.HasOne(m => m.Owner)
-            .WithMany()
-            .HasForeignKey(m => m.OwnerId)
-            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasMany(m => m.Owners)
+            .WithOne()
+            .HasForeignKey(o => o.StoryMapId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(m => m.Owners)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(m => m.Editors)
+            .WithOne()
+            .HasForeignKey(e => e.StoryMapId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(m => m.Editors)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(m => m.EditorTeams)
+            .WithOne()
+            .HasForeignKey(t => t.StoryMapId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(m => m.EditorTeams)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasMany(m => m.Goals)
             .WithOne()
@@ -789,6 +947,59 @@ public class StoryMapConfig : IEntityTypeConfiguration<StoryMap>
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(m => m.Personas)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class StoryMapOwnerConfig : IEntityTypeConfiguration<StoryMapOwner>
+{
+    public void Configure(EntityTypeBuilder<StoryMapOwner> builder)
+    {
+        builder.ToTable("StoryMapOwners", SchemaNames.Planning);
+
+        builder.HasKey(o => new { o.StoryMapId, o.EmployeeId });
+
+        // Finds the maps an employee owns, which the access filter asks of every list.
+        builder.HasIndex(o => o.EmployeeId);
+
+        builder.HasOne(o => o.Employee)
+            .WithMany()
+            .HasForeignKey(o => o.EmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class StoryMapEditorConfig : IEntityTypeConfiguration<StoryMapEditor>
+{
+    public void Configure(EntityTypeBuilder<StoryMapEditor> builder)
+    {
+        builder.ToTable("StoryMapEditors", SchemaNames.Planning);
+
+        builder.HasKey(e => new { e.StoryMapId, e.EmployeeId });
+
+        builder.HasIndex(e => e.EmployeeId);
+
+        builder.HasOne(e => e.Employee)
+            .WithMany()
+            .HasForeignKey(e => e.EmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class StoryMapEditorTeamConfig : IEntityTypeConfiguration<StoryMapEditorTeam>
+{
+    public void Configure(EntityTypeBuilder<StoryMapEditorTeam> builder)
+    {
+        builder.ToTable("StoryMapEditorTeams", SchemaNames.Planning);
+
+        builder.HasKey(t => new { t.StoryMapId, t.TeamId });
+
+        builder.HasIndex(t => t.TeamId);
+
+        // An editor team goes with its team, as the team's other planning records do.
+        builder.HasOne(t => t.Team)
+            .WithMany()
+            .HasForeignKey(t => t.TeamId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 

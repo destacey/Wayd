@@ -271,6 +271,7 @@ public static class WolverineConfiguration
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Interfaces.ExternalPeople.IWorkdayConnectionInitializer>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Planning.Application.PokerSessions.Interfaces.IPokerSessionNotifier>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Planning.Application.StoryMaps.Interfaces.IStoryMapNotifier>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<SignalR.IRealtimeAccessRevoker>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Identity.IUserIdentityStore>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Identity.Users.IUserService>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Identity.Roles.IRoleService>();
@@ -301,6 +302,7 @@ public static class WolverineConfiguration
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.ProductManagement.Application.IProductManagementDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Persistence.IStatusWorkflowDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Persistence.INotificationsDbContext>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Persistence.IDiscussionsDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.Common.Application.Persistence.IActivityLogDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.ProjectPortfolioManagement.Application.IProjectPortfolioManagementDbContext>();
         opts.CodeGeneration.AlwaysUseServiceLocationFor<Wayd.StrategicManagement.Application.IStrategicManagementDbContext>();

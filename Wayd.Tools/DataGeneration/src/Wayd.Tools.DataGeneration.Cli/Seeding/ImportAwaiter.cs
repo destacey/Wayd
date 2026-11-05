@@ -79,11 +79,11 @@ public sealed class ImportAwaiter(IImportsClient imports, TimeSpan pollInterval,
             return summary;
 
         var failed = await _imports.GetRowsAsync(
-            process.Id, ImportRowStatus.Failed, pageNumber: 1, pageSize: 10, cancellationToken);
+            process.Id, ImportRowStatus.Failed, page: 1, pageSize: 10, cancellationToken);
 
-        var lines = failed.Rows.Select(r => $"  {r.ImportId}: {r.Error}");
-        var more = process.FailedRowCount > failed.Rows.Count
-            ? $"{Environment.NewLine}  … and {process.FailedRowCount - failed.Rows.Count} more."
+        var lines = failed.Items.Select(r => $"  {r.ImportId}: {r.Error}");
+        var more = process.FailedRowCount > failed.Items.Count
+            ? $"{Environment.NewLine}  … and {process.FailedRowCount - failed.Items.Count} more."
             : string.Empty;
 
         return $"{summary}{Environment.NewLine}{string.Join(Environment.NewLine, lines)}{more}";
@@ -98,10 +98,10 @@ public sealed class ImportAwaiter(IImportsClient imports, TimeSpan pollInterval,
         {
             var rows = await _imports.GetRowsAsync(processId, null, page, RowPageSize, cancellationToken);
 
-            foreach (var row in rows.Rows.Where(r => r.CreatedEntityId is not null))
+            foreach (var row in rows.Items.Where(r => r.CreatedEntityId is not null))
                 created[row.ImportId] = row.CreatedEntityId!.Value;
 
-            if (rows.Rows.Count == 0 || page * RowPageSize >= rows.TotalCount)
+            if (rows.Items.Count == 0 || page * RowPageSize >= rows.TotalCount)
                 return created;
 
             page++;

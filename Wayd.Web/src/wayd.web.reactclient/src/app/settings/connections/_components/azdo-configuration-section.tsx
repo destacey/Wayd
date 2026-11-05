@@ -35,7 +35,12 @@ export const AzureDevOpsConfigurationSection: React.FC<ConfigSectionProps> = ({
 
   const [testConfig] = useTestAzdoConfigurationMutation()
 
-  const testConnectionConfiguration = async (configuration: TestAzureDevOpsConnectionRequest) => {
+  const organization = Form.useWatch('organization', form)
+  const personalAccessToken = Form.useWatch('personalAccessToken', form)
+
+  const testConnectionConfiguration = async (
+    configuration: TestAzureDevOpsConnectionRequest,
+  ) => {
     const response = await testConfig(configuration)
     if (response.error) {
       setTestConfigurationResult('Failed to test configuration.')
@@ -47,7 +52,11 @@ export const AzureDevOpsConfigurationSection: React.FC<ConfigSectionProps> = ({
 
   return (
     <>
-      <Item label="Organization" name="organization" rules={[{ required: true }]}>
+      <Item
+        label="Organization"
+        name="organization"
+        rules={[{ required: true }]}
+      >
         <Input showCount maxLength={128} />
       </Item>
       <SecretFormItem
@@ -61,17 +70,11 @@ export const AzureDevOpsConfigurationSection: React.FC<ConfigSectionProps> = ({
       <Item>
         <Button
           type="primary"
-          disabled={
-            !form.getFieldValue('organization') ||
-            !form.getFieldValue('personalAccessToken')
-          }
+          disabled={!organization || !personalAccessToken}
           loading={isTestingConfiguration}
           onClick={() => {
             setTestingConfiguration(true)
-            testConnectionConfiguration({
-              organization: form.getFieldValue('organization'),
-              personalAccessToken: form.getFieldValue('personalAccessToken'),
-            })
+            testConnectionConfiguration({ organization, personalAccessToken })
           }}
         >
           Test Configuration

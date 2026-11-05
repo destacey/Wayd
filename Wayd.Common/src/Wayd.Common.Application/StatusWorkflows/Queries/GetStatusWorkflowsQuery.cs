@@ -38,8 +38,7 @@ public sealed class GetStatusWorkflowsQueryHandler(
 
         // Assigned workflows are read in one go rather than per row: the set is tiny (one assignment
         // per owner type today) and a correlated subquery per workflow would be pure ceremony.
-        var assignedIds = await _dbContext.WorkflowAssignments
-            .Select(a => a.WorkflowId)
+        var assignedIds = await _dbContext.AssignedWorkflowIds()
             .ToListAsync(cancellationToken);
 
         var assigned = assignedIds.ToHashSet();
@@ -54,7 +53,8 @@ public sealed class GetStatusWorkflowsQueryHandler(
                 w.OwnerType,
                 w.State,
                 w.IsSystem,
-                StatusCount = w.Statuses.Count,
+                w.Ownership,
+                StatusCount = w.Statuses.Count(s => !s.IsRetired),
             })
             .ToListAsync(cancellationToken);
 
@@ -70,6 +70,7 @@ public sealed class GetStatusWorkflowsQueryHandler(
                     Owner = DescribeOwner(w.OwnerType),
                     State = w.State.ToString(),
                     IsSystem = w.IsSystem,
+                    Ownership = w.Ownership,
                     StatusCount = w.StatusCount,
                     IsAssigned = assigned.Contains(w.Id),
                 })

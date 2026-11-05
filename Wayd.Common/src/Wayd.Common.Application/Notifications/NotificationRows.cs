@@ -73,6 +73,9 @@ internal sealed class NotificationGroupRow
     /// <summary>How many carry <see cref="NotificationReason.Role"/>.</summary>
     public int RoleCount { get; init; }
 
+    /// <summary>How many carry <see cref="NotificationReason.Thread"/>.</summary>
+    public int ThreadCount { get; init; }
+
     /// <summary>Every reason carried by any of the entry's notifications.</summary>
     public NotificationReason Reasons =>
         (FollowingCount > 0 ? NotificationReason.Following : 0)
@@ -81,7 +84,8 @@ internal sealed class NotificationGroupRow
         | (AssignedCount > 0 ? NotificationReason.Assigned : 0)
         | (MentionedCount > 0 ? NotificationReason.Mentioned : 0)
         | (DeskCount > 0 ? NotificationReason.Desk : 0)
-        | (RoleCount > 0 ? NotificationReason.Role : 0);
+        | (RoleCount > 0 ? NotificationReason.Role : 0)
+        | (ThreadCount > 0 ? NotificationReason.Thread : 0);
 }
 
 /// <summary>
@@ -159,5 +163,6 @@ internal static class NotificationRows
                 MentionedCount = g.Count(r => (r.Reasons & NotificationReason.Mentioned) != 0),
                 DeskCount = g.Count(r => (r.Reasons & NotificationReason.Desk) != 0),
                 RoleCount = g.Count(r => (r.Reasons & NotificationReason.Role) != 0),
+                ThreadCount = g.Count(r => (r.Reasons & NotificationReason.Thread) != 0),
             });
 }

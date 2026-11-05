@@ -7,12 +7,15 @@ import {
   createCsvColumn,
 } from '@/src/components/common/wayd-grid'
 import { ProductDto } from '@/src/services/wayd-api'
-import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
+import {
+  renderTeamLink,
+  type ColumnDef,
+} from '@/src/components/common/wayd-grid-core'
 import treeGridStyles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
 import { CaretDownOutlined, CaretRightOutlined } from '@ant-design/icons'
 import { Button, Flex } from 'antd'
 import Link from 'next/link'
-import { ReactElement } from 'react'
+import { Fragment, ReactElement } from 'react'
 import { buildProductTree, ProductTreeNode } from '../../_components'
 
 export interface ProductsGridProps {
@@ -121,6 +124,23 @@ const buildColumns = <T extends ProductDto>(
     // the most consequential thing about it, and reading it off the type name means knowing the
     // catalog by heart.
     meta: { columnType: 'yesNo' },
+  },
+  {
+    // Only the product's own teams, as the API sends them: a parent does not repeat the teams of the
+    // products beneath it, which the tree already shows on their own rows.
+    ...createCsvColumn<T>({
+      id: 'teams',
+      header: 'Teams',
+      size: 220,
+      getValues: (row) => (row.teams ?? []).map((t) => t.name),
+    }),
+    cell: ({ row }) =>
+      (row.original.teams ?? []).map((team, index) => (
+        <Fragment key={team.id}>
+          {index > 0 && ', '}
+          {renderTeamLink(team)}
+        </Fragment>
+      )),
   },
   createCsvColumn<T>({
     id: 'tags',

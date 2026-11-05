@@ -4,4 +4,5 @@ import { IntakeRequestOutcomeKind } from '@/src/services/wayd-api'
 export const outcomeKindLabel: Record<IntakeRequestOutcomeKind, string> = {
   [IntakeRequestOutcomeKind.NewProject]: 'New project',
   [IntakeRequestOutcomeKind.ExistingProjectScope]: 'Existing project scope',
+  [IntakeRequestOutcomeKind.WorkItem]: 'Work item',
 }

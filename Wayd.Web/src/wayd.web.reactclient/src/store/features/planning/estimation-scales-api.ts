@@ -3,7 +3,9 @@ import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
   CreateEstimationScaleRequest,
+  EstimationScaleDetailsDto,
   EstimationScaleDto,
+  ObjectIdAndKey,
   UpdateEstimationScaleRequest,
 } from '@/src/services/wayd-api'
 
@@ -27,10 +29,10 @@ export const estimationScalesApi = apiSlice.injectEndpoints({
       providesTags: () => [{ type: QueryTags.EstimationScale, id: 'LIST' }],
     }),
 
-    getEstimationScale: builder.query<EstimationScaleDto, number>({
-      queryFn: async (id: number) => {
+    getEstimationScale: builder.query<EstimationScaleDetailsDto, string>({
+      queryFn: async (idOrKey: string) => {
         try {
-          const data = await getEstimationScalesClient().getScale(id)
+          const data = await getEstimationScalesClient().getScale(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -43,7 +45,7 @@ export const estimationScalesApi = apiSlice.injectEndpoints({
     }),
 
     createEstimationScale: builder.mutation<
-      number,
+      ObjectIdAndKey,
       CreateEstimationScaleRequest
     >({
       queryFn: async (request) => {
@@ -63,7 +65,7 @@ export const estimationScalesApi = apiSlice.injectEndpoints({
         queryFn: async (request) => {
           try {
             const data = await getEstimationScalesClient().update(
-              request.estimationScaleId,
+              request.id,
               request,
             )
             return { data }
@@ -74,14 +76,14 @@ export const estimationScalesApi = apiSlice.injectEndpoints({
         },
         invalidatesTags: (result, error, arg) => [
           { type: QueryTags.EstimationScale, id: 'LIST' },
-          { type: QueryTags.EstimationScale, id: arg.estimationScaleId },
+          { type: QueryTags.EstimationScale, id: arg.id },
         ],
       },
     ),
 
     setEstimationScaleActiveStatus: builder.mutation<
       void,
-      { id: number; isActive: boolean }
+      { id: string; isActive: boolean }
     >({
       queryFn: async (request) => {
         try {
@@ -101,7 +103,7 @@ export const estimationScalesApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    deleteEstimationScale: builder.mutation<void, number>({
+    deleteEstimationScale: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
           const data = await getEstimationScalesClient().delete(id)

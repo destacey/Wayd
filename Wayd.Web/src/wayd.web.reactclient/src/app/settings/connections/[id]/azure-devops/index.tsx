@@ -14,7 +14,7 @@ import {
 } from '../_components/detail-registry'
 import { AzdoConnectionContext } from './connection-context'
 import AzdoConnectionDetails from './connection-details'
-import AzdoOrganization from './organization'
+import AzdoProjects from './projects'
 import SyncHistoryTab from '../_components/sync-history-tab'
 import IdentityMappingsTab from '../_components/identity-mappings-tab'
 import { ReactNode, useEffect, useMemo } from 'react'
@@ -74,14 +74,12 @@ const AzdoExtraActions = ({
       try {
         const response = await syncOrganization(ctx.connectionId)
         if (response.error) throw response.error
-        messageApi.success(
-          'Successfully imported organization processes and projects.',
-        )
+        messageApi.success('Refreshed the projects from Azure DevOps.')
       } catch (error) {
         const apiError: ApiError = isApiError(error) ? error : {}
         console.error(error)
         messageApi.error(
-          `Failed to initialize organization. Error: ${apiError.detail}`,
+          `Failed to refresh the projects. Error: ${apiError.detail}`,
         )
       }
     }
@@ -89,7 +87,7 @@ const AzdoExtraActions = ({
     return [
       {
         key: 'sync-organization',
-        label: 'Sync Organization Configuration',
+        label: 'Refresh Projects',
         disabled: !isValidConfiguration,
         onClick: () => syncOrgConfig(),
       },
@@ -115,14 +113,15 @@ export const azureDevOpsDetailEntry: DetailEntry = {
   Wrapper: AzdoWrapper,
   extraSections: [
     {
-      key: 'organization-configuration',
-      label: 'Organization Configuration',
+      key: 'projects',
+      label: 'Projects',
       render: (connection) => {
         if (!isAzdo(connection)) return null
         return (
-          <AzdoOrganization
+          <AzdoProjects
             workProcesses={connection.configuration?.workProcesses ?? []}
             workspaces={connection.configuration?.workspaces ?? []}
+            isValidConfiguration={connection.isValidConfiguration}
           />
         )
       },

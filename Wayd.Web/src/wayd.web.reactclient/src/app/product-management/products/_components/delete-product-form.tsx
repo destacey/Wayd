@@ -80,7 +80,7 @@ const DeleteProductForm = ({
           type="warning"
           showIcon
           title="This cannot be undone"
-          description="Its tags and status history are removed too."
+          description="Its tags, team links and status history are removed too."
         />
         <Typography.Paragraph
           type="secondary"

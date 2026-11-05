@@ -56,7 +56,7 @@ public sealed record RoadmapCreatedEvent : DomainEvent<RoadmapCreatedEvent>, IDo
     public Visibility Visibility { get; }
     public RoadmapState State { get; }
 
-    /// <summary>The employees who manage the roadmap.</summary>
+    /// <summary>The employees who own the roadmap. Named for roadmap managers, as owners were called when this event was published.</summary>
     public Guid[] ManagerIds { get; }
 
     /// <summary>The configured colors, in display order.</summary>

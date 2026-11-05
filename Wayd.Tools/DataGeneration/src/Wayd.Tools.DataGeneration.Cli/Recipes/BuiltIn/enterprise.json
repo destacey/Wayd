@@ -25,5 +25,8 @@
   },
   "planning": {
     "risksPerTeam": 2.5
+  },
+  "demandManagement": {
+    "requestsPerMonth": 40
   }
 }

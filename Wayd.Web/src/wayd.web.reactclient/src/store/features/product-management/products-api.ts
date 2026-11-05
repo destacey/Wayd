@@ -5,6 +5,7 @@ import {
   ChangeProductDependencyTermsRequest,
   ChangeProductStatusRequest,
   EndProductDependencyRequest,
+  ProductTeamLinkDto,
   ProductDependenciesDto,
   RemoveProductDependencyRequest,
   UpdateProductDependencyRequest,
@@ -64,6 +65,24 @@ export const productIdentityTags = (productId: string) => [
   { type: QueryTags.Product, id: 'LIST' },
   { type: QueryTags.Product, id: productId },
   { type: QueryTags.ProductDependency, id: 'LIST' },
+  { type: QueryTags.ProductTeamLink, id: 'LIST' },
+]
+
+export interface ProductTeamLinkMutationArgs {
+  /** The product the link is on, which on a rolled-up row is a descendant of the page's product. */
+  productId: string
+  teamId: string
+}
+
+/**
+ * Every team link list — a product's, each ancestor's rolled-up view, and the team's own — the product lists
+ * and record, which carry each product's teams, and the product's Activity.
+ */
+export const teamLinkChangeTags = (productId: string) => [
+  { type: QueryTags.ProductTeamLink, id: 'LIST' },
+  { type: QueryTags.Product, id: 'LIST' },
+  { type: QueryTags.Product, id: productId },
+  { type: QueryTags.ActivityLog, id: productId },
 ]
 
 export const productsApi = apiSlice.injectEndpoints({
@@ -347,6 +366,8 @@ export const productsApi = apiSlice.injectEndpoints({
         { type: QueryTags.Product, id: 'LIST' },
         // Deleting a product deletes the free tags only it carried.
         { type: QueryTags.ProductTag, id: 'LIST' },
+        // And its team links, which the team's list and every ancestor's rolled-up list show.
+        { type: QueryTags.ProductTeamLink, id: 'LIST' },
       ],
     }),
 
@@ -474,6 +495,94 @@ export const productsApi = apiSlice.injectEndpoints({
         dependencyChangeTags(arg.productId, arg.dependsOnProductId),
     }),
 
+    /**
+     * The teams on a product, rolled up from everything beneath it. Shares one tag with the team's own list,
+     * since a link appears on the product, every ancestor of it, and the team.
+     */
+    getProductTeams: builder.query<ProductTeamLinkDto[], string>({
+      queryFn: async (idOrKey) => {
+        try {
+          const data = await getProductsClient().getTeams(idOrKey)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: () => [{ type: QueryTags.ProductTeamLink, id: 'LIST' }],
+    }),
+    /** The products a team or team of teams is linked to. */
+    getTeamProducts: builder.query<ProductTeamLinkDto[], string>({
+      queryFn: async (teamId) => {
+        try {
+          const data = await getProductsClient().getTeamProducts(teamId)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: () => [{ type: QueryTags.ProductTeamLink, id: 'LIST' }],
+    }),
+    /** Sets a product's own teams as a whole, linking and unlinking in one change. */
+    setProductTeams: builder.mutation<
+      void,
+      { productId: string; teamIds: string[] }
+    >({
+      queryFn: async ({ productId, teamIds }) => {
+        try {
+          const data = await getProductsClient().setTeams(productId, {
+            teamIds,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) =>
+        teamLinkChangeTags(arg.productId),
+    }),
+    unlinkProductTeam: builder.mutation<void, ProductTeamLinkMutationArgs>({
+      queryFn: async ({ productId, teamId }) => {
+        try {
+          const data = await getProductsClient().unlinkTeam(productId, teamId)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, arg) =>
+        teamLinkChangeTags(arg.productId),
+    }),
+
+    /**
+     * Sets the products a team is linked to as a whole. It can touch any product, so it refreshes every product,
+     * team link list and Activity rather than naming each one.
+     */
+    setTeamProducts: builder.mutation<
+      void,
+      { teamId: string; productIds: string[] }
+    >({
+      queryFn: async ({ teamId, productIds }) => {
+        try {
+          const data = await getProductsClient().setTeamProducts(teamId, {
+            productIds,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: () => [
+        QueryTags.ProductTeamLink,
+        QueryTags.Product,
+        QueryTags.ActivityLog,
+      ],
+    }),
+
     getProductActivities: builder.query<
       PagedResponseOfActivityLogDto,
       { idOrKey: string | number; page?: number; pageSize?: number }
@@ -520,6 +629,11 @@ export const {
   useEndProductDependencyMutation,
   useChangeProductDependencyTermsMutation,
   useRemoveProductDependencyMutation,
+  useGetProductTeamsQuery,
+  useGetTeamProductsQuery,
+  useSetProductTeamsMutation,
+  useUnlinkProductTeamMutation,
+  useSetTeamProductsMutation,
   useGetProductActivitiesQuery,
   useLazyGetProductActivitiesQuery,
 } = productsApi

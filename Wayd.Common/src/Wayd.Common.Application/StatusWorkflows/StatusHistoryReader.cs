@@ -45,7 +45,7 @@ public sealed class StatusHistoryReader(
         var users = await ResolveUsers(transitions, cancellationToken);
         var employees = await ResolveEmployees(transitions, cancellationToken);
 
-        return transitions.ConvertAll(t => ToDto(t, users, employees));
+        return transitions.ConvertAll(t => ToDto(t, owner.Value, users, employees));
     }
 
     /// <summary>
@@ -125,6 +125,7 @@ public sealed class StatusHistoryReader(
 
     private static StatusTransitionDto ToDto(
         StatusTransition transition,
+        WorkflowOwnerDescriptor owner,
         Dictionary<string, UserNavigationDto> users,
         Dictionary<Guid, NavigationDto> employees)
     {
@@ -140,6 +141,7 @@ public sealed class StatusHistoryReader(
                     Id = transition.FromStatusId.Value,
                     Name = transition.FromStatusName!,
                     Category = transition.FromCategory!.Value,
+                    CategoryLabel = owner.CategoryLabel(transition.FromCategory!.Value),
                 }
                 : null,
             ToStatus = new StatusNavigationDto
@@ -147,6 +149,7 @@ public sealed class StatusHistoryReader(
                 Id = transition.ToStatusId,
                 Name = transition.ToStatusName,
                 Category = transition.ToCategory,
+                CategoryLabel = owner.CategoryLabel(transition.ToCategory),
                 Alias = transition.ToAlias,
             },
             WorkflowId = transition.WorkflowId,

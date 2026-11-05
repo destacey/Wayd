@@ -9,6 +9,7 @@ using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.ArchitectureTests.Helpers;
 using Wayd.Common.Domain.Activities;
 using Wayd.Common.Domain.AppIntegrations;
+using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.Following;
@@ -27,6 +28,7 @@ using Wayd.Planning.Domain.Models.Roadmaps;
 using Wayd.Planning.Domain.Models.StoryMaps;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.DemandManagement.Domain.Models;
+using Wayd.DemandManagement.Domain.Models.Estimation;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Scoring;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
@@ -71,14 +73,19 @@ public partial class EventCoverageTests
         typeof(WorkdayConnection),
 
         // Common
+        typeof(DiscussionChannel),
+        typeof(DiscussionMessage),
+        typeof(DiscussionSettings),
         typeof(Employee),
         typeof(ExternalIdentityMapping),
         typeof(OidcProvider),
         typeof(PersonalAccessToken),
+        typeof(RecordType),
         typeof(ScoringModel),
         typeof(StatusWorkflow),
         typeof(SystemSettingsSection),
         typeof(WorkflowAssignment),
+        typeof(StatusWorkflowScheme),
 
         // Demand Management
         typeof(IntakeChannel),
@@ -94,6 +101,7 @@ public partial class EventCoverageTests
         typeof(TeamOfTeams),
 
         // Planning
+        typeof(EstimationScale),
         typeof(PlanningInterval),
         typeof(PlanningIntervalObjective),
         typeof(Risk),
@@ -177,6 +185,7 @@ public partial class EventCoverageTests
         ["AzureDevOpsBoardsConnection.UpdateWorkProcessIntegrationState(IntegrationRegistration<Guid, Guid>, Instant)"] = "#956.",
         ["AzureDevOpsBoardsConnection.ClearWorkProcessIntegrationState(Guid, Instant)"] = "#956.",
         ["AzureDevOpsBoardsConnection.UpdateWorkspaceIntegrationState(IntegrationRegistration<Guid, Guid>, Instant)"] = "#956.",
+        ["AzureDevOpsBoardsConnection.SetWorkspaceSync(Guid, Boolean)"] = "#956.",
     };
 
     /// <summary>
@@ -199,11 +208,13 @@ public partial class EventCoverageTests
             "A drafting canvas of fine-grained edits whose current state is the artifact.",
 
         // Copies built from another module's events, which are their history.
+        [typeof(DemandEstimationScale)] = "A copy of Planning's EstimationScale.",
         [typeof(DemandProject)] = "A copy of PPM's Project.",
         [typeof(PlanningSprint)] = "A copy of Work's Iteration.",
         [typeof(PlanningTeam)] = "A copy of Organization's team.",
         [typeof(PpmStrategicTheme)] = "A copy of Strategic Management's StrategicTheme.",
         [typeof(PpmTeam)] = "A copy of Organization's team.",
+        [typeof(ProductTeam)] = "A copy of Organization's team.",
         [typeof(WorkProject)] = "A copy of PPM's Project.",
         [typeof(WorkTeam)] = "A copy of Organization's team.",
         [typeof(User)] = "A read-only view over the Identity user, whose ApplicationUser raises the events.",
@@ -231,7 +242,6 @@ public partial class EventCoverageTests
         // Not yet evented: each awaits the issue it names.
         [typeof(Strategy)] = "#951.",
         [typeof(Vision)] = "#951.",
-        [typeof(EstimationScale)] = "#952.",
         [typeof(ExpenditureCategory)] = "#952.",
         [typeof(FeatureFlag)] = "#952.",
         [typeof(Link)] = "#952.",
@@ -256,10 +266,12 @@ public partial class EventCoverageTests
     {
         [typeof(EmployeeTeamAllocation)] = typeof(EmployeeCapacity),
         [typeof(EmployeeTimeAway)] = typeof(EmployeeCapacity),
+        [typeof(EstimationScaleVersion)] = typeof(EstimationScale),
         [typeof(ImportProcessRow)] = typeof(ImportProcess),
         [typeof(PlanningIntervalIterationSprint)] = typeof(PlanningInterval),
         [typeof(PlanningIntervalObjectiveHealthCheck)] = typeof(PlanningIntervalObjective),
         [typeof(ProductDependency)] = typeof(Product),
+        [typeof(ProductTeamLink)] = typeof(Product),
         [typeof(IncidentSeverityLevel)] = typeof(IncidentSeveritySet),
         [typeof(ProductTagAssignment)] = typeof(Product),
         [typeof(ProjectHealthCheck)] = typeof(Project),
@@ -273,6 +285,7 @@ public partial class EventCoverageTests
         [typeof(ReleaseVersion)] = typeof(Release),
         [typeof(TeamMember)] = typeof(BaseTeam),
         [typeof(TeamOperatingModel)] = typeof(Team),
+        [typeof(StatusWorkflowSchemeEntry)] = typeof(StatusWorkflowScheme),
         [typeof(WorkflowStatus)] = typeof(StatusWorkflow),
         [typeof(WorkItemDependency)] = typeof(WorkItem),
         [typeof(WorkItemHierarchy)] = typeof(WorkItem),
@@ -284,10 +297,14 @@ public partial class EventCoverageTests
     /// </summary>
     private static readonly Dictionary<string, string> SetBasedWriteMigrations = new()
     {
+        ["20261101202418_Assign-WorkflowSchemes-To-Scopes.cs"] =
+            "Points each assignment at an implicit default-only scheme for the workflow it already had; no scope's workflow changed: #1232.",
         ["20260926204406_Store-ReleasePackage-ReleasedAt-As-Instant.cs"] =
             "Retypes ReleasedDate to the ReleasedAt instant, carrying each value across; no fact about a package changed: #929.",
         ["20260926212850_Store-Version-Cut-And-Released-As-Instants.cs"] =
             "Retypes CutDate and ReleasedDate to the CutAt and ReleasedAt instants, carrying each value across; no fact about a version changed: #929.",
+        ["20261101221206_Version-Estimation-Scales.cs"] =
+            "Moves each scale's values onto version 1, and Down moves the current version's back, before the scale raised any event; no fact about a scale changed: #1254.",
     };
 
     /// <summary>

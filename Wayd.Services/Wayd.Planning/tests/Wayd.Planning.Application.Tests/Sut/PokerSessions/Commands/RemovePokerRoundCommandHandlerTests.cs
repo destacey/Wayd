@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
 
 public class RemovePokerRoundCommandHandlerTests : IDisposable
 {
+    private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly RemovePokerRoundCommandHandler _handler;
     private readonly Mock<ILogger<RemovePokerRoundCommandHandler>> _mockLogger;
@@ -23,7 +24,7 @@ public class RemovePokerRoundCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<RemovePokerRoundCommandHandler>>();
         _mockNotifier = new Mock<IPokerSessionNotifier>();
 
-        _handler = new RemovePokerRoundCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new RemovePokerRoundCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
         _sessionFaker = new PokerSessionFaker();
     }
 
@@ -34,7 +35,7 @@ public class RemovePokerRoundCommandHandlerTests : IDisposable
         var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Round to remove");
+        session.AddRound("Round to remove", null, PokerSessionActors.Facilitator);
         var roundId = session.Rounds.First().Id;
 
         var command = new RemovePokerRoundCommand(session.Id, roundId);

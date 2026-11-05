@@ -1,6 +1,6 @@
 ﻿using FluentAssertions;
 using NodaTime;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Domain.Models;
 using Wayd.Work.Domain.Tests.Data;
 using Xunit;
@@ -55,7 +55,7 @@ public class WorkItemTagsTests
             title: "Title",
             workType: workType,
             statusId: 1,
-            statusCategory: WorkStatusCategory.Proposed,
+            statusCategory: StatusCategory.Proposed,
             parentInfo: null,
             teamId: null,
             created: _now,
@@ -93,7 +93,7 @@ public class WorkItemTagsTests
             title: "Title",
             workType: workType,
             statusId: 1,
-            statusCategory: WorkStatusCategory.Proposed,
+            statusCategory: StatusCategory.Proposed,
             parentInfo: null,
             teamId: null,
             created: _now,
@@ -130,7 +130,7 @@ public class WorkItemTagsTests
             title: "Title",
             workType: workType,
             statusId: 1,
-            statusCategory: WorkStatusCategory.Proposed,
+            statusCategory: StatusCategory.Proposed,
             parentInfo: null,
             teamId: null,
             created: _now,

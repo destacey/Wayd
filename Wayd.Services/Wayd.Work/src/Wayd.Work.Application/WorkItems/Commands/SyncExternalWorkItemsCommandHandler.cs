@@ -4,6 +4,7 @@ using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Domain.Interfaces;
@@ -42,7 +43,6 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
 
         try
         {
-            // TODO: Do we need to do anything here for work items changing workspaces?
             var workProcess = await _workDbContext.WorkProcesses
                 .AsNoTracking()
                 .Include(p => p.Schemes)
@@ -783,7 +783,7 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
             _logger.LogDebug("Synced {UpdateCount} parent project ids for workspace {WorkspaceId}.", updateCount, workspace.Id);
     }
 
-    private sealed record WorkStatusMapping(int WorkTypeId, WorkStatus WorkStatus, WorkStatusCategory WorkStatusCategory);
+    private sealed record WorkStatusMapping(int WorkTypeId, WorkStatus WorkStatus, StatusCategory WorkStatusCategory);
 
     private sealed record EmployeeIds(Guid? CreatedById, Guid? LastModifiedById, Guid? AssignedToId);
 

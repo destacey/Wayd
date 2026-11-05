@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Application.WorkItems.Dtos;
 
@@ -34,12 +35,12 @@ public sealed record WorkItemProgressDailyRollupDto : WorkItemProgressRollupDto
 
         var filteredWorkItems = workItems
             .Where(w => w.Tier == WorkTypeTier.Requirement
-                && w.StatusCategory != WorkStatusCategory.Removed) // temporary filter until we get the date from history
+                && w.StatusCategory != StatusCategory.Removed) // temporary filter until we get the date from history
             .ToArray();
 
         foreach (var workItem in filteredWorkItems)
         {
-            if ((workItem.StatusCategory is WorkStatusCategory.Done or WorkStatusCategory.Removed) && !workItem.DoneTimestamp.HasValue)
+            if ((workItem.StatusCategory is StatusCategory.Done or StatusCategory.Removed) && !workItem.DoneTimestamp.HasValue)
                 throw new ArgumentException("Work item is in a terminal state but does not have a done timestamp");
 
             var created = workItem.Created.ToDateOnly();
@@ -53,13 +54,13 @@ public sealed record WorkItemProgressDailyRollupDto : WorkItemProgressRollupDto
             int startIndex = Math.Max(0, created.DayNumber - startDate.DayNumber);
             for (int i = startIndex; i < days; i++)
             {
-                if (workItem.StatusCategory == WorkStatusCategory.Done && doneTimestamp <= data[i].Date)
+                if (workItem.StatusCategory == StatusCategory.Done && doneTimestamp <= data[i].Date)
                 {
                     data[i].Done++;
                     continue;
                 }
                 // TODO: bring this back when we get the date from history
-                //else if (workItem.StatusCategory == WorkStatusCategory.Removed && doneTimestamp <= data[i].Date)
+                //else if (workItem.StatusCategory == StatusCategory.Removed && doneTimestamp <= data[i].Date)
                 //{
                 //    // If the work item is removed before the end date, stop incrementing
                 //    break;

@@ -26,7 +26,7 @@ asks for it, bottom up:
    `Versions_Delete` and `ReleasePackages_Delete` take with them — and confirm the whole list with the
    user.
 3. Releases: for each release listing one of its versions or one of the packages from step 4, remove
-   the entry with `Releases_SetContents` (or, hosted, `Releases_PatchContents` replacing that list with
+   the entry with `Releases_SetContents` (or `Releases_PatchContents` replacing that list with
    the ids that stay) while the release is unannounced. An announced or withdrawn
    release's contents are frozen, so it can only be removed with `Releases_Delete`.
    `Releases_GetReleases` with `containingVersionId` finds a release carrying the version directly or

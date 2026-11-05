@@ -35,6 +35,12 @@ public sealed class TeamMemberImportDefinition(
     private readonly ICurrentUser _currentUser = currentUser;
 
     public override string Key => ImportKey;
+
+    /// <inheritdoc />
+    public override async Task<IReadOnlyDictionary<Guid, ImportRecordLink>> DescribeCreatedRecords(
+        IReadOnlyCollection<Guid> createdEntityIds,
+        CancellationToken cancellationToken) =>
+        await TeamImportLinks.ForTeams(_organizationDbContext, createdEntityIds, cancellationToken);
     public override string DisplayName => "Team Staffing";
     public override string PermissionAction => ApplicationAction.ManageTeamMemberships;
     public override string PermissionResource => ApplicationResource.Teams;

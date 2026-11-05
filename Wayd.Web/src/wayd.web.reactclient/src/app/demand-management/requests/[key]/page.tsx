@@ -32,9 +32,11 @@ import { requestHref } from '../../_components/intake-requests-grid'
 import AddIntakeRequestOutcomeForm from './_components/add-intake-request-outcome-form'
 import AddIntakeRequestParticipantForm from './_components/add-intake-request-participant-form'
 import ChangeIntakeRequestAssigneeForm from './_components/change-intake-request-assignee-form'
+import ChangeIntakeRequestEstimateForm from './_components/change-intake-request-estimate-form'
 import ChangeIntakeRequestStatusForm from './_components/change-intake-request-status-form'
 import EditIntakeRequestForm from './_components/edit-intake-request-form'
 import IntakeRequestDetails from './_components/intake-request-details'
+import IntakeRequestDiscussion from './_components/intake-request-discussion'
 import IntakeRequestFacts from './_components/intake-request-facts'
 import IntakeRequestOutcomes from './_components/intake-request-outcomes'
 import IntakeRequestParticipants from './_components/intake-request-participants'
@@ -49,6 +51,7 @@ import IntakeRequestDetailsLoading from './loading'
 
 enum RequestSection {
   Details = 'details',
+  Discussion = 'discussion',
   Outcomes = 'outcomes',
   Participants = 'participants',
   Score = 'score',
@@ -66,6 +69,7 @@ type RequestDialog =
   | 'withdraw'
   | 'manage-tags'
   | 'score'
+  | 'change-estimate'
 
 /** The query parameter a redirected duplicate's number arrives in, so its surviving request can say why. */
 const DUPLICATE_PARAM = 'duplicate'
@@ -147,6 +151,17 @@ const IntakeRequestDetailsPage = (props: {
 
   const sections: RecordSection[] = [
     { id: RequestSection.Details, label: 'Details' },
+    // Replies are substance, read by the rule the description is; a summary-only reader has no conversation.
+    ...(substance
+      ? [
+          // Draws its own heading, with its counts and filters beside it.
+          {
+            id: RequestSection.Discussion,
+            label: 'Discussion',
+            hideHeading: true,
+          },
+        ]
+      : []),
     // Summary tier: everyone who sees the request sees what it became.
     {
       id: RequestSection.Outcomes,
@@ -186,6 +201,15 @@ const IntakeRequestDetailsPage = (props: {
             key: 'change-assignee',
             label: 'Change Assignee',
             onClick: () => setDialog('change-assignee'),
+          },
+        ]
+      : []),
+    ...(request.canChangeEstimate
+      ? [
+          {
+            key: 'change-estimate',
+            label: 'Change Estimate',
+            onClick: () => setDialog('change-estimate'),
           },
         ]
       : []),
@@ -272,6 +296,10 @@ const IntakeRequestDetailsPage = (props: {
             }
           />
         )
+      case RequestSection.Discussion:
+        return substance ? (
+          <IntakeRequestDiscussion request={request} substance={substance} />
+        ) : null
       case RequestSection.Outcomes:
         return <IntakeRequestOutcomes request={request} />
       case RequestSection.StatusHistory:
@@ -385,6 +413,13 @@ const IntakeRequestDetailsPage = (props: {
       )}
       {dialog === 'change-assignee' && request.canChangeAssignee && (
         <ChangeIntakeRequestAssigneeForm
+          request={request}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'change-estimate' && request.canChangeEstimate && (
+        <ChangeIntakeRequestEstimateForm
           request={request}
           onFormComplete={() => setDialog(null)}
           onFormCancel={() => setDialog(null)}

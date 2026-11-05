@@ -168,7 +168,7 @@ public sealed class SyncAzureDevOpsConnectionConfigurationCommandHandler(IAppInt
     {
         var config = new AzureDevOpsBoardsConnectionConfiguration(connection.Configuration.Organization, connection.Configuration.PersonalAccessToken);
 
-        var systemIdResult = await _azureDevOpsService.GetSystemId(new AzureDevOpsConnectionContext(config.OrganizationUrl, config.PersonalAccessToken), cancellationToken);
+        var systemIdResult = await _azureDevOpsService.GetSystemId(new AzureDevOpsConnectionContext(config.Organization, config.PersonalAccessToken), cancellationToken);
         if (systemIdResult.IsFailure)
         {
             _logger.LogError("Unable to get system id for Azure DevOps connection {ConnectionId}. {Error}", connection.Id, systemIdResult.Error);

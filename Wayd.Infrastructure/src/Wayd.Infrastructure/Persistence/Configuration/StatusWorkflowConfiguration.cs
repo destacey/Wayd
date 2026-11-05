@@ -20,6 +20,9 @@ public class StatusWorkflowConfiguration : IEntityTypeConfiguration<StatusWorkfl
         builder.HasIndex(w => new { w.OwnerType, w.State })
             .IncludeProperties(w => new { w.Id, w.Key, w.Name, w.IsSystem });
 
+        // A source identifies each of its workflows once; owned workflows have no external key.
+        builder.HasIndex(w => new { w.OwnerType, w.ExternalKey }).IsUnique().WhereNotNull("ExternalKey");
+
         builder.Property(w => w.Id).ValueGeneratedNever();
         builder.Property(w => w.Key).ValueGeneratedOnAdd();
 
@@ -38,6 +41,13 @@ public class StatusWorkflowConfiguration : IEntityTypeConfiguration<StatusWorkfl
             .HasMaxLength(32);
 
         builder.Property(w => w.IsSystem).IsRequired();
+
+        builder.Property(w => w.Ownership).IsRequired()
+            .HasConversion<EnumConverter<WorkflowOwnership>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
+        builder.Property(w => w.ExternalKey).HasMaxLength(256);
 
         builder.Property(w => w.TransitionMode).IsRequired()
             .HasConversion<EnumConverter<TransitionMode>>()
@@ -64,6 +74,8 @@ public class StatusWorkflowConfiguration : IEntityTypeConfiguration<StatusWorkfl
         builder.Ignore(w => w.InitialStatus);
         builder.Ignore(w => w.SupportsRestrictedTransitions);
         builder.Ignore(w => w.EnforcesTransitions);
+        builder.Ignore(w => w.IsManaged);
+        builder.Ignore(w => w.ActiveStatuses);
     }
 }
 
@@ -135,7 +147,14 @@ public class WorkflowStatusConfiguration : IEntityTypeConfiguration<WorkflowStat
 
         builder.HasKey(s => s.Id);
 
-        builder.HasIndex(s => new { s.WorkflowId, s.Name }).IsUnique();
+        // Owned statuses only. A managed workflow's names are kept unique by StatusWorkflow, which refuses
+        // a source listing a name twice: SQL Server checks a unique index after each row's UPDATE, so a
+        // sync that swaps two names, or gives one the name of a status it retires, could never be saved.
+        // Retired statuses are always managed, so they may share a name with the one that replaced them.
+        builder.HasIndex(s => new { s.WorkflowId, s.Name }).IsUnique().HasFilter("[ExternalKey] IS NULL");
+
+        // Unique with retired statuses included, so a status the source brings back is reinstated.
+        builder.HasIndex(s => new { s.WorkflowId, s.ExternalKey }).IsUnique().WhereNotNull("ExternalKey");
 
         // Filtered so many statuses may carry NoAlias while a real alias stays unique per workflow.
         builder.HasIndex(s => new { s.WorkflowId, s.Alias })
@@ -160,6 +179,8 @@ public class WorkflowStatusConfiguration : IEntityTypeConfiguration<WorkflowStat
 
         builder.Property(s => s.Order).IsRequired();
         builder.Property(s => s.IsSystem).IsRequired();
+        builder.Property(s => s.ExternalKey).HasMaxLength(256);
+        builder.Property(s => s.IsRetired).IsRequired();
     }
 }
 
@@ -175,7 +196,7 @@ public class WorkflowAssignmentConfiguration : IEntityTypeConfiguration<Workflow
         // which SQL Server would otherwise allow to duplicate since NULLs do not compare equal.
         builder.HasIndex(a => new { a.OwnerType, a.ScopeId }).IsUnique().WhereNotNull("ScopeId");
         builder.HasIndex(a => a.OwnerType).IsUnique().WhereNull("ScopeId");
-        builder.HasIndex(a => a.WorkflowId);
+        builder.HasIndex(a => a.SchemeId);
 
         builder.Property(a => a.Id).ValueGeneratedNever();
         builder.Property(a => a.OwnerType).IsRequired().HasColumnType("varchar").HasMaxLength(64);
@@ -183,11 +204,119 @@ public class WorkflowAssignmentConfiguration : IEntityTypeConfiguration<Workflow
         // No foreign key: what a scope is differs per owner type, so no one table could be referenced.
         builder.Property(a => a.ScopeId);
 
-        builder.Property(a => a.WorkflowId).IsRequired();
+        builder.Property(a => a.SchemeId).IsRequired();
+
+        builder.HasOne(a => a.Scheme)
+            .WithMany()
+            .HasForeignKey(a => a.SchemeId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class RecordTypeConfiguration : IEntityTypeConfiguration<RecordType>
+{
+    public void Configure(EntityTypeBuilder<RecordType> builder)
+    {
+        builder.ToTable("RecordTypes", SchemaNames.StatusWorkflows);
+
+        builder.HasKey(r => r.Id);
+        builder.HasAlternateKey(r => r.Key);
+
+        // Unique among active types: a source that drops a type and later re-creates it under a new key,
+        // or a type retired so another can take its name, must not be refused for an inactive one.
+        builder.HasIndex(r => new { r.OwnerType, r.Name }).IsUnique().HasFilter("[IsActive] = 1");
+
+        // A source identifies each of its types once; owned types have no external key.
+        builder.HasIndex(r => new { r.OwnerType, r.ExternalKey }).IsUnique().WhereNotNull("ExternalKey");
+
+        builder.Property(r => r.Id).ValueGeneratedNever();
+        builder.Property(r => r.Key).ValueGeneratedOnAdd();
+
+        builder.Property(r => r.OwnerType).IsRequired().HasColumnType("varchar").HasMaxLength(64);
+        builder.Property(r => r.Name).IsRequired().HasMaxLength(128);
+
+        builder.Property(r => r.Ownership).IsRequired()
+            .HasConversion<EnumConverter<WorkflowOwnership>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
+        builder.Property(r => r.ExternalKey).HasMaxLength(256);
+        builder.Property(r => r.IsActive).IsRequired();
+    }
+}
+
+public class StatusWorkflowSchemeConfiguration : IEntityTypeConfiguration<StatusWorkflowScheme>
+{
+    public void Configure(EntityTypeBuilder<StatusWorkflowScheme> builder)
+    {
+        builder.ToTable("WorkflowSchemes", SchemaNames.StatusWorkflows);
+
+        builder.HasKey(s => s.Id);
+        builder.HasAlternateKey(s => s.Key);
+
+        builder.HasIndex(s => new { s.OwnerType, s.ExternalKey }).IsUnique().WhereNotNull("ExternalKey");
+
+        // One implicit scheme per workflow, shared by every scope that picks the workflow directly.
+        builder.HasIndex(s => s.DefaultWorkflowId, "IX_WorkflowSchemes_DefaultWorkflowId_Implicit")
+            .IsUnique()
+            .HasFilter("[IsImplicit] = 1");
+        builder.HasIndex(s => s.DefaultWorkflowId);
+
+        builder.Property(s => s.Id).ValueGeneratedNever();
+        builder.Property(s => s.Key).ValueGeneratedOnAdd();
+
+        builder.Property(s => s.OwnerType).IsRequired().HasColumnType("varchar").HasMaxLength(64);
+        builder.Property(s => s.Name).IsRequired().HasMaxLength(128);
+        builder.Property(s => s.Description).HasMaxLength(1024);
+
+        builder.Property(s => s.Ownership).IsRequired()
+            .HasConversion<EnumConverter<WorkflowOwnership>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
+        builder.Property(s => s.ExternalKey).HasMaxLength(256);
+        builder.Property(s => s.IsImplicit).IsRequired();
+        builder.Property(s => s.DefaultWorkflowId).IsRequired();
 
         builder.HasOne<StatusWorkflow>()
             .WithMany()
-            .HasForeignKey(a => a.WorkflowId)
+            .HasForeignKey(s => s.DefaultWorkflowId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(s => s.Entries)
+            .WithOne()
+            .HasForeignKey(e => e.SchemeId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(s => s.Entries).HasField("_entries").UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class StatusWorkflowSchemeEntryConfiguration : IEntityTypeConfiguration<StatusWorkflowSchemeEntry>
+{
+    public void Configure(EntityTypeBuilder<StatusWorkflowSchemeEntry> builder)
+    {
+        builder.ToTable("WorkflowSchemeEntries", SchemaNames.StatusWorkflows);
+
+        builder.HasKey(e => e.Id);
+
+        builder.HasIndex(e => new { e.SchemeId, e.RecordTypeId }).IsUnique();
+        builder.HasIndex(e => e.WorkflowId);
+        builder.HasIndex(e => e.RecordTypeId);
+
+        builder.Property(e => e.Id).ValueGeneratedNever();
+        builder.Property(e => e.SchemeId).IsRequired();
+        builder.Property(e => e.RecordTypeId).IsRequired();
+        builder.Property(e => e.WorkflowId).IsRequired();
+
+        builder.HasOne<RecordType>()
+            .WithMany()
+            .HasForeignKey(e => e.RecordTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<StatusWorkflow>()
+            .WithMany()
+            .HasForeignKey(e => e.WorkflowId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -12,6 +12,7 @@ namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
 
 public class WithdrawVoteCommandHandlerTests : IDisposable
 {
+    private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly WithdrawVoteCommandHandler _handler;
     private readonly Mock<ILogger<WithdrawVoteCommandHandler>> _mockLogger;
@@ -28,8 +29,9 @@ public class WithdrawVoteCommandHandlerTests : IDisposable
         _mockNotifier = new Mock<IPokerSessionNotifier>();
         _mockCurrentUser = new Mock<ICurrentUser>();
         _mockCurrentUser.Setup(u => u.GetUserId()).Returns(_currentUserId);
+        _access.Actor = PokerSessionActors.Voter(_currentUserId);
 
-        _handler = new WithdrawVoteCommandHandler(_dbContext, _mockCurrentUser.Object, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new WithdrawVoteCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
         _sessionFaker = new PokerSessionFaker();
     }
 
@@ -37,12 +39,14 @@ public class WithdrawVoteCommandHandlerTests : IDisposable
     public async Task Handle_ShouldWithdrawVote_WhenVoteExists()
     {
         // Arrange
-        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
+        var scale = new EstimationScaleFaker().Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Story");
+        session.AddRound("Story", null, PokerSessionActors.Facilitator);
         var round = session.Rounds.First();
-        session.SubmitVote(round.Id, _currentUserId, "8", new EstimationScaleFaker().WithId(session.EstimationScaleId).Generate(), Instant.FromUtc(2026, 1, 15, 9, 0));
+        session.SubmitVote(round.Id, "8", scale.CurrentVersion, PokerSessionActors.Voter(_currentUserId), Instant.FromUtc(2026, 1, 15, 9, 0));
 
         var command = new WithdrawVoteCommand(session.Id, round.Id);
 
@@ -60,10 +64,12 @@ public class WithdrawVoteCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenNoVoteExists()
     {
         // Arrange
-        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).Generate();
+        var scale = new EstimationScaleFaker().Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Story");
+        session.AddRound("Story", null, PokerSessionActors.Facilitator);
         var round = session.Rounds.First();
 
         var command = new WithdrawVoteCommand(session.Id, round.Id);

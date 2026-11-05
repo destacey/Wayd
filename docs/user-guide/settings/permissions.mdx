@@ -28,15 +28,15 @@ Permissions are named `Permissions.{Resource}.{Action}` and follow a consistent 
 | `Run` | Trigger an operation — for example running or requeuing a [background job](./index.mdx#background-jobs) |
 | `Manage` | Create, update and delete in one permission — used for planning interval objectives |
 | `Search` / `Export` | Search or export users |
-| `Administer` | Domain-wide administrative standing (see [PPM Administrator](#ppm-administrator)) |
+| `Administer` | Domain-wide administrative standing (see [PPM Administrator](#ppm-administrator), [Planning Poker](#planning-poker-facilitators-and-invites), [Story Maps](#story-maps-owners-and-editors) and [Roadmaps](#roadmaps-owners)) |
 
 Some resources add specific actions — `Permissions.Projects.ManageProjectWorkItems`, `Permissions.Teams.ManageTeamMemberships` and `Permissions.RateLimits.Elevated`.
 
-The server checks a user's permissions against their current roles on every request, so a role or permission change applies to what they can do straight away. The one exception is [`Permissions.RateLimits.Elevated`](#elevated-rate-limits), which by default takes up to five minutes. The menus and buttons the app shows are decided by the permissions carried in the user's sign-in token, so they catch up on the user's next token refresh.
+The server checks a user's permissions against their current roles on every request, so a role or permission change applies to what they can do straight away. That includes live updates: someone with a planning poker session or story map open stops receiving its changes as soon as they lose its `View` permission or their account is deactivated, or, for a private poker session or story map, as soon as it stops admitting them. The one exception is [`Permissions.RateLimits.Elevated`](#elevated-rate-limits), which by default takes up to five minutes. The menus and buttons the app shows are decided by the permissions carried in the user's sign-in token, so they catch up on the user's next token refresh.
 
 ## Permission catalogue
 
-Every permission Wayd defines, as **Settings → Access → Roles** groups them. The seeded **Admin** role holds all of them.
+Every permission Wayd defines, as **Settings → Access → Roles** groups them. The seeded **Admin** role holds all of them; for everyone else, see [a baseline role for everyone](./index.mdx#a-baseline-role-for-everyone).
 
 | Category | Resource | Permissions |
 |---|---|---|
@@ -68,9 +68,9 @@ Every permission Wayd defines, as **Settings → Access → Roles** groups them.
 | Planning | `PlanningIntervals` | `View`, `Create`, `Update`, `Delete`, `Import` |
 | Planning | `PlanningIntervalObjectives` | `View`, `Manage`, `Import` |
 | Planning | `Risks` | `View`, `Create`, `Update`, `Delete`, `Import` |
-| Planning | `Roadmaps` | `View`, `Create`, `Update`, `Delete` |
-| Planning | `PokerSessions` | `View`, `Create`, `Update`, `Delete` |
-| Planning | `StoryMaps` | `View`, `Create`, `Update`, `Delete` |
+| Planning | `Roadmaps` | `View`, `Create`, `Administer` (see [Roadmaps](#roadmaps-owners)) |
+| Planning | `PokerSessions` | `View`, `Create`, `Administer` (see [Planning Poker](#planning-poker-facilitators-and-invites)) |
+| Planning | `StoryMaps` | `View`, `Create`, `Administer` (see [Story Maps](#story-maps-owners-and-editors)) |
 | Planning | `EstimationScales` | `View`, `Create`, `Update`, `Delete` |
 | Project Portfolio Management | `ProjectPortfolioManagement` | `Administer` (see [PPM Administrator](#ppm-administrator)) |
 | Project Portfolio Management | `ExpenditureCategories` | `View`, `Create`, `Update`, `Delete` |
@@ -166,6 +166,56 @@ The seeded **Admin** role includes this permission.
 
 Viewing sprints needs only `Permissions.Iterations.View`.
 
+## Planning Poker: facilitators and invites
+
+A [planning poker session](../planning/planning-poker.mdx#poker-sessions) is run by its facilitators, and a private one admits only the people it names, so poker has three permissions.
+
+| Who | What they can do | How they get it |
+|---|---|---|
+| `Permissions.PokerSessions.View` | See public sessions and the private ones they are admitted to; join them, and vote or turn voting off | A role |
+| `Permissions.PokerSessions.Create` | Create a session, becoming its first facilitator | A role |
+| A **facilitator** of a session | Run it — rounds, reveals, re-votes and accepted estimates — edit it, change its facilitators, visibility and invites, complete it and delete it | Named on the session, with `View` |
+| `Permissions.PokerSessions.Administer` | What a facilitator can do, in every session, private ones included | A role |
+
+A private session admits its facilitators, the employees invited to it, and the members of the teams invited to it, including members of an invited team's current team of teams. An invite never replaces the `View` permission. Every poker action but reading needs an account linked to an employee, because facilitators, invitees and members are employees.
+
+Live updates follow the same rule: changing a session's visibility or invites disconnects anyone it no longer admits. Someone who leaves an invited team keeps their open connection until they next open the session.
+
+The seeded **Admin** role includes `Administer`.
+
+## Story Maps: owners and editors
+
+A [story map](../planning/story-maps.mdx#who-can-see-and-edit-a-map) is managed by its owners, and its visibility and edit access decide who else can see and change it, so Story Maps has three permissions.
+
+| Who | What they can do | How they get it |
+|---|---|---|
+| `Permissions.StoryMaps.View` | See public maps and the private ones they are on. Change the content of a public map open to anyone who can view it | A role |
+| `Permissions.StoryMaps.Create` | Create a map, becoming its first owner | A role |
+| An **editor** of a map | Change its content — goals, steps, tasks, swim lanes, personas, checklists and work item links — and see it when it is private | Named on the map, or a member of a team named on it, with `View` |
+| An **owner** of a map | What an editor can do, and edit its name and description, archive and delete it, and change its owners, editors, visibility and who can edit | Named on the map, with `View` |
+| `Permissions.StoryMaps.Administer` | What an owner can do, on every map, private ones included | A role |
+
+A team named as an editor brings in its current members and the members of its current team of teams. Being named on a map never replaces the `View` permission. Every story map change needs an account linked to an employee, because owners and editors are employees.
+
+Live updates follow the same rule: changing a map's visibility, owners or editors disconnects anyone it no longer admits. Someone who leaves an editor team keeps their open connection until they next open the map.
+
+The seeded **Admin** role includes `Administer`.
+
+## Roadmaps: owners
+
+A [roadmap](../planning/roadmaps.mdx) is changed only by its owners, so Roadmaps has three permissions.
+
+| Who | What they can do | How they get it |
+|---|---|---|
+| `Permissions.Roadmaps.View` | See public roadmaps and the private ones they own | A role |
+| `Permissions.Roadmaps.Create` | Create or copy a roadmap, becoming one of its owners | A role |
+| An **owner** of a roadmap | Edit its details, owners and visibility, configure its colors, archive, activate and delete it, and add, change and delete its items | Named on the roadmap, with `View` |
+| `Permissions.Roadmaps.Administer` | What an owner can do, on every roadmap, private ones included | A role |
+
+An owner must keep themselves among the owners when editing a roadmap; an administrator need not be an owner at all. Being named on a roadmap never replaces the `View` permission. Every roadmap change needs an account linked to an employee, because owners are employees.
+
+The seeded **Admin** role includes `Administer`.
+
 ## Demand Management: desk roles
 
 [Demand Management](../demand-management/index.mdx) works differently from the rest of Wayd: a permission says what you can do anywhere, a role on a desk says what you can do on that desk, and no action needs both. Most of what happens to a request is decided by desk roles, so Demand Management has only two permissions.
@@ -235,3 +285,7 @@ To restore access for someone who needs it, either:
 - Grant them **`Permissions.ProjectPortfolioManagement.Administer`** if they legitimately administer delivery across the domain.
 
 Members of the seeded **Admin** role are unaffected — it includes the administrator permission.
+
+**Story maps are managed by their owners after upgrading.** `Permissions.StoryMaps.Update` and `Permissions.StoryMaps.Delete` are removed, and the upgrade deletes them from every role; roles that held them are given nothing in their place. Every existing map becomes public and editable by anyone who can view it, so anyone with `View` can still change its content. Each map's owner becomes its only owner when their account is linked to an employee; a map whose owner had no linked employee has no owner, and only a holder of `Permissions.StoryMaps.Administer` can archive, delete or share it, or name a new owner.
+
+**Roadmap managers are now called owners.** `Permissions.Roadmaps.Update` and `Permissions.Roadmaps.Delete` are removed, and the upgrade deletes them from every role; roles that held them are given nothing in their place. Every roadmap keeps its managers as its owners, and owners can change their roadmaps with `View` alone. To let someone manage roadmaps they do not own, grant `Permissions.Roadmaps.Administer`.

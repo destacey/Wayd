@@ -39,6 +39,7 @@ const request = (
       id: 's-1',
       name: 'Waiting on Requester',
       category: StatusCategory.Proposed,
+      categoryLabel: 'Proposed',
       alias: 2,
     },
     needBy,
@@ -73,6 +74,49 @@ const renderGrid = (requests: IntakeRequestSummaryDto[]) =>
 describe('IntakeRequestsGrid', () => {
   beforeEach(() => {
     mockClaims = new Set()
+  })
+
+  it('shows an Estimate column only when given the estimates', () => {
+    // Arrange
+    const requests = [request(1, 'Sized'), request(2, 'Unsized')]
+    const estimates = new Map([
+      [
+        'r-1',
+        {
+          value: 'XL',
+          position: 4,
+          scale: {
+            id: 's-1',
+            key: 1,
+            name: 'T-Shirt Sizes',
+            versionId: 'v-1',
+            versionNumber: 1,
+            isCurrentVersion: true,
+          },
+        },
+      ],
+    ])
+
+    // Act
+    const { unmount } = renderGrid(requests)
+    const withoutColumn = screen.queryByText('Estimate')
+    unmount()
+    render(
+      <IntakeRequestsGrid
+        requests={requests}
+        estimates={estimates}
+        isLoading={false}
+        refetch={() => {}}
+        needByBases={BASES}
+        persistStateKey="test-requests"
+        csvFileName="requests"
+      />,
+    )
+
+    // Assert
+    expect(withoutColumn).not.toBeInTheDocument()
+    expect(screen.getByText('Estimate')).toBeInTheDocument()
+    expect(screen.getByText('XL')).toBeInTheDocument()
   })
 
   it('links the desk to its page for every reader', () => {

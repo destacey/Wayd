@@ -5,7 +5,7 @@ using Wayd.Common.Domain.Enums.DemandManagement;
 namespace Wayd.Common.Domain.Events.DemandManagement;
 
 /// <summary>
-/// An accepted intake request was recorded as becoming a project.
+/// An accepted intake request was recorded as becoming a project or work item.
 /// </summary>
 /// <remarks>
 /// <see cref="TargetIds"/> is every target the request points at afterwards, which a consumer keeping a copy
@@ -21,7 +21,7 @@ public sealed record IntakeRequestOutcomeAddedEvent : DomainEvent<IntakeRequestO
     [JsonConstructor]
     public IntakeRequestOutcomeAddedEvent(Guid id, int key, IntakeRequestOutcomeKind kind, Guid targetId, string? note,
         Guid[] targetIds, EventActor actor, Instant timestamp)
-        : base(actor, "1.0")
+        : base(actor, "1.1")
     {
         Id = id;
         Key = key;
@@ -37,11 +37,14 @@ public sealed record IntakeRequestOutcomeAddedEvent : DomainEvent<IntakeRequestO
     public int Key { get; }
     /// <summary>What the request became.</summary>
     public IntakeRequestOutcomeKind Kind { get; }
-    /// <summary>The project added.</summary>
+    /// <summary>The project or work item added; <see cref="Kind"/> says which.</summary>
     public Guid TargetId { get; }
     /// <summary>What the outcome covers, in the agent's words.</summary>
     public string? Note { get; }
-    /// <summary>Every target the request points at after the change.</summary>
+    /// <summary>
+    /// Every target the request points at after the change, projects and work items together; since 1.1 it
+    /// may hold work item ids, which no 1.0 payload carries.
+    /// </summary>
     public Guid[] TargetIds { get; }
 
     [JsonIgnore]

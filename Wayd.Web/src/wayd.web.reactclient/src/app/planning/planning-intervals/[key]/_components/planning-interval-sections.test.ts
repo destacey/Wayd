@@ -15,11 +15,12 @@ describe('planningIntervalSections', () => {
       PlanningIntervalSections.Objectives,
       PlanningIntervalSections.Risks,
       PlanningIntervalSections.Backlog,
+      PlanningIntervalSections.Dependencies,
       PlanningIntervalSections.Activities,
     ])
   })
 
-  it('offers Capacity after the Backlog when capacity is shown', () => {
+  it('offers Capacity after Dependencies when capacity is shown', () => {
     // Arrange / Act
     const sections = planningIntervalSections(true)
 
@@ -30,6 +31,7 @@ describe('planningIntervalSections', () => {
       PlanningIntervalSections.Objectives,
       PlanningIntervalSections.Risks,
       PlanningIntervalSections.Backlog,
+      PlanningIntervalSections.Dependencies,
       PlanningIntervalSections.Capacity,
       PlanningIntervalSections.Activities,
     ])

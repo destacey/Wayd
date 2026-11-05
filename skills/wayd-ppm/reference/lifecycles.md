@@ -2,8 +2,6 @@
 
 A **lifecycle** is a reusable template of ordered stages. Assigning one to a project creates the project's own **stages** from it, and every task sits in one of those stages. The template and the project's stages are separate records: editing a project stage never changes the template, and a template can be edited only before anyone can use it.
 
-Every tool here that changes something is offered only by the hosted endpoint (`/mcp`).
-
 ## A project's lifecycle
 
 | Goal                                  | Tool                                                          |
@@ -27,7 +25,7 @@ Both take the project's UUID, need an **Active** lifecycle, are rejected for a c
 
 ## Updating a project stage
 
-When `Projects_PatchStage` is available, use it for a partial change (see [tasks.md](tasks.md)). Otherwise `Projects_UpdateStage` overwrites the whole stage:
+Use `Projects_PatchStage` for a partial change (see [tasks.md](tasks.md)). To replace the whole stage, `Projects_UpdateStage` overwrites every field:
 
 1. Read it with `Projects_GetProjectStage` (project UUID and stage UUID).
 2. Send back every field: `description` (required), `status` = `status.id` (a task status id from `Tasks_GetTaskStatuses`), `plannedStart` and `plannedEnd` = `start` and `end` (both or neither), `progress`, and `assigneeIds` = every `assignees[].id`.

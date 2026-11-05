@@ -35,6 +35,7 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
                 Owner = new WorkflowOwnerNavigationDto { Key = owner.Key, Name = owner.DisplayName },
                 State = nameof(StatusWorkflowState.Published),
                 IsSystem = false,
+                Ownership = WorkflowOwnership.Owned,
                 IsAssigned = false,
                 Statuses = [],
                 TransitionMode = TransitionMode.AnyToAny,
@@ -47,6 +48,8 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
                 MissingRequiredCategories = [],
                 MisfiledAliases = [],
                 CanEdit = false,
+                CanReclassify = false,
+                Warnings = [],
                 CanPublish = false,
                 CanArchive = false,
             });

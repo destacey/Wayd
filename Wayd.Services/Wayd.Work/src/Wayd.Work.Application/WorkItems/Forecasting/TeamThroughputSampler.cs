@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Domain.Models.Forecasting;
 
@@ -50,7 +51,7 @@ internal sealed class TeamThroughputSampler(IWorkDbContext workDbContext)
         var completions = await _workDbContext.WorkItems
             .Where(w => w.TeamId.HasValue && teamIds.Contains(w.TeamId.Value))
             .Where(w => w.Type.Level!.Tier == WorkTypeTier.Requirement)
-            .Where(w => w.StatusCategory == WorkStatusCategory.Done)
+            .Where(w => w.StatusCategory == StatusCategory.Done)
             .Where(w => w.DoneTimestamp >= start && w.DoneTimestamp < end)
             .Select(w => new { TeamId = w.TeamId!.Value, DoneTimestamp = w.DoneTimestamp!.Value })
             .ToListAsync(cancellationToken);

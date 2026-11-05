@@ -4,7 +4,11 @@ import { FC, useMemo, useState } from 'react'
 import { Alert, Flex, Segmented, Typography } from 'antd'
 import Link from 'next/link'
 import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
-import { WaydGrid } from '@/src/components/common/wayd-grid'
+import {
+  WaydGrid,
+  WaydGridPager,
+  useGridPaging,
+} from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import {
   ImportProcessDto,
@@ -17,10 +21,11 @@ import {
   importRowStatusLabel,
   isRunning,
 } from './import-status-tag'
-
-// The server caps a row page at 500. One max-size page, filtered client-side, matching the other
-// settings grids.
-const ROW_PAGE_SIZE = 500
+import {
+  importRecordHref,
+  importRecordLabel,
+  importRecordText,
+} from './import-record-link'
 
 const POLLING_INTERVAL_MS = 5000
 
@@ -33,6 +38,7 @@ export interface ImportDetailsProps {
 /** The outcome of one run: its counts, why it stopped if it did, and every row. */
 const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
   const [chosenFilter, setChosenFilter] = useState<RowFilter | null>(null)
+  const paging = useGridPaging()
 
   const running = isRunning(importProcess.status)
   const { isPreflight } = importProcess
@@ -44,11 +50,27 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
     chosenFilter ??
     (importProcess.failedRowCount > 0 ? ImportRowStatus.Failed : 'all')
 
-  const { data: rows, isLoading: rowsLoading } = useGetImportProcessRowsQuery(
+  // The default filter moves to Failed on its own when a running import rejects its first row, so the
+  // page is reset on any change of the filter in effect, not only on a click. Page 7 of all rows is not
+  // page 7 of the rejected ones.
+  const [pagedFilter, setPagedFilter] = useState<RowFilter>(rowFilter)
+  if (pagedFilter !== rowFilter) {
+    setPagedFilter(rowFilter)
+    paging.resetPage()
+  }
+
+  // `currentData` for the rows and `data` for the pager, so a page or filter still loading shows no rows
+  // rather than the last one's under its label.
+  const {
+    data: lastRows,
+    currentData: rows,
+    isFetching: rowsFetching,
+  } = useGetImportProcessRowsQuery(
     {
       importProcessId: importProcess.id,
       status: rowFilter === 'all' ? undefined : rowFilter,
-      pageSize: ROW_PAGE_SIZE,
+      page: paging.page,
+      pageSize: paging.pageSize,
       runStatus: importProcess.status,
     },
     {
@@ -71,6 +93,30 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
         header: 'Import Id',
         size: 160,
       },
+      // A preflight's records were rolled back, so it has nothing to link to.
+      ...(isPreflight
+        ? []
+        : [
+            {
+              id: 'createdRecord',
+              accessorFn: (row) => importRecordText(row),
+              header: 'Wayd Record',
+              size: 240,
+              cell: ({ row }) => {
+                const { createdRecord } = row.original
+                if (!createdRecord)
+                  return (
+                    <Typography.Text type="secondary">
+                      {importRecordText(row.original)}
+                    </Typography.Text>
+                  )
+
+                const label = importRecordLabel(createdRecord)
+                const href = importRecordHref(createdRecord)
+                return href ? <Link href={href}>{label}</Link> : label
+              },
+            } satisfies ColumnDef<ImportProcessRowDto, any>,
+          ]),
       {
         id: 'status',
         accessorFn: (row) => importRowStatusLabel(row.status, isPreflight),
@@ -106,7 +152,7 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
     [isPreflight],
   )
 
-  const rowOverflow = rows && rows.totalCount > rows.rows.length
+  paging.keepInRange(lastRows?.totalPages)
 
   return (
     // A plain block, not a Flex column: WaydGrid takes its height from an inline pixel value that the
@@ -220,18 +266,18 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
 
       <WaydGrid
         columns={columns}
-        data={rows?.rows}
-        isLoading={rowsLoading}
+        data={rows?.items}
+        isLoading={!rows && rowsFetching}
         persistStateKey="settings-imports-rows"
         csvFileName="import-rows"
         initialSorting={[{ id: 'rowNumber', desc: false }]}
         emptyMessage="No rows match this filter."
-        leftSlot={
-          rowOverflow ? (
-            <Typography.Text type="warning">
-              {`Showing the first ${rows.rows.length} of ${rows.totalCount} rows.`}
-            </Typography.Text>
-          ) : undefined
+        rightSlot={
+          <WaydGridPager
+            paging={paging}
+            totalCount={lastRows?.totalCount}
+            noun="rows"
+          />
         }
       />
     </div>

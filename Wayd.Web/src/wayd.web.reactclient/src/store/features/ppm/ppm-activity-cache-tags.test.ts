@@ -1,5 +1,5 @@
 import { QueryTags } from '../query-tags'
-import { ppmActivityTag } from './ppm-activity-tags'
+import { ppmActivityTag, projectActivityTags } from './ppm-activity-tags'
 
 /**
  * Pins the cache entry a change to a PPM record has to refresh.
@@ -41,5 +41,17 @@ describe('ppm activity cache tags', () => {
     // Assert
     expect(projectTag.type).toBe(portfolioTag.type)
     expect(portfolioTag.id).toBe(portfolioId)
+  })
+
+  it("refreshes a project's conversation along with its activity log", () => {
+    // Arrange / Act
+    const tags = projectActivityTags(RECORD_ID)
+
+    // Assert — the conversation shows the project's changes between its
+    // messages, and who may moderate it follows the project's roles.
+    expect(tags).toEqual([
+      { type: QueryTags.ActivityLog, id: RECORD_ID },
+      { type: QueryTags.Discussion, id: `ppm.project:${RECORD_ID}` },
+    ])
   })
 })

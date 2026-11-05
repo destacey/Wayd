@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Wayd client
 
-The root [AGENTS.md](../../../AGENTS.md) covers the client's conventions (API calls, theming, dates, state). These are the traps that cost real time here; none of them fail a build or a jsdom test.
+The root [AGENTS.md](../../../AGENTS.md) covers the client's conventions (API calls, theming, dates, state). **Before building UI, read [Design System](../../../docs/contributing/design-system.mdx)**: the page types, the reference file to copy for each, and which component to use. The traps below cost real time here; unless a bullet says otherwise, none of them fail a build or a jsdom test.
 
 ### React Compiler and TanStack Table
 
@@ -20,10 +20,11 @@ The root [AGENTS.md](../../../AGENTS.md) covers the client's conventions (API ca
 ### Components
 
 - **`Wayd*` marks a house component**, whether it wraps a library or is fully custom (`WaydDateRange` wraps nothing). Reach for one before the library it wraps, and keep the prefix when a component stops wrapping anything.
-- **Never import antd `List`** — antd 6 deprecated it; use `WaydList` (`src/components/common/wayd-list.tsx`), the single place to swap when its replacement ships. `Form.List` is a different component and is fine.
+- **Lint rejects antd `Table` and `List`.** Use `WaydGrid` (`variant="simple"` outside list pages) and `WaydList`. `legacyAntdTableFiles` in `eslint.config.mjs` only shrinks — never add a file to it.
 - **WaydGrid must be a block-level child.** As a flex item of a container with no defined height (`<Flex vertical>` inside a card body), it collapses to its toolbar: the virtualizer sees a 0px viewport and renders no rows while the toolbar still counts them. An explicit `height` does not help. Mirror `src/app/account/profile/claims-grid.tsx`.
 - **A controlled `Popover`/`Dropdown` flickers when its trigger DOM node is replaced** between renders — rc-trigger reads the remount as a click outside, whatever `open` says. Keep one stable trigger element and swap only its children; it shows up only when a state boundary is crossed.
 - **Charts in a record page need `autoFit: true` and `useChartRemountOnResize()`** (`@/src/hooks`). G2 re-fits only on a window resize, so opening the facts rail or collapsing the sider never reaches it. Attach the hook's ref to a wrapper and pass `renderKey` as the chart's `key`.
+- **The Tiptap editor (`markdown/wysiwyg/`) is created once.** Pass `useEditor` an extensions array from `useState(markdownEditorExtensions)`: a new array on each render makes Tiptap reconfigure the editor. The compiler's lint forbids writing to the returned `editor` in the component, so a setting changed by props goes through a helper in another module (`setMarkdownLengthLimit`), as does a write to an element reached through a ref (`restoreRefusedInput`). Keep the `@tiptap/*` packages on one exact version; see [The document editor](../../../docs/contributing/frontend.mdx#the-document-editor) for why.
 - **Sort user-facing strings with `caseInsensitiveCompare`** (from the `@/src/components/common/wayd-grid` barrel), never a plain `.sort()`, which puts every capitalized value first.
 
 ### API client

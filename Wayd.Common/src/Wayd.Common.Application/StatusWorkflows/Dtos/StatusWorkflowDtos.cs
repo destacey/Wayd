@@ -15,6 +15,11 @@ public sealed record StatusWorkflowListDto
 
     public required string State { get; init; }
     public required bool IsSystem { get; init; }
+
+    /// <summary>Whether administrators author this workflow, or a sync keeps it from its source.</summary>
+    public required WorkflowOwnership Ownership { get; init; }
+
+    /// <summary>How many statuses a record can be given, leaving out those the source retired.</summary>
     public required int StatusCount { get; init; }
 
     /// <summary>Whether any scope currently uses this workflow. Archiving is refused while it does.</summary>
@@ -27,7 +32,10 @@ public sealed record WorkflowStatusDto
     public required Guid Id { get; init; }
     public required string Name { get; init; }
     public string? Description { get; init; }
-    /// <summary>The rollup this status belongs to, as id and display name.</summary>
+    /// <summary>
+    /// The rollup this status belongs to: the category's id, and its name as the workflow's owner type
+    /// labels it.
+    /// </summary>
     public required SimpleNavigationDto Category { get; init; }
 
     /// <summary>The well-known meaning, or zero for none.</summary>
@@ -37,6 +45,15 @@ public sealed record WorkflowStatusDto
     public string? AliasName { get; init; }
 
     public required int Order { get; init; }
+
+    /// <summary>The source's identifier for this status when its workflow is managed; null when owned.</summary>
+    public string? ExternalKey { get; init; }
+
+    /// <summary>
+    /// Whether the source dropped this status. Records that hold it still show it, but no record can be
+    /// given it again.
+    /// </summary>
+    public required bool IsRetired { get; init; }
 }
 
 /// <summary>A move a workflow allows, from one of its statuses to another.</summary>
@@ -97,7 +114,19 @@ public sealed record StatusWorkflowDetailsDto
     public required WorkflowOwnerNavigationDto Owner { get; init; }
     public required string State { get; init; }
     public required bool IsSystem { get; init; }
+
+    /// <summary>
+    /// Whether administrators author this workflow, or a sync keeps it from its source. A managed
+    /// workflow's statuses follow the source; only their categories and aliases are edited here.
+    /// </summary>
+    public required WorkflowOwnership Ownership { get; init; }
+
+    /// <summary>The source's identifier for this workflow when it is managed; null when owned.</summary>
+    public string? ExternalKey { get; init; }
+
     public required bool IsAssigned { get; init; }
+
+    /// <summary>Every status in display order, retired ones last and flagged.</summary>
     public required IReadOnlyCollection<WorkflowStatusDto> Statuses { get; init; }
 
     /// <summary>
@@ -169,6 +198,18 @@ public sealed record StatusWorkflowDetailsDto
     /// </remarks>
     public required bool CanEdit { get; init; }
 
+    /// <summary>
+    /// Whether a status's category and alias may be changed: on a draft owned workflow, and on a managed one
+    /// until it is archived. Retired statuses never.
+    /// </summary>
+    public required bool CanReclassify { get; init; }
+
+    /// <summary>
+    /// What a check found wrong that does not stop this workflow being used, one sentence each. Only a
+    /// managed workflow has any: it syncs regardless, and administration flags it until they are fixed.
+    /// </summary>
+    public required IReadOnlyCollection<string> Warnings { get; init; }
+
     public required bool CanPublish { get; init; }
     public required bool CanArchive { get; init; }
 }
@@ -201,8 +242,30 @@ public sealed record WorkflowOwnerTypeDto
     /// <summary>The categories a workflow must have at least one status in before it can be published.</summary>
     public required IReadOnlyCollection<StatusCategory> RequiredCategories { get; init; }
 
+    /// <summary>
+    /// Whether this owner type's records come in record types that a workflow scheme can send to different
+    /// workflows. When false, its scopes pick a workflow and administration shows no schemes.
+    /// </summary>
+    public bool HasRecordTypes { get; init; }
+
     /// <summary>Whether a workflow for this owner type may restrict which moves its records make.</summary>
     public required bool SupportsRestrictedTransitions { get; init; }
+
+    /// <summary>
+    /// What this owner type calls each category, one entry per category in category order. A category
+    /// it declares no label for carries the category's own name.
+    /// </summary>
+    public required IReadOnlyCollection<StatusCategoryLabelDto> CategoryLabels { get; init; }
+}
+
+/// <summary>One category and what an owner type calls it.</summary>
+public sealed record StatusCategoryLabelDto
+{
+    /// <summary>The category being named.</summary>
+    public required StatusCategory Category { get; init; }
+
+    /// <summary>What the owner type calls the category, or the category's own name when it declares none.</summary>
+    public required string Label { get; init; }
 }
 
 /// <summary>A well-known meaning a status of one owner type can carry.</summary>

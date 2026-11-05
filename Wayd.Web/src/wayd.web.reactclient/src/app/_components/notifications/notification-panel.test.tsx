@@ -52,6 +52,8 @@ const arrange = (items: NotificationDto[], unreadCount = 0) => {
 describe('NotificationPanel', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    // jest.setup's stub has no backing store; each test says what was stored.
+    jest.mocked(window.localStorage.getItem).mockReset()
   })
 
   it('asks for the newest ten entries and the count, both refetched on every opening', () => {
@@ -122,6 +124,41 @@ describe('NotificationPanel', () => {
       { refetchOnMountOrArgChange: true },
     )
     expect(screen.getByText(NothingUnreadMessage)).toBeInTheDocument()
+  })
+
+  it('remembers the tab the reader chose', () => {
+    // Arrange
+    arrange([])
+    render(<NotificationPanel onClose={jest.fn()} />)
+
+    // Act
+    fireEvent.click(screen.getByRole('radio', { name: 'Unread' }))
+
+    // Assert
+    expect(window.localStorage.setItem).toHaveBeenLastCalledWith(
+      'wayd.notifications.panelView',
+      '"unread"',
+    )
+  })
+
+  it('opens on the tab the reader last chose', () => {
+    // Arrange
+    arrange([])
+    jest
+      .mocked(window.localStorage.getItem)
+      .mockImplementation((key) =>
+        key === 'wayd.notifications.panelView' ? '"unread"' : null,
+      )
+
+    // Act
+    render(<NotificationPanel onClose={jest.fn()} />)
+
+    // Assert
+    expect(screen.getByRole('radio', { name: 'Unread' })).toBeChecked()
+    expect(mockUseList).toHaveBeenCalledWith(
+      { unreadOnly: true, pageSize: 10 },
+      { refetchOnMountOrArgChange: true },
+    )
   })
 
   it('marks everything read', () => {

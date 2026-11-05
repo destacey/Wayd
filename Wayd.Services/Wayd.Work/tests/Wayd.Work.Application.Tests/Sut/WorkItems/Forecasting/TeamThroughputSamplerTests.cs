@@ -1,6 +1,6 @@
 ﻿using FluentAssertions;
 using NodaTime;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.Tests.Infrastructure;
 using Wayd.Work.Application.WorkItems.Forecasting;
 using Wayd.Work.Domain.Models;
@@ -15,7 +15,7 @@ public sealed class TeamThroughputSamplerTests
     private static readonly LocalDate _to = new(2026, 9, 5);
     private static readonly WorkType _story = new WorkTypeFaker().AsStory().Generate();
 
-    private static WorkItem CompletedItem(Guid? teamId, Instant doneTimestamp, WorkType? type = null, WorkStatusCategory statusCategory = WorkStatusCategory.Done) =>
+    private static WorkItem CompletedItem(Guid? teamId, Instant doneTimestamp, WorkType? type = null, StatusCategory statusCategory = StatusCategory.Done) =>
         new WorkItemFaker()
             .WithType(type ?? _story)
             .WithTeamId(teamId)
@@ -78,7 +78,7 @@ public sealed class TeamThroughputSamplerTests
         context.AddWorkItems(
         [
             CompletedItem(team, done),
-            CompletedItem(team, done, statusCategory: WorkStatusCategory.Removed),
+            CompletedItem(team, done, statusCategory: StatusCategory.Removed),
             CompletedItem(team, done, type: new WorkTypeFaker().AsOther().Generate()),
             CompletedItem(Guid.NewGuid(), done),
             CompletedItem(null, done),

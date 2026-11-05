@@ -8,9 +8,6 @@ public sealed class AzureDevOpsBoardsConnectionConfiguration
 {
     // TODO: .net 8 provides improved json serialization options for unmapped properties
 
-    // TODO: Move _baseUrl to a configuration file.
-    private readonly string _baseUrl = "https://dev.azure.com";
-
     public AzureDevOpsBoardsConnectionConfiguration() { }
 
     [SetsRequiredMembers]
@@ -31,9 +28,6 @@ public sealed class AzureDevOpsBoardsConnectionConfiguration
     /// <value>The personal access token that enables access to Azure DevOps data.</value>
     [Encrypted]
     public required string PersonalAccessToken { get; set; }
-
-    public string OrganizationUrl
-        => $"{_baseUrl}/{Organization}";
 
     /// <summary>Gets the workspaces.</summary>
     /// <value>The workspaces.</value>

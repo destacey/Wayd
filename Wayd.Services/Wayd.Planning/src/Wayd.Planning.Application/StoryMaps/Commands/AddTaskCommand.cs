@@ -3,7 +3,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record AddTaskCommand(Guid StoryMapId, Guid StepId, string Title, Guid? SwimLaneId) : ICommand<StoryMapTaskDto>;
+public sealed record AddTaskCommand(Guid StoryMapId, Guid StepId, string Title, Guid? SwimLaneId) : ICommand<StoryMapTaskDto>, IRequireLinkedEmployee;
 
 public sealed class AddTaskCommandValidator : CustomValidator<AddTaskCommand>
 {
@@ -20,9 +20,10 @@ public sealed class AddTaskCommandValidator : CustomValidator<AddTaskCommand>
     }
 }
 
-public sealed class AddTaskCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<AddTaskCommandHandler> logger) : ICommandHandler<AddTaskCommand, StoryMapTaskDto>
+public sealed class AddTaskCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<AddTaskCommandHandler> logger) : ICommandHandler<AddTaskCommand, StoryMapTaskDto>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<AddTaskCommandHandler> _logger = logger;
 
@@ -31,6 +32,7 @@ public sealed class AddTaskCommandHandler(IPlanningDbContext planningDbContext, 
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
                 .Include(m => m.SwimLanes)
                 .AsSplitQuery()
@@ -39,7 +41,9 @@ public sealed class AddTaskCommandHandler(IPlanningDbContext planningDbContext, 
             if (map is null)
                 return Result.Failure<StoryMapTaskDto>("Story map not found.");
 
-            var result = map.AddTask(request.StepId, request.Title, request.SwimLaneId);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.AddTask(request.StepId, request.Title, request.SwimLaneId, actor);
             if (result.IsFailure)
                 return Result.Failure<StoryMapTaskDto>(result.Error);
 
@@ -50,7 +54,7 @@ public sealed class AddTaskCommandHandler(IPlanningDbContext planningDbContext, 
 
             return Result.Success(dto);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

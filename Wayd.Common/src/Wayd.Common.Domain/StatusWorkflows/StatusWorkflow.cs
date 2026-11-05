@@ -35,18 +35,21 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     private const string NotArchivableError = "Only published workflows can be archived.";
     private const string AlreadyPublishedError = "The workflow is already published.";
     private const string ArchivedError = "An archived workflow cannot be modified.";
+    private const string ManagedError = "A managed workflow takes its statuses from its source. Only their categories and aliases can be changed here.";
 
     private readonly List<WorkflowStatus> _statuses = [];
     private readonly List<WorkflowTransition> _transitions = [];
 
     private StatusWorkflow() { }
 
-    private StatusWorkflow(string name, string? description, string ownerType, bool isSystem)
+    private StatusWorkflow(string name, string? description, string ownerType, bool isSystem, WorkflowOwnership ownership = WorkflowOwnership.Owned, string? externalKey = null)
     {
         Name = name;
         Description = description;
         OwnerType = ownerType;
         IsSystem = isSystem;
+        Ownership = ownership;
+        ExternalKey = externalKey;
         State = StatusWorkflowState.Draft;
     }
 
@@ -98,9 +101,34 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     public bool IsSystem { get; private init; }
 
     /// <summary>
-    /// The statuses in this workflow, in display order.
+    /// Whether administrators author this workflow, or a sync keeps it from its source.
+    /// </summary>
+    /// <remarks>
+    /// A managed workflow's statuses come from the source and change only through
+    /// <see cref="SyncFromSource"/>; administrators edit only what Wayd adds, each status's category and
+    /// alias. It never restricts transitions, and its checks apply as <see cref="WorkflowCheckRules"/> says.
+    /// </remarks>
+    public WorkflowOwnership Ownership { get; private init; } = WorkflowOwnership.Owned;
+
+    /// <summary>
+    /// The source's identifier for this workflow when it is managed, or <c>null</c> when it is owned. Unique
+    /// per owner type; the sync namespaces it by its connection.
+    /// </summary>
+    public string? ExternalKey { get; private init; }
+
+    /// <summary>Whether a sync keeps this workflow.</summary>
+    public bool IsManaged => Ownership == WorkflowOwnership.Managed;
+
+    /// <summary>
+    /// The statuses in this workflow, in display order, retired ones included so that records holding them
+    /// still resolve.
     /// </summary>
     public IReadOnlyCollection<WorkflowStatus> Statuses => _statuses.OrderBy(s => s.Order).ToList().AsReadOnly();
+
+    /// <summary>
+    /// The statuses a record can be given, in display order: every status except those the source retired.
+    /// </summary>
+    public IReadOnlyCollection<WorkflowStatus> ActiveStatuses => _statuses.Where(s => !s.IsRetired).OrderBy(s => s.Order).ToList().AsReadOnly();
 
     /// <summary>
     /// Whether a record may move between any two statuses, or only along <see cref="Transitions"/>.
@@ -138,12 +166,13 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// The statuses a record holding <paramref name="fromStatusId"/> may move to, in display order.
     /// </summary>
     /// <remarks>
-    /// Excludes the status itself, which is not a move. Under enforced transitions a status from another
-    /// workflow has no allowed moves, matching what <see cref="StatusTrackedEntity"/> would refuse.
+    /// Excludes the status itself, which is not a move, and retired statuses, which no record can be given.
+    /// Under enforced transitions a status from another workflow has no allowed moves, matching what
+    /// <see cref="StatusTrackedEntity"/> would refuse.
     /// </remarks>
     public IReadOnlyList<WorkflowStatus> AllowedTargets(Guid fromStatusId)
     {
-        var targets = _statuses.Where(s => s.Id != fromStatusId);
+        var targets = _statuses.Where(s => s.Id != fromStatusId && !s.IsRetired);
 
         if (EnforcesTransitions)
         {
@@ -168,10 +197,10 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// from, and what each of those moves needs, so the record can enforce both without loading the
     /// workflow.
     /// </summary>
-    /// <returns><c>null</c> when the status does not belong to this workflow.</returns>
+    /// <returns><c>null</c> when the status does not belong to this workflow or is retired.</returns>
     public StatusRef? TargetRef(Guid statusId)
     {
-        var status = _statuses.SingleOrDefault(s => s.Id == statusId);
+        var status = _statuses.SingleOrDefault(s => s.Id == statusId && !s.IsRetired);
         if (status is null)
         {
             return null;
@@ -193,15 +222,26 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// The lookup every aggregate uses instead of naming a status.
     /// </summary>
     public WorkflowStatus? StatusFor(int alias) =>
-        alias == NoAlias ? null : _statuses.SingleOrDefault(s => s.Alias == alias);
+        alias == NoAlias ? null : _statuses.SingleOrDefault(s => s.Alias == alias && !s.IsRetired);
+
+    /// <summary>
+    /// Where a record holding a status of another workflow lands when it moves onto this one by itself, as
+    /// when its record type changes: the status carrying the same alias, otherwise the lowest-ordered
+    /// status in the same category.
+    /// </summary>
+    /// <returns><c>null</c> when this workflow has neither, so the caller has to choose.</returns>
+    public WorkflowStatus? LandingStatusFor(int alias, StatusCategory category) =>
+        StatusFor(alias)
+        ?? _statuses.Where(s => s.Category == category && !s.IsRetired).OrderBy(s => s.Order).FirstOrDefault();
 
     /// <summary>
     /// The default status for a newly created record: the lowest-ordered
     /// <see cref="StatusCategory.Proposed"/> status, or the lowest-ordered status when none is proposed.
+    /// Never a retired one.
     /// </summary>
     public WorkflowStatus? InitialStatus =>
-        _statuses.Where(s => s.Category == StatusCategory.Proposed).OrderBy(s => s.Order).FirstOrDefault()
-        ?? _statuses.OrderBy(s => s.Order).FirstOrDefault();
+        _statuses.Where(s => s.Category == StatusCategory.Proposed && !s.IsRetired).OrderBy(s => s.Order).FirstOrDefault()
+        ?? _statuses.Where(s => !s.IsRetired).OrderBy(s => s.Order).FirstOrDefault();
 
     /// <summary>
     /// The aliases this workflow's owner type cannot function without, from its registered descriptor.
@@ -291,11 +331,12 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             : null;
 
     /// <summary>
-    /// The categories this workflow's owner type requires that no status here belongs to, in category order.
+    /// The categories this workflow's owner type requires that no active status here belongs to, in category
+    /// order. A retired status does not count: no record can be given it.
     /// </summary>
     public IReadOnlyList<StatusCategory> MissingRequiredCategories() =>
         WorkflowOwners.Resolve(OwnerType) is { IsSuccess: true } descriptor
-            ? [.. descriptor.Value.RequiredCategories.Where(c => _statuses.All(s => s.Category != c))]
+            ? [.. descriptor.Value.RequiredCategories.Where(c => _statuses.All(s => s.IsRetired || s.Category != c))]
             : [];
 
     /// <summary>
@@ -317,7 +358,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
 
         return [.. _statuses
             .OrderBy(s => s.Order)
-            .Where(s => !descriptor.Fits(s.Alias, s.Category))
+            .Where(s => !s.IsRetired && !descriptor.Fits(s.Alias, s.Category))
             .Select(s => descriptor.AliasCategories.TryGetValue(s.Alias, out var expected)
                 ? $"'{s.Name}' means {descriptor.DescribeAlias(s.Alias)}, which belongs under {expected}, not {s.Category}. Move it to {expected} or clear its meaning."
                 : $"'{s.Name}' carries a meaning {descriptor.DisplayName} statuses do not have. Clear its meaning or remove it.")];
@@ -331,6 +372,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         if (IsSystem)
         {
             return Result.Failure("System workflows cannot be modified. Clone this workflow to change it.");
+        }
+
+        if (IsManaged)
+        {
+            return Result.Failure("A managed workflow takes its name from its source.");
         }
 
         if (State == StatusWorkflowState.Archived)
@@ -362,6 +408,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         if (IsSystem)
         {
             return Result.Failure<WorkflowStatus>("System workflows cannot be modified. Clone this workflow to change it.");
+        }
+
+        if (IsManaged)
+        {
+            return Result.Failure<WorkflowStatus>(ManagedError);
         }
 
         if (State != StatusWorkflowState.Draft)
@@ -411,6 +462,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("System workflows cannot be modified. Clone this workflow to change it.");
         }
 
+        if (IsManaged)
+        {
+            return Result.Failure(ManagedError);
+        }
+
         if (State != StatusWorkflowState.Draft)
         {
             return Result.Failure(NotDraftError);
@@ -447,6 +503,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         if (IsSystem)
         {
             return Result.Failure("System workflows cannot be modified. Clone this workflow to change it.");
+        }
+
+        if (IsManaged)
+        {
+            return Result.Failure(ManagedError);
         }
 
         if (State == StatusWorkflowState.Archived)
@@ -499,6 +560,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// publish for want of a required alias would otherwise need the offending status deleted and
     /// re-added, losing its description and its position.
     /// </para>
+    /// <para>
+    /// A managed workflow is the exception: its category mapping and aliases are what Wayd adds to its
+    /// source's statuses, so they change while it is published. The <see cref="WorkflowStatusReclassifiedEvent"/>
+    /// carries the owner type, so the owning module re-stamps the denormalized category on its records.
+    /// </para>
     /// </remarks>
     public Result ReclassifyStatus(Guid statusId, StatusCategory category, int alias, EventActor actor, Instant timestamp)
     {
@@ -507,15 +573,20 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("System workflows cannot be modified. Clone this workflow to change it.");
         }
 
-        if (State != StatusWorkflowState.Draft)
+        if (IsManaged ? State == StatusWorkflowState.Archived : State != StatusWorkflowState.Draft)
         {
-            return Result.Failure(NotDraftError);
+            return Result.Failure(IsManaged ? ArchivedError : NotDraftError);
         }
 
         var status = _statuses.SingleOrDefault(s => s.Id == statusId);
         if (status is null)
         {
             return Result.Failure("Status not found.");
+        }
+
+        if (status.IsRetired)
+        {
+            return Result.Failure($"'{status.Name}' is retired, so no record can be given it.");
         }
 
         if (alias != NoAlias && _statuses.Any(s => s.Id != statusId && s.Alias == alias))
@@ -558,6 +629,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         if (IsSystem)
         {
             return Result.Failure("System workflows cannot be modified. Clone this workflow to change it.");
+        }
+
+        if (IsManaged)
+        {
+            return Result.Failure(ManagedError);
         }
 
         if (State == StatusWorkflowState.Archived)
@@ -731,6 +807,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("System workflows are published by the seeder that creates them.");
         }
 
+        if (IsManaged)
+        {
+            return Result.Failure("A managed workflow is published by the sync that creates it.");
+        }
+
         if (State == StatusWorkflowState.Published)
         {
             return Result.Failure(AlreadyPublishedError);
@@ -780,6 +861,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("System workflows cannot be archived.");
         }
 
+        if (IsManaged)
+        {
+            return Result.Failure("A managed workflow stays in use while its source keeps it.");
+        }
+
         if (State != StatusWorkflowState.Published)
         {
             return Result.Failure(NotArchivableError);
@@ -801,12 +887,16 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// Copies this workflow into an editable draft — the route by which a seeded default is diverged
     /// from, keeping the originals safe to reseed on upgrade.
     /// </summary>
+    /// <remarks>
+    /// The copy is always owned. Cloning a managed workflow leaves its retired statuses and its source keys
+    /// behind: the copy is Wayd's own, and nothing syncs it.
+    /// </remarks>
     public StatusWorkflow Clone(string name, string? description, EventActor actor, Instant timestamp)
     {
         var clone = new StatusWorkflow(name, description ?? Description, OwnerType, isSystem: false);
 
         var cloneStatusIds = new Dictionary<Guid, Guid>();
-        foreach (var status in _statuses.OrderBy(s => s.Order))
+        foreach (var status in _statuses.Where(s => !s.IsRetired).OrderBy(s => s.Order))
         {
             var copy = new WorkflowStatus(clone.Id, status.Name, status.Description, status.Category, status.Alias, status.Order);
             clone._statuses.Add(copy);
@@ -814,7 +904,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         }
 
         clone.TransitionMode = TransitionMode;
-        foreach (var transition in _transitions)
+        foreach (var transition in _transitions.Where(t => cloneStatusIds.ContainsKey(t.FromStatusId) && cloneStatusIds.ContainsKey(t.ToStatusId)))
         {
             clone._transitions.Add(new WorkflowTransition(
                 clone.Id, cloneStatusIds[transition.FromStatusId], cloneStatusIds[transition.ToStatusId], transition.ConditionKinds()));
@@ -836,6 +926,213 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     public static Result<StatusWorkflow> CreateSystem(string name, string? description, string ownerType, EventActor actor, Instant timestamp) =>
         Create(name, description, ownerType, isSystem: true, actor, timestamp);
+
+    /// <summary>
+    /// Creates the published mirror of a source system's workflow, identified there by
+    /// <paramref name="externalKey"/>, holding <paramref name="statuses"/> in the source's order.
+    /// </summary>
+    /// <remarks>
+    /// Published at once, because records synced from the source need it now. Its checks only warn
+    /// (<see cref="WorkflowCheckRules"/>): a source workflow with no status in a required category still
+    /// syncs, and administration flags it. The statuses arrive with the source's suggested categories and no
+    /// aliases, which administrators add.
+    /// </remarks>
+    public static Result<StatusWorkflow> CreateManaged(
+        string name, string ownerType, string externalKey, IReadOnlyList<SourceStatus> statuses, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.NullOrWhiteSpace(externalKey, nameof(externalKey));
+        Guard.Against.Null(statuses, nameof(statuses));
+
+        var descriptor = WorkflowOwners.Resolve(ownerType);
+        if (descriptor.IsFailure)
+        {
+            return Result.Failure<StatusWorkflow>(descriptor.Error);
+        }
+
+        if (!descriptor.Value.HasManagedWorkflows)
+        {
+            return Result.Failure<StatusWorkflow>($"{descriptor.Value.DisplayName} workflows are not kept by a sync.");
+        }
+
+        var invalid = ValidateSourceStatuses(statuses);
+        if (invalid.IsFailure)
+        {
+            return Result.Failure<StatusWorkflow>(invalid.Error);
+        }
+
+        var workflow = new StatusWorkflow(name, description: null, descriptor.Value.Key, isSystem: false, WorkflowOwnership.Managed, externalKey.Trim());
+
+        for (var i = 0; i < statuses.Count; i++)
+        {
+            var source = statuses[i];
+            workflow._statuses.Add(new WorkflowStatus(
+                workflow.Id, source.Name.Trim(), description: null, source.Category, NoAlias, i + 1, externalKey: source.ExternalKey.Trim()));
+        }
+
+        var publishable = workflow.GuardPublishable();
+        if (publishable.IsFailure)
+        {
+            return Result.Failure<StatusWorkflow>(publishable.Error);
+        }
+
+        workflow.RaiseCreated(sourceWorkflowId: null, actor, timestamp);
+        workflow.MarkPublished(actor, timestamp);
+
+        return Result.Success(workflow);
+    }
+
+    /// <summary>
+    /// Brings a managed workflow into line with its source: <paramref name="statuses"/> is every status the
+    /// source has now, in its order. Matched by <see cref="SourceStatus.ExternalKey"/>, a status is renamed,
+    /// added, retired when the source has dropped it, or reinstated when the source brings it back.
+    /// </summary>
+    /// <remarks>
+    /// The only way a managed workflow's structure changes. It never refuses for what the source holds: a
+    /// source with no status in a required category still syncs, and <see cref="CheckIssues"/> reports it.
+    /// <para>
+    /// Only the source's facts are applied. An existing status keeps the category and alias administrators
+    /// gave it, whatever category the source now suggests. A retired status keeps its place after the active
+    /// ones and loses its alias, so the meaning can move to a status records can still be given.
+    /// </para>
+    /// </remarks>
+    public Result SyncFromSource(string name, IReadOnlyList<SourceStatus> statuses, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(statuses, nameof(statuses));
+
+        if (!IsManaged)
+        {
+            return Result.Failure("Only a managed workflow is kept by a sync.");
+        }
+
+        if (State == StatusWorkflowState.Archived)
+        {
+            return Result.Failure(ArchivedError);
+        }
+
+        var invalid = ValidateSourceStatuses(statuses);
+        if (invalid.IsFailure)
+        {
+            return invalid;
+        }
+
+        var before = new WorkflowDetails(Name, Description);
+        Name = name;
+        var after = new WorkflowDetails(Name, Description);
+        if (before != after)
+        {
+            AddKeyedDomainEvent(() => new WorkflowDetailsUpdatedEvent(Id, Key, after.Name, after.Description, before, actor, timestamp));
+        }
+
+        var previousOrder = StatusOrder();
+        var byKey = _statuses.Where(s => s.ExternalKey is not null).ToDictionary(s => s.ExternalKey!, StringComparer.OrdinalIgnoreCase);
+        var incomingKeys = statuses.Select(s => s.ExternalKey.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var dropped in _statuses.Where(s => !s.IsRetired && s.ExternalKey is not null && !incomingKeys.Contains(s.ExternalKey)).ToList())
+        {
+            RetireStatus(dropped, actor, timestamp);
+        }
+
+        var added = new List<WorkflowStatus>();
+        var sourceOrder = new List<WorkflowStatus>();
+        foreach (var source in statuses)
+        {
+            if (byKey.TryGetValue(source.ExternalKey.Trim(), out var status))
+            {
+                if (status.IsRetired)
+                {
+                    status.Reinstate();
+                    var (statusId, statusKey) = (status.Id, status.ExternalKey!);
+                    AddKeyedDomainEvent(() => new WorkflowStatusReinstatedEvent(Id, Key, statusId, statusKey, actor, timestamp));
+                }
+
+                ApplySourceName(status, source.Name, actor, timestamp);
+            }
+            else
+            {
+                status = new WorkflowStatus(Id, source.Name.Trim(), description: null, source.Category, NoAlias, order: 0, externalKey: source.ExternalKey.Trim());
+                _statuses.Add(status);
+                added.Add(status);
+            }
+
+            sourceOrder.Add(status);
+        }
+
+        var retired = _statuses.Where(s => s.IsRetired).OrderBy(s => s.Order).ToList();
+        var position = 1;
+        foreach (var status in sourceOrder.Concat(retired))
+        {
+            status.Reorder(position++);
+        }
+
+        foreach (var status in added)
+        {
+            RaiseStatusAdded(status, actor, timestamp);
+        }
+
+        // Compared over the statuses that were already here, so adding one is not also reported as a reorder.
+        Guid[] order = [.. StatusOrder().Where(previousOrder.Contains)];
+        if (!previousOrder.SequenceEqual(order))
+        {
+            AddKeyedDomainEvent(() => new WorkflowStatusesReorderedEvent(Id, Key, previousOrder, order, actor, timestamp));
+        }
+
+        return Result.Success();
+    }
+
+    private void RetireStatus(WorkflowStatus status, EventActor actor, Instant timestamp)
+    {
+        status.Retire();
+        var (statusId, statusKey, fromAlias) = (status.Id, status.ExternalKey!, status.Alias);
+        AddKeyedDomainEvent(() => new WorkflowStatusRetiredEvent(Id, Key, statusId, statusKey, actor, timestamp));
+
+        if (fromAlias != NoAlias)
+        {
+            status.SetAlias(NoAlias);
+            AddKeyedDomainEvent(() => new WorkflowStatusAliasChangedEvent(Id, Key, statusId, fromAlias, NoAlias, actor, timestamp));
+        }
+    }
+
+    private void ApplySourceName(WorkflowStatus status, string name, EventActor actor, Instant timestamp)
+    {
+        var before = new WorkflowStatusDetails(status.Name, status.Description);
+        status.Rename(name, status.Description);
+        var after = new WorkflowStatusDetails(status.Name, status.Description);
+
+        if (before != after)
+        {
+            var statusId = status.Id;
+            AddKeyedDomainEvent(() => new WorkflowStatusRenamedEvent(Id, Key, statusId, after.Name, after.Description, before, actor, timestamp));
+        }
+    }
+
+    /// <summary>
+    /// Refuses a source status list the workflow could not hold: a status without a key or a name, an unknown
+    /// category, or two statuses sharing a key or a name.
+    /// </summary>
+    /// <remarks>
+    /// These are faults in the sync's mapping, not in the source, so they fail the sync rather than warn.
+    /// </remarks>
+    private static Result ValidateSourceStatuses(IReadOnlyList<SourceStatus> statuses)
+    {
+        if (statuses.Any(s => s is null || string.IsNullOrWhiteSpace(s.ExternalKey) || string.IsNullOrWhiteSpace(s.Name)))
+        {
+            return Result.Failure("Every source status needs a key and a name.");
+        }
+
+        if (statuses.Any(s => !Enum.IsDefined(s.Category)))
+        {
+            return Result.Failure("Unknown status category.");
+        }
+
+        if (statuses.GroupBy(s => s.ExternalKey.Trim(), StringComparer.OrdinalIgnoreCase).FirstOrDefault(g => g.Count() > 1) is { } key)
+        {
+            return Result.Failure($"The source lists the status '{key.Key}' more than once.");
+        }
+
+        return statuses.GroupBy(s => s.Name.Trim(), StringComparer.OrdinalIgnoreCase).FirstOrDefault(g => g.Count() > 1) is { } named
+            ? Result.Failure($"The source has more than one status named '{named.Key}'.")
+            : Result.Success();
+    }
 
     private static Result<StatusWorkflow> Create(string name, string? description, string ownerType, bool isSystem, EventActor actor, Instant timestamp)
     {
@@ -860,15 +1157,15 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// </remarks>
     private void RaiseCreated(Guid? sourceWorkflowId, EventActor actor, Instant timestamp)
     {
-        var (name, description, ownerType, isSystem) = (Name, Description, OwnerType, IsSystem);
+        var (name, description, ownerType, isSystem, externalKey) = (Name, Description, OwnerType, IsSystem, ExternalKey);
         WorkflowStatusValues[] statuses = [.. _statuses
             .OrderBy(s => s.Order)
-            .Select(s => new WorkflowStatusValues(s.Id, s.Name, s.Description, s.Category, s.Alias, s.Order))];
+            .Select(s => new WorkflowStatusValues(s.Id, s.Name, s.Description, s.Category, s.Alias, s.Order, s.ExternalKey))];
         var transitionMode = TransitionMode;
         var transitions = TransitionValues(_transitions);
 
         AddPostPersistenceAction(() => AddDomainEvent(new WorkflowCreatedEvent(
-            Id, Key, name, description, ownerType, isSystem, sourceWorkflowId, statuses, transitionMode, transitions, actor, timestamp)));
+            Id, Key, name, description, ownerType, isSystem, sourceWorkflowId, statuses, transitionMode, transitions, externalKey, actor, timestamp)));
     }
 
     /// <summary>
@@ -888,11 +1185,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
 
     private void RaiseStatusAdded(WorkflowStatus status, EventActor actor, Instant timestamp)
     {
-        var (statusId, name, description, category, alias, order) =
-            (status.Id, status.Name, status.Description, status.Category, status.Alias, status.Order);
+        var (statusId, name, description, category, alias, order, externalKey) =
+            (status.Id, status.Name, status.Description, status.Category, status.Alias, status.Order, status.ExternalKey);
 
         AddKeyedDomainEvent(() => new WorkflowStatusAddedEvent(
-            Id, Key, statusId, name, description, category, alias, order, actor, timestamp));
+            Id, Key, statusId, name, description, category, alias, order, externalKey, actor, timestamp));
     }
 
     private void RaiseTransitionsChanged(
@@ -963,20 +1260,54 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("System workflows cannot be modified. Clone this workflow to change it.");
         }
 
+        if (IsManaged)
+        {
+            return Result.Failure(ManagedError);
+        }
+
         return State == StatusWorkflowState.Draft ? Result.Success() : Result.Failure(NotDraftError);
     }
 
+    /// <summary>
+    /// Refuses a publish that an enforced check fails. The owner type's requirements are named first, all at
+    /// once; transition problems only once those are met, since they are found by walking the statuses the
+    /// requirements supply.
+    /// </summary>
     private Result GuardPublishable()
     {
-        var required = GuardOwnerRequirements();
-        if (required.IsFailure)
+        if (WorkflowOwners.Resolve(OwnerType) is { IsFailure: true } descriptor)
         {
-            return required;
+            return Result.Failure(descriptor.Error);
         }
 
-        var issues = TransitionIssues();
+        var enforced = OwnerRequirementIssues().Where(i => i.Severity == WorkflowCheckSeverity.Enforced).ToList();
+        if (enforced.Count == 0 && WorkflowCheckRules.For(WorkflowCheck.Transitions, Ownership) == WorkflowCheckSeverity.Enforced)
+        {
+            enforced = [.. TransitionIssues().Select(m => new WorkflowCheckIssue(WorkflowCheck.Transitions, WorkflowCheckSeverity.Enforced, m))];
+        }
 
-        return issues.Count == 0 ? Result.Success() : Result.Failure(string.Join(" ", issues));
+        return enforced.Count == 0 ? Result.Success() : Result.Failure(string.Join(" ", enforced.Select(i => i.Message)));
+    }
+
+    /// <summary>
+    /// What the publish checks find wrong with this workflow now, each with the severity
+    /// <see cref="WorkflowCheckRules"/> gives it for this workflow's ownership, skipped checks left out.
+    /// </summary>
+    /// <remarks>
+    /// For an owned workflow every entry would refuse a publish. For a managed one they are warnings: the
+    /// workflow syncs and is used regardless, and administration flags it until they are fixed.
+    /// </remarks>
+    public IReadOnlyList<WorkflowCheckIssue> CheckIssues()
+    {
+        List<WorkflowCheckIssue> issues = [.. OwnerRequirementIssues()];
+
+        var transitions = WorkflowCheckRules.For(WorkflowCheck.Transitions, Ownership);
+        if (transitions != WorkflowCheckSeverity.Skipped)
+        {
+            issues.AddRange(TransitionIssues().Select(m => new WorkflowCheckIssue(WorkflowCheck.Transitions, transitions, m)));
+        }
+
+        return issues;
     }
 
     /// <summary>
@@ -1143,36 +1474,47 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Refuses activation when the workflow cannot answer what its owner type asks of it: a status in each
-    /// required category, one carrying each required alias, and every alias in its own category. Names
-    /// every problem at once, so fixing one does not uncover the next on the following attempt.
+    /// What stops the workflow answering what its owner type asks of it: a status in each required category,
+    /// one carrying each required alias, and every alias in its own category. Every problem at once, so
+    /// fixing one does not uncover the next on the following attempt.
     /// </summary>
-    private Result GuardOwnerRequirements()
+    private List<WorkflowCheckIssue> OwnerRequirementIssues()
     {
-        var descriptor = WorkflowOwners.Resolve(OwnerType);
-        if (descriptor.IsFailure)
+        if (WorkflowOwners.Resolve(OwnerType) is not { IsSuccess: true } descriptor)
         {
-            return Result.Failure(descriptor.Error);
+            return [];
         }
 
         var owner = OwnerDisplayName();
         var subject = char.ToUpperInvariant(owner[0]) + owner[1..];
-        var problems = new List<string>();
+        var issues = new List<WorkflowCheckIssue>();
+
+        void Add(WorkflowCheck check, string message)
+        {
+            var severity = WorkflowCheckRules.For(check, Ownership);
+            if (severity != WorkflowCheckSeverity.Skipped)
+            {
+                issues.Add(new WorkflowCheckIssue(check, severity, message));
+            }
+        }
 
         var missingCategories = MissingRequiredCategories();
         if (missingCategories.Count > 0)
         {
-            problems.Add($"{subject} workflow needs a status in each of these categories: {string.Join(", ", missingCategories)}.");
+            Add(WorkflowCheck.RequiredCategories, $"{subject} workflow needs a status in each of these categories: {string.Join(", ", missingCategories)}.");
         }
 
         var missingAliases = descriptor.Value.RequiredAliases.Where(a => StatusFor(a) is null).ToList();
         if (missingAliases.Count > 0)
         {
-            problems.Add($"{subject} workflow needs a status for each of: {string.Join(", ", missingAliases.Select(descriptor.Value.DescribeAlias))}.");
+            Add(WorkflowCheck.RequiredAliases, $"{subject} workflow needs a status for each of: {string.Join(", ", missingAliases.Select(descriptor.Value.DescribeAlias))}.");
         }
 
-        problems.AddRange(MisfiledAliases());
+        foreach (var misfiled in MisfiledAliases())
+        {
+            Add(WorkflowCheck.AliasCategories, misfiled);
+        }
 
-        return problems.Count == 0 ? Result.Success() : Result.Failure(string.Join(" ", problems));
+        return issues;
     }
 }

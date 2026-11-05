@@ -23,6 +23,14 @@ A story map is a single document with a fixed hierarchy:
 | **Step** | A step within a goal (backbone column), ordered within its goal |
 | **Task** | A story card under a step, placed in exactly one swim lane |
 
+Each map also says who can see and change it:
+
+- **Owners** (employee UUIDs, at least one) manage the map: its name and description, archiving, deletion, owners, editors, visibility and who can edit. `canManage` on the map says whether the user is one (or holds the Story Maps Administer permission, which counts as owning every map).
+- **Editors** (`editors`, employees, and `editorTeams`, teams) change its content. A team brings in its current members and those of its team of teams.
+- **Visibility** — `Public` (anyone with the Story Maps View permission can see it) or `Private` (only owners and editors).
+- **Edit access** — on a Public map, `AnyoneWhoCanView` (everyone who can see it can change its content) or `OwnersAndEditors`. A Private map is changed only by its owners and editors.
+- `canEdit` on the map says whether the user can change its content: goals, steps, tasks, swim lanes, personas, checklists and work item links. When it is false, do not offer those changes — they will be refused. When `canManage` is false, do not offer the map-level changes either.
+
 Two cross-cutting concepts:
 
 - **Swim lanes** — horizontal release/iteration slices. Every map has a default lane (`isDefault: true`); lanes may carry descriptive `startDate`/`endDate`. A task's `swimLaneId` says which slice it belongs to.
@@ -36,12 +44,14 @@ Tasks may also have:
 ### Common patterns
 
 - **`idOrKey`** — `StoryMaps_GetStoryMap` accepts either the UUID `id` or the integer `key`. All mutation tools require UUIDs — call `StoryMaps_GetStoryMap` first to resolve them.
-- **Mutation shape** — map-level tools (`StoryMaps_UpdateStoryMap`, `StoryMaps_ChangeStoryMapOwner`, `StoryMaps_ArchiveStoryMap`, `StoryMaps_DeleteStoryMap`) take the map as `id`. Every other mutation takes `storyMapId`, the target's id in the path (`goalId`, `stepId`, `taskId`, `swimLaneId`, `personaId`, `itemId`), and its fields inside `requestBody` — e.g. `StoryMaps_AddTask` is `{ storyMapId, requestBody: { stepId, title, swimLaneId? } }`.
+- **Mutation shape** — map-level tools (`StoryMaps_UpdateStoryMap`, `StoryMaps_ChangeStoryMapOwner`, `StoryMaps_SetStoryMapEditors`, `StoryMaps_SetStoryMapVisibility`, `StoryMaps_SetStoryMapEditAccess`, `StoryMaps_ArchiveStoryMap`, `StoryMaps_DeleteStoryMap`) take the map as `id`. Every other mutation takes `storyMapId`, the target's id in the path (`goalId`, `stepId`, `taskId`, `swimLaneId`, `personaId`, `itemId`), and its fields inside `requestBody` — e.g. `StoryMaps_AddTask` is `{ storyMapId, requestBody: { stepId, title, swimLaneId? } }`.
 - **One call gets everything** — `StoryMaps_GetStoryMap` returns the entire map (goals → steps → tasks, swim lanes, personas). Never loop over sub-entities; there are no per-goal/per-step read endpoints.
-- **Archived maps** — the list excludes archived maps unless `includeArchived: true`. An archived map can be read or deleted but refuses every other change
+- **Archived maps** — the list excludes archived maps unless `includeArchived: true`. An archived map can be read and deleted, and its owners, editors, visibility and edit access can still change; its name, description and content cannot
+- **Linked employee** — every story map change needs the user's account to be linked to an employee. When a call fails for that reason, say so: it is not something another tool can fix
+- **Private maps** — a Private map the user is not on is missing from the list and reads as not found
 - **Feature flag** — story maps are gated by the `StoryMaps` feature flag; if the instance has it disabled the endpoints return 404
 - **Ordering** — `newOrder` values are zero-based positions among siblings
-- **Persona tags: patch on the hosted server** — `StoryMaps_PatchGoalPersonas` / `StoryMaps_PatchStepPersonas` / `StoryMaps_PatchTaskPersonas` tag one more persona with `[{ "op": "add", "path": "/personaIds/-", "value": "<personaId>" }]` and keep the rest; to untag, `replace` `/personaIds` with the ids that stay
+- **Persona tags: patch** — `StoryMaps_PatchGoalPersonas` / `StoryMaps_PatchStepPersonas` / `StoryMaps_PatchTaskPersonas` tag one more persona with `[{ "op": "add", "path": "/personaIds/-", "value": "<personaId>" }]` and keep the rest; to untag, `replace` `/personaIds` with the ids that stay
 - **Persona sets replace** — otherwise `StoryMaps_SetGoalPersonas` / `StoryMaps_SetStepPersonas` / `StoryMaps_SetTaskPersonas` replace the full tag set; include every persona ID that should remain
 
 ## Instructions
@@ -63,7 +73,7 @@ All analysis works off the single `StoryMaps_GetStoryMap` response:
 
 ### Building a map
 
-1. Create the map: `StoryMaps_CreateStoryMap` (`name`, optional `description`) — returns the new `id` and `key`
+1. Create the map: `StoryMaps_CreateStoryMap` (`name`, optional `description`) — returns the new `id` and `key`. The user becomes its first owner. Optional: `visibility` (`Public` by default), `editAccess` (`AnyoneWhoCanView` by default), `ownerIds` for other owners, and `editorIds` and `editorTeamIds` (employee and team UUIDs). Confirm the visibility and edit access with the user: a Private map with no editors admits only its owners
 2. Add goals: `StoryMaps_AddGoal` — a new goal is empty
 3. Add each goal's steps: `StoryMaps_AddStep` (body: `goalId`, `name`)
 4. Add tasks: `StoryMaps_AddTask` (body: `stepId`, `title`, optional `swimLaneId` — omit for the default lane)
@@ -72,14 +82,16 @@ All analysis works off the single `StoryMaps_GetStoryMap` response:
 ### Managing a map
 
 - **Rename/describe** — `StoryMaps_UpdateStoryMap`, `StoryMaps_RenameGoal`, `StoryMaps_RenameStep`, `StoryMaps_UpdateTask`. `StoryMaps_UpdateTask` replaces both the title and the description, so resend the one that should stay
-- **One task field (hosted server)** — the hosted endpoint (`/mcp`) also offers `StoryMaps_RenameTask` (body: `title`) and `StoryMaps_SetTaskDescription` (body: `description`; `null` clears it), which change only that field. Prefer them to `StoryMaps_UpdateTask` when only one changes, so a concurrent edit to the other is not reverted
+- **One task field** — `StoryMaps_RenameTask` (body: `title`) and `StoryMaps_SetTaskDescription` (body: `description`; `null` clears it) change only that field. Prefer them to `StoryMaps_UpdateTask` when only one changes, so a concurrent edit to the other is not reverted
 - **Reorder** — `StoryMaps_ReorderGoal`, `StoryMaps_ReorderStep`, `StoryMaps_ReorderSwimLane`, `StoryMaps_ReorderPersona` (zero-based `newOrder`; the default swim lane always holds position 0, so other lanes start at 1)
 - **Move** — `StoryMaps_MoveStep` (to another goal), `StoryMaps_MoveTask` (to a step + swim lane)
 - **Swim lanes** — `StoryMaps_RenameSwimLane`, `StoryMaps_SetSwimLaneDates` (pass `null` to clear a date); the default lane can't be renamed, reordered, or removed
 - **Personas** — `StoryMaps_UpdatePersona` replaces name, description, and `color` together, so resend the ones that should stay
 - **Checklists** — `StoryMaps_AddChecklistItem`, `StoryMaps_RenameChecklistItem`, `StoryMaps_SetChecklistItemChecked`, `StoryMaps_RemoveChecklistItem`; `StoryMaps_PromoteChecklistItem` turns an item into a task in the same step, in the default swim lane
 - **Work items** — `StoryMaps_LinkWorkItem` (integer `workItemId`), `StoryMaps_UnlinkWorkItem`. Wayd stores the number without checking it against any work item, and no tool turns a work item key into it, so link only a number the user gives you and say it is unverified
-- **Ownership** — `StoryMaps_ChangeStoryMapOwner` (resolve the user ID with `Users_GetUsers`)
+- **Owners** — `StoryMaps_ChangeStoryMapOwner` **replaces** the owners with `employeeIds` (employee UUIDs, at least one); send everyone who should stay. The user can remove themselves, and then can no longer manage the map
+- **Editors** — `StoryMaps_SetStoryMapEditors` **replaces** both lists, `employeeIds` and `teamIds`; send the current ones to keep them, empty lists to remove all. `StoryMaps_GetEditorTeamMembers` lists who an editor team reaches
+- **Who can see and edit** — `StoryMaps_SetStoryMapVisibility` (`Public` or `Private`) and `StoryMaps_SetStoryMapEditAccess` (`AnyoneWhoCanView` or `OwnersAndEditors`). Making a map Private, or removing an editor, disconnects anyone it no longer admits; say so before you do it
 
 ### Destructive operations
 

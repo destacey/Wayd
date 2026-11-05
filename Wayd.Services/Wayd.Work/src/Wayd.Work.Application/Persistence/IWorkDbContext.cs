@@ -1,4 +1,6 @@
-﻿namespace Wayd.Work.Application.Persistence;
+﻿using Wayd.Common.Domain.Enums.Work;
+
+namespace Wayd.Work.Application.Persistence;
 
 public interface IWorkDbContext : IWaydDbContext
 {
@@ -23,7 +25,10 @@ public interface IWorkDbContext : IWaydDbContext
     /// Returns work items matching the search term using full-text search when available,
     /// ordered by key prefix then key number, limited to <paramref name="top"/> results.
     /// </summary>
-    IQueryable<WorkItem> SearchWorkItems(string searchTerm, int top);
+    /// <param name="searchTerm">Matched against the title, the key and the parent's key.</param>
+    /// <param name="tier">When set, only work items whose type is in this tier; applied before the limit.</param>
+    /// <param name="top">The most work items to return.</param>
+    IQueryable<WorkItem> SearchWorkItems(string searchTerm, WorkTypeTier? tier, int top);
 
     /// <summary>Opens a transaction over several saves; see <see cref="IUnitOfWork"/>.</summary>
     Task<IUnitOfWork> BeginUnitOfWork(CancellationToken cancellationToken);

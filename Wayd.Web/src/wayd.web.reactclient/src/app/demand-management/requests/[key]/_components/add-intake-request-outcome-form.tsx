@@ -1,16 +1,17 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { useModalForm } from '@/src/hooks'
+import { useDebounce, useModalForm } from '@/src/hooks'
 import {
   IntakeRequestDetailsDto,
   IntakeRequestOutcomeKind,
 } from '@/src/services/wayd-api'
 import { useAddIntakeRequestOutcomeMutation } from '@/src/store/features/demand-management/demand-management-api'
 import { useGetProjectOptionsQuery } from '@/src/store/features/ppm/projects-api'
+import { useSearchWorkItemsQuery } from '@/src/store/features/work-management/workspace-api'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { Form, Input, Modal, Radio, Select, Typography } from 'antd'
-import { FC } from 'react'
+import { FC, useState } from 'react'
 
 const { Item } = Form
 const { Paragraph } = Typography
@@ -24,13 +25,15 @@ export interface AddIntakeRequestOutcomeFormProps {
 
 interface AddOutcomeFormValues {
   kind: IntakeRequestOutcomeKind
-  projectId: string
+  projectId?: string
+  workItemId?: string
   note?: string
 }
 
 /**
- * Records a project the request became. Offered only where the server's `canChangeOutcomes` says so. The
- * project list is the reader's own view of PPM, so a project they cannot see is not offered.
+ * Records a project or work item the request became. Offered only where the server's `canChangeOutcomes`
+ * says so. The project list is the reader's own view of PPM, so a project they cannot see is not offered;
+ * the work item search needs permission to view work items, and reports a failure without it.
  */
 const AddIntakeRequestOutcomeForm: FC<AddIntakeRequestOutcomeFormProps> = ({
   request,
@@ -45,20 +48,35 @@ const AddIntakeRequestOutcomeForm: FC<AddIntakeRequestOutcomeFormProps> = ({
     isError: projectsFailed,
   } = useGetProjectOptionsQuery()
 
+  const [workItemSearch, setWorkItemSearch] = useState('')
+  const typedTerm = workItemSearch.trim()
+  const searchTerm = useDebounce(typedTerm, 500)
+  const {
+    data: workItems,
+    isFetching: workItemsSearching,
+    isError: workItemsFailed,
+  } = useSearchWorkItemsQuery(searchTerm, { skip: searchTerm === '' })
+
   const alreadyLinked = new Set(request.outcomes.map((o) => o.targetId))
   const projectOptions = (projects ?? []).filter(
     (p) => !alreadyLinked.has(p.value as string),
   )
+  // A chosen work item keeps its label after a later search drops it: the select caches the options it has shown.
+  const workItemOptions = (workItems ?? [])
+    .filter((w) => !alreadyLinked.has(w.id))
+    .map((w) => ({ label: `${w.key} · ${w.title}`, value: w.id }))
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<AddOutcomeFormValues>({
       onSubmit: async (values, form) => {
+        const isWorkItem = values.kind === IntakeRequestOutcomeKind.WorkItem
         try {
           await addOutcome({
             requestId: request.summary.id,
             request: {
               kind: values.kind,
-              projectId: values.projectId,
+              projectId: isWorkItem ? undefined : values.projectId,
+              workItemId: isWorkItem ? values.workItemId : undefined,
               note: values.note,
             },
           }).unwrap()
@@ -96,7 +114,8 @@ const AddIntakeRequestOutcomeForm: FC<AddIntakeRequestOutcomeFormProps> = ({
       destroyOnHidden
     >
       <Paragraph type="secondary">
-        Record what this request became. The project itself is not changed.
+        Record what this request became. The project or work item itself is not
+        changed.
       </Paragraph>
       <Form
         form={form}
@@ -116,24 +135,64 @@ const AddIntakeRequestOutcomeForm: FC<AddIntakeRequestOutcomeFormProps> = ({
                 label: 'Scope added to an existing project',
                 value: IntakeRequestOutcomeKind.ExistingProjectScope,
               },
+              {
+                label: 'Work item',
+                value: IntakeRequestOutcomeKind.WorkItem,
+              },
             ]}
           />
         </Item>
-        <Item
-          name="projectId"
-          label="Project"
-          rules={[{ required: true, message: 'Choose a project.' }]}
-          validateStatus={projectsFailed ? 'error' : undefined}
-          help={
-            projectsFailed ? 'The projects could not be loaded.' : undefined
+        {/* Reads the kind from the form's store, not useWatch, so the picker swaps on the same render. */}
+        <Item noStyle dependencies={['kind']}>
+          {({ getFieldValue }) =>
+            getFieldValue('kind') === IntakeRequestOutcomeKind.WorkItem ? (
+              <Item
+                name="workItemId"
+                label="Work Item"
+                rules={[{ required: true, message: 'Choose a work item.' }]}
+                validateStatus={workItemsFailed ? 'error' : undefined}
+                help={
+                  workItemsFailed
+                    ? 'The work items could not be loaded.'
+                    : undefined
+                }
+              >
+                <Select
+                  showSearch={{
+                    filterOption: false,
+                    onSearch: setWorkItemSearch,
+                  }}
+                  placeholder="Search by key or title"
+                  loading={workItemsSearching || typedTerm !== searchTerm}
+                  options={workItemOptions}
+                  notFoundContent={
+                    typedTerm === ''
+                      ? 'Type to search for a work item.'
+                      : undefined
+                  }
+                />
+              </Item>
+            ) : (
+              <Item
+                name="projectId"
+                label="Project"
+                rules={[{ required: true, message: 'Choose a project.' }]}
+                validateStatus={projectsFailed ? 'error' : undefined}
+                help={
+                  projectsFailed
+                    ? 'The projects could not be loaded.'
+                    : undefined
+                }
+              >
+                <Select
+                  showSearch={{ optionFilterProp: 'label' }}
+                  placeholder="Select a project"
+                  loading={projectsLoading}
+                  options={projectOptions}
+                />
+              </Item>
+            )
           }
-        >
-          <Select
-            showSearch={{ optionFilterProp: 'label' }}
-            placeholder="Select a project"
-            loading={projectsLoading}
-            options={projectOptions}
-          />
         </Item>
         <Item
           name="note"
@@ -153,7 +212,9 @@ const AddIntakeRequestOutcomeForm: FC<AddIntakeRequestOutcomeFormProps> = ({
           extra={
             noteRequired
               ? 'What the project took on from this request.'
-              : undefined
+              : kind === IntakeRequestOutcomeKind.WorkItem
+                ? 'Optional: what the work item covers of this request.'
+                : undefined
           }
         >
           <TextArea autoSize={{ minRows: 2, maxRows: 6 }} maxLength={1024} />

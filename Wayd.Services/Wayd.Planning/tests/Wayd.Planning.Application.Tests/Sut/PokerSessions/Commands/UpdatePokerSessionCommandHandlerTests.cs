@@ -5,11 +5,15 @@ using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Tests.Data;
 using Moq;
+using Wayd.Common.Domain.Events;
+using Wayd.Planning.Domain.Models.PlanningPoker;
+using NodaTime;
 
 namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
 
 public class UpdatePokerSessionCommandHandlerTests : IDisposable
 {
+    private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly UpdatePokerSessionCommandHandler _handler;
     private readonly Mock<ILogger<UpdatePokerSessionCommandHandler>> _mockLogger;
@@ -24,7 +28,7 @@ public class UpdatePokerSessionCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<UpdatePokerSessionCommandHandler>>();
         _mockNotifier = new Mock<IPokerSessionNotifier>();
 
-        _handler = new UpdatePokerSessionCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new UpdatePokerSessionCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
         _sessionFaker = new PokerSessionFaker();
         _scaleFaker = new EstimationScaleFaker();
     }
@@ -33,14 +37,14 @@ public class UpdatePokerSessionCommandHandlerTests : IDisposable
     public async Task Handle_ShouldUpdateNameAndScale_WhenNoRoundsExist()
     {
         // Arrange
-        var originalScale = _scaleFaker.WithId(1).Generate();
-        var newScale = _scaleFaker.WithId(2).Generate();
+        var originalScale = _scaleFaker.Generate();
+        var newScale = _scaleFaker.Generate();
         _dbContext.AddEstimationScale(originalScale);
         _dbContext.AddEstimationScale(newScale);
 
         var session = _sessionFaker
             .WithStatus(PokerSessionStatus.Active)
-            .WithEstimationScaleId(originalScale.Id)
+            .WithEstimationScale(originalScale)
             .Generate();
         _dbContext.AddPokerSession(session);
 
@@ -61,16 +65,16 @@ public class UpdatePokerSessionCommandHandlerTests : IDisposable
     public async Task Handle_ShouldUpdateNameOnly_WhenRoundsExistAndScaleUnchanged()
     {
         // Arrange
-        var scale = _scaleFaker.WithId(1).Generate();
+        var scale = _scaleFaker.Generate();
         _dbContext.AddEstimationScale(scale);
 
         var session = _sessionFaker
             .WithStatus(PokerSessionStatus.Active)
-            .WithEstimationScaleId(scale.Id)
+            .WithEstimationScale(scale)
             .Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Round 1");
+        session.AddRound("Round 1", null, PokerSessionActors.Facilitator);
 
         var command = new UpdatePokerSessionCommand(session.Id, "Updated Name", scale.Id);
 
@@ -89,18 +93,18 @@ public class UpdatePokerSessionCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenChangingScaleWithExistingRounds()
     {
         // Arrange
-        var originalScale = _scaleFaker.WithId(1).Generate();
-        var newScale = _scaleFaker.WithId(2).Generate();
+        var originalScale = _scaleFaker.Generate();
+        var newScale = _scaleFaker.Generate();
         _dbContext.AddEstimationScale(originalScale);
         _dbContext.AddEstimationScale(newScale);
 
         var session = _sessionFaker
             .WithStatus(PokerSessionStatus.Active)
-            .WithEstimationScaleId(originalScale.Id)
+            .WithEstimationScale(originalScale)
             .Generate();
         _dbContext.AddPokerSession(session);
 
-        session.AddRound("Round 1");
+        session.AddRound("Round 1", null, PokerSessionActors.Facilitator);
 
         var command = new UpdatePokerSessionCommand(session.Id, "Updated Name", newScale.Id);
 
@@ -119,7 +123,7 @@ public class UpdatePokerSessionCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenSessionDoesNotExist()
     {
         // Arrange
-        var command = new UpdatePokerSessionCommand(Guid.NewGuid(), "Name", 1);
+        var command = new UpdatePokerSessionCommand(Guid.NewGuid(), "Name", Guid.NewGuid());
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -134,16 +138,16 @@ public class UpdatePokerSessionCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenEstimationScaleDoesNotExist()
     {
         // Arrange
-        var originalScale = _scaleFaker.WithId(1).Generate();
+        var originalScale = _scaleFaker.Generate();
         _dbContext.AddEstimationScale(originalScale);
 
         var session = _sessionFaker
             .WithStatus(PokerSessionStatus.Active)
-            .WithEstimationScaleId(originalScale.Id)
+            .WithEstimationScale(originalScale)
             .Generate();
         _dbContext.AddPokerSession(session);
 
-        var command = new UpdatePokerSessionCommand(session.Id, "Updated Name", 999);
+        var command = new UpdatePokerSessionCommand(session.Id, "Updated Name", Guid.NewGuid());
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -158,12 +162,12 @@ public class UpdatePokerSessionCommandHandlerTests : IDisposable
     public async Task Handle_ShouldFail_WhenSessionIsCompleted()
     {
         // Arrange
-        var scale = _scaleFaker.WithId(1).Generate();
+        var scale = _scaleFaker.Generate();
         _dbContext.AddEstimationScale(scale);
 
         var session = _sessionFaker
             .WithStatus(PokerSessionStatus.Completed)
-            .WithEstimationScaleId(scale.Id)
+            .WithEstimationScale(scale)
             .Generate();
         _dbContext.AddPokerSession(session);
 
@@ -176,6 +180,60 @@ public class UpdatePokerSessionCommandHandlerTests : IDisposable
         result.IsFailure.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(0);
         _mockNotifier.Verify(n => n.NotifySessionUpdated(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ChangingTheScale_ShouldPinTheNewScalesCurrentVersion()
+    {
+        // Arrange
+        var originalScale = _scaleFaker.Generate();
+        var newScale = _scaleFaker.WithValues("S", "M", "L").Generate();
+        newScale.PublishVersion([new EstimationScaleValue("S", true), new EstimationScaleValue("M", true), new EstimationScaleValue("XL", true)], EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 0));
+        _dbContext.AddEstimationScale(originalScale);
+        _dbContext.AddEstimationScale(newScale);
+
+        var session = _sessionFaker
+            .WithStatus(PokerSessionStatus.Active)
+            .WithEstimationScale(originalScale)
+            .Generate();
+        _dbContext.AddPokerSession(session);
+
+        var command = new UpdatePokerSessionCommand(session.Id, session.Name, newScale.Id);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        session.EstimationScaleId.Should().Be(newScale.Id);
+        session.EstimationScaleVersionId.Should().Be(newScale.Versions.Single(v => v.Number == 2).Id);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_KeepingTheScale_ShouldKeepThePinnedVersion()
+    {
+        // Arrange
+        var scale = _scaleFaker.WithValues("S", "M", "L").Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker
+            .WithStatus(PokerSessionStatus.Active)
+            .WithEstimationScale(scale)
+            .Generate();
+        _dbContext.AddPokerSession(session);
+        var pinned = session.EstimationScaleVersionId;
+        scale.PublishVersion([new EstimationScaleValue("S", true), new EstimationScaleValue("M", true), new EstimationScaleValue("XL", true)], EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 0));
+
+        var command = new UpdatePokerSessionCommand(session.Id, "Renamed", scale.Id);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        session.Name.Should().Be("Renamed");
+        session.EstimationScaleVersionId.Should().Be(pinned);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     public void Dispose()

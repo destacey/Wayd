@@ -3,7 +3,7 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.Requests.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.WorkTeams.Queries;
 using Wayd.Work.Application.WorkTeams.WorkDistribution;
 using Wayd.Work.IntegrationTests.Infrastructure;
@@ -34,12 +34,12 @@ public sealed class GetTeamWorkDistributionQueryHandlerTests(SqlServerDbContextF
         var projectId = await seeder.AddProject(cancellationToken);
         var inWindow = Instant.FromUtc(2026, 8, 3, 15, 0);
 
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: inWindow, projectId: projectId);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: inWindow, parentProjectId: projectId);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: inWindow);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: inWindow, epic: true, projectId: projectId);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Removed, done: inWindow);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Instant.FromUtc(2026, 6, 30, 23, 0));
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: inWindow, projectId: projectId);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: inWindow, parentProjectId: projectId);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: inWindow);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: inWindow, epic: true, projectId: projectId);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Removed, done: inWindow);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: Instant.FromUtc(2026, 6, 30, 23, 0));
 
         var portfolio = new PpmRecordReference(Guid.NewGuid(), 1, "Customer Experience");
         var dispatcher = new Mock<IDispatcher>();

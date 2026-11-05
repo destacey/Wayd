@@ -14,6 +14,7 @@ const status = (
   id: `s-${name}`,
   name,
   category,
+  categoryLabel: category,
   alias,
   description,
 })

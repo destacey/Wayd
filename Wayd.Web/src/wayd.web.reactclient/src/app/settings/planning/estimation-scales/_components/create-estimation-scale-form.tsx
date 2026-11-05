@@ -1,15 +1,21 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { CreateEstimationScaleRequest } from '@/src/services/wayd-api'
+import {
+  CreateEstimationScaleRequest,
+  EstimationScaleValueRequest,
+} from '@/src/services/wayd-api'
 import { useCreateEstimationScaleMutation } from '@/src/store/features/planning/estimation-scales-api'
-import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons'
-import { Button, Form, Input, Modal, Space } from 'antd'
+import { toFormErrors, toApiError } from '@/src/utils'
+import { Form, Modal } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
 import { useModalForm } from '@/src/hooks'
+import EstimationScaleValuesField, {
+  estimationScaleValueErrorFieldFor,
+  newEstimationScaleValue,
+} from './estimation-scale-values-field'
 
-const { Item, List } = Form
+const { Item } = Form
 
 export interface CreateEstimationScaleFormProps {
   onFormComplete: () => void
@@ -19,7 +25,7 @@ export interface CreateEstimationScaleFormProps {
 interface CreateEstimationScaleFormValues {
   name: string
   description?: string
-  values: string[]
+  values: EstimationScaleValueRequest[]
 }
 
 const CreateEstimationScaleForm = ({
@@ -46,9 +52,11 @@ const CreateEstimationScaleForm = ({
             messageApi.success('Estimation scale created successfully.')
             return true
           } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
+            const apiError = toApiError(error)
             if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
+              const formErrors = toFormErrors(apiError.errors, {
+                fieldFor: estimationScaleValueErrorFieldFor,
+              })
               form.setFields(formErrors)
               messageApi.error('Correct the validation error(s) to continue.')
             } else {
@@ -85,7 +93,9 @@ const CreateEstimationScaleForm = ({
         size="small"
         layout="vertical"
         name="create-estimation-scale-form"
-        initialValues={{ values: ['', ''] }}
+        initialValues={{
+          values: [newEstimationScaleValue(), newEstimationScaleValue()],
+        }}
       >
         <Item
           label="Name"
@@ -112,65 +122,7 @@ const CreateEstimationScaleForm = ({
             maxLength={1024}
           />
         </Item>
-        <Item label="Scale Values">
-          <List
-            name="values"
-            rules={[
-              {
-                validator: async (_, values) => {
-                  if (!values || values.length < 2) {
-                    return Promise.reject(
-                      new Error('At least 2 scale values are required'),
-                    )
-                  }
-                },
-              },
-            ]}
-          >
-            {(fields, { add, remove }, { errors }) => (
-              <>
-                {fields.map(({ key, ...field }) => (
-                  <Space
-                    key={key}
-                    style={{ display: 'flex', marginBottom: 4 }}
-                    align="baseline"
-                  >
-                    {/* `key` is destructured off above: Form.List's field
-                        carries one, and spreading it into an element is a
-                        React warning rather than a working key. */}
-                    <Item
-                      {...field}
-                      rules={[
-                        { required: true, message: 'Value is required' },
-                        { max: 32 },
-                      ]}
-                      style={{ marginBottom: 0 }}
-                    >
-                      <Input
-                        placeholder={`Value ${field.name + 1}`}
-                        maxLength={32}
-                      />
-                    </Item>
-                    {fields.length > 2 && (
-                      <MinusCircleOutlined onClick={() => remove(field.name)} />
-                    )}
-                  </Space>
-                ))}
-                <Item>
-                  <Button
-                    type="dashed"
-                    onClick={() => add('')}
-                    block
-                    icon={<PlusOutlined />}
-                  >
-                    Add Value
-                  </Button>
-                  <Form.ErrorList errors={errors} />
-                </Item>
-              </>
-            )}
-          </List>
-        </Item>
+        <EstimationScaleValuesField extra="Mark a value as a card when it can be voted but never becomes an estimate, such as ?." />
       </Form>
     </Modal>
   )

@@ -14,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.DemandManagement.Domain;
+using Wayd.Infrastructure.Discussions;
 using Wayd.Infrastructure.Following;
 using Wayd.Infrastructure.Notifications;
 using Wayd.Infrastructure.ConnectorModules;
@@ -107,6 +108,7 @@ public static class ConfigureServices
         services.AddScoped<IStatusRecordCounter, IntakeRequestStatusRecordMigrator>();
 
         services.AddFollowing();
+        services.AddDiscussions();
         services.AddNotifications();
 
         // Data protection (at-rest secret encryption) must initialize before
@@ -141,6 +143,7 @@ public static class ConfigureServices
         }
         services.AddScoped<IPokerSessionNotifier, PlanningPokerNotifier>();
         services.AddScoped<IStoryMapNotifier, StoryMapNotifier>();
+        services.AddScoped<IRealtimeAccessRevoker, RealtimeAccessRevoker>();
 
         // Read on first resolution rather than here, so a test host's configuration overrides reach it.
         services.AddSingleton(sp => PublicUrl.From(sp.GetRequiredService<IConfiguration>()));

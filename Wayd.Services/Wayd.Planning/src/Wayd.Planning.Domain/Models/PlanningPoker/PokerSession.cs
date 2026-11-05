@@ -1,23 +1,52 @@
-﻿using Ardalis.GuardClauses;
+﻿using System.Linq.Expressions;
+using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
-using Wayd.Common.Domain.Identity;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Interfaces;
 using Wayd.Planning.Domain.Enums;
 using NodaTime;
 
 namespace Wayd.Planning.Domain.Models.PlanningPoker;
 
+/// <summary>
+/// A planning poker session: rounds of estimates on one estimation scale version, run by its facilitators.
+/// </summary>
+/// <remarks>
+/// The session decides who may do what. Facilitators, and holders of the poker Administer permission, run it.
+/// Anyone with the poker View permission can join a public session; a private one admits only its facilitators,
+/// its invited employees and the members of its invited teams. Joining makes someone a member, voting or not; a
+/// member who is not voting still takes part, such as a product manager answering the team's questions.
+/// </remarks>
 public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
 {
+    /// <summary>
+    /// The failure for a caller who cannot see the session. It reads as not found so a private session's
+    /// existence is not disclosed.
+    /// </summary>
+    public const string NotFoundError = "Poker session not found.";
+
+    /// <summary>
+    /// The failure for a caller who can see the session but is not one of its facilitators.
+    /// </summary>
+    public const string NotAFacilitatorError = "Only the session's facilitators can do this.";
+
+    private const string InactiveScaleError = "The estimation scale is inactive and cannot be chosen for a session.";
+
     private readonly List<PokerRound> _rounds = [];
+    private readonly List<PokerSessionFacilitator> _facilitators = [];
+    private readonly List<PokerSessionInvitedEmployee> _invitedEmployees = [];
+    private readonly List<PokerSessionInvitedTeam> _invitedTeams = [];
+    private readonly List<PokerSessionMember> _members = [];
 
     private PokerSession() { }
 
-    private PokerSession(string name, int estimationScaleId, string facilitatorId)
+    private PokerSession(string name, EstimationScaleVersion estimationScaleVersion, Visibility visibility, Guid facilitatorEmployeeId)
     {
         Name = name;
-        EstimationScaleId = estimationScaleId;
-        FacilitatorId = facilitatorId;
+        EstimationScaleId = estimationScaleVersion.EstimationScaleId;
+        EstimationScaleVersionId = estimationScaleVersion.Id;
+        Visibility = visibility;
+        _facilitators.Add(new PokerSessionFacilitator(Id, facilitatorEmployeeId));
     }
 
     /// <summary>
@@ -37,16 +66,23 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// The estimation scale used for voting in this session.
     /// </summary>
-    public int EstimationScaleId { get; private set; }
+    public Guid EstimationScaleId { get; private set; }
 
     public EstimationScale? EstimationScale { get; private set; }
 
     /// <summary>
-    /// The user who facilitates this session.
+    /// The version of <see cref="EstimationScaleId"/> the session votes on. It stays put when the scale publishes
+    /// a newer version, so every vote and consensus in the session is read against the values it was cast on.
     /// </summary>
-    public string FacilitatorId { get; private set; } = null!;
+    public Guid EstimationScaleVersionId { get; private set; }
 
-    public User? Facilitator { get; private set; }
+    public EstimationScaleVersion? EstimationScaleVersion { get; private set; }
+
+    /// <summary>
+    /// Who can see and join the session. Public: anyone with the poker View permission. Private: only its
+    /// facilitators, invited employees and the members of invited teams.
+    /// </summary>
+    public Visibility Visibility { get; private set; }
 
     /// <summary>
     /// The current status of the poker session.
@@ -69,12 +105,220 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     public IReadOnlyCollection<PokerRound> Rounds => _rounds.AsReadOnly();
 
     /// <summary>
-    /// Complete the session.
+    /// The employees who run the session. The creator is the first.
     /// </summary>
-    public Result Complete(Instant timestamp)
+    public IReadOnlyCollection<PokerSessionFacilitator> Facilitators => _facilitators.AsReadOnly();
+
+    /// <summary>
+    /// The employees invited to the session, which grants access while it is private.
+    /// </summary>
+    public IReadOnlyCollection<PokerSessionInvitedEmployee> InvitedEmployees => _invitedEmployees.AsReadOnly();
+
+    /// <summary>
+    /// The teams invited to the session, whose current members have access while it is private.
+    /// </summary>
+    public IReadOnlyCollection<PokerSessionInvitedTeam> InvitedTeams => _invitedTeams.AsReadOnly();
+
+    /// <summary>
+    /// Everyone who has joined the session, including those who have since left.
+    /// </summary>
+    public IReadOnlyCollection<PokerSessionMember> Members => _members.AsReadOnly();
+
+    #region Access
+
+    /// <summary>
+    /// Whether the employee is one of the session's facilitators. Requires <see cref="Facilitators"/> to be loaded.
+    /// </summary>
+    public bool IsFacilitator(Guid employeeId) => _facilitators.Any(f => f.EmployeeId == employeeId);
+
+    /// <summary>
+    /// Whether the actor runs the session: a facilitator, or a poker administrator. Requires
+    /// <see cref="Facilitators"/> to be loaded.
+    /// </summary>
+    public bool CanManage(PokerSessionActor actor)
     {
+        Guard.Against.Null(actor, nameof(actor));
+        return actor.IsAdministrator || IsFacilitator(actor.EmployeeId);
+    }
+
+    /// <summary>
+    /// Whether the actor can see and join the session. Requires <see cref="Facilitators"/>,
+    /// <see cref="InvitedEmployees"/> and <see cref="InvitedTeams"/> to be loaded, or a private session reads as
+    /// closed to its invitees. <see cref="AccessibleTo"/> is the same rule for a query.
+    /// </summary>
+    public bool CanAccess(PokerSessionActor actor)
+    {
+        Guard.Against.Null(actor, nameof(actor));
+
+        return Visibility == Visibility.Public
+            || CanManage(actor)
+            || _invitedEmployees.Any(e => e.EmployeeId == actor.EmployeeId)
+            || _invitedTeams.Any(t => actor.TeamIds.Contains(t.TeamId));
+    }
+
+    /// <summary>
+    /// <see cref="CanAccess"/> as a query filter, for a reader who may have no employee.
+    /// </summary>
+    /// <param name="employeeId">The reader's employee, or null when the account has none.</param>
+    /// <param name="isAdministrator">Whether the reader holds the poker Administer permission.</param>
+    /// <param name="teamIds">The teams the reader belongs to, among those any session invites.</param>
+    public static Expression<Func<PokerSession, bool>> AccessibleTo(Guid? employeeId, bool isAdministrator, IReadOnlyCollection<Guid> teamIds)
+    {
+        Guard.Against.Null(teamIds, nameof(teamIds));
+
+        if (isAdministrator)
+            return s => true;
+
+        if (employeeId is null)
+            return s => s.Visibility == Visibility.Public;
+
+        var id = employeeId.Value;
+        return s => s.Visibility == Visibility.Public
+            || s.Facilitators.Any(f => f.EmployeeId == id)
+            || s.InvitedEmployees.Any(e => e.EmployeeId == id)
+            || s.InvitedTeams.Any(t => teamIds.Contains(t.TeamId));
+    }
+
+    /// <summary>
+    /// Change who can see and join the session. Allowed on a completed session, whose results can still be
+    /// shared or made private. A connection that loses access is not removed here; the caller must evict it.
+    /// </summary>
+    public Result SetVisibility(Visibility visibility, PokerSessionActor actor)
+    {
+        var canManage = EnsureCanManage(actor);
+        if (canManage.IsFailure)
+            return canManage;
+
+        Visibility = visibility;
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Replace the session's facilitators. At least one is required. Allowed on a completed session.
+    /// </summary>
+    public Result SetFacilitators(IEnumerable<Guid> employeeIds, PokerSessionActor actor)
+    {
+        Guard.Against.Null(employeeIds, nameof(employeeIds));
+
+        var canManage = EnsureCanManage(actor);
+        if (canManage.IsFailure)
+            return canManage;
+
+        var ids = employeeIds.Distinct().ToHashSet();
+        if (ids.Count == 0)
+            return Result.Failure("A poker session needs at least one facilitator.");
+
+        _facilitators.RemoveAll(f => !ids.Contains(f.EmployeeId));
+        foreach (var id in ids.Where(id => !IsFacilitator(id)))
+            _facilitators.Add(new PokerSessionFacilitator(Id, id));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Replace the employees and teams invited to the session. Invites grant access only while the session is
+    /// private, and are kept while it is public. Allowed on a completed session.
+    /// </summary>
+    public Result SetInvitees(IEnumerable<Guid> employeeIds, IEnumerable<Guid> teamIds, PokerSessionActor actor)
+    {
+        Guard.Against.Null(employeeIds, nameof(employeeIds));
+        Guard.Against.Null(teamIds, nameof(teamIds));
+
+        var canManage = EnsureCanManage(actor);
+        if (canManage.IsFailure)
+            return canManage;
+
+        var employees = employeeIds.Distinct().ToHashSet();
+        _invitedEmployees.RemoveAll(e => !employees.Contains(e.EmployeeId));
+        foreach (var id in employees.Where(id => !_invitedEmployees.Any(e => e.EmployeeId == id)))
+            _invitedEmployees.Add(new PokerSessionInvitedEmployee(Id, id));
+
+        var teams = teamIds.Distinct().ToHashSet();
+        _invitedTeams.RemoveAll(t => !teams.Contains(t.TeamId));
+        foreach (var id in teams.Where(id => !_invitedTeams.Any(t => t.TeamId == id)))
+            _invitedTeams.Add(new PokerSessionInvitedTeam(Id, id));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Check that the actor may delete the session, which only its facilitators and poker administrators can.
+    /// </summary>
+    public Result CanDelete(PokerSessionActor actor) => EnsureCanManage(actor);
+
+    #endregion Access
+
+    #region Members
+
+    /// <summary>
+    /// The employee's membership, or null when they have not joined. Requires <see cref="Members"/> to be loaded.
+    /// </summary>
+    public PokerSessionMember? FindMember(Guid employeeId) =>
+        _members.FirstOrDefault(m => m.EmployeeId == employeeId);
+
+    /// <summary>
+    /// Join the session, voting or not. A member stays one: there is no leaving, and someone who no longer wants to
+    /// vote turns voting off with <see cref="SetVoting"/>. Joining again changes nothing, so it cannot undo that choice.
+    /// </summary>
+    public Result<PokerSessionMembershipChange> Join(bool isVoting, PokerSessionActor actor, Instant timestamp)
+    {
+        if (!CanAccess(actor))
+            return Result.Failure<PokerSessionMembershipChange>(NotFoundError);
+
+        if (Status != PokerSessionStatus.Active)
+            return Result.Failure<PokerSessionMembershipChange>("Only an active session can be joined.");
+
+        var member = FindMember(actor.EmployeeId);
+        if (member is null)
+        {
+            member = new PokerSessionMember(Id, actor.EmployeeId, isVoting, timestamp);
+            _members.Add(member);
+        }
+
+        return Result.Success(new PokerSessionMembershipChange(member, []));
+    }
+
+    /// <summary>
+    /// Turn the actor's voting on or off. Turning it off withdraws their votes in rounds that have not been revealed;
+    /// revealed rounds keep them. Turning it on lets them vote at once.
+    /// </summary>
+    public Result<PokerSessionMembershipChange> SetVoting(bool isVoting, PokerSessionActor actor)
+    {
+        if (!CanAccess(actor))
+            return Result.Failure<PokerSessionMembershipChange>(NotFoundError);
+
+        if (Status != PokerSessionStatus.Active)
+            return Result.Failure<PokerSessionMembershipChange>("Cannot change voting when the session is not active.");
+
+        var member = FindMember(actor.EmployeeId);
+        if (member is null)
+            return Result.Failure<PokerSessionMembershipChange>("Join the session before changing whether you vote.");
+
+        IReadOnlyList<Guid> withdrawn = isVoting ? [] : WithdrawUnrevealedVotes(actor.UserId);
+        member.SetVoting(isVoting);
+        return Result.Success(new PokerSessionMembershipChange(member, withdrawn));
+    }
+
+    private List<Guid> WithdrawUnrevealedVotes(string userId) =>
+        [.. _rounds.Where(r => r.WithdrawUnrevealedVote(userId)).Select(r => r.Id)];
+
+    #endregion Members
+
+    /// <summary>
+    /// Complete the session, deleting its empty rounds (see <see cref="PokerRound.IsEmpty"/>) so the
+    /// read-only record keeps only what was estimated. The rounds and their votes must be loaded, or a round
+    /// with votes would read as empty.
+    /// </summary>
+    public Result Complete(PokerSessionActor actor, Instant timestamp)
+    {
+        var canManage = EnsureCanManage(actor);
+        if (canManage.IsFailure)
+            return canManage;
+
         if (Status != PokerSessionStatus.Active)
             return Result.Failure("Session can only be completed from Active status.");
+
+        _rounds.RemoveAll(r => r.IsEmpty);
 
         Status = PokerSessionStatus.Completed;
         CompletedOn = timestamp;
@@ -84,15 +328,19 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Add a new round to this session.
     /// </summary>
-    public Result<PokerRound> AddRound(string? label)
+    public Result<PokerRound> AddRound(string? label, string? description, PokerSessionActor actor)
     {
+        var canManage = EnsureCanManage(actor);
+        if (canManage.IsFailure)
+            return Result.Failure<PokerRound>(canManage.Error);
+
         if (Status != PokerSessionStatus.Active)
             return Result.Failure<PokerRound>("Rounds can only be added to an active session.");
 
         try
         {
             int nextOrder = _rounds.Count > 0 ? _rounds.Max(r => r.Order) + 1 : 0;
-            var round = new PokerRound(Id, label, nextOrder);
+            var round = new PokerRound(Id, label, description, nextOrder);
             _rounds.Add(round);
 
             return Result.Success(round);
@@ -106,8 +354,12 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Remove a round from the session.
     /// </summary>
-    public Result RemoveRound(Guid roundId)
+    public Result RemoveRound(Guid roundId, PokerSessionActor actor)
     {
+        var canManage = EnsureCanManage(actor);
+        if (canManage.IsFailure)
+            return canManage;
+
         if (Status != PokerSessionStatus.Active)
             return Result.Failure("Rounds can only be removed from an active session.");
 
@@ -122,106 +374,114 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Reveal votes for a specific round.
     /// </summary>
-    public Result<PokerRound> RevealRound(Guid roundId)
-    {
-        if (Status != PokerSessionStatus.Active)
-            return Result.Failure<PokerRound>("Cannot reveal votes when the session is not active.");
-
-        var round = _rounds.FirstOrDefault(r => r.Id == roundId);
-        if (round is null)
-            return Result.Failure<PokerRound>("Round not found.");
-
-        var result = round.Reveal();
-        return result.IsFailure
-            ? Result.Failure<PokerRound>(result.Error)
-            : Result.Success(round);
-    }
+    public Result<PokerRound> RevealRound(Guid roundId, PokerSessionActor actor) =>
+        ChangeRound(roundId, actor, "Cannot reveal votes when the session is not active.", r => r.Reveal());
 
     /// <summary>
     /// Reset a round to allow re-voting.
     /// </summary>
-    public Result<PokerRound> ResetRound(Guid roundId)
-    {
-        if (Status != PokerSessionStatus.Active)
-            return Result.Failure<PokerRound>("Cannot reset a round when the session is not active.");
-
-        var round = _rounds.FirstOrDefault(r => r.Id == roundId);
-        if (round is null)
-            return Result.Failure<PokerRound>("Round not found.");
-
-        var result = round.Reset();
-        return result.IsFailure
-            ? Result.Failure<PokerRound>(result.Error)
-            : Result.Success(round);
-    }
+    public Result<PokerRound> ResetRound(Guid roundId, PokerSessionActor actor) =>
+        ChangeRound(roundId, actor, "Cannot reset a round when the session is not active.", r => r.Reset());
 
     /// <summary>
-    /// Set the consensus estimate for a round.
+    /// Set the consensus estimate for a round. The estimate must be a value on the session's scale version; a
+    /// card such as "?" is allowed, since a team settling on it is a real outcome.
     /// </summary>
-    public Result<PokerRound> SetConsensus(Guid roundId, string estimate)
+    /// <param name="estimationScaleVersion">The session's own scale version, which the estimate is checked against.</param>
+    public Result<PokerRound> SetConsensus(Guid roundId, string estimate, EstimationScaleVersion estimationScaleVersion, PokerSessionActor actor)
     {
-        if (Status != PokerSessionStatus.Active)
-            return Result.Failure<PokerRound>("Cannot set consensus when the session is not active.");
+        EnsureSessionVersion(estimationScaleVersion);
 
-        var round = _rounds.FirstOrDefault(r => r.Id == roundId);
-        if (round is null)
-            return Result.Failure<PokerRound>("Round not found.");
-
-        var result = round.SetConsensus(estimate);
-        return result.IsFailure
-            ? Result.Failure<PokerRound>(result.Error)
-            : Result.Success(round);
+        return ChangeRound(roundId, actor, "Cannot set consensus when the session is not active.", round =>
+        {
+            var value = estimationScaleVersion.Find(estimate);
+            return value is null
+                ? Result.Failure($"'{estimate}' is not a value on the session's estimation scale.")
+                : round.SetConsensus(value.Value);
+        });
     }
 
     /// <summary>
     /// Update the label for a specific round.
     /// </summary>
-    public Result<PokerRound> UpdateRoundLabel(Guid roundId, string? newLabel)
+    public Result<PokerRound> UpdateRoundLabel(Guid roundId, string? newLabel, PokerSessionActor actor) =>
+        ChangeRound(roundId, actor, "Cannot update round label when the session is not active.", r => r.UpdateLabel(newLabel));
+
+    /// <summary>
+    /// Update the description for a specific round.
+    /// </summary>
+    public Result<PokerRound> UpdateRoundDescription(Guid roundId, string? newDescription, PokerSessionActor actor) =>
+        ChangeRound(roundId, actor, "Cannot update round description when the session is not active.", r => r.UpdateDescription(newDescription));
+
+    private Result<PokerRound> ChangeRound(Guid roundId, PokerSessionActor actor, string inactiveError, Func<PokerRound, Result> change)
     {
+        var canManage = EnsureCanManage(actor);
+        if (canManage.IsFailure)
+            return Result.Failure<PokerRound>(canManage.Error);
+
         if (Status != PokerSessionStatus.Active)
-            return Result.Failure<PokerRound>("Cannot update round label when the session is not active.");
+            return Result.Failure<PokerRound>(inactiveError);
 
         var round = _rounds.FirstOrDefault(r => r.Id == roundId);
         if (round is null)
             return Result.Failure<PokerRound>("Round not found.");
 
-        var result = round.UpdateLabel(newLabel);
+        var result = change(round);
         return result.IsFailure
             ? Result.Failure<PokerRound>(result.Error)
             : Result.Success(round);
     }
 
     /// <summary>
-    /// Submit a vote for a specific round. The value must be one of the session's estimation scale values,
-    /// special cards such as "?" included; the scale need not still be active.
+    /// Submit the actor's vote for a round. The value must be one of the session's scale version values, cards
+    /// such as "?" included; the scale need not still be active. An actor who has not joined joins, voting; a
+    /// member who is not voting is refused.
     /// </summary>
-    /// <param name="estimationScale">The session's own estimation scale, whose values the vote is checked against.</param>
-    public Result SubmitVote(Guid roundId, string participantId, string value, EstimationScale estimationScale, Instant timestamp)
+    /// <param name="estimationScaleVersion">The session's own scale version, whose values the vote is checked against.</param>
+    /// <returns>Whether the vote made the actor join the session.</returns>
+    public Result<bool> SubmitVote(Guid roundId, string value, EstimationScaleVersion estimationScaleVersion, PokerSessionActor actor, Instant timestamp)
     {
-        Guard.Against.Null(estimationScale, nameof(estimationScale));
-        if (estimationScale.Id != EstimationScaleId)
-            throw new ArgumentException($"Estimation scale {estimationScale.Id} is not the session's scale ({EstimationScaleId}).", nameof(estimationScale));
+        EnsureSessionVersion(estimationScaleVersion);
+
+        if (!CanAccess(actor))
+            return Result.Failure<bool>(NotFoundError);
 
         if (Status != PokerSessionStatus.Active)
-            return Result.Failure("Cannot vote when the session is not active.");
+            return Result.Failure<bool>("Cannot vote when the session is not active.");
 
         var round = _rounds.FirstOrDefault(r => r.Id == roundId);
         if (round is null)
-            return Result.Failure("Round not found.");
+            return Result.Failure<bool>("Round not found.");
 
-        // Scale values are stored trimmed, as a vote is.
-        var trimmed = value?.Trim();
-        if (string.IsNullOrEmpty(trimmed) || !estimationScale.Values.Contains(trimmed, StringComparer.Ordinal))
-            return Result.Failure($"'{value}' is not a value on the session's estimation scale.");
+        var scaleValue = estimationScaleVersion.Find(value);
+        if (scaleValue is null)
+            return Result.Failure<bool>($"'{value}' is not a value on the session's estimation scale.");
 
-        return round.AddOrUpdateVote(participantId, trimmed, timestamp);
+        var member = FindMember(actor.EmployeeId);
+        if (member is { IsVoting: false })
+            return Result.Failure<bool>("You are not voting in this session. Turn on voting to vote.");
+
+        var voted = round.AddOrUpdateVote(actor.UserId, scaleValue.Value, timestamp);
+        if (voted.IsFailure)
+            return Result.Failure<bool>(voted.Error);
+
+        if (member is not null)
+            return Result.Success(false);
+
+        var joined = Join(true, actor, timestamp);
+        return joined.IsFailure
+            ? Result.Failure<bool>(joined.Error)
+            : Result.Success(true);
     }
 
     /// <summary>
-    /// Withdraw a vote from a specific round.
+    /// Withdraw the actor's vote from a round that is still Voting.
     /// </summary>
-    public Result WithdrawVote(Guid roundId, string participantId)
+    public Result WithdrawVote(Guid roundId, PokerSessionActor actor)
     {
+        if (!CanAccess(actor))
+            return Result.Failure(NotFoundError);
+
         if (Status != PokerSessionStatus.Active)
             return Result.Failure("Cannot withdraw vote when the session is not active.");
 
@@ -229,17 +489,23 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         if (round is null)
             return Result.Failure("Round not found.");
 
-        return round.RemoveVote(participantId);
+        return round.RemoveVote(actor.UserId);
     }
 
     /// <summary>
     /// Update the session name and optionally the estimation scale.
     /// The estimation scale can only be changed when no rounds have been started, and only to an active
-    /// scale; keeping a scale that has since been deactivated is allowed.
+    /// scale, which pins the session to that scale's current version. Keeping a scale that has since been
+    /// deactivated is allowed, and keeps the version the session is on.
     /// </summary>
-    public Result Update(string name, EstimationScale estimationScale)
+    /// <param name="estimationScale">The chosen scale, with its versions loaded when it differs from the session's.</param>
+    public Result Update(string name, EstimationScale estimationScale, PokerSessionActor actor)
     {
         Guard.Against.Null(estimationScale, nameof(estimationScale));
+
+        var canManage = EnsureCanManage(actor);
+        if (canManage.IsFailure)
+            return canManage;
 
         if (Status != PokerSessionStatus.Active)
             return Result.Failure("Session can only be updated when active.");
@@ -254,7 +520,12 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         try
         {
             Name = name;
-            EstimationScaleId = estimationScale.Id;
+            if (scaleChanged)
+            {
+                var version = estimationScale.CurrentVersion;
+                EstimationScaleId = estimationScale.Id;
+                EstimationScaleVersionId = version.Id;
+            }
             return Result.Success();
         }
         catch (Exception ex)
@@ -263,22 +534,44 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         }
     }
 
-    private const string InactiveScaleError = "The estimation scale is inactive and cannot be chosen for a session.";
+    /// <summary>
+    /// Refuses an actor who does not run the session: as not found when they cannot see it, otherwise as not a
+    /// facilitator.
+    /// </summary>
+    private Result EnsureCanManage(PokerSessionActor actor)
+    {
+        if (CanManage(actor))
+            return Result.Success();
+
+        return CanAccess(actor)
+            ? Result.Failure(NotAFacilitatorError)
+            : Result.Failure(NotFoundError);
+    }
+
+    private void EnsureSessionVersion(EstimationScaleVersion estimationScaleVersion)
+    {
+        Guard.Against.Null(estimationScaleVersion, nameof(estimationScaleVersion));
+        if (estimationScaleVersion.Id != EstimationScaleVersionId)
+            throw new ArgumentException($"Estimation scale version {estimationScaleVersion.Id} is not the session's version ({EstimationScaleVersionId}).", nameof(estimationScaleVersion));
+    }
 
     /// <summary>
-    /// Create a new poker session on an active estimation scale. The session is immediately activated and
-    /// ready to accept rounds.
+    /// Create a new poker session on an active estimation scale, pinned to the scale's current version, with
+    /// its creator as the first facilitator. The session is immediately activated and ready to accept rounds.
     /// </summary>
-    public static Result<PokerSession> Create(string name, EstimationScale estimationScale, string facilitatorId, Instant timestamp)
+    /// <param name="estimationScale">The chosen scale, with its versions loaded.</param>
+    /// <param name="facilitatorEmployeeId">The creator, who becomes the first facilitator.</param>
+    public static Result<PokerSession> Create(string name, EstimationScale estimationScale, Visibility visibility, Guid facilitatorEmployeeId, Instant timestamp)
     {
         Guard.Against.Null(estimationScale, nameof(estimationScale));
+        Guard.Against.Default(facilitatorEmployeeId, nameof(facilitatorEmployeeId));
 
         if (!estimationScale.IsActive)
             return Result.Failure<PokerSession>(InactiveScaleError);
 
         try
         {
-            var session = new PokerSession(name, estimationScale.Id, facilitatorId)
+            var session = new PokerSession(name, estimationScale.CurrentVersion, visibility, facilitatorEmployeeId)
             {
                 Status = PokerSessionStatus.Active,
                 ActivatedOn = timestamp

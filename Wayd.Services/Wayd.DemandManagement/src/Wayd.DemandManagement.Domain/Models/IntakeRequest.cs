@@ -8,6 +8,7 @@ using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Domain.Tagging;
+using Wayd.DemandManagement.Domain.Models.Estimation;
 using Wayd.DemandManagement.Domain.Models.Scoring;
 
 namespace Wayd.DemandManagement.Domain.Models;
@@ -192,6 +193,12 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// The latest score, or null when the request has never been scored. Substance tier.
     /// </summary>
     public IntakeRequestScoreSummary? CurrentScore { get; private set; }
+
+    /// <summary>
+    /// How big the ask is, on its desk's estimation scale, or null when the desk team has not estimated it.
+    /// Substance tier, like the score.
+    /// </summary>
+    public IntakeRequestEstimate? Estimate { get; private set; }
 
     /// <inheritdoc/>
     public override string StatusOwnerType => DemandManagementWorkflowOwners.IntakeRequest.Key;
@@ -386,7 +393,9 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// work. Refused for a closed request, and for a destination closed to new requests. A move to a less
     /// private desk publishes words written expecting privacy, so it is refused unless the mover confirmed it;
     /// a move to a more private desk is silent. An assignee who is not a member of the destination is
-    /// unassigned in the same move, because an assignee is always a member of the request's desk.
+    /// unassigned in the same move, because an assignee is always a member of the request's desk, and an estimate on a
+    /// version the destination does not pin is cleared, because a size from another desk's scale says nothing beside
+    /// the destination's own estimates.
     /// <para>
     /// The request arrives in a status of the destination's workflow, which the mover chooses: an open one
     /// needing no reason, since what to decide about it is the new desk's call. When the destination follows a
@@ -436,6 +445,10 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
 
         DeskId = to.Id;
         RaiseWhenKeyed(() => new IntakeRequestReroutedEvent(Id, Key, from.Id, to.Id, from.Visibility, to.Visibility, actor, timestamp));
+
+        // A size from another desk's scale says nothing beside the destination's own estimates.
+        if (Estimate is { } estimate && estimate.ScaleVersionId != to.EstimationScaleVersionId)
+            SetEstimate(null, IntakeRequestEstimateSource.Rerouted, actor, timestamp);
 
         if (AssigneeId is { } assigneeId && to.RoleOf(assigneeId) is null)
             ChangeAssignee(null, actor, timestamp);
@@ -643,16 +656,16 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Records that the request became a project. Needs <see cref="Outcomes"/> loaded.
+    /// Records that the request became a project or work item. Needs <see cref="Outcomes"/> loaded.
     /// </summary>
     /// <remarks>
-    /// Needs an agent on the request's desk, and a project that exists; the caller checks both, since the
-    /// request knows neither who works its desk nor what exists in PPM. Allowed only while
+    /// Needs an agent on the request's desk, and a target that exists; the caller checks both, since the
+    /// request knows neither who works its desk nor what exists in PPM or Work. Allowed only while
     /// the request is accepted (Active): before that nothing has been decided, and once it is closed the
     /// record of what it became is settled until it is reopened. Recording existing project scope says what
     /// the project absorbed, because the project's own definition is not changed.
     /// </remarks>
-    /// <param name="targetId">The project, by the id it shares with its source.</param>
+    /// <param name="targetId">The project or work item, by its id in its own module.</param>
     /// <param name="addedById">The employee recording it.</param>
     public Result AddOutcome(IntakeRequestOutcomeKind kind, Guid targetId, string? note, Guid addedById, EventActor actor, Instant timestamp)
     {
@@ -680,12 +693,12 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Takes an outcome off the request: it no longer counts the project as what it became. Needs
+    /// Takes an outcome off the request: it no longer counts the target as what it became. Needs
     /// <see cref="Outcomes"/> loaded.
     /// </summary>
     /// <remarks>
     /// Needs an agent on the request's desk, which the caller checks, and allowed only while the request is
-    /// accepted, as adding is. The project itself is untouched.
+    /// accepted, as adding is. The target itself is untouched.
     /// </remarks>
     public Result RemoveOutcome(Guid targetId, EventActor actor, Instant timestamp)
     {
@@ -718,7 +731,7 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         "Say what the project absorbed from this request.";
 
     /// <summary>
-    /// The failure for recording a second outcome pointing at the same project.
+    /// The failure for recording a second outcome pointing at the same project or work item.
     /// </summary>
     public const string DuplicateOutcomeError =
         "The request already has an outcome pointing at that record.";
@@ -886,6 +899,89 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// The failure for scoring a request that is Done or Removed.
     /// </summary>
     public const string ClosedScoreError = "A closed request cannot be scored until it is moved back to an open status.";
+
+    /// <summary>
+    /// Sets, changes or clears the request's estimate with null.
+    /// </summary>
+    /// <remarks>
+    /// The desk team's call alone — an agent or Desk Admin on the request's desk, the Demand Management Admin, or
+    /// the platform for an import — which <see cref="IntakeRequestEditor.IsDeskAgent"/> says. Never the requester,
+    /// even while the request is Proposed and they may edit it otherwise. Allowed while the request is open and
+    /// frozen once it is Done or Removed. A new estimate must be an estimate value, not a card, on the version the
+    /// desk pins; clearing needs no scale, so a request keeps the way out of an estimate its desk no longer uses.
+    /// </remarks>
+    /// <param name="value">The estimate value, or null to clear the estimate. Blank is not a value.</param>
+    /// <param name="desk">The request's desk, whose <see cref="IntakeDesk.EstimationScaleVersionId"/> decides the version.</param>
+    /// <param name="scale">
+    /// The scale the desk's pinned version belongs to, with its versions loaded, or null when the desk pins none.
+    /// </param>
+    public Result ChangeEstimate(string? value, IntakeDesk desk, DemandEstimationScale? scale,
+        IntakeRequestEstimateSource source, IntakeRequestEditor editor, Instant timestamp)
+    {
+        Guard.Against.Null(desk);
+        Guard.Against.Null(editor);
+        Guard.Against.EnumOutOfRange(source, nameof(source));
+        if (desk.Id != DeskId)
+            throw new ArgumentException("The desk must be the request's own.", nameof(desk));
+        var version = scale?.Versions.FirstOrDefault(v => v.Id == desk.EstimationScaleVersionId);
+        if ((scale is null) != (desk.EstimationScaleVersionId is null) || version?.Id != desk.EstimationScaleVersionId)
+            throw new ArgumentException("The scale must be the one the request's desk pins a version of.", nameof(scale));
+
+        if (!editor.IsDeskAgent)
+            return Result.Failure(NotAnEstimatorError);
+
+        if (!IsOpen)
+            return Result.Failure(ClosedEstimateError);
+
+        IntakeRequestEstimate? to = null;
+        if (value is not null)
+        {
+            if (version is null)
+                return Result.Failure(DeskDoesNotEstimateError);
+
+            if (version.FindEstimate(value) is not { } estimate)
+                return Result.Failure(NotAnEstimateValueError);
+
+            to = new IntakeRequestEstimate(estimate.Value.Value, version.Id, estimate.Position, scale!.Name, version.Number);
+        }
+
+        // Compared on what the estimate is, not on the frozen name, which a rename since would make differ.
+        if (to?.Value == Estimate?.Value && to?.ScaleVersionId == Estimate?.ScaleVersionId)
+            return Result.Success();
+
+        SetEstimate(to, source, editor.Actor, timestamp);
+
+        return Result.Success();
+    }
+
+    private void SetEstimate(IntakeRequestEstimate? to, IntakeRequestEstimateSource source, EventActor actor, Instant timestamp)
+    {
+        var from = Estimate?.ToDetails();
+        Estimate = to;
+        var toDetails = to?.ToDetails();
+
+        RaiseWhenKeyed(() => new IntakeRequestEstimateChangedEvent(Id, Key, from, toDetails, source, actor, timestamp));
+    }
+
+    /// <summary>
+    /// The failure for estimating a request on a desk that has no estimation scale.
+    /// </summary>
+    public const string DeskDoesNotEstimateError = "This request's desk does not estimate its requests.";
+
+    /// <summary>
+    /// The failure for an estimate value that is not an estimate value of the desk's scale version.
+    /// </summary>
+    public const string NotAnEstimateValueError = "Choose an estimate value from the desk's estimation scale.";
+
+    /// <summary>
+    /// The failure for an estimator who is not on the request's desk team.
+    /// </summary>
+    public const string NotAnEstimatorError = "Only an agent on the request's desk may estimate it.";
+
+    /// <summary>
+    /// The failure for estimating a request that is Done or Removed.
+    /// </summary>
+    public const string ClosedEstimateError = "A closed request cannot be estimated until it is moved back to an open status.";
 
     /// <summary>
     /// Records that the request is being deleted, or refuses when it has moved through review. Removing it

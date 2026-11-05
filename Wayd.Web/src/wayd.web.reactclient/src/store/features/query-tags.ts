@@ -39,6 +39,8 @@ export enum QueryTags {
   UnreadNotificationCount = 'Common.UnreadNotificationCount',
   RecordMuteStatus = 'Common.RecordMuteStatus',
   MyMutes = 'Common.MyMutes',
+  Discussion = 'Common.Discussion',
+  DiscussionSettings = 'Common.DiscussionSettings',
   HealthCheck = 'Common.HealthCheck',
   HealthChecksHealthReport = 'Common.HealthChecks.HealthReport',
   HealthChecksStatusOptions = 'Common.HealthChecks.StatusOptions',
@@ -48,6 +50,8 @@ export enum QueryTags {
   StatusHistory = 'Common.StatusHistory',
   WorkflowActions = 'Common.WorkflowActions',
   WorkflowAssignment = 'Common.WorkflowAssignment',
+  WorkflowScheme = 'Common.WorkflowScheme',
+  RecordType = 'Common.RecordType',
 
   // ORGANIZATIONS
   ActiveSprint = 'Organizations.ActiveSprint',
@@ -76,6 +80,7 @@ export enum QueryTags {
   PlanningIntervalMetrics = 'Planning.PlanningInterval.Metrics',
   PlanningIntervalCalendar = 'Planning.PlanningInterval.Calendar',
   PlanningIntervalBacklog = 'Planning.PlanningInterval.Backlog',
+  PlanningIntervalDependencies = 'Planning.PlanningInterval.Dependencies',
   PlanningIntervalIteration = 'Planning.PlanningInterval.Iteration',
   PlanningIntervalIterationSprints = 'Planning.PlanningInterval.Iteration.Sprints',
   PlanningIntervalIterationMetrics = 'Planning.PlanningInterval.Iteration.Metrics',
@@ -105,6 +110,7 @@ export enum QueryTags {
   PokerSessionRound = 'Planning.PokerSession.Round',
   StoryMap = 'Planning.StoryMap',
   StoryMapList = 'Planning.StoryMap.List',
+  StoryMapEditorTeamMembers = 'Planning.StoryMap.EditorTeamMembers',
   EstimationScale = 'Planning.EstimationScale',
   IncidentSeveritySet = 'ProductManagement.IncidentSeveritySet',
   Sprint = 'Planning.Sprint',
@@ -120,6 +126,7 @@ export enum QueryTags {
   IntakeChannel = 'DemandManagement.IntakeChannel',
   IntakeRequestTagCategory = 'DemandManagement.IntakeRequestTagCategory',
   IntakeRequestScore = 'DemandManagement.IntakeRequestScore',
+  IntakeRequestEstimate = 'DemandManagement.IntakeRequestEstimate',
   IntakeLookup = 'DemandManagement.Lookup',
   IntakeEmployeeOption = 'DemandManagement.EmployeeOption',
 
@@ -129,6 +136,7 @@ export enum QueryTags {
   ProductTagCategory = 'ProductManagement.ProductTagCategory',
   ProductTag = 'ProductManagement.ProductTag',
   ProductDependency = 'ProductManagement.ProductDependency',
+  ProductTeamLink = 'ProductManagement.ProductTeamLink',
 
   // DELIVERY
   Version = 'Delivery.Version',

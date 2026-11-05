@@ -7,6 +7,10 @@ public sealed record PokerRoundDto : IMapFrom<PokerRound>
 {
     public Guid Id { get; set; }
     public string? Label { get; set; }
+    /// <summary>
+    /// Optional detail about what is being estimated, such as acceptance criteria or notes for the team.
+    /// </summary>
+    public string? Description { get; set; }
     public required string Status { get; set; }
     public string? ConsensusEstimate { get; set; }
     public int Order { get; set; }

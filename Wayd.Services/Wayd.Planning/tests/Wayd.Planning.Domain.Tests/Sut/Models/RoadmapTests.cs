@@ -26,6 +26,10 @@ public class RoadmapTests
 
     private Instant Now => _dateTimeProvider.Now;
 
+    private static RoadmapActor As(Guid employeeId) => new(employeeId, false);
+
+    private static RoadmapActor AsAdministrator(Guid employeeId) => new(employeeId, true);
+
     public RoadmapTests()
     {
         _dateTimeProvider = new(new FakeClock(DateTime.UtcNow.ToInstant()));
@@ -40,10 +44,10 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
 
         // Act
-        var result = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now);
+        var result = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -52,23 +56,23 @@ public class RoadmapTests
         result.Value.DateRange.Should().Be(fakeRoadmap.DateRange);
         result.Value.Visibility.Should().Be(fakeRoadmap.Visibility);
         result.Value.State.Should().Be(RoadmapState.Active);
-        result.Value.RoadmapManagers.Should().HaveCount(1);
-        result.Value.RoadmapManagers.First().ManagerId.Should().Be(managerId);
+        result.Value.Owners.Should().HaveCount(1);
+        result.Value.Owners.First().EmployeeId.Should().Be(ownerId);
     }
 
     [Fact]
-    public void Create_NoManagers_ShouldReturnFailure()
+    public void Create_NoOwners_ShouldReturnFailure()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managers = Array.Empty<Guid>();
+        var owners = Array.Empty<Guid>();
 
         // Act
-        var result = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, managers, Actor, Now);
+        var result = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, owners, Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Required input roadmapManagerIds was empty. (Parameter 'roadmapManagerIds')");
+        result.Error.Should().Be("Required input ownerIds was empty. (Parameter 'ownerIds')");
     }
 
     [Fact]
@@ -76,8 +80,8 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         var newName = "Updated Name";
         var newDescription = "Updated Description";
@@ -85,7 +89,7 @@ public class RoadmapTests
         var newVisibility = Visibility.Private;
 
         // Act
-        var result = roadmap.Update(newName, newDescription, newDateRange, [managerId], newVisibility, managerId, Actor, Now);
+        var result = roadmap.Update(newName, newDescription, newDateRange, [ownerId], newVisibility, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -96,76 +100,186 @@ public class RoadmapTests
     }
 
     [Fact]
-    public void Update_InvalidManagerId_ShouldReturnFailure()
+    public void Update_InvalidOwnerId_ShouldReturnFailure()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         // Act
-        var result = roadmap.Update("Updated Name", "Updated Description", new LocalDateRange(_dateTimeProvider.Today.PlusDays(1), _dateTimeProvider.Today.PlusDays(11)), [managerId], Visibility.Private, Guid.NewGuid(), Actor, Now);
+        var result = roadmap.Update("Updated Name", "Updated Description", new LocalDateRange(_dateTimeProvider.Today.PlusDays(1), _dateTimeProvider.Today.PlusDays(11)), [ownerId], Visibility.Private, As(Guid.NewGuid()), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("User is not a roadmap manager of this roadmap.");
+        result.Error.Should().Be("You are not an owner of this roadmap.");
     }
 
-    #region Manager Tests
+    #region Owner Tests
 
     [Fact]
-    public void Update_AddedManager_ShouldAddManager()
+    public void Update_AddedOwner_ShouldAddOwner()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var managerId2 = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var ownerId2 = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         // Act
-        var result = roadmap.Update(roadmap.Name, roadmap.Description, roadmap.DateRange, [managerId, managerId2], roadmap.Visibility, managerId, Actor, Now);
+        var result = roadmap.Update(roadmap.Name, roadmap.Description, roadmap.DateRange, [ownerId, ownerId2], roadmap.Visibility, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        roadmap.RoadmapManagers.Select(x => x.ManagerId).Should().BeEquivalentTo([managerId, managerId2]);
+        roadmap.Owners.Select(x => x.EmployeeId).Should().BeEquivalentTo([ownerId, ownerId2]);
     }
 
     [Fact]
-    public void Update_RemovedManager_ShouldRemoveManager()
+    public void Update_RemovedOwner_ShouldRemoveOwner()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var managerId2 = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId, managerId2], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var ownerId2 = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId, ownerId2], Actor, Now).Value;
 
         // Act
-        var result = roadmap.Update(roadmap.Name, roadmap.Description, roadmap.DateRange, [managerId], roadmap.Visibility, managerId, Actor, Now);
+        var result = roadmap.Update(roadmap.Name, roadmap.Description, roadmap.DateRange, [ownerId], roadmap.Visibility, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        roadmap.RoadmapManagers.Should().ContainSingle().Which.ManagerId.Should().Be(managerId);
+        roadmap.Owners.Should().ContainSingle().Which.EmployeeId.Should().Be(ownerId);
     }
 
     [Fact]
-    public void Update_WithoutCurrentUserAsManager_ShouldReturnFailure()
+    public void Update_WithoutCurrentUserAsOwner_ShouldReturnFailure()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var managerId2 = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId, managerId2], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var ownerId2 = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId, ownerId2], Actor, Now).Value;
 
         // Act
-        var result = roadmap.Update(roadmap.Name, roadmap.Description, roadmap.DateRange, [managerId2], roadmap.Visibility, managerId, Actor, Now);
+        var result = roadmap.Update(roadmap.Name, roadmap.Description, roadmap.DateRange, [ownerId2], roadmap.Visibility, As(ownerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("The current user must be a roadmap manager of the Roadmap in order to update it.");
-        roadmap.RoadmapManagers.Should().HaveCount(2);
+        result.Error.Should().Be("You must remain an owner of the Roadmap to update it.");
+        roadmap.Owners.Should().HaveCount(2);
     }
 
-    #endregion Manager Tests
+    [Fact]
+    public void Update_ByAdministratorWhoIsNotAnOwner_ReplacesTheOwners()
+    {
+        // Arrange
+        var fakeRoadmap = _faker.Generate();
+        var ownerId = Guid.NewGuid();
+        var newOwnerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
+
+        // Act
+        var result = roadmap.Update(roadmap.Name, roadmap.Description, roadmap.DateRange, [newOwnerId], roadmap.Visibility, AsAdministrator(Guid.NewGuid()), Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        roadmap.Owners.Should().ContainSingle().Which.EmployeeId.Should().Be(newOwnerId);
+    }
+
+    [Fact]
+    public void Update_WithNoOwners_ShouldReturnFailure()
+    {
+        // Arrange
+        var fakeRoadmap = _faker.Generate();
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
+
+        // Act
+        var result = roadmap.Update(roadmap.Name, roadmap.Description, roadmap.DateRange, [], roadmap.Visibility, AsAdministrator(Guid.NewGuid()), Actor, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A Roadmap needs at least one owner.");
+        roadmap.Owners.Should().ContainSingle();
+    }
+
+    #endregion Owner Tests
+
+    #region Access Tests
+
+    [Theory]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(false, false, false)]
+    public void CanManage_IsTrueForOwnersAndAdministrators(bool isOwner, bool isAdministrator, bool expected)
+    {
+        // Arrange
+        var fakeRoadmap = _faker.Generate();
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
+        var caller = new RoadmapActor(isOwner ? ownerId : Guid.NewGuid(), isAdministrator);
+
+        // Act
+        var canManage = roadmap.CanManage(caller);
+
+        // Assert
+        canManage.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(Visibility.Public, false, false, false, true)]
+    [InlineData(Visibility.Private, false, false, false, false)]
+    [InlineData(Visibility.Private, true, false, false, true)]
+    [InlineData(Visibility.Private, false, true, false, true)]
+    [InlineData(Visibility.Private, false, false, true, false)]
+    public void AccessibleTo_AdmitsPublicRoadmapsOwnersAndAdministrators(Visibility visibility, bool isOwner, bool isAdministrator, bool hasNoEmployee, bool expected)
+    {
+        // Arrange
+        var fakeRoadmap = _faker.Generate();
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, visibility, [ownerId], Actor, Now).Value;
+        Guid? readerId = hasNoEmployee ? null : isOwner ? ownerId : Guid.NewGuid();
+
+        // Act
+        var admitted = Roadmap.AccessibleTo(readerId, isAdministrator).Compile()(roadmap);
+
+        // Assert
+        admitted.Should().Be(expected);
+    }
+
+    [Fact]
+    public void Archive_ByAdministratorWhoIsNotAnOwner_ShouldReturnSuccess()
+    {
+        // Arrange
+        var fakeRoadmap = _faker.Generate();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [Guid.NewGuid()], Actor, Now).Value;
+
+        // Act
+        var result = roadmap.Archive(AsAdministrator(Guid.NewGuid()), Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        roadmap.State.Should().Be(RoadmapState.Archived);
+    }
+
+    [Fact]
+    public void CreateActivity_ByAdministratorWhoIsNotAnOwner_ShouldReturnSuccess()
+    {
+        // Arrange
+        var fakeRoadmap = _faker.Generate();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [Guid.NewGuid()], Actor, Now).Value;
+        var activity = _activityFaker.Generate();
+        var upsertActivity = new TestUpsertRoadmapActivity(activity);
+
+        // Act
+        var result = roadmap.CreateActivity(upsertActivity, AsAdministrator(Guid.NewGuid()), Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        roadmap.Items.Should().ContainSingle();
+    }
+
+    #endregion Access Tests
 
     #region Archive/Activate Tests
 
@@ -174,11 +288,11 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         // Act
-        var result = roadmap.Archive(managerId, Actor, Now);
+        var result = roadmap.Archive(As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -190,12 +304,12 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
-        roadmap.Archive(managerId, Actor, Now);
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
+        roadmap.Archive(As(ownerId), Actor, Now);
 
         // Act
-        var result = roadmap.Archive(managerId, Actor, Now);
+        var result = roadmap.Archive(As(ownerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -203,19 +317,19 @@ public class RoadmapTests
     }
 
     [Fact]
-    public void Archive_WhenUserIsNotManager_ShouldReturnFailure()
+    public void Archive_WhenUserIsNotOwner_ShouldReturnFailure()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         // Act
-        var result = roadmap.Archive(Guid.NewGuid(), Actor, Now);
+        var result = roadmap.Archive(As(Guid.NewGuid()), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("User is not a roadmap manager of this roadmap.");
+        result.Error.Should().Be("You are not an owner of this roadmap.");
     }
 
     [Fact]
@@ -223,12 +337,12 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
-        roadmap.Archive(managerId, Actor, Now);
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
+        roadmap.Archive(As(ownerId), Actor, Now);
 
         // Act
-        var result = roadmap.Activate(managerId, Actor, Now);
+        var result = roadmap.Activate(As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -240,11 +354,11 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         // Act
-        var result = roadmap.Activate(managerId, Actor, Now);
+        var result = roadmap.Activate(As(ownerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -252,20 +366,20 @@ public class RoadmapTests
     }
 
     [Fact]
-    public void Activate_WhenUserIsNotManager_ShouldReturnFailure()
+    public void Activate_WhenUserIsNotOwner_ShouldReturnFailure()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
-        roadmap.Archive(managerId, Actor, Now);
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
+        roadmap.Archive(As(ownerId), Actor, Now);
 
         // Act
-        var result = roadmap.Activate(Guid.NewGuid(), Actor, Now);
+        var result = roadmap.Activate(As(Guid.NewGuid()), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("User is not a roadmap manager of this roadmap.");
+        result.Error.Should().Be("You are not an owner of this roadmap.");
     }
 
     [Fact]
@@ -273,12 +387,12 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
-        roadmap.Archive(managerId, Actor, Now);
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
+        roadmap.Archive(As(ownerId), Actor, Now);
 
         // Act
-        var result = roadmap.Update("New Name", "New Desc", fakeRoadmap.DateRange, [managerId], Visibility.Public, managerId, Actor, Now);
+        var result = roadmap.Update("New Name", "New Desc", fakeRoadmap.DateRange, [ownerId], Visibility.Public, As(ownerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -290,14 +404,14 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
-        roadmap.Archive(managerId, Actor, Now);
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
+        roadmap.Archive(As(ownerId), Actor, Now);
 
         var upsertActivity = new TestUpsertRoadmapActivity(_activityFaker.Generate());
 
         // Act
-        var result = roadmap.CreateActivity(upsertActivity, managerId, Actor, Now);
+        var result = roadmap.CreateActivity(upsertActivity, As(ownerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -309,12 +423,12 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
-        roadmap.Archive(managerId, Actor, Now);
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
+        roadmap.Archive(As(ownerId), Actor, Now);
 
         // Act
-        var result = roadmap.Delete(managerId, Actor, Now);
+        var result = roadmap.Delete(As(ownerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -330,15 +444,15 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         var newName = "Copied Roadmap";
-        var newManagerId = Guid.NewGuid();
+        var newOwnerId = Guid.NewGuid();
         var newVisibility = Visibility.Private;
 
         // Act
-        var result = roadmap.Copy(newName, [newManagerId], newVisibility, Actor, Now);
+        var result = roadmap.Copy(newName, [newOwnerId], newVisibility, Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -347,28 +461,28 @@ public class RoadmapTests
         result.Value.DateRange.Should().Be(fakeRoadmap.DateRange);
         result.Value.Visibility.Should().Be(newVisibility);
         result.Value.State.Should().Be(RoadmapState.Active);
-        result.Value.RoadmapManagers.Should().HaveCount(1);
-        result.Value.RoadmapManagers.First().ManagerId.Should().Be(newManagerId);
+        result.Value.Owners.Should().HaveCount(1);
+        result.Value.Owners.First().EmployeeId.Should().Be(newOwnerId);
         result.Value.Items.Should().BeEmpty();
     }
 
     [Fact]
-    public void Copy_NoManagers_ShouldReturnFailure()
+    public void Copy_NoOwners_ShouldReturnFailure()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         var newName = "Copied Roadmap";
-        var managers = Array.Empty<Guid>();
+        var owners = Array.Empty<Guid>();
 
         // Act
-        var result = roadmap.Copy(newName, managers, Visibility.Public, Actor, Now);
+        var result = roadmap.Copy(newName, owners, Visibility.Public, Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Required input roadmapManagerIds was empty. (Parameter 'roadmapManagerIds')");
+        result.Error.Should().Be("Required input ownerIds was empty. (Parameter 'ownerIds')");
     }
 
     [Fact]
@@ -376,24 +490,24 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         // Create some items
-        var activityResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.Generate()), managerId, Actor, Now);
+        var activityResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.Generate()), As(ownerId), Actor, Now);
         activityResult.IsSuccess.Should().BeTrue();
 
-        var milestoneResult = roadmap.CreateMilestone(new TestUpsertRoadmapMilestone(_milestoneFaker.Generate()), managerId, Actor, Now);
+        var milestoneResult = roadmap.CreateMilestone(new TestUpsertRoadmapMilestone(_milestoneFaker.Generate()), As(ownerId), Actor, Now);
         milestoneResult.IsSuccess.Should().BeTrue();
 
-        var timeboxResult = roadmap.CreateTimebox(new TestUpsertRoadmapTimebox(_timeboxFaker.Generate()), managerId, Actor, Now);
+        var timeboxResult = roadmap.CreateTimebox(new TestUpsertRoadmapTimebox(_timeboxFaker.Generate()), As(ownerId), Actor, Now);
         timeboxResult.IsSuccess.Should().BeTrue();
 
         var newName = "Copied Roadmap";
-        var newManagerId = Guid.NewGuid();
+        var newOwnerId = Guid.NewGuid();
 
         // Act
-        var result = roadmap.Copy(newName, [newManagerId], Visibility.Public, Actor, Now);
+        var result = roadmap.Copy(newName, [newOwnerId], Visibility.Public, Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -423,26 +537,26 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
         roadmap.SetPrivate(x => x.Id, Guid.NewGuid());
 
         // Create parent activity
-        var parentActivityResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.Generate()), managerId, Actor, Now);
+        var parentActivityResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.Generate()), As(ownerId), Actor, Now);
         parentActivityResult.IsSuccess.Should().BeTrue();
         parentActivityResult.Value.SetPrivate(x => x.Id, Guid.NewGuid());
 
         // Create child activity
         var childActivity = _activityFaker.WithParentId(parentActivityResult.Value.Id).Generate();
-        var childActivityResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(childActivity), managerId, Actor, Now);
+        var childActivityResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(childActivity), As(ownerId), Actor, Now);
         childActivityResult.IsSuccess.Should().BeTrue();
         childActivityResult.Value.SetPrivate(x => x.Id, Guid.NewGuid());
 
         var newName = "Copied Roadmap";
-        var newManagerId = Guid.NewGuid();
+        var newOwnerId = Guid.NewGuid();
 
         // Act
-        var result = roadmap.Copy(newName, [newManagerId], Visibility.Public, Actor, Now);
+        var result = roadmap.Copy(newName, [newOwnerId], Visibility.Public, Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -469,22 +583,22 @@ public class RoadmapTests
     #region Create Item Tests
 
     [Fact]
-    public void CreateActivity_WhenUserIsNotManager_ShouldReturnFailure()
+    public void CreateActivity_WhenUserIsNotOwner_ShouldReturnFailure()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
-        var nonManagerId = Guid.NewGuid();
+        var nonOwnerId = Guid.NewGuid();
         var upsertActivity = new TestUpsertRoadmapActivity(_activityFaker.Generate());
 
         // Act
-        var result = roadmap.CreateActivity(upsertActivity, nonManagerId, Actor, Now);
+        var result = roadmap.CreateActivity(upsertActivity, As(nonOwnerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("User is not a roadmap manager of this roadmap.");
+        result.Error.Should().Be("You are not an owner of this roadmap.");
     }
 
     [Fact]
@@ -492,12 +606,12 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
         var upsertActivity = new TestUpsertRoadmapActivity(_activityFaker.Generate());
 
         // Act
-        var result = roadmap.CreateActivity(upsertActivity, managerId, Actor, Now);
+        var result = roadmap.CreateActivity(upsertActivity, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -513,13 +627,13 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
         var activity = _activityFaker.WithParentId(Guid.NewGuid()).Generate();
         var upsertActivity = new TestUpsertRoadmapActivity(activity);
 
         // Act
-        var result = roadmap.CreateActivity(upsertActivity, managerId, Actor, Now);
+        var result = roadmap.CreateActivity(upsertActivity, As(ownerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -531,13 +645,13 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         // Create parent activity
         var parentActivity = _activityFaker.Generate();
         var upsertParentActivity = new TestUpsertRoadmapActivity(parentActivity);
-        var parentResult = roadmap.CreateActivity(upsertParentActivity, managerId, Actor, Now);
+        var parentResult = roadmap.CreateActivity(upsertParentActivity, As(ownerId), Actor, Now);
         parentResult.IsSuccess.Should().BeTrue();
 
         // Create child activity
@@ -547,7 +661,7 @@ public class RoadmapTests
         var upsertChildActivity = new TestUpsertRoadmapActivity(childActivity);
 
         // Act
-        var result = roadmap.CreateActivity(upsertChildActivity, managerId, Actor, Now);
+        var result = roadmap.CreateActivity(upsertChildActivity, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -556,22 +670,22 @@ public class RoadmapTests
     }
 
     [Fact]
-    public void CreateMilestone_WhenUserIsNotManager_ShouldReturnFailure()
+    public void CreateMilestone_WhenUserIsNotOwner_ShouldReturnFailure()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
-        var nonManagerId = Guid.NewGuid();
+        var nonOwnerId = Guid.NewGuid();
         var upsertMilestone = new TestUpsertRoadmapMilestone(_milestoneFaker.Generate());
 
         // Act
-        var result = roadmap.CreateMilestone(upsertMilestone, nonManagerId, Actor, Now);
+        var result = roadmap.CreateMilestone(upsertMilestone, As(nonOwnerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("User is not a roadmap manager of this roadmap.");
+        result.Error.Should().Be("You are not an owner of this roadmap.");
     }
 
     [Fact]
@@ -579,12 +693,12 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
         var upsertMilestone = new TestUpsertRoadmapMilestone(_milestoneFaker.Generate());
 
         // Act
-        var result = roadmap.CreateMilestone(upsertMilestone, managerId, Actor, Now);
+        var result = roadmap.CreateMilestone(upsertMilestone, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -596,22 +710,22 @@ public class RoadmapTests
 
 
     [Fact]
-    public void CreateTimebox_WhenUserIsNotManager_ShouldReturnFailure()
+    public void CreateTimebox_WhenUserIsNotOwner_ShouldReturnFailure()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
-        var nonManagerId = Guid.NewGuid();
+        var nonOwnerId = Guid.NewGuid();
         var upsertTimebox = new TestUpsertRoadmapTimebox(_timeboxFaker.Generate());
 
         // Act
-        var result = roadmap.CreateTimebox(upsertTimebox, nonManagerId, Actor, Now);
+        var result = roadmap.CreateTimebox(upsertTimebox, As(nonOwnerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("User is not a roadmap manager of this roadmap.");
+        result.Error.Should().Be("You are not an owner of this roadmap.");
     }
 
     [Fact]
@@ -619,12 +733,12 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
         var upsertMilestone = new TestUpsertRoadmapTimebox(_timeboxFaker.Generate());
 
         // Act
-        var result = roadmap.CreateTimebox(upsertMilestone, managerId, Actor, Now);
+        var result = roadmap.CreateTimebox(upsertMilestone, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -642,25 +756,25 @@ public class RoadmapTests
     // ACTIVITY
 
     [Fact]
-    public void UpdateActivity_WhenUserIsNotManager_ShouldReturnFailure()
+    public void UpdateActivity_WhenUserIsNotOwner_ShouldReturnFailure()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
-        var createResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.Generate()), managerId, Actor, Now);
+        var createResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.Generate()), As(ownerId), Actor, Now);
         createResult.IsSuccess.Should().BeTrue();
 
-        var nonManagerId = Guid.NewGuid();
+        var nonOwnerId = Guid.NewGuid();
         var updateActivity = new TestUpsertRoadmapActivity(_activityFaker.Generate());
 
         // Act
-        var result = roadmap.UpdateActivity(createResult.Value.Id, updateActivity, nonManagerId, Actor, Now);
+        var result = roadmap.UpdateActivity(createResult.Value.Id, updateActivity, As(nonOwnerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("User is not a roadmap manager of this roadmap.");
+        result.Error.Should().Be("You are not an owner of this roadmap.");
     }
 
     [Fact]
@@ -668,13 +782,13 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         var updateActivity = new TestUpsertRoadmapActivity(_activityFaker.Generate());
 
         // Act
-        var result = roadmap.UpdateActivity(Guid.NewGuid(), updateActivity, managerId, Actor, Now);
+        var result = roadmap.UpdateActivity(Guid.NewGuid(), updateActivity, As(ownerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -686,10 +800,10 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
-        var createResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.Generate()), managerId, Actor, Now);
+        var createResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.Generate()), As(ownerId), Actor, Now);
         createResult.IsSuccess.Should().BeTrue();
 
         var updateActivity = new TestUpsertRoadmapActivity(_activityFaker
@@ -697,7 +811,7 @@ public class RoadmapTests
             .Generate());
 
         // Act
-        var result = roadmap.UpdateActivity(createResult.Value.Id, updateActivity, managerId, Actor, Now);
+        var result = roadmap.UpdateActivity(createResult.Value.Id, updateActivity, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -713,17 +827,17 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
         roadmap.SetPrivate(x => x.Id, Guid.NewGuid());
 
         // Create parent activity
-        var createParentResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.Generate()), managerId, Actor, Now);
+        var createParentResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.Generate()), As(ownerId), Actor, Now);
         createParentResult.IsSuccess.Should().BeTrue();
         createParentResult.Value.SetPrivate(x => x.Id, Guid.NewGuid());
 
         // Create child activity
-        var createChildResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.Generate()), managerId, Actor, Now);
+        var createChildResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.Generate()), As(ownerId), Actor, Now);
         createChildResult.IsSuccess.Should().BeTrue();
 
         // Create update request with new parent
@@ -733,7 +847,7 @@ public class RoadmapTests
         };
 
         // Act
-        var result = roadmap.UpdateActivity(createChildResult.Value.Id, updateActivity, managerId, Actor, Now);
+        var result = roadmap.UpdateActivity(createChildResult.Value.Id, updateActivity, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -751,13 +865,13 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
         roadmap.SetPrivate(x => x.Id, Guid.NewGuid());
 
         // Create parent activity
         var parentActivity = _activityFaker.Generate();
-        var createParentResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(parentActivity), managerId, Actor, Now);
+        var createParentResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(parentActivity), As(ownerId), Actor, Now);
         createParentResult.IsSuccess.Should().BeTrue();
         createParentResult.Value.SetPrivate(x => x.Id, Guid.NewGuid());
 
@@ -765,7 +879,7 @@ public class RoadmapTests
         var childActivity = _activityFaker
             .WithParentId(createParentResult.Value.Id)
             .Generate();
-        var createChildResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(childActivity), managerId, Actor, Now);
+        var createChildResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(childActivity), As(ownerId), Actor, Now);
         createChildResult.IsSuccess.Should().BeTrue();
         createChildResult.Value.SetPrivate(x => x.Id, Guid.NewGuid());
         createChildResult.Value.SetPrivate(x => x.Parent, createParentResult.Value);
@@ -777,7 +891,7 @@ public class RoadmapTests
         };
 
         // Act
-        var result = roadmap.UpdateActivity(createChildResult.Value.Id, updateActivity, managerId, Actor, Now);
+        var result = roadmap.UpdateActivity(createChildResult.Value.Id, updateActivity, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -795,25 +909,25 @@ public class RoadmapTests
     // MILESTONE
 
     [Fact]
-    public void UpdateMilestone_WhenUserIsNotManager_ShouldReturnFailure()
+    public void UpdateMilestone_WhenUserIsNotOwner_ShouldReturnFailure()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
-        var createResult = roadmap.CreateMilestone(new TestUpsertRoadmapMilestone(_milestoneFaker.Generate()), managerId, Actor, Now);
+        var createResult = roadmap.CreateMilestone(new TestUpsertRoadmapMilestone(_milestoneFaker.Generate()), As(ownerId), Actor, Now);
         createResult.IsSuccess.Should().BeTrue();
 
-        var nonManagerId = Guid.NewGuid();
+        var nonOwnerId = Guid.NewGuid();
         var updateMilestone = new TestUpsertRoadmapMilestone(_milestoneFaker.Generate());
 
         // Act
-        var result = roadmap.UpdateMilestone(createResult.Value.Id, updateMilestone, nonManagerId, Actor, Now);
+        var result = roadmap.UpdateMilestone(createResult.Value.Id, updateMilestone, As(nonOwnerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("User is not a roadmap manager of this roadmap.");
+        result.Error.Should().Be("You are not an owner of this roadmap.");
     }
 
     [Fact]
@@ -821,13 +935,13 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         var updateMilestone = new TestUpsertRoadmapMilestone(_milestoneFaker.Generate());
 
         // Act
-        var result = roadmap.UpdateMilestone(Guid.NewGuid(), updateMilestone, managerId, Actor, Now);
+        var result = roadmap.UpdateMilestone(Guid.NewGuid(), updateMilestone, As(ownerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -839,12 +953,12 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
         roadmap.SetPrivate(x => x.Id, Guid.NewGuid());
 
         var milestone = _milestoneFaker.Generate();
-        var createResult = roadmap.CreateMilestone(new TestUpsertRoadmapMilestone(milestone), managerId, Actor, Now);
+        var createResult = roadmap.CreateMilestone(new TestUpsertRoadmapMilestone(milestone), As(ownerId), Actor, Now);
         createResult.IsSuccess.Should().BeTrue();
         createResult.Value.SetPrivate(x => x.Id, Guid.NewGuid());
 
@@ -853,7 +967,7 @@ public class RoadmapTests
             .Generate());
 
         // Act
-        var result = roadmap.UpdateMilestone(createResult.Value.Id, updateMilestone, managerId, Actor, Now);
+        var result = roadmap.UpdateMilestone(createResult.Value.Id, updateMilestone, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -868,17 +982,17 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
         roadmap.SetPrivate(x => x.Id, Guid.NewGuid());
 
         // Create parent activity
-        var createParentResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.Generate()), managerId, Actor, Now);
+        var createParentResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.Generate()), As(ownerId), Actor, Now);
         createParentResult.IsSuccess.Should().BeTrue();
         createParentResult.Value.SetPrivate(x => x.Id, Guid.NewGuid());
 
         // Create milestone
-        var createMilestoneResult = roadmap.CreateMilestone(new TestUpsertRoadmapMilestone(_milestoneFaker.Generate()), managerId, Actor, Now);
+        var createMilestoneResult = roadmap.CreateMilestone(new TestUpsertRoadmapMilestone(_milestoneFaker.Generate()), As(ownerId), Actor, Now);
         createMilestoneResult.IsSuccess.Should().BeTrue();
 
         // Create update request with new parent
@@ -888,7 +1002,7 @@ public class RoadmapTests
         };
 
         // Act
-        var result = roadmap.UpdateMilestone(createMilestoneResult.Value.Id, updateMilestone, managerId, Actor, Now);
+        var result = roadmap.UpdateMilestone(createMilestoneResult.Value.Id, updateMilestone, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -901,25 +1015,25 @@ public class RoadmapTests
     // TIMEBOX
 
     [Fact]
-    public void UpdateTimebox_WhenUserIsNotManager_ShouldReturnFailure()
+    public void UpdateTimebox_WhenUserIsNotOwner_ShouldReturnFailure()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
-        var createResult = roadmap.CreateTimebox(new TestUpsertRoadmapTimebox(_timeboxFaker.Generate()), managerId, Actor, Now);
+        var createResult = roadmap.CreateTimebox(new TestUpsertRoadmapTimebox(_timeboxFaker.Generate()), As(ownerId), Actor, Now);
         createResult.IsSuccess.Should().BeTrue();
 
-        var nonManagerId = Guid.NewGuid();
+        var nonOwnerId = Guid.NewGuid();
         var updateTimebox = new TestUpsertRoadmapTimebox(_timeboxFaker.Generate());
 
         // Act
-        var result = roadmap.UpdateTimebox(createResult.Value.Id, updateTimebox, nonManagerId, Actor, Now);
+        var result = roadmap.UpdateTimebox(createResult.Value.Id, updateTimebox, As(nonOwnerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("User is not a roadmap manager of this roadmap.");
+        result.Error.Should().Be("You are not an owner of this roadmap.");
     }
 
     [Fact]
@@ -927,13 +1041,13 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         var updateTimebox = new TestUpsertRoadmapTimebox(_timeboxFaker.Generate());
 
         // Act
-        var result = roadmap.UpdateTimebox(Guid.NewGuid(), updateTimebox, managerId, Actor, Now);
+        var result = roadmap.UpdateTimebox(Guid.NewGuid(), updateTimebox, As(ownerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -945,11 +1059,11 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
         roadmap.SetPrivate(x => x.Id, Guid.NewGuid());
 
-        var createResult = roadmap.CreateTimebox(new TestUpsertRoadmapTimebox(_timeboxFaker.Generate()), managerId, Actor, Now);
+        var createResult = roadmap.CreateTimebox(new TestUpsertRoadmapTimebox(_timeboxFaker.Generate()), As(ownerId), Actor, Now);
         createResult.IsSuccess.Should().BeTrue();
         createResult.Value.SetPrivate(x => x.Id, Guid.NewGuid());
 
@@ -958,7 +1072,7 @@ public class RoadmapTests
             .Generate());
 
         // Act
-        var result = roadmap.UpdateTimebox(createResult.Value.Id, updateTimebox, managerId, Actor, Now);
+        var result = roadmap.UpdateTimebox(createResult.Value.Id, updateTimebox, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -976,17 +1090,17 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
         roadmap.SetPrivate(x => x.Id, Guid.NewGuid());
 
         // Create parent activity
-        var createParentResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.Generate()), managerId, Actor, Now);
+        var createParentResult = roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.Generate()), As(ownerId), Actor, Now);
         createParentResult.IsSuccess.Should().BeTrue();
         createParentResult.Value.SetPrivate(x => x.Id, Guid.NewGuid());
 
         // Create milestone
-        var createTimeboxResult = roadmap.CreateTimebox(new TestUpsertRoadmapTimebox(_timeboxFaker.Generate()), managerId, Actor, Now);
+        var createTimeboxResult = roadmap.CreateTimebox(new TestUpsertRoadmapTimebox(_timeboxFaker.Generate()), As(ownerId), Actor, Now);
         createTimeboxResult.IsSuccess.Should().BeTrue();
 
         // Create update request with new parent
@@ -996,7 +1110,7 @@ public class RoadmapTests
         };
 
         // Act
-        var result = roadmap.UpdateTimebox(createTimeboxResult.Value.Id, updateTimebox, managerId, Actor, Now);
+        var result = roadmap.UpdateTimebox(createTimeboxResult.Value.Id, updateTimebox, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1013,15 +1127,15 @@ public class RoadmapTests
     #region Update Item Dates Tests
 
     [Fact]
-    public void UpdateRoadmapItemDates_ActivityDateRange_ValidManager_ShouldReturnSuccess()
+    public void UpdateRoadmapItemDates_ActivityDateRange_ValidOwner_ShouldReturnSuccess()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
         var activity = _activityFaker.Generate();
         var upsertActivity = new TestUpsertRoadmapActivity(activity);
-        var createResult = roadmap.CreateActivity(upsertActivity, managerId, Actor, Now);
+        var createResult = roadmap.CreateActivity(upsertActivity, As(ownerId), Actor, Now);
         createResult.IsSuccess.Should().BeTrue();
 
         var newDateRange = new LocalDateRange(_dateTimeProvider.Today.PlusDays(2), _dateTimeProvider.Today.PlusDays(10));
@@ -1030,7 +1144,7 @@ public class RoadmapTests
         );
 
         // Act
-        var result = roadmap.UpdateRoadmapItemDates(createResult.Value.Id, dateUpdate, managerId, Actor, Now);
+        var result = roadmap.UpdateRoadmapItemDates(createResult.Value.Id, dateUpdate, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1039,15 +1153,15 @@ public class RoadmapTests
     }
 
     [Fact]
-    public void UpdateRoadmapItemDates_MilestoneDate_ValidManager_ShouldReturnSuccess()
+    public void UpdateRoadmapItemDates_MilestoneDate_ValidOwner_ShouldReturnSuccess()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
         var milestone = _milestoneFaker.Generate();
         var upsertMilestone = new TestUpsertRoadmapMilestone(milestone);
-        var createResult = roadmap.CreateMilestone(upsertMilestone, managerId, Actor, Now);
+        var createResult = roadmap.CreateMilestone(upsertMilestone, As(ownerId), Actor, Now);
         createResult.IsSuccess.Should().BeTrue();
 
         var newDate = _dateTimeProvider.Today.PlusDays(5);
@@ -1056,7 +1170,7 @@ public class RoadmapTests
         );
 
         // Act
-        var result = roadmap.UpdateRoadmapItemDates(createResult.Value.Id, dateUpdate, managerId, Actor, Now);
+        var result = roadmap.UpdateRoadmapItemDates(createResult.Value.Id, dateUpdate, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1065,15 +1179,15 @@ public class RoadmapTests
     }
 
     [Fact]
-    public void UpdateRoadmapItemDates_TimeboxDateRange_ValidManager_ShouldReturnSuccess()
+    public void UpdateRoadmapItemDates_TimeboxDateRange_ValidOwner_ShouldReturnSuccess()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
         var timebox = _timeboxFaker.Generate();
         var upsertTimebox = new TestUpsertRoadmapTimebox(timebox);
-        var createResult = roadmap.CreateTimebox(upsertTimebox, managerId, Actor, Now);
+        var createResult = roadmap.CreateTimebox(upsertTimebox, As(ownerId), Actor, Now);
         createResult.IsSuccess.Should().BeTrue();
 
         var newDateRange = new LocalDateRange(_dateTimeProvider.Today.PlusDays(3), _dateTimeProvider.Today.PlusDays(8));
@@ -1082,7 +1196,7 @@ public class RoadmapTests
         );
 
         // Act
-        var result = roadmap.UpdateRoadmapItemDates(createResult.Value.Id, dateUpdate, managerId, Actor, Now);
+        var result = roadmap.UpdateRoadmapItemDates(createResult.Value.Id, dateUpdate, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1091,29 +1205,29 @@ public class RoadmapTests
     }
 
     [Fact]
-    public void UpdateRoadmapItemDates_WhenUserIsNotManager_ShouldReturnFailure()
+    public void UpdateRoadmapItemDates_WhenUserIsNotOwner_ShouldReturnFailure()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
         var activity = _activityFaker.Generate();
         var upsertActivity = new TestUpsertRoadmapActivity(activity);
-        var createResult = roadmap.CreateActivity(upsertActivity, managerId, Actor, Now);
+        var createResult = roadmap.CreateActivity(upsertActivity, As(ownerId), Actor, Now);
         createResult.IsSuccess.Should().BeTrue();
 
         var newDateRange = new LocalDateRange(_dateTimeProvider.Today.PlusDays(2), _dateTimeProvider.Today.PlusDays(10));
         var dateUpdate = OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange>.FromT0(
             new TestUpsertRoadmapActivityDateRange(newDateRange)
         );
-        var nonManagerId = Guid.NewGuid();
+        var nonOwnerId = Guid.NewGuid();
 
         // Act
-        var result = roadmap.UpdateRoadmapItemDates(createResult.Value.Id, dateUpdate, nonManagerId, Actor, Now);
+        var result = roadmap.UpdateRoadmapItemDates(createResult.Value.Id, dateUpdate, As(nonOwnerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("User is not a roadmap manager of this roadmap.");
+        result.Error.Should().Be("You are not an owner of this roadmap.");
     }
 
     [Fact]
@@ -1121,8 +1235,8 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         var newDateRange = new LocalDateRange(_dateTimeProvider.Today.PlusDays(2), _dateTimeProvider.Today.PlusDays(10));
         var dateUpdate = OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange>.FromT0(
@@ -1130,7 +1244,7 @@ public class RoadmapTests
         );
 
         // Act
-        var result = roadmap.UpdateRoadmapItemDates(Guid.NewGuid(), dateUpdate, managerId, Actor, Now);
+        var result = roadmap.UpdateRoadmapItemDates(Guid.NewGuid(), dateUpdate, As(ownerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1142,11 +1256,11 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
         var activity = _activityFaker.Generate();
         var upsertActivity = new TestUpsertRoadmapActivity(activity);
-        var createResult = roadmap.CreateActivity(upsertActivity, managerId, Actor, Now);
+        var createResult = roadmap.CreateActivity(upsertActivity, As(ownerId), Actor, Now);
         createResult.IsSuccess.Should().BeTrue();
 
         var milestoneDate = _dateTimeProvider.Today.PlusDays(5);
@@ -1155,7 +1269,7 @@ public class RoadmapTests
         );
 
         // Act
-        var result = roadmap.UpdateRoadmapItemDates(createResult.Value.Id, dateUpdate, managerId, Actor, Now);
+        var result = roadmap.UpdateRoadmapItemDates(createResult.Value.Id, dateUpdate, As(ownerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1166,17 +1280,17 @@ public class RoadmapTests
 
     #region Date Rollup Tests
 
-    private Roadmap CreateRoadmapWithManager(out Guid managerId)
+    private Roadmap CreateRoadmapWithOwner(out Guid ownerId)
     {
         var fakeRoadmap = _faker.Generate();
-        managerId = Guid.NewGuid();
-        return Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        ownerId = Guid.NewGuid();
+        return Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
     }
 
-    private RoadmapActivity CreateActivity(Roadmap roadmap, Guid managerId, LocalDateRange dateRange, Guid? parentId = null)
+    private RoadmapActivity CreateActivity(Roadmap roadmap, Guid ownerId, LocalDateRange dateRange, Guid? parentId = null)
     {
         var activity = _activityFaker.WithDateRange(dateRange).WithParentId(parentId).Generate();
-        var result = roadmap.CreateActivity(new TestUpsertRoadmapActivity(activity), managerId, Actor, Now);
+        var result = roadmap.CreateActivity(new TestUpsertRoadmapActivity(activity), As(ownerId), Actor, Now);
         result.IsSuccess.Should().BeTrue();
         return result.Value;
     }
@@ -1185,12 +1299,12 @@ public class RoadmapTests
     public void CreateActivity_ChildEndsAfterParent_ShouldGrowParentEnd()
     {
         // Arrange
-        var roadmap = CreateRoadmapWithManager(out var managerId);
-        var parent = CreateActivity(roadmap, managerId,
+        var roadmap = CreateRoadmapWithOwner(out var ownerId);
+        var parent = CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
 
         // Act
-        CreateActivity(roadmap, managerId,
+        CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today.PlusDays(5), _dateTimeProvider.Today.PlusDays(20)),
             parent.Id);
 
@@ -1203,12 +1317,12 @@ public class RoadmapTests
     public void CreateActivity_ChildStartsBeforeParent_ShouldGrowParentStart()
     {
         // Arrange
-        var roadmap = CreateRoadmapWithManager(out var managerId);
-        var parent = CreateActivity(roadmap, managerId,
+        var roadmap = CreateRoadmapWithOwner(out var ownerId);
+        var parent = CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today.PlusDays(10), _dateTimeProvider.Today.PlusDays(20)));
 
         // Act
-        CreateActivity(roadmap, managerId,
+        CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(15)),
             parent.Id);
 
@@ -1221,12 +1335,12 @@ public class RoadmapTests
     public void CreateActivity_ChildFullyInsideParent_ShouldLeaveParentUnchanged()
     {
         // Arrange
-        var roadmap = CreateRoadmapWithManager(out var managerId);
+        var roadmap = CreateRoadmapWithOwner(out var ownerId);
         var parentRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30));
-        var parent = CreateActivity(roadmap, managerId, parentRange);
+        var parent = CreateActivity(roadmap, ownerId, parentRange);
 
         // Act
-        CreateActivity(roadmap, managerId,
+        CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today.PlusDays(5), _dateTimeProvider.Today.PlusDays(10)),
             parent.Id);
 
@@ -1238,14 +1352,14 @@ public class RoadmapTests
     public void CreateMilestone_ChildDateOutsideParent_ShouldGrowParent()
     {
         // Arrange
-        var roadmap = CreateRoadmapWithManager(out var managerId);
-        var parent = CreateActivity(roadmap, managerId,
+        var roadmap = CreateRoadmapWithOwner(out var ownerId);
+        var parent = CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
         var milestoneDate = _dateTimeProvider.Today.PlusDays(25);
         var milestone = _milestoneFaker.WithDate(milestoneDate).WithParentId(parent.Id).Generate();
 
         // Act
-        var result = roadmap.CreateMilestone(new TestUpsertRoadmapMilestone(milestone), managerId, Actor, Now);
+        var result = roadmap.CreateMilestone(new TestUpsertRoadmapMilestone(milestone), As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1257,14 +1371,14 @@ public class RoadmapTests
     public void CreateTimebox_ChildRangeOutsideParent_ShouldGrowParent()
     {
         // Arrange
-        var roadmap = CreateRoadmapWithManager(out var managerId);
-        var parent = CreateActivity(roadmap, managerId,
+        var roadmap = CreateRoadmapWithOwner(out var ownerId);
+        var parent = CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
         var timeboxRange = new LocalDateRange(_dateTimeProvider.Today.PlusDays(8), _dateTimeProvider.Today.PlusDays(18));
         var timebox = _timeboxFaker.WithDateRange(timeboxRange).WithParentId(parent.Id).Generate();
 
         // Act
-        var result = roadmap.CreateTimebox(new TestUpsertRoadmapTimebox(timebox), managerId, Actor, Now);
+        var result = roadmap.CreateTimebox(new TestUpsertRoadmapTimebox(timebox), As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1276,13 +1390,13 @@ public class RoadmapTests
     public void UpdateRoadmapItemDates_ChildGrowsBeyondParent_ShouldBubbleUpToRoot()
     {
         // Arrange
-        var roadmap = CreateRoadmapWithManager(out var managerId);
-        var grandparent = CreateActivity(roadmap, managerId,
+        var roadmap = CreateRoadmapWithOwner(out var ownerId);
+        var grandparent = CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
-        var parent = CreateActivity(roadmap, managerId,
+        var parent = CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)),
             grandparent.Id);
-        var child = CreateActivity(roadmap, managerId,
+        var child = CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)),
             parent.Id);
 
@@ -1291,7 +1405,7 @@ public class RoadmapTests
             new TestUpsertRoadmapActivityDateRange(newChildRange));
 
         // Act
-        var result = roadmap.UpdateRoadmapItemDates(child.Id, dateUpdate, managerId, Actor, Now);
+        var result = roadmap.UpdateRoadmapItemDates(child.Id, dateUpdate, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1303,8 +1417,8 @@ public class RoadmapTests
     public void UpdateRoadmapItemDates_ParentWithNoChildren_ShouldApplyRangeUnchanged()
     {
         // Arrange
-        var roadmap = CreateRoadmapWithManager(out var managerId);
-        var activity = CreateActivity(roadmap, managerId,
+        var roadmap = CreateRoadmapWithOwner(out var ownerId);
+        var activity = CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
 
         var newRange = new LocalDateRange(_dateTimeProvider.Today.PlusDays(2), _dateTimeProvider.Today.PlusDays(6));
@@ -1312,7 +1426,7 @@ public class RoadmapTests
             new TestUpsertRoadmapActivityDateRange(newRange));
 
         // Act
-        var result = roadmap.UpdateRoadmapItemDates(activity.Id, dateUpdate, managerId, Actor, Now);
+        var result = roadmap.UpdateRoadmapItemDates(activity.Id, dateUpdate, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1323,10 +1437,10 @@ public class RoadmapTests
     public void UpdateRoadmapItemDates_ParentWiderThanChildren_ShouldKeepParentRange()
     {
         // Arrange
-        var roadmap = CreateRoadmapWithManager(out var managerId);
-        var parent = CreateActivity(roadmap, managerId,
+        var roadmap = CreateRoadmapWithOwner(out var ownerId);
+        var parent = CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
-        CreateActivity(roadmap, managerId,
+        CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today.PlusDays(2), _dateTimeProvider.Today.PlusDays(6)),
             parent.Id);
 
@@ -1336,7 +1450,7 @@ public class RoadmapTests
             new TestUpsertRoadmapActivityDateRange(widerRange));
 
         // Act
-        var result = roadmap.UpdateRoadmapItemDates(parent.Id, dateUpdate, managerId, Actor, Now);
+        var result = roadmap.UpdateRoadmapItemDates(parent.Id, dateUpdate, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1347,10 +1461,10 @@ public class RoadmapTests
     public void UpdateActivity_FormUpdateGrowsChildBeyondParent_ShouldGrowParent()
     {
         // Arrange
-        var roadmap = CreateRoadmapWithManager(out var managerId);
-        var parent = CreateActivity(roadmap, managerId,
+        var roadmap = CreateRoadmapWithOwner(out var ownerId);
+        var parent = CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
-        var child = CreateActivity(roadmap, managerId,
+        var child = CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)),
             parent.Id);
 
@@ -1362,7 +1476,7 @@ public class RoadmapTests
         };
 
         // Act
-        var result = roadmap.UpdateActivity(child.Id, updateChild, managerId, Actor, Now);
+        var result = roadmap.UpdateActivity(child.Id, updateChild, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1373,25 +1487,25 @@ public class RoadmapTests
     public void MoveActivity_ChildExtendsBeyondNewParent_ShouldGrowNewParent()
     {
         // Arrange
-        var roadmap = CreateRoadmapWithManager(out var managerId);
+        var roadmap = CreateRoadmapWithOwner(out var ownerId);
         roadmap.SetPrivate(x => x.Id, Guid.NewGuid());
 
-        var originalParent = CreateActivity(roadmap, managerId,
+        var originalParent = CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(40)));
         originalParent.SetPrivate(x => x.Id, Guid.NewGuid());
 
-        var newParent = CreateActivity(roadmap, managerId,
+        var newParent = CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
         newParent.SetPrivate(x => x.Id, Guid.NewGuid());
 
-        var child = CreateActivity(roadmap, managerId,
+        var child = CreateActivity(roadmap, ownerId,
             new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30)),
             originalParent.Id);
         child.SetPrivate(x => x.Id, Guid.NewGuid());
         child.SetPrivate(x => x.Parent, originalParent);
 
         // Act
-        var result = roadmap.MoveActivity(child.Id, newParent.Id, 1, managerId, Actor, Now);
+        var result = roadmap.MoveActivity(child.Id, newParent.Id, 1, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1407,8 +1521,8 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         var colors = new[]
         {
@@ -1417,7 +1531,7 @@ public class RoadmapTests
         };
 
         // Act
-        var result = roadmap.UpdateColors(colors, managerId, Actor, Now);
+        var result = roadmap.UpdateColors(colors, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1431,12 +1545,12 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         roadmap.UpdateColors(
             [new TestUpsertRoadmapColor { Color = "#111111", Name = "Old", Order = 1, IsDefault = false }],
-            managerId, Actor, Now);
+            As(ownerId), Actor, Now);
 
         var newColors = new[]
         {
@@ -1444,7 +1558,7 @@ public class RoadmapTests
         };
 
         // Act
-        var result = roadmap.UpdateColors(newColors, managerId, Actor, Now);
+        var result = roadmap.UpdateColors(newColors, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1458,15 +1572,15 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         roadmap.UpdateColors(
             [new TestUpsertRoadmapColor { Color = "#111111", Name = "Old", Order = 1, IsDefault = false }],
-            managerId, Actor, Now);
+            As(ownerId), Actor, Now);
 
         // Act
-        var result = roadmap.UpdateColors([], managerId, Actor, Now);
+        var result = roadmap.UpdateColors([], As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1478,8 +1592,8 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         var colors = new[]
         {
@@ -1488,7 +1602,7 @@ public class RoadmapTests
         };
 
         // Act
-        var result = roadmap.UpdateColors(colors, managerId, Actor, Now);
+        var result = roadmap.UpdateColors(colors, As(ownerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1500,8 +1614,8 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         var colors = new[]
         {
@@ -1510,7 +1624,7 @@ public class RoadmapTests
         };
 
         // Act
-        var result = roadmap.UpdateColors(colors, managerId, Actor, Now);
+        var result = roadmap.UpdateColors(colors, As(ownerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1522,8 +1636,8 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         var colors = new[]
         {
@@ -1532,7 +1646,7 @@ public class RoadmapTests
         };
 
         // Act
-        var result = roadmap.UpdateColors(colors, managerId, Actor, Now);
+        var result = roadmap.UpdateColors(colors, As(ownerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1544,8 +1658,8 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         var colors = Enumerable.Range(0, Roadmap.MaxColors + 1)
             .Select(i => new TestUpsertRoadmapColor
@@ -1558,7 +1672,7 @@ public class RoadmapTests
             .ToArray();
 
         // Act
-        var result = roadmap.UpdateColors(colors, managerId, Actor, Now);
+        var result = roadmap.UpdateColors(colors, As(ownerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1570,8 +1684,8 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         var colors = Enumerable.Range(0, Roadmap.MaxColors)
             .Select(i => new TestUpsertRoadmapColor
@@ -1584,7 +1698,7 @@ public class RoadmapTests
             .ToArray();
 
         // Act
-        var result = roadmap.UpdateColors(colors, managerId, Actor, Now);
+        var result = roadmap.UpdateColors(colors, As(ownerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1592,12 +1706,12 @@ public class RoadmapTests
     }
 
     [Fact]
-    public void UpdateColors_WhenNotManager_ShouldReturnFailure()
+    public void UpdateColors_WhenNotOwner_ShouldReturnFailure()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         var colors = new[]
         {
@@ -1605,11 +1719,11 @@ public class RoadmapTests
         };
 
         // Act
-        var result = roadmap.UpdateColors(colors, Guid.NewGuid(), Actor, Now);
+        var result = roadmap.UpdateColors(colors, As(Guid.NewGuid()), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("User is not a roadmap manager of this roadmap.");
+        result.Error.Should().Be("You are not an owner of this roadmap.");
     }
 
     [Fact]
@@ -1617,9 +1731,9 @@ public class RoadmapTests
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
-        var managerId = Guid.NewGuid();
-        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [managerId], Actor, Now).Value;
-        roadmap.Archive(managerId, Actor, Now);
+        var ownerId = Guid.NewGuid();
+        var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
+        roadmap.Archive(As(ownerId), Actor, Now);
 
         var colors = new[]
         {
@@ -1627,7 +1741,7 @@ public class RoadmapTests
         };
 
         // Act
-        var result = roadmap.UpdateColors(colors, managerId, Actor, Now);
+        var result = roadmap.UpdateColors(colors, As(ownerId), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1638,11 +1752,11 @@ public class RoadmapTests
 
     #region Events
 
-    private static readonly Guid EventManagerId = Guid.NewGuid();
+    private static readonly Guid EventOwnerId = Guid.NewGuid();
 
     private Roadmap SavedRoadmap()
     {
-        var roadmap = Roadmap.Create("Platform", "Platform work", new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(90)), Visibility.Public, [EventManagerId], Actor, Now).Value;
+        var roadmap = Roadmap.Create("Platform", "Platform work", new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(90)), Visibility.Public, [EventOwnerId], Actor, Now).Value;
         roadmap.SetPrivate(r => r.Key, 7);
         roadmap.ExecutePostPersistenceActions();
         roadmap.ClearDomainEvents();
@@ -1655,7 +1769,7 @@ public class RoadmapTests
     private RoadmapActivity AddActivity(Roadmap roadmap, string name, LocalDateRange dateRange, Guid? parentId = null)
     {
         var upsert = new TestUpsertRoadmapActivity(_activityFaker.WithName(name).WithDateRange(dateRange).WithColor(null).Generate()) { ParentId = parentId };
-        var activity = roadmap.CreateActivity(upsert, EventManagerId, Actor, Now).Value;
+        var activity = roadmap.CreateActivity(upsert, As(EventOwnerId), Actor, Now).Value;
         roadmap.ClearDomainEvents();
 
         return activity;
@@ -1664,7 +1778,7 @@ public class RoadmapTests
     private RoadmapMilestone AddMilestone(Roadmap roadmap, LocalDate date, Guid? parentId)
     {
         var upsert = new TestUpsertRoadmapMilestone(_milestoneFaker.Generate()) { Date = date, ParentId = parentId };
-        var milestone = roadmap.CreateMilestone(upsert, EventManagerId, Actor, Now).Value;
+        var milestone = roadmap.CreateMilestone(upsert, As(EventOwnerId), Actor, Now).Value;
         roadmap.ClearDomainEvents();
 
         return milestone;
@@ -1677,7 +1791,7 @@ public class RoadmapTests
         var dateRange = Days(0, 90);
 
         // Act
-        var roadmap = Roadmap.Create("Platform", "Platform work", dateRange, Visibility.Private, [EventManagerId], Actor, Now).Value;
+        var roadmap = Roadmap.Create("Platform", "Platform work", dateRange, Visibility.Private, [EventOwnerId], Actor, Now).Value;
 
         // Assert
         roadmap.DomainEvents.Should().BeEmpty();
@@ -1693,7 +1807,7 @@ public class RoadmapTests
         created.DateRange.Should().Be(dateRange);
         created.Visibility.Should().Be(Visibility.Private);
         created.State.Should().Be(RoadmapState.Active);
-        created.ManagerIds.Should().Equal(EventManagerId);
+        created.ManagerIds.Should().Equal(EventOwnerId);
         created.Colors.Should().BeEmpty();
         created.Items.Should().BeEmpty();
         created.Actor.Should().Be(Actor);
@@ -1705,11 +1819,11 @@ public class RoadmapTests
     {
         // Arrange
         var dateRange = Days(0, 90);
-        var roadmap = Roadmap.Create("Platform", null, dateRange, Visibility.Public, [EventManagerId], Actor, Now).Value;
+        var roadmap = Roadmap.Create("Platform", null, dateRange, Visibility.Public, [EventOwnerId], Actor, Now).Value;
 
         // Act
-        roadmap.Update("Platform v2", null, dateRange, [EventManagerId], Visibility.Public, EventManagerId, Actor, Now);
-        roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.WithDateRange(Days(1, 10)).Generate()) { ParentId = null }, EventManagerId, Actor, Now);
+        roadmap.Update("Platform v2", null, dateRange, [EventOwnerId], Visibility.Public, As(EventOwnerId), Actor, Now);
+        roadmap.CreateActivity(new TestUpsertRoadmapActivity(_activityFaker.WithDateRange(Days(1, 10)).Generate()) { ParentId = null }, As(EventOwnerId), Actor, Now);
 
         // Assert
         roadmap.DomainEvents.Should().BeEmpty();
@@ -1733,7 +1847,7 @@ public class RoadmapTests
         AddMilestone(source, _dateTimeProvider.Today.PlusDays(5), parent.Id);
 
         // Act
-        var copy = source.Copy("Copy", [EventManagerId], Visibility.Private, Actor, Now).Value;
+        var copy = source.Copy("Copy", [EventOwnerId], Visibility.Private, Actor, Now).Value;
 
         // Assert
         copy.SetPrivate(r => r.Key, 8);
@@ -1757,11 +1871,11 @@ public class RoadmapTests
     {
         // Arrange
         var roadmap = SavedRoadmap();
-        var newManagerId = Guid.NewGuid();
+        var newOwnerId = Guid.NewGuid();
         var previousRange = roadmap.DateRange;
 
         // Act
-        roadmap.Update("Platform v2", "Platform work", Days(0, 120), [EventManagerId, newManagerId], Visibility.Private, EventManagerId, Actor, Now);
+        roadmap.Update("Platform v2", "Platform work", Days(0, 120), [EventOwnerId, newOwnerId], Visibility.Private, As(EventOwnerId), Actor, Now);
 
         // Assert
         roadmap.DomainEvents.Should().HaveCount(4);
@@ -1774,10 +1888,10 @@ public class RoadmapTests
         var visibility = roadmap.DomainEvents.OfType<RoadmapVisibilityChangedEvent>().Single();
         visibility.PreviousVisibility.Should().Be(Visibility.Public);
         visibility.Visibility.Should().Be(Visibility.Private);
-        var managers = roadmap.DomainEvents.OfType<RoadmapManagersChangedEvent>().Single();
-        managers.Added.Should().Equal(newManagerId);
-        managers.Removed.Should().BeEmpty();
-        managers.ManagerIds.Should().BeEquivalentTo([EventManagerId, newManagerId]);
+        var owners = roadmap.DomainEvents.OfType<RoadmapOwnersChangedEvent>().Single();
+        owners.Added.Should().Equal(newOwnerId);
+        owners.Removed.Should().BeEmpty();
+        owners.OwnerIds.Should().BeEquivalentTo([EventOwnerId, newOwnerId]);
     }
 
     [Fact]
@@ -1787,7 +1901,7 @@ public class RoadmapTests
         var roadmap = SavedRoadmap();
 
         // Act
-        var result = roadmap.Update(" Platform ", "Platform work ", roadmap.DateRange, [EventManagerId], roadmap.Visibility, EventManagerId, Actor, Now);
+        var result = roadmap.Update(" Platform ", "Platform work ", roadmap.DateRange, [EventOwnerId], roadmap.Visibility, As(EventOwnerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1799,11 +1913,11 @@ public class RoadmapTests
     {
         // Arrange
         var roadmap = SavedRoadmap();
-        roadmap.UpdateColors([new TestUpsertRoadmapColor { Color = "#4096FF", Name = "Committed", Order = 1, IsDefault = true }], EventManagerId, Actor, Now);
+        roadmap.UpdateColors([new TestUpsertRoadmapColor { Color = "#4096FF", Name = "Committed", Order = 1, IsDefault = true }], As(EventOwnerId), Actor, Now);
         roadmap.ClearDomainEvents();
 
         // Act
-        roadmap.UpdateColors([new TestUpsertRoadmapColor { Color = "#4096FF", Name = "Planned", Order = 1, IsDefault = true }], EventManagerId, Actor, Now);
+        roadmap.UpdateColors([new TestUpsertRoadmapColor { Color = "#4096FF", Name = "Planned", Order = 1, IsDefault = true }], As(EventOwnerId), Actor, Now);
 
         // Assert
         var changed = roadmap.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<RoadmapColorsChangedEvent>().Subject;
@@ -1817,11 +1931,11 @@ public class RoadmapTests
         // Arrange
         var roadmap = SavedRoadmap();
         TestUpsertRoadmapColor[] colors = [new() { Color = "#4096FF", Name = "Committed", Order = 1, IsDefault = true }];
-        roadmap.UpdateColors(colors, EventManagerId, Actor, Now);
+        roadmap.UpdateColors(colors, As(EventOwnerId), Actor, Now);
         roadmap.ClearDomainEvents();
 
         // Act
-        roadmap.UpdateColors(colors, EventManagerId, Actor, Now);
+        roadmap.UpdateColors(colors, As(EventOwnerId), Actor, Now);
 
         // Assert
         roadmap.DomainEvents.Should().BeEmpty();
@@ -1834,8 +1948,8 @@ public class RoadmapTests
         var roadmap = SavedRoadmap();
 
         // Act
-        roadmap.Archive(EventManagerId, Actor, Now);
-        roadmap.Activate(EventManagerId, Actor, Now);
+        roadmap.Archive(As(EventOwnerId), Actor, Now);
+        roadmap.Activate(As(EventOwnerId), Actor, Now);
 
         // Assert
         roadmap.DomainEvents.Select(e => e.GetType()).Should().Equal(typeof(RoadmapArchivedEvent), typeof(RoadmapActivatedEvent));
@@ -1848,7 +1962,7 @@ public class RoadmapTests
         var roadmap = SavedRoadmap();
 
         // Act
-        var result = roadmap.Delete(EventManagerId, Actor, Now);
+        var result = roadmap.Delete(As(EventOwnerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1857,13 +1971,13 @@ public class RoadmapTests
     }
 
     [Fact]
-    public void Delete_WhenNotAManager_RaisesNothing()
+    public void Delete_WhenNotAOwner_RaisesNothing()
     {
         // Arrange
         var roadmap = SavedRoadmap();
 
         // Act
-        var result = roadmap.Delete(Guid.NewGuid(), Actor, Now);
+        var result = roadmap.Delete(As(Guid.NewGuid()), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1879,7 +1993,7 @@ public class RoadmapTests
         var upsert = new TestUpsertRoadmapActivity(_activityFaker.WithName("Child").WithDateRange(Days(5, 20)).Generate()) { ParentId = parent.Id };
 
         // Act
-        var child = roadmap.CreateActivity(upsert, EventManagerId, Actor, Now).Value;
+        var child = roadmap.CreateActivity(upsert, As(EventOwnerId), Actor, Now).Value;
 
         // Assert
         roadmap.DomainEvents.Should().HaveCount(2);
@@ -1900,7 +2014,7 @@ public class RoadmapTests
         var upsert = new TestUpsertRoadmapMilestone(_milestoneFaker.Generate()) { Date = _dateTimeProvider.Today.PlusDays(3), ParentId = null };
 
         // Act
-        var milestone = roadmap.CreateMilestone(upsert, EventManagerId, Actor, Now).Value;
+        var milestone = roadmap.CreateMilestone(upsert, As(EventOwnerId), Actor, Now).Value;
 
         // Assert
         var added = roadmap.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<RoadmapMilestoneAddedEvent>().Subject;
@@ -1918,7 +2032,7 @@ public class RoadmapTests
         var milestone = AddMilestone(roadmap, _dateTimeProvider.Today.PlusDays(5), parent.Id);
 
         // Act
-        roadmap.UpdateRoadmapItemDates(parent.Id, new TestUpsertRoadmapActivityDateRange(Days(3, 12)), EventManagerId, Actor, Now);
+        roadmap.UpdateRoadmapItemDates(parent.Id, new TestUpsertRoadmapActivityDateRange(Days(3, 12)), As(EventOwnerId), Actor, Now);
 
         // Assert
         var dates = roadmap.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<RoadmapItemDatesChangedEvent>().Subject;
@@ -1935,7 +2049,7 @@ public class RoadmapTests
         var activity = AddActivity(roadmap, "Activity", Days(1, 10));
 
         // Act
-        var result = roadmap.UpdateRoadmapItemDates(activity.Id, new TestUpsertRoadmapActivityDateRange(Days(1, 10)), EventManagerId, Actor, Now);
+        var result = roadmap.UpdateRoadmapItemDates(activity.Id, new TestUpsertRoadmapActivityDateRange(Days(1, 10)), As(EventOwnerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1951,7 +2065,7 @@ public class RoadmapTests
         var upsert = new TestUpsertRoadmapActivity(activity) { Name = "Renamed" };
 
         // Act
-        roadmap.UpdateActivity(activity.Id, upsert, EventManagerId, Actor, Now);
+        roadmap.UpdateActivity(activity.Id, upsert, As(EventOwnerId), Actor, Now);
 
         // Assert
         var details = roadmap.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<RoadmapItemDetailsUpdatedEvent>().Subject;
@@ -1969,7 +2083,7 @@ public class RoadmapTests
         var activity = AddActivity(roadmap, "Activity", Days(1, 10));
 
         // Act
-        roadmap.UpdateActivity(activity.Id, new TestUpsertRoadmapActivity(activity), EventManagerId, Actor, Now);
+        roadmap.UpdateActivity(activity.Id, new TestUpsertRoadmapActivity(activity), As(EventOwnerId), Actor, Now);
 
         // Assert
         roadmap.DomainEvents.Should().BeEmpty();
@@ -1985,7 +2099,7 @@ public class RoadmapTests
         var third = AddActivity(roadmap, "Third", Days(1, 10));
 
         // Act
-        roadmap.SetActivityOrder(third.Id, 1, EventManagerId, Actor, Now);
+        roadmap.SetActivityOrder(third.Id, 1, As(EventOwnerId), Actor, Now);
 
         // Assert
         var reordered = roadmap.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<RoadmapActivitiesReorderedEvent>().Subject;
@@ -2003,7 +2117,7 @@ public class RoadmapTests
         AddActivity(roadmap, "Second", Days(1, 10));
 
         // Act
-        roadmap.SetActivityOrder(first.Id, 1, EventManagerId, Actor, Now);
+        roadmap.SetActivityOrder(first.Id, 1, As(EventOwnerId), Actor, Now);
 
         // Assert
         roadmap.DomainEvents.Should().BeEmpty();
@@ -2019,7 +2133,7 @@ public class RoadmapTests
         var moving = AddActivity(roadmap, "Moving", Days(2, 8));
 
         // Act
-        var result = roadmap.MoveActivity(moving.Id, target.Id, 1, EventManagerId, Actor, Now);
+        var result = roadmap.MoveActivity(moving.Id, target.Id, 1, As(EventOwnerId), Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -2041,7 +2155,7 @@ public class RoadmapTests
         var milestone = AddMilestone(roadmap, _dateTimeProvider.Today.PlusDays(5), child.Id);
 
         // Act
-        roadmap.DeleteItem(parent.Id, EventManagerId, Actor, Now);
+        roadmap.DeleteItem(parent.Id, As(EventOwnerId), Actor, Now);
 
         // Assert
         var deleted = roadmap.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<RoadmapItemDeletedEvent>().Subject;
@@ -2060,7 +2174,7 @@ public class RoadmapTests
     //{
     //    // Arrange
     //    var roadmap = _faker.WithChildren(3);
-    //    var managerId = roadmap.RoadmapManagers.First().ManagerId;
+    //    var ownerId = roadmap.Owners.First().OwnerId;
 
     //    var children = roadmap.Children.OrderBy(c => c.Order).ToList();
 
@@ -2076,7 +2190,7 @@ public class RoadmapTests
     //    };
 
     //    // Act
-    //    var result = roadmap.SetChildrenOrder(childLinks, managerId);
+    //    var result = roadmap.SetChildrenOrder(childLinks, ownerId);
 
     //    // Assert
     //    result.IsSuccess.Should().BeTrue();
@@ -2086,19 +2200,19 @@ public class RoadmapTests
     //}
 
     //[Fact]
-    //public void SetChildLinksOrder_ForAll_WhenUserIsNotManager_ShouldReturnFailure()
+    //public void SetChildLinksOrder_ForAll_WhenUserIsNotOwner_ShouldReturnFailure()
     //{
     //    // Arrange
     //    var roadmap = _faker.WithChildren(3);
     //    var childLinks = new Dictionary<Guid, int>();
-    //    var nonManagerId = Guid.NewGuid();
+    //    var nonOwnerId = Guid.NewGuid();
 
     //    // Act
-    //    var result = roadmap.SetChildrenOrder(childLinks, nonManagerId);
+    //    var result = roadmap.SetChildrenOrder(childLinks, nonOwnerId);
 
     //    // Assert
     //    result.IsFailure.Should().BeTrue();
-    //    result.Error.Should().Be("User is not a roadmap manager of this roadmap.");
+    //    result.Error.Should().Be("You are not an owner of this roadmap.");
     //}
 
     //[Fact]
@@ -2106,11 +2220,11 @@ public class RoadmapTests
     //{
     //    // Arrange
     //    var roadmap = _faker.WithChildren(2);
-    //    var managerId = roadmap.RoadmapManagers.First().ManagerId;
+    //    var ownerId = roadmap.Owners.First().OwnerId;
     //    var childLinks = new Dictionary<Guid, int> { { Guid.NewGuid(), 1 } };
 
     //    // Act
-    //    var result = roadmap.SetChildrenOrder(childLinks, managerId);
+    //    var result = roadmap.SetChildrenOrder(childLinks, ownerId);
 
     //    // Assert
     //    result.IsFailure.Should().BeTrue();
@@ -2122,11 +2236,11 @@ public class RoadmapTests
     //{
     //    // Arrange
     //    var roadmap = _faker.WithChildren(1);
-    //    var managerId = roadmap.RoadmapManagers.First().ManagerId;
+    //    var ownerId = roadmap.Owners.First().OwnerId;
     //    var childLinks = new Dictionary<Guid, int> { { Guid.NewGuid(), 1 } };
 
     //    // Act
-    //    var result = roadmap.SetChildrenOrder(childLinks, managerId);
+    //    var result = roadmap.SetChildrenOrder(childLinks, ownerId);
 
     //    // Assert
     //    result.IsFailure.Should().BeTrue();
@@ -2138,7 +2252,7 @@ public class RoadmapTests
     //{
     //    // Arrange
     //    var roadmap = _faker.WithChildren(5);
-    //    var managerId = roadmap.RoadmapManagers.First().ManagerId;
+    //    var ownerId = roadmap.Owners.First().OwnerId;
 
     //    var children = roadmap.Children.OrderBy(c => c.Order).ToList();
 
@@ -2149,7 +2263,7 @@ public class RoadmapTests
     //    var child5 = children[4];
 
     //    // Act
-    //    var result = roadmap.SetChildrenOrder(child2.Id, 4, managerId);
+    //    var result = roadmap.SetChildrenOrder(child2.Id, 4, ownerId);
 
     //    // Assert
     //    result.IsSuccess.Should().BeTrue();
@@ -2165,7 +2279,7 @@ public class RoadmapTests
     //{
     //    // Arrange
     //    var roadmap = _faker.WithChildren(5);
-    //    var managerId = roadmap.RoadmapManagers.First().ManagerId;
+    //    var ownerId = roadmap.Owners.First().OwnerId;
 
     //    var children = roadmap.Children.OrderBy(c => c.Order).ToList();
 
@@ -2176,7 +2290,7 @@ public class RoadmapTests
     //    var child5 = children[4];
 
     //    // Act
-    //    var result = roadmap.SetChildrenOrder(child4.Id, 2, managerId);
+    //    var result = roadmap.SetChildrenOrder(child4.Id, 2, ownerId);
 
     //    // Assert
     //    result.IsSuccess.Should().BeTrue();
@@ -2188,19 +2302,19 @@ public class RoadmapTests
     //}
 
     //[Fact]
-    //public void SetChildLinksOrder_ForOne_WhenUserIsNotManager_ShouldReturnFailure()
+    //public void SetChildLinksOrder_ForOne_WhenUserIsNotOwner_ShouldReturnFailure()
     //{
     //    // Arrange
     //    var roadmap = _faker.WithChildren(3);
     //    var children = new Dictionary<Guid, int>();
-    //    var nonManagerId = Guid.NewGuid();
+    //    var nonOwnerId = Guid.NewGuid();
 
     //    // Act
-    //    var result = roadmap.SetChildrenOrder(children, nonManagerId);
+    //    var result = roadmap.SetChildrenOrder(children, nonOwnerId);
 
     //    // Assert
     //    result.IsFailure.Should().BeTrue();
-    //    result.Error.Should().Be("User is not a roadmap manager of this roadmap.");
+    //    result.Error.Should().Be("You are not an owner of this roadmap.");
     //}
 
     //[Fact]
@@ -2208,10 +2322,10 @@ public class RoadmapTests
     //{
     //    // Arrange
     //    var roadmap = _faker.WithChildren(3);
-    //    var managerId = roadmap.RoadmapManagers.First().ManagerId;
+    //    var ownerId = roadmap.Owners.First().OwnerId;
 
     //    // Act
-    //    var result = roadmap.SetChildrenOrder(Guid.NewGuid(), 1, managerId);
+    //    var result = roadmap.SetChildrenOrder(Guid.NewGuid(), 1, ownerId);
 
     //    // Assert
     //    result.IsFailure.Should().BeTrue();

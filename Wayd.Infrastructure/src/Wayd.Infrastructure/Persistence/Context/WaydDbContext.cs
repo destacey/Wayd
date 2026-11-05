@@ -7,7 +7,9 @@ using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.AppIntegration.Domain.Models.Teams;
 using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Domain.AppIntegrations;
+using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.Following;
 using Wayd.Common.Domain.Notifications;
@@ -35,6 +37,7 @@ using Wayd.StrategicManagement.Application;
 using Wayd.DemandManagement.Application;
 using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
+using Wayd.DemandManagement.Domain.Models.Estimation;
 using Wayd.StrategicManagement.Domain.Models;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Domain.Models;
@@ -46,7 +49,7 @@ using Wayd.Common.Domain.Imports;
 
 namespace Wayd.Infrastructure.Persistence.Context;
 
-public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandManagementDbContext, IFeatureManagementDbContext, ILinksDbContext, IOrganizationDbContext, IPlanningDbContext, IProductManagementDbContext, IImportDbContext, IStatusWorkflowDbContext, INotificationsDbContext, IActivityLogDbContext, IProjectPortfolioManagementDbContext, IStrategicManagementDbContext, IWorkDbContext
+public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandManagementDbContext, IFeatureManagementDbContext, ILinksDbContext, IOrganizationDbContext, IPlanningDbContext, IProductManagementDbContext, IImportDbContext, IStatusWorkflowDbContext, INotificationsDbContext, IDiscussionsDbContext, IActivityLogDbContext, IProjectPortfolioManagementDbContext, IStrategicManagementDbContext, IWorkDbContext
 {
     private static readonly ConcurrentDictionary<string, bool> _ftsAvailabilityCache = new();
 
@@ -119,6 +122,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<PlanningIntervalObjectiveHealthCheck> PlanningIntervalObjectiveHealthChecks => Set<PlanningIntervalObjectiveHealthCheck>();
     public DbSet<Roadmap> Roadmaps => Set<Roadmap>();
     public DbSet<EstimationScale> EstimationScales => Set<EstimationScale>();
+    public DbSet<EstimationScaleVersion> EstimationScaleVersions => Set<EstimationScaleVersion>();
     public DbSet<PokerSession> PokerSessions => Set<PokerSession>();
     public DbSet<StoryMap> StoryMaps => Set<StoryMap>();
 
@@ -138,6 +142,9 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<WorkflowAliasName> WorkflowAliasNames => Set<WorkflowAliasName>();
     public DbSet<StatusTransition> StatusTransitions => Set<StatusTransition>();
     public DbSet<WorkflowAssignment> WorkflowAssignments => Set<WorkflowAssignment>();
+    public DbSet<StatusWorkflowScheme> StatusWorkflowSchemes => Set<StatusWorkflowScheme>();
+    public DbSet<StatusWorkflowSchemeEntry> StatusWorkflowSchemeEntries => Set<StatusWorkflowSchemeEntry>();
+    public DbSet<RecordType> RecordTypes => Set<RecordType>();
 
     #endregion StatusWorkflows
 
@@ -153,6 +160,16 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
 
     #endregion Notifications
 
+    #region Discussions
+
+    public DbSet<DiscussionChannel> DiscussionChannels => Set<DiscussionChannel>();
+
+    public DbSet<DiscussionMessage> DiscussionMessages => Set<DiscussionMessage>();
+
+    public DbSet<DiscussionSettings> DiscussionSettings => Set<DiscussionSettings>();
+
+    #endregion Discussions
+
     #region ProductManagement
 
     public DbSet<ProductType> ProductTypes => Set<ProductType>();
@@ -161,6 +178,8 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<ProductTag> ProductTags => Set<ProductTag>();
     public DbSet<ProductTagAssignment> ProductTagAssignments => Set<ProductTagAssignment>();
     public DbSet<ProductDependency> ProductDependencies => Set<ProductDependency>();
+    public DbSet<ProductTeam> ProductTeams => Set<ProductTeam>();
+    public DbSet<ProductTeamLink> ProductTeamLinks => Set<ProductTeamLink>();
     public DbSet<Version> Versions => Set<Version>();
     public DbSet<Release> Releases => Set<Release>();
     public DbSet<ReleaseVersion> ReleaseVersions => Set<ReleaseVersion>();
@@ -203,6 +222,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<IntakeRequestTagCategory> IntakeRequestTagCategories => Set<IntakeRequestTagCategory>();
     public DbSet<IntakeRequestTag> IntakeRequestTags => Set<IntakeRequestTag>();
     public DbSet<DemandProject> DemandProjects => Set<DemandProject>();
+    public DbSet<DemandEstimationScale> DemandEstimationScales => Set<DemandEstimationScale>();
 
     IQueryable<Employee> IDemandManagementDbContext.Employees => Employees.AsNoTracking();
 
@@ -243,11 +263,14 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     async Task<IUnitOfWork> IWorkDbContext.BeginUnitOfWork(CancellationToken cancellationToken) =>
         await BeginUnitOfWork(cancellationToken);
 
-    public IQueryable<WorkItem> SearchWorkItems(string searchTerm, int top)
+    public IQueryable<WorkItem> SearchWorkItems(string searchTerm, WorkTypeTier? tier, int top)
     {
         var query = IsFtsAvailable()
             ? SearchWorkItemsFts(searchTerm)
             : SearchWorkItemsLike(searchTerm);
+
+        if (tier.HasValue)
+            query = query.Where(e => e.Type.Level!.Tier == tier.Value);
 
         return query
             .OrderBy(e => EF.Property<string>(e, "KeyPrefix"))

@@ -190,6 +190,39 @@ dotnet ef database update \
 
 Migrations also run automatically on application startup via `app.Services.InitializeDatabases()`.
 
+### Changing an unmerged migration
+
+A migration that has not reached `main` can still be reshaped, but only through EF, never by deleting its
+files. Startup applies migrations, so a local database has usually run it already; deleting the files leaves
+its tables and its `__EFMigrationsHistory` row behind with no `Down` to undo them, and the next startup fails
+creating the same tables again.
+
+1. Roll the database back to the migration before it, which runs its `Down` and removes its history row:
+
+   ```bash
+   dotnet ef database update <PreviousMigration> \
+     --project "Wayd.Infrastructure/src/Wayd.Infrastructure.Migrators.MSSQL" \
+     --startup-project "Wayd.Web/src/Wayd.Web.Api" \
+     --connection "<the database Aspire's API uses>"
+   ```
+
+   Pass `--connection` explicitly, with the value of the AppHost's `WaydDb` parameter. Without it `dotnet ef`
+   reads the Web API's own configuration, which may name a different database than the one Aspire runs against.
+
+2. Remove the migration. This also restores the model snapshot — never `git checkout` it. It takes no
+   `--connection`: it reads the Web API's configured database only to check the migration is not applied
+   there. Never pass `--force`, which rolls the migration back from whichever database that is:
+
+   ```bash
+   dotnet ef migrations remove \
+     --project "Wayd.Infrastructure/src/Wayd.Infrastructure.Migrators.MSSQL" \
+     --startup-project "Wayd.Web/src/Wayd.Web.Api"
+   ```
+
+3. Change the model, then [create the migration](#creating-a-migration) again.
+
+A migration already on `main` is never changed: add a new one.
+
 A change to an entity configuration needs a migration in the same change. A data-fix migration must not write
 an evented aggregate's table set-based (`UPDATE`, `DELETE`, `INSERT`, `MERGE`): `EventCoverageTests` fails it,
 because such a write raises no event — see

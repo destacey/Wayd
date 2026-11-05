@@ -9,6 +9,7 @@ import NextLink from 'next/link'
 import { FC } from 'react'
 import { deskHref } from '../../../_components/desk-status'
 import EmployeeName from '../../../_components/employee-name'
+import { EstimateValue } from '../../../_components/estimate-value'
 
 const { Text, Link } = Typography
 
@@ -18,7 +19,7 @@ export interface IntakeRequestFactsProps {
 
 /**
  * The request's stable facts. People link to their pages only for a reader who can open them. Who
- * submitted it and where it came from are substance, so they appear only with it.
+ * submitted it, where it came from and its estimate are substance, so they appear only with it.
  */
 const IntakeRequestFacts: FC<IntakeRequestFactsProps> = ({ request }) => {
   const { summary, substance } = request
@@ -34,6 +35,18 @@ const IntakeRequestFacts: FC<IntakeRequestFactsProps> = ({ request }) => {
         <LabeledContent label="Channel">
           {summary.channel?.name ?? NOT_RECORDED_CHANNEL_LABEL}
         </LabeledContent>
+        {/* Shown once there is an estimate, or to the team that can give one; a desk that does not
+            estimate would otherwise read "Not estimated" on every request. */}
+        {substance &&
+          (substance.estimate || request.estimateValues.length > 0) && (
+            <LabeledContent label="Estimate">
+              {substance.estimate ? (
+                <EstimateValue estimate={substance.estimate} />
+              ) : (
+                <Text type="secondary">Not estimated</Text>
+              )}
+            </LabeledContent>
+          )}
       </RecordFactsGroup>
       <RecordFactsGroup label="People">
         <LabeledContent label="Requester">

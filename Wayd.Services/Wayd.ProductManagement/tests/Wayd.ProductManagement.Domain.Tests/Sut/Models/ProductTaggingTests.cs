@@ -6,6 +6,7 @@ using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.ProductManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
+using Wayd.Tests.Shared.Extensions;
 
 namespace Wayd.ProductManagement.Domain.Tests.Sut.Models;
 
@@ -46,6 +47,26 @@ public sealed class ProductTaggingTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         sut.Tags.Should().ContainSingle().Which.TagId.Should().Be(ios.Id);
+    }
+
+    [Fact]
+    public void Tag_BeforeTheFirstSave_ShouldRaiseTheChangeWithTheKeyTheSaveAssigns()
+    {
+        // Arrange — what the product import does: create a product, then tag it, all before one save
+        var sut = _faker.WithKey(0).Generate();
+        var (platform, ios, _) = Axis(allowsMany: true);
+
+        // Act
+        sut.Tag(ios, platform, EventActor.System, _dateTimeProvider.Now);
+        var raisedBeforeSave = sut.DomainEvents.Count;
+        sut.SetPrivate(p => p.Key, 731);
+        sut.ExecutePostPersistenceActions();
+
+        // Assert
+        raisedBeforeSave.Should().Be(0);
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<ProductTagsChangedEventV2>().Subject;
+        changed.Key.Should().Be(731);
+        changed.Added.Should().ContainSingle().Which.Should().Be(ios.Id);
     }
 
     [Fact]

@@ -87,7 +87,8 @@ const formatFieldLabel = (key: string): string => {
     .trim()
 }
 
-const formatEventTitle = (
+/** What a change is called: its summary, else its event type in words. */
+export const formatEventTitle = (
   eventType: string,
   summary?: string | null,
 ): string => {
@@ -691,7 +692,10 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
                             <Text
                               type="secondary"
                               ellipsis
-                              style={{ fontSize: token.fontSizeSM, maxWidth: 200 }}
+                              style={{
+                                fontSize: token.fontSizeSM,
+                                maxWidth: 200,
+                              }}
                             >
                               via {clientHost(entry.clientId)}
                             </Text>
@@ -947,7 +951,10 @@ export const ActivityLogTimeline: FC<ActivityLogTimelineProps> = ({
                           >
                             Through the connected application{' '}
                             <Tooltip title={selectedActivity.clientId}>
-                              <Text strong style={{ fontSize: token.fontSizeSM }}>
+                              <Text
+                                strong
+                                style={{ fontSize: token.fontSizeSM }}
+                              >
                                 {clientHost(selectedActivity.clientId)}
                               </Text>
                             </Tooltip>

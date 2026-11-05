@@ -4,6 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   AddWorkflowStatusRequest,
   StatusCategory,
+  StatusCategoryLabelDto,
   WorkflowAliasDto,
   WorkflowStatusDto,
 } from '@/src/services/wayd-api'
@@ -11,6 +12,7 @@ import { useAddWorkflowStatusMutation } from '@/src/store/features/common/status
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal, Select } from 'antd'
 import { useModalForm } from '@/src/hooks'
+import { statusCategoryOptions } from '@/src/components/common/status-workflows'
 import {
   aliasFitsCategory,
   buildAliasOptions,
@@ -20,15 +22,12 @@ import {
 const { Item } = Form
 const { TextArea } = Input
 
-const categoryOptions = Object.values(StatusCategory).map((c) => ({
-  value: c,
-  label: c,
-}))
-
 export interface AddWorkflowStatusFormProps {
   workflowId: string
   statuses: WorkflowStatusDto[]
   aliases: WorkflowAliasDto[]
+  /** What the workflow's owner type calls each category. */
+  categoryLabels?: StatusCategoryLabelDto[]
   onFormComplete: () => void
   onFormCancel: () => void
 }
@@ -55,6 +54,7 @@ const AddWorkflowStatusForm = ({
   workflowId,
   statuses,
   aliases,
+  categoryLabels,
   onFormComplete,
   onFormCancel,
 }: AddWorkflowStatusFormProps) => {
@@ -147,7 +147,10 @@ const AddWorkflowStatusForm = ({
           tooltip="The high-level bucket the status belongs to. Reports and metrics read the category rather than the status name."
           rules={[{ required: true, message: 'Category is required' }]}
         >
-          <Select placeholder="Select a category" options={categoryOptions} />
+          <Select
+            placeholder="Select a category"
+            options={statusCategoryOptions(categoryLabels)}
+          />
         </Item>
         <Item
           label="Meaning"

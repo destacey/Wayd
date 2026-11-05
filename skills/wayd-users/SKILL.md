@@ -24,7 +24,7 @@ A user `id` in any of these does not identify the person.
 
 For anything about the employee record beyond resolving a name to its id — reporting lines, team memberships, assigned work, time away, allocations — see the `wayd-employees` skill.
 
-To give someone a role on the hosted server, append their employee id with a patch tool — `Projects_Patch` (or `Programs_Patch`, `Portfolios_Patch`) with `[{ "op": "add", "path": "/managerIds/-", "value": "<employeeId>" }]`, or `Tasks_PatchProjectTask` with `/assigneeIds/-` — which keeps everyone already in the role. Without a patch tool, follow wayd-ppm's update checklist.
+To give someone a role, append their employee id with a patch tool — `Projects_Patch` (or `Programs_Patch`, `Portfolios_Patch`) with `[{ "op": "add", "path": "/managerIds/-", "value": "<employeeId>" }]`, or `Tasks_PatchProjectTask` with `/assigneeIds/-` — which keeps everyone already in the role. To replace the whole record instead, follow wayd-ppm's update checklist.
 
 The exception is a story map's owner: `StoryMaps_ChangeStoryMapOwner` takes the user `id`.
 
@@ -32,7 +32,7 @@ The exception is a story map's owner: `StoryMaps_ChangeStoryMapOwner` takes the 
 
 When the request is about the person asking — "show me my tickets", "which teams am I on", "where am I the project manager" — never list users or employees to find them. Those lists need the Users or Employees view permission, which most people do not hold, and nobody needs it to see their own records.
 
-On the hosted endpoint, the `Me_*` tools act for the caller and take no id:
+The `Me_*` tools act for the caller and take no id:
 
 | Question | Tool |
 | --- | --- |
@@ -61,7 +61,7 @@ On the hosted endpoint, the `Me_*` tools act for the caller and take no id:
 
 A user can mute a record (`Me_MuteRecord`, by `ownerType` and UUID) to hear nothing more about it for any reason, or mute a reason (`Me_MuteReason` with `Following`, `Requester`, `Participant`, `Assigned` or `Role`) to stop being told for that reason on every record; any other reason answers 422. Mute only when the user asks, and only for themselves — there is no way to mute for someone else. A muted reason removes only that reason: someone who follows a project and manages it is still told about it after muting `Role`. Muting changes nothing else: the user keeps their access and roles, still follows what they followed, and a record they cannot read answers 404 rather than being muted. Muting a record also marks its notifications read. `Me_MuteRecord` answers `wasAlreadyMuted`; if it is true the user had muted the record before, so never unmute it as an "undo" of this call. A mute applies when a notification would be written, so unmuting brings back nothing that happened while muted — say so before unmuting if the user expects to catch up, and point them to the record's activity instead. When a user asks why they hear nothing about a record, check `Me_GetRecordMuteStatus` and `Me_GetReasonMutes` before anything else; `Me_GetMutedRecords` lists every muted record they can still read, most recently muted first, with `isFollowing`.
 
-For anything else about yourself, take `employee.id` from `Me_GetProfile` and pass it to the tool's `employeeId` (or role) parameter. If `employee` is null, the account is not linked to an employee, so nothing in Wayd is recorded against the caller as a person: say so rather than substituting the user id. Without the `Me_*` tools (the npm package), use the tools above that default to the caller.
+For anything else about yourself, take `employee.id` from `Me_GetProfile` and pass it to the tool's `employeeId` (or role) parameter. If `employee` is null, the account is not linked to an employee, so nothing in Wayd is recorded against the caller as a person: say so rather than substituting the user id.
 
 ## Resolving a name to an employee id
 

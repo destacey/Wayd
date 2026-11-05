@@ -1,0 +1,309 @@
+/* A record's conversation: its entries, threads and composer. */
+
+.discussion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin);
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ant-margin-sm);
+}
+
+.toolbarSpacer {
+  flex: 1;
+}
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-margin-sm);
+  padding: 0 var(--ant-padding);
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}
+
+.activityDot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  margin: 0 var(--ant-margin-sm);
+  border-radius: 50%;
+  background: var(--ant-color-text-quaternary);
+}
+
+.activityActor {
+  color: var(--ant-color-text);
+  font-weight: 500;
+}
+
+.message {
+  display: flex;
+  gap: var(--ant-margin-sm);
+  /* Less below than above: the thread link closes the card, and a full padding under it reads as empty space. */
+  padding: var(--ant-padding) var(--ant-padding) var(--ant-padding-sm);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-bg-container);
+}
+
+/* An internal note reads differently from a reply wherever it appears, so it
+ * is never mistaken for something the requester can see. */
+.note {
+  border-color: var(--ant-color-warning-border);
+  background: var(--ant-color-warning-bg);
+}
+
+.reply {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.messageBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--ant-margin-xxs);
+  min-width: 0;
+}
+
+.messageHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ant-margin-xs);
+}
+
+/* Edit and Delete show only on the message being hovered or focused, so a busy conversation is not lined with
+ * buttons. A reply sits inside its thread's message, so hovering a reply shows the reply's own and not its
+ * thread's. Always shown where nothing can hover, such as a touch screen. */
+.messageActions {
+  display: inline-flex;
+  opacity: 0;
+  transition: opacity var(--ant-motion-duration-fast);
+}
+
+.message:hover:not(:has(.message:hover))
+  > .messageBody
+  > .messageHeader
+  > .messageActions,
+.message:focus-within:not(:has(.message:focus-within))
+  > .messageBody
+  > .messageHeader
+  > .messageActions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .messageActions {
+    opacity: 1;
+  }
+}
+
+.author {
+  font-weight: 600;
+}
+
+.meta {
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}
+
+.subject {
+  font-size: var(--ant-font-size-lg);
+  font-weight: 600;
+}
+
+.recordChange {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: var(--ant-margin-xxs);
+  padding: 0 var(--ant-padding-xs);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-sm);
+  background: var(--ant-color-fill-quaternary);
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}
+
+.tombstone {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-margin-sm);
+  padding: var(--ant-padding-xs) var(--ant-padding);
+  border: 1px dashed var(--ant-color-border);
+  border-radius: var(--ant-border-radius-lg);
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin-xs);
+  margin-top: var(--ant-margin-xs);
+  padding: var(--ant-padding-xs) var(--ant-padding-sm);
+  border-radius: var(--ant-border-radius);
+  background: var(--ant-color-fill-quaternary);
+}
+
+/* Lined up with the message text above it, with no button padding or height of its own. */
+.threadSummary {
+  align-self: flex-start;
+  height: auto;
+  margin-top: var(--ant-margin-xs);
+  padding-inline: 0;
+}
+
+/* A message's last paragraph keeps no bottom margin, which would otherwise open a gap before the thread link. */
+.messageBody :global(.wayd-markdown-renderer) > :first-child {
+  margin-top: 0;
+}
+
+.messageBody :global(.wayd-markdown-renderer) > :last-child {
+  margin-bottom: 0;
+}
+
+/* A line between the conversation and the composer, on whichever side the conversation is. */
+.composerBelow {
+  padding-top: var(--ant-padding);
+  border-top: 1px solid var(--ant-color-border-secondary);
+}
+
+.composerAbove {
+  padding-bottom: var(--ant-padding);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin-xs);
+}
+
+/* The subject and the message as one input in two blocks: the box takes an outlined input's border, hover and focus,
+ * and the borderless fields inside are split by a line. */
+.composerBox {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ant-color-border);
+  border-radius: var(--ant-border-radius);
+  background: var(--ant-color-bg-container);
+  transition:
+    border-color var(--ant-motion-duration-mid),
+    box-shadow var(--ant-motion-duration-mid);
+}
+
+.composerBox:hover {
+  border-color: var(--ant-color-primary-hover);
+}
+
+.composerBox:focus-within {
+  border-color: var(--ant-color-primary);
+  box-shadow: 0 0 0 2px var(--ant-color-primary-bg);
+}
+
+/* Only the box shows hover and focus; the fields inside never draw their own. */
+.composerBox :global(.ant-input),
+.composerBox :global(.ant-input:hover),
+.composerBox :global(.ant-input:focus),
+.composerBox :global(.ant-mentions),
+.composerBox :global(.ant-mentions:hover),
+.composerBox :global(.ant-mentions-focused),
+.composerBox textarea,
+.composerBox textarea:focus {
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* antd outlines a focused borderless field; the box's focus ring already shows where focus is. */
+.composerBox
+  :global(.ant-input-borderless):is(
+    :focus-visible,
+    :has(input:focus-visible),
+    :has(textarea:focus-visible)
+  ),
+.composerBox
+  :global(.ant-mentions-borderless):is(
+    :focus-visible,
+    :has(input:focus-visible),
+    :has(textarea:focus-visible)
+  ) {
+  outline: none;
+}
+
+/* In the box's top-right corner, over the end of the first field, which leaves room for it. */
+.composerClear {
+  position: absolute;
+  z-index: 1;
+  top: var(--ant-padding-xxs);
+  right: var(--ant-padding-xxs);
+}
+
+.composerSubject,
+.composerSubject:hover,
+.composerSubject:focus {
+  border-color: transparent;
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  border-radius: 0;
+}
+
+/* The first field ends short of the clear button, so nothing typed runs under it. */
+.composerSubject,
+.composerFirstField textarea {
+  padding-inline-end: calc(
+    var(--ant-control-height-sm) + var(--ant-padding-xs)
+  );
+}
+
+/* An internal note takes the warning colours throughout, so it never reads as a message the requester will see. */
+.composerBoxNote,
+.composerBoxNote:hover {
+  border-color: var(--ant-color-warning-border);
+  background: var(--ant-color-warning-bg);
+}
+
+.composerBoxNote:focus-within {
+  border-color: var(--ant-color-warning);
+  box-shadow: 0 0 0 2px var(--ant-color-warning-bg);
+}
+
+.composerHeader,
+.composerFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ant-margin-sm);
+}
+
+.audience {
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}
+
+.mentionOption {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ant-margin-xs);
+}
+
+.audienceNote {
+  color: var(--ant-color-warning-text);
+}

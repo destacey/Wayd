@@ -26,18 +26,18 @@ public sealed record CreateRoadmapRequest
     public LocalDate End { get; set; }
 
     /// <summary>
-    /// The managers of the Roadmap.
+    /// The owners of the Roadmap: employee ids, which must include the caller's own.
     /// </summary>
-    public List<Guid> RoadmapManagerIds { get; set; } = default!;
+    public List<Guid> OwnerIds { get; set; } = default!;
 
     /// <summary>
-    /// The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap.
+    /// The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it.
     /// </summary>
     public int VisibilityId { get; set; }
 
     public CreateRoadmapCommand ToCreateRoadmapCommand()
     {
-        return new CreateRoadmapCommand(Name, Description, new LocalDateRange(Start, End), RoadmapManagerIds, (Visibility)VisibilityId);
+        return new CreateRoadmapCommand(Name, Description, new LocalDateRange(Start, End), OwnerIds, (Visibility)VisibilityId);
     }
 }
 
@@ -62,10 +62,10 @@ public sealed class CreateRoadmapRequestValidator : CustomValidator<CreateRoadma
             .Must((roadmap, end) => roadmap.Start <= end)
                 .WithMessage("End date must be greater than or equal to start date");
 
-        RuleFor(t => t.RoadmapManagerIds)
+        RuleFor(t => t.OwnerIds)
             .NotEmpty();
 
-        RuleForEach(t => t.RoadmapManagerIds)
+        RuleForEach(t => t.OwnerIds)
             .NotEmpty();
 
         RuleFor(t => (Visibility)t.VisibilityId)

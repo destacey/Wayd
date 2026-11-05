@@ -10,6 +10,7 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Commands;
 
 public class UnlinkWorkItemCommandHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly UnlinkWorkItemCommandHandler _handler;
     private readonly Mock<ILogger<UnlinkWorkItemCommandHandler>> _mockLogger;
@@ -21,16 +22,16 @@ public class UnlinkWorkItemCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<UnlinkWorkItemCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new UnlinkWorkItemCommandHandler(_dbContext, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new UnlinkWorkItemCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
     }
 
     [Fact]
     public async Task Handle_ShouldUnlinkWorkItem_WhenTaskExists()
     {
         // Arrange
-        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
-        var task = map.AddTask(map.Goals[0].Steps[0].Id, "T").Value;
-        map.LinkWorkItem(task.Id, 123);
+        var map = StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step");
+        var task = map.AddTask(map.Goals[0].Steps[0].Id, "T", null, StoryMapActors.Owner).Value;
+        map.LinkWorkItem(task.Id, 123, StoryMapActors.Owner);
         _dbContext.AddStoryMap(map);
 
         var command = new UnlinkWorkItemCommand(map.Id, task.Id);

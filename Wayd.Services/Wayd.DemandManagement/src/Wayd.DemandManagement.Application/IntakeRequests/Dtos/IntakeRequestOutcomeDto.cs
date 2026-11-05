@@ -12,11 +12,20 @@ public sealed record IntakeRequestOutcomeDto
     /// <summary>What the request became.</summary>
     public IntakeRequestOutcomeKind Kind { get; init; }
 
-    /// <summary>The id of the project the outcome points at, which identifies the outcome on the request.</summary>
+    /// <summary>The id of the project or work item the outcome points at, which identifies the outcome on the request.</summary>
     public Guid TargetId { get; init; }
 
-    /// <summary>The project, or null when it has since been deleted; the outcome stays as the record of what was decided.</summary>
+    /// <summary>
+    /// The project, for a project outcome; null for a work item outcome, or when the project has since been
+    /// deleted, since the outcome stays as the record of what was decided.
+    /// </summary>
     public DemandProjectNavigationDto? Project { get; init; }
+
+    /// <summary>
+    /// The work item, for a work item outcome; null for a project outcome, or when the work item has since been
+    /// deleted.
+    /// </summary>
+    public IntakeRequestOutcomeWorkItemDto? WorkItem { get; init; }
 
     /// <summary>What the outcome covers, in the agent's words. Always present for existing project scope.</summary>
     public string? Note { get; init; }

@@ -34,7 +34,7 @@ const SubmittedWith = ({ importProcess }: ImportFactsProps) => {
 
   if (!importProcess.submissionGroupId) return null
 
-  const listed = data?.processes ?? []
+  const listed = data?.items ?? []
   const others = listed.filter((p) => p.id !== importProcess.id)
   // Beyond the page: whatever the server counted that the page did not carry, less this run if it
   // was one of the listed ones.

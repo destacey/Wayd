@@ -1,3 +1,4 @@
+using System.Globalization;
 using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
@@ -26,6 +27,24 @@ public sealed class PlanningIntervalObjectiveImportDefinition(
     private readonly ICurrentUser _currentUser = currentUser;
 
     public override string Key => ImportKey;
+
+    /// <inheritdoc />
+    public override async Task<IReadOnlyDictionary<Guid, ImportRecordLink>> DescribeCreatedRecords(
+        IReadOnlyCollection<Guid> createdEntityIds,
+        CancellationToken cancellationToken) =>
+        await _planningDbContext.PlanningIntervalObjectives
+            .AsNoTracking()
+            .Where(x => createdEntityIds.Contains(x.Id))
+            .Join(_planningDbContext.PlanningIntervals, o => o.PlanningIntervalId, pi => pi.Id,
+                (o, pi) => new { o.Id, o.Key, o.Name, PlanningIntervalKey = pi.Key })
+            .ToDictionaryAsync(
+                x => x.Id,
+                x => new ImportRecordLink(
+                    ImportRecordType.PlanningIntervalObjective,
+                    x.Key.ToString(CultureInfo.InvariantCulture),
+                    x.Name,
+                    x.PlanningIntervalKey.ToString(CultureInfo.InvariantCulture)),
+                cancellationToken);
     public override string DisplayName => "Planning Interval Objectives";
     public override string PermissionAction => ApplicationAction.Import;
     public override string PermissionResource => ApplicationResource.PlanningIntervalObjectives;

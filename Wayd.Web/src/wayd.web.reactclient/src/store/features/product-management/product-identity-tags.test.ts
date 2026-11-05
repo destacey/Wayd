@@ -16,6 +16,14 @@ describe('productIdentityTags', () => {
     })
   })
 
+  it('invalidates every team link list, which prints the product and its path', () => {
+    // Act
+    const tags = productIdentityTags(ID)
+
+    // Assert
+    expect(tags).toContainEqual({ type: QueryTags.ProductTeamLink, id: 'LIST' })
+  })
+
   it('still invalidates the product and the product lists', () => {
     // Act
     const tags = productIdentityTags(ID)

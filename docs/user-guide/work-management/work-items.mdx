@@ -93,7 +93,7 @@ Work items support:
 
 ### Work Item Detail Page
 
-The page header shows the work item's title (linking to the item in the external system), its key, its type, and its status as a tag. The breadcrumb leads to the workspace and, when the item has one, its parent. The page has **Overview**, **Child Work Items** ([Portfolio tier](./work-configuration.mdx#work-type-tiers) only) and **Dependencies** sections, and a **Forecast** report under **Reports** for Requirement and Portfolio tier items when [Delivery Forecasting](./delivery-forecasting.mdx) is on.
+The page header shows the work item's title (linking to the item in the external system), its key, its type, and its status as a tag. The breadcrumb leads to the workspace and, when the item has one, its parent. The page has **Overview**, **Child Work Items** ([Portfolio tier](./work-configuration.mdx#work-type-tiers) only), **Dependencies** and, when Demand Management is on, **Requests** sections, and a **Forecast** report under **Reports** for Requirement and Portfolio tier items when [Delivery Forecasting](./delivery-forecasting.mdx) is on.
 
 **Details panel:**
 - Type, Priority, Story Points, Effort, Size and Tags (each shown only when set)
@@ -127,6 +127,8 @@ The page header shows the work item's title (linking to the item in the external
   - **Work Item Info**: Key (linked), Title, Type, Status, [Team](../organizations/index.mdx#teams) (link), [Sprint](./sprints.mdx) (link)
 - Support for external work item links (icon linking to integrated system)
 
+**Requests** — Shown when the `demand-management` feature flag is on: the [intake requests](../demand-management/index.mdx#outcomes) this work item delivers, each with its status and the desk's note on what the work item covers. Each request is listed only to people its desk lets see it, so a request on a private desk you are not part of is not shown and not counted.
+
 ### Where Work Items Appear
 
 Work items are visible in multiple places throughout Wayd:
@@ -159,6 +161,8 @@ Each dependency tracks:
 | **At Risk** | Neither item is planned |
 | **Unhealthy** | Predecessor is Removed; or successor is already Active, Done or Removed while the predecessor is not done; or successor is planned and predecessor is not; or predecessor is planned after the successor |
 | **Unknown** | The link was deleted |
+
+The [Dependency Analysis Report](./dependency-analysis-report.mdx) shows a closed dependency as **Closed** instead, because planning no longer applies: the predecessor is Done, or it is Removed and the successor is Done or Removed too. A removed predecessor whose successor is still open stays **Unhealthy** there, because the successor needs work nobody will do.
 
 - **Scope** — Whether the dependency is within a team (Intra-Team) or across teams (Cross-Team)
 
@@ -195,6 +199,8 @@ A Portfolio tier work item's project is set in Wayd, not in the external system.
 - Clear the field and save to remove the item's own assignment, so it inherits its parent's project again.
 
 Choosing the parent's project is the same as inheriting it, so that project is not offered. The work items beneath it that have no project of their own inherit the change. **Edit Project** appears only for Portfolio tier work items and requires the `Permissions.Projects.ManageProjectWorkItems` permission.
+
+Work items can also be added to and removed from a project on the project's own page; see [Adding and Removing Work Items](../ppm/projects.mdx#adding-and-removing-work-items).
 
 ## Ownership Model
 

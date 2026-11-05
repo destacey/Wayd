@@ -1,8 +1,7 @@
 # Risks
 
 A risk belongs to one team or team of teams. It is Open or Closed, sits in a ROAM category, and has an impact and
-a likelihood that together give its exposure. The tools that write risks are offered by the hosted MCP endpoint
-(`/mcp`) only.
+a likelihood that together give its exposure.
 
 ## Finding risks
 
@@ -32,6 +31,7 @@ Confirm with the user before each call.
 | --- | --- |
 | Create a risk for any team or team of teams | `Risks_Create` (or `Teams_CreateRisk` / `TeamsOfTeams_CreateRisk`) |
 | Update, close or reopen a risk | `Risks_Update` (or `Teams_UpdateRisk` / `TeamsOfTeams_UpdateRisk`) |
+| Delete a risk | `Risks_Delete` |
 | Status, category and grade ids | `Risks_GetStatuses`, `Risks_GetCategories`, `Risks_GetGrades` |
 
 - **The lookups are numeric ids, not codes.** `statusId`: 1 Open, 2 Closed. `categoryId` (ROAM): 1 Resolved,
@@ -45,5 +45,8 @@ Confirm with the user before each call.
   cleared. Read the risk first and pass back every field that should stay, changing only what the user asked.
 - **Closing is an update.** Send `statusId` 2 with every other field unchanged; that stamps the closed date.
   Sending 1 reopens it and clears the date.
+- **Close rather than delete.** A risk that is handled or no longer relevant is closed. `Risks_Delete` is for a
+  risk that should not exist — a duplicate or one raised in error — and cannot be undone; name the risk by key and
+  summary and confirm before calling it.
 - `assigneeId` is an employee UUID (resolve a name with `Employees_GetList`); `followUpDate` is yyyy-MM-dd;
   `response` is what is being done about the risk.

@@ -1,18 +1,19 @@
 ﻿using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Domain.Enums.Planning;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Work.Application.Iterations.Dtos;
 using Wayd.Work.Application.WorkProjects.Dtos;
 using Wayd.Work.Application.Workspaces.Dtos;
 using Wayd.Work.Application.WorkTeams.Dtos;
+// The DTO's own StatusCategory property hides the enum's name.
+using StatusCategories = Wayd.Common.Domain.StatusWorkflows.Enums.StatusCategory;
 
 namespace Wayd.Work.Application.WorkItems.Dtos;
 
 public sealed record SprintBacklogItemDto : IMapFrom<WorkItem>
 {
     // Named constant for the Done status category id to avoid repeated casts
-    private const int DoneStatusCategoryId = (int)WorkStatusCategory.Done;
+    private const int DoneStatusCategoryId = (int)StatusCategories.Done;
 
     public Guid Id { get; set; }
     public required string Key { get; set; }

@@ -34,8 +34,8 @@ public sealed class StatusWorkflowDetailsReader(IStatusWorkflowDbContext dbConte
             return null;
         }
 
-        var isAssigned = await _dbContext.WorkflowAssignments
-            .AnyAsync(a => a.WorkflowId == workflow.Id, cancellationToken);
+        var isAssigned = await _dbContext.AssignedWorkflowIds()
+            .AnyAsync(id => id == workflow.Id, cancellationToken);
 
         var descriptor = WorkflowOwners.Resolve(workflow.OwnerType);
         var aliasNames = descriptor.IsSuccess ? descriptor.Value.Aliases : new Dictionary<int, string>();
@@ -48,7 +48,8 @@ public sealed class StatusWorkflowDetailsReader(IStatusWorkflowDbContext dbConte
 
         // Mirrors of the aggregate's own guards, so the editor can disable what would be refused rather
         // than let a user find out by trying. The aggregate stays the authority; these only inform.
-        var canEdit = !workflow.IsSystem && workflow.State == StatusWorkflowState.Draft;
+        var canEdit = !workflow.IsSystem && !workflow.IsManaged && workflow.State == StatusWorkflowState.Draft;
+        var canReclassify = canEdit || (workflow.IsManaged && workflow.State != StatusWorkflowState.Archived);
         var transitionIssues = workflow.TransitionIssues();
         var missingCategories = workflow.MissingRequiredCategories();
         var misfiledAliases = workflow.MisfiledAliases();
@@ -63,14 +64,18 @@ public sealed class StatusWorkflowDetailsReader(IStatusWorkflowDbContext dbConte
             Owner = GetStatusWorkflowsQueryHandler.DescribeOwner(workflow.OwnerType),
             State = workflow.State.ToString(),
             IsSystem = workflow.IsSystem,
+            Ownership = workflow.Ownership,
+            ExternalKey = workflow.ExternalKey,
             IsAssigned = isAssigned,
             MissingRequiredAliases = missing,
             MissingRequiredCategories = missingCategories,
             MisfiledAliases = misfiledAliases,
             CanEdit = canEdit,
+            CanReclassify = canReclassify,
+            Warnings = [.. workflow.CheckIssues().Where(i => i.Severity == WorkflowCheckSeverity.Warned).Select(i => i.Message)],
             CanPublish = canEdit && missing.Count == 0 && missingCategories.Count == 0 && misfiledAliases.Count == 0
                 && transitionIssues.Count == 0,
-            CanArchive = !workflow.IsSystem && workflow.State == StatusWorkflowState.Published && !isAssigned,
+            CanArchive = !workflow.IsSystem && !workflow.IsManaged && workflow.State == StatusWorkflowState.Published && !isAssigned,
             Statuses =
             [
                 .. workflow.Statuses.Select(s => new WorkflowStatusDto
@@ -78,12 +83,14 @@ public sealed class StatusWorkflowDetailsReader(IStatusWorkflowDbContext dbConte
                     Id = s.Id,
                     Name = s.Name,
                     Description = s.Description,
-                    Category = SimpleNavigationDto.FromEnum(s.Category),
+                    Category = StatusCategoryNavigation.For(s.Category, descriptor.IsSuccess ? descriptor.Value : null),
                     Alias = s.Alias,
                     AliasName = s.Alias != StatusWorkflow.NoAlias && aliasNames.TryGetValue(s.Alias, out var alias)
                         ? alias
                         : null,
                     Order = s.Order,
+                    ExternalKey = s.ExternalKey,
+                    IsRetired = s.IsRetired,
                 }),
             ],
             TransitionMode = workflow.TransitionMode,

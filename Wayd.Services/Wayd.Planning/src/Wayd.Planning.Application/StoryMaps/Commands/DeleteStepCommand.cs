@@ -2,7 +2,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 
 namespace Wayd.Planning.Application.StoryMaps.Commands;
 
-public sealed record DeleteStepCommand(Guid StoryMapId, Guid StepId) : ICommand;
+public sealed record DeleteStepCommand(Guid StoryMapId, Guid StepId) : ICommand, IRequireLinkedEmployee;
 
 public sealed class DeleteStepCommandValidator : CustomValidator<DeleteStepCommand>
 {
@@ -16,9 +16,10 @@ public sealed class DeleteStepCommandValidator : CustomValidator<DeleteStepComma
     }
 }
 
-public sealed class DeleteStepCommandHandler(IPlanningDbContext planningDbContext, IStoryMapNotifier notifier, ILogger<DeleteStepCommandHandler> logger) : ICommandHandler<DeleteStepCommand>
+public sealed class DeleteStepCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<DeleteStepCommandHandler> logger) : ICommandHandler<DeleteStepCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
     private readonly ILogger<DeleteStepCommandHandler> _logger = logger;
 
@@ -27,13 +28,16 @@ public sealed class DeleteStepCommandHandler(IPlanningDbContext planningDbContex
         try
         {
             var map = await _planningDbContext.StoryMaps
+                .IncludeAccess()
                 .Include(m => m.Goals).ThenInclude(g => g.Steps)
                 .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
             if (map is null)
                 return Result.Failure("Story map not found.");
 
-            var result = map.DeleteStep(request.StepId);
+            var actor = await _access.ResolveActor(map, cancellationToken);
+
+            var result = map.DeleteStep(request.StepId, actor);
             if (result.IsFailure)
                 return result;
 
@@ -42,7 +46,7 @@ public sealed class DeleteStepCommandHandler(IPlanningDbContext planningDbContex
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
             _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);

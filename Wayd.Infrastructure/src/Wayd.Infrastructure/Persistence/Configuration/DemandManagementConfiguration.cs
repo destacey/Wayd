@@ -7,6 +7,7 @@ using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Domain.Tagging;
 using Wayd.DemandManagement.Domain.Models;
+using Wayd.DemandManagement.Domain.Models.Estimation;
 using Wayd.DemandManagement.Domain.Models.Scoring;
 using Wayd.Infrastructure.Persistence.Converters;
 
@@ -60,6 +61,13 @@ public class IntakeDeskConfiguration : IEntityTypeConfiguration<IntakeDesk>
             .HasForeignKey(d => d.ScoringModelId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasIndex(d => d.EstimationScaleVersionId);
+        builder.HasOne<DemandEstimationScaleVersion>()
+            .WithMany()
+            .HasForeignKey(d => d.EstimationScaleVersionId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // The desk is saved whole; without this, two saves read at the same revision would both pass the
         // handler's check and the second would undo the first.
@@ -296,6 +304,23 @@ public class IntakeRequestConfiguration : IEntityTypeConfiguration<IntakeRequest
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        builder.OwnsOne(r => r.Estimate, estimate =>
+        {
+            estimate.Property(e => e.Value).HasColumnName("EstimateValue").HasMaxLength(32).IsRequired();
+            estimate.Property(e => e.ScaleVersionId).HasColumnName("EstimateScaleVersionId").IsRequired();
+            estimate.Property(e => e.Position).HasColumnName("EstimatePosition").IsRequired();
+            estimate.Property(e => e.ScaleName).HasColumnName("EstimateScaleName").HasMaxLength(128).IsRequired();
+            estimate.Property(e => e.ScaleVersionNumber).HasColumnName("EstimateScaleVersionNumber").IsRequired();
+
+            // "Which requests are estimated on this version": what a desk's scale change and a scale's deletion ask.
+            estimate.HasIndex(e => e.ScaleVersionId);
+
+            estimate.HasOne<DemandEstimationScaleVersion>()
+                .WithMany()
+                .HasForeignKey(e => e.ScaleVersionId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         builder.HasMany(r => r.Scores)
             .WithOne()
             .HasForeignKey(s => s.RequestId)
@@ -400,11 +425,11 @@ public class IntakeRequestOutcomeConfiguration : IEntityTypeConfiguration<Intake
         // A request points at a target at most once.
         builder.HasKey(o => new { o.RequestId, o.TargetId });
 
-        // "Which requests did this project come from": the reverse view on the project page.
+        // "Which requests did this project or work item come from": the reverse view on its page.
         builder.HasIndex(o => o.TargetId);
 
-        // No foreign key on TargetId: an outcome outlives the project's copy, which goes when the project is
-        // deleted.
+        // No foreign key on TargetId: an outcome outlives its target. A project's copy goes when the project is
+        // deleted, and a work item lives in Work's tables, which Demand Management never references.
         builder.Property(o => o.Kind).IsRequired()
             .HasConversion<EnumConverter<IntakeRequestOutcomeKind>>()
             .HasColumnType("varchar")
@@ -435,6 +460,56 @@ public class DemandProjectConfiguration : IEntityTypeConfiguration<DemandProject
         builder.Property(p => p.Name).IsRequired().HasMaxLength(128);
 
         builder.ConfigureReplicaTracking(p => p.Watermarks);
+    }
+}
+
+public class DemandEstimationScaleConfiguration : IEntityTypeConfiguration<DemandEstimationScale>
+{
+    public void Configure(EntityTypeBuilder<DemandEstimationScale> builder)
+    {
+        builder.ToTable("DemandEstimationScales", SchemaNames.DemandManagement);
+
+        builder.HasKey(s => s.Id);
+
+        builder.Property(s => s.Id).ValueGeneratedNever();
+        builder.Property(s => s.Key).IsRequired();
+        builder.Property(s => s.Name).IsRequired().HasMaxLength(128);
+        builder.Property(s => s.IsActive).IsRequired();
+
+        builder.Ignore(s => s.CurrentVersion);
+
+        // Cascade only removes versions with a copy whose scale Planning deleted, which it refuses while a desk or
+        // an estimate uses the scale; the restricting keys below catch a use that slipped in meanwhile.
+        builder.HasMany(s => s.Versions)
+            .WithOne()
+            .HasForeignKey(v => v.ScaleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(s => s.Versions).HasField("_versions").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.ConfigureReplicaTracking(s => s.Watermarks);
+    }
+}
+
+public class DemandEstimationScaleVersionConfiguration : IEntityTypeConfiguration<DemandEstimationScaleVersion>
+{
+    public void Configure(EntityTypeBuilder<DemandEstimationScaleVersion> builder)
+    {
+        builder.ToTable("DemandEstimationScaleVersions", SchemaNames.DemandManagement);
+
+        builder.HasKey(v => v.Id);
+        builder.HasIndex(v => new { v.ScaleId, v.Number }).IsUnique();
+
+        builder.Property(v => v.Id).ValueGeneratedNever();
+        builder.Property(v => v.Number).IsRequired();
+
+        // Read and written whole with the version, as Planning stores them.
+        builder.OwnsMany(v => v.Values, o =>
+        {
+            o.ToJson();
+            o.Property(x => x.Value).HasMaxLength(32);
+        });
+        builder.Navigation(v => v.Values).HasField("_values").UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }
 

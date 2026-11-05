@@ -6,6 +6,7 @@ import {
   TransitionMode,
   WorkflowMoveDto,
   WorkflowStatusDto,
+  WorkflowOwnership,
 } from '@/src/services/wayd-api'
 import {
   anyMoveNote,
@@ -34,6 +35,7 @@ const status = (
   alias: aliasName ? 1 : 0,
   aliasName,
   order,
+  isRetired: false,
 })
 
 // Listed out of order on purpose: the layout, not the list, decides where each status goes.
@@ -82,6 +84,9 @@ const workflow = (
   canEdit: false,
   canPublish: false,
   canArchive: false,
+  ownership: WorkflowOwnership.Owned,
+  canReclassify: false,
+  warnings: [],
   ...overrides,
 })
 
@@ -107,9 +112,20 @@ const history = (
   id: `h-${sequence}`,
   sequence,
   fromStatus: from
-    ? { id: from, name: from, category: StatusCategory.Active }
+    ? {
+        id: from,
+        name: from,
+        category: StatusCategory.Active,
+        categoryLabel: 'Active',
+      }
     : undefined,
-  toStatus: { id: to, name: to, category: StatusCategory.Active, alias: 0 },
+  toStatus: {
+    id: to,
+    name: to,
+    category: StatusCategory.Active,
+    categoryLabel: 'Active',
+    alias: 0,
+  },
   workflowId,
   actorKind: { id: 0, name: 'User' },
   changedBySystem: false,
@@ -137,6 +153,28 @@ describe('buildWorkflowDiagram', () => {
     const xs = diagram.columns.map((c) => c.x)
     expect(xs).toEqual([...xs].sort((a, b) => a - b))
     expect(new Set(xs).size).toBe(3)
+  })
+
+  it("heads each column with the category as the workflow's owner type labels it", () => {
+    // Arrange
+    const labelled = statuses.map((s) =>
+      s.category.id === categoryIds[StatusCategory.Done]
+        ? { ...s, category: { ...s.category, name: 'Concluded' } }
+        : s,
+    )
+
+    // Act
+    const diagram = buildWorkflowDiagram(
+      workflow({ statuses: labelled, transitions: [] }),
+    )
+
+    // Assert
+    expect(diagram.columns.map((c) => c.label)).toEqual([
+      'Proposed',
+      'Active',
+      'Concluded',
+      'Removed',
+    ])
   })
 
   it('stacks a column by status order, and draws every status once', () => {

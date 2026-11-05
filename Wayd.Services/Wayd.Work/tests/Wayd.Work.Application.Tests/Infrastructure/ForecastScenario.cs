@@ -2,7 +2,7 @@
 using NodaTime.Testing;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Models;
 using Wayd.Tests.Shared;
 using Wayd.Work.Domain.Models;
@@ -44,7 +44,7 @@ public sealed class ForecastScenario : IDisposable
 
     public WorkItem AddItem(
         Guid? teamId,
-        WorkStatusCategory statusCategory = WorkStatusCategory.Proposed,
+        StatusCategory statusCategory = StatusCategory.Proposed,
         double stackRank = 1,
         WorkType? type = null,
         Instant? done = null,
@@ -72,7 +72,7 @@ public sealed class ForecastScenario : IDisposable
     }
 
     public WorkItem AddDoneItem(Guid? teamId, Guid? parentId = null) =>
-        AddItem(teamId, WorkStatusCategory.Done, done: Now.Minus(Duration.FromDays(200)), parentId: parentId);
+        AddItem(teamId, StatusCategory.Done, done: Now.Minus(Duration.FromDays(200)), parentId: parentId);
 
     /// <summary>
     /// One item finished on each of the given number of days before today — a pace that makes
@@ -81,7 +81,7 @@ public sealed class ForecastScenario : IDisposable
     public void AddHistory(Guid teamId, int days = 90)
     {
         for (var day = 1; day <= days; day++)
-            AddItem(teamId, WorkStatusCategory.Done, done: Now.Minus(Duration.FromDays(day)));
+            AddItem(teamId, StatusCategory.Done, done: Now.Minus(Duration.FromDays(day)));
     }
 
     public void AddDependency(WorkItem predecessor, WorkItem successor) =>

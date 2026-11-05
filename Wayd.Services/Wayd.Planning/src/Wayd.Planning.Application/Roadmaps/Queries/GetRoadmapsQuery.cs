@@ -1,5 +1,4 @@
-﻿using Wayd.Common.Domain.Enums;
-using Wayd.Common.Domain.Enums.Planning;
+﻿using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Planning.Application.Roadmaps.Dtos;
 
 namespace Wayd.Planning.Application.Roadmaps.Queries;
@@ -14,15 +13,9 @@ public sealed class GetRoadmapsQueryHandler(IPlanningDbContext planningDbContext
 
     public async Task<List<RoadmapListDto>> Handle(GetRoadmapsQuery request, CancellationToken cancellationToken)
     {
-        var publicVisibility = Visibility.Public;
+        var reader = await _currentPrincipal.ResolveRoadmapReader(cancellationToken);
 
-        // Unlinked callers manage nothing and see public roadmaps only, rather than the list failing
-        // outright. The manager check is omitted rather than run against a sentinel id.
-        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-
-        var query = employeeId is { } managerId
-            ? _planningDbContext.Roadmaps.Where(r => r.Visibility == publicVisibility || r.RoadmapManagers.Any(m => m.ManagerId == managerId))
-            : _planningDbContext.Roadmaps.Where(r => r.Visibility == publicVisibility);
+        var query = _planningDbContext.Roadmaps.Where(reader.Filter);
 
         if (request.StateFilter is { Length: > 0 })
         {
@@ -30,9 +23,15 @@ public sealed class GetRoadmapsQueryHandler(IPlanningDbContext planningDbContext
         }
 
         // Stable, so an MCP caller's offset slices the same list on every call.
-        return await query
+        var roadmaps = await query
             .OrderBy(r => r.Key)
             .ProjectToType<RoadmapListDto>()
             .ToListAsync(cancellationToken);
+
+        var managed = await reader.Managed(query, cancellationToken);
+        foreach (var roadmap in roadmaps)
+            roadmap.CanManage = managed.Contains(roadmap.Id);
+
+        return roadmaps;
     }
 }

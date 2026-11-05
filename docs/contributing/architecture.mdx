@@ -94,7 +94,7 @@ Wayd/
 
   Wayd.Infrastructure/   # EF Core, migrations, auth, messaging, jobs
   Wayd.Integrations/     # External system clients (Azure DevOps, Microsoft Graph, Workday)
-  Wayd.Web/              # Presentation layer: Wayd.Web.Api, wayd.web.reactclient, Wayd.Mcp
+  Wayd.Web/              # Presentation layer: Wayd.Web.Api, wayd.web.reactclient
   Wayd.Tools/            # Developer tools (data generation)
   Wayd.AppHost/          # .NET Aspire host for local development
   Wayd.ArchitectureTests/  # Architecture rules, at the root with no src/ or tests/ folder
@@ -193,6 +193,12 @@ The read side mirrors the same rule as `canManageProject` / `canManageProgram` /
 
 **Sprints are the other membership-gated area.** Starting, completing and reopening a sprint needs `Permissions.Iterations.Update` and membership of the sprint's team or its direct team of teams, which `Permissions.Iterations.Administer` waives. Membership lives in Organization, so the Work handlers answer it through `IsTeamMemberQuery` (`SprintAuthorization.CanManageTeamSprints`) rather than in the aggregate; the aggregate enforces only the lifecycle rules, through `TeamSprintTimeline`. `SprintDetailsDto` exposes both — `CanManageSprint` and `CanStart`/`CanComplete`/`CanReopen` — computed by the same code the commands run.
 
+**Planning poker is gated by the session, in the domain.** `Permissions.PokerSessions.View` reaches every endpoint (`Create` only creating); what a caller may do then depends on the session. Facilitators, invited employees and members are stored as employees, so every poker command is `IRequireLinkedEmployee`. The handler resolves a `PokerSessionActor` through `IPokerSessionAccess.ResolveActor` — the employee, the user id, whether they hold `Permissions.PokerSessions.Administer`, and which of the session's invited teams they belong to, answered through `GetTeamsWithMemberQuery` (a team's members and those of its direct team of teams, on the day) — and its query must call `IncludeAccess()` so the facilitators and invites are loaded. `PokerSession.CanManage` (a facilitator, or the administrator) gates every change to rounds, details, access, completion and deletion; `CanAccess` (public, managed, invited, or a member of an invited team) gates joining and voting. A session the caller cannot access fails as a missing one does (`PokerSession.NotFoundError`). Reads apply the same rule in SQL through `PokerSessionReader.Filter` (`PokerSession.AccessibleTo`), so a private session is absent from lists rather than redacted, and the DTOs' `CanManage` comes from `PokerSessionReader.CanManage`. The hub answers it by user id, through `IPokerSessionAccess.CanUserAccess`: `PlanningPokerHub.JoinSession` refuses a session the user cannot access, and changing visibility or invites calls `RealtimeAccessRevoker.RecheckPokerSession` to evict connections the session no longer admits. Team membership is read when a connection joins, so a change to a team takes effect on the next reconnect. In-memory fakes cannot prove `AccessibleTo` translates; `PokerSessionPersistenceTests` runs it on SQL Server.
+
+**Story maps follow the same model.** `Permissions.StoryMaps.View` reaches every endpoint (`Create` only creating). Owners, editors and editor teams are stored as employees and teams, so every story map command is `IRequireLinkedEmployee` and resolves a `StoryMapActor` through `IStoryMapAccess.ResolveActor`, after loading the map with `IncludeAccess()`. `StoryMap.CanManage` (an owner, or a holder of `Permissions.StoryMaps.Administer`) gates the map's details, archive, delete, owners, editors, visibility and edit access; `CanEdit` gates content, and admits owners and editors always and, on a Public map whose `EditAccess` is `AnyoneWhoCanView`, everyone who can see it; `CanAccess` admits everyone to a Public map and only owners and editors to a Private one. Every public mutator on the aggregate takes the actor, so a forgotten check does not compile. Reads apply the rule in SQL through `StoryMapReader.Filter` (`StoryMap.AccessibleTo`), and the list's `CanEdit` through `StoryMap.EditableBy`. `StoryMapHub.JoinMap` refuses a map the user cannot access, and an access change evicts through `RealtimeAccessRevoker.RecheckStoryMap`. `StoryMapPersistenceTests` runs the filters and the handlers' includes on SQL Server.
+
+**Roadmaps are gated by their owners, in the domain.** `Permissions.Roadmaps.View` reaches every endpoint except creating and copying, which need `Create`. Owners are employees, so every roadmap command is `IRequireLinkedEmployee` and resolves a `RoadmapActor` (the employee, and whether they hold `Permissions.Roadmaps.Administer`) through `ICurrentPrincipal.ResolveRoadmapActor`, after loading the roadmap with `.Include(r => r.Owners)`. `Roadmap.CanManage` (an owner, or the administrator) gates every change; an owner editing the roadmap must stay among its owners. Reads filter through `RoadmapReader.Filter` (`Roadmap.AccessibleTo`), and the DTOs' `CanManage` from `RoadmapReader.Managed` (`Roadmap.ManagedBy`).
+
 **Intake requests are gated by desk role alone, and read in tiers.** Demand Management follows a different principle from PPM and sprints: a claim says what someone may do anywhere, a role on a container says what they may do in it, and no action needs both. So acting on a request needs only being an Agent or Desk Admin on its desk (`IntakeDeskMember.Role`), and its endpoints need only a signed-in user; the handler decides through `IntakeRequestReader.IsAgentOn` and `IsDeskAdminOn`, which read memberships from the database and treat an inactive employee as a member of nothing. `Permissions.IntakeRequests.View` only widens what a reader browses, and `Administer` is the top role on every desk rather than a waiver beside a resource permission. Submitting, and reading one's own requests, need no claim at all. The motive is administration: a claim that does nothing until its holder is also named on a container has to be kept in step with that container by a different person on a different screen, and drift shows up only as someone who cannot act. Reads are stricter than anywhere else: a request is read in summary, substance and internal tiers, and the desk's visibility decides who holds which. `IntakeRequestReader.CanSeeSummary` and `CanSeeSubstance` are expressions that every query and command applies in SQL, so a private desk's requests are absent from lists and counts rather than redacted, and a command on a request the caller cannot see fails exactly as a missing one does (`IntakeRequestAuthorization.NotFoundError`, 404). The DTOs are one object per tier, and every request event declares its tier (`IIntakeRequestEvent.ReadTier`) so the request's history is filtered by event type before paging. Working one desk grants nothing on another. In-memory fakes cannot prove the expressions translate; `DemandManagementReadTests` and `DemandManagementCommandTests` run them on SQL Server.
 
 See [Permissions](../user-guide/settings/permissions.mdx) for the user-facing rule.
@@ -248,6 +254,11 @@ another domain, kept aligned two ways:
    current state. See [Consuming an event](./domain-events.mdx#consuming-an-event).
 2. **Shared table.** `Employee` lives in `Wayd.Common.Domain` — one row, referenced by Guid everywhere.
    No replication needed.
+3. **Composed in the API layer.** A module that only stores another module's ids, and needs neither to filter
+   nor report on that record's fields, keeps no copy: the controller asks the owning module and hands the
+   answer in. Demand Management's work-item outcomes work this way, since `WorkItem` raises no events — the
+   intake requests controller looks the work item up in Work before the add-outcome command, and fills in each
+   outcome's key, title and status when a request is read. The application layers stay unaware of each other.
 
 #### Replication edges
 
@@ -410,10 +421,88 @@ set, and when it was read. The wording is produced when the list is read, from t
 - **Not an audit trail.** A nightly job (`notification-retention-sweep`, 03:30) deletes notifications more than
   90 days old, read or not; the activity log keeps what happened.
 
-`Mentioned` and `Desk` (a request waiting unassigned on a desk you work on) are defined, but nothing produces
-them yet. Only the reasons in
+`Mentioned` and `Thread` (you started or replied in a conversation thread) are produced by the conversations on
+intake requests and projects. `Desk` (a request waiting unassigned on a desk you work on) is defined, but nothing produces it yet. Only the reasons in
 `NotificationReasons.Produced` can be muted; a producer of a new reason adds it there first — the writer throws
 for any other reason — or its mute would be refused.
+
+### Discussions
+
+A conversation on a record (`Common.Domain/Discussions`, schema `Discussions`) is a **channel** — one per record,
+keyed by a channel type string and the record's id, opened by the first post — holding **messages**. A top-level
+message may carry a subject and starts a **thread**; replies go one level deep and take their parent's kind,
+`Public` or `InternalNote`, so a thread is wholly one or the other and its reply count never reveals a hidden note.
+A **section** groups channels for a later chat area and is never stored. Making a record discussable is a
+registration in its module, not a schema change:
+
+1. Declare a `DiscussionChannelTypeDescriptor` as a static field in the module's domain project — key, display
+   name, section, whether it supports internal notes, subjects and mention access, and the aggregate type that
+   holds its settings (`settingsScopeType`, such as `IntakeDesk`; null for none) — and register it with
+   `DiscussionChannelTypes`. Spell the key as the record's follow owner type; it is persisted, so never rename it.
+2. Implement `IDiscussionChannelType` (`Common.Application/Discussions`) in the module's Application project:
+   - `Resolve(ownerId)` returns what the caller may do — read and post internal notes, post, moderate — or null
+     when they cannot read the record, which every caller reports as 404. Decide from the record as it is now,
+     by the same rule as its own read endpoints, and return null when the module's feature flag is off: the
+     discussion endpoints sit outside the module's controllers. Its `ScopeId` names the record whose settings
+     apply — a request's desk — read from the record now, so a rerouted request takes its new desk's settings.
+   - `MentionableAmong(ownerId, ids, kind)` narrows a message's mentions to those its author may make. Keep a
+     mention in an internal note to the internal audience, or the mention tells someone a note exists.
+   - `OnPosted(channel, message)` applies what posting means to the module's own aggregate — adding a participant —
+     tracked in the same save, because it can grant access. `OnEdited(channel, message, addedMentionIds)` does the
+     same for mentions an edit adds, so editing is no way around the rule for who may widen a record. A record whose
+     access comes only from permissions and roles, as a project's does, leaves both empty.
+   - `ResolveSettings(scopeId)` says whether the caller may change a scope's settings, or the type's default when
+     `scopeId` is null; null when the type has no settings or the scope does not exist. A type with no
+     `settingsScopeType` returns null.
+3. Register both in `Infrastructure/Discussions/ConfigureServices.AddDiscussions`. Make the implementation
+   `public` — Wolverine's generated handlers construct it directly — and give it the same key as the record's
+   `IRecordReadRule`: the conversation shows the record's activity through that rule, once the rule admits the
+   caller, and shows messages only when no rule has the key. `DiscussionRegistrationTests` fails until every
+   registered channel type has exactly one implementation.
+
+**Settings** (`DiscussionSettings`, `Discussions.Settings`) hold two switches per channel type and scope: internal
+notes enabled and mentions grant access. A record uses its scope's row, else the type's default row, else the
+descriptor's defaults — read through `DiscussionSettingsFor` on `IDiscussionsDbContext`, never the table directly. A
+row exists only while it differs from what its scope inherits: saving the inherited values creates none, or removes
+the one there. The writer and the discussion queries apply them: notes off refuses new notes and replies in a note's
+thread but never hides an existing one. Whether a mention grants access is the channel type's to honour in
+`MentionableAmong` and `OnPosted`. Each change raises `DiscussionSettingsValuesChangedEvent` with both ends, related
+to the scope's aggregate so it lists on the scope's Activity too. A module hard-deleting a scope removes its row with
+`IDiscussionWriter.DeleteSettings`.
+
+Two channel types are registered:
+
+- **Intake request** (`IntakeRequestDiscussionChannelType`): messages read by the rule the request's description
+  is, internal notes for the desk's agents, moderation by its Desk Admins. A message on a desk that is not private
+  can make its author and the people it mentions participants.
+- **Project** (`ProjectDiscussionChannelType`): read by anyone who can read the project, moderated by its delivery
+  leaders — Owner or Manager on the project, its program or its portfolio, or the PPM administrator. No internal
+  notes, and a mention only notifies. The ancestors' roles are loaded with `.Include`, which the in-memory fakes
+  ignore, so `ProjectDiscussionChannelTypeIntegrationTests` decides moderation against SQL Server.
+
+**`IDiscussionWriter` is the only way to change a conversation.** The discussion endpoints, a module's own
+commands and agent tools all post through it, so the rules live in one place; it stages and never saves, so a
+module can change its record and post in one transaction, as an intake request's "ask and move" does. Pass the
+change's domain event as the post's `RecordChange`: the message takes its timestamp and keeps its event id, and a page
+of the conversation shows that change on the message rather than as an entry of its own — still only when the record's
+read rule lets the caller see it. Reads go through `DiscussionReading`, which filters messages by the kinds `Resolve`
+allows.
+
+**A message is never quietly rewritten.** Every edit keeps the version it replaced as a revision, and deleting
+leaves a tombstone — who deleted it and when — with the text, revisions and mentions cleared. It is not
+`ISoftDelete`, whose query filter would hide the row; rows leave only with their channel, through
+`IDiscussionWriter.DeleteChannel` when a module hard-deletes the record, which records the removal as a
+`DiscussionChannelDeletedEvent`. Messages and channels carry a row version, so an edit and a delete of one message
+at once, or two first posts on a record, end in `DiscussionAccessErrors.Conflict` (409) rather than one silently
+undoing the other; a module command that posts through the writer turns its save's `DbUpdateException` into the
+same.
+
+**No text leaves through a side door.** Discussion events carry ids and mention lists, never a subject or body,
+and messages are not `ISystemAuditable`, so an internal note never reaches an event, the outbox, the audit trail
+or a log line. A module notifies from `DiscussionMessagePostedEvent`, filtered on its channel type, in the owner type's
+notification handler (`IntakeRequestNotificationEventHandler`, `ProjectNotificationEventHandler`). Where only some
+readers see internal notes, map `MessagePosted` and `InternalNotePosted` to the tiers its `VisibleNotifications`
+uses; a project holds no notes, so its handler never tells one and its read rule passes notifications through.
 
 ## Connector framework
 
@@ -463,7 +552,7 @@ Sprint metrics ask what was true about a work item at an instant, so Wayd keeps 
 - **Only source values are stored, by stable id.** The status and work type names and the source's iteration id sit beside what Wayd resolved them to, because an old revision can name something Wayd no longer holds. Nothing is resolved through a connection mapping, which isn't effective-dated: Azure DevOps derives a work item's team from its iteration, so team over time is read through the iteration; a source that records team on the item supplies a raw `TeamKey`. The assignee is the exception — an identity mapping corrects who a person is rather than reorganizing anything — so it is resolved at ingest and repointed by `RepointWorkItemAttributionCommand` like the work item's.
 - **History is deleted with its work item.** A revision is matched to its item across every workspace of the source system, so an item that moved keeps the revisions it made before the move; revisions of an item Wayd doesn't hold anywhere are skipped. Revisions and periods are imported facts and raise no domain events.
 
-One-time initialization flows (e.g. AzDO's `InitWorkProcessIntegration` / `InitWorkspaceIntegration`) stay connector-specific in the existing init manager — they're user-triggered setup wizards with connector-specific payloads, not part of the generic runner.
+Setup flows stay connector-specific in the init manager. AzDO's `InitWorkspaceIntegration` is the user-triggered setup of a project, and it calls `EnsureWorkProcessIntegration` to set up the project's process first when Wayd doesn't have it. The runner reaches the same `EnsureWorkProcessIntegration` through `AzureDevOpsWorkItemSource` when a synced project's process is missing — one moved to another process in Azure DevOps — so a process is set up in one place whichever path gets there first. A process exists once in Wayd however many connections use it: Azure DevOps processes share one id across organizations, and a unique index on the work process's external id enforces it.
 
 #### People sync
 

@@ -14,7 +14,8 @@ import {
 } from '@/src/components/common/wayd-grid'
 import { SizingMethod, WorkItemListDto } from '@/src/services/wayd-api'
 import { estimateColumns } from './estimate-columns'
-import type { ColumnDef } from '../wayd-grid-core'
+import { createActionsColumn, type ColumnDef } from '../wayd-grid-core'
+import type { ItemType } from 'antd/es/menu/interface'
 import { FC, ReactNode, useMemo } from 'react'
 
 export interface WorkItemsGridProps {
@@ -33,13 +34,20 @@ export interface WorkItemsGridProps {
   persistStateKey?: string
   /** The team's sizing method, whose estimate column shows by default; Story Points for several teams' work. */
   sizingMethod?: SizingMethod | null
+  /** Builds a row's action menu; omit for a grid without an actions column. */
+  getRowActions?: (workItem: WorkItemListDto) => ItemType[]
 }
 
 const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
-  const { refetch } = props
+  const { refetch, getRowActions } = props
 
   const columns = useMemo<ColumnDef<WorkItemListDto, any>[]>(
     () => [
+      createActionsColumn<WorkItemListDto>({
+        unavailable: !getRowActions,
+        ariaLabel: 'Work item actions',
+        getItems: (workItem) => getRowActions?.(workItem) ?? [],
+      }),
       {
         id: 'key',
         accessorKey: 'key',
@@ -177,6 +185,7 @@ const WorkItemsGrid: FC<WorkItemsGridProps> = (props) => {
       props.hideProjectColumn,
       props.showStats,
       props.sizingMethod,
+      getRowActions,
     ],
   )
 

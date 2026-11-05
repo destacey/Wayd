@@ -388,6 +388,16 @@
   font-size: 16px;
 }
 
+.roundDescriptionInput {
+  margin-top: 8px;
+}
+
+.roundDescriptionText {
+  margin-top: 4px;
+  margin-bottom: 0;
+  white-space: pre-wrap;
+}
+
 .roundLabelHeader {
   font-size: 18px;
   font-weight: 600;

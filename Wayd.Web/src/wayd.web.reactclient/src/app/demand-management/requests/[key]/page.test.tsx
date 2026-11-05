@@ -219,6 +219,7 @@ describe('IntakeRequestDetailsPage', () => {
     expect(screen.queryByTestId('markdown')).not.toBeInTheDocument()
     expect(screen.queryByText('People')).not.toBeInTheDocument()
     expect(screen.queryByText('Score')).not.toBeInTheDocument()
+    expect(screen.queryByText('Discussion')).not.toBeInTheDocument()
   })
 
   it('shows the description when the substance is readable', async () => {
@@ -230,6 +231,7 @@ describe('IntakeRequestDetailsPage', () => {
       await screen.findByText('The certificates expire in March.'),
     ).toBeInTheDocument()
     expect(screen.queryByText(/limited to the IT desk/)).not.toBeInTheDocument()
+    expect(screen.getByText('Discussion')).toBeInTheDocument()
   })
 
   it('offers Edit only when the server says the reader may edit', async () => {

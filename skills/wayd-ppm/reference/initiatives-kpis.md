@@ -2,7 +2,7 @@
 
 A **strategic initiative** is a portfolio-level outcome — the _why_ behind the work. It belongs to one portfolio, has sponsors and owners, links to the projects delivering it, and measures success through **KPIs**. Each KPI has **checkpoints** (dated targets — the plan) and **measurements** (observed values — the actuals).
 
-Initiative status can be changed and KPI measurements added and removed with any Wayd MCP server. Creating, updating, and deleting initiatives and KPIs, setting checkpoint plans, and linking projects are offered only by the hosted endpoint (`/mcp`). Everything on an initiative checks permissions only, not delivery leadership.
+Everything on an initiative checks permissions only, not delivery leadership.
 
 ## Tools
 
@@ -20,10 +20,10 @@ Initiative status can be changed and KPI measurements added and removed with any
 | Measurement history                              | `StrategicInitiatives_GetKpiMeasurements`                                                                                                |
 | Record a measurement                             | `StrategicInitiatives_AddKpiMeasurement`                                                                                                 |
 | Remove a measurement                             | `StrategicInitiatives_RemoveKpiMeasurement`                                                                                              |
-| Create, update, or delete an initiative (hosted) | `StrategicInitiatives_Create`, `StrategicInitiatives_Update`, `StrategicInitiatives_Delete`                                              |
-| Set the linked projects (hosted)                 | `StrategicInitiatives_ManageProjects`                                                                                                    |
-| Create, update, delete, or reorder KPIs (hosted) | `StrategicInitiatives_CreateKpi`, `StrategicInitiatives_UpdateKpi`, `StrategicInitiatives_DeleteKpi`, `StrategicInitiatives_ReorderKpis` |
-| Set a KPI's checkpoint plan (hosted)             | `StrategicInitiatives_ManageKpiCheckpointPlan`                                                                                           |
+| Create, update, or delete an initiative          | `StrategicInitiatives_Create`, `StrategicInitiatives_Update`, `StrategicInitiatives_Delete`                                              |
+| Set the linked projects                          | `StrategicInitiatives_ManageProjects`                                                                                                    |
+| Create, update, delete, or reorder KPIs          | `StrategicInitiatives_CreateKpi`, `StrategicInitiatives_UpdateKpi`, `StrategicInitiatives_DeleteKpi`, `StrategicInitiatives_ReorderKpis` |
+| Set a KPI's checkpoint plan                      | `StrategicInitiatives_ManageKpiCheckpointPlan`                                                                                           |
 
 For "is this KPI on track?", use `StrategicInitiatives_GetKpiCheckpointPlan` — it is the one call that sets actuals against the plan.
 
@@ -59,17 +59,17 @@ Every transition tool takes the initiative's UUID, not its key. No transition re
 
 Measurements are history. To record a new observation, always add one; never delete the previous one. Use `StrategicInitiatives_RemoveKpiMeasurement` only to correct a wrong entry — for example, to free a date so its value can be re-recorded — and confirm with the user first, because it rewrites the record of what was known when.
 
-## Creating, updating, and deleting an initiative (hosted)
+## Creating, updating, and deleting an initiative
 
 - **Create** with `StrategicInitiatives_Create`: `name`, `description`, `start` and `end` dates, the `portfolioId` (an active or on-hold portfolio), and optional `sponsorIds` and `ownerIds` (employee ids). It starts in Proposed.
 - **Update** with `StrategicInitiatives_Update`, which overwrites the whole record. Read the initiative first and send back `name`, `description`, `start`, `end`, and **every** sponsor and owner: an omitted or empty role list removes everyone in that role. Status, portfolio, KPIs, and projects are not changed by it.
 - **Delete** with `StrategicInitiatives_Delete` only while it is Proposed or Approved; its KPIs, checkpoints, and measurements go with it, and its project links are removed. An Active or closed initiative cannot be deleted — cancel it instead.
 
-## Linking projects (hosted)
+## Linking projects
 
 `StrategicInitiatives_ManageProjects` takes the **complete** set of linked project UUIDs: anything left out is unlinked, and an empty list unlinks everything. Read the current links with `StrategicInitiatives_GetProjects`, add or drop only what the user asked for, name any project that would be unlinked, and confirm. Rejected once the initiative is closed.
 
-## Managing KPIs (hosted)
+## Managing KPIs
 
 KPI definitions cannot change once the initiative is completed or canceled.
 

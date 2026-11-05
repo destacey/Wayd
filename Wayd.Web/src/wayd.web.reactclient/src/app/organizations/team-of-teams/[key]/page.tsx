@@ -38,6 +38,7 @@ import {
 } from 'next/navigation'
 import TeamOfTeamDetailsLoading from './loading'
 import TeamOfTeamsOverview from './_components/team-of-teams-overview'
+import TeamOfTeamsDependenciesSection from './_components/team-of-teams-dependencies-section'
 import TeamFacts from '@/src/app/organizations/teams/[key]/_components/team-facts'
 import { CreateTeamMembershipForm } from '@/src/app/organizations/_components'
 import { InactiveTag, PageActions } from '@/src/components/common'
@@ -46,12 +47,25 @@ import { ItemType } from 'antd/es/menu/interface'
 import DeactivateTeamOfTeamsForm from '@/src/app/organizations/_components/deactivate-team-of-teams-form'
 import TeamOfTeamsOperatingModelsGrid from './_components/team-of-teams-operating-models-grid'
 import SetTeamOfTeamsOperatingModelForm from './_components/set-team-of-teams-operating-model-form'
+import TeamProducts from '@/src/app/product-management/products/_components/team-products'
+import ManageTeamProductsButton from '@/src/app/product-management/products/_components/manage-team-products-button'
+import useCanViewTeamProducts from '@/src/app/product-management/products/_components/use-can-view-team-products'
 
 const WorkDistributionReport = dynamic(
   () =>
     import('@/src/components/common/work/work-distribution').then((mod) => ({
       default: mod.WorkDistributionReport,
     })),
+  { ssr: false, loading: () => <Spin /> },
+)
+
+const DependencyAnalysisReport = dynamic(
+  () =>
+    import('@/src/components/common/work/dependency-analysis').then(
+      (mod) => ({
+        default: mod.DependencyAnalysisReport,
+      }),
+    ),
   { ssr: false, loading: () => <Spin /> },
 )
 
@@ -63,12 +77,15 @@ const CapacityReport = dynamic(
 enum TeamOfTeamsTabs {
   Overview = 'overview',
   RiskManagement = 'risk-management',
+  Dependencies = 'dependencies',
+  Products = 'products',
   TeamMemberships = 'team-memberships',
   Members = 'members',
   Capacity = 'capacity',
   Activities = 'activities',
   OperatingModelHistory = 'operating-model-history',
   WorkDistribution = 'work-distribution',
+  DependencyAnalysis = 'dependency-analysis',
   CapacityReport = 'capacity-report',
 }
 
@@ -106,6 +123,7 @@ const TeamOfTeamsDetailsPage = (props: {
 
   const { hasClaim } = useAuth()
   const canUpdateTeam = hasClaim('Permission', 'Permissions.Teams.Update')
+  const canViewProducts = useCanViewTeamProducts()
   const canManageTeamMemberships = hasClaim(
     'Permission',
     'Permissions.Teams.ManageTeamMemberships',
@@ -229,6 +247,8 @@ const TeamOfTeamsDetailsPage = (props: {
         return (
           <TeamOfTeamsOverview team={team!} onNavigateToSection={goToSection} />
         )
+      case TeamOfTeamsTabs.Products:
+        return canViewProducts ? <TeamProducts teamId={team!.id} /> : null
       case TeamOfTeamsTabs.RiskManagement:
         return createElement(RisksGrid, {
           risks: risksQuery.data ?? [],
@@ -248,6 +268,13 @@ const TeamOfTeamsDetailsPage = (props: {
           refetch: teamMembershipsQuery.refetch,
           teamType: 'Team of Teams',
         })
+      case TeamOfTeamsTabs.Dependencies:
+        return team ? (
+          <TeamOfTeamsDependenciesSection
+            teamOfTeamsId={team.id}
+            teamOfTeamsKey={team.key}
+          />
+        ) : null
       case TeamOfTeamsTabs.Members:
         return (
           <TeamMembersGrid teamId={team?.id ?? ''} teamType="TeamOfTeams" />
@@ -279,6 +306,13 @@ const TeamOfTeamsDetailsPage = (props: {
             teamCode={team!.code}
           />
         )
+      case TeamOfTeamsTabs.DependencyAnalysis:
+        return (
+          <DependencyAnalysisReport
+            teamType="team-of-teams"
+            teamCode={team!.code}
+          />
+        )
       case TeamOfTeamsTabs.CapacityReport:
         return capacityEnabled ? (
           <CapacityReport teamId={team!.id} teamType="TeamOfTeams" />
@@ -294,7 +328,11 @@ const TeamOfTeamsDetailsPage = (props: {
 
   const sections: RecordSection[] = [
     { id: TeamOfTeamsTabs.Overview, label: 'Overview' },
+    ...(canViewProducts
+      ? [{ id: TeamOfTeamsTabs.Products, label: 'Products' }]
+      : []),
     { id: TeamOfTeamsTabs.RiskManagement, label: 'Risks' },
+    { id: TeamOfTeamsTabs.Dependencies, label: 'Dependencies' },
     { id: TeamOfTeamsTabs.Members, label: 'Members' },
     ...(capacityEnabled
       ? [{ id: TeamOfTeamsTabs.Capacity, label: 'Capacity' }]
@@ -308,6 +346,11 @@ const TeamOfTeamsDetailsPage = (props: {
       id: TeamOfTeamsTabs.WorkDistribution,
       label: 'Work Distribution',
       // The report renders its own title alongside its controls.
+      hideHeading: true,
+    },
+    {
+      id: TeamOfTeamsTabs.DependencyAnalysis,
+      label: 'Dependency Analysis',
       hideHeading: true,
     },
     ...(capacityEnabled
@@ -379,6 +422,8 @@ const TeamOfTeamsDetailsPage = (props: {
         sectionActions={
           activeTab === TeamOfTeamsTabs.Activities ? (
             <ActivityLogExportButton activityLog={activityLog} />
+          ) : activeTab === TeamOfTeamsTabs.Products && canViewProducts ? (
+            <ManageTeamProductsButton teamId={team!.id} teamName={team.name} />
           ) : undefined
         }
       >

@@ -12,6 +12,7 @@ import { FC } from 'react'
 import RequestBoard, { boardColumns } from './request-board'
 import { RequestFilters } from './request-filters'
 import type { RequestScores } from '../../_components/request-scores'
+import type { RequestEstimates } from '../../_components/request-estimates'
 
 const { Text } = Typography
 
@@ -72,6 +73,8 @@ export interface RequestBoardViewProps {
   onPickDesk: (deskId: string) => void
   /** The current scores the reader may read, shown on the cards. */
   scores?: RequestScores
+  /** The estimates the reader may read, shown on the cards. */
+  estimates?: RequestEstimates
 }
 
 /**
@@ -85,6 +88,7 @@ const RequestBoardView: FC<RequestBoardViewProps> = ({
   desks,
   onPickDesk,
   scores,
+  estimates,
 }) => {
   const deskIds = boardDeskIds(filters, desks, requests ?? [])
   // `currentData`, so a change of desks never draws the previous desks' columns or hides a failure.
@@ -149,6 +153,7 @@ const RequestBoardView: FC<RequestBoardViewProps> = ({
       <RequestBoard
         columns={boardColumns(shared.statuses, requests, filters.scope)}
         scores={scores}
+        estimates={estimates}
       />
     </Flex>
   )

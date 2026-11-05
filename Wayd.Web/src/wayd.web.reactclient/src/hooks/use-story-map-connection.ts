@@ -37,11 +37,17 @@ export function useStoryMapConnection(
   storyMapId: string | undefined,
   onPresenceChange?: (participants: PresenceParticipant[]) => void,
   onMapDeleted?: () => void,
+  onAccessRevoked?: () => void,
 ) {
   const connectionRef = useRef<HubConnection | null>(null)
   const presenceMapRef = useRef(new Map<string, PresenceParticipant>())
   const onPresenceChangeRef = useRef(onPresenceChange)
   const onMapDeletedRef = useRef(onMapDeleted)
+  const onAccessRevokedRef = useRef(onAccessRevoked)
+
+  useEffect(() => {
+    onAccessRevokedRef.current = onAccessRevoked
+  }, [onAccessRevoked])
 
   useEffect(() => {
     onPresenceChangeRef.current = onPresenceChange
@@ -70,6 +76,9 @@ export function useStoryMapConnection(
     let cancelled = false
 
     const connect = async () => {
+      // Outside the try so a failure after start() can stop it: cleanup only
+      // knows connectionRef, which is set once the join succeeds.
+      let built: HubConnection | null = null
       try {
         const connection = new HubConnectionBuilder()
           .withUrl(`${API_BASE_URL}/hubs/story-maps`, {
@@ -88,6 +97,7 @@ export function useStoryMapConnection(
           .withAutomaticReconnect()
           .configureLogging(LogLevel.Warning)
           .build()
+        built = connection
 
         // Any granular change to the map refreshes the local copy.
         const changeEvents = [
@@ -127,16 +137,38 @@ export function useStoryMapConnection(
           connection.on(event, invalidateMap)
         }
 
+        // An access change arrives as MapUpdated; it may have changed the editor teams.
+        connection.on('MapUpdated', () => {
+          store.dispatch(
+            storyMapsApi.util.invalidateTags([
+              { type: QueryTags.StoryMapEditorTeamMembers, id: storyMapId },
+            ]),
+          )
+        })
+
         // Deletion is not a change to refetch — the map is gone, and refetching would leave the
         // viewer on a broken board. The page decides where to send them.
         connection.on('MapDeleted', () => {
           onMapDeletedRef.current?.()
         })
 
+        // The server took this connection out of the map because the user lost access. Nothing more
+        // will arrive, so stop it. A refetch would fail but leave the cached map showing, so the page
+        // decides what to show instead.
+        connection.on('AccessRevoked', () => {
+          if (connectionRef.current === connection) connectionRef.current = null
+          presenceMapRef.current.clear()
+          emitPresence()
+          connection.stop().catch(() => {})
+          onAccessRevokedRef.current?.()
+        })
+
         // Presence events
         connection.on(
           'ParticipantList',
-          (participants: { id: string; name: string; employeeId?: string }[]) => {
+          (
+            participants: { id: string; name: string; employeeId?: string }[],
+          ) => {
             presenceMapRef.current.clear()
             for (const p of participants) {
               presenceMapRef.current.set(p.id, {
@@ -196,6 +228,8 @@ export function useStoryMapConnection(
         await connection.invoke('JoinMap', storyMapId)
         connectionRef.current = connection
       } catch (error) {
+        // A refused JoinMap leaves a started, auto-reconnecting connection.
+        await built?.stop().catch(() => {})
         // SignalR is optional — the page still works without live updates.
         console.warn(
           'Story Map SignalR connection failed; continuing without live updates:',

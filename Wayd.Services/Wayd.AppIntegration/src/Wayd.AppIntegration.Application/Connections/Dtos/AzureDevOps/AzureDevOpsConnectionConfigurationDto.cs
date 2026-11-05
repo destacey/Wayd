@@ -13,8 +13,15 @@ public sealed record AzureDevOpsConnectionConfigurationDto : IMapFrom<AzureDevOp
     /// </summary>
     public required string PersonalAccessToken { get; set; }
 
-    /// <summary>The Azure DevOps organization URL, derived from the organization name.</summary>
+    /// <summary>
+    /// The Azure DevOps organization URL, built from the organization name and the configured
+    /// Azure DevOps base address.
+    /// </summary>
     public required string OrganizationUrl { get; set; }
+
+    /// <summary>Sets <see cref="OrganizationUrl"/>, which no stored field holds.</summary>
+    public void ResolveOrganizationUrl(IAzureDevOpsUrlResolver urlResolver)
+        => OrganizationUrl = urlResolver.GetOrganizationUrl(Organization);
 
     /// <summary>
     /// The Azure DevOps work processes discovered for the organization.

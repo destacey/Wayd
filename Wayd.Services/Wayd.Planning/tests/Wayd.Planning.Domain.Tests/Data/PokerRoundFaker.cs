@@ -37,6 +37,12 @@ public static class PokerRoundFakerExtensions
         return faker;
     }
 
+    public static PokerRoundFaker WithDescription(this PokerRoundFaker faker, string? description)
+    {
+        faker.RuleFor(x => x.Description, description);
+        return faker;
+    }
+
     public static PokerRoundFaker WithStatus(this PokerRoundFaker faker, PokerRoundStatus status)
     {
         faker.RuleFor(x => x.Status, status);

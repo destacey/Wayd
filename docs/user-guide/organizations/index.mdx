@@ -44,6 +44,7 @@ graph LR
 - **[Objectives](../planning/planning-intervals.mdx#objectives)** — Teams commit to objectives within each PI, tracked for [predictability](../planning/planning-intervals.mdx#predictability).
 - **[Risks](../planning/risks.mdx)** — Teams identify and manage risks that could impact delivery using the [ROAM model](../planning/risks.mdx).
 - **[Work Items](../work-management/work-items.mdx#work-items)** — Work items in [workspaces](../work-management/work-items.mdx#workspaces) are assigned to teams and team members.
+- **[Products](../product-management/products.mdx#teams)** — Teams and teams of teams are linked to the products they work on.
 
 ## Key Concepts
 
@@ -54,7 +55,7 @@ A **Team** is the fundamental organizational unit in Wayd. It represents a colle
 Every team has:
 - **Name** — A descriptive name (up to 128 characters)
 - **Code** — A unique 2-10 character uppercase alphanumeric identifier (e.g., `PLATFORM`, `MOBILE`)
-- **Description** — Optional, up to 1024 characters, written in Markdown
+- **Description** — Optional, formatted in the [document editor](../formatting-text.mdx); up to 1024 characters of the markdown it stores
 - **Active Date** — When the team was formed
 - **Inactive Date** — When the team was dissolved (if applicable)
 - **Operating Model** — How the team works (methodology and sizing)
@@ -88,7 +89,7 @@ A Team of Teams shares the same core properties as a Team (name, code, dates) bu
 - It can also be a member of a parent Team of Teams
 - It provides rollup visibility across its descendant teams
 
-**Team of Teams** have a simplified detail page focused on hierarchy, members and risk management. They do not have backlogs, sprints or dependencies — those belong to the leaf-level delivery teams — but their [Work Distribution](#work-distribution-report) report rolls up the completed work of every team beneath them. They have their own [operating model](#team-of-teams-operating-model), holding the time zone for their own rollups.
+**Team of Teams** have a simplified detail page focused on hierarchy, members and risk management. They do not have backlogs or sprints — those belong to the leaf-level delivery teams — but their [Dependencies](#dependencies) section, [Work Distribution](#work-distribution-report) report and [Dependency Analysis](#dependency-analysis-report) report roll up every team beneath them. They have their own [operating model](#team-of-teams-operating-model), holding the time zone for their own rollups.
 
 ### Operating Model
 
@@ -342,6 +343,17 @@ Sprints are the time-boxed delivery cadence for Scrum teams. They are synced fro
 
 The **Dependencies** section shows all cross-work-item dependencies involving the team. Dependencies are predecessor/successor relationships between work items that help teams identify blockers and delivery risks.
 
+**Dependencies With Other Teams** sits above the list when the team shares dependencies with another team. It has a row per other team, busiest first, with items that have no team grouped as **No team**:
+
+- **We wait on them** — dependencies where the other team owns the predecessor, so this team's work waits on theirs
+- **They wait on us** — dependencies where this team owns the predecessor
+- Each bar is split by health and scaled to the busiest row, so the longest bar is the heaviest link
+- **Click** a row — or Tab to it and press Enter — to filter the list to the dependencies with that team; click it again, or clear the tag above the list, to show everything
+
+Dependencies within the team have no other team, so they are in the list but not on the chart; a note says how many.
+
+A Team of Teams has a **Dependencies** section too. It lists the open dependencies — the predecessor is To Do or In Progress — where a team beneath it today, at any depth, owns either item, leaving out those within one team. The other item may belong to a team outside the team of teams. Above the list, a **dependency wheel** shows where they run: each arc is a team in its own colour, each ribbon runs from the team doing the work (the predecessors' team) to the team waiting on it, pointing at the team waiting, and hovering a team or ribbon shows a summary of its counts and health. Click a team or ribbon to filter the list. It works as the [wheel on a planning interval](../planning/planning-intervals.mdx#dependencies) does.
+
 The dependency grid is organized into three column groups:
 
 | Group | Columns |
@@ -358,6 +370,16 @@ Dependencies are color-coded by health:
 A planned date that has already passed counts as unplanned.
 
 See [Work Item Dependencies](../work-management/work-items.mdx#work-item-dependencies) for details on how dependency health is calculated.
+
+### Products
+
+The **Products** section lists the products the team is linked to, with where each sits in the catalog (**Within**). A Team of Teams has the same section, for the products linked to the team of teams itself — it does not repeat the products of the teams beneath it.
+
+The section is shown when [Product Management](../product-management/index.mdx) is enabled and you have `Permissions.Products.View`.
+
+With `Permissions.Products.Update`, **Manage Products** sets the team's products in one go. It shows the product catalog as a tree with the team's current products checked: check the products the team works on, uncheck the ones it no longer does, and **Save**. A parent and its children are checked separately, since a link is on one product — check the most specific products, as each product's parents show its teams too. The changes are saved together, and each product records its own linking or unlinking in its Activity.
+
+A product's teams can also be managed from the product's page — see [Teams](../product-management/products.mdx#teams). To unlink one product, choose **Unlink** from its row's menu.
 
 ### Risks
 
@@ -441,6 +463,12 @@ Listed under **Reports** in the section rail on both teams and teams of teams, t
 
 See [Work Distribution Report](../work-management/work-distribution-report.mdx) for what it counts, each measure, and how themes and unestimated work are handled.
 
+### Dependency Analysis (Report)
+
+Listed under **Reports** in the section rail on both teams and teams of teams, the **Dependency Analysis** report shows where cross-team dependencies ran over a date range of up to two years: which teams waited on which, how many dependencies each pair shared, and how many were open, created and closed in each period. On a team of teams it covers every team beneath it at any point in the range, and draws them on a dependency wheel.
+
+See [Dependency Analysis Report](../work-management/dependency-analysis-report.mdx) for what it counts and how to read each view.
+
 ### Throughput Forecast (Report)
 
 > Only visible on teams, with **Delivery Forecasting** turned on under **Settings > System > Feature Flags**.
@@ -505,7 +533,7 @@ Removing a member does not change their [allocation](#allocations) on its own. W
 2. Click **Create Team** (needs `Permissions.Teams.Create`)
 3. Set **Team Type** to **Team**
 4. Enter a **Name**, **Code**, and **Active Date**
-5. Optionally add a **Description** (supports Markdown)
+5. Optionally add a **Description** (see [Formatting long text](../formatting-text.mdx))
 6. Click **Create**. The team is created with a default operating model (Kanban and Count, with the time zone, grace period and working days from the scheduling settings)
 
 ### Creating a Team of Teams

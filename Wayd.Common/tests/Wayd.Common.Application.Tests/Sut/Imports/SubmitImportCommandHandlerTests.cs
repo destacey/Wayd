@@ -62,6 +62,21 @@ public sealed class SubmitImportCommandHandlerTests : IDisposable
         process.Status.Should().Be(ImportProcessStatus.Queued);
     }
 
+    [Fact]
+    public async Task Handle_RefusesAnImportWhoseAreaIsSwitchedOff()
+    {
+        // Arrange
+        _definition.IsEnabledOverride = false;
+
+        // Act
+        var result = await Submit(Rows(1));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("switched off");
+        _db.ImportProcesses.Should().BeEmpty();
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(5_000)]

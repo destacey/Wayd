@@ -3,7 +3,6 @@
 Capacity is the time people are allocated to a team, in **person-days**: one person allocated in full for one
 working day. Every capacity tool takes the team's UUID `id` and needs the `team-capacity-management` feature
 flag; a 404 for a team you know exists means the flag is off — say so rather than reporting the team missing.
-These tools are offered by the hosted MCP endpoint (`/mcp`) only.
 
 | Question | Team | Team of teams |
 | --- | --- | --- |

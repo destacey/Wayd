@@ -2,6 +2,8 @@ using System.Reflection;
 using FluentValidation;
 using Mapster;
 using Microsoft.Extensions.DependencyInjection;
+using Wayd.Common.Application.Imports;
+using Wayd.DemandManagement.Application.IntakeRequests.Imports;
 
 namespace Wayd.DemandManagement.Application;
 
@@ -18,6 +20,8 @@ public static class ConfigureServices
     {
         var assembly = Assembly.GetExecutingAssembly();
         services.AddValidatorsFromAssembly(assembly);
+
+        services.AddScoped<IImportDefinition, IntakeRequestImportDefinition>();
 
         TypeAdapterConfig.GlobalSettings.Scan(assembly);
 

@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Interfaces;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.FeatureManagement;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Organization.Application.EmployeeCapacities.Dtos;
 using Wayd.Organization.Application.EmployeeCapacities.Queries;
 using Wayd.Organization.Application.Teams.Dtos;
@@ -108,7 +108,7 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<WorkItemListDto>>> GetWorkItems(
-        [FromQuery] WorkStatusCategory[]? statusCategories,
+        [FromQuery] StatusCategory[]? statusCategories,
         [FromQuery] DateTime? doneFrom,
         [FromQuery] DateTime? doneTo,
         CancellationToken cancellationToken)

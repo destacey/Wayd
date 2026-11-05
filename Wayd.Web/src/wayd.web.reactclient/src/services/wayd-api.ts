@@ -71,6 +71,1102 @@ export class Client {
     }
 }
 
+export class DiscussionsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get what you may do in a record's conversation.
+     * @return OK
+     */
+    getDiscussion(channelType: string, ownerId: string, cancelToken?: CancelToken): Promise<DiscussionDto> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDiscussion(_response);
+        });
+    }
+
+    protected processGetDiscussion(response: AxiosResponse): Promise<DiscussionDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DiscussionDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DiscussionDto>(null as any);
+    }
+
+    /**
+     * Get one page of a record's conversation.
+     * @param before (optional) 
+     * @param pageSize (optional) 
+     * @param order (optional) 
+     * @param messagesOnly (optional) 
+     * @return OK
+     */
+    getEntries(channelType: string, ownerId: string, before?: string | null | undefined, pageSize?: number | undefined, order?: DiscussionOrder | undefined, messagesOnly?: boolean | undefined, cancelToken?: CancelToken): Promise<CursorPageOfDiscussionEntryDto> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/entries?";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        if (before !== undefined && before !== null)
+            url_ += "before=" + encodeURIComponent("" + before) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (order === null)
+            throw new globalThis.Error("The parameter 'order' cannot be null.");
+        else if (order !== undefined)
+            url_ += "order=" + encodeURIComponent("" + order) + "&";
+        if (messagesOnly === null)
+            throw new globalThis.Error("The parameter 'messagesOnly' cannot be null.");
+        else if (messagesOnly !== undefined)
+            url_ += "messagesOnly=" + encodeURIComponent("" + messagesOnly) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetEntries(_response);
+        });
+    }
+
+    protected processGetEntries(response: AxiosResponse): Promise<CursorPageOfDiscussionEntryDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<CursorPageOfDiscussionEntryDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CursorPageOfDiscussionEntryDto>(null as any);
+    }
+
+    /**
+     * Post a message that starts a thread in a record's conversation.
+     * @return Created
+     */
+    postMessage(channelType: string, ownerId: string, request: PostDiscussionMessageRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/messages";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPostMessage(_response);
+        });
+    }
+
+    protected processPostMessage(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Get the replies in a thread.
+     * @return OK
+     */
+    getReplies(channelType: string, ownerId: string, messageId: string, cancelToken?: CancelToken): Promise<DiscussionMessageDto[]> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/messages/{messageId}/replies";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        if (messageId === undefined || messageId === null)
+            throw new globalThis.Error("The parameter 'messageId' must be defined.");
+        url_ = url_.replace("{messageId}", encodeURIComponent("" + messageId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetReplies(_response);
+        });
+    }
+
+    protected processGetReplies(response: AxiosResponse): Promise<DiscussionMessageDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DiscussionMessageDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DiscussionMessageDto[]>(null as any);
+    }
+
+    /**
+     * Reply in a thread.
+     * @return Created
+     */
+    reply(channelType: string, ownerId: string, messageId: string, request: ReplyToDiscussionMessageRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/messages/{messageId}/replies";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        if (messageId === undefined || messageId === null)
+            throw new globalThis.Error("The parameter 'messageId' must be defined.");
+        url_ = url_.replace("{messageId}", encodeURIComponent("" + messageId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processReply(_response);
+        });
+    }
+
+    protected processReply(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Edit your own message.
+     * @return No Content
+     */
+    editMessage(channelType: string, ownerId: string, messageId: string, request: EditDiscussionMessageRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/messages/{messageId}";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        if (messageId === undefined || messageId === null)
+            throw new globalThis.Error("The parameter 'messageId' must be defined.");
+        url_ = url_.replace("{messageId}", encodeURIComponent("" + messageId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processEditMessage(_response);
+        });
+    }
+
+    protected processEditMessage(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Delete a message, leaving a tombstone.
+     * @return No Content
+     */
+    deleteMessage(channelType: string, ownerId: string, messageId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/messages/{messageId}";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        if (messageId === undefined || messageId === null)
+            throw new globalThis.Error("The parameter 'messageId' must be defined.");
+        url_ = url_.replace("{messageId}", encodeURIComponent("" + messageId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteMessage(_response);
+        });
+    }
+
+    protected processDeleteMessage(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get the earlier versions of a message.
+     * @return OK
+     */
+    getRevisions(channelType: string, ownerId: string, messageId: string, cancelToken?: CancelToken): Promise<DiscussionMessageRevisionDto[]> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/messages/{messageId}/revisions";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        if (messageId === undefined || messageId === null)
+            throw new globalThis.Error("The parameter 'messageId' must be defined.");
+        url_ = url_.replace("{messageId}", encodeURIComponent("" + messageId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetRevisions(_response);
+        });
+    }
+
+    protected processGetRevisions(response: AxiosResponse): Promise<DiscussionMessageRevisionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DiscussionMessageRevisionDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DiscussionMessageRevisionDto[]>(null as any);
+    }
+
+    /**
+     * Lock a record's conversation.
+     * @return No Content
+     */
+    lock(channelType: string, ownerId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/lock";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "PUT",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processLock(_response);
+        });
+    }
+
+    protected processLock(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Unlock a record's conversation.
+     * @return No Content
+     */
+    unlock(channelType: string, ownerId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/discussions/{channelType}/{ownerId}/lock";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (ownerId === undefined || ownerId === null)
+            throw new globalThis.Error("The parameter 'ownerId' must be defined.");
+        url_ = url_.replace("{ownerId}", encodeURIComponent("" + ownerId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUnlock(_response);
+        });
+    }
+
+    protected processUnlock(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
+export class DiscussionSettingsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get how conversations behave in a scope.
+     * @param scopeId (optional) 
+     * @return OK
+     */
+    getSettings(channelType: string, scopeId?: string | null | undefined, cancelToken?: CancelToken): Promise<DiscussionSettingsDto> {
+        let url_ = this.baseUrl + "/api/discussion-settings/{channelType}?";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (scopeId !== undefined && scopeId !== null)
+            url_ += "scopeId=" + encodeURIComponent("" + scopeId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSettings(_response);
+        });
+    }
+
+    protected processGetSettings(response: AxiosResponse): Promise<DiscussionSettingsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DiscussionSettingsDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DiscussionSettingsDto>(null as any);
+    }
+
+    /**
+     * Save how conversations behave in a scope.
+     * @param scopeId (optional) 
+     * @return No Content
+     */
+    saveSettings(channelType: string, request: SaveDiscussionSettingsRequest, scopeId?: string | null | undefined, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/discussion-settings/{channelType}?";
+        if (channelType === undefined || channelType === null)
+            throw new globalThis.Error("The parameter 'channelType' must be defined.");
+        url_ = url_.replace("{channelType}", encodeURIComponent("" + channelType));
+        if (scopeId !== undefined && scopeId !== null)
+            url_ += "scopeId=" + encodeURIComponent("" + scopeId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSaveSettings(_response);
+        });
+    }
+
+    protected processSaveSettings(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
 export class FeatureFlagsClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -649,7 +1745,7 @@ export class MeClient {
      * @param doneTo (optional) 
      * @return OK
      */
-    getWorkItems(statusCategories?: WorkStatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+    getWorkItems(statusCategories?: StatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
         let url_ = this.baseUrl + "/api/me/work-items?";
         if (statusCategories !== undefined && statusCategories !== null)
             statusCategories && statusCategories.forEach(item => { url_ += "statusCategories=" + encodeURIComponent("" + item) + "&"; });
@@ -4395,9 +5491,10 @@ export class WorkspacesClient {
      * Search for a work item using its key or title.
      * @param query (optional) 
      * @param top (optional) 
+     * @param tier (optional) 
      * @return OK
      */
-    searchWorkItems(query?: string | undefined, top?: number | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+    searchWorkItems(query?: string | undefined, top?: number | undefined, tier?: WorkTypeTier | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
         let url_ = this.baseUrl + "/api/work/workspaces/work-items/search?";
         if (query === null)
             throw new globalThis.Error("The parameter 'query' cannot be null.");
@@ -4407,6 +5504,8 @@ export class WorkspacesClient {
             throw new globalThis.Error("The parameter 'top' cannot be null.");
         else if (top !== undefined)
             url_ += "top=" + encodeURIComponent("" + top) + "&";
+        if (tier !== undefined && tier !== null)
+            url_ += "tier=" + encodeURIComponent("" + tier) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -15104,6 +16203,383 @@ export class ProductsClient {
         }
         return Promise.resolve<void>(null as any);
     }
+
+    /**
+     * Get the teams linked to a product.
+     * @return OK
+     */
+    getTeams(idOrKey: string, cancelToken?: CancelToken): Promise<ProductTeamLinkDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/products/{idOrKey}/teams";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTeams(_response);
+        });
+    }
+
+    protected processGetTeams(response: AxiosResponse): Promise<ProductTeamLinkDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ProductTeamLinkDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ProductTeamLinkDto[]>(null as any);
+    }
+
+    /**
+     * Get the products a team or team of teams is linked to.
+     * @return OK
+     */
+    getTeamProducts(teamId: string, cancelToken?: CancelToken): Promise<ProductTeamLinkDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/products/by-team/{teamId}";
+        if (teamId === undefined || teamId === null)
+            throw new globalThis.Error("The parameter 'teamId' must be defined.");
+        url_ = url_.replace("{teamId}", encodeURIComponent("" + teamId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTeamProducts(_response);
+        });
+    }
+
+    protected processGetTeamProducts(response: AxiosResponse): Promise<ProductTeamLinkDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ProductTeamLinkDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ProductTeamLinkDto[]>(null as any);
+    }
+
+    /**
+     * Set the products a team or team of teams is linked to.
+     * @return No Content
+     */
+    setTeamProducts(teamId: string, request: SetTeamProductsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/products/by-team/{teamId}";
+        if (teamId === undefined || teamId === null)
+            throw new globalThis.Error("The parameter 'teamId' must be defined.");
+        url_ = url_.replace("{teamId}", encodeURIComponent("" + teamId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetTeamProducts(_response);
+        });
+    }
+
+    protected processSetTeamProducts(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Link a team or team of teams to a product.
+     * @return No Content
+     */
+    linkTeam(id: string, teamId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/products/{id}/teams/{teamId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (teamId === undefined || teamId === null)
+            throw new globalThis.Error("The parameter 'teamId' must be defined.");
+        url_ = url_.replace("{teamId}", encodeURIComponent("" + teamId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processLinkTeam(_response);
+        });
+    }
+
+    protected processLinkTeam(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Unlink a team or team of teams from a product.
+     * @return No Content
+     */
+    unlinkTeam(id: string, teamId: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/products/{id}/teams/{teamId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (teamId === undefined || teamId === null)
+            throw new globalThis.Error("The parameter 'teamId' must be defined.");
+        url_ = url_.replace("{teamId}", encodeURIComponent("" + teamId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUnlinkTeam(_response);
+        });
+    }
+
+    protected processUnlinkTeam(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set the teams and teams of teams linked to a product.
+     * @return No Content
+     */
+    setTeams(id: string, request: SetProductTeamsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/products/{id}/teams";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetTeams(_response);
+        });
+    }
+
+    protected processSetTeams(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
 }
 
 export class ProductTagCategoriesClient {
@@ -25355,6 +26831,144 @@ export class ProjectsClient {
     }
 
     /**
+     * Link work items to a project.
+     * @return No Content
+     */
+    addWorkItems(id: string, request: ProjectWorkItemsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/work-items";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAddWorkItems(_response);
+        });
+    }
+
+    protected processAddWorkItems(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Unlink work items from a project.
+     * @return No Content
+     */
+    removeWorkItems(id: string, request: ProjectWorkItemsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/work-items/remove";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRemoveWorkItems(_response);
+        });
+    }
+
+    protected processRemoveWorkItems(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Forecast when a project's work items will be done, by Monte Carlo simulation of each team's recent throughput and each work item's backlog position and open predecessors.
      * @param targetDate (optional) 
      * @param lookbackDays (optional) 
@@ -29033,7 +30647,7 @@ export class EstimationScalesClient {
      * Create a custom estimation scale.
      * @return Created
      */
-    create(request: CreateEstimationScaleRequest, cancelToken?: CancelToken): Promise<number> {
+    create(request: CreateEstimationScaleRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
         let url_ = this.baseUrl + "/api/planning/estimation-scales";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -29061,7 +30675,7 @@ export class EstimationScalesClient {
         });
     }
 
-    protected processCreate(response: AxiosResponse): Promise<number> {
+    protected processCreate(response: AxiosResponse): Promise<ObjectIdAndKey> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -29076,7 +30690,7 @@ export class EstimationScalesClient {
             let result201: any = null;
             let resultData201  = _responseText;
             result201 = resultData201;
-            return Promise.resolve<number>(result201);
+            return Promise.resolve<ObjectIdAndKey>(result201);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -29089,18 +30703,18 @@ export class EstimationScalesClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<number>(null as any);
+        return Promise.resolve<ObjectIdAndKey>(null as any);
     }
 
     /**
      * Get estimation scale details.
      * @return OK
      */
-    getScale(id: number, cancelToken?: CancelToken): Promise<EstimationScaleDto> {
-        let url_ = this.baseUrl + "/api/planning/estimation-scales/{id}";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    getScale(idOrKey: string, cancelToken?: CancelToken): Promise<EstimationScaleDetailsDto> {
+        let url_ = this.baseUrl + "/api/planning/estimation-scales/{idOrKey}";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -29123,7 +30737,7 @@ export class EstimationScalesClient {
         });
     }
 
-    protected processGetScale(response: AxiosResponse): Promise<EstimationScaleDto> {
+    protected processGetScale(response: AxiosResponse): Promise<EstimationScaleDetailsDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -29138,7 +30752,7 @@ export class EstimationScalesClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<EstimationScaleDto>(result200);
+            return Promise.resolve<EstimationScaleDetailsDto>(result200);
 
         } else if (status === 404) {
             const _responseText = response.data;
@@ -29151,14 +30765,14 @@ export class EstimationScalesClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<EstimationScaleDto>(null as any);
+        return Promise.resolve<EstimationScaleDetailsDto>(null as any);
     }
 
     /**
      * Update a custom estimation scale.
      * @return No Content
      */
-    update(id: number, request: UpdateEstimationScaleRequest, cancelToken?: CancelToken): Promise<void> {
+    update(id: string, request: UpdateEstimationScaleRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/planning/estimation-scales/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -29227,7 +30841,7 @@ export class EstimationScalesClient {
      * Delete a custom estimation scale.
      * @return No Content
      */
-    delete(id: number, cancelToken?: CancelToken): Promise<void> {
+    delete(id: string, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/planning/estimation-scales/{id}";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -29285,7 +30899,7 @@ export class EstimationScalesClient {
      * Set the active status of an estimation scale.
      * @return No Content
      */
-    setActiveStatus(id: number, request: SetEstimationScaleActiveStatusRequest, cancelToken?: CancelToken): Promise<void> {
+    setActiveStatus(id: string, request: SetEstimationScaleActiveStatusRequest, cancelToken?: CancelToken): Promise<void> {
         let url_ = this.baseUrl + "/api/planning/estimation-scales/{id}/active-status";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -30853,6 +32467,75 @@ export class PlanningIntervalsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<SprintBacklogItemDto[]>(null as any);
+    }
+
+    /**
+     * Get the dependencies that cross team lines in a PI.
+     * @return OK
+     */
+    getDependencies(idOrKey: string, cancelToken?: CancelToken): Promise<DependencyDto[]> {
+        let url_ = this.baseUrl + "/api/planning/planning-intervals/{idOrKey}/dependencies";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDependencies(_response);
+        });
+    }
+
+    protected processGetDependencies(response: AxiosResponse): Promise<DependencyDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DependencyDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DependencyDto[]>(null as any);
     }
 
     /**
@@ -32610,6 +34293,71 @@ export class PokerSessionsClient {
     }
 
     /**
+     * Get the members of a team invited to a poker session.
+     * @return OK
+     */
+    getInvitedTeamMembers(id: string, teamId: string, cancelToken?: CancelToken): Promise<EmployeeNavigationDto[]> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/invited-teams/{teamId}/members";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (teamId === undefined || teamId === null)
+            throw new globalThis.Error("The parameter 'teamId' must be defined.");
+        url_ = url_.replace("{teamId}", encodeURIComponent("" + teamId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetInvitedTeamMembers(_response);
+        });
+    }
+
+    protected processGetInvitedTeamMembers(response: AxiosResponse): Promise<EmployeeNavigationDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<EmployeeNavigationDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<EmployeeNavigationDto[]>(null as any);
+    }
+
+    /**
      * Update a poker session.
      * @return No Content
      */
@@ -33167,6 +34915,71 @@ export class PokerSessionsClient {
     }
 
     /**
+     * Update the description for a round.
+     * @return No Content
+     */
+    updateRoundDescription(id: string, roundId: string, request: UpdatePokerRoundDescriptionRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/rounds/{roundId}/description";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (roundId === undefined || roundId === null)
+            throw new globalThis.Error("The parameter 'roundId' must be defined.");
+        url_ = url_.replace("{roundId}", encodeURIComponent("" + roundId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateRoundDescription(_response);
+        });
+    }
+
+    protected processUpdateRoundDescription(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Submit a vote for a round.
      * @return No Content
      */
@@ -33290,6 +35103,324 @@ export class PokerSessionsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set who can see a poker session.
+     * @return No Content
+     */
+    setVisibility(id: string, request: SetPokerSessionVisibilityRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/visibility";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetVisibility(_response);
+        });
+    }
+
+    protected processSetVisibility(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set a poker session's facilitators.
+     * @return No Content
+     */
+    setFacilitators(id: string, request: SetPokerSessionFacilitatorsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/facilitators";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetFacilitators(_response);
+        });
+    }
+
+    protected processSetFacilitators(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set who is invited to a poker session.
+     * @return No Content
+     */
+    setInvitees(id: string, request: SetPokerSessionInviteesRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/invitees";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetInvitees(_response);
+        });
+    }
+
+    protected processSetInvitees(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Join a poker session.
+     * @return OK
+     */
+    join(id: string, request: JoinPokerSessionRequest, cancelToken?: CancelToken): Promise<PokerSessionMemberDto> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/join";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processJoin(_response);
+        });
+    }
+
+    protected processJoin(response: AxiosResponse): Promise<PokerSessionMemberDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PokerSessionMemberDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PokerSessionMemberDto>(null as any);
+    }
+
+    /**
+     * Turn the caller's voting on or off in a poker session.
+     * @return OK
+     */
+    setVoting(id: string, request: SetPokerSessionVotingRequest, cancelToken?: CancelToken): Promise<PokerSessionMemberDto> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/voting";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetVoting(_response);
+        });
+    }
+
+    protected processSetVoting(response: AxiosResponse): Promise<PokerSessionMemberDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PokerSessionMemberDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PokerSessionMemberDto>(null as any);
     }
 }
 
@@ -33694,6 +35825,64 @@ export class RisksClient {
             let resultData422  = _responseText;
             result422 = resultData422;
             return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Delete a risk.
+     * @return No Content
+     */
+    delete(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/risks/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDelete(_response);
+        });
+    }
+
+    protected processDelete(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -35288,7 +37477,7 @@ export class StoryMapsClient {
     }
 
     /**
-     * Get a list of story maps (id, key, name, description, status, owner).
+     * Get a list of story maps (id, key, name, description, status, owners, access).
      * @param includeArchived (optional) 
      * @return OK
      */
@@ -35477,6 +37666,71 @@ export class StoryMapsClient {
     }
 
     /**
+     * Get the members of a team invited to edit a story map.
+     * @return OK
+     */
+    getEditorTeamMembers(id: string, teamId: string, cancelToken?: CancelToken): Promise<EmployeeNavigationDto[]> {
+        let url_ = this.baseUrl + "/api/planning/story-maps/{id}/editor-teams/{teamId}/members";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (teamId === undefined || teamId === null)
+            throw new globalThis.Error("The parameter 'teamId' must be defined.");
+        url_ = url_.replace("{teamId}", encodeURIComponent("" + teamId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetEditorTeamMembers(_response);
+        });
+    }
+
+    protected processGetEditorTeamMembers(response: AxiosResponse): Promise<EmployeeNavigationDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<EmployeeNavigationDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<EmployeeNavigationDto[]>(null as any);
+    }
+
+    /**
      * Update a story map's name and description.
      * @return No Content
      */
@@ -35597,11 +37851,11 @@ export class StoryMapsClient {
     }
 
     /**
-     * Change the owner of a story map.
+     * Set a story map's owners.
      * @return No Content
      */
-    changeOwner(id: string, request: ChangeStoryMapOwnerRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/planning/story-maps/{id}/owner";
+    setOwners(id: string, request: SetStoryMapOwnersRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/story-maps/{id}/owners";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
@@ -35626,11 +37880,197 @@ export class StoryMapsClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processChangeOwner(_response);
+            return this.processSetOwners(_response);
         });
     }
 
-    protected processChangeOwner(response: AxiosResponse): Promise<void> {
+    protected processSetOwners(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set who is invited to edit a story map.
+     * @return No Content
+     */
+    setEditors(id: string, request: SetStoryMapEditorsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/story-maps/{id}/editors";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetEditors(_response);
+        });
+    }
+
+    protected processSetEditors(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set who can see a story map.
+     * @return No Content
+     */
+    setVisibility(id: string, request: SetStoryMapVisibilityRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/story-maps/{id}/visibility";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetVisibility(_response);
+        });
+    }
+
+    protected processSetVisibility(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Set who can edit a public story map.
+     * @return No Content
+     */
+    setEditAccess(id: string, request: SetStoryMapEditAccessRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/planning/story-maps/{id}/edit-access";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetEditAccess(_response);
+        });
+    }
+
+    protected processSetEditAccess(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -39444,7 +41884,7 @@ export class EmployeesClient {
      * @param doneTo (optional) 
      * @return OK
      */
-    getEmployeeWorkItems(id: string, statusCategories?: WorkStatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+    getEmployeeWorkItems(id: string, statusCategories?: StatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
         let url_ = this.baseUrl + "/api/organization/employees/{id}/work-items?";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -41761,6 +44201,88 @@ export class TeamsClient {
     }
 
     /**
+     * Report where a team's cross-team dependencies ran over a date range.
+     * @param from (optional) The first day of the range (yyyy-MM-dd, UTC).
+     * @param to (optional) The last day of the range (yyyy-MM-dd, UTC).
+     * @return OK
+     */
+    getDependencyAnalysis(idOrCode: string, from?: string | null | undefined, to?: string | null | undefined, cancelToken?: CancelToken): Promise<TeamDependencyAnalysisDto> {
+        let url_ = this.baseUrl + "/api/organization/teams/{idOrCode}/dependency-analysis?";
+        if (idOrCode === undefined || idOrCode === null)
+            throw new globalThis.Error("The parameter 'idOrCode' must be defined.");
+        url_ = url_.replace("{idOrCode}", encodeURIComponent("" + idOrCode));
+        if (from !== undefined && from !== null)
+            url_ += "From=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "To=" + encodeURIComponent("" + to) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDependencyAnalysis(_response);
+        });
+    }
+
+    protected processGetDependencyAnalysis(response: AxiosResponse): Promise<TeamDependencyAnalysisDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamDependencyAnalysisDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamDependencyAnalysisDto>(null as any);
+    }
+
+    /**
      * Get the capacity of a team over a date range, from the time people are allocated to it.
      * @param from (optional) 
      * @param to (optional) 
@@ -42150,7 +44672,7 @@ export class TeamsClient {
      * @param doneTo (optional) 
      * @return OK
      */
-    getTeamWorkItems(idOrCode: string, statusCategories?: WorkStatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
+    getTeamWorkItems(idOrCode: string, statusCategories?: StatusCategory[] | null | undefined, doneFrom?: Date | null | undefined, doneTo?: Date | null | undefined, cancelToken?: CancelToken): Promise<WorkItemListDto[]> {
         let url_ = this.baseUrl + "/api/organization/teams/{idOrCode}/work-items?";
         if (idOrCode === undefined || idOrCode === null)
             throw new globalThis.Error("The parameter 'idOrCode' must be defined.");
@@ -44219,6 +46741,157 @@ export class TeamsOfTeamsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<TeamWorkDistributionDto>(null as any);
+    }
+
+    /**
+     * Report where the cross-team dependencies of a team of teams, and every team beneath it, ran over a date range.
+     * @param from (optional) The first day of the range (yyyy-MM-dd, UTC).
+     * @param to (optional) The last day of the range (yyyy-MM-dd, UTC).
+     * @return OK
+     */
+    getDependencyAnalysis(idOrCode: string, from?: string | null | undefined, to?: string | null | undefined, cancelToken?: CancelToken): Promise<TeamDependencyAnalysisDto> {
+        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{idOrCode}/dependency-analysis?";
+        if (idOrCode === undefined || idOrCode === null)
+            throw new globalThis.Error("The parameter 'idOrCode' must be defined.");
+        url_ = url_.replace("{idOrCode}", encodeURIComponent("" + idOrCode));
+        if (from !== undefined && from !== null)
+            url_ += "From=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "To=" + encodeURIComponent("" + to) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDependencyAnalysis(_response);
+        });
+    }
+
+    protected processGetDependencyAnalysis(response: AxiosResponse): Promise<TeamDependencyAnalysisDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<TeamDependencyAnalysisDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TeamDependencyAnalysisDto>(null as any);
+    }
+
+    /**
+     * Get the open dependencies that cross team lines for a team of teams.
+     * @return OK
+     */
+    getDependencies(id: string, cancelToken?: CancelToken): Promise<DependencyDto[]> {
+        let url_ = this.baseUrl + "/api/organization/teams-of-teams/{id}/dependencies";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDependencies(_response);
+        });
+    }
+
+    protected processGetDependencies(response: AxiosResponse): Promise<DependencyDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<DependencyDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DependencyDto[]>(null as any);
     }
 
     /**
@@ -46311,16 +48984,16 @@ export class ImportsClient {
     }
 
     /**
-     * List import runs, newest first, as `processes` with a `totalCount`.
+     * List import runs, newest first.
      * @param status (optional) 
      * @param importType (optional) 
      * @param submittedByUserId (optional) 
      * @param submissionGroupId (optional) 
-     * @param pageNumber (optional) 
+     * @param page (optional) 
      * @param pageSize (optional) 
      * @return OK
      */
-    getList(status?: ImportProcessStatus | null | undefined, importType?: string | null | undefined, submittedByUserId?: string | null | undefined, submissionGroupId?: string | null | undefined, pageNumber?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<ImportProcessPageDto> {
+    getList(status?: ImportProcessStatus | null | undefined, importType?: string | null | undefined, submittedByUserId?: string | null | undefined, submissionGroupId?: string | null | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfImportProcessDto> {
         let url_ = this.baseUrl + "/api/imports?";
         if (status !== undefined && status !== null)
             url_ += "status=" + encodeURIComponent("" + status) + "&";
@@ -46330,10 +49003,10 @@ export class ImportsClient {
             url_ += "submittedByUserId=" + encodeURIComponent("" + submittedByUserId) + "&";
         if (submissionGroupId !== undefined && submissionGroupId !== null)
             url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
-        if (pageNumber === null)
-            throw new globalThis.Error("The parameter 'pageNumber' cannot be null.");
-        else if (pageNumber !== undefined)
-            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
         if (pageSize === null)
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
@@ -46360,7 +49033,7 @@ export class ImportsClient {
         });
     }
 
-    protected processGetList(response: AxiosResponse): Promise<ImportProcessPageDto> {
+    protected processGetList(response: AxiosResponse): Promise<PagedResponseOfImportProcessDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -46375,7 +49048,7 @@ export class ImportsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<ImportProcessPageDto>(result200);
+            return Promise.resolve<PagedResponseOfImportProcessDto>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -46384,11 +49057,18 @@ export class ImportsClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<ImportProcessPageDto>(null as any);
+        return Promise.resolve<PagedResponseOfImportProcessDto>(null as any);
     }
 
     /**
@@ -46506,23 +49186,23 @@ export class ImportsClient {
     }
 
     /**
-     * Get a page of an import run's row outcomes, as `rows` with a `totalCount`.
+     * Get a page of an import run's row outcomes, in line order.
      * @param status (optional) 
-     * @param pageNumber (optional) 
+     * @param page (optional) 
      * @param pageSize (optional) 
      * @return OK
      */
-    getRows(id: string, status?: ImportRowStatus | null | undefined, pageNumber?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<ImportProcessRowPageDto> {
+    getRows(id: string, status?: ImportRowStatus | null | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfImportProcessRowDto> {
         let url_ = this.baseUrl + "/api/imports/{id}/rows?";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
         if (status !== undefined && status !== null)
             url_ += "status=" + encodeURIComponent("" + status) + "&";
-        if (pageNumber === null)
-            throw new globalThis.Error("The parameter 'pageNumber' cannot be null.");
-        else if (pageNumber !== undefined)
-            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
         if (pageSize === null)
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
@@ -46549,7 +49229,7 @@ export class ImportsClient {
         });
     }
 
-    protected processGetRows(response: AxiosResponse): Promise<ImportProcessRowPageDto> {
+    protected processGetRows(response: AxiosResponse): Promise<PagedResponseOfImportProcessRowDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -46564,7 +49244,7 @@ export class ImportsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<ImportProcessRowPageDto>(result200);
+            return Promise.resolve<PagedResponseOfImportProcessRowDto>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -46573,11 +49253,18 @@ export class ImportsClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<ImportProcessRowPageDto>(null as any);
+        return Promise.resolve<PagedResponseOfImportProcessRowDto>(null as any);
     }
 
     /**
@@ -47986,6 +50673,141 @@ export class IntakeDesksClient {
     }
 
     /**
+     * Set the estimation scale a desk's requests are estimated on.
+     * @return No Content
+     */
+    changeEstimationScale(id: string, request: ChangeIntakeDeskEstimationScaleRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks/{id}/estimation-scale";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeEstimationScale(_response);
+        });
+    }
+
+    protected processChangeEstimationScale(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get the active estimation scales a desk can estimate its requests on.
+     * @return OK
+     */
+    getEstimationScaleChoices( cancelToken?: CancelToken): Promise<IntakeEstimationScaleChoiceDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks/estimation-scale-choices";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetEstimationScaleChoices(_response);
+        });
+    }
+
+    protected processGetEstimationScaleChoices(response: AxiosResponse): Promise<IntakeEstimationScaleChoiceDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeEstimationScaleChoiceDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeEstimationScaleChoiceDto[]>(null as any);
+    }
+
+    /**
      * Get the published intake request workflows a desk can follow.
      * @return OK
      */
@@ -48363,6 +51185,71 @@ export class IntakeRequestsClient {
     }
 
     /**
+     * Get the estimates of the intake requests you can see.
+     * @param deskId (optional) 
+     * @param mine (optional) 
+     * @param openOnly (optional) 
+     * @return OK
+     */
+    getIntakeRequestEstimates(deskId?: string | null | undefined, mine?: boolean | undefined, openOnly?: boolean | undefined, cancelToken?: CancelToken): Promise<IntakeRequestCurrentEstimateDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/estimates?";
+        if (deskId !== undefined && deskId !== null)
+            url_ += "deskId=" + encodeURIComponent("" + deskId) + "&";
+        if (mine === null)
+            throw new globalThis.Error("The parameter 'mine' cannot be null.");
+        else if (mine !== undefined)
+            url_ += "mine=" + encodeURIComponent("" + mine) + "&";
+        if (openOnly === null)
+            throw new globalThis.Error("The parameter 'openOnly' cannot be null.");
+        else if (openOnly !== undefined)
+            url_ += "openOnly=" + encodeURIComponent("" + openOnly) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIntakeRequestEstimates(_response);
+        });
+    }
+
+    protected processGetIntakeRequestEstimates(response: AxiosResponse): Promise<IntakeRequestCurrentEstimateDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeRequestCurrentEstimateDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeRequestCurrentEstimateDto[]>(null as any);
+    }
+
+    /**
      * Get an intake request in the tiers you can read.
      * @return OK
      */
@@ -48501,6 +51388,95 @@ export class IntakeRequestsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
+    }
+
+    /**
+     * Submit a csv file of intake requests to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
+     * @param file (optional) 
+     * @return OK
+     */
+    import(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
+        else
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processImport(_response);
+        });
+    }
+
+    protected processImport(response: AxiosResponse): Promise<ImportProcessDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
+            const _responseText = response.data;
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<ImportProcessDto>(result202);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ImportProcessDto>(null as any);
     }
 
     /**
@@ -48679,6 +51655,82 @@ export class IntakeRequestsClient {
     }
 
     protected processChangeAssignee(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Estimate an intake request on its desk's estimation scale, or clear its estimate.
+     * @return No Content
+     */
+    changeEstimate(id: string, request: ChangeIntakeRequestEstimateRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}/estimate";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeEstimate(_response);
+        });
+    }
+
+    protected processChangeEstimate(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -48924,6 +51976,13 @@ export class IntakeRequestsClient {
             let resultData404  = _responseText;
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -49353,7 +52412,7 @@ export class IntakeRequestsClient {
     }
 
     /**
-     * Record that an accepted intake request became a project.
+     * Record that an accepted intake request became a project or work item.
      * @return No Content
      */
     addOutcome(id: string, request: AddIntakeRequestOutcomeRequest, cancelToken?: CancelToken): Promise<void> {
@@ -49549,6 +52608,61 @@ export class IntakeRequestsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<ProjectIntakeRequestDto[]>(null as any);
+    }
+
+    /**
+     * Get the intake requests a work item delivers, that you can see.
+     * @return OK
+     */
+    getWorkItemIntakeRequests(workItemId: string, cancelToken?: CancelToken): Promise<WorkItemIntakeRequestDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/work-items/{workItemId}";
+        if (workItemId === undefined || workItemId === null)
+            throw new globalThis.Error("The parameter 'workItemId' must be defined.");
+        url_ = url_.replace("{workItemId}", encodeURIComponent("" + workItemId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkItemIntakeRequests(_response);
+        });
+    }
+
+    protected processGetWorkItemIntakeRequests(response: AxiosResponse): Promise<WorkItemIntakeRequestDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkItemIntakeRequestDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkItemIntakeRequestDto[]>(null as any);
     }
 
     /**
@@ -51172,69 +54286,7 @@ export class AzureDevOpsConnectionsClient {
     }
 
     /**
-     * Initialize Azure DevOps work process integration.
-     * @return No Content
-     */
-    initWorkProcessIntegration(id: string, request: InitWorkProcessIntegrationRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/app-integrations/connections/azure-devops/{id}/init-work-process";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processInitWorkProcessIntegration(_response);
-        });
-    }
-
-    protected processInitWorkProcessIntegration(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Initialize Azure DevOps workspace integration.
+     * Set up an Azure DevOps project for syncing.
      * @return No Content
      */
     initWorkspaceIntegration(id: string, request: InitWorkspaceIntegrationRequest, cancelToken?: CancelToken): Promise<void> {
@@ -51268,6 +54320,71 @@ export class AzureDevOpsConnectionsClient {
     }
 
     protected processInitWorkspaceIntegration(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Turn syncing on or off for an Azure DevOps project.
+     * @return No Content
+     */
+    setWorkspaceSync(id: string, workspaceExternalId: string, request: SetAzureDevOpsWorkspaceSyncRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/app-integrations/connections/azure-devops/{id}/workspaces/{workspaceExternalId}/sync";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (workspaceExternalId === undefined || workspaceExternalId === null)
+            throw new globalThis.Error("The parameter 'workspaceExternalId' must be defined.");
+        url_ = url_.replace("{workspaceExternalId}", encodeURIComponent("" + workspaceExternalId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetWorkspaceSync(_response);
+        });
+    }
+
+    protected processSetWorkspaceSync(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -52971,20 +56088,20 @@ export class BackgroundJobsClient {
     /**
      * Get a page of jobs in the given lifecycle state.
      * @param state (optional) 
-     * @param pageNumber (optional) 
+     * @param page (optional) 
      * @param pageSize (optional) 
      * @return OK
      */
-    getJobs(state?: JobStateFilter | undefined, pageNumber?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<JobsResponse> {
+    getJobs(state?: JobStateFilter | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfJobSummaryResponse> {
         let url_ = this.baseUrl + "/api/admin/background-jobs/jobs?";
         if (state === null)
             throw new globalThis.Error("The parameter 'state' cannot be null.");
         else if (state !== undefined)
             url_ += "state=" + encodeURIComponent("" + state) + "&";
-        if (pageNumber === null)
-            throw new globalThis.Error("The parameter 'pageNumber' cannot be null.");
-        else if (pageNumber !== undefined)
-            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
         if (pageSize === null)
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
@@ -53011,7 +56128,7 @@ export class BackgroundJobsClient {
         });
     }
 
-    protected processGetJobs(response: AxiosResponse): Promise<JobsResponse> {
+    protected processGetJobs(response: AxiosResponse): Promise<PagedResponseOfJobSummaryResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -53026,13 +56143,20 @@ export class BackgroundJobsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<JobsResponse>(result200);
+            return Promise.resolve<PagedResponseOfJobSummaryResponse>(result200);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<JobsResponse>(null as any);
+        return Promise.resolve<PagedResponseOfJobSummaryResponse>(null as any);
     }
 
     /**
@@ -53499,11 +56623,11 @@ export class MessagingClient {
      * @param exceptionType (optional) 
      * @param from (optional) 
      * @param to (optional) 
-     * @param pageNumber (optional) 
+     * @param page (optional) 
      * @param pageSize (optional) 
      * @return OK
      */
-    getDeadLetters(messageType?: string | null | undefined, exceptionType?: string | null | undefined, from?: Date | null | undefined, to?: Date | null | undefined, pageNumber?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<DeadLetterMessagesResponse> {
+    getDeadLetters(messageType?: string | null | undefined, exceptionType?: string | null | undefined, from?: Date | null | undefined, to?: Date | null | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfDeadLetterMessageResponse> {
         let url_ = this.baseUrl + "/api/admin/messaging/dead-letters?";
         if (messageType !== undefined && messageType !== null)
             url_ += "messageType=" + encodeURIComponent("" + messageType) + "&";
@@ -53513,10 +56637,10 @@ export class MessagingClient {
             url_ += "from=" + encodeURIComponent(from ? "" + from.toISOString() : "") + "&";
         if (to !== undefined && to !== null)
             url_ += "to=" + encodeURIComponent(to ? "" + to.toISOString() : "") + "&";
-        if (pageNumber === null)
-            throw new globalThis.Error("The parameter 'pageNumber' cannot be null.");
-        else if (pageNumber !== undefined)
-            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
         if (pageSize === null)
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
@@ -53543,7 +56667,7 @@ export class MessagingClient {
         });
     }
 
-    protected processGetDeadLetters(response: AxiosResponse): Promise<DeadLetterMessagesResponse> {
+    protected processGetDeadLetters(response: AxiosResponse): Promise<PagedResponseOfDeadLetterMessageResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -53558,13 +56682,20 @@ export class MessagingClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<DeadLetterMessagesResponse>(result200);
+            return Promise.resolve<PagedResponseOfDeadLetterMessageResponse>(result200);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<DeadLetterMessagesResponse>(null as any);
+        return Promise.resolve<PagedResponseOfDeadLetterMessageResponse>(null as any);
     }
 
     /**
@@ -53720,6 +56851,330 @@ export class MessagingClient {
     }
 
     protected processDiscardDeadLetters(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
+export class RecordTypesClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get the record types of workflow owner types that have them.
+     * @param ownerType (optional) 
+     * @return OK
+     */
+    getRecordTypes(ownerType?: string | null | undefined, cancelToken?: CancelToken): Promise<RecordTypeDto[]> {
+        let url_ = this.baseUrl + "/api/record-types?";
+        if (ownerType !== undefined && ownerType !== null)
+            url_ += "ownerType=" + encodeURIComponent("" + ownerType) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetRecordTypes(_response);
+        });
+    }
+
+    protected processGetRecordTypes(response: AxiosResponse): Promise<RecordTypeDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<RecordTypeDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<RecordTypeDto[]>(null as any);
+    }
+
+    /**
+     * Define a record type for an owner type that has them.
+     * @return Created
+     */
+    create(request: CreateRecordTypeRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/record-types";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreate(_response);
+        });
+    }
+
+    protected processCreate(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Rename an owned record type.
+     * @return No Content
+     */
+    rename(id: string, request: RenameRecordTypeRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/record-types/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRename(_response);
+        });
+    }
+
+    protected processRename(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Let records be given a record type again.
+     * @return No Content
+     */
+    activate(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/record-types/{id}/activate";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processActivate(_response);
+        });
+    }
+
+    protected processActivate(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Stop records being given a record type. Records that have it keep it.
+     * @return No Content
+     */
+    deactivate(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/record-types/{id}/deactivate";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeactivate(_response);
+        });
+    }
+
+    protected processDeactivate(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -57316,6 +60771,824 @@ export class WorkflowAssignmentsClient {
         }
         return Promise.resolve<number>(null as any);
     }
+
+    /**
+     * Point a scope at another workflow scheme and move the records whose workflow changes.
+     * @return OK
+     */
+    assignScheme(id: string, request: AssignWorkflowSchemeRequest, cancelToken?: CancelToken): Promise<number> {
+        let url_ = this.baseUrl + "/api/workflow-assignments/{id}/assign-scheme";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAssignScheme(_response);
+        });
+    }
+
+    protected processAssignScheme(response: AxiosResponse): Promise<number> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<number>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<number>(null as any);
+    }
+
+    /**
+     * Preview what pointing a scope at another workflow scheme would move, before anything is committed.
+     * @param schemeId (optional) 
+     * @return OK
+     */
+    previewAssignScheme(id: string, schemeId?: string | undefined, cancelToken?: CancelToken): Promise<WorkflowSchemeChangePreviewDto> {
+        let url_ = this.baseUrl + "/api/workflow-assignments/{id}/assign-scheme/preview?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (schemeId === null)
+            throw new globalThis.Error("The parameter 'schemeId' cannot be null.");
+        else if (schemeId !== undefined)
+            url_ += "schemeId=" + encodeURIComponent("" + schemeId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPreviewAssignScheme(_response);
+        });
+    }
+
+    protected processPreviewAssignScheme(response: AxiosResponse): Promise<WorkflowSchemeChangePreviewDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkflowSchemeChangePreviewDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkflowSchemeChangePreviewDto>(null as any);
+    }
+}
+
+export class WorkflowSchemesClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get the workflow schemes of owner types with record types.
+     * @param ownerType (optional) 
+     * @return OK
+     */
+    getWorkflowSchemes(ownerType?: string | null | undefined, cancelToken?: CancelToken): Promise<WorkflowSchemeListDto[]> {
+        let url_ = this.baseUrl + "/api/workflow-schemes?";
+        if (ownerType !== undefined && ownerType !== null)
+            url_ += "ownerType=" + encodeURIComponent("" + ownerType) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkflowSchemes(_response);
+        });
+    }
+
+    protected processGetWorkflowSchemes(response: AxiosResponse): Promise<WorkflowSchemeListDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkflowSchemeListDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkflowSchemeListDto[]>(null as any);
+    }
+
+    /**
+     * Create a workflow scheme.
+     * @return Created
+     */
+    create(request: CreateWorkflowSchemeRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/workflow-schemes";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreate(_response);
+        });
+    }
+
+    protected processCreate(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Get a workflow scheme with its entries and the scopes that follow it.
+     * @return OK
+     */
+    getWorkflowScheme(idOrKey: string, cancelToken?: CancelToken): Promise<WorkflowSchemeDetailsDto> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{idOrKey}";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkflowScheme(_response);
+        });
+    }
+
+    protected processGetWorkflowScheme(response: AxiosResponse): Promise<WorkflowSchemeDetailsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkflowSchemeDetailsDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkflowSchemeDetailsDto>(null as any);
+    }
+
+    /**
+     * Edit a workflow scheme's name and description.
+     * @return No Content
+     */
+    update(id: string, request: UpdateWorkflowSchemeRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdate(_response);
+        });
+    }
+
+    protected processUpdate(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Delete a workflow scheme no scope follows.
+     * @return No Content
+     */
+    delete(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDelete(_response);
+        });
+    }
+
+    protected processDelete(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Copy a workflow scheme into a new owned one, for a scope that needs to differ.
+     * @return Created
+     */
+    clone(id: string, request: CloneWorkflowSchemeRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{id}/clone";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processClone(_response);
+        });
+    }
+
+    protected processClone(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Change which workflow one record type follows under a scheme, moving that type's records in every scope on it.
+     * @return OK
+     */
+    setEntry(id: string, recordTypeId: string, request: SetWorkflowSchemeEntryRequest, cancelToken?: CancelToken): Promise<number> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{id}/entries/{recordTypeId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (recordTypeId === undefined || recordTypeId === null)
+            throw new globalThis.Error("The parameter 'recordTypeId' must be defined.");
+        url_ = url_.replace("{recordTypeId}", encodeURIComponent("" + recordTypeId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetEntry(_response);
+        });
+    }
+
+    protected processSetEntry(response: AxiosResponse): Promise<number> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<number>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<number>(null as any);
+    }
+
+    /**
+     * Change the workflow records follow when their type has no entry, moving them in every scope on the scheme.
+     * @return OK
+     */
+    changeDefault(id: string, request: ChangeWorkflowSchemeDefaultRequest, cancelToken?: CancelToken): Promise<number> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{id}/default";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeDefault(_response);
+        });
+    }
+
+    protected processChangeDefault(response: AxiosResponse): Promise<number> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<number>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<number>(null as any);
+    }
+
+    /**
+     * Preview what changing a record type's workflow under a scheme would move, before anything is committed.
+     * @param workflowId (optional) 
+     * @return OK
+     */
+    previewEntry(id: string, recordTypeId: string, workflowId?: string | null | undefined, cancelToken?: CancelToken): Promise<WorkflowSchemeChangePreviewDto> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{id}/entries/{recordTypeId}/preview?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (recordTypeId === undefined || recordTypeId === null)
+            throw new globalThis.Error("The parameter 'recordTypeId' must be defined.");
+        url_ = url_.replace("{recordTypeId}", encodeURIComponent("" + recordTypeId));
+        if (workflowId !== undefined && workflowId !== null)
+            url_ += "workflowId=" + encodeURIComponent("" + workflowId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPreviewEntry(_response);
+        });
+    }
+
+    protected processPreviewEntry(response: AxiosResponse): Promise<WorkflowSchemeChangePreviewDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkflowSchemeChangePreviewDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkflowSchemeChangePreviewDto>(null as any);
+    }
+
+    /**
+     * Preview what changing a scheme's default workflow would move, before anything is committed.
+     * @param workflowId (optional) 
+     * @return OK
+     */
+    previewDefault(id: string, workflowId?: string | undefined, cancelToken?: CancelToken): Promise<WorkflowSchemeChangePreviewDto> {
+        let url_ = this.baseUrl + "/api/workflow-schemes/{id}/default/preview?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (workflowId === null)
+            throw new globalThis.Error("The parameter 'workflowId' cannot be null.");
+        else if (workflowId !== undefined)
+            url_ += "workflowId=" + encodeURIComponent("" + workflowId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPreviewDefault(_response);
+        });
+    }
+
+    protected processPreviewDefault(response: AxiosResponse): Promise<WorkflowSchemeChangePreviewDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkflowSchemeChangePreviewDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkflowSchemeChangePreviewDto>(null as any);
+    }
 }
 
 export enum ActivityCategory {
@@ -57363,12 +61636,16 @@ export interface AddGoalRequest {
     name: string;
 }
 
-/** A project an accepted intake request became. */
+/** A project or work item an accepted intake request became. */
 export interface AddIntakeRequestOutcomeRequest {
-    /** What the request became: a new project started for it, or scope added to a project that already existed. */
+    /** What the request became: a new project started for it, scope added to a project that already existed, or
+a work item that delivers it. */
     kind: IntakeRequestOutcomeKind;
-    /** The project. Recording the outcome does not change it. */
-    projectId: string;
+    /** The project, for `NewProject` and `ExistingProjectScope`; leave it out for `WorkItem`. Recording the outcome
+does not change it. */
+    projectId?: string | undefined;
+    /** The work item, for `WorkItem`; leave it out for the project kinds. Recording the outcome does not change it. */
+    workItemId?: string | undefined;
     /** What the outcome covers. Required for existing project scope, where it says what the project absorbed. */
     note?: string | undefined;
 }
@@ -57395,6 +61672,8 @@ export interface AddPersonaRequest {
 
 export interface AddPokerRoundRequest {
     label?: string | undefined;
+    /** Optional detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters. */
+    description?: string | undefined;
 }
 
 /** Records that a product depends on another. */
@@ -57526,6 +61805,14 @@ export interface AssignUserRolesRequest {
     roleNames: string[];
 }
 
+/** A request to point a scope at another workflow scheme and move the records whose workflow changes. */
+export interface AssignWorkflowSchemeRequest {
+    /** The scheme the scope should follow. */
+    schemeId: string;
+    /** Operator choices layered over the automatic mapping, for the statuses whose records move. Needed only when records move. */
+    decisions: StatusRemapDecisionRequest[];
+}
+
 export interface AuditDto {
     id: string;
     userId: string;
@@ -57566,7 +61853,8 @@ export interface AzureDevOpsConnectionConfigurationDto {
     /** The personal access token that grants access to the organization's Azure DevOps data.
 Returned masked as a fixed-width placeholder. */
     personalAccessToken: string;
-    /** The Azure DevOps organization URL, derived from the organization name. */
+    /** The Azure DevOps organization URL, built from the organization name and the configured
+Azure DevOps base address. */
     organizationUrl: string;
     /** The Azure DevOps work processes discovered for the organization. */
     workProcesses: AzureDevOpsWorkProcessDto[];
@@ -57837,6 +62125,13 @@ judge", which is not the same as a rate of zero. */
     rate?: number | undefined;
 }
 
+/** The estimation scale a desk's requests should be estimated on. */
+export interface ChangeIntakeDeskEstimationScaleRequest {
+    /** An active estimation scale, from the estimation scale choices, or null to stop estimating the desk's requests.
+The desk is pinned to the scale's current version. */
+    estimationScaleId?: string | undefined;
+}
+
 /** The scoring model a desk's requests should be scored with. */
 export interface ChangeIntakeDeskScoringModelRequest {
     /** An active scoring model, from the scoring model choices, or null to stop scoring the desk's requests. */
@@ -57855,6 +62150,14 @@ export interface ChangeIntakeRequestAssigneeRequest {
     assigneeId?: string | undefined;
 }
 
+/** How big an intake request is, on its desk's estimation scale. */
+export interface ChangeIntakeRequestEstimateRequest {
+    /** An estimate value of the scale version the request's desk pins, exactly as the scale writes it (`M`,
+`8`), never a card such as `?`; or null to clear the estimate. Blank is refused. At most 32 characters
+once trimmed. */
+    value?: string | undefined;
+}
+
 /** The status to move an intake request to, with what that move needs. */
 export interface ChangeIntakeRequestStatusRequest {
     /** A status of the workflow governing the request's desk, from its status options. */
@@ -57864,6 +62167,9 @@ request; the status options say which. */
     reason?: string | undefined;
     /** For a status meaning Duplicate, the request this one gives way to; otherwise null. */
     duplicateOfId?: string | undefined;
+    /** A reply to post in the request's conversation with the move, such as a question for the requester when moving to
+Waiting on Requester. Saved with the move, and shown with it on the message. Null for none. */
+    reply?: IntakeRequestReplyRequest | undefined;
 }
 
 export interface ChangePasswordRequest {
@@ -57909,8 +62215,12 @@ export interface ChangeProjectProgramRequest {
     programId?: string | undefined;
 }
 
-export interface ChangeStoryMapOwnerRequest {
-    ownerId: string;
+/** A request to change the workflow followed by every record whose type has no entry in a scheme. */
+export interface ChangeWorkflowSchemeDefaultRequest {
+    /** The published workflow those records follow from now on. */
+    workflowId: string;
+    /** Operator choices layered over the automatic mapping, for the statuses whose records move. Needed only when records move. */
+    decisions: StatusRemapDecisionRequest[];
 }
 
 export interface ClientFeatureFlagDto {
@@ -57923,6 +62233,14 @@ export interface CloneStatusWorkflowRequest {
     /** The name of the new draft workflow. */
     name: string;
     /** An optional description of the new draft workflow. */
+    description?: string | undefined;
+}
+
+/** A request to copy a workflow scheme into a new owned one. */
+export interface CloneWorkflowSchemeRequest {
+    /** What the copy is called. */
+    name: string;
+    /** An optional description; the source's when left out. */
     description?: string | undefined;
 }
 
@@ -58034,9 +62352,9 @@ export interface CopyRoadmapRequest {
     sourceRoadmapId: string;
     /** The name of the new Roadmap. */
     name: string;
-    /** The managers of the new Roadmap. */
-    roadmapManagerIds: string[];
-    /** The visibility id for the new Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap. */
+    /** The owners of the new Roadmap: employee ids, which must include the caller's own. */
+    ownerIds: string[];
+    /** The visibility id for the new Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it. */
     visibilityId: number;
 }
 
@@ -58161,10 +62479,14 @@ Mixed-case input is preserved. Default true. */
     normalizeNameCasing: boolean;
 }
 
+/** A new estimation scale, created active with its values as version 1. */
 export interface CreateEstimationScaleRequest {
+    /** The scale's name, at most 128 characters. */
     name: string;
+    /** What the scale is for, at most 1024 characters. */
     description?: string | undefined;
-    values: string[];
+    /** The cards in the order they are shown, at least 2 of them estimates. */
+    values: EstimationScaleValueRequest[];
 }
 
 export interface CreateExpenditureCategoryRequest {
@@ -58331,7 +62653,16 @@ export interface CreatePlanningIntervalRequest {
 
 export interface CreatePokerSessionRequest {
     name: string;
-    estimationScaleId: number;
+    estimationScaleId: string;
+    /** `Public` (the default): anyone with the poker View permission can see and join the session. `Private`:
+only its facilitators, invited employees and the members of invited teams. */
+    visibility: Visibility;
+    /** Employees who facilitate alongside the caller, who is always the first facilitator. */
+    facilitatorIds?: string[] | undefined;
+    /** Employees invited to the session, who can join it while it is private. */
+    invitedEmployeeIds?: string[] | undefined;
+    /** Teams invited to the session, whose current members can join it while it is private. */
+    invitedTeamIds?: string[] | undefined;
 }
 
 export interface CreatePortfolioRequest {
@@ -58484,6 +62815,14 @@ If it matches a task, the new task becomes a child of that task and inherits the
     estimatedEffortHours?: number | undefined;
 }
 
+/** A request to define a record type for an owner type that has them. */
+export interface CreateRecordTypeRequest {
+    /** The owner type the record type is a variant of, such as `work.item`. */
+    ownerType: string;
+    /** What the record type is called, such as Bug. */
+    name: string;
+}
+
 export interface CreateRecurringJobRequest {
     jobId: string;
     jobTypeId: number;
@@ -58537,9 +62876,9 @@ export interface CreateRoadmapRequest {
     start: string;
     /** The Roadmap end date. */
     end: string;
-    /** The managers of the Roadmap. */
-    roadmapManagerIds: string[];
-    /** The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap. */
+    /** The owners of the Roadmap: employee ids, which must include the caller's own. */
+    ownerIds: string[];
+    /** The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it. */
     visibilityId: number;
 }
 
@@ -58572,9 +62911,21 @@ export interface CreateStatusWorkflowRequest {
     ownerType: string;
 }
 
+/** A new story map, with who owns it, who can edit it and who can see it. */
 export interface CreateStoryMapRequest {
     name: string;
     description?: string | undefined;
+    /** `Public` (the default): anyone with the Story Maps View permission can see the map. `Private`: only its
+owners, editors and the members of its editor teams. */
+    visibility: Visibility;
+    /** Who can change a public map's content: `AnyoneWhoCanView` (the default), or `OwnersAndEditors`. */
+    editAccess: StoryMapEditAccess;
+    /** Employees who own the map alongside the caller, who is always an owner. */
+    ownerIds?: string[] | undefined;
+    /** Employees invited to edit the map. */
+    editorIds?: string[] | undefined;
+    /** Teams whose current members are invited to edit the map. */
+    editorTeamIds?: string[] | undefined;
 }
 
 export interface CreateStrategicInitiativeKpiRequest {
@@ -58726,6 +63077,18 @@ before upsert. Empty by default. */
     orgExclusions?: WorkdayOrgExclusionRequest[] | undefined;
 }
 
+/** A request to create a workflow scheme for an owner type with record types. */
+export interface CreateWorkflowSchemeRequest {
+    /** The owner type whose records the scheme sends to workflows. */
+    ownerType: string;
+    /** What the scheme is called. */
+    name: string;
+    /** An optional explanation shown to administrators choosing between schemes. */
+    description?: string | undefined;
+    /** The published workflow records follow when their type has no entry. */
+    defaultWorkflowId: string;
+}
+
 export interface CreateWorkStatusRequest {
     /** The name of the work status.  The name cannot be changed. */
     name: string;
@@ -58787,6 +63150,14 @@ export interface CurrentJobCountsResponse {
     awaiting?: number | undefined;
     recurring: number;
     servers: number;
+}
+
+/** One page of a list read by cursor: the items, and where the next page starts. */
+export interface CursorPageOfDiscussionEntryDto {
+    /** The items on this page, in the list's order. */
+    items: DiscussionEntryDto[];
+    /** Pass this back as the next request's cursor, or null when this page is the last. Opaque: its format is not part of the contract. */
+    nextCursor?: string | undefined;
 }
 
 /** One page of a list read by cursor: the items, and where the next page starts. */
@@ -58914,14 +63285,6 @@ export interface DeadLetterMessagesRequest {
     ids: string[];
 }
 
-/** A page of dead-lettered messages. `PageNumber` is 0-based, mirroring Wolverine's DeadLetterEnvelopeQuery paging. */
-export interface DeadLetterMessagesResponse {
-    totalCount: number;
-    pageNumber: number;
-    pageSize: number;
-    items: DeadLetterMessageResponse[];
-}
-
 /** Outcome of deleting an OIDC provider: either it was deleted, or deletion was refused because users still sign in through it, with how many active identities remain bound. */
 export interface DeleteOidcProviderResult {
     deleted: boolean;
@@ -58985,6 +63348,56 @@ export interface DemandProjectNavigationDto {
     key: string;
     /** The project's name. */
     name: string;
+}
+
+/** The dependencies running from one team's predecessors to another team's successors. */
+export interface DependencyAnalysisPairDto {
+    /** The team owning the predecessors; null when they have no team. */
+    predecessorTeam?: WorkTeamNavigationDto | undefined;
+    /** The team owning the successors, waiting on the predecessors; null when they have no team. */
+    successorTeam?: WorkTeamNavigationDto | undefined;
+    /** Whether the predecessor team is in the report's scope. */
+    predecessorTeamInScope: boolean;
+    /** Whether the successor team is in the report's scope. */
+    successorTeamInScope: boolean;
+    /** The pair's dependencies counted in the range: open at some point within it. */
+    dependencies: number;
+    /** Of those, the ones created in the range. */
+    created: number;
+    /** Of those, the ones that closed in the range. */
+    closed: number;
+    /** Of those, the ones still open when the range ended. */
+    openAtEnd: number;
+}
+
+/** One calendar period of the range. */
+export interface DependencyAnalysisPeriodDto {
+    /** The period's first day. */
+    start: string;
+    /** The period's last day, included. */
+    end: string;
+    /** Dependencies created in the period. */
+    created: number;
+    /** Dependencies that closed in the period. */
+    closed: number;
+    /** Dependencies open at the end of the period. */
+    open: number;
+}
+
+/** Totals for the range. */
+export interface DependencyAnalysisSummaryDto {
+    /** Dependencies counted in the range: open at some point within it. */
+    dependencies: number;
+    /** Of those, the ones created in the range. */
+    created: number;
+    /** Of those, the ones that closed in the range. */
+    closed: number;
+    /** Of those, the ones still open when the range ended. */
+    openAtEnd: number;
+    /** Teams owning either end of a counted dependency, in scope or not. Items with no team add none. */
+    teamsInvolved: number;
+    /** Of int DependencyAnalysisSummaryDto.TeamsInvolved, the teams outside the scope: for a team, every other team. */
+    teamsOutside: number;
 }
 
 export interface DependencyDto {
@@ -59088,6 +63501,134 @@ export interface DiscoveredOrgType {
     typeId: string;
     displayName?: string | undefined;
     count: number;
+}
+
+/** A record's conversation as the caller may use it: what they may do in it, and whether it is locked. */
+export interface DiscussionDto {
+    /** Whether the caller may post and reply. */
+    canPost: boolean;
+    /** Whether the caller may post internal notes. When false, a composer offers no internal-note control at all. */
+    canPostInternal: boolean;
+    /** Whether the caller may lock the conversation and delete anyone's message. */
+    canModerate: boolean;
+    /** Whether the conversation is locked: nothing new can be posted, replied or edited. */
+    isLocked: boolean;
+    /** How many threads the caller can read: top-level messages not deleted, of the kinds they may read. */
+    threadCount: number;
+    /** How many messages the caller can read, top-level and replies, not deleted, of the kinds they may read. */
+    messageCount: number;
+}
+
+/** One entry in a conversation: a top-level message, or a change to the record between messages. */
+export interface DiscussionEntryDto {
+    /** Which of DiscussionMessageDto? DiscussionEntryDto.Message and ActivityLogDto? DiscussionEntryDto.Activity is set. */
+    type: DiscussionEntryType;
+    /** When the message was posted or the change happened; the conversation's order. */
+    timestamp: Date;
+    /** The message, when DiscussionEntryType DiscussionEntryDto.Type is DiscussionEntryType.Message. */
+    message?: DiscussionMessageDto | undefined;
+    /** The change, when DiscussionEntryType DiscussionEntryDto.Type is DiscussionEntryType.Activity, exactly as the record's own
+Activity section shows it to the caller. */
+    activity?: ActivityLogDto | undefined;
+}
+
+/** What one entry in a conversation is. */
+export enum DiscussionEntryType {
+    Message = "Message",
+    Activity = "Activity",
+}
+
+/** A message in a conversation, top-level or a reply, as the caller may see it. */
+export interface DiscussionMessageDto {
+    /** The message's id. */
+    id: string;
+    /** The top-level message whose thread this is a reply in, or null for a top-level message. */
+    parentMessageId?: string | undefined;
+    /** Who the message is for. */
+    kind: DiscussionMessageKind;
+    /** The optional subject of a top-level message. Null on a reply, and once deleted. */
+    subject?: string | undefined;
+    /** The message as markdown, mentions written `@[Name](employee:{id})`; show each mention by the current name
+in List&lt;EmployeeNavigationDto&gt; DiscussionMessageDto.Mentions. Null once deleted. */
+    body?: string | undefined;
+    /** Who wrote the message. */
+    author: EmployeeNavigationDto;
+    /** When the message was posted. */
+    postedOn: Date;
+    /** When the message was last edited, or null if it never was. */
+    editedOn?: Date | undefined;
+    /** Whether the message was deleted, leaving only who wrote it, who deleted it and when. */
+    isDeleted: boolean;
+    /** When the message was deleted, or null while it stands. */
+    deletedOn?: Date | undefined;
+    /** Who deleted the message, or null while it stands. */
+    deletedBy?: EmployeeNavigationDto | undefined;
+    /** The people the message mentions, by their current names. */
+    mentions: EmployeeNavigationDto[];
+    /** How many replies the thread this message starts holds. Zero on a reply. */
+    replyCount: number;
+    /** When the latest reply in the thread was posted, or null when there are none. */
+    lastReplyOn?: Date | undefined;
+    /** Up to three people who replied most recently in the thread, newest first. */
+    recentRepliers: EmployeeNavigationDto[];
+    /** The change to the record the message was posted with, such as moving a request to Waiting on Requester, exactly as
+the record's Activity section shows it to the caller. Null when there is none, the caller may not see it, or the
+message was read on its own rather than in a page of the conversation. */
+    recordChange?: ActivityLogDto | undefined;
+    /** Whether the caller may edit the message: their own, standing, in an unlocked conversation. */
+    canEdit: boolean;
+    /** Whether the caller may delete the message: their own, or anyone's as a moderator. */
+    canDelete: boolean;
+}
+
+export enum DiscussionMessageKind {
+    Public = "Public",
+    InternalNote = "InternalNote",
+}
+
+/** A version of a message that an edit replaced. */
+export interface DiscussionMessageRevisionDto {
+    /** The subject before the edit, or null when there was none. */
+    subject?: string | undefined;
+    /** The text before the edit, as markdown. */
+    body: string;
+    /** When the edit replaced this version. */
+    replacedOn: Date;
+}
+
+/** Which end of a conversation a page starts from. */
+export enum DiscussionOrder {
+    OldestFirst = "OldestFirst",
+    NewestFirst = "NewestFirst",
+}
+
+/** How conversations behave in one scope, such as an intake desk, or by default for a kind of record: the settings in effect, where they come from, and which of them the kind of record supports. */
+export interface DiscussionSettingsDto {
+    /** The registered channel type, such as `demand.intake-request`. */
+    channelType: string;
+    /** The scope's record, or null for the default every scope inherits. */
+    scopeId?: string | undefined;
+    /** Whether new internal notes can be posted. Existing notes stay readable to their audience either way. */
+    internalNotesEnabled: boolean;
+    /** Whether mentioning someone can give them access to the record. When off, only the people who already have the record can be mentioned. */
+    mentionsGrantAccess: boolean;
+    /** Whether the scope has saved no settings of its own and follows its default. Saving values equal to the
+default keeps it following. */
+    isInherited: boolean;
+    /** Whether this kind of record can hold internal notes at all. When false, they cannot be turned on. */
+    supportsInternalNotes: boolean;
+    /** Whether a mention can give access on this kind of record at all. When false, it cannot be turned on. */
+    supportsMentionAccess: boolean;
+    /** Whether the caller may change these settings. */
+    canManage: boolean;
+}
+
+/** The new subject and text of the caller's own message. The version it replaces is kept. */
+export interface EditDiscussionMessageRequest {
+    /** The new subject, up to 200 characters; null or blank for none. Must be blank on a reply in a thread. */
+    subject?: string | undefined;
+    /** The new text as markdown, up to 10,000 characters. Mention someone as `@[Name](employee:{employeeId})`. */
+    body: string;
 }
 
 export interface EmployeeAllocationChangeRequest {
@@ -59327,12 +63868,72 @@ into it, which is a complete answer rather than missing data. */
     running: RolloutItemDto[];
 }
 
+/** An estimation scale with its current version, the values anything newly choosing the scale votes on. */
 export interface EstimationScaleDto {
-    id: number;
+    id: string;
+    key: number;
     name: string;
     description?: string | undefined;
     isActive: boolean;
-    values: string[];
+    /** The latest published version. */
+    currentVersion: EstimationScaleVersionDto;
+}
+
+/** An estimation scale with its current version and every version it has published. */
+export interface EstimationScaleDetailsDto extends EstimationScaleDto {
+    /** Every published version, newest first. */
+    versions: EstimationScaleVersionDto[];
+}
+
+/** Identifies an estimation scale from a record that uses it. */
+export interface EstimationScaleNavigationDto {
+    id: string;
+    key: number;
+    name: string;
+}
+
+/** One value on an estimation scale version. */
+export interface EstimationScaleValueDto {
+    /** The text shown on the card and recorded as the vote. */
+    value: string;
+    /** False for a card such as `?`, which can be voted but never becomes an estimate. */
+    isEstimate: boolean;
+}
+
+/** One value on an estimation scale: a card participants can vote. */
+export interface EstimationScaleValueRequest {
+    /** The text shown on the card and recorded as the vote, such as `5`, `M` or `?`. At most 32 characters, and
+unique on the scale. */
+    value: string;
+    /** Whether the value is a size. False for a card such as `?`, `∞` or `☕`, which can be voted but never
+becomes an estimate. A scale needs at least 2 estimate values. */
+    isEstimate: boolean;
+}
+
+/** One published version of an estimation scale. A version never changes once published. */
+export interface EstimationScaleVersionDto {
+    id: string;
+    /** The version's number within its scale, starting at 1. */
+    number: number;
+    publishedOn: Date;
+    /** The values a participant can vote, in display order. */
+    values: EstimationScaleValueDto[];
+}
+
+/** One version of an estimation scale, named by its scale: what a desk pins and an estimate was given on. */
+export interface EstimationScaleVersionNavigationDto {
+    /** The scale's id. */
+    id: string;
+    /** The scale's key. */
+    key: number;
+    /** The scale's name. */
+    name: string;
+    /** The version's id. */
+    versionId: string;
+    /** The version's number within its scale, starting at 1. */
+    versionNumber: number;
+    /** Whether the version is the scale's latest. False once the scale's values have changed since. */
+    isCurrentVersion: boolean;
 }
 
 /** A request to evaluate (test) a scoring model against a set of supplied criterion values, returning the resulting output values without persisting anything. */
@@ -59608,6 +64209,9 @@ export interface FrozenStatusDto {
     id: string;
     name: string;
     category: StatusCategory;
+    /** What the record's owner type calls the category — its own word for the bucket, or the category's
+name when it declares none. For display only; group and compare on the category. */
+    categoryLabel: string;
 }
 
 export interface FunctionalOrganizationChartDto {
@@ -59729,6 +64333,7 @@ export interface ImportDefinitionDto {
     maxRows: number;
     preflightMaxRows: number;
     canSubmit: boolean;
+    isEnabled: boolean;
 }
 
 /** A single CSV row for the deployment environment import. An environment is identified by `Name`, which is unique across the organization. The deployments import names its environment by this, so a file of environments is what a historical backfill loads first. */
@@ -59805,6 +64410,66 @@ in the file. */
 primary; these are additional addresses the person is known by in other systems — typically ones
 left behind by a domain or tenant move. Home and personal addresses do not belong here. */
     additionalEmails?: string | undefined;
+}
+
+/** A single CSV row for the intake request import: one request, as it was submitted and where its review has got to. Desks, channels, tags and people are named by id. A request starts in the status meaning Submitted and is moved to `Status` when the row names another, recorded at `StatusChangedAt`. Timestamps are instants, and each must carry its offset. */
+export interface ImportIntakeRequestRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
+    importId?: string | undefined;
+    /** What is being asked for, in a line. Max 256 chars. */
+    title: string;
+    /** The ask in full. */
+    description: string;
+    /** What gets better, and for whom, if the ask is delivered. */
+    expectedBenefits?: string | undefined;
+    /** The desk the request is on, by id. It must be open; it need not be one requesters can pick. */
+    deskId: string;
+    /** Where the request came from, by id: any active channel, whether or not the desk offers it. */
+    channelId?: string | undefined;
+    /** The employee the request is for, by id. */
+    requesterId: string;
+    /** The employee who entered it, by id, when not the requester. */
+    submittedById?: string | undefined;
+    /** When it was submitted, with its offset. Blank for the moment it is imported. */
+    submittedAt?: string | undefined;
+    /** The date it is needed by. Needs a basis and a reference. */
+    needByDate?: string | undefined;
+    /** What makes it that date, case-insensitively. Required with a need-by date. */
+    needByBasis?: string | undefined;
+    /** What the date rests on: the regulation and clause, the contract and clause, the event, or a note. Max 1024 chars. */
+    needByReference?: string | undefined;
+    /** For a Commitment, the employee who made it, by id. Required for a Commitment, and empty otherwise. */
+    needByCommittedById?: string | undefined;
+    /** For a Commitment, the date it was made. Required for a Commitment, and empty otherwise. */
+    needByCommittedOn?: string | undefined;
+    /** The system the request was raised in. Required with an external id. */
+    originSourceSystem?: string | undefined;
+    /** The request's id in that system. With the source system, identifies at most one request. */
+    originExternalId?: string | undefined;
+    /** A link to the request in that system. */
+    originUrl?: string | undefined;
+    /** A status of the desk's workflow, by its name (`In Review`) or its meaning (`Submitted`,
+`WaitingOnRequester`, `Accepted`, `Fulfilled`, `Duplicate`, `Withdrawn`),
+case-insensitively. Blank leaves the request submitted. */
+    status?: string | undefined;
+    /** When it moved into the status, with its offset. Blank for SubmittedAt; needs SubmittedAt, and a Status the
+request moves to. */
+    statusChangedAt?: string | undefined;
+    /** Why, as the requester reads it. Required for a closing status other than Withdrawn, and for finishing
+one. Max 1024 chars. */
+    statusReason?: string | undefined;
+    /** For a status meaning Duplicate, the request already in Wayd this one gives way to, by id. */
+    duplicateOfId?: string | undefined;
+    /** The active member of the desk who owns the request, by id. */
+    assigneeId?: string | undefined;
+    /** Semicolon-separated tag ids: tags on axes the desk offers, or free tags where it allows them. */
+    tagIds?: string | undefined;
+    /** The request's estimate: an estimate value of the desk's estimation scale, exactly as the scale writes it
+(`M`, `8`), never a card such as `?`. Needs a desk with an estimation scale. Blank leaves the
+request unestimated, and the column may be left out of the file. Max 32 chars. */
+    estimate?: string | undefined;
 }
 
 export interface ImportPlanningIntervalObjectivesRequest {
@@ -59926,32 +64591,21 @@ export interface ImportProcessDto {
     isTerminal: boolean;
 }
 
-/** A page of runs, with the total so a UI can page without a second call. */
-export interface ImportProcessPageDto {
-    processes: ImportProcessDto[];
-    totalCount: number;
-    pageNumber: number;
-    pageSize: number;
-}
-
 /** One row's outcome. */
 export interface ImportProcessRowDto {
     id: string;
     importId: string;
     rowNumber: number;
     status: ImportRowStatus;
+    /** The record this row created or changed. */
     createdEntityId?: string | undefined;
     error?: string | undefined;
     warning?: string | undefined;
     attemptedOn?: Date | undefined;
-}
-
-/** A page of row outcomes, with the total so a UI can page without a second call. */
-export interface ImportProcessRowPageDto {
-    rows: ImportProcessRowDto[];
-    totalCount: number;
-    pageNumber: number;
-    pageSize: number;
+    /** Where to see that record — or, for one with no page of its own, the record it belongs to. Null when the
+row created nothing, when that record or the one the link opens has since been deleted, and for a
+preflight, whose records were rolled back. */
+    createdRecord?: ImportRecordLink | undefined;
 }
 
 export enum ImportProcessStatus {
@@ -60010,6 +64664,11 @@ initial status when the cell is blank. */
     /** The product's tags, as semicolon-separated `Category|Tag` pairs —
 `Platform|ios;Platform|android;Compliance|pci-scope`. */
     tags?: string | undefined;
+    /** The teams and teams of teams that work on the product, semicolon-separated, each by team code or
+team ID — `PAY;MOB;3f2a1c9e-…`. Every team named must exist and be active. Leave the cell
+blank for a product no team works on. They are linked to this row's product only, never to its
+parent or children. */
+    teams?: string | undefined;
 }
 
 /** A single CSV row for the program import. The owning portfolio is referenced by id and strategic themes by a semicolon-separated list of ids; role columns hold semicolon-separated employee numbers. `Status` is the status the program should end up in (case-insensitive), reached by replaying the real lifecycle transitions. */
@@ -60140,6 +64799,39 @@ row is known by its position instead, but the column itself must be in the file.
     estimatedEffortHours?: number | undefined;
     /** Semicolon-separated employee numbers assigned to the task. */
     assignees?: string | undefined;
+}
+
+/** Where a person goes to see what an import row did: the record it created, or — for a record with no page of its own, such as a membership or a dependency — the record it belongs to. */
+export interface ImportRecordLink {
+    /** The kind of record the link opens. */
+    type: ImportRecordType;
+    /** The key its page is addressed by. */
+    key: string;
+    /** What to call it, so the link reads as more than a number. */
+    name?: string | undefined;
+    /** The key of the record its page sits under — a planning interval objective's planning interval. Null for any other type. */
+    parentKey?: string | undefined;
+}
+
+export enum ImportRecordType {
+    Employee = "Employee",
+    Team = "Team",
+    TeamOfTeams = "TeamOfTeams",
+    PlanningInterval = "PlanningInterval",
+    PlanningIntervalObjective = "PlanningIntervalObjective",
+    Risk = "Risk",
+    Portfolio = "Portfolio",
+    Program = "Program",
+    Project = "Project",
+    StrategicInitiative = "StrategicInitiative",
+    StrategicTheme = "StrategicTheme",
+    Product = "Product",
+    Version = "Version",
+    Release = "Release",
+    ReleasePackage = "ReleasePackage",
+    Deployment = "Deployment",
+    DeploymentEnvironment = "DeploymentEnvironment",
+    IntakeRequest = "IntakeRequest",
 }
 
 /** A single CSV row for the contents file: one thing a release announces. */
@@ -60394,13 +65086,6 @@ export interface IncidentSeveritySetLevelRequest {
     name: string;
 }
 
-export interface InitWorkProcessIntegrationRequest {
-    /** Connection Id. */
-    id: string;
-    /** External identifier for the work process. */
-    externalId: string;
-}
-
 export interface InitWorkspaceIntegrationRequest {
     /** Connection Id. */
     id: string;
@@ -60476,6 +65161,9 @@ along none. */
     allowsFreeTags: boolean;
     /** The scoring model the desk's agents score its requests with, or null when the desk does not score them. */
     scoringModel?: NavigationDto | undefined;
+    /** The estimation scale version the desk team estimates the desk's requests on, or null when the desk does not
+estimate them. */
+    estimationScale?: EstimationScaleVersionNavigationDto | undefined;
     /** How many changes the desk has recorded; sent back with a change so a stale one is refused. */
     revision: number;
     /** The employees named on the desk, by name, with their roles. */
@@ -60552,6 +65240,20 @@ before submitting. */
     statuses: IntakeWorkflowStatusDto[];
 }
 
+/** An active estimation scale a desk can estimate its requests on, with the values of its current version, which a desk choosing it is pinned to. */
+export interface IntakeEstimationScaleChoiceDto {
+    /** The scale's id. */
+    id: string;
+    /** The scale's key. */
+    key: number;
+    /** The scale's name. */
+    name: string;
+    /** The number of the scale's current version. */
+    versionNumber: number;
+    /** The estimate values of the current version, in order; cards are left out, since no request is estimated with one. */
+    estimateValues: string[];
+}
+
 /** The statuses an intake request can arrive in when moved to a desk, and the one it arrives in unless the mover chooses. */
 export interface IntakeRequestArrivalStatusesDto {
     /** The destination workflow's open statuses that need no reason, in the workflow's order. */
@@ -60570,6 +65272,14 @@ export interface IntakeRequestCriterionRatingRequest {
     value?: number | undefined;
     /** The level chosen, for a criterion rated on a scale. */
     ratingLevelId?: string | undefined;
+}
+
+/** A request's estimate, as the requests list and board sort and filter on it. Substance tier, which is why it is returned beside the summaries rather than on them. */
+export interface IntakeRequestCurrentEstimateDto {
+    /** The request estimated. */
+    requestId: string;
+    /** The estimate. */
+    estimate: IntakeRequestEstimateDto;
 }
 
 /** A request's current score, as the requests list and board rank on it. Substance tier, which is why it is returned beside the summaries rather than on them. */
@@ -60628,12 +65338,36 @@ request sees its tags. */
     outcomes: IntakeRequestOutcomeDto[];
     /** Whether the reader may add and remove outcomes: an agent on its desk, while the request is accepted. */
     canChangeOutcomes: boolean;
+    /** Whether the reader may set, change or clear the request's estimate: an agent on its desk, while the request
+is open, and only when the desk has an estimation scale or the request has an estimate to clear. Never the
+requester. */
+    canChangeEstimate: boolean;
+    /** The estimate values of the scale version the request's desk pins, in order, for a reader who may change the
+estimate; empty otherwise, and when the desk does not estimate its requests. */
+    estimateValues: string[];
+    /** The scale version the request's desk pins, which the estimate values come from, for a reader who
+may change the estimate; null otherwise, and when the desk does not estimate its requests. An estimate on
+any other version can be kept or cleared, but a value sent is always given on this one, even when the
+older version wrote the same value. */
+    estimationScaleVersionId?: string | undefined;
     /** Whether the reader may withdraw the request: its requester, while it is open. */
     canWithdraw: boolean;
     /** The request this one is a duplicate of, while its status means Duplicate and the reader can see that
 request; its page shows that one instead. Null otherwise, so a request the reader cannot see is never
 named or counted. */
     duplicateOf?: IntakeRequestNavigationDto | undefined;
+}
+
+/** How big an intake request is, on the estimation scale version it was given on. Substance tier. */
+export interface IntakeRequestEstimateDto {
+    /** The estimate value, such as `M` or `8`. */
+    value: string;
+    /** Where the value sits among its version's values, from 0. Estimates sort by it rather than by the text, so
+`XL` follows `S`; positions compare only between estimates on the same version, since a later version
+can add values and shift them. */
+    position: number;
+    /** The scale and version the estimate was given on. */
+    scale: EstimationScaleVersionNavigationDto;
 }
 
 /** Another intake request, named enough to link to: its number and title, both summary tier. */
@@ -60690,10 +65424,14 @@ export interface IntakeRequestOriginDto {
 export interface IntakeRequestOutcomeDto {
     /** What the request became. */
     kind: IntakeRequestOutcomeKind;
-    /** The id of the project the outcome points at, which identifies the outcome on the request. */
+    /** The id of the project or work item the outcome points at, which identifies the outcome on the request. */
     targetId: string;
-    /** The project, or null when it has since been deleted; the outcome stays as the record of what was decided. */
+    /** The project, for a project outcome; null for a work item outcome, or when the project has since been
+deleted, since the outcome stays as the record of what was decided. */
     project?: DemandProjectNavigationDto | undefined;
+    /** The work item, for a work item outcome; null for a project outcome, or when the work item has since been
+deleted. */
+    workItem?: IntakeRequestOutcomeWorkItemDto | undefined;
     /** What the outcome covers, in the agent's words. Always present for existing project scope. */
     note?: string | undefined;
     /** The employee who recorded the outcome. */
@@ -60705,6 +65443,23 @@ export interface IntakeRequestOutcomeDto {
 export enum IntakeRequestOutcomeKind {
     NewProject = "NewProject",
     ExistingProjectScope = "ExistingProjectScope",
+    WorkItem = "WorkItem",
+}
+
+/** A work item an intake request's outcome points at, as Work reports it now. */
+export interface IntakeRequestOutcomeWorkItemDto {
+    /** The work item's id, the same as in Work. */
+    id: string;
+    /** The work item's key, which its page is addressed by. */
+    key: string;
+    /** The work item's title. */
+    title: string;
+    /** The key of the workspace the work item is in, which its page is addressed by. */
+    workspaceKey: string;
+    /** The work item's status, by name. */
+    status: string;
+    /** The category of the work item's status. */
+    statusCategory: StatusCategory;
 }
 
 /** A participant on an intake request: who, and who added them when. */
@@ -60715,6 +65470,14 @@ export interface IntakeRequestParticipantDto {
     addedBy?: EmployeeNavigationDto | undefined;
     /** When they were added. */
     addedOn: Date;
+}
+
+/** A top-level reply in an intake request's conversation, which the requester and participants read. */
+export interface IntakeRequestReplyRequest {
+    /** An optional subject, up to 200 characters. */
+    subject?: string | undefined;
+    /** The reply as markdown, mentions written `@[Name](employee:{id})`. */
+    body: string;
 }
 
 /** One of an intake request's scores: the frozen ratings and outputs it was given at a point in time. Substance tier. */
@@ -60795,6 +65558,9 @@ rewrite what past records read as. */
     name: string;
     /** The status's bucket — Proposed, Active, Done or Removed. What rollups and invariants group on. */
     category: StatusCategory;
+    /** What the record's owner type calls the category — its own word for the bucket, or the category's
+name when it declares none. For display only; group and compare on the category. */
+    categoryLabel: string;
     /** The well-known meaning the status carries, as the consuming module's alias value, or
 `0` when it carries none. */
     alias: number;
@@ -60823,6 +65589,8 @@ export interface IntakeRequestSubstanceDto {
     /** Why the request is in its current status: the desk's reason for declining, deferring, marking a duplicate
 or finishing it, or the requester's note on withdrawing. Null when the move recorded none. */
     statusReason?: string | undefined;
+    /** How big the ask is, on the scale the desk team estimated it on, or null when it has not been estimated. */
+    estimate?: IntakeRequestEstimateDto | undefined;
 }
 
 /** The summary tier of an intake request: enough to recognise that an ask exists. */
@@ -60956,6 +65724,8 @@ export interface IntakeWorkflowStatusDto {
     name: string;
     /** The status's bucket — Proposed, Active, Done or Removed — which decides whether a request in it is open. */
     category: StatusCategory;
+    /** What intake requests call the category. For display only; group and compare on the category. */
+    categoryLabel: string;
     /** The well-known meaning the status carries, as an intake request status alias value, or 0 for none. */
     alias: number;
     /** What the status means, when the workflow's author said, written for anyone following a request. */
@@ -61009,14 +65779,6 @@ export interface JobServerResponse {
     heartbeat?: Date | undefined;
 }
 
-/** A page of jobs in one lifecycle state. `PageNumber` is 0-based. */
-export interface JobsResponse {
-    totalCount: number;
-    pageNumber: number;
-    pageSize: number;
-    items: JobSummaryResponse[];
-}
-
 /** The job lifecycle states background jobs can be listed by. */
 export enum JobStateFilter {
     Processing = "Processing",
@@ -61051,6 +65813,13 @@ export interface JobSummaryResponse {
     timestampLabel?: string | undefined;
     exceptionType?: string | undefined;
     exceptionMessage?: string | undefined;
+}
+
+/** Joins the caller to a poker session. */
+export interface JoinPokerSessionRequest {
+    /** True (the default) to vote, counting toward the voted and waiting totals; false to take part without voting.
+Ignored when the caller has already joined. */
+    isVoting: boolean;
 }
 
 /** One RFC 6902 operation. `from` is for move and copy; `value` for add, replace and test. */
@@ -61468,6 +66237,8 @@ export enum NotificationEvent {
     AssigneeChanged = "AssigneeChanged",
     ParticipantsChanged = "ParticipantsChanged",
     ChannelChanged = "ChannelChanged",
+    MessagePosted = "MessagePosted",
+    InternalNotePosted = "InternalNotePosted",
 }
 
 export enum NotificationReason {
@@ -61478,6 +66249,7 @@ export enum NotificationReason {
     Mentioned = "Mentioned",
     Desk = "Desk",
     Role = "Role",
+    Thread = "Thread",
 }
 
 /** The record a notification is about, as its owner type describes it now. */
@@ -61692,8 +66464,52 @@ export interface PagedResponseOfActivityLogDto {
 }
 
 /** One page of results, with the paging position and the total across all pages. */
+export interface PagedResponseOfDeadLetterMessageResponse {
+    items: DeadLetterMessageResponse[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
+/** One page of results, with the paging position and the total across all pages. */
 export interface PagedResponseOfFollowedRecordDto {
     items: FollowedRecordDto[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
+/** One page of results, with the paging position and the total across all pages. */
+export interface PagedResponseOfImportProcessDto {
+    items: ImportProcessDto[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
+/** One page of results, with the paging position and the total across all pages. */
+export interface PagedResponseOfImportProcessRowDto {
+    items: ImportProcessRowDto[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
+/** One page of results, with the paging position and the total across all pages. */
+export interface PagedResponseOfJobSummaryResponse {
+    items: JobSummaryResponse[];
     pageNumber: number;
     pageSize: number;
     totalCount: number;
@@ -62199,6 +67015,8 @@ Free text, never parsed: nothing sorts or compares it, so any convention works. 
 export interface PokerRoundDto {
     id: string;
     label?: string | undefined;
+    /** Optional detail about what is being estimated, such as acceptance criteria or notes for the team. */
+    description?: string | undefined;
     status: string;
     consensusEstimate?: string | undefined;
     order: number;
@@ -62211,8 +67029,23 @@ export interface PokerSessionDetailsDto {
     key: number;
     name: string;
     status: string;
-    facilitator?: UserNavigationDto | undefined;
-    estimationScale?: EstimationScaleDto | undefined;
+    /** Public: anyone with the poker View permission can see and join the session. Private: only its
+facilitators, invited employees and the members of invited teams. */
+    visibility: Visibility;
+    /** The employees who run the session: its rounds, reveals, resets, consensus, details, access and completion. */
+    facilitators: EmployeeNavigationDto[];
+    /** The employees invited to the session, who can join it while it is private. */
+    invitedEmployees: EmployeeNavigationDto[];
+    /** The teams invited to the session, whose current members can join it while it is private. */
+    invitedTeams: PlanningTeamNavigationDto[];
+    /** Everyone who has joined the session, in the order they joined, including those who have left. */
+    members: PokerSessionMemberDto[];
+    /** Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a
+read-only token. */
+    canManage: boolean;
+    estimationScale?: EstimationScaleNavigationDto | undefined;
+    /** The scale version the session votes on, which stays put when the scale publishes a newer one. */
+    estimationScaleVersion?: EstimationScaleVersionDto | undefined;
     activatedOn?: Date | undefined;
     completedOn?: Date | undefined;
     rounds: PokerRoundDto[];
@@ -62223,8 +67056,28 @@ export interface PokerSessionListDto {
     key: number;
     name: string;
     status: string;
-    facilitator?: UserNavigationDto | undefined;
+    /** Public: anyone with the poker View permission can see and join the session. Private: only the people on it. */
+    visibility: Visibility;
+    /** The employees who run the session. */
+    facilitators: EmployeeNavigationDto[];
+    /** Everyone who has joined the session, voting or not, in the order they joined. */
+    participants: EmployeeNavigationDto[];
     roundCount: number;
+    /** Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a
+read-only token. */
+    canManage: boolean;
+}
+
+/** Someone who joined a poker session, and how they take part. */
+export interface PokerSessionMemberDto {
+    /** The member. Live presence carries the same employee id, which is how a connected person is matched to
+their membership. */
+    employee: EmployeeNavigationDto;
+    /** Whether the member votes. A voting member counts toward a round's voted and waiting totals; one who is not
+voting is left out of them but still takes part. */
+    isVoting: boolean;
+    /** When the member first joined. */
+    joinedOn: Date;
 }
 
 export enum PokerSessionStatus {
@@ -62245,6 +67098,17 @@ export interface PortfolioRankingScoreboardDto {
     scoringModel?: ScoringModelDetailsDto | undefined;
     /** Per-project score breakdown for the current model; projects with no current-model score are omitted. */
     projects: ProjectRankingScoreDto[];
+}
+
+/** A message that starts a conversation thread on a record. */
+export interface PostDiscussionMessageRequest {
+    /** Who the message is for: `Public` for everyone who can read the conversation, `InternalNote` for its internal
+audience only, such as an intake desk's agents. */
+    kind: DiscussionMessageKind;
+    /** An optional subject of up to 200 characters, so parallel topics on a busy record stay apart. */
+    subject?: string | undefined;
+    /** The message as markdown, up to 10,000 characters. Mention someone as `@[Name](employee:{employeeId})`. */
+    body: string;
 }
 
 /** One node of the catalog subtree, with its releases day by day. */
@@ -62307,6 +67171,8 @@ export interface ProductDto {
     /** The node's current lifecycle status. */
     status: StatusNavigationDto;
     tags: ProductTagDto[];
+    /** The teams and teams of teams linked to this product, by name. */
+    teams: ProductTeamNavigationDto[];
 }
 
 export enum ProductStatusAlias {
@@ -62378,6 +67244,26 @@ export interface ProductTagOptionDto {
 export interface ProductTagSettingsDto {
     /** Whether anyone who can tag a product may also give it free tags — tags on no axis, typed in while tagging. */
     allowsFreeTags: boolean;
+}
+
+/** A team or team of teams linked to a product. */
+export interface ProductTeamLinkDto {
+    /** The product the team is linked to. */
+    product: NavigationDto;
+    /** Everything `product` sits inside, from its root down to its parent. */
+    productPath: NavigationDto[];
+    /** The team or team of teams linked. */
+    team: ProductTeamNavigationDto;
+}
+
+/** A team or team of teams as Product Management knows it. */
+export interface ProductTeamNavigationDto extends NavigationDto {
+    /** The team's short code, unique across teams and teams of teams. */
+    code: string;
+    /** Whether this is a team or a team of teams, which decides where its page is. */
+    type: TeamType;
+    /** Whether the team is active. An inactive team keeps its links but cannot take new ones. */
+    isActive: boolean;
 }
 
 /** A product type as a catalog row. */
@@ -63057,6 +67943,12 @@ export interface ProjectTeamMemberDto {
     activeWorkItemCount: number;
 }
 
+/** The work items to link to, or unlink from, a project. */
+export interface ProjectWorkItemsRequest {
+    /** The work items' UUIDs, at most 100; work item keys are not accepted. */
+    workItemIds: string[];
+}
+
 /** One reason the caller can be told for, and whether they have muted it. */
 export interface ReasonMuteDto {
     /** The reason. */
@@ -63126,6 +68018,28 @@ export interface RecordPerson {
 
 export interface RecordProjectScoreRequest {
     ratings: CriterionRatingRequest[];
+}
+
+/** A record type: a variant of an owner type's records that can follow its own workflow. */
+export interface RecordTypeDto {
+    id: string;
+    key: number;
+    name: string;
+    /** The kind of record this is a type of. */
+    owner: WorkflowOwnerNavigationDto;
+    /** Whether administrators keep it, or a sync keeps it from its source. */
+    ownership: WorkflowOwnership;
+    /** The source's identifier for a managed type; null for an owned one. */
+    externalKey?: string | undefined;
+    /** Whether records can still be given this type. */
+    isActive: boolean;
+}
+
+/** A record type, named enough to show. */
+export interface RecordTypeNavigationDto {
+    id: string;
+    key: number;
+    name: string;
 }
 
 /** A registered recurring job. */
@@ -63247,6 +68161,12 @@ export interface RenameProductTagRequest {
     description?: string | undefined;
 }
 
+/** A request to rename an owned record type. */
+export interface RenameRecordTypeRequest {
+    /** The record type's new name. */
+    name: string;
+}
+
 export interface RenameStepRequest {
     name: string;
 }
@@ -63341,6 +68261,12 @@ export interface ReparentProductRequest {
     id: string;
     /** The new parent, or null to make this a root node. */
     parentId?: string | undefined;
+}
+
+/** A reply in the thread a top-level message starts. It takes that message's kind and has no subject. */
+export interface ReplyToDiscussionMessageRequest {
+    /** The reply as markdown, up to 10,000 characters. Mention someone as `@[Name](employee:{employeeId})`. */
+    body: string;
 }
 
 /** The desk to move an intake request to. */
@@ -63534,12 +68460,15 @@ export interface RoadmapDetailsDto {
     start: string;
     /** The Roadmap end date. */
     end: string;
-    /** The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap. */
+    /** The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it. */
     visibility: SimpleNavigationDto;
     /** The state of the Roadmap. */
     state: SimpleNavigationDto;
-    /** The managers of the Roadmap. */
-    roadmapManagers: EmployeeNavigationDto[];
+    /** The owners of the Roadmap. */
+    owners: EmployeeNavigationDto[];
+    /** Whether the caller can manage the Roadmap and its items: they own it or hold the Roadmaps Administer
+permission. False when the request's token is read-only. An archived Roadmap can only be activated. */
+    canManage: boolean;
     /** The colors configured on the Roadmap, ordered by their configured order. */
     colors: RoadmapColorDto[];
 }
@@ -63555,14 +68484,17 @@ export interface RoadmapListDto {
     start: string;
     /** The Roadmap end date. */
     end: string;
-    /** The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap. */
+    /** The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it. */
     visibility: SimpleNavigationDto;
     /** The state of the Roadmap. */
     state: SimpleNavigationDto;
     /** The color of the Roadmap. Must be a valid hex color code. */
     color?: string | undefined;
-    /** The managers of the Roadmap. */
-    roadmapManagers: EmployeeNavigationDto[];
+    /** The owners of the Roadmap. */
+    owners: EmployeeNavigationDto[];
+    /** Whether the caller can manage the Roadmap and its items: they own it or hold the Roadmaps Administer
+permission. False when the request's token is read-only. An archived Roadmap can only be activated. */
+    canManage: boolean;
 }
 
 export interface RoadmapMilestoneDetailsDto extends RoadmapItemDetailsDto {
@@ -63637,6 +68569,16 @@ export interface RolloutItemDto {
     deployedAt: Date;
     /** Whether a later deployment touching this product failed or was rolled back here. */
     hasFailedAttemptSince: boolean;
+}
+
+/** How conversations should behave in one scope, such as an intake desk, or by default for a kind of record. */
+export interface SaveDiscussionSettingsRequest {
+    /** Whether new internal notes can be posted. Turning it off leaves existing notes readable to their audience. Can
+only be true where the kind of record holds internal notes. */
+    internalNotesEnabled: boolean;
+    /** Whether mentioning someone can give them access to the record. When false, only the people who already have
+the record can be mentioned. Can only be true where the kind of record allows it. */
+    mentionsGrantAccess: boolean;
 }
 
 export interface ScaleInput {
@@ -63809,6 +68751,12 @@ export interface SelectIncidentSeveritySetRequest {
     severitySetId: string;
 }
 
+/** Turns syncing on or off for an Azure DevOps project that has been set up on the connection. The project's Wayd workspace and work items are kept either way. */
+export interface SetAzureDevOpsWorkspaceSyncRequest {
+    /** Whether the project's work items are synced. */
+    isEnabled: boolean;
+}
+
 export interface SetChecklistItemCheckedRequest {
     isChecked: boolean;
 }
@@ -63825,8 +68773,11 @@ export interface SetDeploymentEnvironmentActiveRequest {
     isActive: boolean;
 }
 
+/** Whether an estimation scale is available to new poker sessions. */
 export interface SetEstimationScaleActiveStatusRequest {
-    id: number;
+    /** The scale's id, matching the one in the path. */
+    id: string;
+    /** True to make the scale available to new sessions, false to withdraw it. */
     isActive: boolean;
 }
 
@@ -63860,6 +68811,30 @@ their tags either way. */
     isActive: boolean;
 }
 
+export interface SetPokerSessionFacilitatorsRequest {
+    /** The employees who facilitate the session from now on, replacing the current list. At least one. */
+    employeeIds: string[];
+}
+
+export interface SetPokerSessionInviteesRequest {
+    /** The employees invited to the session, replacing the current list. Empty removes every employee invite. */
+    employeeIds: string[];
+    /** The teams invited to the session, replacing the current list. Empty removes every team invite. */
+    teamIds: string[];
+}
+
+export interface SetPokerSessionVisibilityRequest {
+    /** `Public`: anyone with the poker View permission can see and join the session. `Private`: only its
+facilitators, invited employees and the members of invited teams. */
+    visibility: Visibility;
+}
+
+/** Turns the caller's voting on or off in a poker session. */
+export interface SetPokerSessionVotingRequest {
+    /** True to vote, counting toward the voted and waiting totals; false to take part without voting. */
+    isVoting: boolean;
+}
+
 /** Retires a tag from new use, or puts it back. Products already carrying it keep it. */
 export interface SetProductTagActiveRequest {
     /** Whether products can still be tagged with this. */
@@ -63872,6 +68847,13 @@ export interface SetProductTagCategoryActiveRequest {
     id: string;
     /** Whether products can still be tagged along this axis. */
     isActive: boolean;
+}
+
+/** The whole set of teams and teams of teams linked to a product. */
+export interface SetProductTeamsRequest {
+    /** Every team that works on the product, at most 100. Teams not listed are unlinked; an empty list unlinks
+them all. Teams linked to the products beneath it are not affected. */
+    teamIds: string[];
 }
 
 /** Takes a product type out of use, or puts it back. */
@@ -63915,6 +68897,34 @@ is not mapped. */
 export interface SetStepPersonasRequest {
     /** Every persona tagged on the step. A list rather than a read-only one so a JSON Patch can append to it. */
     personaIds: string[];
+}
+
+/** Who can edit a public story map from now on. */
+export interface SetStoryMapEditAccessRequest {
+    /** Who can change a public map's content: `AnyoneWhoCanView`, or `OwnersAndEditors`. A private map admits only
+its owners and editors, so there it has no effect. */
+    editAccess: StoryMapEditAccess;
+}
+
+/** The people and teams invited to edit a story map from now on. */
+export interface SetStoryMapEditorsRequest {
+    /** The employees invited to edit the map, replacing the current list. Empty removes every employee editor. */
+    employeeIds: string[];
+    /** The teams invited to edit the map, replacing the current list. Empty removes every team. */
+    teamIds: string[];
+}
+
+/** The owners a story map has from now on. */
+export interface SetStoryMapOwnersRequest {
+    /** The employees who own the map from now on, replacing the current list. At least one. */
+    employeeIds: string[];
+}
+
+/** Who can see a story map from now on. */
+export interface SetStoryMapVisibilityRequest {
+    /** `Public`: anyone with the Story Maps View permission can see the map. `Private`: only its owners, editors
+and the members of its editor teams. */
+    visibility: Visibility;
 }
 
 export interface SetSwimLaneDatesRequest {
@@ -63961,12 +68971,27 @@ int? SetTeamOperatingModelRequest.CadenceWeeks, and omitted without it. */
     cadenceAnchor?: string | undefined;
 }
 
+/** The whole set of products a team or team of teams is linked to. */
+export interface SetTeamProductsRequest {
+    /** Every product the team works on, at most 500. Products not listed are unlinked; an empty list unlinks the
+team from every product. */
+    productIds: string[];
+}
+
 export interface SetupRequest {
     token: string;
     firstName: string;
     lastName: string;
     email: string;
     password: string;
+}
+
+/** A request to change which workflow one record type follows under a scheme. */
+export interface SetWorkflowSchemeEntryRequest {
+    /** The published workflow the record type follows from now on, or null to remove its entry so it follows the scheme's default. */
+    workflowId?: string | undefined;
+    /** Operator choices layered over the automatic mapping, for the statuses whose records move. Needed only when records move. */
+    decisions: StatusRemapDecisionRequest[];
 }
 
 /** A request to let a draft workflow's records move between any statuses, or only along its transitions. */
@@ -64523,6 +69548,14 @@ export enum StatusCategory {
     Removed = "Removed",
 }
 
+/** One category and what an owner type calls it. */
+export interface StatusCategoryLabelDto {
+    /** The category being named. */
+    category: StatusCategory;
+    /** What the owner type calls the category, or the category's own name when it declares none. */
+    label: string;
+}
+
 /** A status a record can be moved to, with what the move needs. */
 export interface StatusOptionDto extends StatusNavigationDto {
     /** What moving the record to this status needs, in kind order — `RequiresReason` means the move
@@ -64598,7 +69631,13 @@ export interface StatusWorkflowDetailsDto {
     owner: WorkflowOwnerNavigationDto;
     state: string;
     isSystem: boolean;
+    /** Whether administrators author this workflow, or a sync keeps it from its source. A managed
+workflow's statuses follow the source; only their categories and aliases are edited here. */
+    ownership: WorkflowOwnership;
+    /** The source's identifier for this workflow when it is managed; null when owned. */
+    externalKey?: string | undefined;
     isAssigned: boolean;
+    /** Every status in display order, retired ones last and flagged. */
     statuses: WorkflowStatusDto[];
     /** Whether records may move between any two statuses, or only along IReadOnlyCollection&lt;WorkflowTransitionDto&gt; StatusWorkflowDetailsDto.Transitions. */
     transitionMode: TransitionMode;
@@ -64627,6 +69666,12 @@ status. Publishing is refused until each is moved or loses its alias. */
     misfiledAliases: string[];
     /** Whether the statuses may be restructured — Draft, and not platform-seeded. */
     canEdit: boolean;
+    /** Whether a status's category and alias may be changed: on a draft owned workflow, and on a managed one
+until it is archived. Retired statuses never. */
+    canReclassify: boolean;
+    /** What a check found wrong that does not stop this workflow being used, one sentence each. Only a
+managed workflow has any: it syncs regardless, and administration flags it until they are fixed. */
+    warnings: string[];
     canPublish: boolean;
     canArchive: boolean;
 }
@@ -64641,6 +69686,9 @@ export interface StatusWorkflowListDto {
     owner: WorkflowOwnerNavigationDto;
     state: string;
     isSystem: boolean;
+    /** Whether administrators author this workflow, or a sync keeps it from its source. */
+    ownership: WorkflowOwnership;
+    /** How many statuses a record can be given, leaving out those the source retired. */
     statusCount: number;
     /** Whether any scope currently uses this workflow. Archiving is refused while it does. */
     isAssigned: boolean;
@@ -64659,17 +69707,38 @@ export interface StoryMapChecklistItemDto {
     order: number;
 }
 
-/** The full Story Map: its goals (each with steps and tasks), swim lanes, and personas. */
+/** The full Story Map: its access, goals (each with steps and tasks), swim lanes, and personas. */
 export interface StoryMapDetailsDto {
     id: string;
     key: number;
     name: string;
     description?: string | undefined;
     status: string;
-    owner?: UserNavigationDto | undefined;
+    /** Public: anyone with the Story Maps View permission can see the map. Private: only its owners and editors. */
+    visibility: Visibility;
+    /** Who can change a public map's content: anyone who can view it, or only its owners and editors. A private map
+admits only its owners and editors, so there it has no effect. */
+    editAccess: StoryMapEditAccess;
+    /** The employees who own the map: its details, lifecycle and access. */
+    owners: EmployeeNavigationDto[];
+    /** The employees invited to edit the map. */
+    editors: EmployeeNavigationDto[];
+    /** The teams whose current members, and the members of their current team of teams, are invited to edit the map. */
+    editorTeams: PlanningTeamNavigationDto[];
+    /** Whether the caller manages the map, as an owner or a Story Maps administrator. Always false for a read-only
+token or an account with no linked employee. */
+    canManage: boolean;
+    /** Whether the caller can change the map's content. Says nothing about whether the map is archived. Always false
+for a read-only token or an account with no linked employee. */
+    canEdit: boolean;
     goals: StoryMapGoalDto[];
     swimLanes: StoryMapSwimLaneDto[];
     personas: StoryMapPersonaDto[];
+}
+
+export enum StoryMapEditAccess {
+    AnyoneWhoCanView = "AnyoneWhoCanView",
+    OwnersAndEditors = "OwnersAndEditors",
 }
 
 export interface StoryMapGoalDto {
@@ -64680,14 +69749,25 @@ export interface StoryMapGoalDto {
     steps: StoryMapStepDto[];
 }
 
-/** A Story Map summarised for lists: name, description, owner, and status, without its content. */
+/** A Story Map summarised for lists: name, description, owners, access and status, without its content. */
 export interface StoryMapListDto {
     id: string;
     key: number;
     name: string;
     description?: string | undefined;
     status: string;
-    owner?: UserNavigationDto | undefined;
+    /** Public: anyone with the Story Maps View permission can see the map. Private: only its owners and editors. */
+    visibility: Visibility;
+    /** Who can change a public map's content: anyone who can view it, or only its owners and editors. */
+    editAccess: StoryMapEditAccess;
+    /** The employees who own the map. */
+    owners: EmployeeNavigationDto[];
+    /** Whether the caller manages the map, as an owner or a Story Maps administrator. Always false for a read-only
+token or an account with no linked employee. */
+    canManage: boolean;
+    /** Whether the caller can change the map's content. Says nothing about whether the map is archived. Always false
+for a read-only token or an account with no linked employee. */
+    canEdit: boolean;
 }
 
 export interface StoryMapPersonaDto {
@@ -65477,6 +70557,25 @@ export interface TeamDayOffDto {
     percentOff: number;
 }
 
+/** Where a team's dependencies, or those of every team beneath a team of teams, ran from `from` to `to` (inclusive, UTC dates): which teams they ran between, how many, and how that changed over the range. */
+export interface TeamDependencyAnalysisDto {
+    /** The team or team of teams the report is for. */
+    team: WorkTeamNavigationDto;
+    /** The first day of the range (UTC). */
+    from: string;
+    /** The last day of the range (UTC), included. */
+    to: string;
+    /** Totals for the range. */
+    summary: DependencyAnalysisSummaryDto;
+    /** Each predecessor team → successor team pair, most dependencies first. */
+    pairs: DependencyAnalysisPairDto[];
+    /** The range split into calendar periods, oldest first. */
+    periods: DependencyAnalysisPeriodDto[];
+    /** Every dependency counted in the range, oldest first, with its current state and health. A closed one's
+health is Closed: planning health applies only while a dependency is open. */
+    dependencies: DependencyDto[];
+}
+
 export interface TeamDetailsDto {
     /** The team's unique identifier. */
     id: string;
@@ -65753,6 +70852,11 @@ finished enough work recently to forecast from. */
     histogram: ThroughputHistogramBucketDto[];
 }
 
+export enum TeamType {
+    Team = "Team",
+    TeamOfTeams = "TeamOfTeams",
+}
+
 export interface TeamTypeDto {
     id: number;
     name: string;
@@ -65989,11 +71093,17 @@ Mixed-case input is preserved. Default true. */
     normalizeNameCasing: boolean;
 }
 
+/** An estimation scale's name, description and values, all set from the body. */
 export interface UpdateEstimationScaleRequest {
-    estimationScaleId: number;
+    /** The scale's id, matching the one in the path. */
+    id: string;
+    /** The scale's name, at most 128 characters. */
     name: string;
+    /** What the scale is for, at most 1024 characters. Omitting it clears it. */
     description?: string | undefined;
-    values: string[];
+    /** The cards in the order they are shown, at least 2 of them estimates. Values that differ from the current
+version's, in text, flag or order, publish the next version; the same values publish nothing. */
+    values: EstimationScaleValueRequest[];
 }
 
 export interface UpdateExpenditureCategoryRequest {
@@ -66206,13 +71316,19 @@ export interface UpdatePlanningIntervalRequest {
     objectivesLocked: boolean;
 }
 
+/** The new description for a poker round. */
+export interface UpdatePokerRoundDescriptionRequest {
+    /** Detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters. Null or blank clears it. */
+    description?: string | undefined;
+}
+
 export interface UpdatePokerRoundLabelRequest {
     label?: string | undefined;
 }
 
 export interface UpdatePokerSessionRequest {
     name: string;
-    estimationScaleId: number;
+    estimationScaleId: string;
 }
 
 export interface UpdatePortfolioRequest {
@@ -66503,9 +71619,9 @@ export interface UpdateRoadmapRequest {
     start: string;
     /** The Roadmap end date. */
     end: string;
-    /** The managers of the Roadmap. */
-    roadmapManagerIds: string[];
-    /** The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only the Roadmap Managers can see the Roadmap. */
+    /** The owners of the Roadmap: employee ids, which must include the caller's own unless they are a Roadmaps administrator. */
+    ownerIds: string[];
+    /** The visibility id for the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it. */
     visibilityId: number;
 }
 
@@ -66767,6 +71883,14 @@ supplied collection becomes the new full set (omitted or empty means no exclusio
     orgExclusions?: WorkdayOrgExclusionRequest[] | undefined;
 }
 
+/** A request to edit a workflow scheme's name and description. */
+export interface UpdateWorkflowSchemeRequest {
+    /** What the scheme is called. */
+    name: string;
+    /** An optional explanation shown to administrators choosing between schemes. */
+    description?: string | undefined;
+}
+
 export interface UpdateWorkItemProjectRequest {
     /** The work item's UUID; must match `workItemId` in the route. */
     workItemId: string;
@@ -66917,6 +72041,11 @@ export interface VersionDto {
     releasedAt?: Date | undefined;
     /** The version's current status: the organization's name for it, its category and its well-known alias. */
     status: StatusNavigationDto;
+}
+
+export enum Visibility {
+    Public = "Public",
+    Private = "Private",
 }
 
 export interface VisibilityDto extends CommonEnumDto {
@@ -67228,6 +72357,11 @@ export interface WorkflowOwnerNavigationDto {
     name: string;
 }
 
+export enum WorkflowOwnership {
+    Owned = "Owned",
+    Managed = "Managed",
+}
+
 /** An owner type and the vocabulary its workflows are built from. */
 export interface WorkflowOwnerTypeDto {
     key: string;
@@ -67238,8 +72372,46 @@ export interface WorkflowOwnerTypeDto {
     requiredAliases: number[];
     /** The categories a workflow must have at least one status in before it can be published. */
     requiredCategories: StatusCategory[];
+    /** Whether this owner type's records come in record types that a workflow scheme can send to different
+workflows. When false, its scopes pick a workflow and administration shows no schemes. */
+    hasRecordTypes: boolean;
     /** Whether a workflow for this owner type may restrict which moves its records make. */
     supportsRestrictedTransitions: boolean;
+    /** What this owner type calls each category, one entry per category in category order. A category
+it declares no label for carries the category's own name. */
+    categoryLabels: StatusCategoryLabelDto[];
+}
+
+/** What a scheme change would do, before anything is committed. */
+export interface WorkflowSchemeChangePreviewDto {
+    /** How many scopes the change reaches: those pointing at the scheme, or the one being reassigned. */
+    assignedScopeCount: number;
+    /** Whether the change can be applied: nothing moves, or the owner type can move its records by record type.
+When false, applying it is refused. */
+    canMoveRecords: boolean;
+    /** Each group of records that would change workflow. Empty when no workflow changes. */
+    moves: WorkflowSchemeMovePreviewDto[];
+    /** How many records would move, where the owner type can count them; otherwise 0. */
+    affectedRecordCount: number;
+}
+
+/** A workflow scheme with its entries. */
+export interface WorkflowSchemeDetailsDto {
+    id: string;
+    key: number;
+    name: string;
+    description?: string | undefined;
+    owner: WorkflowOwnerNavigationDto;
+    /** Whether administrators keep it, or a sync keeps it from its source. */
+    ownership: WorkflowOwnership;
+    /** The source's identifier for a managed scheme; null for an owned one. */
+    externalKey?: string | undefined;
+    /** The workflow records follow when their type has no entry. */
+    defaultWorkflow: WorkflowSchemeWorkflowDto;
+    /** The record types sent somewhere other than the default, by record type name. */
+    entries: WorkflowSchemeEntryDto[];
+    /** The scopes pointing at the scheme; `null` is the organization-level assignment. */
+    assignedScopeIds: (string | undefined)[];
 }
 
 export interface WorkflowSchemeDto {
@@ -67250,18 +72422,62 @@ export interface WorkflowSchemeDto {
     isActive: boolean;
 }
 
+/** One record type's workflow under a scheme. */
+export interface WorkflowSchemeEntryDto {
+    recordType: RecordTypeNavigationDto;
+    workflow: WorkflowSchemeWorkflowDto;
+}
+
+/** A workflow scheme, as listed. */
+export interface WorkflowSchemeListDto {
+    id: string;
+    key: number;
+    name: string;
+    description?: string | undefined;
+    owner: WorkflowOwnerNavigationDto;
+    /** Whether administrators keep it, or a sync keeps it from its source. */
+    ownership: WorkflowOwnership;
+    /** The workflow records follow when their type has no entry. */
+    defaultWorkflow: WorkflowSchemeWorkflowDto;
+    /** How many record types the scheme sends somewhere other than its default. */
+    entryCount: number;
+    /** How many scopes point at the scheme. A scheme with any cannot be deleted. */
+    assignedScopeCount: number;
+}
+
+/** One group of records a scheme change moves between two workflows. */
+export interface WorkflowSchemeMovePreviewDto {
+    /** The record type that moves, or null for the records that follow the defaults. */
+    recordType?: RecordTypeNavigationDto | undefined;
+    /** How each status of its current workflow would land in the new one. */
+    remap: StatusRemapPreviewDto;
+}
+
+/** A workflow a scheme names, named enough to show. */
+export interface WorkflowSchemeWorkflowDto {
+    id: string;
+    key: number;
+    name: string;
+}
+
 /** One status within a workflow. */
 export interface WorkflowStatusDto {
     id: string;
     name: string;
     description?: string | undefined;
-    /** The rollup this status belongs to, as id and display name. */
+    /** The rollup this status belongs to: the category's id, and its name as the workflow's owner type
+labels it. */
     category: SimpleNavigationDto;
     /** The well-known meaning, or zero for none. */
     alias: number;
     /** The alias in the module's vocabulary, or null when it carries none. */
     aliasName?: string | undefined;
     order: number;
+    /** The source's identifier for this status when its workflow is managed; null when owned. */
+    externalKey?: string | undefined;
+    /** Whether the source dropped this status. Records that hold it still show it, but no record can be
+given it again. */
+    isRetired: boolean;
 }
 
 /** A move a workflow allows, from one of its statuses to another. */
@@ -67400,6 +72616,16 @@ it closed a cycle, or its predecessor was removed. */
     issues: ForecastIssueDto[];
 }
 
+/** An intake request a work item delivers, as listed on the work item's page. Summary tier only. */
+export interface WorkItemIntakeRequestDto {
+    /** The request. */
+    request: IntakeRequestNavigationDto;
+    /** Where the request stands in its desk's review workflow. */
+    status: StatusNavigationDto;
+    /** What the work item covers of the request, in the agent's words. */
+    note?: string | undefined;
+}
+
 export interface WorkItemListDto {
     id: string;
     key: string;
@@ -67519,13 +72745,6 @@ export interface WorkspaceListDto {
 export interface WorkspaceNavigationDto extends NavigationDtoOfGuidAndString {
 }
 
-export enum WorkStatusCategory {
-    Proposed = "Proposed",
-    Active = "Active",
-    Done = "Done",
-    Removed = "Removed",
-}
-
 export interface WorkStatusCategoryListDto {
     id: number;
     name: string;
@@ -67580,6 +72799,13 @@ export interface WorkTypeNavigationDto {
     level: SimpleNavigationDto;
     /** The work type tier. */
     tier: SimpleNavigationDto;
+}
+
+export enum WorkTypeTier {
+    Portfolio = "Portfolio",
+    Requirement = "Requirement",
+    Task = "Task",
+    Other = "Other",
 }
 
 export interface WorkTypeTierDto {

@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Tests.Shared;
 using Wayd.Work.Domain.Interfaces;
 using Wayd.Work.Domain.Models;
@@ -397,7 +398,7 @@ public class WorkItemTests
         var now = _dateTimeProvider.Now;
 
         // Act
-        var workItem = WorkItem.CreateExternal(workspace, 1, "Title", workType, 1, WorkStatusCategory.Proposed, null, null,
+        var workItem = WorkItem.CreateExternal(workspace, 1, "Title", workType, 1, StatusCategory.Proposed, null, null,
             now, null, now, null, null, null, 0, storyPoints: 3, effort: 8, size: 5, null, null, null, null);
 
         // Assert

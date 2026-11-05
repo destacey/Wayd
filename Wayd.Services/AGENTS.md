@@ -1,6 +1,6 @@
 # AGENTS.md — Domain services
 
-The root [AGENTS.md](../AGENTS.md) applies here too. This file holds the rules for list queries, Demand Management's authorization, and domain events, which every module raises and consumes. Each rule links to its full explanation in [domain-events.mdx](../docs/contributing/domain-events.mdx) — **read the linked section before adding, changing, or consuming an event.**
+The root [AGENTS.md](../AGENTS.md) applies here too. This file holds the rules for list queries, Demand Management's and Planning Poker's authorization, and domain events, which every module raises and consumes. Each rule links to its full explanation in [domain-events.mdx](../docs/contributing/domain-events.mdx) — **read the linked section before adding, changing, or consuming an event.**
 
 ## List Queries
 
@@ -9,6 +9,18 @@ The root [AGENTS.md](../AGENTS.md) applies here too. This file holds the rules f
 ## Demand Management Authorization
 
 - **Acting on an intake request is decided by desk role alone**: Agent or Desk Admin on its desk (`IntakeRequestReader.IsAgentOn` / `IsDeskAdminOn`, read from `IntakeDeskMember`; an inactive employee is a member of nothing). Its endpoints carry `[Authorize]` only, so the handler is the whole gate. `Permissions.IntakeRequests.View` only widens browsing; `Administer` is Desk Admin on every desk. Never add a resource permission beside a desk role. [Permission-based vs membership-based](../docs/contributing/architecture.mdx#permission-based-vs-membership-based-authorization)
+
+## Planning Poker Authorization
+
+- **A poker session is gated by the session, in the domain.** Endpoints need `Permissions.PokerSessions.View` (`Create` to create); facilitators run a session (`PokerSession.CanManage`), `Permissions.PokerSessions.Administer` waives that, and a Private session admits only facilitators, invited employees and members of invited teams (`CanAccess`). Commands are `IRequireLinkedEmployee` and resolve a `PokerSessionActor` through `IPokerSessionAccess.ResolveActor`. **Their query must call `.IncludeAccess()`** — without it the facilitators and invites load empty, so facilitators are refused and a private session admits no one, and in-memory fakes cannot tell. Reads filter in SQL with `PokerSessionReader.Filter`; the hub checks `CanUserAccess`, and changing visibility or invites evicts through `RealtimeAccessRevoker.RecheckPokerSession`. Eviction reaches only the connections on the API instance that made the change, and a change to team membership or an employee link evicts nothing until the next reconnect. [Permission-based vs membership-based](../docs/contributing/architecture.mdx#permission-based-vs-membership-based-authorization)
+
+## Story Maps Authorization
+
+- **A story map is gated by the map, as poker is.** Endpoints need `Permissions.StoryMaps.View` (`Create` to create). Owners manage the map (`StoryMap.CanManage`, waived by `Administer`); content changes need `CanEdit` (owners, editors and editor teams, or anyone who can see a Public `AnyoneWhoCanView` map); a Private map admits only owners and editors. **Every public mutator takes a `StoryMapActor`.** Commands are `IRequireLinkedEmployee`, resolve it through `IStoryMapAccess.ResolveActor`, and **their query must call `.IncludeAccess()`** — in-memory fakes cannot tell when it is missing (`StoryMapPersistenceTests` can). Reorders, moves, owners and editors go through `StoryMapMutation.Apply` so a concurrent change conflicts and retries. Reads filter with `StoryMapReader.Filter`; keep `AccessibleTo` and `EditableBy` in step with the methods they mirror. Access changes call `NotifyAccessChanged`, which evicts through `RealtimeAccessRevoker.RecheckStoryMap`, with the poker limits. [Details](../docs/contributing/architecture.mdx#permission-based-vs-membership-based-authorization)
+
+## Roadmaps Authorization
+
+- **A roadmap is gated by its owners.** Every mutator takes a `RoadmapActor` (`ResolveRoadmapActor`); commands are `IRequireLinkedEmployee` and **must `.Include(x => x.Owners)`**, which fakes cannot check. [Details](../docs/contributing/architecture.mdx#permission-based-vs-membership-based-authorization)
 
 ## Domain Events
 

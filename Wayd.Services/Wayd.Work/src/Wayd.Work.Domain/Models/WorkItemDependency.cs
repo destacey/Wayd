@@ -2,6 +2,7 @@
 using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Enums.Work;
 using NodaTime;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Domain.Models;
 
@@ -9,7 +10,7 @@ public sealed class WorkItemDependency : WorkItemLink
 {
     private WorkItemDependency() : base() { }
 
-    private WorkItemDependency(Guid sourceId, WorkStatusCategory sourceStatusCategory, LocalDate? sourcePlannedDate, Guid targetId, WorkStatusCategory targetStatusCategory, LocalDate? targetPlannedDate, Instant createdOn, Guid? createdById, Instant? removedOn, Guid? removedById, string? comment, Instant now)
+    private WorkItemDependency(Guid sourceId, StatusCategory sourceStatusCategory, LocalDate? sourcePlannedDate, Guid targetId, StatusCategory targetStatusCategory, LocalDate? targetPlannedDate, Instant createdOn, Guid? createdById, Instant? removedOn, Guid? removedById, string? comment, Instant now)
     : base(sourceId, targetId, WorkItemLinkType.Dependency, createdOn, createdById, removedOn, removedById, comment)
     {
         // assign inputs to properties first (important for state calculation)
@@ -23,11 +24,11 @@ public sealed class WorkItemDependency : WorkItemLink
         CalculateStateAndHealth(now);
     }
 
-    public WorkStatusCategory SourceStatusCategory { get; set; }
+    public StatusCategory SourceStatusCategory { get; set; }
 
     public LocalDate? SourcePlannedOn { get; set; }
 
-    public WorkStatusCategory TargetStatusCategory { get; set; }
+    public StatusCategory TargetStatusCategory { get; set; }
 
     public LocalDate? TargetPlannedOn { get; set; }
 
@@ -140,10 +141,10 @@ public sealed class WorkItemDependency : WorkItemLink
 
         State = SourceStatusCategory switch
         {
-            WorkStatusCategory.Proposed => DependencyState.ToDo,
-            WorkStatusCategory.Active => DependencyState.InProgress,
-            WorkStatusCategory.Done => DependencyState.Done,
-            WorkStatusCategory.Removed => DependencyState.Removed,
+            StatusCategory.Proposed => DependencyState.ToDo,
+            StatusCategory.Active => DependencyState.InProgress,
+            StatusCategory.Done => DependencyState.Done,
+            StatusCategory.Removed => DependencyState.Removed,
             _ => throw new ArgumentOutOfRangeException(nameof(SourceStatusCategory), SourceStatusCategory, null)
         };
     }
@@ -173,7 +174,7 @@ public sealed class WorkItemDependency : WorkItemLink
         }
 
         // if the source is not done but the target is active/done/removed -> unhealthy
-        if (TargetStatusCategory is WorkStatusCategory.Active or WorkStatusCategory.Done or WorkStatusCategory.Removed)
+        if (TargetStatusCategory is StatusCategory.Active or StatusCategory.Done or StatusCategory.Removed)
         {
             Health = DependencyPlanningHealth.Unhealthy;
             return;

@@ -7,7 +7,7 @@ import {
   useGetEmployeeWorkItemsQuery,
 } from '@/src/store/features/organizations/employee-api'
 import { useGetEmployeeTeamMembershipsQuery } from '@/src/store/features/organization/team-members-api'
-import { WorkStatusCategory } from '@/src/services/wayd-api'
+import { StatusCategory } from '@/src/services/wayd-api'
 
 jest.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetDirectReportsQuery: jest.fn(),
@@ -36,7 +36,7 @@ const setWorkItems = ({
   completed = [] as any[],
 } = {}) => {
   mockWorkItems.mockImplementation((args: any) =>
-    args.statusCategories?.includes(WorkStatusCategory.Done)
+    args.statusCategories?.includes(StatusCategory.Done)
       ? { data: completed, isLoading: false }
       : { data: open, isLoading: false },
   )
@@ -232,7 +232,7 @@ describe('EmployeeOverview', () => {
 
     // Assert — matches the cycle time report's own default window
     const doneCall = mockWorkItems.mock.calls.find((c) =>
-      c[0].statusCategories?.includes(WorkStatusCategory.Done),
+      c[0].statusCategories?.includes(StatusCategory.Done),
     )
     const doneFrom = new Date(doneCall![0].doneFrom)
     const daysAgo = Math.round(

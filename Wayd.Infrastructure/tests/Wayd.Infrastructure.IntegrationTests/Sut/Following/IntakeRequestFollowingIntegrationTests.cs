@@ -1,5 +1,6 @@
 using Moq;
 using Wayd.Common.Application.Activities;
+using Wayd.Common.Application.Discussions;
 using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Following.Dtos;
 using Wayd.Common.Application.Following.Queries;
@@ -46,6 +47,7 @@ public sealed class IntakeRequestFollowingIntegrationTests(SqlServerDbContextFix
     {
         DemandManagementWorkflowOwners.Register();
         DemandManagementFollowOwners.Register();
+        DemandManagementDiscussionChannels.Register();
         return fixture;
     }
 
@@ -106,7 +108,8 @@ public sealed class IntakeRequestFollowingIntegrationTests(SqlServerDbContextFix
             var resolver = await IntakeStatuses.SeededResolver(act, ct);
             var moved = await new RerouteIntakeRequestCommandHandler(act, Principal(agent.Id), User(), Clock(), resolver)
                 .Handle(new RerouteIntakeRequestCommand(reroutedId, privateDeskId, ConfirmWiderVisibility: false), ct);
-            var removed = await new DeleteIntakeRequestCommandHandler(act, Principal(agent.Id), User(), Clock())
+            var removed = await new DeleteIntakeRequestCommandHandler(act, Principal(agent.Id), User(), Clock(),
+                    new DiscussionWriter(act, [], Principal(agent.Id), User(), Clock()))
                 .Handle(new DeleteIntakeRequestCommand(deletedId), ct);
             var unshared = await new RemoveIntakeRequestParticipantCommandHandler(act, Principal(agent.Id), User(), Clock())
                 .Handle(new RemoveIntakeRequestParticipantCommand(sharedId, follower.Id), ct);

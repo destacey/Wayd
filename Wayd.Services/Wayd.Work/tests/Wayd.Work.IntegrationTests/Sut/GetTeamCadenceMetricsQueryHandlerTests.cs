@@ -3,9 +3,9 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Organization;
-using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Settings;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.WorkTeams.Queries;
 using Wayd.Work.IntegrationTests.Infrastructure;
 
@@ -41,12 +41,12 @@ public sealed class GetTeamCadenceMetricsQueryHandlerTests(SqlServerDbContextFix
         await seeder.Reset(cancellationToken);
         var (teamId, _) = await seeder.AddTeam(cancellationToken);
 
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Instant.FromUtc(2026, 9, 1, 15, 0), storyPoints: 3);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Instant.FromUtc(2026, 9, 13, 23, 0), storyPoints: 5);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Instant.FromUtc(2026, 9, 14, 9, 0), storyPoints: 2);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Instant.FromUtc(2026, 9, 21, 9, 0));
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Instant.FromUtc(2026, 9, 2, 9, 0), epic: true);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Removed, done: Instant.FromUtc(2026, 9, 2, 9, 0));
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: Instant.FromUtc(2026, 9, 1, 15, 0), storyPoints: 3);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: Instant.FromUtc(2026, 9, 13, 23, 0), storyPoints: 5);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: Instant.FromUtc(2026, 9, 14, 9, 0), storyPoints: 2);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: Instant.FromUtc(2026, 9, 21, 9, 0));
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: Instant.FromUtc(2026, 9, 2, 9, 0), epic: true);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Removed, done: Instant.FromUtc(2026, 9, 2, 9, 0));
 
         var schedule = new TeamSchedulePeriodDto(Anchor, null, "UTC", 1, SizingMethod.StoryPoints)
         {
@@ -125,7 +125,7 @@ public sealed class GetTeamCadenceMetricsQueryHandlerTests(SqlServerDbContextFix
         var seeder = new ForecastSeeder(_fixture);
         await seeder.Reset(cancellationToken);
         var (teamId, _) = await seeder.AddTeam(cancellationToken);
-        await seeder.AddItem(teamId, cancellationToken, WorkStatusCategory.Done, done: Instant.FromUtc(2026, 9, 14, 4, 0), storyPoints: 5);
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: Instant.FromUtc(2026, 9, 14, 4, 0), storyPoints: 5);
 
         var cadence = ReportingCadence.Create(2, Anchor).Value;
         var earlier = new TeamSchedulePeriodDto(Anchor.PlusDays(-28), Anchor.PlusDays(-1), "America/Chicago", 1, SizingMethod.Count);

@@ -2,10 +2,12 @@
 
 import {
   WaydGrid,
+  WaydGridPager,
   createActionsColumn,
+  useGridPaging,
 } from '@/src/components/common/wayd-grid'
 import { useMemo, useState } from 'react'
-import { Button, Segmented, Typography } from 'antd'
+import { Button, Segmented } from 'antd'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import type { ItemType } from 'antd/es/menu/interface'
 import useAuth from '@/src/components/contexts/auth'
@@ -16,10 +18,6 @@ import {
 } from '@/src/store/features/admin/background-jobs-api'
 import JobDetailsDrawer from './job-details-drawer'
 import useBackgroundJobActions from './use-background-job-actions'
-
-// The API caps a page at 500. Fetch one max-size page and let the grid
-// filter/sort client-side; the overflow note carries the true total.
-const JOB_PAGE_SIZE = 500
 
 const stateOptions = [
   { label: 'Processing', value: JobStateFilter.Processing },
@@ -34,22 +32,27 @@ const JobsTab = () => {
   const [state, setState] = useState<JobStateFilter>(JobStateFilter.Processing)
   const [viewingJobId, setViewingJobId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const paging = useGridPaging()
 
   const { hasPermissionClaim } = useAuth()
   const canRun = hasPermissionClaim('Permissions.BackgroundJobs.Run')
   const canDelete = hasPermissionClaim('Permissions.BackgroundJobs.Delete')
   const showRowActions = canRun || canDelete
 
-  // isLoading, not isFetching: isFetching is true on every poll, which would flash
-  // the grid's loading state every few seconds.
+  // `currentData` for the rows, so a new page or state never shows the last one's rows under its own
+  // label; `data`, the last answer for any page, for the pager, so it holds still while a page loads.
+  // Loading only while there is no current page: a poll refetches the same page and must not flash.
   const {
-    data: jobs,
-    isLoading,
+    data: lastJobs,
+    currentData: jobs,
+    isFetching,
     refetch,
   } = useGetJobsQuery(
-    { state, pageSize: JOB_PAGE_SIZE },
+    { state, page: paging.page, pageSize: paging.pageSize },
     { pollingInterval: JOB_LIST_POLLING_MS },
   )
+
+  paging.keepInRange(lastJobs?.totalPages)
 
   const { handleRequeue, handleDelete } = useBackgroundJobActions()
 
@@ -162,31 +165,31 @@ const JobsTab = () => {
     jobs,
   ])
 
-  const overflow = jobs && jobs.totalCount > jobs.items.length
-
   return (
     <>
       <Segmented
         options={stateOptions}
         value={state}
-        onChange={(value) => setState(value as JobStateFilter)}
+        onChange={(value) => {
+          setState(value as JobStateFilter)
+          paging.resetPage()
+        }}
         style={{ marginBottom: 12 }}
       />
       <WaydGrid
         columns={columns}
         data={jobs?.items}
         onRefresh={refetch}
-        isLoading={isLoading}
+        isLoading={!jobs && isFetching}
         persistStateKey="settings-background-jobs-list"
         csvFileName="background-jobs"
-        initialSorting={[{ id: 'timestamp', desc: true }]}
         emptyMessage="There are no jobs in this state."
-        leftSlot={
-          overflow ? (
-            <Typography.Text type="warning">
-              {`Showing the first ${jobs.items.length} of ${jobs.totalCount} jobs.`}
-            </Typography.Text>
-          ) : undefined
+        rightSlot={
+          <WaydGridPager
+            paging={paging}
+            totalCount={lastJobs?.totalCount}
+            noun="jobs"
+          />
         }
       />
       {viewingJobId !== null && (

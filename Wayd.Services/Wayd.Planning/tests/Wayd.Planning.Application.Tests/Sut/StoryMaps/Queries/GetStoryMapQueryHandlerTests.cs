@@ -1,5 +1,8 @@
 using Wayd.Common.Application.Models;
+using Wayd.Common.Domain.Enums;
+using Wayd.Planning.Application.StoryMaps;
 using Wayd.Planning.Application.StoryMaps.Queries;
+using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Models.StoryMaps;
 using Wayd.Planning.Domain.Tests.Data;
@@ -12,17 +15,18 @@ namespace Wayd.Planning.Application.Tests.Sut.StoryMaps.Queries;
 /// </summary>
 public class GetStoryMapQueryHandlerTests : IDisposable
 {
+    private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly GetStoryMapQueryHandler _handler;
 
     public GetStoryMapQueryHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _handler = new GetStoryMapQueryHandler(_dbContext);
+        _handler = new GetStoryMapQueryHandler(_dbContext, _access);
     }
 
     private static StoryMap CreateMap() =>
-        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", Guid.NewGuid().ToString(), "Goal", "Step");
+        StoryMapFakerExtensions.CreateSeeded("Map", "Desc", null, "Goal", "Step").WithPeopleLinked();
 
     [Fact]
     public async Task Handle_ShouldReturnTheMap_WhenFoundById()
@@ -45,7 +49,7 @@ public class GetStoryMapQueryHandlerTests : IDisposable
     public async Task Handle_ShouldReturnTheMap_WhenFoundByKey()
     {
         // Arrange
-        var map = new StoryMapFaker().WithKey(42).Generate();
+        var map = new StoryMapFaker().WithKey(42).Generate().WithPeopleLinked();
         _dbContext.AddStoryMap(map);
 
         // Act
@@ -80,7 +84,7 @@ public class GetStoryMapQueryHandlerTests : IDisposable
         // Arrange — unlike the list query, the detail query does not filter by status. An archived
         // map is still readable; it is only writes that are blocked.
         var map = CreateMap();
-        map.Archive();
+        map.Archive(StoryMapActors.Owner);
         _dbContext.AddStoryMap(map);
 
         // Act
@@ -98,7 +102,7 @@ public class GetStoryMapQueryHandlerTests : IDisposable
         // Arrange
         var map = CreateMap();
         var stepId = map.Goals.Single().Steps.Single().Id;
-        map.AddTask(stepId, "A task");
+        map.AddTask(stepId, "A task", null, StoryMapActors.Owner);
         _dbContext.AddStoryMap(map);
 
         // Act
@@ -117,8 +121,8 @@ public class GetStoryMapQueryHandlerTests : IDisposable
     {
         // Arrange
         var map = CreateMap();
-        map.AddSwimLane("Release 1");
-        map.AddPersona("Engineer", null, "#4096FF");
+        map.AddSwimLane("Release 1", StoryMapActors.Owner);
+        map.AddPersona("Engineer", null, "#4096FF", StoryMapActors.Owner);
         _dbContext.AddStoryMap(map);
 
         // Act
@@ -130,6 +134,57 @@ public class GetStoryMapQueryHandlerTests : IDisposable
         result.Should().NotBeNull();
         result!.SwimLanes.Should().HaveCount(2);
         result.Personas.Should().ContainSingle(p => p.Name == "Engineer");
+    }
+
+    [Fact]
+    public async Task Handle_PrivateMapTheReaderIsNotOn_ShouldReturnNull()
+    {
+        // Arrange
+        var map = new StoryMapFaker().WithVisibility(Visibility.Private).Generate().WithPeopleLinked();
+        _dbContext.AddStoryMap(map);
+        _access.Reader = new StoryMapReader(StoryMapActors.Viewer.EmployeeId, false, [], false);
+
+        // Act
+        var result = await _handler.Handle(new GetStoryMapQuery(new IdOrKey(map.Id.ToString())), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("owner", true, true)]
+    [InlineData("editor team member", false, true)]
+    [InlineData("viewer", false, false)]
+    [InlineData("administrator", true, true)]
+    [InlineData("read-only owner", false, false)]
+    [InlineData("no employee", false, false)]
+    public async Task Handle_ShouldSayWhetherTheReaderCanManageAndEdit(string reader, bool canManage, bool canEdit)
+    {
+        // Arrange — a public map only its owners and editors can change.
+        var teamId = Guid.NewGuid();
+        var map = new StoryMapFaker()
+            .WithEditAccess(StoryMapEditAccess.OwnersAndEditors)
+            .WithEditorTeams(teamId)
+            .Generate()
+            .WithPeopleLinked();
+        _dbContext.AddStoryMap(map);
+        _access.Reader = reader switch
+        {
+            "owner" => new StoryMapReader(StoryMapActors.OwnerEmployeeId, false, [], false),
+            "editor team member" => new StoryMapReader(Guid.NewGuid(), false, [teamId], false),
+            "viewer" => new StoryMapReader(StoryMapActors.Viewer.EmployeeId, false, [], false),
+            "administrator" => new StoryMapReader(Guid.NewGuid(), true, [], false),
+            "read-only owner" => new StoryMapReader(StoryMapActors.OwnerEmployeeId, false, [], true),
+            _ => new StoryMapReader(null, false, [], false),
+        };
+
+        // Act
+        var result = await _handler.Handle(new GetStoryMapQuery(new IdOrKey(map.Id.ToString())), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.CanManage.Should().Be(canManage);
+        result.CanEdit.Should().Be(canEdit);
     }
 
     public void Dispose() => GC.SuppressFinalize(this);

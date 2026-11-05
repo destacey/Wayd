@@ -44,10 +44,3 @@ public sealed record ImportProcessDto(
     /// <summary>Whether the run has finished, so a caller polling it knows when to stop.</summary>
     public bool IsTerminal => ImportProcess.IsTerminalStatus(Status);
 }
-
-/// <summary>A page of runs, with the total so a UI can page without a second call.</summary>
-public sealed record ImportProcessPageDto(
-    IReadOnlyList<ImportProcessDto> Processes,
-    int TotalCount,
-    int PageNumber,
-    int PageSize);

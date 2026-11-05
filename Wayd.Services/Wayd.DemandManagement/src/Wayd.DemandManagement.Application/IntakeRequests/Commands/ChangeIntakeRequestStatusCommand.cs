@@ -1,5 +1,9 @@
+using Wayd.Common.Application.Discussions;
 using Wayd.Common.Application.StatusWorkflows;
+using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
@@ -11,13 +15,28 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
 /// Needs an agent on the request's desk, with no claim beside it. Declining, marking a duplicate and finishing
 /// with no outcome need a reason the requester can read; marking a duplicate needs the surviving request, which the
 /// agent must be able to see. Withdrawing is the requester's, through <see cref="WithdrawIntakeRequestCommand"/>.
+/// <para>
+/// A reply posted with the move is saved with it, so asking the requester a question and moving the request to
+/// Waiting on Requester is one action, and the conversation shows the move on the message.
+/// </para>
 /// </remarks>
 /// <param name="Id">The request.</param>
 /// <param name="StatusId">A status of the workflow governing the request's desk.</param>
 /// <param name="Reason">Why, as the requester reads it.</param>
 /// <param name="DuplicateOfId">For a status meaning Duplicate, the request this one gives way to.</param>
-public sealed record ChangeIntakeRequestStatusCommand(Guid Id, Guid StatusId, string? Reason, Guid? DuplicateOfId)
+/// <param name="Reply">A reply to post in the request's conversation with the move, or null for none.</param>
+public sealed record ChangeIntakeRequestStatusCommand(
+    Guid Id,
+    Guid StatusId,
+    string? Reason,
+    Guid? DuplicateOfId,
+    IntakeRequestReply? Reply = null)
     : ICommand, IRequireLinkedEmployee;
+
+/// <summary>A top-level reply in an intake request's conversation, posted with another change to the request.</summary>
+/// <param name="Subject">An optional subject; blank means none.</param>
+/// <param name="Body">The reply as markdown, mentions written <c>@[Name](employee:{id})</c>.</param>
+public sealed record IntakeRequestReply(string? Subject, string Body);
 
 public sealed class ChangeIntakeRequestStatusCommandValidator : CustomValidator<ChangeIntakeRequestStatusCommand>
 {
@@ -27,6 +46,11 @@ public sealed class ChangeIntakeRequestStatusCommandValidator : CustomValidator<
         RuleFor(c => c.StatusId).NotEmpty();
         RuleFor(c => c.Reason).MaximumLength(1024);
         RuleFor(c => c.DuplicateOfId).NotEqual(Guid.Empty);
+        When(c => c.Reply is not null, () =>
+        {
+            RuleFor(c => c.Reply!.Subject).MaximumLength(DiscussionMessage.SubjectMaxLength);
+            RuleFor(c => c.Reply!.Body).NotEmpty().MaximumLength(DiscussionMessage.BodyMaxLength);
+        });
     }
 }
 
@@ -35,7 +59,8 @@ public sealed class ChangeIntakeRequestStatusCommandHandler(
     ICurrentPrincipal currentPrincipal,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
-    IStatusResolver statusResolver)
+    IStatusResolver statusResolver,
+    IDiscussionWriter discussionWriter)
     : ICommandHandler<ChangeIntakeRequestStatusCommand>
 {
     /// <summary>The failure for a surviving request that does not exist or that the agent cannot see.</summary>
@@ -46,6 +71,7 @@ public sealed class ChangeIntakeRequestStatusCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IStatusResolver _statusResolver = statusResolver;
+    private readonly IDiscussionWriter _discussionWriter = discussionWriter;
 
     public async Task<Result> Handle(ChangeIntakeRequestStatusCommand request, CancellationToken cancellationToken)
     {
@@ -89,7 +115,27 @@ public sealed class ChangeIntakeRequestStatusCommandHandler(
         if (result.IsFailure)
             return result;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        if (request.Reply is not { } reply)
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            return Result.Success();
+        }
+
+        var change = intakeRequest.DomainEvents.OfType<IntakeRequestStatusChangedEvent>().LastOrDefault();
+        var posted = await _discussionWriter.Post(new PostDiscussionMessage(DemandManagementDiscussionChannels.IntakeRequest.Key,
+            intakeRequest.Id, DiscussionMessageKind.Public, reply.Subject, reply.Body, change), cancellationToken);
+        if (posted.IsFailure)
+            return Result.Failure(posted.Error);
+
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // Another first post on the request opened its conversation in the same moment.
+            return Result.Failure(DiscussionAccessErrors.Conflict);
+        }
 
         return Result.Success();
     }

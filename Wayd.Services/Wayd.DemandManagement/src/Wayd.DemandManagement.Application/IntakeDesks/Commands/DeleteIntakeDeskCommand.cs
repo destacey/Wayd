@@ -1,3 +1,4 @@
+using Wayd.Common.Application.Discussions;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.DemandManagement.Domain;
 using Wayd.Common.Domain.Events;
@@ -28,7 +29,8 @@ public sealed class DeleteIntakeDeskCommandHandler(
     ICurrentPrincipal currentPrincipal,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
-    IScopedWorkflowAssignments workflowAssignments)
+    IScopedWorkflowAssignments workflowAssignments,
+    IDiscussionWriter discussionWriter)
     : ICommandHandler<DeleteIntakeDeskCommand>
 {
     public const string HasRequestsError = "A desk with requests on it cannot be deleted. Close it instead.";
@@ -38,6 +40,7 @@ public sealed class DeleteIntakeDeskCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IScopedWorkflowAssignments _workflowAssignments = workflowAssignments;
+    private readonly IDiscussionWriter _discussionWriter = discussionWriter;
 
     public async Task<Result> Handle(DeleteIntakeDeskCommand request, CancellationToken cancellationToken)
     {
@@ -60,6 +63,9 @@ public sealed class DeleteIntakeDeskCommandHandler(
             _dateTimeProvider.Now, cancellationToken);
         if (unassigned.IsFailure)
             return unassigned;
+
+        // The desk's conversation settings go with it too; nothing else reads them once the desk is gone.
+        await _discussionWriter.DeleteSettings(DemandManagementDiscussionChannels.IntakeRequest.Key, desk.Id, actor, cancellationToken);
 
         _dbContext.IntakeDesks.Remove(desk);
         try

@@ -74,10 +74,10 @@ public sealed class DeploymentEnvironmentsArea() : ProductManagementSeedArea(
 
 /// <summary>
 /// Loads the catalog in one file. A product's parent has to be a row in the same file, so the whole tree
-/// travels together.
+/// travels together. Each row names the teams that work on it by code, so the teams go first.
 /// </summary>
 public sealed class ProductsArea() : ProductManagementSeedArea(
-    ProductManagementArea.Products, ProductManagementArea.FeatureFlag)
+    ProductManagementArea.Products, ProductManagementArea.FeatureFlag, OrganizationArea.Teams)
 {
     public override bool ShouldRun(SeedContext context) => context.ProductManagement?.Products.Count > 0;
 
@@ -95,6 +95,7 @@ public sealed class ProductsArea() : ProductManagementSeedArea(
             ParentImportId = p.ParentName,
             Status = p.Status,
             Tags = p.Tags,
+            Teams = p.Teams,
         });
 
         var run = await context.Client.ImportProducts(CsvFile.ToBytes(rows), cancellationToken);

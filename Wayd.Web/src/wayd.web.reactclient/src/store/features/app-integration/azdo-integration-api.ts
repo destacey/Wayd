@@ -1,7 +1,6 @@
 import {
   AzdoConnectionTeamMappingsRequest,
   AzureDevOpsWorkspaceTeamDto,
-  InitWorkProcessIntegrationRequest,
   InitWorkspaceIntegrationRequest,
   TestAzureDevOpsConnectionRequest,
 } from '@/src/services/wayd-api'
@@ -12,6 +11,12 @@ import { QueryTags } from '../query-tags'
 export interface GetAzdoConnectionTeamsRequest {
   connectionId: string
   workspaceId: string | null
+}
+
+export interface SetAzdoWorkspaceSyncRequest {
+  connectionId: string
+  workspaceExternalId: string
+  isEnabled: boolean
 }
 
 export const azdoIntegrationApi = apiSlice.injectEndpoints({
@@ -38,17 +43,14 @@ export const azdoIntegrationApi = apiSlice.injectEndpoints({
       },
     }),
 
-    initAzdoConnectionWorkProcess: builder.mutation<
-      void,
-      InitWorkProcessIntegrationRequest
-    >({
+    setAzdoWorkspaceSync: builder.mutation<void, SetAzdoWorkspaceSyncRequest>({
       queryFn: async (request) => {
         try {
-          const data =
-            await getAzureDevOpsConnectionsClient().initWorkProcessIntegration(
-              request.id,
-              request,
-            )
+          const data = await getAzureDevOpsConnectionsClient().setWorkspaceSync(
+            request.connectionId,
+            request.workspaceExternalId,
+            { isEnabled: request.isEnabled },
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -57,9 +59,9 @@ export const azdoIntegrationApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (result, error, arg) => {
         return [
-          { type: QueryTags.AzdoConnectionDetail, id: arg.id },
-          { type: QueryTags.ConnectionDetail, id: arg.id },
-          { type: QueryTags.Connection, id: arg.id },
+          { type: QueryTags.AzdoConnectionDetail, id: arg.connectionId },
+          { type: QueryTags.ConnectionDetail, id: arg.connectionId },
+          { type: QueryTags.Connection, id: arg.connectionId },
         ]
       },
     }),
@@ -158,7 +160,7 @@ export const azdoIntegrationApi = apiSlice.injectEndpoints({
 
 export const {
   useSyncAzdoConnectionOrganizationMutation,
-  useInitAzdoConnectionWorkProcessMutation,
+  useSetAzdoWorkspaceSyncMutation,
   useInitAzdoConnectionWorkspaceMutation,
   useGetAzdoConnectionTeamsQuery,
   useMapAzdoConnectionTeamsMutation,

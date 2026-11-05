@@ -1,13 +1,13 @@
 ---
 title: MCP Server
-description: The hosted MCP endpoint, and changing and releasing the @wayd/mcp package.
+description: The MCP endpoint, its tools, and the skill evaluation.
 sidebar_position: 7.8
 audience: [developer, agent]
 ---
 
 # MCP Server
 
-Wayd exposes its API as agent tools in two ways: the hosted endpoint at `/mcp`, served by `Wayd.Web.Api`, and the `@wayd/mcp` npm package, which is being retired once the hosted endpoint has replaced it.
+Wayd exposes its API as agent tools at `/mcp`, served by `Wayd.Web.Api`. It replaced the `@wayd/mcp` npm package, which is retired: its last version tells users where to move, and it is deprecated on npm rather than unpublished, since existing configurations name it.
 
 ## The hosted endpoint
 
@@ -60,7 +60,7 @@ Wayd exposes its API as agent tools in two ways: the hosted endpoint at `/mcp`, 
 - **Result size** is capped at `ApiToolResult.MaxResultLength` characters (about 20,000 tokens), because most list endpoints return every matching record. A longer answer has items dropped from the end of its lists until it fits: the body itself when it is an array, otherwise the arrays directly on it, largest first, so a summary beside a list survives whole. A second text block then says what was kept and how to ask for the rest; it stays out of `structuredContent`, which must still match the output schema. Nested lists are not cut, so a tree loses whole top-level nodes. A result that is a list keeps at least one item even when that item alone is over the limit, and a single record with no list is returned whole.
 - **`offset`** reaches the rest of a cut list. The catalogue adds it to every read tool whose result is an array, unless the endpoint already pages or limits its own answer (`page`, `pageNumber`, `pageSize`, `take`, `top`, `limit`): an offset there would slice only the rows the endpoint chose to return. A whole number sent as `5.0` or as text is accepted, as other arguments are. The tool reads it itself and never sends it: the endpoint still returns the whole list, the tool skips `offset` items and cuts what remains, always keeping one item so each call moves forward, and the note gives the offset that continues (`Call again with offset=74`). Slicing is only consistent while the endpoint's order is, so **a list endpoint orders its query by a unique key**; one that returns rows in whatever order the database chooses can repeat or skip items between calls. A result object holding a list (a record and its children, a rollup and its items) gets no `offset`, and its list is only cut.
 - **Toolset and skill** come from `[McpTools(McpToolset.Ppm, "wayd-ppm")]` on the controller, and every controller with a tool needs one; the catalogue throws on first use otherwise, and when the skill is not a folder in `skills/`. Toolset names are part of client configurations, so never rename one. `[McpTools("wayd-users")]`, with no toolset, offers a controller's tools on every connection as `Skills_Get` is; it is reserved for tools any task may need first, such as `MeController`'s, which tell an agent who the caller is. The skill is named per controller because toolsets and skills do not line up (`planning` spans `wayd-pi`, `wayd-roadmaps` and `wayd-story-maps`): name the skill whose description lists the controller's tool prefix, which `McpToolCatalogTests` checks.
-- **Annotations** default from the HTTP method, as the npm package's did: only GET is read-only, every write starts destructive, PUT and DELETE are idempotent, and every tool is `openWorldHint: false`. Set `ReadOnly`, `Destructive` or `Idempotent` on the attribute only to depart from that. A write is advertised as safe (`Destructive = false`) only when it purely adds a record.
+- **Annotations** default from the HTTP method: only GET is read-only, every write starts destructive, PUT and DELETE are idempotent, and every tool is `openWorldHint: false`. Set `ReadOnly`, `Destructive` or `Idempotent` on the attribute only to depart from that. A write is advertised as safe (`Destructive = false`) only when it purely adds a record.
 
 **A call runs through the endpoint itself.** `ApiPipeline` sends the arguments as an HTTP request through the API's own middleware pipeline, in process, carrying the caller's credentials, or for an OAuth caller the delegated token described above. Authentication, `[MustHavePermission]`, feature gates, model validation, the controller's own checks and the domain's delivery-leadership rules all apply exactly as they do to the same HTTP request, and a refusal comes back as a tool error naming the status and the reason. The per-user rate limit applies too, and it counts the call once, by that inner request: the `/mcp` endpoint itself is exempt, so connecting and listing tools cost nothing. The inner request is held to the user's tier, so an agent acting for a user with `Permissions.RateLimits.Elevated` gets the elevated bucket (see [Rate limits](./configuration.mdx#rate-limits)).
 
@@ -75,50 +75,7 @@ Every connection gets every prompt and `Skills_Get`, whatever toolsets or read-o
 
 **A connection chooses its tools.** `McpToolFilter` reads the toolsets (`toolsets` query parameter, else `X-MCP-Toolsets`) and read-only mode (`readonly`, else `X-MCP-Readonly`) from each request, refusing an unknown name with 400. The server is stateless, so the filter is applied to every request, `tools/call` included: a tool outside the selection cannot be called, and read-only mode, which keeps only tools annotated `readOnlyHint`, is enforced rather than advisory. A write tool wrongly annotated read-only would therefore leak into read-only connections, which is one more reason to leave annotations to the HTTP method.
 
-While the npm package is still published, the hosted endpoint must offer every one of its tools. `Wayd.Web.Api.IntegrationTests/Mcp/npm-tool-parity.json` records each npm tool's name, title, annotations and arguments, plus the server instructions, which the hosted server sends as `McpServerInstructions.Shared` followed by how to fetch a skill, a tool the package does not have. The package's `tests/hosted-parity.test.ts` keeps it current (`UPDATE_PARITY_SNAPSHOT=1` rewrites it), and `McpToolCatalogTests` holds the API to it. A tool added to the npm package must be added to the API; the hosted endpoint may offer more, which is where composite tools live.
-
-## The npm package
-
-The `@wayd/mcp` package in `Wayd.Web/src/Wayd.Mcp` exposes the Wayd API as agent tools. It is published to npm separately from the application, so a deployed API and the MCP clients that call it can drift apart. For connecting a client to it, see [MCP Server](../getting-started/mcp-server.mdx).
-
-### Every shipped change needs a changeset
-
-The package is released with [changesets](https://github.com/changesets/changesets). A change merged to `main` without a changeset is **never released**: the release PR only picks up pending changesets. Nothing else fails, so a renamed or newly added tool can sit unreleased while the API it calls moves on. Clients on the published version then send fields the API no longer reads, or miss fields it now needs.
-
-A change needs a changeset when it touches what the package ships:
-
-- `src/` — tool definitions, the executor, the server
-- `scripts/` — the generators that produce `src/generated/` at build time
-- `README.md` and `package.json`
-- the API's OpenAPI document (`Wayd.Web.Api/wwwroot/api/v1/specification.json`), **when it changes an import endpoint**. The import file formats are generated from it, so changing an import row class changes the package even when no MCP file changes.
-
-Add one from `Wayd.Web/src/Wayd.Mcp`:
-
-```bash
-npx changeset          # choose patch / minor / major and describe the change
-npx changeset --empty  # the change ships nothing worth releasing, on purpose
-```
-
-The package is pre-1.0, so a breaking change to a tool's inputs (a renamed or removed field) is a `minor` bump, and fixes are `patch`. Write the summary for the people calling the tools: name the tools and fields that changed, and what a caller sends now.
-
-### How it is enforced
-
-`.github/scripts/mcp-changeset-check.sh` fails when a branch changes any of the above without adding a changeset. A spec change counts only when regenerating the import formats from it changes them, so most API changes are unaffected.
-
-- **CI** runs it as the `changeset` job of the MCP workflow on every pull request that touches the package or the spec. The release PR (`changeset-release/main`) is exempt, since it consumes the changesets.
-- **The `pre-push` hook** runs it before every push, so you see it before the pull request does. It is enabled with the other hooks: `git config core.hooksPath .githooks`, once per clone. It skips itself, with a note, until `npm ci` has run in `Wayd.Web/src/Wayd.Mcp`. Bypass it with `git push --no-verify`.
-
-Run it by hand against any base:
-
-```bash
-bash .github/scripts/mcp-changeset-check.sh origin/main
-```
-
-### Release flow
-
-1. A pull request merges to `main` with its changeset.
-2. The MCP workflow opens or updates the release PR, which bumps the version and writes `CHANGELOG.md`.
-3. Merging the release PR publishes the package to npm and tags it `wayd-mcp-v<version>`.
+**Published tool names are a contract.** Skills, prompts and client configurations name tools, so a tool is never renamed or removed. `Wayd.Web.Api.IntegrationTests/Mcp/published-tools.json` records every tool the retired npm package published, with its title, annotations and arguments, and `McpToolCatalogTests` holds the endpoint to it: each one is still offered, accepts every argument it took, and requires nothing more. The same tests check that the user docs (`docs/getting-started/mcp-server.mdx`) and the skill evaluation's scenarios name only tools that exist, and that the docs list every skill.
 
 ## Skill layout
 
@@ -126,4 +83,4 @@ Each skill in `skills/` is a folder whose `SKILL.md` is the overview an agent lo
 
 ## Skill evaluation
 
-The skills in `skills/` are tested by scenarios in `Wayd.Web/src/Wayd.Mcp/evals/`: a user request, canned API responses, and the tool calls a correct run makes. Each runs through Claude Code against a stub of the MCP server, with and without the skills, on each model, and is graded on its tool calls. Run it before and after changing a skill, and add a scenario when a skill gains guidance worth testing. The stub serves only the npm package's tools, so a skill whose tools only the hosted endpoint offers (`wayd-employees`, `wayd-estimation`) has no scenarios and is not held to the three-scenario minimum. `npm test` checks that every scenario is well-formed; the evaluation itself is run by hand, because it uses a Claude Code plan. See the [evaluation README](https://github.com/destacey/Wayd/blob/main/Wayd.Web/src/Wayd.Mcp/evals/README.md).
+The skills in `skills/` are tested by scenarios in `evals/`: a user request, canned API responses, and the tool calls a correct run makes. Each runs through Claude Code against a stub of the MCP server, with and without the skills, on each model, and is graded on its tool calls. The stub advertises the hosted server's tools and instructions from a catalogue fetched from a running API (`npm run catalog`), and answers from the scenario's fixtures. Run it before and after changing a skill, and add a scenario when a skill gains guidance worth testing; a skill with scenarios has at least three. `npm test` in `evals/` checks that every scenario is well-formed, and `McpToolCatalogTests` that every tool it names exists; the evaluation itself is run by hand, because it uses a Claude Code plan. See the [evaluation README](https://github.com/destacey/Wayd/blob/main/evals/README.md).

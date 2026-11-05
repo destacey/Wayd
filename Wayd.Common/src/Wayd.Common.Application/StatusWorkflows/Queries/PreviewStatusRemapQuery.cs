@@ -36,7 +36,9 @@ public sealed class PreviewStatusRemapQueryHandler(
     {
         var assignment = await _dbContext.WorkflowAssignments
             .AsNoTracking()
-            .FirstOrDefaultAsync(a => a.Id == request.AssignmentId, cancellationToken);
+            .Where(a => a.Id == request.AssignmentId)
+            .Select(a => new { a.OwnerType, a.ScopeId, WorkflowId = a.Scheme!.DefaultWorkflowId })
+            .FirstOrDefaultAsync(cancellationToken);
 
         // The target must share the assignment's owner type, which the remap checks, so the assignment
         // alone decides whether either side is hidden.
@@ -82,52 +84,64 @@ public sealed class PreviewStatusRemapQueryHandler(
             counts = counted.Value;
         }
 
-        var descriptor = WorkflowOwners.Resolve(current.OwnerType);
-        var aliasNames = descriptor.IsSuccess ? descriptor.Value.Aliases : new Dictionary<int, string>();
+        return Result.Success(ToPreview(current, target, remap.Value, counts));
+    }
 
-        var targets = target.Statuses.ToList();
+    /// <summary>
+    /// How each status of <paramref name="current"/> lands in <paramref name="target"/> under the remap, with
+    /// the records on each. Both workflows need their statuses loaded.
+    /// </summary>
+    internal static StatusRemapPreviewDto ToPreview(
+        StatusWorkflow current, StatusWorkflow target, StatusRemap remap, IReadOnlyDictionary<Guid, int> counts)
+    {
+        var descriptor = WorkflowOwners.Resolve(current.OwnerType);
+        var owner = descriptor.IsSuccess ? descriptor.Value : null;
+
+        var targets = target.ActiveStatuses.ToList();
 
         var entries = current.Statuses
             .Select(source =>
             {
-                var mapped = remap.Value.For(source.Id);
+                var mapped = remap.For(source.Id);
                 var match = targets.FirstOrDefault(t => mapped is not null && t.Id == mapped.StatusId);
 
                 return new StatusRemapEntryDto
                 {
-                    From = Describe(source, aliasNames),
-                    To = match is null ? null : Describe(match, aliasNames),
+                    From = Describe(source, owner),
+                    To = match is null ? null : Describe(match, owner),
                     MatchedBy = DescribeMatch(source, match, targets),
                     RecordCount = counts.TryGetValue(source.Id, out var count) ? count : 0,
                 };
             })
             .ToList();
 
-        return Result.Success(new StatusRemapPreviewDto
+        return new StatusRemapPreviewDto
         {
             From = new NavigationDto { Id = current.Id, Key = current.Key, Name = current.Name },
             To = new NavigationDto { Id = target.Id, Key = target.Key, Name = target.Name },
             Entries = entries,
-            IsComplete = remap.Value.IsComplete,
+            IsComplete = remap.IsComplete,
             AffectedRecordCount = counts.Values.Sum(),
-        });
+        };
     }
 
     /// <summary>
     /// One status, in the shape the rest of the API uses for them.
     /// </summary>
-    private static WorkflowStatusDto Describe(WorkflowStatus status, IReadOnlyDictionary<int, string> aliasNames) =>
+    private static WorkflowStatusDto Describe(WorkflowStatus status, WorkflowOwnerDescriptor? owner) =>
         new()
         {
             Id = status.Id,
             Name = status.Name,
             Description = status.Description,
-            Category = SimpleNavigationDto.FromEnum(status.Category),
+            Category = StatusCategoryNavigation.For(status.Category, owner),
             Alias = status.Alias,
-            AliasName = status.Alias != StatusWorkflow.NoAlias && aliasNames.TryGetValue(status.Alias, out var name)
+            AliasName = status.Alias != StatusWorkflow.NoAlias && owner is not null && owner.Aliases.TryGetValue(status.Alias, out var name)
                 ? name
                 : null,
             Order = status.Order,
+            ExternalKey = status.ExternalKey,
+            IsRetired = status.IsRetired,
         };
 
     /// <summary>

@@ -1,23 +1,23 @@
 'use client'
 
 import { Tag } from 'antd'
-import { WorkStatusCategory } from '../../types'
+import { StatusCategoryId } from '../../types'
 import { FC, memo } from 'react'
 
 export interface WorkStatusTagProps {
   status: string
-  category: WorkStatusCategory
+  category: StatusCategoryId
 }
 
-const getTagColor = (category: WorkStatusCategory): string => {
+const getTagColor = (category: StatusCategoryId): string => {
   switch (category) {
-    case WorkStatusCategory.Proposed:
+    case StatusCategoryId.Proposed:
       return 'default'
-    case WorkStatusCategory.Active:
+    case StatusCategoryId.Active:
       return 'processing'
-    case WorkStatusCategory.Done:
+    case StatusCategoryId.Done:
       return 'success'
-    case WorkStatusCategory.Removed:
+    case StatusCategoryId.Removed:
       return 'warning'
     default:
       return 'default'

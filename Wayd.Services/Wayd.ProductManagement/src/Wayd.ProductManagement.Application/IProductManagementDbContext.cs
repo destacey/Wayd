@@ -14,6 +14,8 @@ public interface IProductManagementDbContext : IWaydDbContext
     DbSet<ProductTag> ProductTags { get; }
     DbSet<ProductTagAssignment> ProductTagAssignments { get; }
     DbSet<ProductDependency> ProductDependencies { get; }
+    DbSet<ProductTeam> ProductTeams { get; }
+    DbSet<ProductTeamLink> ProductTeamLinks { get; }
     DbSet<Version> Versions { get; }
     DbSet<Release> Releases { get; }
     DbSet<ReleaseVersion> ReleaseVersions { get; }

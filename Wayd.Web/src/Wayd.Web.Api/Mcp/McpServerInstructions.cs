@@ -11,17 +11,11 @@ namespace Wayd.Web.Api.Mcp;
 /// </remarks>
 public static class McpServerInstructions
 {
-    /// <summary>
-    /// The instructions the hosted server sends: <see cref="Shared"/>, then how to fetch a skill, which only
-    /// the hosted server can serve.
-    /// </summary>
-    public const string Text = Shared + " " + SkillsGuidance + " " + SelfGuidance;
+    /// <summary>The instructions the server sends: the cross-tool rules, how to fetch a skill, and how to find the caller.</summary>
+    public const string Text = Rules + " " + SkillsGuidance + " " + SelfGuidance;
 
-    /// <summary>
-    /// The instructions this server shares word for word with <c>@wayd/mcp</c>, which the parity snapshot
-    /// holds them to.
-    /// </summary>
-    public const string Shared =
+    /// <summary>The rules that hold for every tool: confirmation, whole-record writes, ids and dates.</summary>
+    private const string Rules =
         "Wayd tools read and change live delivery data that other people rely on. " +
         "Confirm every change with the user before you make it: before a call that creates, updates, tags, moves, changes the status of, or deletes anything, say what will change and wait for their go-ahead, then do only what they approved. " +
         "Updates are whole-record overwrites, not patches: read the record first and pass back every field that should stay, because an omitted field is cleared. " +

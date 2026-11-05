@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -900,7 +901,8 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
 
     /// <summary>
     /// Creates a planning interval spanning today with one team objective and returns both ids. The team's
-    /// Planning copy is written directly, with the team's events cleared so replication does not race it.
+    /// Planning copy comes from replication, never a direct write: <c>Team.Create</c> raises its events after
+    /// the save, so <c>ClearDomainEvents</c> cannot stop them, and a direct write races the handler for the Id.
     /// </summary>
     private async Task<(Guid PlanningIntervalId, Guid ObjectiveId)> CreatePlanningIntervalObjective()
     {
@@ -914,13 +916,10 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
         var code = $"M{Guid.NewGuid():N}"[..8].ToUpperInvariant();
         var team = Team.Create($"MCP {code}", new TeamCode(code), null, today.PlusDays(-90),
             Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, EventActor.System, now);
-        team.ClearDomainEvents();
         organizationDbContext.Teams.Add(team);
         await organizationDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var planningTeam = new PlanningTeam(team, now);
-        planningDbContext.PlanningTeams.Add(planningTeam);
-        await planningDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var planningTeam = await WaitForPlanningTeam(planningDbContext, team.Id);
 
         var interval = PlanningInterval.Create($"MCP PI {Guid.NewGuid():N}"[..20], null,
             new LocalDateRange(today.PlusDays(-28), today.PlusDays(28)), 2, "Iteration ", EventActor.System, now);
@@ -932,6 +931,27 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
         await planningDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return (interval.Value.Id, objective.Value.Id);
+    }
+
+    /// <summary>
+    /// Returns the Planning module's copy of a team, tracked by <paramref name="planningDbContext"/>, once
+    /// replication has delivered it. Delivery is asynchronous, so the copy can lag the team's save.
+    /// </summary>
+    private static async Task<PlanningTeam> WaitForPlanningTeam(IPlanningDbContext planningDbContext, Guid teamId)
+    {
+        var timeout = TimeSpan.FromSeconds(30);
+        var elapsed = Stopwatch.StartNew();
+        while (elapsed.Elapsed < timeout)
+        {
+            var planningTeam = await planningDbContext.PlanningTeams
+                .FirstOrDefaultAsync(t => t.Id == teamId, TestContext.Current.CancellationToken);
+            if (planningTeam is not null)
+                return planningTeam;
+
+            await Task.Delay(250, TestContext.Current.CancellationToken);
+        }
+
+        throw new TimeoutException($"Team {teamId} was not replicated to Planning within {timeout.TotalSeconds} seconds.");
     }
 
     private async Task CreateTeam()

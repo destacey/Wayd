@@ -64,6 +64,22 @@ public sealed class GetImportDefinitionsQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ListsAnImportWhoseAreaIsSwitchedOffAsNotEnabled()
+    {
+        // Arrange
+        _principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _teams.IsEnabledOverride = false;
+
+        // Act
+        var result = await Get();
+
+        // Assert — still listed, so its runs stay readable and a seed can plan for it before switching it on
+        result.Single(d => d.Key == _teams.Key).Should().Match<Application.Imports.Dtos.ImportDefinitionDto>(d => d.CanSubmit && !d.IsEnabled);
+        result.Single(d => d.Key == _employees.Key).IsEnabled.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task Handle_OrdersByDisplayNameForThePicker()
     {
         // Arrange

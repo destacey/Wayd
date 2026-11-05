@@ -1,14 +1,14 @@
 ﻿using System.Linq.Expressions;
 using Wayd.Common.Domain.Enums.Planning;
-using Wayd.Common.Domain.Enums.Work;
 using NodaTime;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Domain.Models;
 
 public sealed record DependencyWorkItemInfo
 {
     public Guid WorkItemId { get; set; }
-    public WorkStatusCategory StatusCategory { get; set; }
+    public StatusCategory StatusCategory { get; set; }
     /// <summary>The last planned day of the work item's sprint, when it is in one.</summary>
     public LocalDate? PlannedOn { get; set; }
 

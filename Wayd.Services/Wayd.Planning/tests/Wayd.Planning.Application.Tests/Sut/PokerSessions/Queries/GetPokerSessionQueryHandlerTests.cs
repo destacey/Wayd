@@ -1,3 +1,5 @@
+using Wayd.Planning.Application.PokerSessions;
+using Wayd.Common.Domain.Enums;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
@@ -18,6 +20,7 @@ namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Queries;
 /// </summary>
 public class GetPokerSessionQueryHandlerTests : IDisposable
 {
+    private readonly FakePokerSessionAccess _access = new();
     private static readonly Instant VotedOn = Instant.FromUtc(2026, 1, 15, 10, 0);
 
     private readonly FakePlanningDbContext _dbContext;
@@ -26,6 +29,7 @@ public class GetPokerSessionQueryHandlerTests : IDisposable
 
     private readonly User _viewer;
     private readonly User _otherParticipant;
+    private readonly EstimationScale _scale = new EstimationScaleFaker().WithValues("1", "2", "3", "5", "8", "?").Generate();
 
     public GetPokerSessionQueryHandlerTests()
     {
@@ -36,16 +40,16 @@ public class GetPokerSessionQueryHandlerTests : IDisposable
         _mockCurrentUser = new Mock<ICurrentUser>();
         _mockCurrentUser.Setup(u => u.GetUserId()).Returns(_viewer.Id);
 
-        _handler = new GetPokerSessionQueryHandler(_dbContext, _mockCurrentUser.Object);
+        _handler = new GetPokerSessionQueryHandler(_dbContext, _access, _mockCurrentUser.Object);
     }
 
     private PokerSession CreateSessionWithVotes()
     {
-        var session = new PokerSessionFaker().WithStatus(PokerSessionStatus.Active).Generate();
-        session.AddRound("Story to estimate");
+        var session = new PokerSessionFaker().WithStatus(PokerSessionStatus.Active).WithEstimationScale(_scale).Generate();
+        session.AddRound("Story to estimate", null, PokerSessionActors.Facilitator);
         var round = session.Rounds.First();
-        session.SubmitVote(round.Id, _viewer.Id, "5", new EstimationScaleFaker().WithId(session.EstimationScaleId).Generate(), VotedOn);
-        session.SubmitVote(round.Id, _otherParticipant.Id, "8", new EstimationScaleFaker().WithId(session.EstimationScaleId).Generate(), VotedOn);
+        session.SubmitVote(round.Id, "5", _scale.CurrentVersion, PokerSessionActors.Voter(_viewer.Id), VotedOn);
+        session.SubmitVote(round.Id, "8", _scale.CurrentVersion, PokerSessionActors.Voter(_otherParticipant.Id), VotedOn);
 
         LinkParticipants(round);
         _dbContext.AddPokerSession(session);
@@ -121,7 +125,7 @@ public class GetPokerSessionQueryHandlerTests : IDisposable
     {
         // Arrange
         var session = CreateSessionWithVotes();
-        session.RevealRound(session.Rounds.First().Id);
+        session.RevealRound(session.Rounds.First().Id, PokerSessionActors.Facilitator);
 
         // Act
         var result = await _handler.Handle(
@@ -139,8 +143,8 @@ public class GetPokerSessionQueryHandlerTests : IDisposable
         // Arrange
         var session = CreateSessionWithVotes();
         var roundId = session.Rounds.First().Id;
-        session.RevealRound(roundId);
-        session.SetConsensus(roundId, "8");
+        session.RevealRound(roundId, PokerSessionActors.Facilitator);
+        session.SetConsensus(roundId, "8", _scale.CurrentVersion, PokerSessionActors.Facilitator);
 
         // Act
         var result = await _handler.Handle(
@@ -163,6 +167,23 @@ public class GetPokerSessionQueryHandlerTests : IDisposable
         // Act
         var result = await _handler.Handle(
             new GetPokerSessionQuery(new IdOrKey(Guid.NewGuid().ToString())),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnNull_WhenThePrivateSessionDoesNotAdmitTheCaller()
+    {
+        // Arrange
+        var session = new PokerSessionFaker().WithEstimationScale(_scale).WithVisibility(Visibility.Private).WithFacilitators(Guid.NewGuid()).Generate();
+        _dbContext.AddPokerSession(session);
+        _access.Reader = new PokerSessionReader(Guid.NewGuid(), false, [], false);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetPokerSessionQuery(new IdOrKey(session.Id.ToString())),
             TestContext.Current.CancellationToken);
 
         // Assert

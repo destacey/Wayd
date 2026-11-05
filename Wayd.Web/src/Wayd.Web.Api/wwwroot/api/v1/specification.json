@@ -30599,6 +30599,46 @@
             "ApiKey": [ ]
           }
         ]
+      },
+      "delete": {
+        "tags": [
+          "Risks"
+        ],
+        "summary": "Delete a risk.",
+        "description": "Takes the risk's UUID `id`. The risk disappears from every list and can no longer be read or updated; it cannot be restored through the API. To record that a risk is no longer being managed, close it with Risks_Update instead — deleting is for a risk that should not exist, such as a duplicate or one raised in error.",
+        "operationId": "Risks_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
       }
     },
     "/api/planning/risks/import": {

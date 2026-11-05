@@ -261,4 +261,23 @@ public sealed class RiskTests
         raised.PreviousClosedDate.Should().Be(closedDate);
         risk.ClosedDate.Should().BeNull();
     }
+
+    [Fact]
+    public void Delete_RaisesDeletedWithTheSummaryAndTeam()
+    {
+        // Arrange
+        var teamId = Guid.CreateVersion7();
+        var risk = Existing(_riskFaker.WithKey(42).WithTeamId(teamId).WithSummary("Vendor slip"));
+
+        // Act
+        risk.Delete(Actor, Now);
+
+        // Assert
+        var raised = risk.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<RiskDeletedEvent>().Subject;
+        raised.Id.Should().Be(risk.Id);
+        raised.Key.Should().Be(42);
+        raised.TeamId.Should().Be(teamId);
+        raised.Summary.Should().Be("Vendor slip");
+        raised.Timestamp.Should().Be(Now);
+    }
 }

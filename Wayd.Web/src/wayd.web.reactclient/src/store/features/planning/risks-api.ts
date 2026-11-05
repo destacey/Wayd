@@ -84,6 +84,23 @@ export const risksApi = apiSlice.injectEndpoints({
         ]
       },
     }),
+    deleteRisk: builder.mutation<void, string>({
+      queryFn: async (id) => {
+        try {
+          const data = await getRisksClient().delete(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: () => [
+        { type: QueryTags.Risk, id: 'LIST' },
+        { type: QueryTags.MyRisk },
+        { type: QueryTags.PlanningIntervalRisk },
+        { type: QueryTags.TeamRisk, id: 'LIST' },
+      ],
+    }),
     getRiskActivities: builder.query<
       PagedResponseOfActivityLogDto,
       { idOrKey: string | number; page?: number; pageSize?: number }
@@ -185,6 +202,7 @@ export const {
   useGetMyRisksQuery,
   useCreateRiskMutation,
   useUpdateRiskMutation,
+  useDeleteRiskMutation,
   useGetRiskActivitiesQuery,
   useLazyGetRiskActivitiesQuery,
   useGetRiskStatusOptionsQuery,

@@ -53,7 +53,7 @@ Some directories carry their own `AGENTS.md` with rules that apply only there. R
 Run what covers the change before calling it done, and report what you ran:
 
 - **.NET** — `dotnet build` on the projects you touched, then `dotnet test` on each affected test project. Changed a project reference? Run `Wayd.ArchitectureTests` too. Changed an entity configuration? Add a migration.
-- **API surface** — a changed endpoint or request/response model regenerates the TypeScript client on a Debug build of `Wayd.Web.Api`; commit the regenerated `wayd-api.ts` and `specification.json`.
+- **API surface** — a changed endpoint or model: a Debug build of `Wayd.Web.Api` regenerates `specification.json` and `wayd-api.ts`, building `Wayd.Tools.DataGeneration.Cli.Client` regenerates `WaydApiClient.g.cs`; commit all three.
 - **Imports** — a changed import (row class, endpoint, or what the handler accepts) also needs: `npm run generate:import-templates` in the client; the area's `docs/user-guide/*/bulk-import.mdx`; and `Wayd.Tools.DataGeneration.Cli.Tests`, because data generation seeds through these endpoints.
 - **Data generation** — a change to what an area generates, or to a domain rule seeding relies on, runs `Wayd.Tools.DataGeneration.Cli.Tests` and updates `docs/contributing/tools/data-generation.mdx`. A recipe-format change also refreshes `docs-site/static/schemas/wayd-data/recipe.schema.json` (`RecipeLibraryTests` fails until it matches).
 - **Client** — `npm run typecheck`, `npm run lint`, and `npm test` in `Wayd.Web/src/wayd.web.reactclient`.

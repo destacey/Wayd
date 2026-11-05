@@ -1,22 +1,27 @@
 'use client'
 
-import { Card, Table, Typography } from 'antd'
+import { WaydGrid } from '@/src/components/common/wayd-grid'
+import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
+import { Card, Typography } from 'antd'
 import Link from 'next/link'
 import { TEAMS_GRAPH_APPLICATION_PERMISSIONS } from './teams-permissions'
 
 const { Paragraph, Title } = Typography
 
-const permissionColumns = [
+type TeamsPermissionRow = (typeof TEAMS_GRAPH_APPLICATION_PERMISSIONS)[number]
+
+const permissionColumns: ColumnDef<TeamsPermissionRow, any>[] = [
   {
-    title: 'Permission',
-    dataIndex: 'permission',
-    key: 'permission',
-    render: (value: string) => <strong>{value}</strong>,
+    id: 'permission',
+    accessorKey: 'permission',
+    header: 'Permission',
+    size: 200,
+    cell: ({ getValue }) => <strong>{getValue<string>()}</strong>,
   },
   {
-    title: 'Why Wayd needs it',
-    dataIndex: 'reason',
-    key: 'reason',
+    id: 'reason',
+    accessorKey: 'reason',
+    header: 'Why Wayd needs it',
   },
 ]
 
@@ -64,13 +69,11 @@ export const TeamsSetupGuide = () => (
       <Paragraph style={{ marginBottom: 12 }}>
         Application permissions on Microsoft Graph (not Delegated), with admin consent:
       </Paragraph>
-      <Table
+      <WaydGrid
+        variant="simple"
         columns={permissionColumns}
-        dataSource={[...TEAMS_GRAPH_APPLICATION_PERMISSIONS]}
-        pagination={false}
-        bordered
-        size="small"
-        rowKey="key"
+        data={[...TEAMS_GRAPH_APPLICATION_PERMISSIONS]}
+        getRowId={(row) => row.key}
       />
     </Card>
     <Paragraph style={{ marginTop: 16 }}>

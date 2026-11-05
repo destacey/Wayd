@@ -1,12 +1,14 @@
 'use client'
 
 import { Suspense, use, useState } from 'react'
-import { Button } from 'antd'
+import { ItemType } from 'antd/es/menu/interface'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import useAuth from '@/src/components/contexts/auth'
+import { PageActions } from '@/src/components/common'
 import EditRiskForm from '@/src/components/common/planning/edit-risk-form'
+import DeleteRiskForm from '@/src/components/common/planning/delete-risk-form'
 import { authorizePage } from '@/src/components/hoc'
-import { notFound, useSearchParams } from 'next/navigation'
+import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import {
   useGetRiskActivitiesQuery,
   useGetRiskQuery,
@@ -41,6 +43,8 @@ const RiskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   useDocumentTitle('Risk Details')
 
   const [openUpdateRiskForm, setOpenUpdateRiskForm] = useState<boolean>(false)
+  const [openDeleteRiskForm, setOpenDeleteRiskForm] = useState<boolean>(false)
+  const router = useRouter()
 
   // The active section lives in the URL, owned by RecordLayout. Read here only
   // to hold back the activity query until its section is open.
@@ -65,6 +69,7 @@ const RiskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateRisks = hasPermissionClaim('Permissions.Risks.Update')
+  const canDeleteRisks = hasPermissionClaim('Permissions.Risks.Delete')
 
   const onUpdateRiskFormClosed = (wasSaved: boolean) => {
     setOpenUpdateRiskForm(false)
@@ -88,6 +93,34 @@ const RiskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     risk.team?.type === 'Team'
       ? `/organizations/teams/${risk.team.key}`
       : `/organizations/team-of-teams/${risk.team?.key}`
+
+  const onDeleteRiskFormClosed = (wasDeleted: boolean) => {
+    setOpenDeleteRiskForm(false)
+    // The risk no longer exists, so fall back to its team's risk list.
+    if (wasDeleted)
+      router.push(risk.team ? `${teamHref}?section=risk-management` : '/')
+  }
+
+  const actionsMenuItems: ItemType[] = [
+    ...(canUpdateRisks
+      ? [
+          {
+            key: 'edit',
+            label: 'Edit',
+            onClick: () => setOpenUpdateRiskForm(true),
+          },
+        ]
+      : []),
+    ...(canDeleteRisks
+      ? [
+          {
+            key: 'delete',
+            label: 'Delete',
+            onClick: () => setOpenDeleteRiskForm(true),
+          },
+        ]
+      : []),
+  ]
 
   const renderSection = (section: RiskSections) => {
     switch (section) {
@@ -114,9 +147,7 @@ const RiskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           // so it sits in the identity bar rather than only in the panel.
           tags: <RiskExposureTag exposure={risk.exposure?.name} />,
           descriptor: risk.status?.name,
-          actions: canUpdateRisks && (
-            <Button onClick={() => setOpenUpdateRiskForm(true)}>Edit</Button>
-          ),
+          actions: <PageActions actionItems={actionsMenuItems} />,
         }}
         facts={<RiskFacts risk={risk} />}
         sectionActions={
@@ -132,6 +163,13 @@ const RiskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           riskKey={riskKey}
           onFormSave={() => onUpdateRiskFormClosed(true)}
           onFormCancel={() => onUpdateRiskFormClosed(false)}
+        />
+      )}
+      {openDeleteRiskForm && (
+        <DeleteRiskForm
+          risk={risk}
+          onFormSave={() => onDeleteRiskFormClosed(true)}
+          onFormCancel={() => onDeleteRiskFormClosed(false)}
         />
       )}
     </>

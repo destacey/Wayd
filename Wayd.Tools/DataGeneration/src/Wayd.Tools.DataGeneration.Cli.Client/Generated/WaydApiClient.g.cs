@@ -92061,7 +92061,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the review workflow a desk's requests follow.
         /// </summary>
         /// <remarks>
-        /// Whether the desk follows the organization's default, and whether you may choose another: a Desk Admin on it or the Demand Management Admin, while no request is on it.
+        /// Whether the desk follows the organization's default, and whether you may choose another: a Desk Admin on it or the Demand Management Admin.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -92069,14 +92069,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Point a desk at another published intake request workflow.
+        /// Preview moving a desk and its requests onto another published intake request workflow.
         /// </summary>
         /// <remarks>
-        /// Needs a Desk Admin on the desk or the Demand Management Admin, and is refused while any request is on the desk. The desk then follows the chosen workflow rather than the organization's default.
+        /// Where each status of the desk's workflow would land in the target, how it was matched, how many of the desk's requests are in it, and the target's statuses an unplaced one can be sent to. The workflow must be published and not the one the desk follows. Needs a Desk Admin on the desk or the Demand Management Admin. Nothing changes.
         /// </remarks>
-        /// <returns>No Content</returns>
+        /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task ChangeWorkflowAsync(System.Guid id, ChangeIntakeDeskWorkflowRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ScopedWorkflowChangePreviewDto> PreviewWorkflowChangeAsync(System.Guid id, System.Guid? workflowId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Point a desk at another published intake request workflow, moving its requests onto it.
+        /// </summary>
+        /// <remarks>
+        /// Needs a Desk Admin on the desk or the Demand Management Admin. Every request on the desk moves to the status the automatic mapping or `decisions` send its own to, recorded in its status history; preview the change first, and decide each status it leaves unplaced. A request lands in a status meaning Duplicate only while it names the request it duplicates, and in a closing status needing a reason only while it has one; a refusal names every request that cannot, and nothing moves. Choosing the organization's default makes the desk follow it again; any other gives the desk its own. Choosing the workflow the desk already follows moves only requests still on another one, such as a request created while an earlier change ran. Returns how many requests moved. Another change to the desk's workflow saved meanwhile answers 409.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<int> ChangeWorkflowAsync(System.Guid id, ChangeIntakeDeskWorkflowRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -92756,7 +92767,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the review workflow a desk's requests follow.
         /// </summary>
         /// <remarks>
-        /// Whether the desk follows the organization's default, and whether you may choose another: a Desk Admin on it or the Demand Management Admin, while no request is on it.
+        /// Whether the desk follows the organization's default, and whether you may choose another: a Desk Admin on it or the Demand Management Admin.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -92845,14 +92856,122 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Point a desk at another published intake request workflow.
+        /// Preview moving a desk and its requests onto another published intake request workflow.
         /// </summary>
         /// <remarks>
-        /// Needs a Desk Admin on the desk or the Demand Management Admin, and is refused while any request is on the desk. The desk then follows the chosen workflow rather than the organization's default.
+        /// Where each status of the desk's workflow would land in the target, how it was matched, how many of the desk's requests are in it, and the target's statuses an unplaced one can be sent to. The workflow must be published and not the one the desk follows. Needs a Desk Admin on the desk or the Demand Management Admin. Nothing changes.
         /// </remarks>
-        /// <returns>No Content</returns>
+        /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task ChangeWorkflowAsync(System.Guid id, ChangeIntakeDeskWorkflowRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<ScopedWorkflowChangePreviewDto> PreviewWorkflowChangeAsync(System.Guid id, System.Guid? workflowId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-desks/{id}/workflow/change-preview"
+                    urlBuilder_.Append("api/demand-management/intake-desks/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/workflow/change-preview");
+                    urlBuilder_.Append('?');
+                    if (workflowId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("workflowId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(workflowId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ScopedWorkflowChangePreviewDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Point a desk at another published intake request workflow, moving its requests onto it.
+        /// </summary>
+        /// <remarks>
+        /// Needs a Desk Admin on the desk or the Demand Management Admin. Every request on the desk moves to the status the automatic mapping or `decisions` send its own to, recorded in its status history; preview the change first, and decide each status it leaves unplaced. A request lands in a status meaning Duplicate only while it names the request it duplicates, and in a closing status needing a reason only while it has one; a refusal names every request that cannot, and nothing moves. Choosing the organization's default makes the desk follow it again; any other gives the desk its own. Choosing the workflow the desk already follows moves only requests still on another one, such as a request created while an earlier change ran. Returns how many requests moved. Another change to the desk's workflow saved meanwhile answers 409.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<int> ChangeWorkflowAsync(System.Guid id, ChangeIntakeDeskWorkflowRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -92871,6 +92990,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("PUT");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
@@ -92902,9 +93022,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 204)
+                        if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<int>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         if (status_ == 400)
@@ -92925,6 +93050,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 422)
@@ -114294,7 +114429,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// The review workflow a desk's requests should follow.
+    /// The review workflow a desk's requests should follow, and where requests in each of the current workflow's
+    /// <br/>statuses go.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ChangeIntakeDeskWorkflowRequest
@@ -114306,6 +114442,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("workflowId")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Guid WorkflowId { get; set; } = default!;
+
+        /// <summary>
+        /// Choices layered over the automatic mapping the workflow change preview shows: a target for each status it
+        /// <br/>leaves unplaced, plus any automatic choice overridden. Needed only while requests are on the desk.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("decisions")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<StatusRemapDecisionRequest> Decisions { get; set; } = new System.Collections.ObjectModel.Collection<StatusRemapDecisionRequest>();
 
     }
 
@@ -123454,14 +123598,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool FollowsOrganizationDefault { get; set; } = default!;
 
         /// <summary>
-        /// Whether any request is on the desk, which stops its workflow changing.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("hasRequests")]
-        public bool HasRequests { get; set; } = default!;
-
-        /// <summary>
-        /// Whether the reader may choose the desk's workflow: a Desk Admin on it or the Demand Management Admin,
-        /// <br/>while no request is on it.
+        /// Whether the reader may choose the desk's workflow, moving its requests with it: a Desk Admin on it or the
+        /// <br/>Demand Management Admin.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canChange")]
         public bool CanChange { get; set; } = default!;
@@ -133477,6 +133615,29 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("comment")]
         public string? Comment { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// What moving one scope onto another workflow would do, with the statuses its records could be sent to.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ScopedWorkflowChangePreviewDto
+    {
+
+        /// <summary>
+        /// How each status of the scope's workflow would land, with the scope's records on each.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("remap")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public StatusRemapPreviewDto Remap { get; set; } = new StatusRemapPreviewDto();
+
+        /// <summary>
+        /// The target workflow's statuses that records can be sent to, in its order.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("targetStatuses")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<WorkflowStatusDto> TargetStatuses { get; set; } = new System.Collections.ObjectModel.Collection<WorkflowStatusDto>();
 
     }
 

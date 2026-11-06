@@ -1,6 +1,8 @@
 using CSharpFunctionalExtensions;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Persistence;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
+using Wayd.Common.Application.StatusWorkflows.Queries;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -12,9 +14,9 @@ namespace Wayd.Common.Application.StatusWorkflows;
 /// a scope's workflow rather than workflow administration in Settings.
 /// </summary>
 /// <remarks>
-/// A module cannot reach the engine's tables — its database view is its own — so it asks through this. Only
-/// assigning a scope that holds no records is offered: moving a scope's records onto another workflow is a
-/// migration, which needs a remap the operator decides, and which a scoped migrator has to support.
+/// A module cannot reach the engine's tables — its database view is its own — so it asks through this.
+/// Changing the workflow of a scope that holds records moves them too, through the owner type's
+/// <see cref="IStatusRecordMigrator"/> and a remap the operator reviews first (<see cref="PreviewChange"/>).
 /// <para>
 /// For owner types with one level of scope below the organization. Under nested scopes a scope without its own
 /// assignment follows the nearest assigned scope above it, not the organization, so <see cref="Current"/> and
@@ -34,15 +36,37 @@ public interface IScopedWorkflowAssignments : IScopedService
     Task<IReadOnlyList<WorkflowChoice>> Published(string ownerType, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Points a scope that holds no records at a published workflow of its owner type, giving it an assignment
-    /// of its own. Saves.
+    /// How moving the scope onto a workflow would land each status of the one it follows now, with the scope's
+    /// records on each, and the target's statuses an operator can choose between.
+    /// </summary>
+    /// <returns>
+    /// A failure when the workflow is not one of the owner type's, is not published, or is the one the scope
+    /// follows.
+    /// </returns>
+    Task<Result<ScopedWorkflowChangePreviewDto>> PreviewChange(string ownerType, Guid scopeId, Guid workflowId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Points a scope at a published workflow of its owner type and moves its records onto it, in one save.
     /// </summary>
     /// <remarks>
-    /// The caller guarantees the scope holds no records. Choosing the organization's workflow removes the
-    /// scope's own assignment, so the scope follows the organization's again, and a later change to it reaches
-    /// the scope. A scope already following the workflow is left as it is.
+    /// The automatic mapping decides what it can and <paramref name="decisions"/> the rest, overriding it where
+    /// they say. Only a scope holding records needs them: with none, whatever is left over goes to the target's
+    /// initial status. Records move first and the assignment last, so a refusal saves nothing. Choosing the
+    /// organization's workflow removes the scope's own assignment, so the scope follows the organization's
+    /// again, and a later change to it reaches the scope. A scope already following the workflow keeps its
+    /// assignment, and only its records still on another workflow move, so repeating a change picks up a record
+    /// created while it ran.
     /// </remarks>
-    Task<Result> AssignToEmptyScope(string ownerType, Guid scopeId, Guid workflowId, EventActor actor, Instant timestamp, CancellationToken cancellationToken);
+    /// <returns>How many records moved, or <see cref="ConcurrentChangeError"/> when another change to the scope
+    /// saved first.</returns>
+    Task<Result<int>> Change(
+        string ownerType,
+        Guid scopeId,
+        Guid workflowId,
+        IReadOnlyCollection<StatusRemapDecisionDto> decisions,
+        EventActor actor,
+        Instant timestamp,
+        CancellationToken cancellationToken);
 
     /// <summary>
     /// Removes a scope's own assignment, when it has one, because the scope itself is being removed. Does not
@@ -60,9 +84,24 @@ public sealed record ScopedWorkflow(WorkflowChoice Workflow, bool IsScopeOwn);
 public sealed record WorkflowChoice(Guid Id, int Key, string Name, string? Description);
 
 /// <inheritdoc cref="IScopedWorkflowAssignments"/>
-public sealed class ScopedWorkflowAssignments(IStatusWorkflowDbContext dbContext) : IScopedWorkflowAssignments
+public sealed class ScopedWorkflowAssignments(
+    IStatusWorkflowDbContext dbContext,
+    IEnumerable<IStatusRecordMigrator> migrators,
+    IEnumerable<IStatusRecordCounter> counters)
+    : IScopedWorkflowAssignments
 {
+    /// <summary>The refusal for previewing a move onto the workflow the scope already follows.</summary>
+    public const string AlreadyFollowsError = "The scope already follows this workflow.";
+
+    /// <summary>The refusal for a workflow that is not published.</summary>
+    public const string NotPublishedError = "Only a published workflow can be assigned.";
+
+    /// <summary>The refusal for a change whose save collided with another change to the same scope.</summary>
+    public const string ConcurrentChangeError = "Another change to this workflow assignment was saved at the same time.";
+
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
+    private readonly IEnumerable<IStatusRecordMigrator> _migrators = migrators;
+    private readonly IEnumerable<IStatusRecordCounter> _counters = counters;
 
     public async Task<Result<ScopedWorkflow>> Current(string ownerType, Guid scopeId, CancellationToken cancellationToken)
     {
@@ -108,11 +147,62 @@ public sealed class ScopedWorkflowAssignments(IStatusWorkflowDbContext dbContext
         ];
     }
 
-    public async Task<Result> AssignToEmptyScope(string ownerType, Guid scopeId, Guid workflowId, EventActor actor, Instant timestamp, CancellationToken cancellationToken)
+    public async Task<Result<ScopedWorkflowChangePreviewDto>> PreviewChange(string ownerType, Guid scopeId, Guid workflowId, CancellationToken cancellationToken)
     {
         var descriptor = WorkflowOwners.Resolve(ownerType);
         if (descriptor.IsFailure)
-            return Result.Failure(descriptor.Error);
+            return Result.Failure<ScopedWorkflowChangePreviewDto>(descriptor.Error);
+
+        var key = descriptor.Value.Key;
+
+        var target = await _dbContext.StatusWorkflows
+            .AsNoTracking()
+            .Include(w => w.Statuses)
+            .FirstOrDefaultAsync(w => w.Id == workflowId && w.OwnerType == key, cancellationToken);
+        if (target is null)
+            return Result.Failure<ScopedWorkflowChangePreviewDto>("Status workflow not found.");
+
+        if (target.State != StatusWorkflowState.Published)
+            return Result.Failure<ScopedWorkflowChangePreviewDto>(NotPublishedError);
+
+        var current = await Current(key, scopeId, cancellationToken);
+        if (current.IsFailure)
+            return Result.Failure<ScopedWorkflowChangePreviewDto>(current.Error);
+        if (current.Value.Workflow.Id == target.Id)
+            return Result.Failure<ScopedWorkflowChangePreviewDto>(AlreadyFollowsError);
+
+        var from = await _dbContext.StatusWorkflows
+            .AsNoTracking()
+            .Include(w => w.Statuses)
+            .FirstAsync(w => w.Id == current.Value.Workflow.Id, cancellationToken);
+
+        var remap = StatusRemap.AutoMap(from, target);
+        if (remap.IsFailure)
+            return Result.Failure<ScopedWorkflowChangePreviewDto>(remap.Error);
+
+        var counts = await CountRecords(key, from.Id, scopeId, cancellationToken);
+        if (counts.IsFailure)
+            return Result.Failure<ScopedWorkflowChangePreviewDto>(counts.Error);
+
+        return Result.Success(new ScopedWorkflowChangePreviewDto
+        {
+            Remap = PreviewStatusRemapQueryHandler.ToPreview(from, target, remap.Value, counts.Value),
+            TargetStatuses = PreviewStatusRemapQueryHandler.DescribeTargets(target),
+        });
+    }
+
+    public async Task<Result<int>> Change(
+        string ownerType,
+        Guid scopeId,
+        Guid workflowId,
+        IReadOnlyCollection<StatusRemapDecisionDto> decisions,
+        EventActor actor,
+        Instant timestamp,
+        CancellationToken cancellationToken)
+    {
+        var descriptor = WorkflowOwners.Resolve(ownerType);
+        if (descriptor.IsFailure)
+            return Result.Failure<int>(descriptor.Error);
 
         var key = descriptor.Value.Key;
 
@@ -123,65 +213,37 @@ public sealed class ScopedWorkflowAssignments(IStatusWorkflowDbContext dbContext
             .AsSplitQuery()
             .FirstOrDefaultAsync(w => w.Id == workflowId && w.OwnerType == key, cancellationToken);
         if (workflow is null)
-            return Result.Failure("Status workflow not found.");
+            return Result.Failure<int>("Status workflow not found.");
 
         var current = await Current(key, scopeId, cancellationToken);
         if (current.IsSuccess && current.Value.Workflow.Id == workflow.Id)
-            return Result.Success();
+            return await MoveStragglers(key, scopeId, workflow, decisions, actor, timestamp, cancellationToken);
 
-        var own = await OwnAssignment(key, scopeId, cancellationToken);
+        // Checked before any record moves, so a refusal never leaves moved records tracked for another save.
+        if (workflow.State != StatusWorkflowState.Published)
+            return Result.Failure<int>(NotPublishedError);
 
-        var organization = await OrganizationScheme(key, cancellationToken);
-        if (own is not null && workflow.Id == organization?.WorkflowId)
-        {
-            var removed = own.Remove(organization.SchemeId, organization.WorkflowId, actor, timestamp);
-            if (removed.IsFailure)
-                return removed;
-
-            _dbContext.WorkflowAssignments.Remove(own);
-        }
-        else if (own is null)
-        {
-            var scheme = await _dbContext.ImplicitSchemeFor(workflow, actor, timestamp, cancellationToken);
-            if (scheme.IsFailure)
-                return Result.Failure(scheme.Error);
-
-            var created = WorkflowAssignment.Create(key, scopeId, scheme.Value, workflow, actor, timestamp);
-            if (created.IsFailure)
-            {
-                DiscardIfUnsaved(scheme.Value);
-                return Result.Failure(created.Error);
-            }
-
-            _dbContext.WorkflowAssignments.Add(created.Value);
-        }
-        else
+        var moved = 0;
+        StatusRemap? remap = null;
+        if (current.IsSuccess)
         {
             var from = await _dbContext.StatusWorkflows
                 .Include(w => w.Statuses)
-                .FirstAsync(w => w.Id == own.Scheme!.DefaultWorkflowId, cancellationToken);
+                .FirstAsync(w => w.Id == current.Value.Workflow.Id, cancellationToken);
 
-            // The scope holds no records, so there is nothing for an operator to decide.
-            var remap = StatusRemaps.ForNoRecords(from, workflow);
-            if (remap.IsFailure)
-                return Result.Failure(remap.Error);
+            var migrated = await MoveRecords(key, scopeId, from, workflow, decisions, actor, timestamp, cancellationToken);
+            if (migrated.IsFailure)
+                return Result.Failure<int>(migrated.Error);
 
-            var scheme = await _dbContext.ImplicitSchemeFor(workflow, actor, timestamp, cancellationToken);
-            if (scheme.IsFailure)
-                return Result.Failure(scheme.Error);
-
-            var reassigned = own.ReassignTo(scheme.Value, workflow, [remap.Value], actor, timestamp);
-            if (reassigned.IsFailure)
-            {
-                own.ClearDomainEvents();
-                DiscardIfUnsaved(scheme.Value);
-                return reassigned;
-            }
+            (moved, remap) = migrated.Value;
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        // Last, so a refusal above leaves the scope on the workflow its records are still on.
+        var pointed = await PointScopeAt(key, scopeId, workflow, remap, actor, timestamp, cancellationToken);
+        if (pointed.IsFailure)
+            return Result.Failure<int>(pointed.Error);
 
-        return Result.Success();
+        return await Save(moved, cancellationToken);
     }
 
     public async Task<Result> RemoveScope(string ownerType, Guid scopeId, EventActor actor, Instant timestamp, CancellationToken cancellationToken)
@@ -203,6 +265,170 @@ public sealed class ScopedWorkflowAssignments(IStatusWorkflowDbContext dbContext
         _dbContext.WorkflowAssignments.Remove(own);
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Moves the scope's records still on another workflow onto the one the scope already follows: records
+    /// created while the scope was changing, which landed on the workflow it was leaving.
+    /// </summary>
+    /// <returns>How many records moved; none when the owner type cannot be asked.</returns>
+    private async Task<Result<int>> MoveStragglers(
+        string ownerType,
+        Guid scopeId,
+        StatusWorkflow workflow,
+        IReadOnlyCollection<StatusRemapDecisionDto> decisions,
+        EventActor actor,
+        Instant timestamp,
+        CancellationToken cancellationToken)
+    {
+        var counter = _counters.FirstOrDefault(c => string.Equals(c.OwnerType, ownerType, StringComparison.OrdinalIgnoreCase));
+        var migrator = _migrators.FirstOrDefault(m => string.Equals(m.OwnerType, ownerType, StringComparison.OrdinalIgnoreCase));
+        if (counter is null || migrator is null)
+            return Result.Success(0);
+
+        var others = await counter.WorkflowsBesides(workflow.Id, scopeId, cancellationToken);
+        if (others.IsFailure)
+            return Result.Failure<int>(others.Error);
+        if (others.Value.Count == 0)
+            return Result.Success(0);
+
+        var moved = 0;
+        foreach (var fromId in others.Value)
+        {
+            var from = await _dbContext.StatusWorkflows
+                .Include(w => w.Statuses)
+                .FirstAsync(w => w.Id == fromId, cancellationToken);
+
+            var remap = StatusRemaps.Build(from, workflow, decisions);
+            if (remap.IsFailure)
+                return Result.Failure<int>(remap.Error);
+
+            var migrated = await migrator.Migrate(remap.Value, scopeId, actor, timestamp, cancellationToken);
+            if (migrated.IsFailure)
+                return Result.Failure<int>(migrated.Error);
+
+            moved += migrated.Value;
+        }
+
+        return await Save(moved, cancellationToken);
+    }
+
+    /// <summary>Saves the change, answering a collision with another change to the same scope as a refusal.</summary>
+    private async Task<Result<int>> Save(int moved, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // Two changes giving the same scope its own assignment meet at the one-assignment-per-scope index.
+            return Result.Failure<int>(ConcurrentChangeError);
+        }
+
+        return Result.Success(moved);
+    }
+
+    /// <summary>
+    /// The scope's records on each status of a workflow, or none when the owner type has no counter to ask.
+    /// </summary>
+    private async Task<Result<IReadOnlyDictionary<Guid, int>>> CountRecords(string ownerType, Guid workflowId, Guid scopeId, CancellationToken cancellationToken)
+    {
+        var counter = _counters.FirstOrDefault(c => string.Equals(c.OwnerType, ownerType, StringComparison.OrdinalIgnoreCase));
+
+        return counter is null
+            ? Result.Success<IReadOnlyDictionary<Guid, int>>(new Dictionary<Guid, int>())
+            : await counter.CountByStatus(workflowId, scopeId, cancellationToken);
+    }
+
+    /// <summary>
+    /// Moves the scope's records from one workflow to the other, leaving them tracked for the caller's save.
+    /// </summary>
+    /// <returns>How many records moved, and the remap that moved them.</returns>
+    private async Task<Result<(int Moved, StatusRemap Remap)>> MoveRecords(
+        string ownerType,
+        Guid scopeId,
+        StatusWorkflow from,
+        StatusWorkflow to,
+        IReadOnlyCollection<StatusRemapDecisionDto> decisions,
+        EventActor actor,
+        Instant timestamp,
+        CancellationToken cancellationToken)
+    {
+        var counts = await CountRecords(ownerType, from.Id, scopeId, cancellationToken);
+        if (counts.IsFailure)
+            return Result.Failure<(int, StatusRemap)>(counts.Error);
+
+        var holdsRecords = counts.Value.Values.Any(c => c > 0);
+
+        var remap = holdsRecords ? StatusRemaps.Build(from, to, decisions) : StatusRemaps.ForNoRecords(from, to);
+        if (remap.IsFailure)
+            return Result.Failure<(int, StatusRemap)>(remap.Error);
+
+        var migrator = _migrators.FirstOrDefault(m => string.Equals(m.OwnerType, ownerType, StringComparison.OrdinalIgnoreCase));
+        if (migrator is null)
+        {
+            // Refused when records are there: the scope would claim a workflow its records are not on.
+            return holdsRecords
+                ? Result.Failure<(int, StatusRemap)>("These records cannot be moved to another workflow.")
+                : Result.Success((0, remap.Value));
+        }
+
+        // Run even when the count found none, so a record that arrived since is moved rather than left on the
+        // workflow the scope is leaving.
+        var migrated = await migrator.Migrate(remap.Value, scopeId, actor, timestamp, cancellationToken);
+
+        return migrated.IsFailure
+            ? Result.Failure<(int, StatusRemap)>(migrated.Error)
+            : Result.Success((migrated.Value, remap.Value));
+    }
+
+    /// <summary>
+    /// Gives the scope an assignment naming the workflow, reassigns the one it has, or removes it when the
+    /// workflow is the organization's. Does not save.
+    /// </summary>
+    /// <param name="remap">The remap that moved the scope's records, or null when nothing governed the scope.</param>
+    private async Task<Result> PointScopeAt(
+        string ownerType, Guid scopeId, StatusWorkflow workflow, StatusRemap? remap, EventActor actor, Instant timestamp, CancellationToken cancellationToken)
+    {
+        var own = await OwnAssignment(ownerType, scopeId, cancellationToken);
+        var organization = await OrganizationScheme(ownerType, cancellationToken);
+
+        if (own is not null && workflow.Id == organization?.WorkflowId)
+        {
+            var removed = own.Remove(organization.SchemeId, organization.WorkflowId, actor, timestamp);
+            if (removed.IsFailure)
+                return removed;
+
+            _dbContext.WorkflowAssignments.Remove(own);
+            return Result.Success();
+        }
+
+        var scheme = await _dbContext.ImplicitSchemeFor(workflow, actor, timestamp, cancellationToken);
+        if (scheme.IsFailure)
+            return Result.Failure(scheme.Error);
+
+        if (own is null)
+        {
+            var created = WorkflowAssignment.Create(ownerType, scopeId, scheme.Value, workflow, actor, timestamp);
+            if (created.IsFailure)
+            {
+                DiscardIfUnsaved(scheme.Value);
+                return Result.Failure(created.Error);
+            }
+
+            _dbContext.WorkflowAssignments.Add(created.Value);
+            return Result.Success();
+        }
+
+        var reassigned = own.ReassignTo(scheme.Value, workflow, remap is null ? [] : [remap], actor, timestamp);
+        if (reassigned.IsFailure)
+        {
+            own.ClearDomainEvents();
+            DiscardIfUnsaved(scheme.Value);
+        }
+
+        return reassigned;
     }
 
     /// <summary>The scope's own assignment with its scheme, which reassigning and removing it read.</summary>

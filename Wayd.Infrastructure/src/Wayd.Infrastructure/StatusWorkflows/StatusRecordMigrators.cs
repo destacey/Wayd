@@ -128,6 +128,13 @@ public abstract class StatusRecordMigratorBase<TRecord>(IProductManagementDbCont
         return Result.Success<IReadOnlyDictionary<Guid, int>>(counts.ToDictionary(c => c.StatusId, c => c.Count));
     }
 
+    /// <inheritdoc/>
+    public Task<Result<IReadOnlyList<Guid>>> WorkflowsBesides(
+        Guid workflowId,
+        Guid scopeId,
+        CancellationToken cancellationToken) =>
+        Task.FromResult(Result.Failure<IReadOnlyList<Guid>>(ScopedRecordsUnsupported));
+
     /// <summary>The context, for subclasses to expose their own set.</summary>
     protected IProductManagementDbContext DbContext => _dbContext;
 }

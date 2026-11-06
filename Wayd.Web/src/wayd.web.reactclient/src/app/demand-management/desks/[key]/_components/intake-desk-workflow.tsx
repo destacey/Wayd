@@ -16,8 +16,7 @@ export interface IntakeDeskWorkflowProps {
 
 /**
  * The review workflow the desk's requests follow, as a desk setting. Its name links to the workflow in
- * Settings for those who can open it there. A Desk Admin is told why it cannot change while requests are on
- * the desk, which the server answers only to them.
+ * Settings for those who can open it there. A Desk Admin can change it, bringing the desk's requests along.
  */
 const IntakeDeskWorkflow: FC<IntakeDeskWorkflowProps> = ({
   deskId,
@@ -49,11 +48,6 @@ const IntakeDeskWorkflow: FC<IntakeDeskWorkflowProps> = ({
           </Button>
         )}
       </Flex>
-      {workflow.hasRequests && (
-        <Text type="secondary">
-          It cannot change while requests are on the desk.
-        </Text>
-      )}
       {changing && workflow.canChange && (
         <ChangeIntakeDeskWorkflowForm
           deskId={deskId}

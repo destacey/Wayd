@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.DemandManagement.Application;
@@ -36,6 +37,7 @@ public sealed class StatusRecordMigratorRegistrationTests
 
         services.AddScoped(_ => new Mock<IProductManagementDbContext>().Object);
         services.AddScoped(_ => new Mock<IDemandManagementDbContext>().Object);
+        services.AddScoped(_ => new Mock<IStatusWorkflowDbContext>().Object);
 
         services.AddScoped<IStatusRecordMigrator, ProductStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, VersionStatusRecordMigrator>();

@@ -41,7 +41,7 @@ public sealed class GetIntakeDeskWorkflowQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ForADeskAdminOnAnEmptyDesk_OffersTheChange()
+    public async Task Handle_ForADeskAdmin_OffersTheChange()
     {
         // Arrange
         var deskAdmin = _scenario.Employee();
@@ -54,14 +54,13 @@ public sealed class GetIntakeDeskWorkflowQueryHandlerTests
         // Assert
         result!.Workflow.Id.Should().Be(_scenario.Workflow.Id);
         result.FollowsOrganizationDefault.Should().BeTrue();
-        result.HasRequests.Should().BeFalse();
         result.CanChange.Should().BeTrue();
     }
 
     [Fact]
-    public async Task Handle_ForADeskAdminOnADeskWithRequests_SaysWhyItCannotChange()
+    public async Task Handle_ForADeskAdminOnADeskWithRequests_StillOffersTheChange()
     {
-        // Arrange
+        // Arrange — the requests move with the desk
         var deskAdmin = _scenario.Employee();
         var desk = _scenario.DeskAdministeredBy(deskAdmin.Id);
         _scenario.Request(desk, _scenario.Employee());
@@ -71,12 +70,11 @@ public sealed class GetIntakeDeskWorkflowQueryHandlerTests
         var result = await CreateHandler().Handle(new GetIntakeDeskWorkflowQuery(new IdOrKey(desk.Id)), TestContext.Current.CancellationToken);
 
         // Assert
-        result!.HasRequests.Should().BeTrue();
-        result.CanChange.Should().BeFalse();
+        result!.CanChange.Should().BeTrue();
     }
 
     [Fact]
-    public async Task Handle_ForAnOutsider_ShowsTheWorkflowButNotWhetherRequestsAreOnAPrivateDesk()
+    public async Task Handle_ForAnOutsider_ShowsTheWorkflowWithoutOfferingTheChange()
     {
         // Arrange
         var desk = _scenario.Desk(IntakeDeskVisibility.Private);
@@ -88,7 +86,6 @@ public sealed class GetIntakeDeskWorkflowQueryHandlerTests
 
         // Assert
         result!.Workflow.Name.Should().Be(_scenario.Workflow.Name);
-        result.HasRequests.Should().BeFalse();
         result.CanChange.Should().BeFalse();
     }
 

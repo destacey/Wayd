@@ -37,6 +37,8 @@ import {
   IntakeRequestArrivalStatusesDto,
   IntakeRequestStatusOptionDto,
   IntakeWorkflowChoiceDto,
+  ScopedWorkflowChangePreviewDto,
+  StatusRemapDecisionRequest,
   StatusTransitionDto,
   StatusWorkflowDetailsDto,
   WithdrawIntakeRequestRequest,
@@ -830,8 +832,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    // Fetched by id, which the change invalidates; tagged with the desk too, since a request arriving on it
-    // stops the workflow changing, and with the workflow, whose statuses it lists.
+    // Fetched by id, which the change invalidates; tagged with the workflow too, whose statuses it lists.
     getIntakeDeskWorkflow: builder.query<IntakeDeskWorkflowDto, string>({
       queryFn: async (deskId) => {
         try {
@@ -861,26 +862,55 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       providesTags: [QueryTags.StatusWorkflow],
     }),
 
-    changeIntakeDeskWorkflow: builder.mutation<
-      void,
+    // Not cached: the counts are read for one review, and a request arriving meanwhile must show.
+    previewIntakeDeskWorkflowChange: builder.query<
+      ScopedWorkflowChangePreviewDto,
       { deskId: string; workflowId: string }
     >({
       queryFn: async ({ deskId, workflowId }) => {
         try {
+          const data = await getIntakeDesksClient().previewWorkflowChange(
+            deskId,
+            workflowId,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      keepUnusedDataFor: 0,
+    }),
+
+    changeIntakeDeskWorkflow: builder.mutation<
+      number,
+      {
+        deskId: string
+        workflowId: string
+        decisions: StatusRemapDecisionRequest[]
+      }
+    >({
+      queryFn: async ({ deskId, workflowId, decisions }) => {
+        try {
           const data = await getIntakeDesksClient().changeWorkflow(deskId, {
             workflowId,
+            decisions,
           })
           return { data }
         } catch (error) {
           return toError(error)
         }
       },
-      // Settings → Status Workflows lists the assignments and marks the workflows in use, and a request's
-      // arrival statuses on this desk come from its workflow.
+      // Settings → Status Workflows lists the assignments and marks the workflows in use, a request's arrival
+      // statuses on this desk come from its workflow, and every request on the desk changed status: its
+      // history and Activity gained an entry, and a move in or out of an open status changes the ranking.
       invalidatesTags: (_result, _error, { deskId }) => [
         { type: QueryTags.IntakeDesk, id: deskId },
         { type: QueryTags.WorkflowAssignment, id: 'LIST' },
         { type: QueryTags.StatusWorkflow, id: 'LIST' },
+        QueryTags.IntakeRequest,
+        QueryTags.StatusHistory,
+        QueryTags.ActivityLog,
+        QueryTags.IntakeRequestScore,
       ],
     }),
 
@@ -1430,6 +1460,7 @@ export const {
   useGetIntakeDeskWorkflowQuery,
   useGetIntakeWorkflowChoicesQuery,
   useChangeIntakeDeskWorkflowMutation,
+  usePreviewIntakeDeskWorkflowChangeQuery,
   useCreateIntakeDeskMutation,
   useUpdateIntakeDeskMutation,
   useDeleteIntakeDeskMutation,

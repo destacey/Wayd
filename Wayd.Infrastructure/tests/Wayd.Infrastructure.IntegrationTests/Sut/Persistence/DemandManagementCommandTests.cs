@@ -28,6 +28,7 @@ using Wayd.DemandManagement.Domain;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
 using Wayd.Infrastructure.Persistence.Context;
+using Wayd.Infrastructure.StatusWorkflows;
 
 namespace Wayd.Infrastructure.IntegrationTests.Sut.Persistence;
 
@@ -274,7 +275,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         }
 
         // Act — the deleting context still tracks the desk as it read it
-        var result = await new DeleteIntakeDeskCommandHandler(deleting, Principal(administrator.Id), User(), _clock, new ScopedWorkflowAssignments(deleting),
+        var result = await new DeleteIntakeDeskCommandHandler(deleting, Principal(administrator.Id), User(), _clock, Assignments(deleting),
             Discussions(deleting, administrator.Id))
             .Handle(new DeleteIntakeDeskCommand(desk.Id), ct);
 
@@ -349,7 +350,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
 
         // Act
         await using var context = _fixture.CreateContext();
-        var result = await new DeleteIntakeDeskCommandHandler(context, Principal(administrator.Id), User(), _clock, new ScopedWorkflowAssignments(context),
+        var result = await new DeleteIntakeDeskCommandHandler(context, Principal(administrator.Id), User(), _clock, Assignments(context),
             Discussions(context, administrator.Id))
             .Handle(new DeleteIntakeDeskCommand(desk.Id), ct);
 
@@ -608,7 +609,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
     }
 
     [Fact]
-    public async Task ADeskWithItsOwnWorkflow_StartsItsRequestsThere_AndAMoveToADefaultDeskSwitchesThemBack()
+    public async Task ADeskWithItsOwnWorkflow_StartsItsRequestsThere_AndGoingBackToTheDefaultMovesThemWithIt()
     {
         // Arrange — a desk chooses a copy of the default before anything is submitted to it
         var ct = TestContext.Current.CancellationToken;
@@ -639,37 +640,35 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
 
         // Act
         await using var context = _fixture.CreateContext();
-        var assignments = new ScopedWorkflowAssignments(context);
+        var assignments = Assignments(context);
         var chosen = await new ChangeIntakeDeskWorkflowCommandHandler(context, Principal(deskAdmin.Id), User(), _clock, assignments)
-            .Handle(new ChangeIntakeDeskWorkflowCommand(ownDesk.Id, copy.Id), ct);
+            .Handle(new ChangeIntakeDeskWorkflowCommand(ownDesk.Id, copy.Id, []), ct);
         var resolver = new StatusResolver(context);
         var created = await new CreateIntakeRequestCommandHandler(context, Principal(requester.Id), User(), _clock, resolver)
             .Handle(new CreateIntakeRequestCommand("Export invoices", "Finance needs a CSV export", null, ownDesk.Id, channel.Id, null, null), ct);
-        var nowHasRequests = await new ChangeIntakeDeskWorkflowCommandHandler(context, Principal(deskAdmin.Id), User(), _clock, assignments)
-            .Handle(new ChangeIntakeDeskWorkflowCommand(ownDesk.Id, (await assignments.Current(DemandManagementWorkflowOwners.IntakeRequest.Key, defaultDesk.Id, ct)).Value.Workflow.Id), ct);
-        var moved = await new RerouteIntakeRequestCommandHandler(context, Principal(deskAdmin.Id), User(), _clock, resolver)
-            .Handle(new RerouteIntakeRequestCommand(created.Value.Id, defaultDesk.Id, false), ct);
+        var defaultWorkflowId = (await assignments.Current(DemandManagementWorkflowOwners.IntakeRequest.Key, defaultDesk.Id, ct)).Value.Workflow.Id;
+        var backOnDefault = await new ChangeIntakeDeskWorkflowCommandHandler(context, Principal(deskAdmin.Id), User(), _clock, assignments)
+            .Handle(new ChangeIntakeDeskWorkflowCommand(ownDesk.Id, defaultWorkflowId, []), ct);
 
         // Assert
         chosen.IsSuccess.Should().BeTrue();
         created.IsSuccess.Should().BeTrue();
-        nowHasRequests.IsFailure.Should().BeTrue();
-        nowHasRequests.Error.Should().Be(ChangeIntakeDeskWorkflowCommandHandler.DeskHasRequestsError);
-        moved.IsSuccess.Should().BeTrue();
+        backOnDefault.Value.Should().Be(1, "the desk's one request moved with it");
 
         await using var reader = _fixture.CreateContext();
-        var ownView = await new GetIntakeDeskWorkflowQueryHandler(reader, Principal(deskAdmin.Id), new ScopedWorkflowAssignments(reader), new StatusResolver(reader))
+        var ownView = await new GetIntakeDeskWorkflowQueryHandler(reader, Principal(deskAdmin.Id), Assignments(reader), new StatusResolver(reader))
             .Handle(new GetIntakeDeskWorkflowQuery(new IdOrKey(ownDesk.Id)), ct);
-        ownView!.Workflow.Id.Should().Be(copy.Id);
-        ownView.FollowsOrganizationDefault.Should().BeFalse();
+        ownView!.Workflow.Id.Should().Be(defaultWorkflowId);
+        ownView.FollowsOrganizationDefault.Should().BeTrue();
         ownView.Statuses.Should().NotBeEmpty("the board draws its columns from them");
+        (await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == created.Value.Id, ct)).StatusWorkflowId.Should().Be(defaultWorkflowId);
 
         var transitions = await reader.StatusTransitions.AsNoTracking()
             .Where(t => t.OwnerType == DemandManagementWorkflowOwners.IntakeRequest.Key && t.RecordId == created.Value.Id)
             .OrderBy(t => t.Sequence)
             .ToListAsync(ct);
         transitions[0].WorkflowId.Should().Be(copy.Id, "the request started in its desk's own workflow");
-        transitions[1].WorkflowId.Should().NotBe(copy.Id, "moving to a desk on the default switched it onto that workflow");
+        transitions[1].WorkflowId.Should().Be(defaultWorkflowId, "the desk going back to the default switched it onto that workflow");
         transitions[1].ToStatusName.Should().Be("Submitted");
         (await reader.ActivityLogs.AnyAsync(a => a.AggregateId == created.Value.Id && a.EventType == nameof(StatusWorkflowSwitchedEvent), ct))
             .Should().BeTrue();
@@ -704,27 +703,27 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         // Act — choose the copy, go back to the default, choose the copy again, then delete the desk
         await using (var choosing = _fixture.CreateContext())
         {
-            var assignments = new ScopedWorkflowAssignments(choosing);
+            var assignments = Assignments(choosing);
             (await new ChangeIntakeDeskWorkflowCommandHandler(choosing, admin, User(), _clock, assignments)
-                .Handle(new ChangeIntakeDeskWorkflowCommand(desk.Id, copy.Id), ct)).IsSuccess.Should().BeTrue();
+                .Handle(new ChangeIntakeDeskWorkflowCommand(desk.Id, copy.Id, []), ct)).IsSuccess.Should().BeTrue();
             (await new ChangeIntakeDeskWorkflowCommandHandler(choosing, admin, User(), _clock, assignments)
-                .Handle(new ChangeIntakeDeskWorkflowCommand(desk.Id, defaultWorkflowId), ct)).IsSuccess.Should().BeTrue();
+                .Handle(new ChangeIntakeDeskWorkflowCommand(desk.Id, defaultWorkflowId, []), ct)).IsSuccess.Should().BeTrue();
         }
         await using (var reading = _fixture.CreateContext())
         {
-            var backOnDefault = await new GetIntakeDeskWorkflowQueryHandler(reading, admin, new ScopedWorkflowAssignments(reading), new StatusResolver(reading))
+            var backOnDefault = await new GetIntakeDeskWorkflowQueryHandler(reading, admin, Assignments(reading), new StatusResolver(reading))
                 .Handle(new GetIntakeDeskWorkflowQuery(new IdOrKey(desk.Id)), ct);
             backOnDefault!.FollowsOrganizationDefault.Should().BeTrue();
             backOnDefault.Workflow.Id.Should().Be(defaultWorkflowId);
         }
         await using (var choosingAgain = _fixture.CreateContext())
         {
-            (await new ChangeIntakeDeskWorkflowCommandHandler(choosingAgain, admin, User(), _clock, new ScopedWorkflowAssignments(choosingAgain))
-                .Handle(new ChangeIntakeDeskWorkflowCommand(desk.Id, copy.Id), ct)).IsSuccess.Should().BeTrue();
+            (await new ChangeIntakeDeskWorkflowCommandHandler(choosingAgain, admin, User(), _clock, Assignments(choosingAgain))
+                .Handle(new ChangeIntakeDeskWorkflowCommand(desk.Id, copy.Id, []), ct)).IsSuccess.Should().BeTrue();
         }
         await using (var deleting = _fixture.CreateContext())
         {
-            (await new DeleteIntakeDeskCommandHandler(deleting, admin, User(), _clock, new ScopedWorkflowAssignments(deleting),
+            (await new DeleteIntakeDeskCommandHandler(deleting, admin, User(), _clock, Assignments(deleting),
                     Discussions(deleting, administrator.Id))
                 .Handle(new DeleteIntakeDeskCommand(desk.Id), ct)).IsSuccess.Should().BeTrue();
         }
@@ -882,6 +881,13 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         featureFlags.Setup(f => f.IsEnabled(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
         var requests = new IntakeRequestDiscussionChannelType(context, Principal(employeeId), User(), featureFlags.Object, context);
         return new(context, [requests], Principal(employeeId), User(), _clock);
+    }
+
+    /// <summary>The scoped workflow service over the context, moving intake requests as the API does.</summary>
+    private static ScopedWorkflowAssignments Assignments(WaydDbContext context)
+    {
+        var migrator = new IntakeRequestStatusRecordMigrator(context, context);
+        return new ScopedWorkflowAssignments(context, [migrator], [migrator]);
     }
 
     private static ICurrentUser User()

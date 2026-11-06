@@ -11,8 +11,7 @@ namespace Wayd.DemandManagement.Application.IntakeDesks.Queries;
 /// The review workflow a desk's requests follow, or null when there is no such desk.
 /// </summary>
 /// <remarks>
-/// Not hidden: like a desk's description, the stages it reviews in are no secret. Whether requests are on it
-/// is answered only to those who may change the workflow, so a private desk's emptiness reaches nobody else.
+/// Not hidden: like a desk's description, the stages it reviews in are no secret.
 /// </remarks>
 public sealed record GetIntakeDeskWorkflowQuery : IQuery<IntakeDeskWorkflowDto?>
 {
@@ -51,7 +50,6 @@ public sealed class GetIntakeDeskWorkflowQueryHandler(
 
         var reader = await _currentPrincipal.ResolveIntakeRequestReader(_dbContext, cancellationToken);
         var mayChange = !_currentPrincipal.IsReadOnly && reader.IsDeskAdminOn(id);
-        var hasRequests = mayChange && await _dbContext.IntakeRequests.AnyAsync(r => r.DeskId == id, cancellationToken);
 
         var statuses = await _statusResolver.ForScope(DemandManagementWorkflowOwners.IntakeRequest.Key, id, cancellationToken);
         if (statuses.IsFailure)
@@ -62,8 +60,7 @@ public sealed class GetIntakeDeskWorkflowQueryHandler(
         {
             Workflow = new IntakeWorkflowChoiceDto { Id = workflow.Id, Key = workflow.Key, Name = workflow.Name, Description = workflow.Description },
             FollowsOrganizationDefault = !current.Value.IsScopeOwn,
-            HasRequests = hasRequests,
-            CanChange = mayChange && !hasRequests,
+            CanChange = mayChange,
             Statuses = [.. statuses.Value.ActiveStatuses.Select(s => new IntakeWorkflowStatusDto
             {
                 Id = s.Id,

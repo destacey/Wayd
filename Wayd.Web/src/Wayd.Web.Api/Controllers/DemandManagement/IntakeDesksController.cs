@@ -2,6 +2,7 @@ using CSharpFunctionalExtensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.DemandManagement.Application.IntakeDesks;
 using Wayd.DemandManagement.Application.IntakeDesks.Commands;
@@ -107,7 +108,7 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     [McpTool("IntakeDesks_GetWorkflow", "Get intake desk workflow")]
     [Authorize]
     [EndpointSummary("Get the review workflow a desk's requests follow.")]
-    [EndpointDescription("Whether the desk follows the organization's default, and whether you may choose another: a Desk Admin on it or the Demand Management Admin, while no request is on it.")]
+    [EndpointDescription("Whether the desk follows the organization's default, and whether you may choose another: a Desk Admin on it or the Demand Management Admin.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IntakeDeskWorkflowDto>> GetWorkflow(string idOrKey, CancellationToken cancellationToken)
@@ -118,17 +119,39 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
             : NotFound();
     }
 
-    [HttpPut("{id}/workflow")]
-    [McpTool("IntakeDesks_ChangeWorkflow", "Change intake desk workflow")]
+    [HttpGet("{id}/workflow/change-preview")]
+    [McpTool("IntakeDesks_PreviewWorkflowChange", "Preview intake desk workflow change")]
     [Authorize]
-    [EndpointSummary("Point a desk at another published intake request workflow.")]
-    [EndpointDescription("Needs a Desk Admin on the desk or the Demand Management Admin, and is refused while any request is on the desk. The desk then follows the chosen workflow rather than the organization's default.")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [EndpointSummary("Preview moving a desk and its requests onto another published intake request workflow.")]
+    [EndpointDescription("Where each status of the desk's workflow would land in the target, how it was matched, how many of the desk's requests are in it, and the target's statuses an unplaced one can be sent to. The workflow must be published and not the one the desk follows. Needs a Desk Admin on the desk or the Demand Management Admin. Nothing changes.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ScopedWorkflowChangePreviewDto>> PreviewWorkflowChange(Guid id, [FromQuery] Guid workflowId, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new GetIntakeDeskWorkflowChangeQuery(id, workflowId), cancellationToken);
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : ErrorFor(result.Error);
+    }
+
+    [HttpPut("{id}/workflow")]
+    [McpTool("IntakeDesks_ChangeWorkflow", "Change intake desk workflow", Destructive = true)]
+    [Authorize]
+    [EndpointSummary("Point a desk at another published intake request workflow, moving its requests onto it.")]
+    [EndpointDescription("Needs a Desk Admin on the desk or the Demand Management Admin. Every request on the desk moves to the status the automatic mapping or `decisions` send its own to, recorded in its status history; preview the change first, and decide each status it leaves unplaced. A request lands in a status meaning Duplicate only while it names the request it duplicates, and in a closing status needing a reason only while it has one; a refusal names every request that cannot, and nothing moves. Choosing the organization's default makes the desk follow it again; any other gives the desk its own. Choosing the workflow the desk already follows moves only requests still on another one, such as a request created while an earlier change ran. Returns how many requests moved. Another change to the desk's workflow saved meanwhile answers 409.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> ChangeWorkflow(Guid id, [FromBody] ChangeIntakeDeskWorkflowRequest request, CancellationToken cancellationToken) =>
-        NoContentOrError(await _dispatcher.Send(new ChangeIntakeDeskWorkflowCommand(id, request.WorkflowId), cancellationToken));
+    public async Task<ActionResult<int>> ChangeWorkflow(Guid id, [FromBody] ChangeIntakeDeskWorkflowRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToChangeIntakeDeskWorkflowCommand(id), cancellationToken);
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : ErrorFor(result.Error);
+    }
 
     [HttpPut("{id}/scoring-model")]
     [Authorize]
@@ -206,9 +229,12 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     private ActionResult NoContentOrError(Result result) =>
         result.IsSuccess
             ? NoContent()
-            : result.Error == IntakeDeskAccess.NotFoundError
-                ? NotFound()
-                : result.Error == IntakeDeskAccess.StaleError
-                    ? Conflict(ProblemDetailsExtensions.ForConflict(result.Error, HttpContext))
-                    : BadRequest(result.ToBadRequestObject(HttpContext));
+            : ErrorFor(result.Error);
+
+    private ActionResult ErrorFor(string error) =>
+        error == IntakeDeskAccess.NotFoundError
+            ? NotFound()
+            : error == IntakeDeskAccess.StaleError
+                ? Conflict(ProblemDetailsExtensions.ForConflict(error, HttpContext))
+                : BadRequest(Result.Failure(error).ToBadRequestObject(HttpContext));
 }

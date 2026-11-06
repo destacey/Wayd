@@ -15,7 +15,6 @@ const workflow = (id: string, name: string): IntakeDeskWorkflowDto =>
   ({
     workflow: { id, key: 1, name },
     followsOrganizationDefault: true,
-    hasRequests: true,
     canChange: false,
     statuses: [
       {

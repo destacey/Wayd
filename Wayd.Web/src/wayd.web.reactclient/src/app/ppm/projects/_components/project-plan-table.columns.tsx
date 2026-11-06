@@ -175,6 +175,8 @@ export const getProjectPlanTableColumns = ({
                         size="small"
                         icon={<MoreOutlined />}
                         tabIndex={-1}
+                        aria-label="Row actions"
+                        data-row-actions=""
                       />
                     </Dropdown>
                   </Flex>
@@ -221,6 +223,8 @@ export const getProjectPlanTableColumns = ({
                         size="small"
                         icon={<MoreOutlined />}
                         tabIndex={-1}
+                        aria-label="Row actions"
+                        data-row-actions=""
                       />
                     </Dropdown>
                   )}
@@ -257,6 +261,7 @@ export const getProjectPlanTableColumns = ({
           <Button
             type="link"
             size="small"
+            tabIndex={-1}
             style={{ padding: 0, height: 'auto' }}
             onClick={(e) => {
               e.stopPropagation()
@@ -274,6 +279,7 @@ export const getProjectPlanTableColumns = ({
       size: 300,
       enableColumnFilter: true,
       sortFn: 'alphanumeric',
+      meta: { treeColumn: true } satisfies WaydGridColumnMeta,
       cell: ({ row }: { row: any }) => {
         const depth = row.depth
         const task = row.original as ProjectPlanNodeDto
@@ -308,6 +314,9 @@ export const getProjectPlanTableColumns = ({
                     )
                   }
                   onClick={row.getToggleExpandedHandler()}
+                  tabIndex={-1}
+                  aria-expanded={row.getIsExpanded()}
+                  aria-label="Show children"
                   className={styles.expanderBtn}
                 />
               ) : (
@@ -357,6 +366,7 @@ export const getProjectPlanTableColumns = ({
                   type="text"
                   size="small"
                   icon={<PlusOutlined />}
+                  tabIndex={-1}
                   className={`${styles.rowActionBtn} ${styles.inlineRowAction}`}
                   onClick={(e) => {
                     e.stopPropagation()

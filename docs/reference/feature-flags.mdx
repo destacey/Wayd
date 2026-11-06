@@ -11,21 +11,35 @@ Wayd uses Microsoft.FeatureManagement to control feature visibility. Feature fla
 
 ## How It Works
 
-1. Flags are **defined in code** (`FeatureFlags.cs`)
-2. On startup, the **seeder** creates any new flags in the database. New flags are seeded **disabled by default**, unless the definition sets `DefaultEnabled: true`. The seeder only sets the initial state on first creation — it never overwrites an existing flag's state, so admin toggles are preserved across deploys.
-3. Admins **enable/disable** flags through the Settings UI
+1. Flags are **defined in code** (`FeatureFlags.cs`). The definition is the only source of a flag's display name, description and module; none of them can be edited in the app.
+2. On startup, the **seeder** makes the stored flags match the definitions:
+   - creates a missing flag, **disabled** unless the definition sets `DefaultEnabled: true`;
+   - reapplies each definition's display name, description and module to its stored flag;
+   - **archives** a stored flag the code no longer defines, which also turns it off, and restores it if the definition comes back.
+
+   It never changes whether a flag is enabled, so admin choices survive deploys.
+3. Admins turn flags **on and off** on **Settings → System → Feature Flags**, which groups them by module
 4. A **database-backed provider** serves flag state with caching
+
+## Modules
+
+Every flag belongs to a `FeatureFlagModule` (Platform, Planning, Organization, Product Management, Demand Management). The enum's `[Display]` attributes give each module its name, description and order on the page. Modules are stored by name: reorder them freely, but never rename a value.
+
+A flag that turns a whole module on or off sets `IsModuleSwitch: true` — at most one per module (`FeatureFlagsTests` checks). The page shows it in the module's header and disables the module's other switches while it is off. That dependency is presentation only: a feature inside the module still has to check the module's flag itself, as Incident Management checks Product Management.
 
 ## Current Flags
 
-| Name | Display name | Controls |
-| --- | --- | --- |
-| `planning-poker` | Planning Poker | The Planning Poker feature |
-| `story-maps` | Story Maps | The Story Maps feature |
-| `product-management` | Product Management | The Product Management module |
-| `delivery-forecasting` | Delivery Forecasting | Monte Carlo delivery forecasts |
-| `mcp-server` | MCP Server | The MCP server (`/mcp`) |
-| `team-capacity-management` | Team Capacity Management | Employee allocation to teams and team capacity planning |
+| Name | Display name | Module | Controls |
+| --- | --- | --- | --- |
+| `following` | Following | Platform | Following records and in-app notifications |
+| `mcp-server` | MCP Server | Platform | The MCP server (`/mcp`) |
+| `planning-poker` | Planning Poker | Planning | The Planning Poker feature |
+| `story-maps` | Story Maps | Planning | The Story Maps feature |
+| `delivery-forecasting` | Delivery Forecasting | Planning | Monte Carlo delivery forecasts |
+| `team-capacity-management` | Team Capacity Management | Organization | Employee allocation to teams and team capacity planning |
+| `product-management` | Product Management | Product Management (switch) | The Product Management module |
+| `incident-management` | Incident Management | Product Management | Incident severity scales and records |
+| `demand-management` | Demand Management | Demand Management (switch) | The Demand Management module |
 
 All of them are seeded disabled.
 
@@ -39,11 +53,11 @@ In `Wayd.Common.Domain/FeatureManagement/FeatureFlags.cs`:
 public static class FeatureFlags
 {
     public static readonly FeatureFlagDefinition MyNewFeature =
-        new(Names.MyNewFeature, "My New Feature", "Description of what this feature does.");
+        new(Names.MyNewFeature, "My New Feature", "What turning this on makes available.", FeatureFlagModule.Planning);
 
     // Seed a flag as ENABLED by default (e.g. rolling out a replacement UI):
     public static readonly FeatureFlagDefinition MyDefaultOnFeature =
-        new(Names.MyDefaultOnFeature, "My Default-On Feature", "Enabled on first seed.", DefaultEnabled: true);
+        new(Names.MyDefaultOnFeature, "My Default-On Feature", "Enabled on first seed.", FeatureFlagModule.Platform, DefaultEnabled: true);
 
     public static class Names
     {
@@ -52,6 +66,8 @@ public static class FeatureFlags
     }
 }
 ```
+
+The description is shown beneath the flag's name on the Feature Flags page, so write it for an administrator deciding whether to turn the flag on. Never rename a flag's `Name`: the seeder would archive the old flag and create a new, disabled one.
 
 ### 2. Gate the Backend
 
@@ -95,7 +111,8 @@ Pass flag state into menu builder functions to conditionally show navigation ite
 | File | Purpose |
 |------|---------|
 | `Wayd.Common.Domain/FeatureManagement/FeatureFlags.cs` | Flag definitions |
-| `Wayd.Infrastructure/Persistence/Initialization/FeatureFlagSeeder.cs` | Auto-seeds flags |
+| `Wayd.Common.Domain/FeatureManagement/FeatureFlagModule.cs` | The modules flags are grouped under |
+| `Wayd.Infrastructure/Persistence/Initialization/FeatureFlagSeeder.cs` | Syncs stored flags with the definitions |
 | `Wayd.Infrastructure/FeatureManagement/DatabaseFeatureDefinitionProvider.cs` | Database provider |
 | `Wayd.Common.Application/FeatureManagement/IFeatureFlags.cs` | Flag checks in handlers |
 | `wayd.web.reactclient/src/hooks/use-feature-flag.ts` | Frontend hook |

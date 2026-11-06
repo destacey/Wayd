@@ -210,23 +210,24 @@ Wayd uses **feature flags** to control the visibility of features across the app
 
 ### How Feature Flags Work
 
-1. Flags are **defined in code** by developers
-2. On application startup, new flags are **automatically seeded** into the database, disabled unless the flag is defined to start enabled. Seeding only sets a flag's **initial** state; your enable/disable choices are preserved across updates
-3. Administrators **enable or disable** flags through the Settings UI
+1. Flags are **defined in code** by developers, including each flag's name, description and module
+2. On application startup, new flags are **automatically added**, off unless the flag is defined to start on. Each flag's name, description and module are refreshed from the code, and a flag Wayd no longer defines is removed and turned off. Your on and off choices are preserved across updates
+3. Administrators turn flags **on or off** on the Feature Flags page
 4. The application checks flag state to **show or hide** features
 
 ### Managing Feature Flags
 
-1. Navigate to **Settings > System > Feature Flags**
-2. View all available feature flags with their **Name**, **Display Name**, **Type** and whether each is **Enabled**; select a flag to see its description
-3. From a flag's row menu, **Enable** or **Disable** it, or **Edit** its display name and description
-4. **Archive** removes a flag you no longer need, and disables it. It is offered only for **User** flags — **System** flags are defined by Wayd and cannot be archived. **Include Archived** shows archived flags again
+1. Navigate to **Settings → System → Feature Flags**
+2. Flags are grouped by **module** (Platform, Planning, Organization, Product Management, Demand Management). Each flag shows its name, its key (the value the code checks) and a description of what it makes available
+3. Use a flag's switch to turn it **on or off**. The change takes effect right away for everyone in the organization
+4. **Product Management** and **Demand Management** each have a switch in their module's header that turns the whole module on or off. While a module is off, its other flags have no effect and their switches are disabled — **Incident Management** works only with **Product Management** on
+5. Search filters the flags by name, key or description; searching for a module's name shows all of its flags
 
-Viewing flags needs `Permissions.FeatureFlags.View`; enabling, disabling and editing need `Permissions.FeatureFlags.Update`, and archiving needs `Permissions.FeatureFlags.Delete`.
+Viewing flags needs `Permissions.FeatureFlags.View`; turning them on and off needs `Permissions.FeatureFlags.Update`. Without it, the switches are read-only.
 
 The flags Wayd defines:
 
-| Flag | Name | What it controls |
+| Flag | Key | What it controls |
 |---|---|---|
 | Planning Poker | `planning-poker` | The Planning Poker feature, including **Settings → Planning → Estimation Scales** |
 | Story Maps | `story-maps` | The Story Maps feature |

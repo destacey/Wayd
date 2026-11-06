@@ -51,6 +51,6 @@ export const sprintScopeWindowText = (
     }.`,
     scope.hasTeam
       ? `Days are counted in the team’s zone, ${scope.timeZone}.`
-      : `This sprint has no team, so it uses the system default zone (${scope.timeZone}) and grace period, and counts work items.`,
+      : `This sprint has no team, so it uses the system time zone (${scope.timeZone}) and the default grace period, and counts work items.`,
   ]
 }

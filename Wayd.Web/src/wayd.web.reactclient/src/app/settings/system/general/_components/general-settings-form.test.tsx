@@ -84,7 +84,7 @@ describe('GeneralSettingsForm', () => {
     expect(mockSuccess).toHaveBeenCalled()
   })
 
-  it('reports a validation rejection as one', async () => {
+  it('reports a validation rejection on the time zone field', async () => {
     // Arrange
     mockUpdate.mockResolvedValue({
       error: {
@@ -106,7 +106,35 @@ describe('GeneralSettingsForm', () => {
         'Correct the validation error(s) to continue.',
       ),
     )
+    expect(
+      await screen.findByText("'Mars/Base' is not a valid IANA time zone."),
+    ).toBeInTheDocument()
     expect(mockSuccess).not.toHaveBeenCalled()
+  })
+
+  it("shows the server's message when the save is refused", async () => {
+    // Arrange
+    mockUpdate.mockResolvedValue({
+      error: {
+        isApiException: true,
+        status: 403,
+        response: { detail: 'You do not have permission to do that.' },
+      },
+    })
+    renderForm()
+
+    // Act
+    chooseLondon()
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    })
+
+    // Assert
+    await waitFor(() =>
+      expect(mockError).toHaveBeenCalledWith(
+        'You do not have permission to do that.',
+      ),
+    )
   })
 
   it('is read-only without the update permission', () => {

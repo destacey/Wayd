@@ -128,7 +128,7 @@ describe('SettingsMenu', () => {
       expect(screen.getByText('Connections')).toBeInTheDocument()
     })
 
-    it('puts the general settings, with the system time zone, under System', () => {
+    it('puts the general settings under System', () => {
       // Act
       renderMenu()
 

@@ -3,7 +3,7 @@
 import { Button, Form, InputNumber, Skeleton } from 'antd'
 import { useEffect, useState } from 'react'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { toFormErrors } from '@/src/utils'
+import { toApiError, toFormErrors } from '@/src/utils'
 import { IsoDayOfWeek, SchedulingSettingsDto } from '@/src/services/wayd-api'
 import { useUpdateSchedulingSettingsMutation } from '@/src/store/features/admin/system-settings-api'
 import {
@@ -68,13 +68,14 @@ const SchedulingSettingsForm = ({
       }
       messageApi.success('Scheduling settings saved.')
       setIsDirty(false)
-    } catch (error: any) {
-      if (error?.status === 422 && error.errors) {
-        form.setFields(toFormErrors(error.errors))
+    } catch (error) {
+      const apiError = toApiError(error)
+      if (apiError.status === 422 && apiError.errors) {
+        form.setFields(toFormErrors(apiError.errors))
         messageApi.error('Correct the validation error(s) to continue.')
       } else {
         messageApi.error(
-          error?.detail ??
+          apiError.detail ??
             'An error occurred while saving the scheduling settings.',
         )
       }

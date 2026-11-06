@@ -209,6 +209,33 @@ export function GridHeaderCell<T extends RowData>({
       // to onClick (sort). Interactive children (resizer, filter, menu) stop
       // pointerdown propagation so grabbing them never starts a column drag.
       {...sortable?.handleProps}
+      // After the spread: dnd-kit's attributes announce the cell as a
+      // draggable button and give every header a Tab stop whose Enter starts
+      // a keyboard drag. In the grid it is the column's header: a Tab stop
+      // only when it sorts, with Enter or Space sorting it. Columns reorder
+      // by keyboard through Choose Columns.
+      role="columnheader"
+      aria-roledescription={undefined}
+      aria-describedby={undefined}
+      tabIndex={canSort ? 0 : undefined}
+      onKeyDown={
+        canSort
+          ? (e) => {
+              if (e.key !== 'Enter' && e.key !== ' ') return
+              if (e.target !== e.currentTarget) return
+              e.preventDefault()
+              header.column.getToggleSortingHandler()?.(e)
+            }
+          : undefined
+      }
+      aria-colindex={header.index + 1}
+      aria-sort={
+        sortState === 'asc'
+          ? 'ascending'
+          : sortState === 'desc'
+            ? 'descending'
+            : undefined
+      }
       // Anchors autosize's header-label lookup (with the text marker below).
       data-column-id={header.column.id}
       ref={sortable?.setNodeRef}

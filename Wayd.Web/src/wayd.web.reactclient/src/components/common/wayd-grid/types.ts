@@ -136,6 +136,11 @@ export interface WaydGridProps<T extends RowData> {
    * as an empty grid, matching the old ag-grid `rowData` tolerance.
    */
   data: T[] | undefined
+  /**
+   * The grid's accessible name, announced when a screen reader enters it.
+   * Give one when the page has more than one grid or no heading naming it.
+   */
+  'aria-label'?: string
   /** Loading state. */
   isLoading?: boolean
   /**

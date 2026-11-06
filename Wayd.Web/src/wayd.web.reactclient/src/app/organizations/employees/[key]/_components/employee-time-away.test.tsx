@@ -92,7 +92,9 @@ describe('EmployeeTimeAway', () => {
   it('shows a teammate that the person is away, with no reason and nothing to change', () => {
     renderSection({ canManage: false, entries: [entry] })
 
-    expect(screen.getByRole('cell', { name: 'Half day' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('gridcell', { name: 'Half day' }),
+    ).toBeInTheDocument()
     expect(screen.queryByText('Reason')).not.toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: 'Record Time Away' }),
@@ -114,7 +116,7 @@ describe('EmployeeTimeAway', () => {
       entries: [{ ...entry, percentAway: 25 }],
     })
 
-    expect(screen.getByRole('cell', { name: '1.5 h' })).toBeInTheDocument()
+    expect(screen.getByRole('gridcell', { name: '1.5 h' })).toBeInTheDocument()
   })
 
   it('shows the reason by name to someone who may manage the time away', () => {
@@ -124,7 +126,9 @@ describe('EmployeeTimeAway', () => {
     })
 
     expect(screen.getByText('Reason')).toBeInTheDocument()
-    expect(screen.getByRole('cell', { name: 'Training' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('gridcell', { name: 'Training' }),
+    ).toBeInTheDocument()
     expect(mockReasonsArgs.mock.calls[0][1]).toEqual({ skip: false })
   })
 
@@ -248,7 +252,7 @@ describe('EmployeeTimeAway', () => {
       entries: [{ ...entry, percentAway: 25 }],
     })
 
-    expect(screen.getByRole('cell', { name: '1 h' })).toBeInTheDocument()
+    expect(screen.getByRole('gridcell', { name: '1 h' })).toBeInTheDocument()
   })
 
   it('offers to change the working day only with Employees Update', async () => {

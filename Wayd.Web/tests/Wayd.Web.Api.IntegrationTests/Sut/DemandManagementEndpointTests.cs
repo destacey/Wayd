@@ -468,7 +468,8 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
         asDeskAdmin.GetProperty("canChange").GetBoolean().Should().BeTrue();
         asDeskAdmin.GetProperty("followsOrganizationDefault").GetBoolean().Should().BeTrue();
         byAgent.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        byDeskAdmin.StatusCode.Should().Be(HttpStatusCode.NoContent, await byDeskAdmin.Content.ReadAsStringAsync(ct));
+        byDeskAdmin.StatusCode.Should().Be(HttpStatusCode.OK, await byDeskAdmin.Content.ReadAsStringAsync(ct));
+        (await byDeskAdmin.Content.ReadFromJsonAsync<int>(ct)).Should().Be(0, "no request is on the new desk");
         forNoDesk.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 

@@ -96,7 +96,7 @@ Every skill that can change data opens with "Before any change": describe the ch
 | 14 | `Roadmaps_GetItemsInPeriod` | Read | roadmaps "What is planned for a period" steps 2–4 | No | `roadmaps-planned-for-quarter` |
 | 15 | `Roadmaps_FindItems` | Read | roadmaps "Identifiers" lookup | No | `roadmaps-item-details-by-name`, `roadmaps-move-milestone-unsupported` |
 | 16 | `StoryMaps_GetRemovalImpact` | Read | story-maps "Destructive operations" steps 1–2, 5 | No | `story-maps-delete-goal` |
-| 17 | `Products_PreviewTag` | Read | products "Single-value axis silently replaces" | No | `products-tag-single-value-axis` |
+| 17 | `Products_PreviewTag` | Read | products "Single-value category silently replaces" | No | `products-tag-single-value-axis` |
 | 18 | `Versions_Record` | Write | delivery "Recording what shipped" steps 1–2 | No | `delivery-record-version-not-release` |
 | 19 | `Deployments_Record` | Write | delivery "Recording what shipped" step 7 | No | none |
 | 20 | `StoryMaps_AddGoal` with `stepNames` | Write | story-maps "Building a map" steps 2–3 | No | none |
@@ -243,7 +243,7 @@ Proposed by the issue owner on #975.
 
 #### 17. `Products_PreviewTag`
 
-- **Replaces:** wayd-products "Tagging a single-value axis silently replaces". Not an overwrite trap: `Products_Tag` adds one tag, but on an axis with `allowsMany = false` it replaces the existing one without saying so.
+- **Replaces:** wayd-products "Tagging a single-value category silently replaces". Not an overwrite trap: `Products_Tag` adds one tag, but in a category with `allowsMany = false` it replaces the existing one without saying so.
 - **Input:** `productIdOrKey`, `tagId`.
 - **Dispatches:** `GetProductQuery` and `GetProductTagCategoriesQuery` (`PM/ProductTagCategories/Queries/`).
 - **Returns:** `allowsMany`, the tag that would be removed, and whether the tag and its category are active (an inactive one is refused).
@@ -379,7 +379,7 @@ Scenarios no candidate touches, useful as controls: `ppm-complete-program-open-p
 | | Recording what shipped steps 1–2, 7 | F | 18, 19 |
 | | Where did this version go | F | 10 |
 | | Ending vs deleting, announced once, instants, deployments, permissions | R | |
-| wayd-products | Single-value axis | F | 17 |
+| wayd-products | Single-value category | F | 17 |
 | | Deleting a product: four checks | F | 11 |
 | | Purge, dependencies, environments, catalog | J | |
 | | Guarded changes, configuration, measures | R | |

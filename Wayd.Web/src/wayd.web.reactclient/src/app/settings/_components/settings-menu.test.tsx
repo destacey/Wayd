@@ -128,6 +128,14 @@ describe('SettingsMenu', () => {
       expect(screen.getByText('Connections')).toBeInTheDocument()
     })
 
+    it('puts the general settings, with the system time zone, under System', () => {
+      // Act
+      renderMenu()
+
+      // Assert
+      expect(screen.getByText('General')).toBeInTheDocument()
+    })
+
     it('puts the scheduling settings under System', () => {
       // Act
       renderMenu()

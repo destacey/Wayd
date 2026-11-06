@@ -791,8 +791,10 @@ export const teamApi = apiSlice.injectEndpoints({
         }
       },
       // The zone comes from the parent's operating model through the team's
-      // membership, and the grace period from the scheduling settings.
+      // membership, or else the system time zone in the general settings; the
+      // grace period comes from the scheduling settings.
       providesTags: (result, error, { teamId }) => [
+        { type: QueryTags.SystemSettings, id: 'general' },
         { type: QueryTags.SystemSettings, id: 'scheduling' },
         { type: QueryTags.TeamMembership, id: teamId },
         { type: QueryTags.TeamOperatingModel, id: 'defaults' },

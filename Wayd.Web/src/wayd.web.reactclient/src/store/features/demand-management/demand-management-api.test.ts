@@ -246,13 +246,44 @@ describe('demandManagementApi', () => {
         demandManagementApi.endpoints.changeIntakeDeskWorkflow.initiate({
           deskId: 'd-2',
           workflowId: 'w-2',
+          decisions: [],
         }),
       )
       await new Promise((resolve) => setTimeout(resolve, 0))
 
       // Assert
-      expect(changeWorkflow).toHaveBeenCalledWith('d-2', { workflowId: 'w-2' })
+      expect(changeWorkflow).toHaveBeenCalledWith('d-2', {
+        workflowId: 'w-2',
+        decisions: [],
+      })
       expect(getArrivalStatuses).toHaveBeenCalledTimes(2)
+      subscription.unsubscribe()
+    })
+
+    it('refetches the status history of a request already open, which the change moved', async () => {
+      // Arrange
+      getStatusHistory.mockResolvedValue([])
+      changeWorkflow.mockResolvedValue(1)
+      const store = createStore()
+      const subscription = store.dispatch(
+        demandManagementApi.endpoints.getIntakeRequestStatusHistory.initiate(
+          'r-1',
+        ),
+      )
+      await subscription
+
+      // Act
+      await store.dispatch(
+        demandManagementApi.endpoints.changeIntakeDeskWorkflow.initiate({
+          deskId: 'd-2',
+          workflowId: 'w-2',
+          decisions: [],
+        }),
+      )
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      // Assert
+      expect(getStatusHistory).toHaveBeenCalledTimes(2)
       subscription.unsubscribe()
     })
   })

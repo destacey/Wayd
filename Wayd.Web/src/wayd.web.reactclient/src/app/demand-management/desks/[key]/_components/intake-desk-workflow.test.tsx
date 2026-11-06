@@ -32,7 +32,6 @@ jest.mock('./change-intake-desk-workflow-form', () => ({
 const workflow = (overrides: Record<string, unknown> = {}) => ({
   workflow: { id: 'w-1', key: 3, name: 'Default Intake Workflow' },
   followsOrganizationDefault: true,
-  hasRequests: false,
   canChange: false,
   ...overrides,
 })
@@ -81,25 +80,5 @@ describe('IntakeDeskWorkflow', () => {
 
     // Assert
     expect(screen.getByText('Change Workflow form')).toBeInTheDocument()
-  })
-
-  it('says why the workflow cannot change while requests are on the desk', () => {
-    // Arrange
-    mockWorkflow = workflow({
-      hasRequests: true,
-      followsOrganizationDefault: false,
-    })
-
-    // Act
-    renderSetting()
-
-    // Assert
-    expect(
-      screen.getByText('It cannot change while requests are on the desk.'),
-    ).toBeInTheDocument()
-    expect(
-      screen.queryByRole('button', { name: 'Change Workflow' }),
-    ).not.toBeInTheDocument()
-    expect(screen.queryByText('Organization default')).not.toBeInTheDocument()
   })
 })

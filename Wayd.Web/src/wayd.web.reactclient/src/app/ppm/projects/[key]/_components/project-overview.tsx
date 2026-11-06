@@ -5,37 +5,17 @@ import StageTimeline from '@/src/app/ppm/_components/stage-timeline'
 import ProjectTaskMetrics from '@/src/app/ppm/projects/_components/project-task-metrics'
 import { ProjectDetailsDto } from '@/src/services/wayd-api'
 import { useGetProjectPlanSummaryQuery } from '@/src/store/features/ppm/projects-api'
-import { Flex, Typography } from 'antd'
-
-const { Text } = Typography
+import { Flex } from 'antd'
+import Block from './overview-block'
+import ProjectDeliverablesSummary from './project-deliverables-summary'
 
 export interface ProjectOverviewProps {
   project: ProjectDetailsDto
 }
 
 /**
- * A titled block on the overview.
- *
- * 14px `Text strong` — the third step of the type scale, below the section
- * heading the layout renders above it.
- */
-const Block = ({
-  title,
-  children,
-}: {
-  title: string
-  children: React.ReactNode
-}) => (
-  <Flex vertical gap="small">
-    <Text strong style={{ fontSize: 14 }}>
-      {title}
-    </Text>
-    {children}
-  </Flex>
-)
-
-/**
- * How the project is progressing: its stages, and the tasks inside them.
+ * How the project is progressing: its stages, what it has committed to
+ * deliver, and the tasks inside the stages.
  *
  * A project with no lifecycle has no stages to show, which is a setup gap
  * rather than an empty result — hence a message pointing at the cause rather
@@ -49,8 +29,22 @@ const ProjectOverview = ({ project }: ProjectOverviewProps) => {
 
   const hasTasks = (planSummary?.totalLeafTasks ?? 0) > 0
 
+  // Deliverables are usually agreed before a lifecycle is assigned, so they
+  // show either way.
+  const deliverables = (
+    <ProjectDeliverablesSummary
+      projectId={project.id}
+      projectKey={project.key}
+    />
+  )
+
   if (!project.projectLifecycle) {
-    return <WaydEmpty message="No lifecycle defined for this project." />
+    return (
+      <Flex vertical gap="large">
+        {deliverables}
+        <WaydEmpty message="No lifecycle defined for this project." />
+      </Flex>
+    )
   }
 
   return (
@@ -60,6 +54,8 @@ const ProjectOverview = ({ project }: ProjectOverviewProps) => {
           <StageTimeline stages={project.stages} />
         </Block>
       )}
+
+      {deliverables}
 
       {hasTasks && (
         <Block title="Task Summary">

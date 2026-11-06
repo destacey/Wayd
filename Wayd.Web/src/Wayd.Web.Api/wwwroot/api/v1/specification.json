@@ -43815,7 +43815,7 @@
           "IntakeDesks"
         ],
         "summary": "Get the review workflow a desk's requests follow.",
-        "description": "Whether the desk follows the organization's default, and whether you may choose another: a Desk Admin on it or the Demand Management Admin, while no request is on it.",
+        "description": "Whether the desk follows the organization's default, and whether you may choose another: a Desk Admin on it or the Demand Management Admin.",
         "operationId": "IntakeDesks_GetWorkflow",
         "parameters": [
           {
@@ -43857,13 +43857,81 @@
         ]
       }
     },
+    "/api/demand-management/intake-desks/{id}/workflow/change-preview": {
+      "get": {
+        "tags": [
+          "IntakeDesks"
+        ],
+        "summary": "Preview moving a desk and its requests onto another published intake request workflow.",
+        "description": "Where each status of the desk's workflow would land in the target, how it was matched, how many of the desk's requests are in it, and the target's statuses an unplaced one can be sent to. The workflow must be published and not the one the desk follows. Needs a Desk Admin on the desk or the Demand Management Admin. Nothing changes.",
+        "operationId": "IntakeDesks_PreviewWorkflowChange",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "workflowId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScopedWorkflowChangePreviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/demand-management/intake-desks/{id}/workflow": {
       "put": {
         "tags": [
           "IntakeDesks"
         ],
-        "summary": "Point a desk at another published intake request workflow.",
-        "description": "Needs a Desk Admin on the desk or the Demand Management Admin, and is refused while any request is on the desk. The desk then follows the chosen workflow rather than the organization's default.",
+        "summary": "Point a desk at another published intake request workflow, moving its requests onto it.",
+        "description": "Needs a Desk Admin on the desk or the Demand Management Admin. Every request on the desk moves to the status the automatic mapping or `decisions` send its own to, recorded in its status history; preview the change first, and decide each status it leaves unplaced. A request lands in a status meaning Duplicate only while it names the request it duplicates, and in a closing status needing a reason only while it has one; a refusal names every request that cannot, and nothing moves. Choosing the organization's default makes the desk follow it again; any other gives the desk its own. Choosing the workflow the desk already follows moves only requests still on another one, such as a request created while an earlier change ran. Returns how many requests moved. Another change to the desk's workflow saved meanwhile answers 409.",
         "operationId": "IntakeDesks_ChangeWorkflow",
         "parameters": [
           {
@@ -43890,8 +43958,16 @@
           "x-position": 2
         },
         "responses": {
-          "204": {
-            "description": "No Content"
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
           },
           "400": {
             "description": "Bad Request",
@@ -43905,6 +43981,16 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
@@ -54996,7 +55082,8 @@
       },
       "ChangeIntakeDeskWorkflowRequest": {
         "required": [
-          "workflowId"
+          "workflowId",
+          "decisions"
         ],
         "type": "object",
         "properties": {
@@ -55005,10 +55092,17 @@
             "type": "string",
             "description": "A published intake request workflow, from the workflow choices.",
             "format": "uuid"
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusRemapDecisionRequest"
+            },
+            "description": "Choices layered over the automatic mapping the workflow change preview shows: a target for each status it\nleaves unplaced, plus any automatic choice overridden. Needed only while requests are on the desk."
           }
         },
         "additionalProperties": false,
-        "description": "The review workflow a desk's requests should follow."
+        "description": "The review workflow a desk's requests should follow, and where requests in each of the current workflow's\nstatuses go."
       },
       "ChangeIntakeRequestAssigneeRequest": {
         "type": "object",
@@ -64398,7 +64492,6 @@
         "required": [
           "workflow",
           "followsOrganizationDefault",
-          "hasRequests",
           "canChange",
           "statuses"
         ],
@@ -64416,13 +64509,9 @@
             "type": "boolean",
             "description": "Whether the desk follows the organization's default workflow rather than one chosen for it, so a change\nto the default reaches it."
           },
-          "hasRequests": {
-            "type": "boolean",
-            "description": "Whether any request is on the desk, which stops its workflow changing."
-          },
           "canChange": {
             "type": "boolean",
-            "description": "Whether the reader may choose the desk's workflow: a Desk Admin on it or the Demand Management Admin,\nwhile no request is on it."
+            "description": "Whether the reader may choose the desk's workflow, moving its requests with it: a Desk Admin on it or the\nDemand Management Admin."
           },
           "statuses": {
             "type": "array",
@@ -74942,6 +75031,32 @@
           }
         },
         "additionalProperties": false
+      },
+      "ScopedWorkflowChangePreviewDto": {
+        "required": [
+          "remap",
+          "targetStatuses"
+        ],
+        "type": "object",
+        "properties": {
+          "remap": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusRemapPreviewDto"
+              }
+            ],
+            "description": "How each status of the scope's workflow would land, with the scope's records on each."
+          },
+          "targetStatuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowStatusDto"
+            },
+            "description": "The target workflow's statuses that records can be sent to, in its order."
+          }
+        },
+        "additionalProperties": false,
+        "description": "What moving one scope onto another workflow would do, with the statuses its records could be sent to."
       },
       "ScoreIntakeRequestRequest": {
         "required": [

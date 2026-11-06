@@ -16,12 +16,9 @@ public sealed record IntakeDeskWorkflowDto
     /// </summary>
     public bool FollowsOrganizationDefault { get; init; }
 
-    /// <summary>Whether any request is on the desk, which stops its workflow changing.</summary>
-    public bool HasRequests { get; init; }
-
     /// <summary>
-    /// Whether the reader may choose the desk's workflow: a Desk Admin on it or the Demand Management Admin,
-    /// while no request is on it.
+    /// Whether the reader may choose the desk's workflow, moving its requests with it: a Desk Admin on it or the
+    /// Demand Management Admin.
     /// </summary>
     public bool CanChange { get; init; }
 

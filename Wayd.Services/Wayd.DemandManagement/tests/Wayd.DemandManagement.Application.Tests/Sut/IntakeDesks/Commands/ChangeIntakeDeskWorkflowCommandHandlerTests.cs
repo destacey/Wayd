@@ -3,9 +3,8 @@ using FluentAssertions;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.StatusWorkflows;
-using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Events;
-using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.DemandManagement.Application.IntakeDesks;
 using Wayd.DemandManagement.Application.IntakeDesks.Commands;
 using Wayd.DemandManagement.Application.Tests.Infrastructure;
@@ -18,23 +17,26 @@ public sealed class ChangeIntakeDeskWorkflowCommandHandlerTests
     private readonly IntakeScenario _scenario = new();
     private readonly Mock<IScopedWorkflowAssignments> _assignments = new();
     private readonly Guid _workflowId = Guid.NewGuid();
+    private readonly StatusRemapDecisionDto[] _decisions = [new() { FromStatusId = Guid.NewGuid(), ToStatusId = Guid.NewGuid() }];
 
     public ChangeIntakeDeskWorkflowCommandHandlerTests()
     {
-        _assignments.Setup(a => a.AssignToEmptyScope(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<EventActor>(),
-                It.IsAny<Instant>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success());
+        _assignments.Setup(a => a.Change(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<Guid>(),
+                It.IsAny<IReadOnlyCollection<StatusRemapDecisionDto>>(), It.IsAny<EventActor>(), It.IsAny<Instant>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(3));
     }
 
     private ChangeIntakeDeskWorkflowCommandHandler CreateHandler() =>
         new(_scenario.DbContext, _scenario.Principal.Object, _scenario.User.Object, _scenario.Clock, _assignments.Object);
 
-    private void VerifyAssigned(Guid deskId, Times times) =>
-        _assignments.Verify(a => a.AssignToEmptyScope(DemandManagementWorkflowOwners.IntakeRequest.Key, deskId, _workflowId,
+    private ChangeIntakeDeskWorkflowCommand Command(Guid deskId) => new(deskId, _workflowId, _decisions);
+
+    private void VerifyChanged(Guid deskId, Times times) =>
+        _assignments.Verify(a => a.Change(DemandManagementWorkflowOwners.IntakeRequest.Key, deskId, _workflowId, _decisions,
             It.IsAny<EventActor>(), It.IsAny<Instant>(), It.IsAny<CancellationToken>()), times);
 
     [Fact]
-    public async Task Handle_ByADeskAdminWithNoClaim_PointsTheEmptyDeskAtTheWorkflow()
+    public async Task Handle_ByADeskAdminWithNoClaim_ChangesTheDesksWorkflowWithTheDecisions()
     {
         // Arrange
         var deskAdmin = _scenario.Employee();
@@ -42,30 +44,48 @@ public sealed class ChangeIntakeDeskWorkflowCommandHandlerTests
         _scenario.SignedInAs(deskAdmin);
 
         // Act
-        var result = await CreateHandler().Handle(new ChangeIntakeDeskWorkflowCommand(desk.Id, _workflowId), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(Command(desk.Id), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        VerifyAssigned(desk.Id, Times.Once());
+        result.Value.Should().Be(3);
+        VerifyChanged(desk.Id, Times.Once());
     }
 
     [Fact]
-    public async Task Handle_ByTheDemandManagementAdmin_PointsTheEmptyDeskAtTheWorkflow()
+    public async Task Handle_ByTheDemandManagementAdmin_ChangesTheDesksWorkflow()
     {
         // Arrange
         var desk = _scenario.Desk();
         _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);
 
         // Act
-        var result = await CreateHandler().Handle(new ChangeIntakeDeskWorkflowCommand(desk.Id, _workflowId), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(Command(desk.Id), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        VerifyAssigned(desk.Id, Times.Once());
+        VerifyChanged(desk.Id, Times.Once());
     }
 
     [Fact]
-    public async Task Handle_ByAnAgent_FailsAndAssignsNothing()
+    public async Task Handle_ForADeskHoldingRequests_ChangesItsWorkflow()
+    {
+        // Arrange — the requests move with it
+        var deskAdmin = _scenario.Employee();
+        var desk = _scenario.DeskAdministeredBy(deskAdmin.Id);
+        _scenario.RequestInStatus(desk, _scenario.Employee(), "Declined");
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(Command(desk.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        VerifyChanged(desk.Id, Times.Once());
+    }
+
+    [Fact]
+    public async Task Handle_ByAnAgent_FailsAndChangesNothing()
     {
         // Arrange
         var agent = _scenario.Employee();
@@ -73,30 +93,50 @@ public sealed class ChangeIntakeDeskWorkflowCommandHandlerTests
         _scenario.SignedInAs(agent);
 
         // Act
-        var result = await CreateHandler().Handle(new ChangeIntakeDeskWorkflowCommand(desk.Id, _workflowId), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(Command(desk.Id), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(IntakeDeskAccess.NotADeskAdminError);
-        VerifyAssigned(desk.Id, Times.Never());
+        VerifyChanged(desk.Id, Times.Never());
     }
 
     [Fact]
-    public async Task Handle_ForADeskHoldingARequest_FailsAndAssignsNothing()
+    public async Task Handle_WhenTheChangeIsRefused_ReportsWhy()
     {
-        // Arrange — even a closed one: its history is on the current workflow
+        // Arrange
         var deskAdmin = _scenario.Employee();
         var desk = _scenario.DeskAdministeredBy(deskAdmin.Id);
-        _scenario.RequestInStatus(desk, _scenario.Employee(), "Declined");
         _scenario.SignedInAs(deskAdmin);
+        _assignments.Setup(a => a.Change(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<Guid>(),
+                It.IsAny<IReadOnlyCollection<StatusRemapDecisionDto>>(), It.IsAny<EventActor>(), It.IsAny<Instant>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Failure<int>("These statuses have nowhere to go."));
 
         // Act
-        var result = await CreateHandler().Handle(new ChangeIntakeDeskWorkflowCommand(desk.Id, _workflowId), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(Command(desk.Id), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(ChangeIntakeDeskWorkflowCommandHandler.DeskHasRequestsError);
-        VerifyAssigned(desk.Id, Times.Never());
+        result.Error.Should().Be("These statuses have nowhere to go.");
+    }
+
+    [Fact]
+    public async Task Handle_WhenAnotherChangeSavedFirst_ReportsTheDeskAsStale()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var desk = _scenario.DeskAdministeredBy(deskAdmin.Id);
+        _scenario.SignedInAs(deskAdmin);
+        _assignments.Setup(a => a.Change(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<Guid>(),
+                It.IsAny<IReadOnlyCollection<StatusRemapDecisionDto>>(), It.IsAny<EventActor>(), It.IsAny<Instant>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Failure<int>(ScopedWorkflowAssignments.ConcurrentChangeError));
+
+        // Act
+        var result = await CreateHandler().Handle(Command(desk.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeDeskAccess.StaleError);
     }
 
     [Fact]
@@ -106,7 +146,7 @@ public sealed class ChangeIntakeDeskWorkflowCommandHandlerTests
         _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);
 
         // Act
-        var result = await CreateHandler().Handle(new ChangeIntakeDeskWorkflowCommand(Guid.NewGuid(), _workflowId), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(Command(Guid.NewGuid()), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();

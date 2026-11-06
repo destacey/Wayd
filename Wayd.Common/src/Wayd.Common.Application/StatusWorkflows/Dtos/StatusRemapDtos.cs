@@ -60,3 +60,19 @@ public sealed record StatusRemapDecisionDto
     public required Guid FromStatusId { get; init; }
     public required Guid ToStatusId { get; init; }
 }
+
+/// <summary>
+/// What moving one scope onto another workflow would do, with the statuses its records could be sent to.
+/// </summary>
+/// <remarks>
+/// For a module whose own screens change a scope's workflow, where the reader may not be able to read the
+/// target workflow in workflow administration.
+/// </remarks>
+public sealed record ScopedWorkflowChangePreviewDto
+{
+    /// <summary>How each status of the scope's workflow would land, with the scope's records on each.</summary>
+    public required StatusRemapPreviewDto Remap { get; init; }
+
+    /// <summary>The target workflow's statuses that records can be sent to, in its order.</summary>
+    public required IReadOnlyCollection<WorkflowStatusDto> TargetStatuses { get; init; }
+}

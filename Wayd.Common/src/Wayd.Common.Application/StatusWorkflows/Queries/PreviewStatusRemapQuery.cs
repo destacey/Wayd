@@ -125,6 +125,15 @@ public sealed class PreviewStatusRemapQueryHandler(
         };
     }
 
+    /// <summary>The workflow's active statuses, which records can be sent to, in its order.</summary>
+    internal static List<WorkflowStatusDto> DescribeTargets(StatusWorkflow workflow)
+    {
+        var descriptor = WorkflowOwners.Resolve(workflow.OwnerType);
+        var owner = descriptor.IsSuccess ? descriptor.Value : null;
+
+        return [.. workflow.ActiveStatuses.Select(s => Describe(s, owner))];
+    }
+
     /// <summary>
     /// One status, in the shape the rest of the API uses for them.
     /// </summary>

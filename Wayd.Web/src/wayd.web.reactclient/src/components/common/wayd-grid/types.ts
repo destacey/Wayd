@@ -333,7 +333,35 @@ export interface WaydGridProps<T extends RowData> {
   /** Domain-specific move rules; rows must be tree nodes ({ id, children }). */
   moveValidator?: MoveValidator<any>
 
+  // -- Cell editing (enabled by onCommit plus a column with meta.editor) --
+  /**
+   * Saves one edited cell — or a pair of linked cells — of an existing row.
+   * The patch holds only the changed fields, keyed by each editor's `field`.
+   * Reject (an RTK `.unwrap()` does) to mark the cells as failed: the user's
+   * values stay on them, and a 422's errors are shown on the cells they name.
+   * Commits for a row run one at a time.
+   */
+  onCommit?: (rowId: string, patch: Record<string, unknown>) => Promise<void>
+  /**
+   * Creates a draft row once its tree column (its Name) commits, with every
+   * value the user put on the draft. Resolve with the new row's id so focus
+   * can follow it.
+   */
+  onCreate?: (
+    parentId: string | null,
+    values: Record<string, unknown>,
+  ) => Promise<string | void>
+  /**
+   * Server error keys whose names match no editor's `field`, mapped to the
+   * column that shows them (`{ assigneeIds: 'assignees' }`).
+   */
+  fieldToColumn?: Record<string, string>
+
   // -- Inline editing (enabled when editingConfig is provided) --
+  /**
+   * Row-level inline editing. Cell editing (`onCommit` with `meta.editor`)
+   * is the alternative; when both are given, this one is used.
+   */
   editingConfig?: GridInlineEditingConfig<T>
   /** External field-level validation errors (e.g., from API 422 responses). */
   fieldErrors?: Record<string, string>

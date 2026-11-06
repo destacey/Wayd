@@ -83,6 +83,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 column: "OwnerId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ProjectDeliverables_ProjectId_Name",
+                schema: "Ppm",
+                table: "ProjectDeliverables",
+                columns: new[] { "ProjectId", "Name" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ProjectDeliverables_ProjectId_Order",
                 schema: "Ppm",
                 table: "ProjectDeliverables",

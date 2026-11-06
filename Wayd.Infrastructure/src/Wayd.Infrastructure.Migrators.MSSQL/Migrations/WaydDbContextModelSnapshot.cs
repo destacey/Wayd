@@ -9402,6 +9402,18 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasDiscriminator().HasValue("Entra");
                 });
 
+            modelBuilder.Entity("Wayd.AppIntegration.Domain.Models.Teams.TeamsConnection", b =>
+                {
+                    b.HasBaseType("Wayd.AppIntegration.Domain.Models.Connection");
+
+                    b.Property<string>("Configuration")
+                        .ValueGeneratedOnUpdateSometimes()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("Configuration");
+
+                    b.HasDiscriminator().HasValue("Teams");
+                });
+
             modelBuilder.Entity("Wayd.AppIntegration.Domain.Models.Workday.WorkdayConnection", b =>
                 {
                     b.HasBaseType("Wayd.AppIntegration.Domain.Models.Connection");

@@ -13,8 +13,8 @@ using Wayd.Infrastructure.Persistence.Context;
 namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 {
     [DbContext(typeof(WaydDbContext))]
-    [Migration("20261106195158_Add-ProjectDeliverableNameIndex")]
-    partial class AddProjectDeliverableNameIndex
+    [Migration("20261106215418_Add-ProjectDeliverables")]
+    partial class AddProjectDeliverables
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -9403,6 +9403,18 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnName("Configuration");
 
                     b.HasDiscriminator().HasValue("Entra");
+                });
+
+            modelBuilder.Entity("Wayd.AppIntegration.Domain.Models.Teams.TeamsConnection", b =>
+                {
+                    b.HasBaseType("Wayd.AppIntegration.Domain.Models.Connection");
+
+                    b.Property<string>("Configuration")
+                        .ValueGeneratedOnUpdateSometimes()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("Configuration");
+
+                    b.HasDiscriminator().HasValue("Teams");
                 });
 
             modelBuilder.Entity("Wayd.AppIntegration.Domain.Models.Workday.WorkdayConnection", b =>

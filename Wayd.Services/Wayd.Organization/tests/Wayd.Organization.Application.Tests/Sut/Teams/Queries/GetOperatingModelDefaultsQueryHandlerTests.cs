@@ -21,6 +21,7 @@ public class GetOperatingModelDefaultsQueryHandlerTests : IDisposable
 
     private readonly FakeOrganizationDbContext _dbContext = new();
     private readonly Mock<ISettings<SchedulingSettings>> _schedulingSettings = new();
+    private readonly Mock<ISettings<GeneralSettings>> _generalSettings = new();
     private readonly GetOperatingModelDefaultsQueryHandler _handler;
     private readonly TeamFaker _teamFaker = new();
     private readonly TeamOfTeamsFaker _teamOfTeamsFaker = new();
@@ -29,9 +30,12 @@ public class GetOperatingModelDefaultsQueryHandlerTests : IDisposable
     {
         _schedulingSettings
             .Setup(s => s.Get(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new SchedulingSettings { DefaultTimeZone = "Europe/London", DefaultCommitmentGraceDays = 2 });
+            .ReturnsAsync(new SchedulingSettings { DefaultCommitmentGraceDays = 2 });
+        _generalSettings
+            .Setup(s => s.Get(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GeneralSettings { TimeZone = "Europe/London" });
 
-        _handler = new GetOperatingModelDefaultsQueryHandler(_dbContext, _schedulingSettings.Object);
+        _handler = new GetOperatingModelDefaultsQueryHandler(_dbContext, _schedulingSettings.Object, _generalSettings.Object);
     }
 
     public void Dispose() => _dbContext.Dispose();

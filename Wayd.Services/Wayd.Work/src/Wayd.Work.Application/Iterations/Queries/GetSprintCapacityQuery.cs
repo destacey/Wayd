@@ -33,6 +33,7 @@ public sealed class GetSprintCapacityQueryHandler(
     IWorkDbContext workDbContext,
     IDispatcher dispatcher,
     ISettings<SchedulingSettings> schedulingSettings,
+    ISettings<GeneralSettings> generalSettings,
     IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetSprintCapacityQuery, SprintCapacityDto?>
 {
@@ -45,6 +46,7 @@ public sealed class GetSprintCapacityQueryHandler(
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<SprintCapacityDto?> Handle(GetSprintCapacityQuery request, CancellationToken cancellationToken)
@@ -58,7 +60,7 @@ public sealed class GetSprintCapacityQueryHandler(
             return null;
 
         var now = _dateTimeProvider.Now;
-        var timeline = await _workDbContext.LoadTeamSprintTimeline(_dispatcher, _schedulingSettings, teamId, tracked: false, cancellationToken);
+        var timeline = await _workDbContext.LoadTeamSprintTimeline(_dispatcher, _schedulingSettings, _generalSettings, teamId, tracked: false, cancellationToken);
         var onTimeline = timeline.Sprints.Single(s => s.Id == sprint.Id);
         var window = SprintScopeWindow.For(timeline, onTimeline);
         var sizingMethod = timeline.ScheduleFor(onTimeline).SizingMethod;

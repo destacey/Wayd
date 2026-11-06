@@ -22,6 +22,7 @@ public class GetIterationStatesQueryHandlerTests : IDisposable
             _scenario.DbContext,
             _scenario.Dispatcher.Object,
             _scenario.SchedulingSettings.Object,
+            _scenario.GeneralSettings.Object,
             _scenario.DateTimeProvider);
     }
 
@@ -54,7 +55,7 @@ public class GetIterationStatesQueryHandlerTests : IDisposable
             sprint1Started: InChicago(Sprint1Start, 10),
             sprint1Completed: InChicago(Sprint2Start.PlusDays(-3), 11));
         var handler = new GetIterationStatesQueryHandler(
-            scenario.DbContext, scenario.Dispatcher.Object, scenario.SchedulingSettings.Object, scenario.DateTimeProvider);
+            scenario.DbContext, scenario.Dispatcher.Object, scenario.SchedulingSettings.Object, scenario.GeneralSettings.Object, scenario.DateTimeProvider);
 
         // Act — the scenario's clock is that Friday afternoon
         var result = await handler.Handle(

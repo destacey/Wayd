@@ -52231,6 +52231,139 @@
         ]
       }
     },
+    "/api/admin/settings/general": {
+      "get": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Get the general settings, including the system time zone.",
+        "operationId": "SystemSettings_GetGeneralSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeneralSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Update the general settings, including the system time zone.",
+        "operationId": "SystemSettings_UpdateGeneralSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGeneralSettingsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/admin/settings/general/activities": {
+      "get": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Get the general settings' change history.",
+        "operationId": "SystemSettings_GetGeneralSettingsActivities",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 1
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfActivityLogDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/admin/settings/scheduling": {
       "get": {
         "tags": [
@@ -61615,6 +61748,19 @@
           "maxDepth": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GeneralSettingsDto": {
+        "required": [
+          "timeZone"
+        ],
+        "type": "object",
+        "properties": {
+          "timeZone": {
+            "type": "string",
+            "description": "The system time zone, as an IANA id: the zone a calendar day is read in wherever no team's own zone\napplies, and the zone new teams start with."
           }
         },
         "additionalProperties": false
@@ -75075,16 +75221,12 @@
       },
       "SchedulingSettingsDto": {
         "required": [
-          "defaultTimeZone",
           "defaultWorkingDays",
           "defaultCommitmentGraceDays",
           "workingDayHours"
         ],
         "type": "object",
         "properties": {
-          "defaultTimeZone": {
-            "type": "string"
-          },
           "defaultCommitmentGraceDays": {
             "type": "integer",
             "format": "int32"
@@ -82896,6 +83038,20 @@
         "additionalProperties": false,
         "description": "Renames a free tag or changes its description."
       },
+      "UpdateGeneralSettingsRequest": {
+        "required": [
+          "timeZone"
+        ],
+        "type": "object",
+        "properties": {
+          "timeZone": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The system time zone, as an IANA id such as `America/Chicago`: the zone a calendar day is read in\nwherever no team's own zone applies, and the zone new teams start with."
+          }
+        },
+        "additionalProperties": false
+      },
       "UpdateHolidayCalendarRequest": {
         "required": [
           "id",
@@ -84627,16 +84783,10 @@
       },
       "UpdateSchedulingSettingsRequest": {
         "required": [
-          "defaultTimeZone",
           "defaultCommitmentGraceDays"
         ],
         "type": "object",
         "properties": {
-          "defaultTimeZone": {
-            "minLength": 1,
-            "type": "string",
-            "description": "The IANA time zone id new team operating models start with."
-          },
           "defaultCommitmentGraceDays": {
             "maximum": 14,
             "minimum": 0,

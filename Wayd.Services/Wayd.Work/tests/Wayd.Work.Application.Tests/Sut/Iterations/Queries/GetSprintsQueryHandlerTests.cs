@@ -40,8 +40,10 @@ public class GetSprintsQueryHandlerTests : IDisposable
                 _mappedCategories.Where(m => q.SprintIds.Contains(m.Key)).ToDictionary());
         var schedulingSettings = new Mock<ISettings<SchedulingSettings>>();
         schedulingSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
+        var generalSettings = new Mock<ISettings<GeneralSettings>>();
+        generalSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new GeneralSettings());
 
-        _handler = new GetSprintsQueryHandler(_dbContext, dispatcher.Object, schedulingSettings.Object, new TestingDateTimeProvider(new FakeClock(Now)));
+        _handler = new GetSprintsQueryHandler(_dbContext, dispatcher.Object, schedulingSettings.Object, generalSettings.Object, new TestingDateTimeProvider(new FakeClock(Now)));
         _iterationFaker = new IterationFaker();
     }
 

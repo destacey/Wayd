@@ -14,10 +14,6 @@ public sealed class SchedulingSettingsValidator : AbstractValidator<SchedulingSe
 
     public SchedulingSettingsValidator()
     {
-        RuleFor(s => s.DefaultTimeZone)
-            .NotEmpty()
-            .IsIanaTimeZone();
-
         RuleFor(s => s.DefaultCommitmentGraceDays)
             .InclusiveBetween(0, MaxCommitmentGraceDays);
 

@@ -87,6 +87,8 @@ public sealed class StartSprintCommandHandlerTests(SqlServerDbContextFixture fix
 
         var schedulingSettings = new Mock<ISettings<SchedulingSettings>>();
         schedulingSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
+        var generalSettings = new Mock<ISettings<GeneralSettings>>();
+        generalSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new GeneralSettings());
 
         var currentUser = new Mock<ICurrentUser>();
         currentUser.Setup(u => u.GetUserId()).Returns("integration-test-user");
@@ -99,6 +101,7 @@ public sealed class StartSprintCommandHandlerTests(SqlServerDbContextFixture fix
             accessor.Context,
             dispatcher.Object,
             schedulingSettings.Object,
+            generalSettings.Object,
             currentUser.Object,
             currentPrincipal.Object,
             Mock.Of<IDateTimeProvider>(p => p.Now == now),

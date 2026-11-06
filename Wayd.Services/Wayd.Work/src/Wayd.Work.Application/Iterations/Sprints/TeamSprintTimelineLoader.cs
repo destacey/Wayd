@@ -18,6 +18,7 @@ public static class TeamSprintTimelineLoader
         this IWorkDbContext workDbContext,
         IDispatcher dispatcher,
         ISettings<SchedulingSettings> schedulingSettings,
+        ISettings<GeneralSettings> generalSettings,
         Guid teamId,
         bool tracked,
         CancellationToken cancellationToken)
@@ -31,8 +32,9 @@ public static class TeamSprintTimelineLoader
 
         var periods = await dispatcher.Send(new GetTeamScheduleHistoryQuery(teamId), cancellationToken);
         var defaults = await schedulingSettings.Get(cancellationToken);
+        var systemZone = (await generalSettings.Get(cancellationToken)).Zone();
 
-        return new TeamSprintTimeline(teamId, sprints, Schedules(periods, defaults));
+        return new TeamSprintTimeline(teamId, sprints, Schedules(periods, defaults, systemZone));
     }
 
     /// <summary>
@@ -43,6 +45,7 @@ public static class TeamSprintTimelineLoader
         this IWorkDbContext workDbContext,
         IDispatcher dispatcher,
         ISettings<SchedulingSettings> schedulingSettings,
+        ISettings<GeneralSettings> generalSettings,
         IEnumerable<Guid> teamIds,
         Instant now,
         CancellationToken cancellationToken)
@@ -55,7 +58,7 @@ public static class TeamSprintTimelineLoader
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);
 
-        return await dispatcher.BuildIterationStateReader(schedulingSettings, sprints, now, cancellationToken);
+        return await dispatcher.BuildIterationStateReader(schedulingSettings, generalSettings, sprints, now, cancellationToken);
     }
 
     /// <summary>
@@ -65,27 +68,29 @@ public static class TeamSprintTimelineLoader
     public static async Task<IterationStateReader> BuildIterationStateReader(
         this IDispatcher dispatcher,
         ISettings<SchedulingSettings> schedulingSettings,
+        ISettings<GeneralSettings> generalSettings,
         IReadOnlyCollection<Iteration> teamSprints,
         Instant now,
         CancellationToken cancellationToken)
     {
         var defaults = await schedulingSettings.Get(cancellationToken);
+        var systemZone = (await generalSettings.Get(cancellationToken)).Zone();
         var teamIds = teamSprints
             .Where(s => s.Type == IterationType.Sprint && s.TeamId.HasValue)
             .Select(s => s.TeamId!.Value)
             .Distinct()
             .ToList();
         if (teamIds.Count == 0)
-            return new IterationStateReader([], Zone(defaults.DefaultTimeZone), now);
+            return new IterationStateReader([], systemZone, now);
 
         var periods = await dispatcher.Send(new GetTeamsScheduleHistoryQuery(teamIds), cancellationToken);
 
         var timelines = teamIds.Select(teamId => new TeamSprintTimeline(
             teamId,
             teamSprints.Where(s => s.TeamId == teamId),
-            Schedules(periods.GetValueOrDefault(teamId) ?? [], defaults)));
+            Schedules(periods.GetValueOrDefault(teamId) ?? [], defaults, systemZone)));
 
-        return new IterationStateReader(timelines, Zone(defaults.DefaultTimeZone), now);
+        return new IterationStateReader(timelines, systemZone, now);
     }
 
     /// <summary>
@@ -96,17 +101,19 @@ public static class TeamSprintTimelineLoader
     public static async Task<IReadOnlyDictionary<Guid, SprintSchedule>> LoadSprintSchedules(
         this IDispatcher dispatcher,
         ISettings<SchedulingSettings> schedulingSettings,
+        ISettings<GeneralSettings> generalSettings,
         IReadOnlyCollection<(Guid Id, Guid? TeamId, LocalDate? PlannedStart)> sprints,
         CancellationToken cancellationToken)
     {
         var defaults = await schedulingSettings.Get(cancellationToken);
+        var systemZone = (await generalSettings.Get(cancellationToken)).Zone();
         var teamIds = sprints.Where(s => s.TeamId.HasValue).Select(s => s.TeamId!.Value).Distinct().ToList();
         var periods = teamIds.Count == 0
             ? new Dictionary<Guid, IReadOnlyList<TeamSchedulePeriodDto>>()
             : await dispatcher.Send(new GetTeamsScheduleHistoryQuery(teamIds), cancellationToken);
 
-        var schedulesByTeam = teamIds.ToDictionary(id => id, id => Schedules(periods.GetValueOrDefault(id) ?? [], defaults));
-        var fallback = Fallback(defaults);
+        var schedulesByTeam = teamIds.ToDictionary(id => id, id => Schedules(periods.GetValueOrDefault(id) ?? [], defaults, systemZone));
+        var fallback = Fallback(defaults, systemZone);
 
         return sprints.ToDictionary(
             s => s.Id,
@@ -115,19 +122,19 @@ public static class TeamSprintTimelineLoader
                 : fallback);
     }
 
-    private static TeamSprintSchedules Schedules(IEnumerable<TeamSchedulePeriodDto> periods, SchedulingSettings defaults) =>
+    private static TeamSprintSchedules Schedules(IEnumerable<TeamSchedulePeriodDto> periods, SchedulingSettings defaults, DateTimeZone systemZone) =>
         new(
             periods.Select(p => new SprintSchedulePeriod(p.Start, p.End, new SprintSchedule(Zone(p.TimeZone), p.CommitmentGraceDays, p.SizingMethod)
             {
                 WorkingWeek = p.WorkingWeek,
                 HolidayCalendarId = p.HolidayCalendarId,
             })),
-            Fallback(defaults));
+            Fallback(defaults, systemZone));
 
-    // A day a team has no operating model, like a sprint with no team, is counted by item: there is no
-    // sizing method to say which estimate to read.
-    private static SprintSchedule Fallback(SchedulingSettings defaults) =>
-        new(Zone(defaults.DefaultTimeZone), defaults.DefaultCommitmentGraceDays, SizingMethod.Count)
+    // A day a team has no operating model, like a sprint with no team, is read in the system time zone and
+    // counted by item: there is no sizing method to say which estimate to read.
+    private static SprintSchedule Fallback(SchedulingSettings defaults, DateTimeZone systemZone) =>
+        new(systemZone, defaults.DefaultCommitmentGraceDays, SizingMethod.Count)
         {
             WorkingWeek = defaults.DefaultWorkingWeek(),
         };

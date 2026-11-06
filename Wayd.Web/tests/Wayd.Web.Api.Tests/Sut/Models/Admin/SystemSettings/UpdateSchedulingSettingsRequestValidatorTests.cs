@@ -9,7 +9,6 @@ public sealed class UpdateSchedulingSettingsRequestValidatorTests
 
     private static UpdateSchedulingSettingsRequest Request(decimal? workingDayHours) => new()
     {
-        DefaultTimeZone = "Etc/UTC",
         WorkingDayHours = workingDayHours,
     };
 

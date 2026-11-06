@@ -32,7 +32,7 @@ public class UpdateSchedulingSettingsCommandHandlerTests
         new(_store.Object, _settings.Object, _dispatcher.Object, _currentUser.Object, NullLogger<UpdateSchedulingSettingsCommandHandler>.Instance);
 
     [Fact]
-    public async Task Handle_SavesTheTrimmedValuesAsTheCurrentUser()
+    public async Task Handle_SavesTheValuesAsTheCurrentUser()
     {
         // Arrange
         _store.Setup(s => s.Save(It.IsAny<SchedulingSettings>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()))
@@ -40,12 +40,12 @@ public class UpdateSchedulingSettingsCommandHandlerTests
 
         // Act
         var result = await CreateHandler().Handle(
-            new UpdateSchedulingSettingsCommand(" Europe/London ", 3, WorkingWeek.MondayToFriday.Days, null), TestContext.Current.CancellationToken);
+            new UpdateSchedulingSettingsCommand(3, WorkingWeek.MondayToFriday.Days, null), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         _store.Verify(s => s.Save(
-            new SchedulingSettings { DefaultTimeZone = "Europe/London", DefaultCommitmentGraceDays = 3 },
+            new SchedulingSettings { DefaultCommitmentGraceDays = 3 },
             EventActor.User("admin-1", _employeeId),
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -55,15 +55,15 @@ public class UpdateSchedulingSettingsCommandHandlerTests
     {
         // Arrange
         _store.Setup(s => s.Save(It.IsAny<SchedulingSettings>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Failure("'Mars/Olympus_Mons' is not a valid IANA time zone."));
+            .ReturnsAsync(Result.Failure("'Default Commitment Grace Days' must be between 0 and 14."));
 
         // Act
         var result = await CreateHandler().Handle(
-            new UpdateSchedulingSettingsCommand("Mars/Olympus_Mons", 1, WorkingWeek.MondayToFriday.Days, null), TestContext.Current.CancellationToken);
+            new UpdateSchedulingSettingsCommand(15, WorkingWeek.MondayToFriday.Days, null), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("not a valid IANA time zone");
+        result.Error.Should().Contain("between 0 and 14");
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class UpdateSchedulingSettingsCommandHandlerTests
 
         // Act
         var result = await CreateHandler().Handle(
-            new UpdateSchedulingSettingsCommand("UTC", 1, null, null), TestContext.Current.CancellationToken);
+            new UpdateSchedulingSettingsCommand(1, null, null), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -101,7 +101,7 @@ public class UpdateSchedulingSettingsCommandHandlerTests
 
         // Act
         var result = await CreateHandler().Handle(
-            new UpdateSchedulingSettingsCommand("UTC", 1, null, null, (decimal?)given), TestContext.Current.CancellationToken);
+            new UpdateSchedulingSettingsCommand(1, null, null, (decimal?)given), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -121,7 +121,7 @@ public class UpdateSchedulingSettingsCommandHandlerTests
 
         // Act
         var result = await CreateHandler().Handle(
-            new UpdateSchedulingSettingsCommand("UTC", 1, WorkingWeek.MondayToFriday.Days, calendarId), TestContext.Current.CancellationToken);
+            new UpdateSchedulingSettingsCommand(1, WorkingWeek.MondayToFriday.Days, calendarId), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -140,7 +140,7 @@ public class UpdateSchedulingSettingsCommandHandlerTests
 
         // Act
         var result = await CreateHandler().Handle(
-            new UpdateSchedulingSettingsCommand("UTC", 1, WorkingWeek.MondayToFriday.Days, calendarId), TestContext.Current.CancellationToken);
+            new UpdateSchedulingSettingsCommand(1, WorkingWeek.MondayToFriday.Days, calendarId), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();

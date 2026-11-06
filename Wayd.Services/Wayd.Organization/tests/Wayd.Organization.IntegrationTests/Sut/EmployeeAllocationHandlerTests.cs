@@ -718,8 +718,8 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
 
     private static EmployeeDeactivatedAllocationHandler DeactivationHandler(WaydDbContext context)
     {
-        var settings = new Mock<ISettings<SchedulingSettings>>();
-        settings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
+        var settings = new Mock<ISettings<GeneralSettings>>();
+        settings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new GeneralSettings());
         return new EmployeeDeactivatedAllocationHandler(context, context, settings.Object, NullLogger<EmployeeDeactivatedAllocationHandler>.Instance);
     }
 

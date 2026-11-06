@@ -175,10 +175,13 @@ public sealed class GetTeamSprintMetricsQueryHandlerTests(SqlServerDbContextFixt
 
         var schedulingSettings = new Mock<ISettings<SchedulingSettings>>();
         schedulingSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
+        var generalSettings = new Mock<ISettings<GeneralSettings>>();
+        generalSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new GeneralSettings());
         var sprintMetricsSettings = new Mock<ISettings<SprintMetricsSettings>>();
         sprintMetricsSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SprintMetricsSettings());
 
         var handler = new GetTeamSprintMetricsQueryHandler(accessor.Context, dispatcher.Object, schedulingSettings.Object,
+            generalSettings.Object,
             sprintMetricsSettings.Object, Mock.Of<IDateTimeProvider>(p => p.Now == AfterEverySprint));
         return await handler.Handle(new GetTeamSprintMetricsQuery(teamId, sprintWindow), ct);
     }

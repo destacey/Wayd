@@ -60081,6 +60081,193 @@ export class SystemSettingsClient {
     }
 
     /**
+     * Get the general settings, including the system time zone.
+     * @return OK
+     */
+    getGeneralSettings( cancelToken?: CancelToken): Promise<GeneralSettingsDto> {
+        let url_ = this.baseUrl + "/api/admin/settings/general";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetGeneralSettings(_response);
+        });
+    }
+
+    protected processGetGeneralSettings(response: AxiosResponse): Promise<GeneralSettingsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<GeneralSettingsDto>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GeneralSettingsDto>(null as any);
+    }
+
+    /**
+     * Update the general settings, including the system time zone.
+     * @return No Content
+     */
+    updateGeneralSettings(request: UpdateGeneralSettingsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/admin/settings/general";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateGeneralSettings(_response);
+        });
+    }
+
+    protected processUpdateGeneralSettings(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get the general settings' change history.
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     * @return OK
+     */
+    getGeneralSettingsActivities(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfActivityLogDto> {
+        let url_ = this.baseUrl + "/api/admin/settings/general/activities?";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetGeneralSettingsActivities(_response);
+        });
+    }
+
+    protected processGetGeneralSettingsActivities(response: AxiosResponse): Promise<PagedResponseOfActivityLogDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PagedResponseOfActivityLogDto>(result200);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PagedResponseOfActivityLogDto>(null as any);
+    }
+
+    /**
      * Get the scheduling settings.
      * @return OK
      */
@@ -64307,6 +64494,12 @@ export interface FunctionalOrganizationChartDto {
     organization: OrganizationalUnitDto[];
     total: number;
     maxDepth: number;
+}
+
+export interface GeneralSettingsDto {
+    /** The system time zone, as an IANA id: the zone a calendar day is read in wherever no team's own zone
+applies, and the zone new teams start with. */
+    timeZone: string;
 }
 
 export interface GlobalSearchCategoryDto {
@@ -68682,7 +68875,6 @@ export interface ScaleLevelInput {
 }
 
 export interface SchedulingSettingsDto {
-    defaultTimeZone: string;
     defaultCommitmentGraceDays: number;
     /** The days of the week new team operating models work, Monday first. */
     defaultWorkingDays: IsoDayOfWeek[];
@@ -71236,6 +71428,12 @@ export interface UpdateFreeProductTagRequest {
     description?: string | undefined;
 }
 
+export interface UpdateGeneralSettingsRequest {
+    /** The system time zone, as an IANA id such as `America/Chicago`: the zone a calendar day is read in
+wherever no team's own zone applies, and the zone new teams start with. */
+    timeZone: string;
+}
+
 export interface UpdateHolidayCalendarRequest {
     /** The calendar's id, which must match the route. */
     id: string;
@@ -71739,8 +71937,6 @@ export interface UpdateRolePermissionsRequest {
 }
 
 export interface UpdateSchedulingSettingsRequest {
-    /** The IANA time zone id new team operating models start with. */
-    defaultTimeZone: string;
     /** Days after a sprint's planned start that its commitment is taken when the team does not start it. */
     defaultCommitmentGraceDays: number;
     /** The days of the week new team operating models work. At least one. Omit to keep the saved value. */

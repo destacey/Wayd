@@ -18,7 +18,6 @@ public sealed class GetSchedulingSettingsQueryHandler(ISettings<SchedulingSettin
 
         return new SchedulingSettingsDto
         {
-            DefaultTimeZone = values.DefaultTimeZone,
             DefaultCommitmentGraceDays = values.DefaultCommitmentGraceDays,
             DefaultWorkingDays = values.DefaultWorkingDays,
             DefaultHolidayCalendar = values.DefaultHolidayCalendarId is { } calendarId

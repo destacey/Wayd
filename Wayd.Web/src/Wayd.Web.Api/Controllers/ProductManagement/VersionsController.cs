@@ -33,11 +33,11 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
 [McpTools(McpToolset.Delivery, "wayd-delivery")]
-public class VersionsController(IDispatcher dispatcher, ICsvService csvService, ISettings<SchedulingSettings> schedulingSettings, ILogger<VersionsController> logger) : ControllerBase
+public class VersionsController(IDispatcher dispatcher, ICsvService csvService, ISettings<GeneralSettings> generalSettings, ILogger<VersionsController> logger) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICsvService _csvService = csvService;
-    private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
     private readonly ILogger<VersionsController> _logger = logger;
 
     [HttpGet]
@@ -269,7 +269,7 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
         Guid id, [FromBody] CorrectVersionDatesRequest request, CancellationToken cancellationToken)
     {
         var zone = await LegacyDeliveryDates.ZoneForRequest(
-            request.UsesLegacyDates(), _schedulingSettings, _logger, "Correct version dates", cancellationToken);
+            request.UsesLegacyDates(), _generalSettings, _logger, "Correct version dates", cancellationToken);
 
         var result = await _dispatcher.Send(
             new CorrectVersionDatesCommand(id, request.TargetDate, request.ResolveCutAt(zone), request.ResolveReleasedAt(zone)),
@@ -292,7 +292,7 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
         Guid id, [FromBody] CutVersionRequest request, CancellationToken cancellationToken)
     {
         var zone = await LegacyDeliveryDates.ZoneForRequest(
-            request.UsesLegacyDates(), _schedulingSettings, _logger, "Cut version", cancellationToken);
+            request.UsesLegacyDates(), _generalSettings, _logger, "Cut version", cancellationToken);
 
         var result = await _dispatcher.Send(new CutVersionCommand(id, request.ResolveCutAt(zone)), cancellationToken);
 
@@ -315,7 +315,7 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
         Guid id, [FromBody] MarkVersionReleasedRequest request, CancellationToken cancellationToken)
     {
         var zone = await LegacyDeliveryDates.ZoneForRequest(
-            request.UsesLegacyDates(), _schedulingSettings, _logger, "Mark version released", cancellationToken);
+            request.UsesLegacyDates(), _generalSettings, _logger, "Mark version released", cancellationToken);
 
         var result = await _dispatcher.Send(
             new MarkVersionReleasedCommand(id, request.ResolveReleasedAt(zone)), cancellationToken);

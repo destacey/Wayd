@@ -24,6 +24,7 @@ public class GetSprintQueryHandlerTests : IDisposable
             _scenario.DbContext,
             _scenario.Dispatcher.Object,
             _scenario.SchedulingSettings.Object,
+            _scenario.GeneralSettings.Object,
             _scenario.CurrentPrincipal.Object,
             _scenario.DateTimeProvider);
     }

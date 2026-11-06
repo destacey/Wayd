@@ -49,8 +49,10 @@ public sealed class GetTeamBacklogHealthQueryTests : IDisposable
             .ReturnsAsync(new Dictionary<Guid, IReadOnlyList<TeamSchedulePeriodDto>>());
         var schedulingSettings = new Mock<ISettings<SchedulingSettings>>();
         schedulingSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
+        var generalSettings = new Mock<ISettings<GeneralSettings>>();
+        generalSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new GeneralSettings());
 
-        return new(_context, _dispatcher.Object, schedulingSettings.Object, _dateTimeProvider);
+        return new(_context, _dispatcher.Object, schedulingSettings.Object, generalSettings.Object, _dateTimeProvider);
     }
 
     private static GetTeamBacklogHealthQuery Query(Guid team, BacklogHealthThresholds? thresholds = null) =>
